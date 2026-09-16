@@ -5,6 +5,7 @@ import { loadCanonicalState, loadSoul } from '../core/loaders.js';
 import { GovernanceKernel } from '../core/governance.js';
 import { AttestedPolicy } from '../core/policy.js';
 import { PredictionStore } from '../core/prediction.js';
+import { ObservationStore } from '../core/observation.js';
 import { BodyRegistry } from '../core/registry.js';
 import { DomainLeaseStore } from '../core/lease.js';
 import { HandoffStore } from '../core/handoff.js';
@@ -34,6 +35,7 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
   // a kernel without them cannot prove invariants #4/#5.
   const policy = new AttestedPolicy(paths.canonicalDir, governance.policyFile);
   const predictions = new PredictionStore(paths.canonicalDir);
+  const observations = new ObservationStore(paths.canonicalDir);
   const kernel = new GovernanceKernel({
     audit,
     policy,
@@ -59,6 +61,7 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
   const contextProvider = () => buildContextEnvelope({
     briefing: soul.briefing ?? '',
     openPredictions: predictions.openPredictions(),
+    observations: observations.recent(20),
   });
   const contextEnvelope = contextProvider();
 
@@ -68,7 +71,7 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
 
   return {
     paths, audit, manifest, soul, canonical, kernel,
-    policy, predictions,
+    policy, predictions, observations,
     registry, leases, handoffs, identity,
     instructionEnvelope, contextEnvelope, contextProvider,
   };

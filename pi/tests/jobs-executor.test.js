@@ -4,7 +4,8 @@
  * under a new attempt. Plus long-command classifier + delegate tool surface.
  */
 import { mkdtempSync, existsSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -12,6 +13,8 @@ import assert from 'node:assert/strict';
 import { JobStore } from '../../host/src/core/jobs.js';
 import { JobExecutor, isLongRunningCommand, isWorkerAlive, validateCheckpoint } from '../src/adapter/jobs.js';
 import { delegateTool, jobStatusTool } from '../src/adapter/delegate.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 const rig = (dir) => {
   const store = new JobStore(join(dir, 'durable_jobs.db'));
@@ -101,7 +104,7 @@ test('job completes end-to-end: fast command runs to COMPLETED with result envel
   store.close();
 });
 
-test('B7: delegated worker usage is recorded under parent_run_id', { timeout: 15_000 }, async () => {
+test('B7: real delegate path — bridge produces usage attributed to parent_run_id', { timeout: 20_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-b7-'));
   mkdirSync(join(dir, 'audit'), { recursive: true });
   const { AuditWriter } = await import('../../host/src/core/audit.js');
@@ -109,23 +112,34 @@ test('B7: delegated worker usage is recorded under parent_run_id', { timeout: 15
   const store = new JobStore(join(dir, 'durable_jobs.db'));
   const executor = new JobExecutor(store, join(dir, 'jobs'), { audit, runId: 'parent-run-1' });
 
-  // fake delegate worker: reports its token/cost usage on stdout
-  const { job_id, attempt_id } = executor.spawnCommandJob({
-    command: `node -e "console.log('PAI_USAGE '+JSON.stringify({input:1200,output:80,cost:0.0042}))"`,
+  // the REAL delegate path: delegate_task → production delegate-bridge → a
+  // real worker subprocess. The worker reports its own token/cost the way a
+  // delegate agent would; the bridge measures real wall time/output and
+  // emits the authoritative PAI_USAGE envelope.
+  const workerFixture = join(here, 'fixtures', 'delegate-worker.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => `node "${workerFixture}"`,
     workdir: tmpdir(),
-    jobType: 'delegation',
   });
-  await new Promise((r) => setTimeout(r, 1500));
+  const result = await tool.execute('tc1', { target: 'codex', task: 'review this' });
+  const job_id = result.details.job_id;
+  await new Promise((r) => setTimeout(r, 2500));
 
   const attempt = store.getAttempts(job_id)[0];
   const envelope = JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
   assert.equal(envelope.parent_run_id, 'parent-run-1');
-  assert.deepEqual(envelope.usage, { input: 1200, output: 80, cost: 0.0042 });
+  // bridge-produced usage — real measured fields, not a test marker
+  assert.equal(envelope.usage.via, 'delegate-bridge');
+  assert.equal(envelope.usage.target, 'codex');
+  assert.ok(envelope.usage.wallMs >= 0 && envelope.usage.outputBytes > 0);
+  // the real worker's own reported token/cost rides nested under childUsage
+  assert.deepEqual(envelope.usage.childUsage, { input: 1200, output: 80, cost: 0.0042 });
 
   const ledger = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
   const finished = ledger.trim().split('\n').map(JSON.parse).find((e) => e.kind === 'JOB_FINISHED');
   assert.equal(finished.data.parent_run_id, 'parent-run-1');
-  assert.deepEqual(finished.data.usage, { input: 1200, output: 80, cost: 0.0042 });
+  assert.equal(finished.data.usage.via, 'delegate-bridge');
+  assert.deepEqual(finished.data.usage.childUsage, { input: 1200, output: 80, cost: 0.0042 });
   store.close();
 });
 

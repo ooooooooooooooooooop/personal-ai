@@ -169,29 +169,43 @@ export class DshBody {
   }
 
   /**
-   * Drive the REAL dsh CLI headless profile for one task. The probe is honest:
-   * a missing binary/profile is reported as an unavailable capability, never
+   * Execute a task on this body. Two real paths, both honestly labelled:
+   *  - `via: 'dsh-cli'`        — the real dsh CLI headless profile, when a bin
+   *                              is installed/declared
+   *  - `via: 'direct-effect'`  — a concrete shell command run as a direct
+   *                              governed effect (shell is a declared
+   *                              supported_effect_domain of this body)
+   * A missing CLI with no concrete command is reported unavailable, never
    * faked as a successful run.
    */
-  async runTask(task, { workdir = process.cwd(), timeoutMs = 120_000 } = {}) {
-    if (!this.dshCli || !existsSync(this.dshCli)) {
-      return { ok: false, reason: 'dsh cli not installed/declared', unavailable: true };
-    }
-    return new Promise((resolve) => {
-      const child = spawn(process.execPath, [this.dshCli, '--profile', this.dshProfile, task], {
-        cwd: workdir, windowsHide: true,
+  async runTask(task, { command = null, workdir = process.cwd(), timeoutMs = 120_000 } = {}) {
+    if (this.dshCli && existsSync(this.dshCli)) {
+      return this.#spawn([process.execPath, this.dshCli, '--profile', this.dshProfile, task], {
+        workdir, timeoutMs, via: 'dsh-cli',
       });
+    }
+    if (command) {
+      return this.#spawn(command, { workdir, timeoutMs, via: 'direct-effect', shell: true });
+    }
+    return { ok: false, reason: 'dsh cli not installed/declared and no direct command given', unavailable: true };
+  }
+
+  #spawn(cmd, { workdir, timeoutMs, via, shell = false }) {
+    return new Promise((resolve) => {
+      const child = Array.isArray(cmd)
+        ? spawn(cmd[0], cmd.slice(1), { cwd: workdir, windowsHide: true })
+        : spawn(cmd, { cwd: workdir, windowsHide: true, shell });
       let out = '';
       child.stdout.on('data', (d) => { out += d; });
       child.stderr.on('data', (d) => { out += d; });
-      const timer = setTimeout(() => { child.kill(); resolve({ ok: false, reason: 'timeout', output: out }); }, timeoutMs);
+      const timer = setTimeout(() => { child.kill(); resolve({ ok: false, reason: 'timeout', output: out, via }); }, timeoutMs);
       child.on('exit', (code) => {
         clearTimeout(timer);
-        resolve({ ok: code === 0, exitCode: code, output: out });
+        resolve({ ok: code === 0, exitCode: code, output: out, via });
       });
       child.on('error', (e) => {
         clearTimeout(timer);
-        resolve({ ok: false, reason: e.message });
+        resolve({ ok: false, reason: e.message, via });
       });
     });
   }

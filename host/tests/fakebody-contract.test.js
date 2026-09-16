@@ -109,7 +109,13 @@ test('L2: cold handoff transfers writer ownership through the machine', () => {
   assert.ok(acq.ok);
   handoffs.acquire('hb', { byBody: 'new-body', leases: [acq.lease] });
   handoffs.resume('hb');
-  const v = handoffs.verify('hb', { writerLease: to.writeEffect(leases, 'domain', 'jobs') });
+  const v = handoffs.verify('hb', {
+    policyIdentity: true,
+    stateCursor: true,
+    provenanceParent: true,
+    writerLease: to.writeEffect(leases, 'domain', 'jobs'),
+    capabilityCoverage: true,
+  });
   assert.ok(v.ok);
   // old body's stale token stays dead
   assert.equal(from.writeEffect(leases, 'domain', 'jobs'), false);

@@ -12,6 +12,7 @@ import { instancePaths } from '../../host/src/core/instance.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
 import { ContinuationGovernor } from '../../host/src/core/continuation.js';
 import { PredictionStore } from '../../host/src/core/prediction.js';
+import { ObservationStore } from '../../host/src/core/observation.js';
 
 function rig(requirements = [{ id: 'wrote', kind: 'tool_success', tool: 'write' }]) {
   const dir = mkdtempSync(join(tmpdir(), 'pai-loop-'));
@@ -19,6 +20,7 @@ function rig(requirements = [{ id: 'wrote', kind: 'tool_success', tool: 'write' 
   const audit = new AuditWriter(paths);
   const canonical = join(dir, 'canonical');
   const predictions = new PredictionStore(canonical);
+  const observations = new ObservationStore(canonical);
   const continuation = new ContinuationGovernor({
     ledgerPath: join(dir, 'continuation.jsonl'),
     audit,
@@ -26,10 +28,10 @@ function rig(requirements = [{ id: 'wrote', kind: 'tool_success', tool: 'write' 
   });
   const handlers = {};
   const pi = { on: (event, fn) => { handlers[event] = fn; } };
-  loopGovernanceExtension({ continuation, predictions, audit, contextEnvelope: { kind: 'ContextEnvelope', briefing: 'b' } }).factory(pi);
+  loopGovernanceExtension({ continuation, predictions, observations, audit, contextEnvelope: { kind: 'ContextEnvelope', briefing: 'b' } }).factory(pi);
   const sent = [];
   const ctx = { sendUserMessage: (text) => sent.push(text) };
-  return { handlers, ctx, sent, dir, audit, predictions };
+  return { handlers, ctx, sent, dir, audit, predictions, observations };
 }
 
 const auditKinds = (dir) =>
@@ -122,4 +124,29 @@ test('model_select is audited', () => {
   const { handlers, dir } = rig();
   handlers.model_select({ model: { id: 'm2' }, previousModel: { id: 'm1' }, source: 'set' });
   assert.ok(auditKinds(dir).includes('MODEL_SELECT'));
+});
+
+test('B4: tool results feed the canonical observation lifecycle', () => {
+  const { handlers, dir, observations } = rig();
+  handlers.turn_end({
+    turnIndex: 0,
+    message: { content: 'ran things' },
+    toolResults: [
+      { toolName: 'read', isError: false },
+      { toolName: 'bash', isError: true },
+    ],
+  });
+  const list = observations.list();
+  assert.equal(list.length, 2);
+  assert.equal(list[0].kind, 'tool_result');
+  assert.equal(list[0].subject, 'read');
+  assert.equal(list[1].detail.isError, true);
+  // canonical persistence — a reopened store sees the same feed
+  const reopened = new ObservationStore(join(dir, 'canonical'));
+  assert.equal(reopened.list().length, 2);
+  // and the compaction audit now reports the observation count
+  handlers.session_before_compact({ reason: 'overflow', willRetry: false, branchEntries: [] });
+  const before = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+    .trim().split('\n').map(JSON.parse).find((e) => e.kind === 'COMPACT_BEFORE');
+  assert.equal(before.data.observations, 2);
 });

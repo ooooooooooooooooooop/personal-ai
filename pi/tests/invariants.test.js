@@ -22,6 +22,7 @@ import assert from 'node:assert/strict';
 import { startHost } from '../src/bootstrap/host.js';
 import { isWorkerAlive } from '../src/adapter/jobs.js';
 import { HandoffStore, makePortableContinuityEnvelope } from '../../host/src/core/handoff.js';
+import { eligible } from '../../host/src/core/eligibility.js';
 import { hashOf } from '../../host/src/core/audit.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -165,14 +166,26 @@ test('M7 drill: cold handoff envelope carries PAI-owned continuity end-to-end', 
     source: { body: 'pi', session: 'sess-1', run: host.runId },
   });
   store.checkpoint('h-1', envelope);
+  // writer lease: old holder releases, post-handoff body re-claims the same domain
+  const pre = host.leases.claim({ scope: 'domain', name: 'world-model', owner: `pi:${host.runId}`, ttlSeconds: 60 });
+  assert.ok(pre.ok);
+  host.leases.release({ scope: 'domain', name: 'world-model', owner: `pi:${host.runId}`, generation: pre.lease.generation });
   store.release('h-1', ['canonical:world-model', 'jobs']);
+  const post = host.leases.claim({ scope: 'domain', name: 'world-model', owner: `pi:${host.runId}`, ttlSeconds: 60 });
+  assert.ok(post.ok);
   store.acquire('h-1', { byBody: 'pi', leases: ['canonical:world-model', 'jobs'] });
   store.resume('h-1');
   const verdict = store.verify('h-1', {
-    policyMatch: true,
-    canonicalCursorMatches: true,
-    predictionsPresent: envelope.openPredictions.includes(p.id),
-    writerLeaseHeld: true,
+    policyIdentity: envelope.policyIdentity === hashOf(readFileSync(join(dir, 'canonical', 'policy.json'), 'utf-8')),
+    stateCursor: envelope.canonicalCursor === hashOf('canonical-ledger-head'),
+    provenanceParent: envelope.provenanceChain.at(-1) === envelope.source.run,
+    writerLease: host.leases.assertHeld({
+      scope: 'domain', name: 'world-model',
+      owner: `pi:${host.runId}`, generation: post.lease.generation,
+    }),
+    capabilityCoverage: eligible(host.registry.get('pi'), {
+      requiredCapabilities: [{ capability: 'final_post_extension_guard', negotiable: false }],
+    }).eligible,
   });
   assert.equal(verdict.ok, true);
   assert.equal(store.status('h-1').state, 'verified');

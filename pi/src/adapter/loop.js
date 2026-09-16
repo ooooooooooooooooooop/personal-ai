@@ -20,7 +20,7 @@
  *                    not instruction mutation)
  *  - model_select  → audit (model switches are governance-visible events)
  */
-export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, audit }) {
+export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit }) {
   return {
     name: 'pai-loop-governance',
     factory: (pi) => {
@@ -44,6 +44,15 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       pi.on('turn_end', (event) => {
         for (const r of event.toolResults ?? []) {
           transcript.toolCalls.push({ name: r.toolName, isError: Boolean(r.isError) });
+          // Canonical observation feed: every tool result the body observed is
+          // world-model state — append-only, survives compaction, re-injected
+          // into context on every turn via the live provider.
+          observations?.record({
+            kind: 'tool_result',
+            subject: r.toolName ?? 'unknown',
+            detail: { isError: Boolean(r.isError) },
+            actor: 'pi',
+          });
         }
         const text = extractText(event.message);
         if (text) transcript.assistantText += (transcript.assistantText ? '\n' : '') + text;
@@ -67,6 +76,7 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
             willRetry: event.willRetry,
             branchEntries: event.branchEntries?.length ?? 0,
             openPredictions: open.length,
+            observations: observations ? observations.list().length : 0,
             worldModelProjection: contextEnvelope ? 'context-seam re-injection' : 'absent',
           },
         });

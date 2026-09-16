@@ -77,7 +77,7 @@ export function renderContext(env) {
   if (env.observations.length) {
     parts.push('<observations>');
     for (const o of env.observations) {
-      parts.push(`- ${typeof o === 'string' ? o : JSON.stringify(o)}`);
+      parts.push(`- [${o?.kind ?? 'observation'}] ${o?.subject ?? JSON.stringify(o)}`);
     }
     parts.push('</observations>');
   }

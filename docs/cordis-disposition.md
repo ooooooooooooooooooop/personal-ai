@@ -2,7 +2,7 @@
 
 数据源：`scripts/m5_cordis_scan.py` 扫 `~/.dsh/profiles/web/base-dsh-0.1.1-rc.2`（`.taskflow/m5-inventory.json`，197 包，含 dsh 嵌套 node_modules）。
 Chord 验证：`pi/tests/chord-spike.test.js` 3/3（service/facet/replicatedState/RemoteServiceProvider keyed-spawn 全通）。
-逐包处置（机检 artifact）：[`docs/cordis-disposition.json`](./cordis-disposition.json)——197 包逐一打标，`python scripts/m5_disposition_build.py <inventory.json> --check` 校验覆盖率与漂移。
+逐包+逐服务处置（机检 artifact）：[`docs/cordis-disposition.json`](./cordis-disposition.json)——197 包逐一打标，35 个扫描到的 cordis service（`extends Service`）逐一打标，包行同时记录 injects/provides 服务键；`python scripts/m5_disposition_build.py <inventory.json> --check` 校验包级与服务级覆盖率、缺项、多余与漂移。服务级分布：B2/C5/D19/E9（服务默继承包级分类，`SERVICE_OVERRIDES` 单独钉住去向不同的服务）。
 
 ## 五类语义（R8 收敛后的口径）
 

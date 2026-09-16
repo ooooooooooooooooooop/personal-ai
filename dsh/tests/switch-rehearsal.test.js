@@ -23,6 +23,7 @@ import { DshBody } from '../adapter/index.js';
 import { BodyRegistry } from '../../host/src/core/registry.js';
 import { DomainLeaseStore } from '../../host/src/core/lease.js';
 import { HandoffStore } from '../../host/src/core/handoff.js';
+import { eligible } from '../../host/src/core/eligibility.js';
 import { JobStore } from '../../host/src/core/jobs.js';
 import { PredictionStore } from '../../host/src/core/prediction.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
@@ -99,14 +100,26 @@ test('L5/L6: real task switches pi→dsh — continuity holds end-to-end', { tim
   });
   handoffs.resume('sw-1');
 
-  // verify against REAL state, not declared intentions
+  // verify against REAL state, not declared intentions — all five gates
+  // computed from actual stores, and a missing gate would fail-closed
   const predictions2 = new PredictionStore(join(dir, 'canonical'));
   const jobs2 = new JobStore(join(dir, 'jobs', 'durable_jobs.db'));
+  const recomputedCursor = `sha256:${createHash('sha256')
+    .update(JSON.stringify(predictions2.openPredictions())).digest('hex')}`;
   const verdict = handoffs.verify('sw-1', {
-    policyMatch: policyHash === `sha256:${createHash('sha256').update(readFileSync(join(dir, 'canonical', 'policy.json'), 'utf-8')).digest('hex')}`,
-    canonicalCursorMatches: true, // cursor recomputed from the same store below
-    predictionsPresent: predictions2.openPredictions().some((p) => p.id === prediction.id),
-    writerLeaseHeld: dsh.writeEffect(leases2, 'domain', 'world-model'),
+    policyIdentity: policyHash === `sha256:${createHash('sha256')
+      .update(readFileSync(join(dir, 'canonical', 'policy.json'), 'utf-8')).digest('hex')}`,
+    stateCursor: envelope.canonicalCursor === recomputedCursor
+      && predictions2.openPredictions().some((p) => p.id === prediction.id),
+    provenanceParent: envelope.provenanceChain.at(-1) === envelope.source.run
+      && envelope.source.run === h1.runId,
+    writerLease: dsh.writeEffect(leases2, 'domain', 'world-model'),
+    capabilityCoverage: eligible(dsh.facts(), {
+      requiredCapabilities: [
+        { capability: 'durable_jobs', negotiable: false },
+        { capability: 'canonical_prediction_binding', negotiable: false },
+      ],
+    }).eligible,
   });
   assert.equal(verdict.ok, true);
   assert.equal(handoffs.status('sw-1').state, 'verified');
@@ -122,9 +135,17 @@ test('L5/L6: real task switches pi→dsh — continuity holds end-to-end', { tim
   assert.equal(job2.job_state, 'COMPLETED', 'job record survived the switch');
   assert.ok(existsSync(jobs2.getAttempts(job_id)[0].result_envelope_ref));
 
-  // dsh performs its first governed effect under the NEW fencing token and
-  // extends the same provenance ledger — it does not restart it
+  // dsh performs a REAL post-handoff action on the same task — a governed
+  // effect under the NEW fencing token executed through DshBody.runTask as a
+  // real subprocess (dsh CLI absent → honest direct-effect path)
   assert.ok(dsh.writeEffect(leases2, 'domain', 'world-model'));
+  const continued = await dsh.runTask('continue switch task after handoff', {
+    command: 'echo SWITCH_TASK_CONTINUED',
+    workdir: dir,
+  });
+  assert.equal(continued.ok, true, `dsh post-handoff action failed: ${JSON.stringify(continued)}`);
+  assert.equal(continued.via, 'direct-effect'); // honest path label, not a fake cli claim
+  assert.match(continued.output, /SWITCH_TASK_CONTINUED/);
   const audit2 = new AuditWriter({ auditDir: join(dir, 'audit') });
   audit2.write({
     kind: 'HANDOFF_RESUMED',

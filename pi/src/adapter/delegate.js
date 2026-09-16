@@ -12,17 +12,22 @@
  *    delegated work bills to the parent run identity (Hermes pattern)
  */
 import { JobExecutor } from './jobs.js';
+import { fileURLToPath } from 'node:url';
+
+/** The real usage producer every delegation rides through. */
+export const DELEGATE_BRIDGE = fileURLToPath(new URL('../../bin/delegate-bridge.js', import.meta.url));
 
 /**
  * Build the delegate_task customTool.
  * @param {JobExecutor} executor
  * @param {object} opts
  * @param {(target:string,task:string)=>string} opts.commandFor
- *        maps (target, task) → the RPC shell command to spawn
+ *        maps (target, task) → the delegated shell command the bridge spawns
  *        (e.g. `python -m agent_switchboard send --to ${target} --task ...`)
  * @param {string} opts.workdir
+ * @param {string} [opts.bridgePath] override the bridge executable (tests)
  */
-export function delegateTool(executor, { commandFor, workdir }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -40,7 +45,12 @@ export function delegateTool(executor, { commandFor, workdir }) {
     },
     promptSnippet: 'delegate_task(target, task): run a task on another agent as a durable job',
     async execute(_toolCallId, params) {
-      const command = commandFor(params.target, params.task);
+      // Every delegation goes through the bridge: it spawns the real worker,
+      // measures wall time/output, forwards child-reported usage, and emits
+      // the single authoritative PAI_USAGE line the executor attributes to
+      // parent_run_id. Usage attribution is produced, not hoped for.
+      const inner = commandFor(params.target, params.task);
+      const command = `"${process.execPath}" "${bridgePath}" --target ${params.target} -- ${inner}`;
       const { job_id, attempt_id } = executor.spawnCommandJob({
         command,
         workdir,

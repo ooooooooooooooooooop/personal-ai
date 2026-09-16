@@ -67,6 +67,38 @@ test('startHost assembles a governed pi body end-to-end', async () => {
   host.leases.close();
 });
 
+test('M8-B4: canonical observations flow into the live context provider', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-obs-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+
+  // real canonical source — record an observation, the provider re-reads it
+  host.observations.record({ kind: 'tool_result', subject: 'bash', detail: { isError: false }, actor: 'pi' });
+  const env = host.contextProvider();
+  assert.ok(env.observations.some((o) => o.subject === 'bash'));
+
+  // rendered into the context channel text (what the model actually sees)
+  const { renderContext } = await import('../../host/src/core/envelopes.js');
+  const rendered = renderContext(env);
+  assert.ok(rendered.includes('<observations>'));
+  assert.ok(rendered.includes('[tool_result] bash'));
+
+  // canonical durability: a fresh store over the same dir sees it — the
+  // projection survives process restarts, so post-compaction turns re-read it
+  const { ObservationStore } = await import('../../host/src/core/observation.js');
+  const reopened = new ObservationStore(join(dir, 'canonical'));
+  assert.ok(reopened.recent(20).some((o) => o.subject === 'bash'));
+
+  host.leases.close();
+});
+
 test('M8: ToolSurface + FileOpsGuard are wired into the real session', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-boot-m8-'));
   mkdirSync(join(dir, 'canonical'), { recursive: true });

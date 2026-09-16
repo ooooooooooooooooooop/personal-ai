@@ -179,6 +179,7 @@ export async function startHost({
             requirements: taskRequirements,
           }),
           predictions: core.predictions,
+          observations: core.observations,
         }
       : null,
   });

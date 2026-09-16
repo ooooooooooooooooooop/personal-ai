@@ -64,10 +64,27 @@ test('verify failure marks handoff failed (fail-closed, not continue)', () => {
   s.release('h3');
   s.acquire('h3', { byBody: 'pi' });
   s.resume('h3');
-  const v = s.verify('h3', { policyIdentity: true, writerLease: false });
+  const v = s.verify('h3', {
+    policyIdentity: true, stateCursor: true, provenanceParent: true,
+    writerLease: false, capabilityCoverage: true,
+  });
   assert.equal(v.ok, false);
   assert.deepEqual(v.failures, ['writerLease']);
   assert.equal(s.status('h3').state, 'failed');
+});
+
+test('verify is fail-closed on MISSING checks — callers cannot skip a gate', () => {
+  const s = store();
+  s.begin({ handoffId: 'h5', fromBody: 'dsh', toBody: 'pi' });
+  s.quiesce('h5');
+  s.checkpoint('h5', makePortableContinuityEnvelope(ENVELOPE));
+  s.release('h5');
+  s.acquire('h5', { byBody: 'pi' });
+  s.resume('h5');
+  const v = s.verify('h5', { policyIdentity: true, writerLease: true });
+  assert.equal(v.ok, false);
+  assert.deepEqual(v.failures, ['stateCursor', 'provenanceParent', 'capabilityCoverage']);
+  assert.equal(s.status('h5').state, 'failed');
 });
 
 test('pending() surfaces cold handoffs for recovery', () => {

@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
 """m5_disposition_build.py — emit docs/cordis-disposition.json from the M5
-inventory with a per-package disposition (the machine-checkable artifact the
-markdown matrix summarizes).
+inventory with a per-package AND per-service disposition (the machine-checkable
+artifact the markdown matrix summarizes).
 
 Usage:
   python scripts/m5_disposition_build.py <inventory.json> [--check]
 
 Without --check: writes docs/cordis-disposition.json.
-With --check: verifies the committed JSON covers every inventoried package
-exactly once, classes are valid, and prints class counts. Exit 1 on mismatch.
+With --check: verifies the committed JSON covers every inventoried package AND
+every inventoried service exactly once, classes are valid, and prints counts.
+Exit 1 on mismatch.
+
+Service-level granularity is the frozen-plan requirement: a package's class is
+the default for its services; SERVICE_OVERRIDES pins services whose destination
+differs from their package's. injects/provides service keys are recorded on the
+package rows so the full service surface stays auditable.
 
 The assignment below mirrors docs/cordis-disposition.md; names not listed in
 any explicit set default to D (rewrite on the new seams) and are printed for
@@ -72,6 +78,17 @@ E_META = {
 }
 E_WEB_EXACT = {"dsh-web-frontend", "dsh-web-app", "dsh-host-frontend-static", "dsh-host-webserver"}
 
+# Service-level overrides — services whose destination differs from their
+# package's default class. Keyed by (package, service).
+SERVICE_OVERRIDES = {
+    ("dsh-tools", "ToolRuntime"): ("B", B["dsh-tools"]),
+    ("dsh-api-gateway", "ClientRemoteService"): ("C", "remote endpoint → Chord remote service endpoint"),
+    ("dsh-api-gateway", "RemoteNamespaceService"): ("C", "remote endpoint → Chord remote service endpoint"),
+    ("dsh-api-gateway", "TypertGatewayService"): ("C", "Typert remote host/BFF → Chord remote service endpoint"),
+    ("dsh-typert-protocol", "TypertRemoteService"): ("C", "Typert RPC metadata → wire protocol layer"),
+    ("dsh-host-apiproxy", "ApiProxyService"): ("B", B["dsh-host-apiproxy"]),
+}
+
 
 def classify(name: str) -> tuple[str, str]:
     if name in A:
@@ -101,11 +118,24 @@ def main() -> int:
         for n in sorted(defaulted):
             print(f"#   {n}")
 
-    rows = [
-        {"package": n, "class": cls, "note": note}
-        for n in sorted(names)
-        for cls, note in [classify(n)]
-    ]
+    by_name = {p["package"]: p for p in inventory}
+    rows = []
+    service_rows = []
+    for n in sorted(names):
+        cls, note = classify(n)
+        pkg = by_name[n]
+        rows.append({
+            "package": n,
+            "class": cls,
+            "note": note,
+            "injects": pkg.get("injects", []),
+            "provides": pkg.get("provides", []),
+        })
+        for svc in pkg.get("services", []):
+            s_cls, s_note = SERVICE_OVERRIDES.get((n, svc), (cls, note))
+            service_rows.append({
+                "package": n, "service": svc, "class": s_cls, "note": s_note,
+            })
 
     if check:
         committed = json.loads(OUT.read_text(encoding="utf-8"))
@@ -114,11 +144,22 @@ def main() -> int:
         missing = sorted(set(want) - set(got))
         extra = sorted(set(got) - set(want))
         drift = sorted(n for n in want if n in got and got[n] != want[n])
-        if missing or extra or drift:
-            print(f"FAIL missing={missing} extra={extra} drift={drift}")
+        # service-level coverage: every scanned service exactly once
+        got_svc = {(r["package"], r["service"]): r["class"]
+                   for r in committed.get("services", [])}
+        want_svc = {(r["package"], r["service"]): r["class"] for r in service_rows}
+        svc_missing = sorted(f"{p}:{s}" for p, s in set(want_svc) - set(got_svc))
+        svc_extra = sorted(f"{p}:{s}" for p, s in set(got_svc) - set(want_svc))
+        svc_drift = sorted(f"{p}:{s}" for p, s in want_svc
+                           if (p, s) in got_svc and got_svc[(p, s)] != want_svc[(p, s)])
+        if missing or extra or drift or svc_missing or svc_extra or svc_drift:
+            print(f"FAIL missing={missing} extra={extra} drift={drift} "
+                  f"svc_missing={svc_missing} svc_extra={svc_extra} svc_drift={svc_drift}")
             return 1
         counts = {c: sum(1 for r in rows if r["class"] == c) for c in "ABCDE"}
-        print(f"OK {len(committed['packages'])} packages covered: {counts}")
+        svc_counts = {c: sum(1 for r in service_rows if r["class"] == c) for c in "ABCDE"}
+        print(f"OK {len(committed['packages'])} packages + "
+              f"{len(committed['services'])} services covered: {counts} / services {svc_counts}")
         return 0
 
     doc = {
@@ -132,10 +173,13 @@ def main() -> int:
             "E": "drop — DSH product identity / web surface / cordis meta",
         },
         "packages": rows,
+        "services": service_rows,
     }
     OUT.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     counts = {c: sum(1 for r in rows if r["class"] == c) for c in "ABCDE"}
-    print(f"wrote {OUT} — {len(rows)} packages: {counts}")
+    svc_counts = {c: sum(1 for r in service_rows if r["class"] == c) for c in "ABCDE"}
+    print(f"wrote {OUT} — {len(rows)} packages: {counts}; "
+          f"{len(service_rows)} services: {svc_counts}")
     return 0
 
 

@@ -24,6 +24,12 @@ const ENVELOPE_REQUIRED = [
   'provenanceChain', 'source',
 ];
 
+/** The five verify() gates — all required, none skippable. */
+export const VERIFY_CHECKS = [
+  'policyIdentity', 'stateCursor', 'provenanceParent',
+  'writerLease', 'capabilityCoverage',
+];
+
 export function makePortableContinuityEnvelope(fields) {
   const env = { kind: 'PortableContinuityEnvelope', version: 1, ...fields };
   const missing = ENVELOPE_REQUIRED.filter((k) => env[k] === undefined);
@@ -116,15 +122,19 @@ export class HandoffStore {
   }
 
   /**
-   * Gate before the new body's first mutation: policy identity, state cursor,
-   * provenance parent, writer lease, capability coverage. Any failure →
-   * fail-closed (rollback/BLOCKED), never continue.
+   * Gate before the new body's first mutation. The five checks are
+   * REQUIRED — a missing check is a failed check (fail-closed); the caller
+   * cannot skip a gate by omitting its key:
+   *   policyIdentity     — target-loaded policy hash === envelope policyIdentity
+   *   stateCursor        — recomputed canonical cursor === envelope canonicalCursor
+   *   provenanceParent   — provenance chain's parent is the source run
+   *   writerLease        — target body holds the domain writer lease
+   *   capabilityCoverage — target body is eligible for the handoff task profile
+   * Any failure → fail-closed (rollback/BLOCKED), never continue.
    */
-  verify(id, checks) {
+  verify(id, checks = {}) {
     const rec = this._read(id);
-    const failures = Object.entries(checks)
-      .filter(([, ok]) => !ok)
-      .map(([name]) => name);
+    const failures = VERIFY_CHECKS.filter((name) => checks[name] !== true);
     if (failures.length) {
       rec.state = 'failed';
       rec.failures = failures;
