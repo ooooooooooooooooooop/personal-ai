@@ -25,6 +25,8 @@ def _make_driver(tab_mode="owned", parallel_tabs=False):
     driver._find_page_ws = AsyncMock(return_value="ws://stolen-tab")
     driver._find_owned_tab_ws = MagicMock(return_value=None)
     driver._adopt_existing_chatgpt_tab = MagicMock(return_value=None)
+    # The shared-home adoption path would hit the real /json/list otherwise.
+    driver._adopt_bare_home_tab = MagicMock(return_value=None)
     driver._tab_registry = None  # skip registry reclaim
     driver._wait_for_chatgpt_ready = AsyncMock(return_value=True)
     driver._refresh_token = AsyncMock()

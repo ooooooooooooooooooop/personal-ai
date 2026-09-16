@@ -138,6 +138,7 @@ async def test_connect_owned_mode_fails_closed_on_tab_creation_failure():
     # Mock _find_page_ws — it should NOT be called
     d._find_page_ws = AsyncMock(return_value="ws://fake/shared-tab")
     d._adopt_existing_chatgpt_tab = lambda: None
+    d._adopt_bare_home_tab = lambda: None
     d._wait_for_chatgpt_ready = AsyncMock()
     d._refresh_token = AsyncMock()
     mock_connect, fake_ws = _mock_ws_connect()
@@ -207,6 +208,7 @@ async def test_reconnect_recreates_if_tab_gone():
     # _adopt_existing_chatgpt_tab also returns None (no chatgpt.com tab to
     # adopt) so reconnect falls through to createTarget.
     d._adopt_existing_chatgpt_tab = lambda: None
+    d._adopt_bare_home_tab = lambda: None
 
     # Mock _create_owned_tab to succeed with a new id
     async def fake_create():
@@ -425,23 +427,25 @@ def test_fresh_driver_does_not_own_target():
     assert d._owns_target is False
 
 
-# ── 13. owned mode (default) creates a tab even when one exists ─────────
+# ── 13. conv-affine owned mode creates a tab even when a home tab exists ──
 #
-# This is the multi-session isolation guarantee: the DEFAULT behavior is to
-# create a dedicated tab per driver, NOT reuse an existing chatgpt.com tab.
-# Reusing would let two simultaneous drivers contend on the same DOM.
+# This is the multi-session isolation guarantee where it matters: a
+# conversation-bound driver must NOT share the bare-home workspace tab — it
+# gets its own tab AT the conversation URL. (Non-conv drivers, by contrast,
+# may adopt the shared home tab — see test_connect_owned_nonconv_adopts...)
 
 @pytest.mark.asyncio
 async def test_default_owned_mode_creates_tab_even_when_chatgpt_tab_exists():
-    """In the default tab_mode='owned', connect() must call Target.createTarget
-    even if a chatgpt.com page tab already exists. This is what makes the
-    bridge safe for multiple simultaneous sessions: each driver gets its own
-    DOM instead of fighting over a shared tab."""
+    """A conv-affine driver in tab_mode='owned' must call Target.createTarget
+    even if a bare chatgpt.com home tab already exists. Conversation drivers
+    get a dedicated tab at /c/{id} — the DOM isolation that prevents
+    cross-session conversation corruption."""
     d = _make_driver()  # default tab_mode='owned'
     assert d.tab_mode == "owned"
+    d._conv_affinity = "conv-xyz"  # conversation-bound slot
 
-    # /json/list shows an existing chatgpt.com page tab — the OLD default
-    # would have adopted it. The new default must ignore it and create.
+    # /json/list shows an existing bare home tab — a conv-affine driver must
+    # ignore it (it is not showing our conversation) and create its own tab.
     fake_targets = [{
         "id": "existing-tab-to-ignore",
         "type": "page",
@@ -476,26 +480,30 @@ async def test_default_owned_mode_creates_tab_even_when_chatgpt_tab_exists():
             await d.connect()
 
     assert create_called == ["Target.createTarget"], \
-        "owned mode must create a tab, not adopt the existing one"
+        "conv-affine owned mode must create a tab, not adopt the existing one"
     assert d._target_id == "new-owned-tab"
-    assert d._owns_target is True  # we created it → close() will tear it down
+    assert d._conv_target is True  # conv-bound shared tab, not ours to close
+    assert d._shared_home_target is False
 
 
-# ── 14. two drivers in owned mode get distinct target ids ───────────────
+# ── 14. two conv-affine drivers in owned mode get distinct target ids ─────
 #
-# The concrete multi-session payoff: two CDPDriver instances (e.g. the REST
-# process and the MCP process) each create their own tab, so neither can
-# navigate the other's DOM. This is the regression guard for the interference
-# bug — if someone reverts to adoption-by-default, this fails.
+# The concrete multi-session payoff: two conversation-bound CDPDriver
+# instances each create their own tab, so neither can navigate the other's
+# DOM. This is the regression guard for the interference bug — if someone
+# reverts to adoption-by-default for conv work, this fails. (Non-conv
+# drivers legitimately share the bare-home workspace — see the adoption
+# tests below.)
 
 @pytest.mark.asyncio
 async def test_two_owned_drivers_get_distinct_target_ids():
-    """Two drivers in default owned mode create distinct tabs — the DOM
-    isolation that prevents cross-session conversation corruption."""
+    """Two conv-affine drivers in default owned mode create distinct tabs —
+    the DOM isolation that prevents cross-session conversation corruption."""
     # Each driver's _browser_cdp hands out a different targetId, simulating
     # Chrome creating two real tabs.
     def make_driver_with_create(target_id):
         d = _make_driver()
+        d._conv_affinity = f"conv-{target_id}"
         async def fake_browser_cdp(method, params=None, timeout=10):
             if method == "Target.createTarget":
                 return {"result": {"targetId": target_id}}
@@ -525,5 +533,103 @@ async def test_two_owned_drivers_get_distinct_target_ids():
                 await d.connect()
 
     assert d1._target_id != d2._target_id, \
-        "two owned drivers must hold distinct tabs — shared id means shared DOM"
-    assert d1._owns_target and d2._owns_target
+        "two conv-affine drivers must hold distinct tabs — shared id means shared DOM"
+    assert d1._conv_target and d2._conv_target
+
+
+# ── 15. non-conv owned driver adopts the shared bare home tab ───────────
+#
+# The workspace-sharing rule: drivers with no conv_affinity (utility slot,
+# unbound session slots, REST driver) adopt ONE existing bare chatgpt.com/
+# tab instead of each parking a private homepage. Reads don't contend on DOM
+# state; the rare mutations serialize on the per-target MutationLock. This
+# converges the browser to ~1 background tab regardless of slot count.
+
+@pytest.mark.asyncio
+async def test_connect_owned_nonconv_adopts_shared_home_tab():
+    """A non-affine owned-mode driver adopts an existing bare chatgpt.com/
+    tab rather than firing Target.createTarget — no new tab is opened."""
+    d = _make_driver()  # owned mode, no conv_affinity
+    assert d._conv_affinity is None
+
+    fake_targets = [{
+        "id": "shared-home-1",
+        "type": "page",
+        "url": "https://chatgpt.com/",
+        "title": "ChatGPT",
+        "webSocketDebuggerUrl": "ws://fake/shared-home",
+    }]
+    create_called = []
+
+    async def spy_browser_cdp(method, params=None, timeout=10):
+        if method == "Target.createTarget":
+            create_called.append(method)
+        return {"result": {"targetId": "should-not-be-used"}}
+
+    d._browser_cdp = spy_browser_cdp
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(fake_targets).encode()
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
+
+        d._wait_for_chatgpt_ready = AsyncMock()
+        d._refresh_token = AsyncMock()
+        mock_connect, _ = _mock_ws_connect()
+        with patch("chatgpt_web2api.cdp_driver.websockets.connect", mock_connect):
+            await d.connect()
+
+    assert create_called == [], "non-conv driver must adopt the shared home tab"
+    assert d._target_id == "shared-home-1"
+    assert d._owns_target is False  # adopted → never ours to close
+    assert d._shared_home_target is True
+    assert d._conv_target is False
+
+
+# ── 16. bare-home adoption never steals a conversation tab ───────────────
+
+@pytest.mark.asyncio
+async def test_adopt_bare_home_skips_conv_tabs():
+    """_adopt_bare_home_tab ignores tabs showing /c/{id} — those are
+    conversation-bound persistent resources with their own adoption path."""
+    d = _make_driver()
+    conv_only = [{
+        "id": "conv-tab-1",
+        "type": "page",
+        "url": "https://chatgpt.com/c/abc-123",
+        "title": "Some conversation",
+        "webSocketDebuggerUrl": "ws://fake/conv",
+    }]
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = json.dumps(conv_only).encode()
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_urlopen.return_value = mock_resp
+
+        assert d._adopt_bare_home_tab() is None
+    assert d._target_id is None
+    assert d._shared_home_target is False
+
+
+# ── 17. an adopted shared home tab is lockable (parallel mode sends OK) ──
+
+def test_shared_home_tab_is_lockable():
+    """has_lockable_target must be True for an adopted shared home tab —
+    otherwise parallel_tabs mode fail-closes sends on it with
+    OwnedTabRequiredError. The lock key is the targetId, so two drivers on
+    the shared tab serialize correctly."""
+    d = _make_driver()
+    d._parallel_tabs = True
+    d._target_id = "shared-home-1"
+    d._owns_target = False
+    d._conv_target = False
+    d._shared_home_target = True
+    assert d.has_lockable_target is True
+
+    from chatgpt_web2api.lock_resolver import resolve_mutation_lock
+
+    port, key = resolve_mutation_lock(d, True)
+    assert port == 9222
+    assert key == "target-shared-home-1"

@@ -96,6 +96,17 @@ Local delta carried in this copy (applied on top of upstream):
   launcher (start.ps1 hidden window, `ensure` self-heal with stderr=DEVNULL)
   used to drop stderr, leaving cooldowns unattributable. stdio MCP is
   untouched: the harness owns its stderr.
+- **shared home workspace** (`cdp_driver._adopt_bare_home_tab`): non-conv
+  drivers (utility slot, unbound session slots, the REST driver) adopt ONE
+  existing bare `chatgpt.com/` tab instead of each parking a private
+  homepage — converges the browser to ~1 background tab regardless of slot
+  count, removing unthrottled per-slot ChatGPT clients from the flagged
+  endpoint family. The adopted tab is `_shared_home_target` — lockable via
+  the targetId-keyed MutationLock (parallel-mode sends stay legal), never
+  closed by us; a shared tab navigated into `/c/{id}` flips to conv-bound so
+  it is never navigated away from under its co-attached drivers.
+  Conv-affinity drivers are unchanged: they still create/adopt dedicated
+  `/c/{id}` tabs (per-conversation DOM isolation).
 
 Runtime state is NOT vendored: `.venv`, `~/.chatgpt_web2api/` (config, tab
 registry, pace file), Chrome profile, and conversation ids live per-device /

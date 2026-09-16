@@ -23,7 +23,11 @@ from dataclasses import dataclass
 
 from .breakers import BreakerKind, BreakerRegistry
 from .diagnostics import diagnose
-from .lock_resolver import OwnedTabRequiredError
+from .lock_resolver import (
+    MutationLock,
+    OwnedTabRequiredError,
+    resolve_mutation_lock,
+)
 
 try:
     import websockets
@@ -362,6 +366,12 @@ class CDPDriver:
         self._conv_affinity = conv_affinity
         self._conv_target = False  # current target is a conv-bound shared tab
         self._scratch_target_id: str | None = None  # our own home/scratch tab
+        # Shared-home target: current target is a bare chatgpt.com/ tab we
+        # adopted rather than created — the single workspace tab that all
+        # non-conv drivers converge on. Lockable like a conv-bound tab (the
+        # lock key is the targetId), but never closed by us and free to be
+        # navigated by whichever driver needs a scratch surface.
+        self._shared_home_target = False
         self.port = cdp_port
         # PR4/5: when True, owned-tab creation is mandatory (no shared-tab
         # fallback) and the resolver grants per-target locks. Config validates
@@ -547,6 +557,16 @@ class CDPDriver:
                     "Adopted existing conversation tab for %s",
                     self._conv_affinity,
                 )
+        if not ws_url and not self._conv_affinity:
+            # Shared home workspace: non-conv drivers (utility slot, unbound
+            # session slots, the REST driver) adopt one existing bare
+            # chatgpt.com/ tab instead of each parking a private homepage.
+            # Converges to a single background tab — fewer live ChatGPT
+            # clients means less unthrottled background traffic on the
+            # rate-limited conversations endpoints. Reads are async JS
+            # fetches that don't contend on DOM state; the rare mutations
+            # serialize on the per-target MutationLock.
+            ws_url = self._adopt_bare_home_tab()
         if not ws_url:
             # Registry reclaim (R3): before creating a new tab, check if THIS
             # instance owned a tab in a prior run that's still alive. Reclaim
@@ -645,7 +665,15 @@ class CDPDriver:
         # (send_and_stream has its own defensive check); it does not abort
         # startup, since reads (list_models etc.) work without a composer.
         try:
-            await self._ensure_send_ready()
+            if self._shared_home_target and self._parallel_tabs:
+                # The shared home tab is mutated by whichever driver needs a
+                # scratch surface — send-readiness may navigate it, so
+                # serialize with other drivers' sends on this target.
+                _port, _key = resolve_mutation_lock(self, True)
+                async with MutationLock(_port, _key):
+                    await self._ensure_send_ready()
+            else:
+                await self._ensure_send_ready()
         except Exception as e:
             logger.warning(
                 "connect(): send-readiness not established (%s) — reads still "
@@ -962,6 +990,7 @@ class CDPDriver:
             # Persistent shared conv tab: nobody owns it for close purposes.
             self._owns_target = False
             self._conv_target = True
+            self._shared_home_target = False
             logger.info(
                 "Created conversation-bound tab for %s: %s",
                 self._conv_affinity,
@@ -969,6 +998,8 @@ class CDPDriver:
             )
         else:
             self._owns_target = True  # we created it → close() will tear it down
+            self._conv_target = False
+            self._shared_home_target = False
             self._scratch_target_id = self._target_id
             logger.info("Created owned tab: %s", self._target_id)
         # Wait for the tab to appear in /json/list, then get its WS URL
@@ -1053,12 +1084,46 @@ class CDPDriver:
                 continue
             self._target_id = t.get("id")
             self._owns_target = False
+            # An adopted bare home tab is the shared workspace; an adopted
+            # /c/ tab is conversation-bound but not flagged _conv_target by
+            # this legacy path, so it stays non-lockable either way.
+            self._shared_home_target = "/c/" not in url
             logger.info(
                 "Adopted existing chatgpt.com tab: %s (will not close on shutdown)",
                 self._target_id,
             )
             return ws_url
 
+        return None
+
+    def _adopt_bare_home_tab(self) -> str | None:
+        """Adopt an existing bare chatgpt.com tab as the shared workspace.
+
+        The non-conv counterpart to ``_adopt_conversation_tab``: several
+        drivers may attach to the same home tab — per-target MutationLock
+        serializes mutations on it, and read-only backend fetches don't
+        contend on DOM state. Only tabs NOT showing a conversation (no
+        ``/c/`` in the URL) qualify; conv-bound tabs keep their dedicated
+        adoption path.
+
+        Sets ``_owns_target=False`` (never ours to close) and
+        ``_shared_home_target=True`` (a lockable shared target — see
+        ``has_lockable_target``). Returns the page WS URL, or None when no
+        bare home tab exists. Never raises.
+        """
+        for t in self._list_page_targets():
+            url = t.get("url") or ""
+            if "chatgpt.com" not in url or "/c/" in url:
+                continue
+            ws_url = t.get("webSocketDebuggerUrl")
+            if not ws_url:
+                continue
+            self._target_id = t.get("id")
+            self._owns_target = False
+            self._conv_target = False
+            self._shared_home_target = True
+            logger.info("Adopted shared home tab: %s", self._target_id)
+            return ws_url
         return None
 
     # ── Conversation-affine tabs ──────────────────────────────
@@ -1101,6 +1166,7 @@ class CDPDriver:
             self._target_id = t.get("id")
             self._owns_target = False
             self._conv_target = True
+            self._shared_home_target = False
             logger.info(
                 "Adopted conversation-bound tab for %s: %s",
                 conv_id,
@@ -1137,11 +1203,13 @@ class CDPDriver:
         if found_id == self._target_id:
             # We're already attached to the right tab — just record binding.
             self._conv_target = True
+            self._shared_home_target = False
             self._current_conv_id = conv_id
             return True
         self._target_id = found_id
         self._owns_target = False
         self._conv_target = True
+        self._shared_home_target = False
         await self.connect()
         self._current_conv_id = conv_id
         return True
@@ -1160,6 +1228,7 @@ class CDPDriver:
         self._target_id = target_id
         self._owns_target = False
         self._conv_target = True
+        self._shared_home_target = False
         logger.info("Created conversation-bound tab for %s: %s", conv_id, target_id)
         # Re-attach to the new target (connect resolves _target_id first).
         await self.connect()
@@ -1187,6 +1256,7 @@ class CDPDriver:
                     self._target_id = self._scratch_target_id
                     self._owns_target = True
                     self._conv_target = False
+                    self._shared_home_target = False
                     self._current_conv_id = None
                     await self.connect()
                     return
@@ -1198,6 +1268,7 @@ class CDPDriver:
                 self._target_id = t.get("id")
                 self._owns_target = False
                 self._conv_target = False
+                self._shared_home_target = True
                 self._current_conv_id = None
                 await self.connect()
                 return
@@ -1205,6 +1276,7 @@ class CDPDriver:
         self._target_id = None
         self._owns_target = False
         self._conv_target = False
+        self._shared_home_target = False
         self._current_conv_id = None
         await self.connect()
 
@@ -1630,6 +1702,13 @@ class CDPDriver:
             )
 
         await asyncio.sleep(1)
+        # A shared home tab we just navigated into /c/{id} becomes that
+        # conversation's tab — flag it conv-bound so a later new-chat request
+        # switches to a scratch surface instead of navigating it away from
+        # under other drivers sharing it.
+        if self._shared_home_target:
+            self._shared_home_target = False
+            self._conv_target = True
         self._current_conv_id = conversation_id
 
     @staticmethod
@@ -2499,6 +2578,7 @@ class CDPDriver:
         self._target_id = None
         self._owns_target = False
         self._conv_target = False
+        self._shared_home_target = False
         self._scratch_target_id = None
         logger.info("CDP driver closed")
 
@@ -2548,15 +2628,16 @@ class CDPDriver:
     def has_lockable_target(self) -> bool:
         """True iff the driver holds a target that per-target locking can name.
 
-        Owned tabs AND conv-bound shared tabs both qualify: the per-target
-        lock key is the targetId itself, so two drivers attached to the SAME
-        conv tab still serialize on the same lock file. What must NOT qualify
-        is the legacy arbitrary-adopt fallback (an unrelated tab we can't
-        name), which is why ``owns_target or conv_target`` — not just
-        ``target_id`` — is required.
+        Owned tabs, conv-bound shared tabs, AND adopted shared home tabs all
+        qualify: the per-target lock key is the targetId itself, so two
+        drivers attached to the SAME tab still serialize on the same lock
+        file. What must NOT qualify is the legacy arbitrary-adopt fallback
+        (an unrelated tab we can't name), which is why ``owns_target or
+        conv_target or shared_home_target`` — not just ``target_id`` — is
+        required.
         """
         return self.tab_mode == "owned" and bool(self._target_id) and (
-            self._owns_target or self._conv_target
+            self._owns_target or self._conv_target or self._shared_home_target
         )
 
     def _assert_owned_tab_required(self) -> None:

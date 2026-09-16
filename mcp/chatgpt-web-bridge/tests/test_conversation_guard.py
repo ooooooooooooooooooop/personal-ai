@@ -423,6 +423,7 @@ async def test_connect_calls_ensure_send_ready_after_auth(monkeypatch):
     d._find_page_ws = lambda: "ws://fake"
     d._find_owned_tab_ws = lambda: None
     d._adopt_existing_chatgpt_tab = lambda: None
+    d._adopt_bare_home_tab = lambda: None
     d._create_owned_tab = AsyncMock(return_value="ws://fake")
     d._reader_loop = AsyncMock()
     d._live_target_ids = AsyncMock(return_value=[])
@@ -457,6 +458,7 @@ async def test_connect_survives_send_readiness_failure(monkeypatch):
     d._find_page_ws = lambda: "ws://fake"
     d._find_owned_tab_ws = lambda: None
     d._adopt_existing_chatgpt_tab = lambda: None
+    d._adopt_bare_home_tab = lambda: None
     d._create_owned_tab = AsyncMock(return_value="ws://fake")
     d._reader_loop = AsyncMock()
     d._live_target_ids = AsyncMock(return_value=[])

@@ -127,7 +127,9 @@ async def test_connect_parallel_refuses_shared_fallback(monkeypatch):
     d._create_owned_tab = _boom  # type: ignore[method-assign]
     d._find_page_ws = _find_page_ws  # type: ignore[method-assign]
     # connect() does other setup; patch the early-return paths so we reach the
-    # owned-tab creation try/except.
+    # owned-tab creation try/except. _adopt_bare_home_tab must be stubbed or it
+    # would hit the real /json/list on a machine with live Chrome.
+    d._adopt_bare_home_tab = lambda: None  # type: ignore[method-assign]
     d._find_owned_tab_ws = lambda: None  # type: ignore[method-assign]
     d._wait_for_chatgpt_ready = lambda: None  # type: ignore[method-assign]
     d._refresh_token = lambda: None  # type: ignore[method-assign]
@@ -158,6 +160,7 @@ async def test_reconnect_parallel_refuses_fallback(monkeypatch):
     # Force the reconnect path where no ws_url is obtained → parallel raise.
     d._target_id = None  # no owned tab to re-find
     d._find_owned_tab_ws = lambda: None  # type: ignore[method-assign]
+    d._adopt_bare_home_tab = lambda: None  # type: ignore[method-assign]
 
     async def _create_owned_tab():
         raise RuntimeError("createTarget failed in reconnect")
