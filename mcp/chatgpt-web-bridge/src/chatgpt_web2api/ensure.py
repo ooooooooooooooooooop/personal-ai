@@ -153,7 +153,7 @@ class _StartupLock:
     import portalocker
 
     def __init__(self, sse_port: int, timeout: float = _LOCK_TIMEOUT) -> None:
-        self._path = str(Path.home() / ".chatgpt_web2api" / f"sse-startup-{sse_port}.lock")
+        self._path = str(Path.home() / ".chatgpt-web2api" / f"sse-startup-{sse_port}.lock")
         self._timeout = timeout
         self._fh = None
 

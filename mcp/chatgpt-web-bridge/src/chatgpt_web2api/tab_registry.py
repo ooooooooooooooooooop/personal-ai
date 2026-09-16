@@ -12,7 +12,7 @@ two processes with different ``instance_id``s never touch each other's entries,
 and a process never reclaims an entry whose owner is provably still alive.
 
 Design (agreed in collaborative review):
-  - File at ``~/.chatgpt_web2api/owned_tabs.json``, keyed by ``instance_id``.
+  - File at ``~/.chatgpt-web2api/owned_tabs.json``, keyed by ``instance_id``.
   - ``instance_id`` derived from configured identity (chrome profile + cdp
     port + server/transport identity), overridable via ``W2A_INSTANCE_ID``.
   - Heartbeat lease: each entry carries ``owner_pid`` + ``heartbeat_at``. A
@@ -41,7 +41,7 @@ import portalocker
 LEASE_TTL_SECONDS = 60.0
 HEARTBEAT_INTERVAL_SECONDS = 20.0
 
-REGISTRY_DIR = Path.home() / ".chatgpt_web2api"
+REGISTRY_DIR = Path.home() / ".chatgpt-web2api"
 REGISTRY_PATH = REGISTRY_DIR / "owned_tabs.json"
 LOCK_PATH = REGISTRY_DIR / "owned_tabs.json.lock"
 

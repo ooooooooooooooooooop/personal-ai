@@ -50,7 +50,7 @@ Chrome 里登录 ChatGPT 一次（profile 持久）。
 - `no driver slot available` / health `degraded` + `driver_connected:false`：
   daemon 丢了 CDP 连接且不自愈，重跑 `start.ps1`（幂等，不动 Chrome/登录态）；
   若存在多个同名 daemon 进程，先清掉再起
-- 所有调用一起变慢/挂住：先看 `~/.chatgpt_web2api/request_pace.json`——
+- 所有调用一起变慢/挂住：先看 `~/.chatgpt-web2api/request_pace.json`——
   `cooldown_until` 未过期 = 账号级冷却（读写都等）；`read_cooldown_until`
   未过期 = 只读端点被限（读等、发送不受影响）。谁触发的看 daemon 日志
   `~/.chatgpt-web2api/diagnostics/mcp-sse-8090.log`（REST 在

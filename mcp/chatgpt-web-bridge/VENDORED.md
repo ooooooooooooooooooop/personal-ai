@@ -108,6 +108,7 @@ Local delta carried in this copy (applied on top of upstream):
   Conv-affinity drivers are unchanged: they still create/adopt dedicated
   `/c/{id}` tabs (per-conversation DOM isolation).
 
-Runtime state is NOT vendored: `.venv`, `~/.chatgpt_web2api/` (config, tab
-registry, pace file), Chrome profile, and conversation ids live per-device /
-per-account.
+Runtime state is NOT vendored: `.venv`, `~/.chatgpt-web2api/` (config, tab
+registry, pace file, locks, diagnostics, chrome profile — consolidated from
+the pre-2026-09 split `~/.chatgpt_web2api/` dir, still honored as a legacy
+config fallback), and conversation ids live per-device / per-account.

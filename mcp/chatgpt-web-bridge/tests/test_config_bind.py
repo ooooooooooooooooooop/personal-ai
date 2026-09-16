@@ -16,7 +16,7 @@ def test_config_auto_loads_default_when_no_path(tmp_path, monkeypatch):
     # on both Unix (HOME) and Windows (USERPROFILE).
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    cfg_dir = tmp_path / ".chatgpt_web2api"
+    cfg_dir = tmp_path / ".chatgpt-web2api"
     cfg_dir.mkdir()
     (cfg_dir / "config.json").write_text(json.dumps({
         "port": 9999, "api_keys": ["secret-key"],
@@ -40,7 +40,7 @@ def test_config_explicit_path_overrides_default(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     # Both a default file AND an explicit file exist.
-    cfg_dir = tmp_path / ".chatgpt_web2api"
+    cfg_dir = tmp_path / ".chatgpt-web2api"
     cfg_dir.mkdir()
     (cfg_dir / "config.json").write_text(json.dumps({"port": 7777}))
     explicit = tmp_path / "explicit.json"
@@ -54,11 +54,29 @@ def test_config_malformed_default_does_not_crash(tmp_path, monkeypatch):
     to built-in defaults rather than preventing startup."""
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    cfg_dir = tmp_path / ".chatgpt_web2api"
+    cfg_dir = tmp_path / ".chatgpt-web2api"
     cfg_dir.mkdir()
     (cfg_dir / "config.json").write_text("{ not valid json")
     cfg = Config.load(None)
     assert cfg.server.port == 8080  # fell back to defaults
+
+
+def test_config_legacy_underscore_dir_is_fallback(tmp_path, monkeypatch):
+    """Pre-merge installs kept config under ~/.chatgpt_web2api (underscore).
+    It is still honored when the canonical hyphen dir has no config, and the
+    hyphen dir wins when both exist — so upgrades never silently lose settings."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    legacy = tmp_path / ".chatgpt_web2api"
+    legacy.mkdir()
+    (legacy / "config.json").write_text(json.dumps({"port": 7777}))
+    cfg = Config.load(None)
+    assert cfg.server.port == 7777  # legacy fallback discovered
+    canonical = tmp_path / ".chatgpt-web2api"
+    canonical.mkdir()
+    (canonical / "config.json").write_text(json.dumps({"port": 8888}))
+    cfg = Config.load(None)
+    assert cfg.server.port == 8888  # canonical wins over legacy
 
 
 # ── A2: safe bind defaults ────────────────────────────────────────────

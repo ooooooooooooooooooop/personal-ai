@@ -7,7 +7,7 @@ reacts AFTER the popup appears; this module prevents reaching it: every
 process (REST daemon, MCP pool slots, one-off scripts) shares one pace file,
 so the account sees a bounded request rate no matter which process asks.
 
-State: ``~/.chatgpt_web2api/request_pace.json``
+State: ``~/.chatgpt-web2api/request_pace.json``
 
     {"last_send_at": f, "last_read_at": f,
      "cooldown_until": f, "read_cooldown_until": f}

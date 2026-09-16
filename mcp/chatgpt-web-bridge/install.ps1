@@ -9,7 +9,7 @@ if (-not (Test-Path "$venvDir\Scripts\python.exe")) { python -m venv $venvDir }
 & "$venvDir\Scripts\python.exe" -m pip install -e $root
 if ($LASTEXITCODE -ne 0) { Write-Error "pip install failed"; exit 1 }
 
-$cfgDir = Join-Path $env:USERPROFILE ".chatgpt_web2api"
+$cfgDir = Join-Path $env:USERPROFILE ".chatgpt-web2api"
 New-Item -ItemType Directory -Force $cfgDir | Out-Null
 $cfg = Join-Path $cfgDir "config.json"
 if (-not (Test-Path $cfg)) {

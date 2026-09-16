@@ -179,8 +179,15 @@ class Config:
             cfg._apply_dict(data)
             log.info("Loaded config from %s", path)
         elif path is None:
-            # Auto-discover the documented default config location.
-            default_path = Path.home() / ".chatgpt_web2api" / "config.json"
+            # Auto-discover the documented default config location. The
+            # pre-merge legacy dir (~/.chatgpt_web2api, underscore) is still
+            # read as a fallback so upgraded installs don't silently lose
+            # their settings; the hyphen dir wins when both exist.
+            candidates = [
+                Path.home() / ".chatgpt-web2api" / "config.json",
+                Path.home() / ".chatgpt_web2api" / "config.json",
+            ]
+            default_path = next((p for p in candidates if p.exists()), candidates[0])
             if default_path.exists():
                 try:
                     with open(default_path) as f:
