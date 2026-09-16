@@ -2,6 +2,8 @@
 """u1_accept.py — U1 governance apply path (V0.3.1).
 
 MODEL_PROPOSAL / promoted HYPOTHESIS -> U1 decision -> canonical current.yaml.
+STATUS_UPDATE -> U1 decision -> whitelisted fields on open-loops.yaml entries
+  (status bookkeeping goes through the same governed path, not hand edits).
 
 Rules:
   - canonical write happens ONLY here (proposals/ledger/distiller never write)
@@ -20,12 +22,84 @@ from pathlib import Path
 
 import yaml
 
-U1_VERSION = "U1-1.0"
+U1_VERSION = "U1-1.1"
+
+# STATUS_UPDATE: bookkeeping updates to canonical sidecar files. Whitelist-only:
+# target file, entry id, and settable fields are all constrained — the proposal
+# cannot invent structure, touch current.yaml, or write outside the sidecar.
+STATUS_TARGETS = {"open-loops.yaml": "open_loops"}
+STATUS_FIELDS = {"status", "closed", "note", "priority"}
+SCALAR_TYPES = (str, int, float, bool, type(None))
 
 
 def utcnow() -> str:
     return datetime.now(timezone.utc).isoformat(
         timespec="seconds").replace("+00:00", "Z")
+
+
+def _apply_status_update(canon: Path, pfile: Path, prop: dict,
+                         args: argparse.Namespace) -> int:
+    payload = prop.get("payload") or {}
+    target = payload.get("target")
+    if target not in STATUS_TARGETS:
+        raise SystemExit(f"STATUS_UPDATE target must be one of "
+                         f"{sorted(STATUS_TARGETS)}, got {target!r}")
+    loop_id = payload.get("loop_id")
+    if not isinstance(loop_id, str) or not loop_id:
+        raise SystemExit("STATUS_UPDATE requires payload.loop_id")
+    updates = payload.get("set")
+    if not isinstance(updates, dict) or not updates:
+        raise SystemExit("STATUS_UPDATE requires non-empty payload.set")
+    bad_keys = sorted(k for k in updates if k not in STATUS_FIELDS)
+    if bad_keys:
+        raise SystemExit(f"STATUS_UPDATE fields not allowed: {bad_keys}")
+    for key, val in updates.items():
+        if not isinstance(val, SCALAR_TYPES) or isinstance(val, (list, dict)):
+            raise SystemExit(f"STATUS_UPDATE field {key!r} must be a scalar")
+        if isinstance(val, str) and len(val) > 2000:
+            raise SystemExit(f"STATUS_UPDATE field {key!r} exceeds 2000 chars")
+
+    tpath = canon / target
+    doc = yaml.safe_load(tpath.read_text(encoding="utf-8"))
+    entries = (doc or {}).get(STATUS_TARGETS[target]) or []
+    hits = [e for e in entries if isinstance(e, dict) and e.get("id") == loop_id]
+    if len(hits) != 1:
+        raise SystemExit(f"STATUS_UPDATE loop_id {loop_id!r} matches "
+                         f"{len(hits)} entries (require exactly 1)")
+    entry = hits[0]
+
+    bdir = canon / "history" / f"pre-u1-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    bdir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(tpath, bdir / target)
+
+    applied = {}
+    for key, val in updates.items():
+        applied[key] = {"old": entry.get(key), "new": val}
+        entry[key] = val
+    tpath.write_text(yaml.safe_dump(doc, allow_unicode=True,
+                                    sort_keys=False), encoding="utf-8")
+
+    prop["status"] = "accepted" if args.decision == "accept" else "provisional"
+    prop["decision"] = {"decision": args.decision, "reason": args.reason,
+                        "authority": args.authority, "ts": utcnow(),
+                        "applied_loop": loop_id, "fields": applied,
+                        "rollback": str(bdir)}
+    pfile.write_text(json.dumps(prop, ensure_ascii=False, indent=2),
+                     encoding="utf-8")
+
+    mlog = canon / "history" / "model-updates.jsonl"
+    with mlog.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({
+            "ts": utcnow(), "kind": "U1_STATUS_APPLY", "target": target,
+            "loop_id": loop_id, "fields": sorted(updates),
+            "decision": args.decision, "proposal": pfile.name,
+            "authority": args.authority, "rollback": str(bdir),
+            "schema_version": "1.2"}, ensure_ascii=False) + "\n")
+
+    print(json.dumps({"decision": args.decision, "applied_loop": loop_id,
+                      "fields": sorted(updates), "rollback": str(bdir),
+                      "u1_version": U1_VERSION}, ensure_ascii=False))
+    return 0
 
 
 def main() -> int:
@@ -43,12 +117,10 @@ def main() -> int:
     canon = Path(args.canonical)
     pfile = canon / "proposals" / args.proposal
     prop = json.loads(pfile.read_text(encoding="utf-8"))
-    if prop.get("kind") not in ("MODEL_PROPOSAL",):
-        raise SystemExit(f"U1 apply supports MODEL_PROPOSAL, got {prop.get('kind')}")
-    cand = (prop.get("payload") or {}).get("candidate") or {}
-    mid = cand.get("candidate_id")
-    if not mid:
-        raise SystemExit("proposal has no candidate_id")
+    kind = prop.get("kind")
+    if kind not in ("MODEL_PROPOSAL", "STATUS_UPDATE"):
+        raise SystemExit(f"U1 apply supports MODEL_PROPOSAL/STATUS_UPDATE, "
+                         f"got {kind}")
 
     if args.decision == "reject":
         prop["status"] = "rejected"
@@ -58,6 +130,14 @@ def main() -> int:
                          encoding="utf-8")
         print(json.dumps({"decision": "reject", "canonical_write": "NONE"}))
         return 0
+
+    if kind == "STATUS_UPDATE":
+        return _apply_status_update(canon, pfile, prop, args)
+
+    cand = (prop.get("payload") or {}).get("candidate") or {}
+    mid = cand.get("candidate_id")
+    if not mid:
+        raise SystemExit("proposal has no candidate_id")
 
     cur_path = canon / "current.yaml"
     cur = yaml.safe_load(cur_path.read_text(encoding="utf-8"))
