@@ -1,0 +1,58 @@
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+/**
+ * BodyRegistry — the FACTS face of body selection (R8). Records what each
+ * body verifiably can and cannot do; never stores selection state (that is
+ * SelectorPolicy's job, M3+). Persisted at <instance>/registry.json, atomic
+ * tmp+rename writes.
+ */
+export class BodyRegistry {
+  /** @param {import('./contracts.js').InstancePaths} paths */
+  constructor(paths) {
+    this.file = join(paths.root, 'registry.json');
+    this.data = existsSync(this.file)
+      ? JSON.parse(readFileSync(this.file, 'utf-8'))
+      : { version: 1, bodies: {} };
+  }
+
+  /**
+   * @param {import('./contracts.js').BodyFacts} facts
+   */
+  register(facts) {
+    if (!facts?.body_id || !facts?.adapter_version) {
+      throw new Error('body registration requires body_id + adapter_version');
+    }
+    if (typeof facts.capabilities !== 'object' || facts.capabilities === null) {
+      throw new Error('body registration requires capabilities map');
+    }
+    for (const [cap, level] of Object.entries(facts.capabilities)) {
+      if (!['supported', 'partial', 'unsupported'].includes(level)) {
+        throw new Error(`capability ${cap}: bad level ${level}`);
+      }
+    }
+    this.data.bodies[facts.body_id] = {
+      ...facts,
+      registered_at: new Date().toISOString(),
+      last_verified_at: new Date().toISOString(),
+    };
+    this._save();
+    return this.data.bodies[facts.body_id];
+  }
+
+  markVerified(bodyId) {
+    const b = this.data.bodies[bodyId];
+    if (!b) throw new Error(`unknown body: ${bodyId}`);
+    b.last_verified_at = new Date().toISOString();
+    this._save();
+  }
+
+  get(bodyId) { return this.data.bodies[bodyId]; }
+  list() { return Object.values(this.data.bodies); }
+
+  _save() {
+    const tmp = `${this.file}.tmp`;
+    writeFileSync(tmp, JSON.stringify(this.data, null, 2));
+    renameSync(tmp, this.file);
+  }
+}

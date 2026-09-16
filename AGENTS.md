@@ -4,7 +4,7 @@
 
 ## 一句话
 
-这是 **Personal AI 公开发布仓**（机制层：Skill 包 + MCP 发行包 + DSH 插件包 + 质量脚手架；认知层：`soul/` 可携带认知状态），**不是运行时工作区**。根目录 top-level 目录属于六层之一。
+这是 **Personal AI 公开发布仓**（机制层：Skill 包 + MCP 发行包 + DSH 插件包 + 质量脚手架；认知层：`soul/` 可携带认知状态 + `host/` 可执行控制宿主），**不是运行时工作区**。根目录 top-level 目录属于七层之一。
 
 ## 分层目录（改动前先认层）
 
@@ -16,6 +16,8 @@
 | ④ 质量脚手架 | `scripts/` `tests/` `docs/` `_template/` `.github/workflows/`（`skill-quality-gate` 是 ① 中的 Skill 包，位于 `skills/skill-quality-gate/`） | ✅ | 改 `validate_repo.py` 会影响全部上层契约，谨慎 |
 | ⑤ 设备运行层 | `.taskflow/` `.grepai/` `.claude/` `node_modules/` 等 | ❌ 禁改/禁提交 | 本地运行态，发布门禁拒绝 |
 | ⑥ soul/ | `soul/`（`manifest.json` `schema/` `briefing/` `models/` `bootstrap/`） | ✅ | Personal AI 可携带认知状态：通用 L2/L3 脱敏模型 + schema 契约 + briefing 模板 + adopter 骨架；内容只能来自 declassification 链产物或为公开编写的模板，私有 canonical/L0-L1/未脱敏模型禁入；`manifest.json` 是发布锚 |
+| ⑦ host/ | `host/` | ✅ | Personal AI 中立控制宿主（`docs/pi-migration-design.md`）：**零外部依赖**，全目录禁止 import 任何身体/harness（`host/tests/firewall.test.js` 机械执行）；运行态写 instance root 禁入仓 |
+| ⑧ pi/ | `pi/` | ✅ | Pi 身体实现：adapter（Pi API ↔ host 契约）+ bootstrap（唯一 composition root）+ managed extensions；依赖方向恒为 `pi → host`；pin `@earendil-works/*@0.85.1`，lockfile 属 runtime identity |
 
 ## 硬约束（改目录结构的红线）
 
@@ -30,6 +32,8 @@ python scripts/validate_repo.py --strict          # 结构 + 注册表 + 许可�
 python skills/skill-quality-gate/scripts/quality_report.py --root . --strict   # Skill 门禁
 python -m unittest discover -s tests -v           # 仓库回归
 python -m unittest discover -s mcp/agent-switchboard/tests -v           # MCP 回归
+npm --prefix host test                            # host 契约测试（零依赖防火墙）
+npm --prefix pi test                              # pi 侧边界测试
 git diff --check                                  # 空白错误
 ```
 

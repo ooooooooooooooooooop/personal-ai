@@ -1,0 +1,13 @@
+{
+  "name": "@personal-ai/host",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Personal AI-owned neutral control host: harness-agnostic contracts, governance kernel, audit, managed-manifest discipline. Contains no concrete body code — bodies (pi/, ...) depend on this package, never the reverse.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  }
+}
