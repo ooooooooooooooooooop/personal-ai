@@ -1,6 +1,7 @@
 """L1 distill operator tests — adjudicated gates: deterministic/idempotent,
 provenance, provisional+falsifier, dedup, calibration-over-all-predictions."""
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,6 +9,9 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dsh" / "world-model"))
 import distill  # noqa: E402
+import yaml  # noqa: E402
+
+U1_ACCEPT = Path(__file__).resolve().parents[1] / "dsh" / "world-model" / "u1_accept.py"
 
 
 def _ev(seq, et, pid=None, payload=None, ts="2026-09-16T00:00:00Z"):
@@ -109,6 +113,45 @@ class TestDistill(unittest.TestCase):
             n2 = next((canon2 / "proposals").glob("*.json")).name
             self.assertEqual(r1["proposals_written"], r2["proposals_written"])
             self.assertEqual(n1, n2)
+
+    def test_u1_accept_consumes_distilled_proposal(self):
+        """L1 gate: the governance chain must consume a distilled candidate
+        correctly — u1_accept applies it to current.yaml as provisional with
+        falsifier and provenance intact."""
+        with tempfile.TemporaryDirectory() as d:
+            evs = (_pair(1, "p1", "stream reliability", "refuted")
+                   + _pair(2, "p2", "stream reliability", "refuted"))
+            state, canon = _mk(Path(d), evs)
+            r = distill.distill(state, canon, canon / "proposals")
+            self.assertEqual(r["proposals_written"], 1)
+            pfile = next((canon / "proposals").glob("*MODEL_PROPOSAL*"))
+
+            proc = subprocess.run(
+                [sys.executable, str(U1_ACCEPT),
+                 "--canonical", str(canon), "--proposal", pfile.name,
+                 "--decision", "provisional", "--reason", "integration test",
+                 "--authority", "u1-review"],
+                capture_output=True, text=True)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+            cur = yaml.safe_load((canon / "current.yaml").read_text("utf-8"))
+            models = cur["world_model"]["models"]
+            self.assertEqual(len(models), 1)
+            mid, model = next(iter(models.items()))
+            prop_cand = json.loads(pfile.read_text("utf-8"))["payload"]["candidate"]
+            self.assertEqual(mid, prop_cand["candidate_id"])
+            self.assertEqual(model["epistemic_status"], "provisional")
+            self.assertEqual(model["falsifier"], prop_cand["falsifier"])
+            self.assertEqual(model["proposition"], prop_cand["proposition"])
+            self.assertEqual(model["provenance"]["proposal"], pfile.name)
+
+            # proposal lifecycle updated, history appended, backup written
+            updated = json.loads(pfile.read_text("utf-8"))
+            self.assertEqual(updated["status"], "provisional")
+            self.assertEqual(updated["decision"]["applied_model"], mid)
+            log = (canon / "history" / "model-updates.jsonl").read_text("utf-8")
+            self.assertIn('"U1_APPLY"', log)
+            self.assertTrue(list((canon / "history").glob("pre-u1-*/current.yaml")))
 
 
 if __name__ == "__main__":
