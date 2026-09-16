@@ -79,8 +79,21 @@ function isRestartCommand(exec) {
 	const name = String(exec?.name ?? "").toLowerCase();
 	const args = JSON.stringify(exec?.arguments ?? "").toLowerCase();
 	if (/(restart|reboot|shutdown|self[-_ ]?kill)/i.test(name)) return true;
-	if (/(stop-process|taskkill|kill\s+-9|pkill|process\.kill|start-sleep|sleep\s+\d+[\s\S]*stop-process)/i.test(args)) return true;
-	return false;
+	if (!/(stop-process|taskkill|kill\s+-9|kill\s+\d|pkill|process\.kill|start-sleep|sleep\s+\d+[\s\S]*stop-process)/i.test(args)) return false;
+	// O7: a restart command kills THIS host — deny stays scoped to self-directed
+	// or indiscriminate kills. A PID-scoped kill of a non-self, non-parent
+	// process (e.g. a nested benchmark instance) is process management.
+	// Image/name-based, pipeline, or unparseable kills can hit this host: deny.
+	// Residual: ancestry is checked one level up (pid/ppid only); a /T tree-kill
+	// rooted at a grandparent is out of this guard's reach — the guard prevents
+	// accidental self-termination, not a determined attacker.
+	if (/\/im\b|\/f\s*\/im|pkill|process\.kill\s*\(\s*\)|stop-process\s*$/i.test(args)) return true;
+	if (/\|\s*stop-process|stop-process\s+-name\b/i.test(args)) return true;
+	const protectedPids = new Set([process.pid, process.ppid].filter((n) => Number.isSafeInteger(n) && n > 0));
+	const pidPats = [...args.matchAll(/(?:\/pid|-id|kill\s+-9|kill\s*\(|kill)\s*\(?\s*(\d{1,7})/g)]
+		.map((m) => Number(m[1]));
+	if (!pidPats.length) return true;
+	return pidPats.some((p) => protectedPids.has(p));
 }
 
 export class ContextLifecycle extends Service {

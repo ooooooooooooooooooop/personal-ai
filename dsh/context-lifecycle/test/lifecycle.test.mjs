@@ -131,6 +131,32 @@ test('restart requests are external-supervisor only', async () => {
   assert.equal(RESTART_REQUIRED, 'RESTART_REQUIRED');
 });
 
+test('O7: self-directed and indiscriminate kills denied; child-PID kills allowed', async () => {
+  const self = process.pid;
+  const parent = process.ppid;
+  // self-directed (this host or its supervisor) -> deny
+  assert.equal(isRestartCommand({ name: 'shell', arguments: `taskkill /PID ${self} /F` }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: `Stop-Process -Id ${self}` }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: `kill -9 ${self}` }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: `kill ${self}` }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: `process.kill(${self})` }), true);
+  if (Number.isSafeInteger(parent) && parent > 0) {
+    assert.equal(isRestartCommand({ name: 'shell', arguments: `taskkill /PID ${parent}` }), true);
+  }
+  // indiscriminate / image-based / unparseable -> deny (can hit this host)
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'taskkill /IM node.exe /F' }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'pkill -f dsh' }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'Get-Process node | Stop-Process' }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'Stop-Process -Name node' }), true);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'taskkill' }), true);
+  // O7 benchmark path: PID-scoped kill of a non-self process -> allow
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'taskkill /PID 654321 /F' }), false);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'Stop-Process -Id 654321' }), false);
+  assert.equal(isRestartCommand({ name: 'shell', arguments: 'kill -9 654321' }), false);
+  // benign text containing 'kill' is not a restart
+  assert.equal(isRestartCommand({ name: 'write', arguments: { content: 'kill switch design notes' } }), false);
+});
+
 test('cold durable session archive and observability are sidecar-only', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-cold-archive-'));
   try {
