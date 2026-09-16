@@ -15,7 +15,7 @@ $cfg = Join-Path $cfgDir "config.json"
 if (-not (Test-Path $cfg)) {
     $json = @'
 { "parallel_tabs": true, "tab_mode": "owned", "mcp_session_pool_enabled": true,
-  "mcp_session_pool_size": 3, "mcp_session_pool_ttl_seconds": 300,
+  "mcp_session_pool_size": 4, "mcp_session_pool_ttl_seconds": 300,
   "request_pace_send_seconds": 30, "request_pace_read_seconds": 8,
   "request_pace_cooldown_seconds": 300 }
 '@
