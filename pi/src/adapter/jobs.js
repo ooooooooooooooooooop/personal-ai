@@ -130,10 +130,18 @@ export class JobExecutor {
       try {
         const state = code === 0 ? 'EXITED_0' : signal ? 'KILLED' : 'EXITED_ERROR';
         this.store.updateWorkerState(attemptId, state, code);
+        // Usage attribution: a delegated worker may report its real token/cost
+        // usage by printing `PAI_USAGE {json}` on stdout; whatever it reports is
+        // recorded under parent_run_id so delegated work bills to the parent
+        // run (Hermes pattern). Absent the marker, usage stays null — honest.
+        const usageMatch = out.match(/PAI_USAGE (\{[^\n]*\})/);
+        let usage = null;
+        try { usage = usageMatch ? JSON.parse(usageMatch[1]) : null; } catch { usage = null; }
         writeFileSync(resultPath, JSON.stringify({
           attempt_id: attemptId, job_id: jobId,
           exit_code: code, signal,
           output_tail: out,
+          usage,
           parent_run_id: this.runId, // usage attribution: child work bills to parent
           finished_at: new Date().toISOString(),
         }, null, 2));
@@ -143,7 +151,7 @@ export class JobExecutor {
         else this.store.failJob(jobId, `exit ${code ?? signal}`);
         this.audit?.write({
           kind: 'JOB_FINISHED',
-          data: { job_id: jobId, attempt_id: attemptId, exit_code: code, parent_run_id: this.runId },
+          data: { job_id: jobId, attempt_id: attemptId, exit_code: code, usage, parent_run_id: this.runId },
         });
       } catch (e) {
         if (!/not open|closed/i.test(e.message)) throw e;

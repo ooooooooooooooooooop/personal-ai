@@ -32,6 +32,7 @@ export class ToolSurface {
       ...initialDeny,
       ...(existsSync(denyMemoryPath) ? JSON.parse(readFileSync(denyMemoryPath, 'utf-8')) : []),
     ]);
+    if (initialDeny.length) this.#persist(); // initial suppression is durable too
   }
 
   /** Deny a tool: record + hide from the active surface immediately. */

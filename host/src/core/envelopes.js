@@ -66,10 +66,20 @@ export function renderContext(env) {
   }
   const parts = [env.briefing];
   if (env.openPredictions.length) {
-    parts.push(`<open-predictions count="${env.openPredictions.length}"/>`);
+    parts.push('<open-predictions>');
+    for (const p of env.openPredictions) {
+      const label = p?.claim ?? JSON.stringify(p);
+      const horizon = p?.horizon ? ` (horizon: ${p.horizon})` : '';
+      parts.push(`- [${p?.id ?? '?'}] ${label}${horizon}`);
+    }
+    parts.push('</open-predictions>');
   }
   if (env.observations.length) {
-    parts.push(`<observations count="${env.observations.length}"/>`);
+    parts.push('<observations>');
+    for (const o of env.observations) {
+      parts.push(`- ${typeof o === 'string' ? o : JSON.stringify(o)}`);
+    }
+    parts.push('</observations>');
   }
   return parts.filter(Boolean).join('\n');
 }

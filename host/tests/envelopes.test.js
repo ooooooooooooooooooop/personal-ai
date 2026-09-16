@@ -28,7 +28,7 @@ test('instruction and context are separate artifacts (R9)', () => {
 
 test('audit redacts credentials and secrets in nested data', () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-audit-'));
-  const w = new AuditWriter({ auditDir: dir }, 't');
+  const w = new AuditWriter({ auditDir: dir }, { name: 't' });
   w.write({
     kind: 'PROVIDER_HEADERS',
     data: {

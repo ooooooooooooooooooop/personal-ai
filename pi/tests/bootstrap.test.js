@@ -33,10 +33,13 @@ test('startHost assembles a governed pi body end-to-end', async () => {
   // guard sealed on the REAL session
   assert.ok(host.guard.sealed());
 
-  // body facts registered — facts, not status
+  // body facts registered — facts, not status (frozen schema fields)
   const body = host.registry.get('pi');
-  assert.equal(body.capabilities.final_post_extension_guard, 'supported');
-  assert.equal(body.capabilities.mcp_native, 'unsupported');
+  assert.equal(body.verified_capabilities.final_post_extension_guard, 'supported');
+  assert.equal(body.verified_capabilities.mcp_native, 'unsupported');
+  assert.equal(body.verified_capabilities.durable_jobs, 'supported');
+  assert.equal(body.governance_coverage.tool_decide, 'supported');
+  assert.equal(body.handoff_capabilities.resume, 'supported');
 
   // runtime identity on disk with both lockfile hashes
   const identity = JSON.parse(readFileSync(join(dir, 'runtime.json'), 'utf-8'));
@@ -44,10 +47,15 @@ test('startHost assembles a governed pi body end-to-end', async () => {
   assert.ok(identity.lockfile_sha256.pi);
   assert.ok(identity.lockfile_sha256.host);
 
-  // audit: HOST_STARTED recorded, run id present
-  const auditLines = readFileSync(join(dir, 'audit', 'host-audit.jsonl'), 'utf-8')
+  // audit: HOST_STARTED recorded, run id present; BODY_SELECTED proves the
+  // default body is a selector output, not a declaration
+  const auditLines = readFileSync(
+    join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
     .trim().split('\n').map(JSON.parse);
   assert.ok(auditLines.some((e) => e.kind === 'HOST_STARTED'));
+  const sel = auditLines.find((e) => e.kind === 'BODY_SELECTED');
+  assert.equal(sel?.data?.selected, 'pi');
+  assert.ok(sel.data.results.pi.eligible);
 
   // envelopes built as two distinct channels
   assert.equal(host.instructionEnvelope.kind, 'InstructionEnvelope');
@@ -56,5 +64,33 @@ test('startHost assembles a governed pi body end-to-end', async () => {
   // lease store live: claim a domain through the real store
   const claim = host.leases.claim({ scope: 'domain', name: 'smoke', owner: 'pi:test', ttlSeconds: 60 });
   assert.ok(claim.ok);
+  host.leases.close();
+});
+
+test('M8: ToolSurface + FileOpsGuard are wired into the real session', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-m8-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], riskActions: {},
+    tools: { powershell: { action: 'deny' } }, // policy-denied from turn zero
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+
+  // production instances exist — not just modules
+  assert.ok(host.toolSurface);
+  assert.ok(host.fileOps);
+
+  // initial suppression: denied tool is off the REAL session's visible surface
+  const active = host.session.getActiveToolNames();
+  assert.ok(!active.includes('powershell'));
+  assert.ok(host.toolSurface.isDenied('powershell'));
+
+  // deny-memory persisted under the instance root
+  assert.ok(existsSync(join(dir, 'deny-memory.json')));
+
   host.leases.close();
 });

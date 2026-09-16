@@ -33,7 +33,7 @@ function rig(requirements = [{ id: 'wrote', kind: 'tool_success', tool: 'write' 
 }
 
 const auditKinds = (dir) =>
-  readFileSync(join(dir, 'audit', 'host-audit.jsonl'), 'utf-8')
+  readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
     .trim().split('\n').map((l) => JSON.parse(l).kind);
 
 test('agent_end with missing evidence steers a governed continuation', async () => {
@@ -112,7 +112,7 @@ test('compaction events audit reason/willRetry/open predictions', async () => {
   const kinds = auditKinds(dir);
   assert.ok(kinds.includes('COMPACT_BEFORE'));
   assert.ok(kinds.includes('COMPACT_DONE'));
-  const before = readFileSync(join(dir, 'audit', 'host-audit.jsonl'), 'utf-8')
+  const before = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
     .trim().split('\n').map(JSON.parse).find((e) => e.kind === 'COMPACT_BEFORE');
   assert.equal(before.data.openPredictions, 1);
   assert.equal(before.data.willRetry, true);

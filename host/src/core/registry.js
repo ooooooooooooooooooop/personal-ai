@@ -23,12 +23,16 @@ export class BodyRegistry {
     if (!facts?.body_id || !facts?.adapter_version) {
       throw new Error('body registration requires body_id + adapter_version');
     }
-    if (typeof facts.capabilities !== 'object' || facts.capabilities === null) {
-      throw new Error('body registration requires capabilities map');
+    const caps = facts.verified_capabilities ?? facts.capabilities;
+    if (typeof caps !== 'object' || caps === null) {
+      throw new Error('body registration requires verified_capabilities map');
     }
-    for (const [cap, level] of Object.entries(facts.capabilities)) {
-      if (!['supported', 'partial', 'unsupported'].includes(level)) {
-        throw new Error(`capability ${cap}: bad level ${level}`);
+    for (const group of ['verified_capabilities', 'capabilities', 'governance_coverage', 'handoff_capabilities']) {
+      if (typeof facts[group] !== 'object' || facts[group] === null) continue;
+      for (const [cap, level] of Object.entries(facts[group])) {
+        if (!['supported', 'partial', 'unsupported'].includes(level)) {
+          throw new Error(`${group}.${cap}: bad level ${level}`);
+        }
       }
     }
     this.data.bodies[facts.body_id] = {

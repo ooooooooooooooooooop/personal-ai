@@ -25,7 +25,7 @@ class FakeBody {
     return {
       body_id: this.body_id,
       adapter_version: '0.0.0-fake',
-      capabilities: this.capabilities,
+      verified_capabilities: this.capabilities,
       supported_effect_domains: ['memory'],
     };
   }

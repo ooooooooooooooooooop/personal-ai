@@ -30,7 +30,7 @@ export const NON_NEGOTIABLE_INVARIANTS = [
 export function eligible(body, task = {}) {
   const degraded = [];
   const failClosed = [];
-  const caps = body?.capabilities ?? {};
+  const caps = body?.verified_capabilities ?? body?.capabilities ?? {};
 
   for (const req of task.requiredCapabilities ?? []) {
     const level = caps[req.capability] ?? 'unsupported';
@@ -55,4 +55,31 @@ export function eligible(body, task = {}) {
   }
 
   return { eligible: failClosed.length === 0, degraded, failClosed };
+}
+
+/**
+ * Selection policy — "default body" is a mechanism output, not a declaration.
+ *
+ * Every registered body is evaluated through eligible(); the winner is the
+ * eligible body with the FEWEST degraded (negotiable) gaps, ties broken
+ * deterministically by body_id. Callers MUST still verify the result — a
+ * bootstrap for body X refuses to start when X isn't selected.
+ *
+ * @param {import('./contracts.js').BodyFacts[]} bodies  registry.list()
+ * @param {object} task  same shape as eligible()'s task
+ * @returns {{selected: object|null, results: Object<string, EligibilityResult>}}
+ */
+export function selectBody(bodies, task = {}) {
+  const results = {};
+  const candidates = [];
+  for (const body of bodies ?? []) {
+    const r = eligible(body, task);
+    results[body?.body_id ?? '?'] = r;
+    if (r.eligible) candidates.push({ body, r });
+  }
+  candidates.sort(
+    (a, b) => a.r.degraded.length - b.r.degraded.length
+      || String(a.body.body_id).localeCompare(String(b.body.body_id)),
+  );
+  return { selected: candidates[0]?.body ?? null, results };
 }

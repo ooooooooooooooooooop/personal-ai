@@ -2,6 +2,7 @@
 
 数据源：`scripts/m5_cordis_scan.py` 扫 `~/.dsh/profiles/web/base-dsh-0.1.1-rc.2`（`.taskflow/m5-inventory.json`，197 包，含 dsh 嵌套 node_modules）。
 Chord 验证：`pi/tests/chord-spike.test.js` 3/3（service/facet/replicatedState/RemoteServiceProvider keyed-spawn 全通）。
+逐包处置（机检 artifact）：[`docs/cordis-disposition.json`](./cordis-disposition.json)——197 包逐一打标，`python scripts/m5_disposition_build.py <inventory.json> --check` 校验覆盖率与漂移。
 
 ## 五类语义（R8 收敛后的口径）
 
@@ -117,9 +118,9 @@ Web 产品面（留 dsh 身体，PAI 不移植——R8：web_ui 是 dsh 的 supp
 | 类 | 数量 | 占比 |
 |---|---|---|
 | A 搬 | 8 | 4% |
-| B 适配 | ~15 | 8% |
+| B 适配 | 5 | 3% |
 | C→Chord | 11 | 6% |
-| D 重写 | ~90 | 46% |
-| E 删 | ~73 | 37% |
+| D 重写 | 114 | 58% |
+| E 删 | 59 | 30% |
 
 **大头是 D**：Cordis 服务生态的机制价值大都在，但它们的缝（cordis ctx.*）不可带——这正是"换缝不换机制"的实证。E 几乎全是 web 产品面和 cordis 自身——D7 时按此矩阵执行删除/保留。

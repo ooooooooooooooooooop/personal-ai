@@ -27,7 +27,7 @@ function loadCredential(envName) {
 }
 
 const auditLines = (dir) =>
-  readFileSync(join(dir, 'audit', 'host-audit.jsonl'), 'utf-8')
+  readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
     .trim().split('\n').map((l) => JSON.parse(l));
 
 test('M3 acceptance: real provider end-to-end chain', { skip: SKIP, timeout: 180_000 }, async () => {
@@ -109,6 +109,27 @@ test('M3 acceptance: real provider end-to-end chain', { skip: SKIP, timeout: 180
   const accounting = lines.find((e) => e.kind === 'TURN_ACCOUNTING');
   assert.ok(accounting && accounting.data.input > 0, 'real token usage missing');
 
+  // second provider round: the tool result must go back to the model —
+  // one request before the tool call, at least one after it
+  const requests = lines.filter((e) => e.kind === 'PROVIDER_REQUEST');
+  assert.ok(
+    requests.length >= 2,
+    `expected >=2 provider rounds (tool result returned to model), got ${requests.length}`,
+  );
+
+  // prefix-cache invariant: the system prefix must be byte-identical across
+  // every request; a break would silently multiply prompt cost
+  assert.ok(!kinds.includes('PREFIX_CACHE_BREAK'), 'system prefix changed mid-session');
+  const prefixes = new Set(requests.map((e) => e.data.systemPrefixHash));
+  assert.equal(prefixes.size, 1, 'systemPrefixHash not stable across requests');
+  assert.ok([...prefixes][0], 'system prefix missing from provider payload');
+
+  // governed continuation closed the task: evidence contract satisfied,
+  // terminal state audited (not blocked, not silently dropped)
+  assert.ok(kinds.includes('CONTINUATION_COMPLETE'), 'evidence gate never closed the task');
+  assert.ok(!kinds.includes('CONTINUATION_BLOCKED'), 'continuation governor blocked the task');
+
   // continuity evidence persisted
   assert.ok(existsSync(join(dir, 'runtime.json')));
+  assert.ok(existsSync(join(dir, 'continuation.jsonl')), 'continuation ledger not persisted');
 });

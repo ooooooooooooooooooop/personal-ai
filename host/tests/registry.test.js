@@ -12,7 +12,9 @@ function reg() {
 const PI_FACTS = {
   body_id: 'pi',
   adapter_version: '0.85.1',
-  capabilities: { final_post_extension_guard: 'supported', mcp_native: 'unsupported' },
+  verified_capabilities: { final_post_extension_guard: 'supported', mcp_native: 'unsupported' },
+  governance_coverage: { tool_decide: 'supported', audit: 'supported' },
+  handoff_capabilities: { quiesce: 'supported', resume: 'supported' },
   supported_effect_domains: ['tools', 'filesystem'],
 };
 
@@ -32,9 +34,19 @@ test('registration requires identity + well-formed capabilities', () => {
   assert.throws(() => r.register({ adapter_version: '1' }), /body_id/);
   assert.throws(() => r.register({ body_id: 'x', adapter_version: '1' }), /capabilities/);
   assert.throws(
-    () => r.register({ body_id: 'x', adapter_version: '1', capabilities: { a: 'magic' } }),
+    () => r.register({ body_id: 'x', adapter_version: '1', verified_capabilities: { a: 'magic' } }),
     /bad level/,
   );
+  assert.throws(
+    () => r.register({ body_id: 'x', adapter_version: '1', verified_capabilities: {}, handoff_capabilities: { q: 'magic' } }),
+    /bad level/,
+  );
+});
+
+test('legacy capabilities key still registers (read-path alias)', () => {
+  const r = reg();
+  const b = r.register({ body_id: 'x', adapter_version: '1', capabilities: { a: 'supported' } });
+  assert.equal(b.body_id, 'x');
 });
 
 test('facts only: no selection state is stored', () => {

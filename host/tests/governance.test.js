@@ -129,6 +129,6 @@ test('admitted calls are audited', async () => {
   const { audit, policy, predictions, paths } = fixture();
   const kernel = new GovernanceKernel({ audit, policy, predictions });
   await kernel.decideToolCall(ctx());
-  const log = readFileSync(join(paths.auditDir, 'host-audit.jsonl'), 'utf-8');
+  const log = readFileSync(join(paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
   assert.ok(log.includes('TOOL_CALL_ADMITTED'));
 });

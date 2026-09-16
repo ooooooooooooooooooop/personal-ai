@@ -13,13 +13,18 @@
  *   I7 harness-neutrality          — envelope carries PAI-owned state only
  */
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startHost } from '../src/bootstrap/host.js';
+import { isWorkerAlive } from '../src/adapter/jobs.js';
 import { HandoffStore, makePortableContinuityEnvelope } from '../../host/src/core/handoff.js';
 import { hashOf } from '../../host/src/core/audit.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 const stubModel = {
   id: 'stub', name: 'stub', api: 'openai-completions', provider: 'openai',
@@ -36,7 +41,7 @@ const provision = (dir) => {
 };
 
 const auditLines = (dir) =>
-  readFileSync(join(dir, 'audit', 'host-audit.jsonl'), 'utf-8')
+  readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
     .trim().split('\n').map((l) => JSON.parse(l));
 
 test('M7 drill: kill → cold restart → identity invariants hold', async () => {
@@ -78,6 +83,63 @@ test('M7 drill: kill → cold restart → identity invariants hold', async () =>
   const starts = auditLines(dir).filter((e) => e.kind === 'HOST_STARTED');
   assert.equal(starts.length, 2);
   assert.notEqual(starts[0].runId, starts[1].runId);
+
+  h2.jobStore.db.close();
+});
+
+test('M7 drill (real OS kill): SIGKILL the host process → cold restart → invariants hold', { timeout: 40_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m7-oskill-'));
+  provision(dir);
+
+  // === life 1: a REAL child process runs the host, then is really killed ===
+  const fixture = join(here, 'fixtures', 'm7-life1.js');
+  const child = spawn(process.execPath, [fixture, dir], { stdio: ['ignore', 'pipe', 'pipe'] });
+  const childErr = [];
+  child.stderr.on('data', (d) => childErr.push(String(d)));
+
+  const [runId1, predId, jobId] = await new Promise((resolve, reject) => {
+    let buf = '';
+    const timer = setTimeout(() => reject(new Error(`fixture never became READY: ${buf} ${childErr.join('')}`)), 25_000);
+    child.stdout.on('data', (d) => {
+      buf += d;
+      const m = buf.match(/READY (\S+) (\S+) (\S+)/);
+      if (m) { clearTimeout(timer); resolve([m[1], m[2], m[3]]); }
+    });
+    child.on('exit', (code) => reject(new Error(`fixture exited ${code} before READY: ${childErr.join('')}`)));
+  });
+  assert.ok(isWorkerAlive({ pid: child.pid }), 'fixture process should be alive before the kill');
+
+  child.kill('SIGKILL'); // on Windows Node maps this to TerminateProcess — a real kill
+  await new Promise((resolve) => child.on('exit', resolve));
+  await new Promise((r) => setTimeout(r, 400));
+  assert.equal(isWorkerAlive({ pid: child.pid }), false, 'killed host process must be dead at OS level');
+
+  // === life 2: cold start on the same instance root ===
+  const h2 = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+
+  // I1 identity: same instance, new run lineage
+  const runtime = JSON.parse(readFileSync(join(dir, 'runtime.json'), 'utf-8'));
+  assert.equal(runtime.run_id, h2.runId);
+  assert.notEqual(h2.runId, runId1);
+
+  // I2/I3 canonical + governance continuity: same decision across lives
+  const denied = await h2.kernel.decideToolCall({
+    toolCallId: 't1', toolName: 'bash', args: { command: 'rm -rf /' },
+  });
+  assert.equal(denied?.block, true);
+
+  // I4 world-model continuity: the prediction written by the KILLED process is visible
+  assert.ok(h2.predictions.openPredictions().some((x) => x.id === predId));
+
+  // I5 durable-job continuity: dead worker recovered by the cold sweep
+  assert.ok(h2.recoveryActions.some((a) => a.job_id === jobId));
+
+  // I6 provenance: audit ledger APPENDED — first HOST_STARTED came from the
+  // killed process (synchronous append survives SIGKILL)
+  const starts = auditLines(dir).filter((e) => e.kind === 'HOST_STARTED');
+  assert.equal(starts.length, 2);
+  assert.equal(starts[0].runId, runId1);
+  assert.equal(starts[1].runId, h2.runId);
 
   h2.jobStore.db.close();
 });

@@ -1,9 +1,13 @@
 import { mkdtempSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainLeaseStore } from '../src/core/lease.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
 
 function store(nowRef) {
   const dir = mkdtempSync(join(tmpdir(), 'pai-lease-'));
@@ -93,4 +97,41 @@ test('scopes are independent: capability lease does not collide with domain leas
   assert.ok(s.claim({ scope: 'domain', name: 'world-model', owner: 'pi', ttlSeconds: 10 }).ok);
   assert.ok(s.claim({ scope: 'capability', name: 'world-model', owner: 'dsh', ttlSeconds: 10 }).ok);
   s.close();
+});
+
+test('E4: real multi-process competition — exactly one winner, release visible across processes', { timeout: 30_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-lease-race-'));
+  // init schema from the parent so children only race on the claim itself
+  const init = new DomainLeaseStore({ root: dir });
+  init.close();
+
+  const fixture = join(here, 'fixtures', 'lease-contender.js');
+  const owners = ['proc-a', 'proc-b', 'proc-c', 'proc-d'];
+  const run = (owner) => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [fixture, dir, owner], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    child.stdout.on('data', (d) => { out += d; });
+    child.on('exit', (code) => code === 0 ? resolve(out) : reject(new Error(`${owner} exited ${code}`)));
+  });
+
+  const outputs = await Promise.all(owners.map(run));
+  const lines = outputs.flatMap((o) => o.trim().split('\n').map((l) => JSON.parse(l)));
+  const claims = lines.filter((l) => 'ok' in l);
+  const winners = claims.filter((l) => l.ok);
+  const losers = claims.filter((l) => !l.ok);
+
+  assert.equal(winners.length, 1, `expected exactly one winner, got ${JSON.stringify(claims)}`);
+  assert.equal(losers.length, owners.length - 1);
+  assert.equal(winners[0].generation, 1); // first-ever claim on this db
+  for (const l of losers) assert.equal(l.heldBy, winners[0].owner); // CAS told the loser who holds it
+
+  const released = lines.find((l) => l.released === true);
+  assert.equal(released.owner, winners[0].owner);
+
+  // release is visible cross-process: a NEW process claims the same name
+  const parent = new DomainLeaseStore({ root: dir });
+  const after = parent.claim({ scope: 'domain', name: 'contended', owner: 'parent', ttlSeconds: 10 });
+  assert.ok(after.ok);
+  assert.equal(after.lease.generation, 2); // fencing moved forward
+  parent.close();
 });

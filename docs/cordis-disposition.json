@@ -1,0 +1,998 @@
+{
+ "generated_by": "scripts/m5_disposition_build.py",
+ "source_inventory": ".taskflow/m5-inventory.json",
+ "classes": {
+  "A": "port mechanism into host/",
+  "B": "adapt seam contract to host contract; impl stays in dsh body",
+  "C": "rebuild on Chord service/facet/replicatedState",
+  "D": "rewrite on host/pi seams (mechanism valid, seam changed)",
+  "E": "drop — DSH product identity / web surface / cordis meta"
+ },
+ "packages": [
+  {
+   "package": "cordis",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "cordis-plugin-group",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "cordis-plugin-hmr",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "cordis-plugin-include",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "cordis-plugin-loader",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "cordis-plugin-timer",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "cosmokit",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-agent",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-agent-default-model",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-agent-instructions",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-agent-loop",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-agent-presets",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-agent-tool-presentation",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-anonymous-user-id",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-api-gateway",
+   "class": "C",
+   "note": "Typert remote host/BFF → Chord remote service endpoint"
+  },
+  {
+   "package": "dsh-api-remotes",
+   "class": "C",
+   "note": "remote endpoints → Chord remote service endpoint"
+  },
+  {
+   "package": "dsh-app-boot",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-atomic-write",
+   "class": "A",
+   "note": "atomic file replace — canonical write protection"
+  },
+  {
+   "package": "dsh-attachment",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-attachment-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-authorization",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-base",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-bash-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-bash-sandbox",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-brand",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-client-connection",
+   "class": "C",
+   "note": "HTTP-up/WS-down wire consumer → Chord RemoteServiceBinding"
+  },
+  {
+   "package": "dsh-client-hmr",
+   "class": "C",
+   "note": "client dynamic surface → facet"
+  },
+  {
+   "package": "dsh-client-locale",
+   "class": "C",
+   "note": "client locale surface → facet"
+  },
+  {
+   "package": "dsh-client-modules",
+   "class": "C",
+   "note": "dual-side module system → Chord facet (node+browser)"
+  },
+  {
+   "package": "dsh-client-runtime",
+   "class": "C",
+   "note": "SlotRegistry/SessionRuntime replicated client core → replicatedState"
+  },
+  {
+   "package": "dsh-client-ui-agent-preset",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-attachment",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-brand-official",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-commands",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-conversation",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-cordis",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-deliverables",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-directory-picker-browse",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-directory-picker-native",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-goal",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-input-trigger",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-jobs",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-layout",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-message-feedback",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-model-selection",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-permission-presets",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-plan",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-reference",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-renderer",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-settings",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-settings-general",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-settings-models",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-settings-plugin-inventory",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-settings-plugins",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-sidebar",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-skill",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-subagent",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-theme",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-tool",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-trajectory",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-user-questions",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-workflow-run",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-client-ui-workspace",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-cmdline",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-code-runtime",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-code-runtime-worker-thread",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-command-compact",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-command-feedback",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-command-goal",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-commands",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-compaction",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-compaction-basic",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-compaction-tool-result-pruner",
+   "class": "A",
+   "note": "replay-safe head/mid/tail pruning — M3 compaction candidate"
+  },
+  {
+   "package": "dsh-cordis-client-runner",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-cordis-host-runner",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-credentials",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-credentials-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-file-reference",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-file-reference-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-fs",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-fs-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-fs-observation-policy",
+   "class": "B",
+   "note": "fs event seam policy → fileops/audit contract"
+  },
+  {
+   "package": "dsh-fs-sandbox",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-goal",
+   "class": "B",
+   "note": "goal contract seam → evidence requirements (host contract, dsh impl)"
+  },
+  {
+   "package": "dsh-goal-round-driver",
+   "class": "B",
+   "note": "round-driver seam → ContinuationGovernor contract"
+  },
+  {
+   "package": "dsh-headless",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-home-paths",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-host-apiproxy",
+   "class": "B",
+   "note": "remote API proxy seam → HostChannel (M6)"
+  },
+  {
+   "package": "dsh-host-directory-picker",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-host-directory-picker-auto",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-host-directory-picker-browse",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-host-directory-picker-native",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-host-frontend-static",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-host-plugin-inventory",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-host-webserver",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-invariants",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-jobs",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-jobs-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-launch-environment",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-llm",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-llm-deepseek",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-llm-pi-ai",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-llm-retry",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-mcp-client",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-message-feedback",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-native-command",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-output-retention",
+   "class": "A",
+   "note": "bounded retention primitive — audit/log trimming"
+  },
+  {
+   "package": "dsh-permission-presets",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-persona",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-plan-mode",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-pwsh-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-pwsh-sandbox",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-repeat-tool-reminder",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-sandbox",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-sandbox-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-sandbox-policy",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-sandbox-windows-acl",
+   "class": "A",
+   "note": "Windows ACL write-restricted spawn — containment domain 3"
+  },
+  {
+   "package": "dsh-schedule",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-scope",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-session",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-checkpoint-policy",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-log-export",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-persistence",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-persistence-jsonl",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-projection",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-projection-cache",
+   "class": "C",
+   "note": "persistent projection cache → replicatedState"
+  },
+  {
+   "package": "dsh-session-query",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-query-sqlite",
+   "class": "A",
+   "note": "SQLite FTS5 session search backend — host memory retrieval"
+  },
+  {
+   "package": "dsh-session-reference",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-stats",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-telemetry",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-telemetry-otel",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-title",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-title-first-prompt-llm",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-session-title-llm",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-settings",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-settings-file",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-shell",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-shell-env",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-skill",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-skill-badge",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-skill-filesystem",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-spill",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-spill-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-spill-policy",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-storage",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-storage-domain",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-storage-json",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-subagent",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-subagent-fork-in-process",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-subagent-in-process-driver",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-subagent-spawn-in-process",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-subprocess",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-subprocess-local",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-system-prompt",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-terminal",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-terminal-bash",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-time-context",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-timeout",
+   "class": "A",
+   "note": "clampTimeout primitive — durable-job timeout arm"
+  },
+  {
+   "package": "dsh-tmux-context",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-token-meter",
+   "class": "A",
+   "note": "replay-aware token metering — merged into TURN_ACCOUNTING"
+  },
+  {
+   "package": "dsh-tool-ask-user",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-bash",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-bash-persistent",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-call-timeout-policy",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-cordis",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  },
+  {
+   "package": "dsh-tool-fs",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-fs-search",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-goal",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-jobs",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-pwsh",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-pwsh-persistent",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-ralph",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-skill",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-str-replace-editor",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-subagent",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-subagent-control",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-subagent-report",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-todo",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-web",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tool-workflow",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-tools",
+   "class": "B",
+   "note": "tool-surface seam → Pi customTools + composite guard"
+  },
+  {
+   "package": "dsh-typert-loader",
+   "class": "C",
+   "note": "Typert loader → wire protocol layer"
+  },
+  {
+   "package": "dsh-typert-protocol",
+   "class": "C",
+   "note": "Typert RPC metadata → wire protocol layer"
+  },
+  {
+   "package": "dsh-typert-registry",
+   "class": "C",
+   "note": "Typert registry → wire protocol layer"
+  },
+  {
+   "package": "dsh-user-approval",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-user-questions",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-web",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-web-app",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-web-frontend",
+   "class": "E",
+   "note": "web product surface — stays in dsh body (R8: web_ui is a dsh capability)"
+  },
+  {
+   "package": "dsh-web-search-deepseek",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-workflow",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-workflow-worker-thread",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "dsh-workspace",
+   "class": "D",
+   "note": "mechanism valid, seam rewired — rewritten on host/pi seams (M1-M6)"
+  },
+  {
+   "package": "node-addon-landlock-run",
+   "class": "A",
+   "note": "Landlock self-restricted exec (Linux) — sandbox option"
+  },
+  {
+   "package": "schemastery",
+   "class": "E",
+   "note": "cordis meta-framework / DSH product identity — stays in dsh body"
+  }
+ ]
+}

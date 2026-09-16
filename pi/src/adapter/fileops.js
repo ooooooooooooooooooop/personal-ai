@@ -45,6 +45,24 @@ export class FileOpsGuard {
   }
 
   /**
+   * Pre-execution snapshot: byte-copy the existing target into backups/ and
+   * receipt it — the mutation itself is then performed by the admitted tool.
+   * New files get {backup:null, receiptId:null} (nothing to preserve).
+   */
+  async backup(targetPath) {
+    const abs = resolve(targetPath);
+    return withFileMutationQueue(abs, async () => {
+      if (!existsSync(abs)) return { backup: null, receiptId: null };
+      const receiptId = `fo-${randomUUID().slice(0, 8)}`;
+      const preSha = createHash('sha256').update(readFileSync(abs)).digest('hex');
+      const backup = join(this.backupDir, `${Date.now()}-${basename(abs)}`);
+      copyFileSync(abs, backup);
+      this.#log({ receiptId, op: 'backup', target: abs, backup, preSha });
+      return { backup, receiptId };
+    });
+  }
+
+  /**
    * Backup-then-write: existing targets are byte-copied to backups/ first.
    * @returns {Promise<{backup:string|null, receiptId:string}>}
    */

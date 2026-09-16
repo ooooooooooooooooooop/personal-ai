@@ -14,7 +14,8 @@ import { join } from 'node:path';
  * @param {object} [deps.jobs]    JobStore
  */
 export function createChannelHost({ session, core, jobs = null }) {
-  const auditPath = join(core.paths.auditDir, 'host-audit.jsonl');
+  const auditPath = () => core.audit?.file
+    ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
   const sessionFacade = {
     prompt: (message, options) => session.prompt(message, options),
     steer: (message) => session.steer(message),
@@ -28,8 +29,8 @@ export function createChannelHost({ session, core, jobs = null }) {
   };
   const auditFacade = {
     tail: (n) => {
-      if (!existsSync(auditPath)) return [];
-      const lines = readFileSync(auditPath, 'utf-8').trim().split('\n').filter(Boolean);
+      if (!existsSync(auditPath())) return [];
+      const lines = readFileSync(auditPath(), 'utf-8').trim().split('\n').filter(Boolean);
       return lines.slice(-n).map((l) => JSON.parse(l));
     },
   };

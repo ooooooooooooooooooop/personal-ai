@@ -59,7 +59,9 @@
  * @typedef {Object} BodyFacts
  * @property {string} body_id
  * @property {string} adapter_version
- * @property {Record<string, 'supported'|'partial'|'unsupported'>} capabilities
+ * @property {Record<string, 'supported'|'partial'|'unsupported'>} verified_capabilities
+ * @property {Record<string, 'supported'|'partial'|'unsupported'>} [governance_coverage]
+ * @property {Record<string, 'supported'|'partial'|'unsupported'>} [handoff_capabilities]
  * @property {string[]} [supported_effect_domains]
  * @property {Record<string, unknown>} [known_limitations]
  *

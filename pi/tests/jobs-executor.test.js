@@ -3,7 +3,7 @@
  * cold-start a new executor over the same db, recoveryTick must RESUME it
  * under a new attempt. Plus long-command classifier + delegate tool surface.
  */
-import { mkdtempSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
@@ -98,6 +98,34 @@ test('job completes end-to-end: fast command runs to COMPLETED with result envel
   assert.equal(job.job_state, 'COMPLETED');
   const attempt = store.getAttempts(job_id)[0];
   assert.ok(attempt.result_envelope_ref && existsSync(attempt.result_envelope_ref));
+  store.close();
+});
+
+test('B7: delegated worker usage is recorded under parent_run_id', { timeout: 15_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-b7-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const executor = new JobExecutor(store, join(dir, 'jobs'), { audit, runId: 'parent-run-1' });
+
+  // fake delegate worker: reports its token/cost usage on stdout
+  const { job_id, attempt_id } = executor.spawnCommandJob({
+    command: `node -e "console.log('PAI_USAGE '+JSON.stringify({input:1200,output:80,cost:0.0042}))"`,
+    workdir: tmpdir(),
+    jobType: 'delegation',
+  });
+  await new Promise((r) => setTimeout(r, 1500));
+
+  const attempt = store.getAttempts(job_id)[0];
+  const envelope = JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
+  assert.equal(envelope.parent_run_id, 'parent-run-1');
+  assert.deepEqual(envelope.usage, { input: 1200, output: 80, cost: 0.0042 });
+
+  const ledger = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
+  const finished = ledger.trim().split('\n').map(JSON.parse).find((e) => e.kind === 'JOB_FINISHED');
+  assert.equal(finished.data.parent_run_id, 'parent-run-1');
+  assert.deepEqual(finished.data.usage, { input: 1200, output: 80, cost: 0.0042 });
   store.close();
 });
 

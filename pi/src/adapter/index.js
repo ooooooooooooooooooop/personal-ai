@@ -74,12 +74,15 @@ function providerAuditExtension(audit) {
 }
 
 /** Host-owned inline extension: ContextEnvelope → context seam per turn. */
-function contextEnvelopeExtension(contextEnvelope) {
+export function contextEnvelopeExtension(contextEnvelope) {
   return {
     name: 'pai-context-envelope',
     factory: (pi) => {
       pi.on('context', (event) => {
-        const briefing = renderContext(contextEnvelope);
+        // a provider fn re-reads live state each turn (post-compaction too);
+        // a plain envelope object renders as a fixed snapshot.
+        const env = typeof contextEnvelope === 'function' ? contextEnvelope() : contextEnvelope;
+        const briefing = renderContext(env);
         if (!briefing) return undefined;
         return {
           messages: [
@@ -103,6 +106,7 @@ export async function createPiSession({
   decide,
   loopGovernance = null, // {continuation, predictions} — M3 evidence-gated loop
   customTools = [], // host-owned tools (job_status, delegate_task) — go through the same composite chain
+  excludeTools = [], // policy-derived initial suppression — model never sees them
 }) {
   const resourceLoader = new DefaultResourceLoader({
     cwd: workdir,
@@ -130,6 +134,7 @@ export async function createPiSession({
     sessionManager: SessionManager.inMemory(),
     ...sessionOptions,
     customTools: [...customTools, ...(sessionOptions.customTools ?? [])],
+    excludeTools: [...excludeTools, ...(sessionOptions.excludeTools ?? [])],
     resourceLoader,
   });
   // M2: real revalidation against the session's own tool registry —

@@ -21,7 +21,12 @@ import {
  */
 export function createHostCore({ instanceRoot, manifestPath, runtime = null, governance = {} }) {
   const paths = instancePaths(instanceRoot); // fail-closed on git worktree
-  const audit = new AuditWriter(paths);
+  const audit = new AuditWriter(paths, {
+    annotations: {
+      runId: runtime?.runId ?? null,
+      actor: runtime?.adapter?.id ?? null,
+    },
+  });
   const manifest = loadManagedManifest(manifestPath);
   const soul = loadSoul(paths);
   const canonical = loadCanonicalState(paths);
@@ -48,9 +53,14 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
     soulManifest: soul.manifest,
     policyText: canonical.files['policy/generated.md'] ?? '',
   });
-  const contextEnvelope = buildContextEnvelope({
+  // Dynamic context provider: open predictions / observations are re-read on
+  // EVERY context event, so a post-compaction turn re-receives the live
+  // world-model projection instead of a session-start snapshot.
+  const contextProvider = () => buildContextEnvelope({
     briefing: soul.briefing ?? '',
+    openPredictions: predictions.openPredictions(),
   });
+  const contextEnvelope = contextProvider();
 
   const identity = runtime
     ? writeRuntimeIdentity(paths, runtime)
@@ -60,6 +70,6 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
     paths, audit, manifest, soul, canonical, kernel,
     policy, predictions,
     registry, leases, handoffs, identity,
-    instructionEnvelope, contextEnvelope,
+    instructionEnvelope, contextEnvelope, contextProvider,
   };
 }

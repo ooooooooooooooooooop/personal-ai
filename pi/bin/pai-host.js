@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startHost } from '../src/bootstrap/host.js';
@@ -39,6 +40,39 @@ if (cmd === 'doctor') {
   } catch (e) {
     ok = false;
     console.error('pi deps FAIL:', e.message);
+  }
+  // M1 exit: doctor reports registry / identity / audit health.
+  if (instanceRoot) {
+    const paths = instancePaths(instanceRoot);
+    try {
+      const registry = JSON.parse(readFileSync(join(paths.root, 'registry.json'), 'utf-8'));
+      const bodies = Object.keys(registry.bodies ?? {});
+      if (!bodies.length) throw new Error('no bodies registered');
+      console.log('registry: ok,', bodies.join(','));
+    } catch (e) {
+      ok = false;
+      console.error('registry FAIL:', e.message);
+    }
+    try {
+      const identity = JSON.parse(readFileSync(join(paths.root, 'runtime.json'), 'utf-8'));
+      if (!identity.run_id || !identity.host_version) throw new Error('identity incomplete');
+      console.log('identity: ok, run', identity.run_id?.slice(0, 8),
+        '| adapter', `${identity.adapter_id}@${identity.adapter_version}`,
+        identity.session_id ? `| session ${identity.session_id.slice(0, 8)}` : '| no session yet');
+    } catch (e) {
+      ok = false;
+      console.error('identity FAIL:', e.message);
+    }
+    try {
+      const files = existsSync(paths.auditDir)
+        ? readdirSync(paths.auditDir).filter((f) => f.endsWith('.jsonl'))
+        : [];
+      if (!files.length) throw new Error('no audit ledger files');
+      console.log('audit: ok,', files.join(','));
+    } catch (e) {
+      ok = false;
+      console.error('audit FAIL:', e.message);
+    }
   }
   process.exit(ok ? 0 : 1);
 }

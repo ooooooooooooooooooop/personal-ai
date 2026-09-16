@@ -1,0 +1,9 @@
+{
+  "name": "dsh-body-adapter",
+  "private": true,
+  "type": "module",
+  "description": "DSH body adapter for the Personal AI host contract (L4) + cross-body switch rehearsal tests",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\""
+  }
+}

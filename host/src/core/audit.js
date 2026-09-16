@@ -33,20 +33,37 @@ export function hashOf(value) {
  * Append-only JSONL audit writer. Lives in core: audit schema is a Personal AI
  * contract, not a harness concern. Writes go to the instance root, never the
  * source tree (resolveInstanceRoot enforces that upstream).
+ *
+ * Contract: events land in `<instance>/audit/<YYYY-MM-DD>.jsonl` (UTC date,
+ * resolved per write so rotation is free) and carry the session-level
+ * annotations (runId / actor / governance_coverage) merged top-level.
  */
 export class AuditWriter {
-  /** @param {import('./contracts.js').InstancePaths} paths */
-  constructor(paths, name = 'host-audit') {
-    this.file = join(paths.auditDir, `${name}.jsonl`);
-    mkdirSync(paths.auditDir, { recursive: true });
+  /**
+   * @param {import('./contracts.js').InstancePaths} paths
+   * @param {{name?: string, annotations?: Record<string, unknown>}} [opts]
+   *        name overrides the date-based file name (tests/tools only)
+   */
+  constructor(paths, { name = null, annotations = {} } = {}) {
+    this.dir = paths.auditDir;
+    this.name = name;
+    this.annotations = annotations;
+    mkdirSync(this.dir, { recursive: true });
   }
+
+  _file() {
+    const name = this.name ?? new Date().toISOString().slice(0, 10);
+    return join(this.dir, `${name}.jsonl`);
+  }
+
+  get file() { return this._file(); }
 
   /** @param {import('./contracts.js').AuditEvent} event */
   write(event) {
-    const safe = { ...event };
+    const safe = { ...this.annotations, ...event };
     if (safe.data !== undefined) safe.data = redact(safe.data);
     const line = JSON.stringify({ ts: new Date().toISOString(), ...safe });
-    appendFileSync(this.file, line + '\n');
+    appendFileSync(this._file(), line + '\n');
   }
 
   /** Fail-closed convenience: an audit write failure is itself surfaced. */

@@ -12,7 +12,7 @@
 |---|---|---|---|
 | ① Skill 包 | `skills/<name>/`（20 个） | ✅ | 必须登记在 `skills.json`；布局统一 `SKILL.md + agents/openai.yaml + examples/*.md` |
 | ② MCP 包 | `mcp/<name>/` | ✅ | 登记在 `mcp.json`；自持子目录许可证；`agent-switchboard` 是修改版，非 MIT |
-| ③ DSH 插件包 | `dsh/<name>/` | ✅ | 本地 DSH 用户级插件：源码 + 可移植 `cordis.patch.yml` 片段 + README 一起发布；不设注册表，校验器不核对 manifest，靠链接/markdown 检查兜底；发布内容禁止含本机路径 |
+| ③ DSH 插件包 | `dsh/<name>/` | ✅ | 本地 DSH 用户级插件：源码 + 可移植 `cordis.patch.yml` 片段 + README 一起发布；不设注册表，校验器不核对 manifest，靠链接/markdown 检查兜底；发布内容禁止含本机路径；`dsh/adapter/` 是 PAI 侧 DSH 身体适配器（依赖方向 dsh → host），`dsh/tests/` 为 L4 契约 + L5/L6 切换演练 |
 | ④ 质量脚手架 | `scripts/` `tests/` `docs/` `_template/` `.github/workflows/`（`skill-quality-gate` 是 ① 中的 Skill 包，位于 `skills/skill-quality-gate/`） | ✅ | 改 `validate_repo.py` 会影响全部上层契约，谨慎 |
 | ⑤ 设备运行层 | `.taskflow/` `.grepai/` `.claude/` `node_modules/` 等 | ❌ 禁改/禁提交 | 本地运行态，发布门禁拒绝 |
 | ⑥ soul/ | `soul/`（`manifest.json` `schema/` `briefing/` `models/` `bootstrap/`） | ✅ | Personal AI 可携带认知状态：通用 L2/L3 脱敏模型 + schema 契约 + briefing 模板 + adopter 骨架；内容只能来自 declassification 链产物或为公开编写的模板，私有 canonical/L0-L1/未脱敏模型禁入；`manifest.json` 是发布锚 |
@@ -34,6 +34,7 @@ python -m unittest discover -s tests -v           # 仓库回归
 python -m unittest discover -s mcp/agent-switchboard/tests -v           # MCP 回归
 npm --prefix host test                            # host 契约测试（零依赖防火墙）
 npm --prefix pi test                              # pi 侧边界测试
+npm --prefix dsh test                             # dsh 身体适配器 L4 契约 + L5/L6 切换演练
 git diff --check                                  # 空白错误
 ```
 

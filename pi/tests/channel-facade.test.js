@@ -26,7 +26,7 @@ test('facade exposes plain-data get_state and dispatches prompt/steer/abort', as
   const dir = mkdtempSync(join(tmpdir(), 'pai-chan-'));
   const auditDir = join(dir, 'audit');
   mkdirSync(auditDir, { recursive: true });
-  writeFileSync(join(auditDir, 'host-audit.jsonl'),
+  writeFileSync(join(auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`),
     `${JSON.stringify({ kind: 'HOST_STARTED' })}\n${JSON.stringify({ kind: 'TURN_ACCOUNTING', data: { input: 10 } })}\n`);
   const core = { paths: { auditDir } };
   const ch = createChannelHost({ session: fakeSessionRef, core });
