@@ -17,7 +17,10 @@
   - supervisor：`set_workdir`（持久化 app-config.json + 身体原地重启）+ 切换期间阻断 session/model 写命令
   - UI：侧栏变会话列表（新建任务/搜索/日期分组/点击切换+历史回放）、设置页（提供方/密钥/推理强度/模型列表/自定义 OpenAI 兼容提供方/工作目录浏览）、composer 模型+推理 chip 下拉、无模型时 setup 引导卡接管空态
   - 实测打通：provider_add cpa → env 密钥 → model_set → 真 prompt → gpt-5.6-luna-max 回复 READY（usage 3365）
-- [ ] R3–R8 见下（视觉/交互细节轮，按用户反馈排）
+- [x] **R3 行级工艺**：思考流式行、消息操作栏（复制/重发/重新生成）、元信息 chip（模型+tok+cost）、处理计时行、待发队列（排队/转向）、活动组折叠、工具动词分类、错误卡
+- [x] **R4/R6 混合**：`/` 指令菜单、用量/成本 chip、会话右键菜单（打开/重命名/复制路径/分支/导出）、审计筛选+展开、结构化输出（diff/表格/语言标签）、toast、侧栏折叠、治理 ASK 批准卡
+- [x] **会话生命周期批**（对标 harness 长处落地）：`/compact`（pi compact 压缩上下文）、`/rewind`（navigateTree 回到任一提问点，分支不删）、`/export`（exportToHtml）、`/restore`（FileOpsGuard 回执恢复删除/备份）、`session_stats`（真实总账含压缩前历史）、`policy_status`（治理姿态只读卡）、compaction/auto-retry/session-info 事件行
+- [ ] R5–R8 剩余见下（视觉/交互细节轮，按用户反馈排）
 
 ---
 
