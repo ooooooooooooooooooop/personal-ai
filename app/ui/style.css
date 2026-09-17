@@ -538,3 +538,70 @@ pre:hover .code-copy, .code-copy.copied { opacity: 1; }
   border-left: 2px solid var(--line-sub); padding-left: 12px;
 }
 .think-row.open .think-body { display: block; }
+
+/* ---------------- processing row ---------------- */
+.proc-row {
+  max-width: var(--chat-w); margin: 6px auto;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-4); padding: 2px 6px;
+}
+.proc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); animation: tpulse 1.1s ease-in-out infinite; }
+.proc-row.done .proc-dot { background: var(--green); animation: none; }
+.proc-row.done { color: var(--text-4); }
+
+/* ---------------- message action bar (hover) ---------------- */
+.msg { position: relative; }
+.msg-actions {
+  display: flex; gap: 2px; margin-top: 4px;
+  opacity: 0; transition: opacity .15s;
+}
+.msg.user .msg-actions { justify-content: flex-end; }
+.msg:hover .msg-actions { opacity: 1; }
+.ma-btn {
+  padding: 3px 10px; border-radius: var(--r-xs);
+  font-size: 11px; color: var(--text-4); background: transparent;
+}
+.ma-btn:hover { background: var(--bg-hover); color: var(--text-2); }
+
+/* ---------------- message meta chips ---------------- */
+.msg-meta { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.meta-chip {
+  font-size: 11px; font-family: var(--mono); color: var(--text-4);
+  background: var(--tile); padding: 2px 8px; border-radius: 999px;
+}
+.meta-chip.warn { color: var(--yellow); }
+
+/* ---------------- activity group ---------------- */
+.act-group { max-width: var(--chat-w); margin: 3px auto; }
+.act-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 6px; margin: 0 -6px; border-radius: var(--r-sm);
+  font-size: 12px; color: var(--text-4);
+}
+.act-head:hover { background: var(--bg-hover); }
+.act-head .t-caret { opacity: 1; }
+.act-group.open .act-head .t-caret { transform: rotate(90deg); }
+.act-items { display: none; }
+.act-group.open .act-items { display: block; }
+.act-group .tool { max-width: none; margin: 0; }
+
+/* ---------------- queued prompts ---------------- */
+#queue-row {
+  pointer-events: auto;
+  max-width: var(--chat-w); margin: 0 auto 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.q-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-elev-opaque); border: 1px solid var(--line);
+  border-radius: var(--r-md); padding: 7px 12px;
+  font-size: 12.5px; color: var(--text-2);
+}
+.q-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-btn {
+  flex: none; font-size: 11px; color: var(--text-3);
+  padding: 3px 10px; border-radius: 999px; background: var(--field);
+}
+.q-btn:hover { background: var(--field-focus); color: var(--text); }
+.q-x { flex: none; font-size: 14px; color: var(--text-4); padding: 0 4px; }
+.q-x:hover { color: var(--red); }

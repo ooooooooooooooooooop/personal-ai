@@ -76,6 +76,7 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
         role: m.role ?? 'unknown',
         text: textOf('text') || (typeof m.content === 'string' ? m.content : ''),
         thinking: textOf('thinking') || null,
+        toolName: m.toolName ?? m.name ?? null,
         tools: blocks.filter((b) => b?.type === 'toolCall' || b?.type === 'tool_use')
           .map((b) => b.name ?? b.toolName ?? 'tool'),
         model: m.role === 'assistant' && m.model

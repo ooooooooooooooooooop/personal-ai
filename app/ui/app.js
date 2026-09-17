@@ -109,17 +109,48 @@ function noteMessage() {
 }
 function addMsg(who, text) {
   noteMessage();
+  actGroup = null; // a text message breaks any running tool group
   const div = document.createElement('div');
   div.className = `msg ${who}`;
-  div.innerHTML = '<div class="bubble"></div>';
+  div.innerHTML = '<div class="bubble"></div><div class="msg-actions"></div>';
   const b = div.querySelector('.bubble');
   if (who === 'user') b.textContent = text; else b.innerHTML = md(text);
+  const bar = div.querySelector('.msg-actions');
+  const mkBtn = (label, title, fn) => {
+    const btn = document.createElement('button');
+    btn.className = 'ma-btn';
+    btn.textContent = label;
+    btn.title = title;
+    btn.onclick = fn;
+    bar.appendChild(btn);
+    return btn;
+  };
+  mkBtn('复制', '复制内容', () => {
+    navigator.clipboard?.writeText(b.textContent ?? '').then(() => {
+      const t = bar.querySelector('.ma-btn');
+      t.textContent = '已复制'; setTimeout(() => { t.textContent = '复制'; }, 1200);
+    });
+  });
+  if (who === 'user') {
+    mkBtn('重发', '重新发送这条消息', async () => {
+      lastUserText = b.textContent ?? '';
+      const r = await cmd('prompt', { message: b.textContent ?? '' });
+      if (!r.success) addSys(`重发失败：${r.error ?? '未知'}`, true);
+    });
+  } else {
+    mkBtn('重新生成', '重新回答上一条', async () => {
+      if (!lastUserText) return;
+      const r = await cmd('prompt', { message: lastUserText });
+      if (!r.success) addSys(`重新生成失败：${r.error ?? '未知'}`, true);
+    });
+  }
   transcript.appendChild(div);
   scrollTail();
   return div;
 }
 function addThinking(text) {
   noteMessage();
+  actGroup = null;
   const div = document.createElement('div');
   div.className = 'think-row';
   div.innerHTML = `<button class="think-head"><span class="t-caret">${CARET}</span><span class="t-icon">${THINK_ICON}</span>思考过程</button><div class="think-body"></div>`;
@@ -130,6 +161,7 @@ function addThinking(text) {
 }
 function addSys(text, bad = false) {
   noteMessage();
+  actGroup = null;
   const div = document.createElement('div');
   div.className = `sys${bad ? ' bad' : ''}`;
   div.textContent = text;
@@ -161,8 +193,27 @@ function resultText(result) {
   try { return JSON.stringify(result, null, 2); } catch { return String(result); }
 }
 const toolRows = new Map();
+let actGroup = null; // .act-group element collecting consecutive tool rows
+
+/* tool verb + icon by name — mirrors the action-categorization idea */
+const TOOL_KINDS = [
+  [/^(read|cat|view)/i, { verb: '读取', icon: '<path d="M6 3h9l4 4v14H6z"/><path d="M9 9h6M9 13h6M9 17h4"/>' }],
+  [/^(edit|write|patch|apply)/i, { verb: '改写', icon: '<path d="M17 3l4 4L8 20l-5 1 1-5z"/>' }],
+  [/^(bash|shell|powershell|cmd|run|exec)/i, { verb: '运行', icon: '<path d="M4 17l6-6-6-6"/><path d="M12 19h8"/>' }],
+  [/^(grep|search|find|ls|list|glob)/i, { verb: '检索', icon: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>' }],
+  [/^(fetch|web|http|browse)/i, { verb: '获取', icon: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>' }],
+  [/^(delegate|task|spawn)/i, { verb: '委派', icon: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6 8.5V12l6 3.5L18 12V8.5"/>' }],
+  [/^(job|audit)/i, { verb: '查询', icon: '<path d="M4 6h16M4 12h16M4 18h10"/>' }],
+];
+function toolKind(name) {
+  for (const [re, k] of TOOL_KINDS) if (re.test(name ?? '')) return k;
+  return { verb: '调用', icon: '<path d="M14.7 6.3a4.5 4.5 0 0 0-6 6L3 18l3 3 5.7-5.7a4.5 4.5 0 0 0 6-6L14 13l-3-3 3.7-3.7z"/>' };
+}
+const kindIcon = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+
 function addTool(ev) {
   noteMessage();
+  const kind = toolKind(ev.toolName);
   const div = document.createElement('div');
   div.className = 'tool running';
   div.dataset.tool = ev.toolCallId;
@@ -170,14 +221,14 @@ function addTool(ev) {
   div.innerHTML = `
     <button class="tool-head">
       <span class="t-caret">${CARET}</span>
-      <span class="t-icon">${TOOL_ICON}</span>
+      <span class="t-icon">${kindIcon(kind.icon)}</span>
       <span class="t-name running"></span>
       <span class="t-arg"></span>
       <span class="t-state"><span class="t-state-dot"></span><span class="t-label">运行中</span></span>
       <span class="t-copy" title="复制调用">${COPY_ICON}</span>
     </button>
     <div class="tool-body"></div>`;
-  div.querySelector('.t-name').textContent = ev.toolName;
+  div.querySelector('.t-name').textContent = `${kind.verb} · ${ev.toolName}`;
   div.querySelector('.t-arg').textContent = arg.length > 90 ? `${arg.slice(0, 90)}…` : arg;
   const body = div.querySelector('.tool-body');
   const argsStr = (() => { try { return JSON.stringify(ev.args, null, 2); } catch { return String(ev.args); } })();
@@ -193,7 +244,28 @@ function addTool(ev) {
     });
   };
   toolRows.set(ev.toolCallId, div);
-  transcript.appendChild(div);
+
+  // Consecutive tool rows fold into an activity group — "N 个步骤".
+  const last = transcript.lastElementChild;
+  if (actGroup && last === actGroup) {
+    actGroup.querySelector('.act-items').appendChild(div);
+  } else if (last?.classList?.contains('tool')) {
+    const g = document.createElement('div');
+    g.className = 'act-group open';
+    g.innerHTML = `<button class="act-head"><span class="t-caret">${CARET}</span><span class="act-count"></span></button><div class="act-items"></div>`;
+    g.querySelector('.act-head').onclick = () => g.classList.toggle('open');
+    transcript.replaceChild(g, last);
+    g.querySelector('.act-items').appendChild(last);
+    g.querySelector('.act-items').appendChild(div);
+    actGroup = g;
+  } else {
+    transcript.appendChild(div);
+    actGroup = null;
+  }
+  if (actGroup) {
+    const n = actGroup.querySelectorAll('.act-items .tool').length;
+    actGroup.querySelector('.act-count').textContent = `${n} 个步骤`;
+  }
   scrollTail();
 }
 function endTool(ev) {
@@ -219,6 +291,42 @@ function messageText(m) {
   if (!Array.isArray(blocks)) return '';
   return blocks.filter((b) => b?.type === 'text').map((b) => b.text ?? '').join('');
 }
+function thinkingText(m) {
+  const blocks = m?.content;
+  if (!Array.isArray(blocks)) return '';
+  return blocks.filter((b) => b?.type === 'thinking').map((b) => b.thinking ?? b.text ?? '').join('');
+}
+
+/* ---------- processing row: "处理中 · Ns" between turns ---------- */
+let procEl = null;
+let procTimer = null;
+let procStart = 0;
+function startProc() {
+  stopProc();
+  procStart = Date.now();
+  procEl = document.createElement('div');
+  procEl.className = 'proc-row';
+  procEl.innerHTML = '<span class="proc-dot"></span><span class="proc-text">处理中 · 0s</span>';
+  transcript.appendChild(procEl);
+  scrollTail();
+  procTimer = setInterval(() => {
+    const t = procEl?.querySelector('.proc-text');
+    if (t) t.textContent = `处理中 · ${Math.round((Date.now() - procStart) / 1000)}s`;
+  }, 1000);
+}
+function stopProc(final = false) {
+  clearInterval(procTimer);
+  procTimer = null;
+  if (procEl && final) {
+    const s = Math.round((Date.now() - procStart) / 1000);
+    procEl.querySelector('.proc-text').textContent = `已处理 ${s}s`;
+    procEl.classList.add('done');
+    procEl = null;
+    return;
+  }
+  procEl?.remove();
+  procEl = null;
+}
 
 /* ---------- history replay (session switch / restart) ---------- */
 async function replayHistory() {
@@ -226,32 +334,71 @@ async function replayHistory() {
   const r = await cmd('session_history');
   const msgs = r.data ?? [];
   for (const m of msgs) {
-    if (m.role === 'user') addMsg('user', m.text ?? '');
+    if (m.role === 'user') { lastUserText = m.text ?? ''; addMsg('user', m.text ?? ''); }
     else if (m.role === 'assistant') {
       if (m.thinking) addThinking(m.thinking);
       if (m.text) addMsg('assistant', m.text);
       for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
       if (m.error) addSys(`模型错误：${m.error}`, true);
+    } else if (m.role === 'toolResult' || m.role === 'tool_result') {
+      // Replayed tool results render as completed tool rows with output.
+      const kind = toolKind(m.toolName);
+      const div = document.createElement('div');
+      div.className = 'tool done';
+      div.innerHTML = `
+        <button class="tool-head">
+          <span class="t-caret">${CARET}</span>
+          <span class="t-icon">${kindIcon(kind.icon)}</span>
+          <span class="t-name"></span>
+          <span class="t-arg"></span>
+          <span class="t-state"><span class="t-state-dot"></span><span class="t-label">完成</span></span>
+        </button>
+        <div class="tool-body"><div class="tb-label">输出</div><pre></pre></div>`;
+      div.querySelector('.t-name').textContent = `${kind.verb} · ${m.toolName ?? 'tool'}`;
+      const out = (m.text ?? '');
+      div.querySelector('.tool-body pre').textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
+      div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
+      transcript.appendChild(div);
+      noteMessage();
     }
   }
   if (!sawMessage && modelStatus?.current == null) $('setup-card')?.classList.remove('hidden');
 }
 
 /* ---------- agent events ---------- */
+let thinkEl = null; // live thinking row being streamed into
+let lastUserText = ''; // for regenerate
+
 function onAgentEvent(ev) {
   switch (ev?.type) {
     case 'agent_start':
       setBusy(true);
       assistantEl = null;
+      thinkEl = null;
+      startProc();
       break;
     case 'message_start':
-      assistantEl = addMsg('assistant', '');
+      if (ev.message?.role === 'assistant') assistantEl = addMsg('assistant', '');
       break;
     case 'message_update': {
+      const think = thinkingText(ev.message);
+      if (think) {
+        if (!thinkEl) thinkEl = addThinking('');
+        thinkEl.querySelector('.think-body').textContent = think;
+        scrollTail();
+      }
       const text = messageText(ev.message);
       if (text) {
         (assistantEl ??= addMsg('assistant', '')).querySelector('.bubble').innerHTML = md(text);
         scrollTail();
+      }
+      break;
+    }
+    case 'message_end': {
+      const m = ev.message;
+      if (m?.role === 'assistant') {
+        attachMeta(assistantEl, m);
+        if (m.errorMessage) addSys(`模型错误：${m.errorMessage}`, true);
       }
       break;
     }
@@ -283,10 +430,36 @@ function onAgentEvent(ev) {
     case 'agent_end':
       setBusy(false);
       assistantEl = null;
+      thinkEl = null;
+      stopProc(true);
+      actGroup?.classList.remove('open');
+      actGroup = null;
       refreshState();
       refreshSessionsSoon();
+      flushQueue();
       break;
   }
+}
+
+/* meta chips under finished assistant messages: model + tokens + cost */
+function attachMeta(el, m) {
+  if (!el || el.querySelector('.msg-meta')) return;
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  const parts = [];
+  const prov = m.provider ?? m.model?.provider;
+  const mid = m.responseModel ?? m.model?.id ?? m.model;
+  if (prov || mid) parts.push(`<span class="meta-chip">${escHtml([prov, mid].filter(Boolean).join('/'))}</span>`);
+  const u = m.usage;
+  if (u?.totalTokens) {
+    parts.push(`<span class="meta-chip">${u.input ?? 0}→${u.output ?? 0} tok</span>`);
+    if (u.cost?.total) parts.push(`<span class="meta-chip">$${Number(u.cost.total).toFixed(4)}</span>`);
+  }
+  if (m.stopReason && !['stop', 'end_turn', 'toolUse', 'tool_use'].includes(m.stopReason)) {
+    parts.push(`<span class="meta-chip warn">${escHtml(m.stopReason)}</span>`);
+  }
+  meta.innerHTML = parts.join('');
+  el.appendChild(meta);
 }
 
 function setBusy(v) {
@@ -733,10 +906,43 @@ input.addEventListener('input', autogrow);
 input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); }
 });
+/* prompt queue — messages sent while a run is active wait as chips above
+ * the composer; agent_end flushes the next one. "立即转向" = steer now. */
+const queue = [];
+function renderQueue() {
+  const row = $('queue-row');
+  row.innerHTML = '';
+  row.classList.toggle('hidden', queue.length === 0);
+  queue.forEach((text, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'q-chip';
+    chip.innerHTML = `<span class="q-text"></span><button class="q-btn" title="立即转向发送">转向</button><button class="q-x" title="移除">×</button>`;
+    chip.querySelector('.q-text').textContent = text.length > 60 ? `${text.slice(0, 60)}…` : text;
+    chip.querySelector('.q-btn').onclick = async () => {
+      queue.splice(i, 1); renderQueue();
+      const r = await cmd('steer', { message: text });
+      if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
+    };
+    chip.querySelector('.q-x').onclick = () => { queue.splice(i, 1); renderQueue(); };
+    row.appendChild(chip);
+  });
+}
+function flushQueue() {
+  const next = queue.shift();
+  renderQueue();
+  if (!next) return;
+  lastUserText = next;
+  addMsg('user', next);
+  cmd('prompt', { message: next }).then((r) => {
+    if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
+  });
+}
 async function send() {
   const text = input.value.trim();
   if (!text) return;
   input.value = ''; autogrow();
+  if (busy) { queue.push(text); renderQueue(); return; }
+  lastUserText = text;
   addMsg('user', text);
   const r = await cmd('prompt', { message: text });
   if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
