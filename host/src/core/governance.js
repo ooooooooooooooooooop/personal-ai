@@ -25,8 +25,11 @@ export class GovernanceKernel {
    * @param {(source:string)=>Promise<{units:Array,parseError:string|null,risk:string}>} [deps.commandClassifier]
    * @param {string[]} [deps.protectedRoots]   negative-capability path roots
    * @param {Record<string,string>} [deps.commandArgs]  toolName -> arg holding a shell command
+   * @param {(pending:object, signal?:AbortSignal) => Promise<string>} [deps.ask]
+   *        operator-in-the-loop surface for the 'ask' policy action; absent =
+   *        ask rules fail closed (unanswerable questions are denials)
    */
-  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {} }) {
+  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null }) {
     if (!audit) throw new Error('GovernanceKernel requires an AuditWriter');
     if (!policy) throw new Error('GovernanceKernel requires an AttestedPolicy');
     this.audit = audit;
@@ -35,6 +38,7 @@ export class GovernanceKernel {
     this.commandClassifier = commandClassifier;
     this.protectedRoots = protectedRoots.map((r) => r.replace(/\\/g, '/'));
     this.commandArgs = commandArgs;
+    this.ask = ask;
   }
 
   #deny(ctx, rule, detail) {
@@ -62,6 +66,47 @@ export class GovernanceKernel {
       data: { toolCallId: ctx.toolCallId, via },
     });
     return undefined;
+  }
+
+  /**
+   * Suspend the call and put the question to the operator. The answer maps
+   * back onto ordinary decisions — deny/timeout/abort all refuse, so a UI
+   * that never answers can only ever produce denials.
+   */
+  async #ask(ctx, rule, detail) {
+    const summary = summarizeArgs(ctx.args);
+    if (!this.ask) {
+      return this.#deny(ctx, 'ask_unavailable', {
+        reason: `policy requires operator approval for '${ctx.toolName}' but no ask channel is configured (fail-closed)`,
+        actual: summary,
+        repair: 'connect a UI that answers asks, or change the policy action to allow/deny',
+      });
+    }
+    this.audit.write({
+      kind: 'GOVERNANCE_ASK', toolName: ctx.toolName,
+      data: { toolCallId: ctx.toolCallId, rule, summary },
+    });
+    const answer = await this.ask(
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null },
+      ctx.signal,
+    );
+    this.audit.write({
+      kind: 'GOVERNANCE_ASK_RESOLVED', toolName: ctx.toolName,
+      data: { toolCallId: ctx.toolCallId, rule, answer },
+    });
+    if (answer === 'allow' || answer === 'allow_session') {
+      return this.#allow(ctx, `operator:${answer}`);
+    }
+    const reasons = {
+      deny: 'operator denied the call',
+      timeout: 'operator did not answer before the ask expired',
+      aborted: 'session aborted while awaiting operator',
+    };
+    return this.#deny(ctx, `ask_${answer}`, {
+      reason: `${reasons[answer] ?? `ask unresolved (${answer})`} — ${detail.reason}`,
+      actual: summary,
+      repair: 're-issue after operator approval, or choose a permitted action',
+    });
   }
 
   /**
@@ -117,7 +162,13 @@ export class GovernanceKernel {
       const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
         .map((cls) => riskActions[cls] ?? 'allow');
       const action = actions.includes('terminate') ? 'terminate'
-        : actions.includes('deny') ? 'deny' : 'allow';
+        : actions.includes('deny') ? 'deny'
+        : actions.includes('ask') ? 'ask' : 'allow';
+      if (action === 'ask') {
+        return this.#ask(ctx, `risk_${parsed.risk}`, {
+          reason: `command risk class '${parsed.risk}' requires operator approval by policy`,
+        });
+      }
       if (action === 'deny') {
         return this.#deny(ctx, `risk_${parsed.risk}`, {
           reason: `command risk class '${parsed.risk}' denied by policy`,
@@ -133,7 +184,15 @@ export class GovernanceKernel {
       }
     }
 
-    // 5. prediction binding
+    // 5. per-tool ask — placed after deny/negative-capability/command checks:
+    // an operator can approve what policy made optional, never what it forbade
+    if (rules.action === 'ask') {
+      return this.#ask(ctx, 'tool_ask', {
+        reason: `tool '${ctx.toolName}' requires operator approval by policy`,
+      });
+    }
+
+    // 6. prediction binding
     const needsPrediction = rules.requiresPrediction === true || args.predictionId != null;
     if (needsPrediction) {
       const predId = args.predictionId;
@@ -188,3 +247,18 @@ export class GovernanceKernel {
     return null;
   }
 }
+
+/**
+ * One-line operator-facing digest of tool args: prefer the fields a human
+ * actually adjudicates (the command, the path, the query), else truncated
+ * JSON. The summary is what the approver sees — it is not a decision input.
+ */
+function summarizeArgs(args) {
+  if (args == null || typeof args !== 'object') return String(args ?? '');
+  for (const key of ['command', 'path', 'file', 'target', 'url', 'query', 'pattern']) {
+    if (typeof args[key] === 'string' && args[key]) return `${key}: ${clip(args[key])}`;
+  }
+  try { return clip(JSON.stringify(args)); } catch { return '[unserializable args]'; }
+}
+
+const clip = (s, n = 240) => (s.length > n ? `${s.slice(0, n)}…` : s);

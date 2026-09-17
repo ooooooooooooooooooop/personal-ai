@@ -11,7 +11,9 @@ const DEFAULT_POLICY = {
   version: 1,
   deny: [],
   tools: {},
-  riskActions: { destructive: 'deny', privilege: 'deny' },
+  // destructive commands ask the operator instead of hard-denying — the
+  // ask card is the product's governance surface; privilege stays a hard no
+  riskActions: { destructive: 'ask', privilege: 'deny' },
 };
 
 /**

@@ -115,3 +115,29 @@ test('model/session commands route to their facades; absent facades fail politel
   assert.equal((await bare.handle({ type: 'model_status' })).success, false);
   assert.equal((await bare.handle({ type: 'session_list' })).success, false);
 });
+
+test('pending_list/decision_resolve drive the asks facade; ask events fan out', async () => {
+  const { PendingAsks } = await import('../src/core/asks.js');
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const ch = new HostChannel({ session: fakeSession(), asks });
+  const got = [];
+  ch.subscribe((m) => got.push(m));
+
+  const p = asks.ask({ toolName: 'bash', rule: 'risk_destructive', summary: 'command: rm -rf x' });
+  assert.equal(got[0].event.type, 'governance_ask');
+
+  const list = await ch.handle({ type: 'pending_list' });
+  assert.equal(list.data.length, 1);
+  assert.equal(list.data[0].toolName, 'bash');
+
+  const bad = await ch.handle({ type: 'decision_resolve', askId: list.data[0].id, answer: 'maybe' });
+  assert.equal(bad.success, false);
+  const ok = await ch.handle({ type: 'decision_resolve', askId: list.data[0].id, answer: 'deny' });
+  assert.equal(ok.success, true);
+  assert.equal(await p, 'deny');
+  assert.equal(got[1].event.type, 'governance_resolved');
+
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'pending_list' })).success, false);
+  ch.dispose();
+});

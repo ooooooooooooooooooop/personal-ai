@@ -125,6 +125,65 @@ test('prediction binding: open prediction admits + records binding', async () =>
   assert.equal(closed.rule, 'prediction_binding_failed');
 });
 
+test("policy 'ask' risk action suspends for the operator; allow admits, deny blocks", async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { destructive: 'ask', privilege: 'deny' },
+  });
+  const calls = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({ units: [{ raw: 'rm -rf x' }], parseError: null, risk: 'destructive' }),
+    ask: async (pending) => { calls.push(pending); return pending.toolCallId === 'tc-yes' ? 'allow' : 'deny'; },
+  });
+  const admitted = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 'tc-yes', args: { command: 'rm -rf x' } }));
+  assert.equal(admitted, undefined);
+  assert.equal(calls[0].rule, 'risk_destructive');
+  assert.equal(calls[0].summary, 'command: rm -rf x');
+  const denied = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 'tc-no', args: { command: 'rm -rf x' } }));
+  assert.equal(denied.block, true);
+  assert.equal(denied.rule, 'ask_deny');
+});
+
+test("policy 'ask' with no ask channel fails closed", async () => {
+  const { audit, policy, predictions } = fixture({
+    tools: { write: { action: 'ask' } },
+  });
+  const kernel = new GovernanceKernel({ audit, policy, predictions });
+  const d = await kernel.decideToolCall(ctx());
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'ask_unavailable');
+});
+
+test("tool-level 'ask' rule consults the operator; timeout refuses", async () => {
+  const { audit, policy, predictions } = fixture({
+    tools: { write: { action: 'ask' } },
+  });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    ask: async () => 'timeout',
+  });
+  const d = await kernel.decideToolCall(ctx());
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'ask_timeout');
+});
+
+test("negative capabilities still outrank 'ask' — operators cannot unlock protected roots", async () => {
+  const { audit, policy, predictions, paths } = fixture({
+    tools: { write: { action: 'ask' } },
+  });
+  let asked = false;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    protectedRoots: [paths.auditDir],
+    ask: async () => { asked = true; return 'allow'; },
+  });
+  const d = await kernel.decideToolCall(ctx({ args: { path: join(paths.auditDir, 'x.jsonl') } }));
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'negative_capability');
+  assert.equal(asked, false);
+});
+
 test('admitted calls are audited', async () => {
   const { audit, policy, predictions, paths } = fixture();
   const kernel = new GovernanceKernel({ audit, policy, predictions });

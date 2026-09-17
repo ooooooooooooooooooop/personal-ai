@@ -74,7 +74,7 @@
 
 | # | 细节 | 借用容器 | 判定 | 轮次 |
 |---|---|---|---|---|
-| D1 | **治理询问卡（ASK 决策）** | 借 `PermissionCard`：dock 内浮卡 "允许 <tool> 运行吗？· 风险 高/中/低 · [允许一次] [允许本次对话] [拒绝] · 若 N 秒内未响应将自动拒绝 · 还有 N 个请求在排队" | 需后端（`governance_ask` 事件 + `approve/deny` 命令 — 已在 pending 清单） | R5 |
+| D1 | **治理询问卡（ASK 决策）** ✅ | 借 `PermissionCard`：dock 内浮卡 "允许 <tool> 运行吗？· 风险 高/中/低 · [允许一次] [允许本次对话] [拒绝] · 若 N 秒内未响应将自动拒绝 · 还有 N 个请求在排队" | **已落地**：`PendingAsks` + kernel `ask` 动作（terminate>deny>ask>allow 晶格）+ `pending_list`/`decision_resolve` 命令 + UI 批准卡；默认 policy `destructive→ask` | ~~R5~~ done |
 | D2 | **身体切换进度** | 现有 2px 进度条 + 七相卡 → 补每相耗时、失败相高亮、回滚提示 | 可做 | R4 |
 | D3 | **上下文用量条** | 借 `ContextUsageInspector`：composer 内环形/条形 "已用 N / 窗口 N"，点开：输入/输出/缓存读写/推理/工具上下文/本轮合计/**成本** | 可做（`usage` 累计 + `cost.total`；窗口大小需 model 信息） | R4 |
 | D4 | **审计视图升级** | 借设置页列表样式：按 kind 分色、可筛选（治理/租约/切换/计费）、展开看 payload | 可做 | R6 |
@@ -96,7 +96,7 @@
 |---|---|---|
 | R3 | A1 思考行 · A2 复制/重新生成 · A3 元信息 chip · A4 处理计时 · B1 待发队列 · B2/B3 占位与提示 · C8 闪屏 · C9 toast · C10 状态语义 | 无 |
 | R4 | A5 活动组 · A6 动作分类 · A7 结构化输出 · A8 失败卡 · A9 错误详情 · D2 切换卡 · D3 用量条 | 无 |
-| R5 | B4 模型选择 · B6 推理等级 · B5 权限 chip · **D1 治理询问卡** · C3 折叠 · C4 宽度 · C6 主题 · C7 无边框 | channel: `model_list/set_model/set_thinking`；host: `governance_ask` 事件 + `approve/deny` |
+| R5 | B4 模型选择 · B6 推理等级 · B5 权限 chip · C3 折叠 · C4 宽度 · C6 主题 · C7 无边框 | ~~D1 已提前落地~~：channel `pending_list`/`decision_resolve` + host `PendingAsks` + kernel `ask` 动作（destructive→ask 默认） |
 | R6 | C1 会话列表 · C2 新建/搜索 · C5 右键菜单 · B7 `/` 指令 · A10 压缩行 · D4/D5 审计任务升级 | channel: `session_list/new/switch/rename`；compaction 事件透传 |
 | R7 | A11 minimap · A12 分页 · A13 委派拓扑 · D6 能力矩阵 · D7 租约徽章 | `lease_status`；session 分页 |
 | R8 | C12 provisioning 向导（凭据 / instance / 身体探测） | app 层向导流程 |

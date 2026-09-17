@@ -14,7 +14,9 @@ const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
 export function makeDecide({ core, executor, fileOps, getSurface, workdir }) {
   return async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
-    const decision = await core.kernel.decideToolCall({ ...ctx, toolName }, signal);
+    // signal rides on ctx so the kernel's ask path can abort a pending
+    // operator question when the session is interrupted mid-decision
+    const decision = await core.kernel.decideToolCall({ ...ctx, toolName, signal });
     if (decision) {
       // terminate-level denial also removes the tool from the visible
       // surface (deny→hide) so the model stops retrying it — persisted.

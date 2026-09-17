@@ -1,0 +1,82 @@
+/**
+ * PendingAsks — the operator-in-the-loop surface behind policy 'ask' rules.
+ * Every unresolved path must resolve to a refusal; nothing may stay suspended.
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { PendingAsks } from '../src/core/asks.js';
+
+const desc = (over = {}) => ({ toolName: 'bash', toolCallId: 'tc-1', rule: 'risk_destructive', summary: 'command: rm -rf x', ...over });
+
+test('operator answers resolve the suspended ask; events fire on raise and resolve', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((e) => events.push(e));
+
+  const p = asks.ask(desc());
+  assert.equal(asks.list().length, 1);
+  const askId = asks.list()[0].id;
+  assert.equal(events[0].type, 'governance_ask');
+  assert.equal(events[0].ask.toolName, 'bash');
+  assert.equal(events[0].ask.summary, 'command: rm -rf x');
+
+  const r = asks.resolve(askId, 'allow');
+  assert.equal(r.ok, true);
+  assert.equal(await p, 'allow');
+  assert.equal(asks.list().length, 0);
+  assert.equal(events[1].type, 'governance_resolved');
+  assert.equal(events[1].answer, 'allow');
+});
+
+test('allow_session auto-allows later asks for the same tool; resetSession clears', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p1 = asks.ask(desc());
+  asks.resolve(asks.list()[0].id, 'allow_session');
+  assert.equal(await p1, 'allow_session');
+
+  // no new pending record — straight through
+  assert.equal(await asks.ask(desc({ toolCallId: 'tc-2' })), 'allow');
+  assert.equal(asks.list().length, 0);
+
+  asks.resetSession();
+  const p2 = asks.ask(desc({ toolCallId: 'tc-3' }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  assert.equal(await p2, 'deny');
+});
+
+test('unanswered asks expire to a refusal (timeout = deny upstream)', async () => {
+  const asks = new PendingAsks({ timeoutMs: 30 });
+  const answer = await asks.ask(desc());
+  assert.equal(answer, 'timeout');
+  assert.equal(asks.list().length, 0);
+});
+
+test('abort signal resolves pending asks as aborted', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const ac = new AbortController();
+  const p = asks.ask(desc(), ac.signal);
+  ac.abort();
+  assert.equal(await p, 'aborted');
+});
+
+test('resolve validates: unknown id and bad answers fail politely', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask(desc());
+  const id = asks.list()[0].id;
+  assert.equal(asks.resolve('ask-nope', 'allow').ok, false);
+  assert.equal(asks.resolve(id, 'maybe').ok, false);
+  asks.resolve(id, 'deny');
+  await p;
+  // double resolve is a polite error, not a crash
+  assert.equal(asks.resolve(id, 'allow').ok, false);
+});
+
+test('dispose refuses everything still suspended', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p1 = asks.ask(desc({ toolCallId: 'a' }));
+  const p2 = asks.ask(desc({ toolCallId: 'b' }));
+  asks.dispose();
+  assert.equal(await p1, 'aborted');
+  assert.equal(await p2, 'aborted');
+});

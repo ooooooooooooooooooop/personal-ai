@@ -33,6 +33,9 @@
  *   session_switch {path}   → resume a persisted session
  *   session_rename {name}   → name the current session
  *   session_history {}      → current session's messages as plain data
+ *   pending_list {}         → operator asks awaiting an answer
+ *   decision_resolve {id,answer} → answer a governance ask
+ *                               (allow | allow_session | deny)
  *
  * Events: whatever the body's event stream emits, re-tagged as
  * {type:'event', event} plus host-side {type:'audit', event} lines.
@@ -48,8 +51,11 @@ export class HostChannel {
    *        of the cold-handoff phases a supervisor orchestrates
    * @param {object} [facades.models] {status,list,set,setThinking,setApiKey,clearApiKey}
    * @param {object} [facades.sessions] {list,create,open,rename} — persisted session lifecycle
+   * @param {object} [facades.asks]   PendingAsks-like {ask,list,resolve,subscribe} —
+   *        governance questions waiting on the operator; events re-emit as
+   *        governance_ask / governance_resolved
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null }) {
+  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -58,9 +64,13 @@ export class HostChannel {
     this.handoff = handoff;
     this.models = models;
     this.sessions = sessions;
+    this.asks = asks;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
+    }
+    if (typeof asks?.subscribe === 'function') {
+      this.unsubAsks = asks.subscribe((event) => this.#emit({ type: 'event', event }));
     }
   }
 
@@ -199,6 +209,15 @@ export class HostChannel {
           if (!this.session?.history) return reply(false, undefined, 'history unavailable');
           return reply(true, await this.session.history());
         }
+        case 'pending_list': {
+          if (!this.asks?.list) return reply(false, undefined, 'asks facade unavailable');
+          return reply(true, this.asks.list());
+        }
+        case 'decision_resolve': {
+          if (!this.asks?.resolve) return reply(false, undefined, 'asks facade unavailable');
+          const r = this.asks.resolve(String(cmd.askId ?? cmd.ask ?? ''), String(cmd.answer ?? ''));
+          return r.ok ? reply(true, { resolved: true }) : reply(false, undefined, r.error);
+        }
         default:
           return reply(false, undefined, `unknown command '${cmd?.type}'`);
       }
@@ -219,6 +238,7 @@ export class HostChannel {
 
   dispose() {
     this.unsub?.();
+    this.unsubAsks?.();
     this.listeners.clear();
   }
 }

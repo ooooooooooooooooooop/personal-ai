@@ -6,6 +6,7 @@ import { parseShellCommand } from '../adapter/command-parse.js';
 import { ContinuationGovernor } from '../../../host/src/core/continuation.js';
 import { selectBody } from '../../../host/src/core/eligibility.js';
 import { JobStore } from '../../../host/src/core/jobs.js';
+import { PendingAsks } from '../../../host/src/core/asks.js';
 import { JobExecutor } from '../adapter/jobs.js';
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { createChannelHost } from '../adapter/channel.js';
@@ -66,6 +67,9 @@ export async function startHost({
   delegationCommand = null, // (target, task) => shell cmd — delegate_task stays unregistered without it
 } = {}) {
   const runId = randomUUID();
+  // Operator-ask registry: constructed right after core (it audits), but the
+  // kernel needs an ask callback at construction — lazy closure resolves it.
+  let asks = null;
   const core = createHostCore({
     instanceRoot,
     manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
@@ -73,6 +77,8 @@ export async function startHost({
       // pi body supplies the real shell parser; host never imports pi code
       commandClassifier: parseShellCommand,
       commandArgs: { powershell: 'command', bash: 'command', shell: 'command' },
+      // no responder yet = fail-closed deny, never crash-open
+      ask: (pending, signal) => (asks ? asks.ask(pending, signal) : Promise.resolve('deny')),
     },
     runtime: {
       hostVersion: '0.0.1',
@@ -84,6 +90,8 @@ export async function startHost({
       runId,
     },
   });
+
+  asks = new PendingAsks({ audit: core.audit });
 
   core.registry.register(piFacts());
 
@@ -280,6 +288,7 @@ export async function startHost({
   const rebuildSession = async (sessionManager, reason) => {
     const old = currentSession;
     await old.abort?.().catch(() => {});
+    asks.resetSession(); // "本会话允许" grants die with the conversation
     const built = await buildSession(sessionManager);
     currentSession = built.session;
     channelHandle.rebind(built.session);
@@ -345,11 +354,13 @@ export async function startHost({
     },
     handoff: handoffFacade,
     sessions: sessionsFacade,
+    asks,
   });
   const channel = channelHandle.channel;
 
   const dispose = () => {
     releaseWriter();
+    asks.dispose();
     channelHandle.dispose();
     currentSession.dispose?.();
     jobStore.db.close();

@@ -45,6 +45,7 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
     protectedRoots: governance.protectedRoots ?? [
       paths.auditDir, paths.jobsDir, paths.checkpointsDir,
     ],
+    ask: governance.ask ?? null,
   });
   const registry = new BodyRegistry(paths);
   const leases = new DomainLeaseStore(paths);

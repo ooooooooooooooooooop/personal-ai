@@ -328,6 +328,88 @@ function stopProc(final = false) {
   procEl = null;
 }
 
+/* ---------- governance ask cards (operator-in-the-loop) ---------- */
+const askCards = new Map(); // askId -> card element
+let askTick = null;
+const ANSWER_LABEL = {
+  allow: '已允许', allow_session: '本会话已允许',
+  deny: '已拒绝', timeout: '超时未答 · 已拒绝', aborted: '已中止',
+};
+
+function ensureAskTick() {
+  if (askTick) return;
+  askTick = setInterval(() => {
+    if (!askCards.size) { clearInterval(askTick); askTick = null; return; }
+    for (const el of askCards.values()) {
+      const t = el.querySelector('.ask-timer');
+      const left = Math.max(0, Math.ceil((Number(el.dataset.exp) - Date.now()) / 1000));
+      if (t) t.textContent = `剩余 ${left}s`;
+    }
+  }, 1000);
+}
+
+function addAskCard(ask) {
+  if (!ask?.id || askCards.has(ask.id)) return;
+  noteMessage();
+  actGroup = null; // an approval gate breaks any running tool group
+  const kind = toolKind(ask.toolName);
+  const div = document.createElement('div');
+  div.className = 'ask-card';
+  div.dataset.exp = ask.expiresAt ?? 0;
+  div.innerHTML = `
+    <div class="ask-head">
+      <span class="t-icon">${kindIcon(kind.icon)}</span>
+      <span class="ask-title">需要你的批准</span>
+      <span class="ask-tool"></span>
+      <span class="ask-timer"></span>
+    </div>
+    <pre class="ask-summary"></pre>
+    <div class="ask-detail"></div>
+    <div class="ask-foot">
+      <button class="ask-btn primary" data-a="allow">允许一次</button>
+      <button class="ask-btn" data-a="allow_session">本会话允许</button>
+      <button class="ask-btn danger" data-a="deny">拒绝</button>
+    </div>`;
+  div.querySelector('.ask-tool').textContent = `${kind.verb} · ${ask.toolName}`;
+  div.querySelector('.ask-summary').textContent = ask.summary || '（无详情）';
+  if (ask.detail) div.querySelector('.ask-detail').textContent = ask.detail;
+  else div.querySelector('.ask-detail').remove();
+  div.querySelectorAll('.ask-btn').forEach((b) => {
+    b.onclick = async () => {
+      div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = true; });
+      const r = await cmd('decision_resolve', { askId: ask.id, answer: b.dataset.a });
+      if (!r.success) {
+        div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = false; });
+        addSys(`批准提交失败：${r.error ?? '未知'}`, true);
+      }
+    };
+  });
+  askCards.set(ask.id, div);
+  transcript.appendChild(div);
+  ensureAskTick();
+  scrollTail();
+}
+
+function markAskResolved(askId, answer) {
+  const el = askCards.get(askId);
+  if (!el) return;
+  askCards.delete(askId);
+  el.classList.add('resolved', `a-${answer}`);
+  el.querySelector('.ask-foot')?.remove();
+  el.querySelector('.ask-timer')?.remove();
+  const tag = document.createElement('span');
+  tag.className = `ask-verdict ${answer === 'deny' || answer === 'timeout' ? 'no' : 'yes'}`;
+  tag.textContent = ANSWER_LABEL[answer] ?? String(answer);
+  el.querySelector('.ask-head').appendChild(tag);
+}
+
+/* asks raised before a UI reload/reconnect are still live — re-render them */
+async function refreshPending() {
+  const r = await cmd('pending_list');
+  if (!r.success) return;
+  for (const ask of r.data ?? []) addAskCard(ask);
+}
+
 /* ---------- history replay (session switch / restart) ---------- */
 async function replayHistory() {
   clearTranscript();
@@ -421,10 +503,17 @@ function onAgentEvent(ev) {
     case 'tool_execution_end':
       endTool(ev);
       break;
+    case 'governance_ask':
+      addAskCard(ev.ask);
+      break;
+    case 'governance_resolved':
+      markAskResolved(ev.askId, ev.answer);
+      break;
     case 'session_changed':
       currentSessionFile = ev.session?.file ?? null;
       replayHistory();
       refreshSessions();
+      refreshPending();
       refreshState();
       break;
     case 'agent_end':
@@ -972,10 +1061,11 @@ function refreshAuditSoon() {
   auditTimer = setTimeout(refreshAudit, 400);
 }
 es.onerror = () => setStatus('连接断开，重试中…', 'err');
-es.onopen = () => setStatus('就绪');
+es.onopen = () => { setStatus('就绪'); refreshPending(); }; // asks raised while disconnected are still live
 
 autogrow();
 (async () => {
   await refreshAll();
   await replayHistory(); // reopened app should show the persisted session, not blank
+  await refreshPending();
 })();
