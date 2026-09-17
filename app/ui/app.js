@@ -4,6 +4,23 @@
 'use strict';
 
 const $ = (id) => document.getElementById(id);
+
+/* ---------- toasts — transient notices; the transcript stays the record ---------- */
+let toastBox = null;
+function toast(text, kind = 'info') {
+  if (!toastBox) {
+    toastBox = document.createElement('div');
+    toastBox.id = 'toast-box';
+    document.body.appendChild(toastBox);
+  }
+  const t = document.createElement('div');
+  t.className = `toast ${kind}`;
+  t.textContent = text;
+  t.onclick = () => t.remove();
+  toastBox.appendChild(t);
+  setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 250); }, 4200);
+}
+
 let cmdSeq = 0;
 let busy = false;
 let assistantEl = null; // live message bubble being streamed into
@@ -54,32 +71,65 @@ function md(text) {
   const parts = String(text).split(/```([\s\S]*?)```/g);
   return parts.map((seg, i) => {
     if (i % 2 === 1) {
-      const code = seg.replace(/^[^\n]*\n/, '');
-      return `<pre><button class="code-copy">复制</button><code>${escHtml(code)}</code></pre>`;
+      const nl = seg.indexOf('\n');
+      const lang = (nl === -1 ? seg : seg.slice(0, nl)).trim().toLowerCase();
+      const code = nl === -1 ? '' : seg.slice(nl + 1);
+      if (lang === 'diff') {
+        const rows = code.split('\n').map((l) => {
+          const cls = l.startsWith('+') ? 'd-add' : l.startsWith('-') ? 'd-del' : /^@@|^\s*$/.test(l) ? 'd-hunk' : '';
+          return `<span class="${cls}">${escHtml(l)}</span>`;
+        }).join('\n');
+        return `<pre class="diff"><button class="code-copy">复制</button><code>${rows}</code></pre>`;
+      }
+      const langTag = lang ? `<span class="code-lang">${escHtml(lang)}</span>` : '';
+      return `<pre><button class="code-copy">复制</button>${langTag}<code>${escHtml(code)}</code></pre>`;
     }
     const lines = seg.split('\n');
     let html = '';
     let list = null;
+    let table = null;
     const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
-    for (const line of lines) {
+    const closeTable = () => { if (table) { html += '</tbody></table>'; table = null; } };
+    const closeAll = () => { closeList(); closeTable(); };
+    for (let li = 0; li < lines.length; li++) {
+      const line = lines[li];
       let m;
+      // markdown table: | a | b | header row + |---| separator row
+      if (/^\s*\|.*\|\s*$/.test(line) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[li + 1] ?? '') && !table) {
+        closeList();
+        const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+        html += `<table><thead><tr>${cells.map((c) => `<th>${inlineMd(c)}</th>`).join('')}</tr></thead><tbody>`;
+        table = true;
+        li++; // skip separator row
+        continue;
+      }
+      if (table) {
+        if (/^\s*\|.*\|\s*$/.test(line)) {
+          const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+          html += `<tr>${cells.map((c) => `<td>${inlineMd(c)}</td>`).join('')}</tr>`;
+          continue;
+        }
+        closeTable();
+      }
       if ((m = line.match(/^\s*[-*]\s+(.+)/))) {
+        closeTable();
         if (list !== 'ul') { closeList(); html += '<ul>'; list = 'ul'; }
         html += `<li>${inlineMd(m[1])}</li>`;
       } else if ((m = line.match(/^\s*\d+[.)]\s+(.+)/))) {
+        closeTable();
         if (list !== 'ol') { closeList(); html += '<ol>'; list = 'ol'; }
         html += `<li>${inlineMd(m[1])}</li>`;
       } else if ((m = line.match(/^#{1,4}\s+(.+)/))) {
-        closeList(); html += `<div class="md-h">${inlineMd(m[1])}</div>`;
+        closeAll(); html += `<div class="md-h">${inlineMd(m[1])}</div>`;
       } else if ((m = line.match(/^>\s?(.*)/))) {
-        closeList(); html += `<blockquote>${inlineMd(m[1])}</blockquote>`;
+        closeAll(); html += `<blockquote>${inlineMd(m[1])}</blockquote>`;
       } else if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) {
-        closeList(); html += '<hr>';
+        closeAll(); html += '<hr>';
       } else {
-        closeList(); html += `${inlineMd(line)}\n`;
+        closeAll(); html += `${inlineMd(line)}\n`;
       }
     }
-    closeList();
+    closeAll();
     return html;
   }).join('');
 }
@@ -167,6 +217,7 @@ function addSys(text, bad = false) {
   div.textContent = text;
   transcript.appendChild(div);
   scrollTail();
+  if (bad) toast(text, 'err'); // errors surface as toasts too — transcript keeps the record
 }
 function clearTranscript() {
   transcript.querySelectorAll('.msg,.sys,.tool,.think-row,.handoff-card').forEach((n) => n.remove());
@@ -696,6 +747,15 @@ function renderSessions() {
               refreshSessions(); refreshState();
             },
           },
+          {
+            label: '分支会话',
+            run: async () => {
+              // fork copies the transcript and switches into the copy
+              const r = await cmd('session_fork', { path: s.path });
+              if (!r.success) addSys(`分支失败：${r.error ?? '未知'}`, true);
+              else { toast('已分支——当前在新会话里继续'); refreshSessions(); }
+            },
+          },
           { label: '复制会话路径', run: () => navigator.clipboard?.writeText(s.path) },
         ]);
       };
@@ -1083,6 +1143,16 @@ function switchView(v) {
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
 $('body-chip').onclick = () => switchView('bodies');
+
+/* sidebar collapse — remembered across launches */
+const applySide = (collapsed) => {
+  document.body.classList.toggle('side-collapsed', collapsed);
+  $('side-expand').classList.toggle('hidden', !collapsed);
+  localStorage.setItem('pai.sideCollapsed', collapsed ? '1' : '');
+};
+$('side-toggle').onclick = () => applySide(true);
+$('side-expand').onclick = () => applySide(false);
+applySide(localStorage.getItem('pai.sideCollapsed') === '1');
 
 /* ---------- composer ---------- */
 const input = $('input');

@@ -32,6 +32,7 @@
  *   session_new {}          → start a fresh persisted session
  *   session_switch {path}   → resume a persisted session
  *   session_rename {name}   → name the current session
+ *   session_fork {path}     → fork a session and continue in the copy
  *   session_history {}      → current session's messages as plain data
  *   pending_list {}         → operator asks awaiting an answer
  *   decision_resolve {id,answer} → answer a governance ask
@@ -204,6 +205,11 @@ export class HostChannel {
         case 'session_rename': {
           if (!this.sessions?.rename) return reply(false, undefined, 'sessions facade unavailable');
           return reply(true, await this.sessions.rename(String(cmd.name ?? '')));
+        }
+        case 'session_fork': {
+          if (!this.sessions?.fork) return reply(false, undefined, 'sessions facade unavailable');
+          if (!cmd.path) return reply(false, undefined, 'session_fork requires {path}');
+          return reply(true, await this.sessions.fork(String(cmd.path)));
         }
         case 'session_history': {
           if (!this.session?.history) return reply(false, undefined, 'history unavailable');

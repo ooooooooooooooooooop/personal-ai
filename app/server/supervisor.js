@@ -157,7 +157,7 @@ export class BodySupervisor {
     const active = { bodyId, child, pending, seq: 0, stderrTail, info: null, dead: false };
     child.on('exit', () => {
       active.dead = true;
-      for (const [, p] of pending) p.resolve({ type: 'response', success: false, error: 'body process exited' });
+      for (const [, p] of pending) p({ type: 'response', success: false, error: 'body process exited' });
       pending.clear();
       this.#emitSupervisor('body_exited', { body: bodyId });
     });

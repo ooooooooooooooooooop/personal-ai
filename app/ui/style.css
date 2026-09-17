@@ -702,3 +702,57 @@ pre:hover .code-copy, .code-copy.copied { opacity: 1; }
   font-family: var(--mono); font-size: 11.5px; color: var(--text-3);
   white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow: auto;
 }
+
+/* ---------------- toasts ---------------- */
+#toast-box {
+  position: fixed; top: 52px; right: 18px; z-index: 100;
+  display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+}
+.toast {
+  pointer-events: auto; cursor: pointer;
+  max-width: 360px; padding: 10px 14px;
+  background: var(--bg-elev-opaque); border: 1px solid var(--line);
+  border-radius: var(--r-md); font-size: 12.5px; color: var(--text-2);
+  box-shadow: 0 8px 28px rgba(0,0,0,.5);
+  animation: toast-in .18s ease-out;
+}
+.toast.err { border-color: var(--red); color: var(--text); }
+.toast.out { opacity: 0; transform: translateY(-6px); transition: all .25s; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ---------------- markdown tables + diff ---------------- */
+.msg.assistant .bubble table {
+  border-collapse: collapse; margin: 8px 0; font-size: 12.5px;
+  display: block; overflow-x: auto; max-width: 100%;
+}
+.msg.assistant .bubble th, .msg.assistant .bubble td {
+  border: 1px solid var(--line); padding: 5px 10px; text-align: left;
+}
+.msg.assistant .bubble th { background: var(--field); font-weight: 600; }
+.msg.assistant .bubble pre.diff code { display: block; }
+.msg.assistant .bubble pre.diff span { display: block; padding: 0 4px; }
+pre.diff .d-add { color: #6fdd8b; background: rgba(80,200,110,.08); }
+pre.diff .d-del { color: #e08080; background: rgba(220,90,90,.08); }
+pre.diff .d-hunk { color: var(--text-4); }
+.code-lang {
+  position: absolute; top: 8px; left: 10px;
+  font-size: 10.5px; color: var(--text-4); text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+/* ---------------- sidebar collapse ---------------- */
+#sidebar { transition: width .18s, padding .18s; }
+body.side-collapsed #sidebar {
+  width: 0; flex-basis: 0; min-width: 0; padding: 0; overflow: hidden;
+  border-right: none;
+}
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: var(--r-sm);
+  color: var(--text-4); flex: none;
+}
+.icon-btn:hover { background: var(--field); color: var(--text); }
+.icon-btn svg { width: 15px; height: 15px; }
+#sidebar { position: relative; }
+#side-toggle { position: absolute; top: 14px; right: 8px; z-index: 5; }
+#side-expand { margin-right: 8px; }

@@ -338,6 +338,15 @@ export async function startHost({
       currentSession.setSessionName?.(name);
       return { name };
     },
+    // Fork = copy the transcript into a new session file and continue there —
+    // the original stays untouched. rebuildSession switches the live surface.
+    fork: async (path) => {
+      const s = await rebuildSession(sessionManagers.forkFrom(path, workdir, sessionDir), 'fork');
+      return {
+        id: s.sessionId ?? null,
+        file: s.sessionManager?.getSessionFile?.() ?? null,
+      };
+    },
   };
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's

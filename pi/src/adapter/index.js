@@ -100,6 +100,7 @@ export const sessionManagers = {
   create: (cwd, sessionDir) => SessionManager.create(cwd, sessionDir),
   open: (path, sessionDir) => SessionManager.open(path, sessionDir),
   list: (cwd, sessionDir) => SessionManager.list(cwd, sessionDir),
+  forkFrom: (sourcePath, cwd, sessionDir) => SessionManager.forkFrom(sourcePath, cwd, sessionDir),
 };
 
 export async function createPiSession({
