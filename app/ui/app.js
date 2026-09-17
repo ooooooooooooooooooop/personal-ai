@@ -7,6 +7,7 @@ const $ = (id) => document.getElementById(id);
 let cmdSeq = 0;
 let busy = false;
 let assistantEl = null; // live message bubble being streamed into
+let sawMessage = false;
 
 async function cmd(type, params = {}) {
   const res = await fetch('/cmd', {
@@ -17,27 +18,54 @@ async function cmd(type, params = {}) {
   return res.json();
 }
 
+/* ---------- minimal markdown (safe: escape first, then structure) ---------- */
+function md(text) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const parts = String(text).split(/```([\s\S]*?)```/g);
+  return parts.map((seg, i) => {
+    if (i % 2 === 1) {
+      const code = seg.replace(/^[^\n]*\n/, '');
+      return `<pre><code>${esc(code)}</code></pre>`;
+    }
+    return esc(seg)
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+      .replace(/^#{1,3}\s+(.+)$/gm, '<div class="md-h">$1</div>')
+      .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  }).join('');
+}
+
 /* ---------- transcript rendering ---------- */
+const TOOL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14.7 6.3a4.5 4.5 0 0 0-6 6L3 18l3 3 5.7-5.7a4.5 4.5 0 0 0 6-6L14 13l-3-3 3.7-3.7z"/></svg>';
+
+function noteMessage() {
+  if (!sawMessage) { sawMessage = true; $('empty-state')?.remove(); }
+}
 function addMsg(who, text) {
+  noteMessage();
   const div = document.createElement('div');
   div.className = `msg ${who}`;
-  div.innerHTML = `<div class="who">${who === 'user' ? '你' : 'assistant'}</div><div class="bubble"></div>`;
-  div.querySelector('.bubble').textContent = text;
+  div.innerHTML = '<div class="bubble"></div>';
+  const b = div.querySelector('.bubble');
+  if (who === 'user') b.textContent = text; else b.innerHTML = md(text);
   $('transcript').appendChild(div);
   div.scrollIntoView({ block: 'end' });
   return div;
 }
-function addSys(text) {
+function addSys(text, bad = false) {
+  noteMessage();
   const div = document.createElement('div');
-  div.className = 'sys';
+  div.className = `sys${bad ? ' bad' : ''}`;
   div.textContent = text;
   $('transcript').appendChild(div);
+  div.scrollIntoView({ block: 'end' });
 }
 function addTool(name, id) {
+  noteMessage();
   const div = document.createElement('div');
   div.className = 'tool';
   div.dataset.tool = id;
-  div.textContent = `⚙ ${name}`;
+  div.innerHTML = `${TOOL_ICON}<span class="t-name"></span><span class="t-state">运行中</span>`;
+  div.querySelector('.t-name').textContent = name;
   $('transcript').appendChild(div);
   div.scrollIntoView({ block: 'end' });
 }
@@ -51,8 +79,7 @@ function messageText(m) {
 function onAgentEvent(ev) {
   switch (ev?.type) {
     case 'agent_start':
-      busy = true;
-      setStatus('运行中…');
+      setBusy(true);
       assistantEl = null;
       break;
     case 'message_start':
@@ -61,7 +88,7 @@ function onAgentEvent(ev) {
     case 'message_update': {
       const text = messageText(ev.message);
       if (text) {
-        (assistantEl ??= addMsg('assistant', '')).querySelector('.bubble').textContent = text;
+        (assistantEl ??= addMsg('assistant', '')).querySelector('.bubble').innerHTML = md(text);
         assistantEl.scrollIntoView({ block: 'end' });
       }
       break;
@@ -71,38 +98,59 @@ function onAgentEvent(ev) {
       break;
     case 'tool_execution_end': {
       const el = document.querySelector(`[data-tool="${ev.toolCallId}"]`);
-      if (el) el.classList.add(ev.isError ? 'err' : 'done');
+      if (el) {
+        el.classList.add(ev.isError ? 'err' : 'done');
+        el.querySelector('.t-state').textContent = ev.isError ? '失败' : '完成';
+      }
       break;
     }
     case 'agent_end':
-      busy = false;
+      setBusy(false);
       assistantEl = null;
-      setStatus('就绪');
       refreshState();
       break;
   }
 }
 
+function setBusy(v) {
+  busy = v;
+  $('send').classList.toggle('hidden', v);
+  $('abort').classList.toggle('hidden', !v);
+  $('steer').disabled = !v;
+  setStatus(v ? '运行中…' : '就绪');
+}
+
 /* ---------- supervisor events ---------- */
 const PHASES = ['prepared', 'quiesced', 'checkpointed', 'released', 'acquired', 'resumed', 'verified'];
+let handoffEl = null;
 function onSupervisor(ev) {
-  if (ev.kind === 'handoff_phase') {
-    const box = $('handoff');
-    box.classList.remove('hidden');
-    box.innerHTML = `切换 ${ev.handoffId}<br>` + PHASES.map((p) => {
-      const cls = ev.phase === 'failed' && p === ev.phase ? 'fail'
-        : PHASES.indexOf(p) <= PHASES.indexOf(ev.phase) ? 'done' : '';
-      return `<div class="phase ${cls}">${cls === 'done' ? '✓' : '·'} ${p}</div>`;
-    }).join('') + (ev.reason ? `<div class="phase fail">${ev.reason}</div>` : '');
-    addSys(`身体切换 ${ev.phase}${ev.reason ? `：${ev.reason}` : ''}`);
+  if (ev.kind === 'handoff_phase' || ev.kind === 'select_start') {
+    $('switch-progress').classList.add('on');
+    noteMessage();
+    if (!handoffEl) {
+      handoffEl = document.createElement('div');
+      handoffEl.className = 'handoff-card';
+      $('transcript').appendChild(handoffEl);
+    }
+    const at = ev.phase ? PHASES.indexOf(ev.phase) : -1;
+    handoffEl.innerHTML = '身体切换 · ' + (ev.handoffId ?? '') + '<br>' + PHASES.map((p, i) => {
+      const cls = ev.phase === 'failed' ? (i <= at ? 'done' : '')
+        : i < at ? 'done' : i === at ? 'now' : '';
+      return `<span class="ph ${cls}">${cls === 'done' ? '✓' : '·'} ${p}</span>`;
+    }).join('') + (ev.phase === 'failed' ? `<div class="ph fail">${ev.reason ?? ''}</div>` : '');
+    handoffEl.scrollIntoView({ block: 'end' });
+    if (ev.phase === 'failed') addSys(`身体切换失败：${ev.reason ?? '未知'}`, true);
   } else if (ev.kind === 'select_done') {
+    $('switch-progress').classList.remove('on');
+    handoffEl = null;
     setStatus('就绪');
-    $('handoff').classList.add('hidden');
     addSys(`已切换到身体 ${ev.to}（${ev.mode}）`);
     refreshAll();
   } else if (ev.kind === 'select_failed' || ev.kind === 'body_exited') {
-    setStatus('注意');
-    addSys(`身体事件：${ev.kind} ${ev.error ?? ev.body ?? ''}`);
+    $('switch-progress').classList.remove('on');
+    handoffEl = null;
+    setStatus('注意', 'err');
+    addSys(`身体事件：${ev.kind} ${ev.error ?? ev.body ?? ''}`, true);
     refreshAll();
   }
 }
@@ -116,7 +164,8 @@ async function refreshAudit() {
     const div = document.createElement('div');
     div.className = 'audit-row';
     const ts = (e.ts ?? e.time ?? '').slice(11, 19);
-    div.innerHTML = `<b>${e.kind}</b> <span>${ts}</span> <span>${e.runId ? `run ${String(e.runId).slice(0, 8)}` : ''}</span>`;
+    div.innerHTML = `<b></b> <span>${ts}</span> <span>${e.runId ? `run ${String(e.runId).slice(0, 8)}` : ''}</span>`;
+    div.querySelector('b').textContent = e.kind ?? '';
     list.appendChild(div);
   }
 }
@@ -126,17 +175,36 @@ async function refreshJobs() {
   tbody.innerHTML = '';
   for (const j of r.data ?? []) {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${j.job_id?.slice(0, 12) ?? ''}</td><td>${j.job_type ?? ''}</td><td>${j.job_state ?? ''}</td><td>${(j.updated_at ?? '').slice(0, 19).replace('T', ' ')}</td>`;
+    const cells = [j.job_id?.slice(0, 12) ?? '', j.job_type ?? '', j.job_state ?? '', (j.updated_at ?? '').slice(0, 19).replace('T', ' ')];
+    tr.innerHTML = cells.map(() => '<td></td>').join('');
+    tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
     tbody.appendChild(tr);
   }
 }
 
-/* ---------- body panel ---------- */
+/* ---------- bodies ---------- */
+const BODY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>';
+
 async function refreshBodies() {
   const r = await cmd('body_list');
-  const box = $('bodies');
-  box.innerHTML = '';
-  for (const b of r.data ?? []) {
+  const grid = $('body-grid');
+  grid.innerHTML = '';
+  const bodies = r.data ?? [];
+
+  // sidebar compact list
+  $('side-body').innerHTML = '';
+  for (const b of bodies) {
+    const row = document.createElement('div');
+    row.className = 's-body';
+    row.innerHTML = `<span class="s-dot${b.current ? ' on' : ''}"></span><span class="s-name"></span><span class="s-meta">${b.current ? '当前' : ''}</span>`;
+    row.querySelector('.s-name').textContent = b.label;
+    row.onclick = () => switchView('bodies');
+    $('side-body').appendChild(row);
+  }
+  const cur = bodies.find((b) => b.current);
+  $('body-chip').textContent = cur ? `${cur.label} ▾` : '选择身体 ▾';
+
+  for (const b of bodies) {
     const card = document.createElement('div');
     card.className = `body-card${b.current ? ' current' : ''}`;
     const caps = b.facts?.verified_capabilities ?? {};
@@ -144,83 +212,95 @@ async function refreshBodies() {
       .map(([k, v]) => `<span class="cap ${v}" title="${k}">${k.replaceAll('_', ' ')}</span>`)
       .join('');
     const elig = b.eligibility ?? {};
-    const eligHtml = [
-      ...(elig.failClosed ?? []).map((f) => `<div class="fc">✗ ${f.invariant}: ${f.reason}</div>`),
+    const notes = [
+      ...(elig.failClosed ?? []).map((f) => `<div class="fc">✗ ${f.invariant} — ${f.reason}</div>`),
       ...(elig.degraded ?? []).map((d) => `<div class="dg">△ ${d}</div>`),
+    ];
+    const pills = [
+      b.current ? '<span class="pill on">当前</span>' : '',
+      b.installed ? '<span class="pill ok">已安装</span>' : '<span class="pill err">未安装</span>',
+      b.has_channel ? '' : '<span class="pill warn">无会话通道</span>',
     ].join('');
     card.innerHTML = `
-      <div class="name">${b.label}
-        ${b.current ? '<span class="badge on">当前</span>' : ''}
-        ${b.installed ? '<span class="badge">已装</span>' : '<span class="badge err">未安装</span>'}
-        ${b.has_channel ? '' : '<span class="badge warn">无会话通道</span>'}
+      <div class="bc-head">
+        <div class="bc-icon">${BODY_ICON}</div>
+        <div><div class="bc-title">${b.label} ${pills}</div><div class="bc-sub">${b.body_id}</div></div>
       </div>
-      <div class="caps">${capHtml}</div>
-      <div class="elig">${eligHtml || '<span>符合当前任务画像</span>'}</div>
-      ${b.current ? '' : `<button data-body="${b.body_id}">使用这个身体</button>`}
-      ${b.installed ? '' : `<div class="elig">${b.install_hint ?? ''}</div>`}
-    `;
+      <div class="caps">${capHtml || '<span class="cap">无能力事实</span>'}</div>
+      <div class="bc-notes">${notes.join('') || '<div class="ok-line">符合当前任务画像</div>'}</div>
+      <div class="bc-foot">
+        ${b.installed ? '' : `<span class="bc-hint">${b.install_hint ?? ''}</span>`}
+        ${b.current ? '' : `<button class="use-btn" data-body="${b.body_id}">使用这个身体</button>`}
+      </div>`;
     const btn = card.querySelector('button[data-body]');
     if (btn) {
       btn.onclick = async () => {
         btn.disabled = true;
         addSys(`请求切换到 ${b.body_id}…`);
+        switchView('chat');
         const r2 = await cmd('body_select', { body_id: b.body_id });
         if (!r2.success) {
-          addSys(`切换被拒：${r2.error ?? '未知原因'}`);
+          addSys(`切换被拒：${r2.error ?? '未知原因'}`, true);
           btn.disabled = false;
         }
         refreshBodies();
       };
     }
-    box.appendChild(card);
+    grid.appendChild(card);
   }
 }
+
 async function refreshState() {
   const r = await cmd('get_state');
   const s = r.data ?? {};
-  $('state').innerHTML = [
-    `模型：${s.model ? `${s.model.provider}/${s.model.id}` : '—'}`,
-    `流式：${s.streaming ? '是' : '否'}`,
-    `消息数：${s.messageCount ?? '—'}`,
-  ].map((x) => `<div>${x}</div>`).join('');
+  $('model-chip').textContent = s.model ? `${s.model.provider}/${s.model.id}` : '';
 }
-async function refreshCurrent() {
-  const r = await cmd('body_current');
-  $('current-body').textContent = r.data?.body_id ?? '无身体';
+function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); }
+function setStatus(t, kind) {
+  $('status').textContent = t;
+  $('status-dot').className = `dot${kind === 'err' ? ' err' : t === '就绪' ? ' on' : ''}`;
 }
-function refreshAll() { refreshBodies(); refreshCurrent(); refreshState(); refreshJobs(); refreshAudit(); }
-function setStatus(t) { $('status').textContent = t; }
 
-/* ---------- wire-up ---------- */
-$('send').onclick = send;
-$('input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+/* ---------- views ---------- */
+const TITLES = { chat: '新建任务', bodies: '身体', jobs: '任务', audit: '审计' };
+function switchView(v) {
+  for (const item of document.querySelectorAll('.nav-item')) item.classList.toggle('active', item.dataset.view === v);
+  for (const sec of document.querySelectorAll('.view')) sec.classList.toggle('hidden', sec.id !== `view-${v}`);
+  $('view-title').textContent = TITLES[v] ?? '';
+  if (v === 'jobs') refreshJobs();
+  if (v === 'audit') refreshAudit();
+  if (v === 'bodies') refreshBodies();
+}
+for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
+$('body-chip').onclick = () => switchView('bodies');
+
+/* ---------- composer ---------- */
+const input = $('input');
+function autogrow() { input.style.height = 'auto'; input.style.height = `${Math.min(input.scrollHeight, 200)}px`; }
+input.addEventListener('input', autogrow);
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); }
 });
 async function send() {
-  const text = $('input').value.trim();
+  const text = input.value.trim();
   if (!text) return;
-  $('input').value = '';
+  input.value = ''; autogrow();
   addMsg('user', text);
   const r = await cmd('prompt', { message: text });
-  if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`);
+  if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
 }
-$('steer').onclick = async () => {
-  const text = $('input').value.trim();
+async function steer() {
+  const text = input.value.trim();
   if (!text) return;
-  $('input').value = '';
+  input.value = ''; autogrow();
   const r = await cmd('steer', { message: text });
-  if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`);
-};
-$('abort').onclick = () => cmd('abort');
-$('jobs-refresh').onclick = refreshJobs;
-$('audit-refresh').onclick = refreshAudit;
-for (const [tab, view] of [['tab-chat', 'view-chat'], ['tab-jobs', 'view-jobs'], ['tab-audit', 'view-audit']]) {
-  $(tab).onclick = () => {
-    for (const t of ['tab-chat', 'tab-jobs', 'tab-audit']) $(t).classList.toggle('active', t === tab);
-    for (const v of ['view-chat', 'view-jobs', 'view-audit']) $(v).classList.toggle('hidden', v !== view);
-  };
+  if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
 }
+$('send').onclick = () => (busy ? steer() : send());
+$('steer').onclick = steer;
+$('abort').onclick = () => cmd('abort');
 
+/* ---------- SSE ---------- */
 const es = new EventSource('/events');
 es.onmessage = (m) => {
   const rec = JSON.parse(m.data);
@@ -233,7 +313,7 @@ function refreshAuditSoon() {
   clearTimeout(auditTimer);
   auditTimer = setTimeout(refreshAudit, 400);
 }
-es.onerror = () => setStatus('连接断开，重试中…');
+es.onerror = () => setStatus('连接断开，重试中…', 'err');
 es.onopen = () => setStatus('就绪');
 
 refreshAll();
