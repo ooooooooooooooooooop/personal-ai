@@ -563,6 +563,41 @@ function onAgentEvent(ev) {
     case 'governance_resolved':
       markAskResolved(ev.askId, ev.answer);
       break;
+    case 'compaction_start': {
+      noteMessage();
+      actGroup = null;
+      const div = document.createElement('div');
+      div.className = 'sys compact-row pending';
+      div.dataset.compact = '1';
+      div.textContent = `压缩上下文中…（${{ manual: '手动', threshold: '阈值', overflow: '溢出' }[ev.reason] ?? ev.reason}）`;
+      transcript.appendChild(div);
+      scrollTail();
+      break;
+    }
+    case 'compaction_end': {
+      const row = transcript.querySelector('.compact-row.pending');
+      const text = ev.aborted ? '压缩已中止'
+        : ev.errorMessage ? `压缩失败：${ev.errorMessage}`
+        : '上下文已压缩';
+      if (row) { row.textContent = text; row.classList.remove('pending'); row.classList.toggle('bad', Boolean(ev.errorMessage)); }
+      else addSys(text, Boolean(ev.errorMessage));
+      refreshState(); // contextUsage drops after compaction
+      break;
+    }
+    case 'auto_retry_start':
+      setStatus(`重试中 ${ev.attempt}/${ev.maxAttempts}…`, 'err');
+      break;
+    case 'auto_retry_end':
+      setStatus(ev.success ? '运行中…' : '重试失败', ev.success ? '' : 'err');
+      if (!ev.success && ev.finalError) addSys(`自动重试失败：${ev.finalError}`, true);
+      break;
+    case 'session_info_changed':
+      refreshSessions();
+      refreshState();
+      break;
+    case 'thinking_level_changed':
+      refreshState();
+      break;
     case 'session_changed':
       currentSessionFile = ev.session?.file ?? null;
       sessionCost = 0;
@@ -625,8 +660,15 @@ function updateUsageChip() {
     const w = lastCtxUsage.contextWindow ? `${Math.round(lastCtxUsage.contextWindow / 1000)}k` : null;
     parts.push(`⛁ ${k}k${w ? `/${w}` : ''}${lastCtxUsage.percent != null ? ` ${Math.round(lastCtxUsage.percent)}%` : ''}`);
   }
-  if (sessionCost > 0) parts.push(`$${sessionCost.toFixed(4)}`);
+  // getSessionStats totals cover compacted-away history — prefer them over
+  // the replay-side accumulation whenever the body reports them.
+  const st = state.stats;
+  const cost = st?.cost ?? sessionCost;
+  if (cost > 0) parts.push(`$${cost.toFixed(4)}`);
   el.textContent = parts.join(' · ');
+  el.title = (lastCtxUsage?.tokens != null
+    ? `上下文 ${lastCtxUsage.tokens?.toLocaleString?.()}/${lastCtxUsage.contextWindow?.toLocaleString?.()} tok` : '')
+    + (st ? `；会话累计 ${st.tokens?.total?.toLocaleString?.() ?? '?'} tok（缓存读 ${st.tokens?.cacheRead?.toLocaleString?.() ?? 0}）· ${st.totalMessages ?? '?'} 条 · $${(st.cost ?? 0).toFixed(4)}` : '');
   el.classList.toggle('hidden', !parts.length);
 }
 
@@ -745,6 +787,15 @@ function renderSessions() {
               const r = await cmd('session_rename', { name: name.trim() });
               if (!r.success) addSys(`重命名失败：${r.error ?? '未知'}`, true);
               refreshSessions(); refreshState();
+            },
+          },
+          {
+            label: '导出为 HTML',
+            run: async () => {
+              if (s.path !== currentSessionFile) await switchSession(s.path);
+              const r = await cmd('session_export');
+              if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
+              else addSys(`导出失败：${r.error ?? '未知'}`, true);
             },
           },
           {
@@ -969,6 +1020,20 @@ async function refreshSettings() {
   const s = r.data ?? {};
   $('set-workdir').textContent = s.workdir ?? '';
   $('set-instance').textContent = s.instanceRoot ?? '';
+  const pol = await cmd('policy_status');
+  if (pol.success) renderGovCard(pol.data);
+}
+const RISK_LABEL = { benign: '常规', mutating: '改文件', destructive: '删改', network: '网络', privilege: '提权', exec: '执行', unknown: '未知' };
+const ACTION_LABEL = { allow: '放行', deny: '拒绝', ask: '询问' };
+function renderGovCard(p) {
+  const rows = Object.entries(p.riskActions ?? {});
+  $('gov-actions').innerHTML = rows.length
+    ? rows.map(([risk, act]) => `<div class="set-row gov-row"><span class="pill">${RISK_LABEL[risk] ?? risk}</span><span class="gov-act ${act === 'deny' ? 'deny' : act === 'ask' ? 'warn' : ''}">${ACTION_LABEL[act] ?? act}</span></div>`).join('')
+    : '<div class="set-sub">无风险映射</div>';
+  const denied = p.deniedTools ?? [];
+  $('gov-denied').textContent = denied.length ? `禁用工具：${denied.join('、')}` : '无显式禁用工具';
+  $('gov-sum').textContent = `${rows.length} 条规则`;
+  $('gov-checksum').textContent = (p.checksum ?? '').slice(0, 16);
 }
 $('set-pick-dir').onclick = async () => {
   const res = await fetch('/api/pick-dir', { method: 'POST' }).then((r) => r.json()).catch(() => ({}));
@@ -1114,6 +1179,9 @@ async function refreshBodies() {
 async function refreshState() {
   const r = await cmd('get_state');
   const s = r.data ?? {};
+  const stats = await cmd('session_stats');
+  s.stats = stats.success ? stats.data : null;
+  state = s;
   if (s.contextUsage) { lastCtxUsage = s.contextUsage; updateUsageChip(); }
   if (s.session?.file) currentSessionFile = s.session.file;
   const name = s.session?.name;
@@ -1174,6 +1242,60 @@ const SLASH = [
       const r = await cmd('session_rename', { name: arg });
       if (!r.success) addSys(`重命名失败：${r.error ?? '未知'}`, true);
       refreshSessions(); refreshState();
+    },
+  },
+  {
+    cmd: '/compact', label: '压缩上下文', hint: '/compact 可选指令——立即总结窗口',
+    run: async (arg) => {
+      addSys('压缩上下文中…');
+      const r = await cmd('session_compact', { instructions: arg || undefined });
+      if (!r.success) addSys(`压缩失败：${r.error ?? '未知'}`, true);
+      refreshState();
+    },
+  },
+  {
+    cmd: '/rewind', label: '回到某条消息', hint: '把会话头倒回任一提问点',
+    run: async () => {
+      const r = await cmd('session_entries');
+      const items = (r.data ?? []).slice().reverse();
+      if (!items.length) { addSys('没有可回退的提问点', true); return; }
+      openMenu(items.map((e) => ({
+        label: (e.text || '(空)').slice(0, 60),
+        sub: e.entryId.slice(0, 8),
+        value: e,
+      })), async (it) => {
+        const r2 = await cmd('session_rewind', { entryId: it.value.entryId });
+        if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
+        if (r2.data?.editorText) { input.value = r2.data.editorText; autogrow(); }
+        await replayHistory();
+        refreshState();
+        toast('已回退——之后的回合仍在文件里，未删除');
+      });
+    },
+  },
+  {
+    cmd: '/export', label: '导出会话', hint: '导出为 HTML 文件',
+    run: async () => {
+      const r = await cmd('session_export');
+      if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
+      else addSys(`导出失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/restore', label: '恢复文件操作', hint: '按回执还原备份/回收站里的文件',
+    run: async () => {
+      const r = await cmd('fileops_list');
+      const ops = (r.data ?? []).filter((o) => o.recoverable);
+      if (!ops.length) { addSys('没有可恢复的文件操作回执', true); return; }
+      openMenu(ops.slice(0, 20).map((o) => ({
+        label: `${o.op === 'delete' ? '回收' : '备份'} · ${o.target.split(/[\\/]/).pop()}`,
+        sub: `${o.receiptId} · ${new Date(o.at).toLocaleTimeString()}`,
+        value: o,
+      })), async (it) => {
+        const r2 = await cmd('fileops_restore', { receiptId: it.value.receiptId });
+        if (r2.success) toast(`已恢复：${r2.data.restored}`);
+        else addSys(`恢复失败：${r2.error ?? '未知'}`, true);
+      });
     },
   },
   { cmd: '/sessions', label: '任务列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },

@@ -299,6 +299,13 @@ pre:hover .code-copy, .code-copy.copied { opacity: 1; }
   text-align: center; font-size: 12px; color: var(--text-4);
 }
 .sys.bad { color: var(--red); }
+.sys.compact-row.pending { animation: tpulse 1.1s ease-in-out infinite; }
+
+/* governance posture card */
+.gov-row { justify-content: space-between; }
+.gov-act { font-weight: 600; font-size: 12px; }
+.gov-act.deny { color: var(--red); }
+.gov-act.warn { color: var(--yellow); }
 
 /* composer — floating dock over the transcript tail */
 #composer-dock {

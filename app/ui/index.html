@@ -205,6 +205,13 @@
         <div class="set-row"><code id="set-instance" class="path-code"></code></div>
         <div class="set-sub">审计、持久任务、模型凭据与会话文件都保存在这里。</div>
       </div>
+
+      <div class="set-card">
+        <div class="set-card-title">治理姿态 <span id="gov-sum" class="pill"></span></div>
+        <div id="gov-actions"></div>
+        <div id="gov-denied" class="set-sub" style="margin-top:8px"></div>
+        <div class="set-sub" style="margin-top:8px">策略是规范锚（policy <code id="gov-checksum"></code>），只能经预配修改——这里只读。运行中改动会触发 drift 终止。</div>
+      </div>
     </section>
   </main>
 

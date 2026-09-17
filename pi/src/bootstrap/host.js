@@ -364,6 +364,10 @@ export async function startHost({
     handoff: handoffFacade,
     sessions: sessionsFacade,
     asks,
+    fileops: {
+      list: (n) => fileOps.list(n),
+      restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
+    },
   });
   const channel = channelHandle.channel;
 

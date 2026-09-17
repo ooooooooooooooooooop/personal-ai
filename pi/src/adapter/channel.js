@@ -23,7 +23,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null, sessions = null, asks = null }) {
+export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -61,6 +61,28 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
         },
         contextUsage: s.getContextUsage?.() ?? null,
       };
+    },
+    // Context lifecycle — pi-native compact / tree rewind / stats / export.
+    compact: async (instructions) => {
+      const r = await box.s.compact?.(instructions);
+      return r ? { compacted: true } : { compacted: false };
+    },
+    // User-message anchors are the natural rewind targets (pi ships
+    // getUserMessagesForForking for exactly this picker shape).
+    entries: async () => (box.s.getUserMessagesForForking?.() ?? [])
+      .map((e) => ({ entryId: e.entryId, text: e.text ?? '' })),
+    rewind: async (entryId, { summarize = false } = {}) => {
+      const r = await box.s.navigateTree?.(entryId, { summarize });
+      return {
+        cancelled: Boolean(r?.cancelled),
+        aborted: Boolean(r?.aborted),
+        editorText: r?.editorText ?? null,
+      };
+    },
+    stats: async () => box.s.getSessionStats?.() ?? null,
+    export: async () => {
+      const html = await box.s.exportToHtml?.();
+      return { file: html ?? null };
     },
     subscribe: (listener) => {
       uiListeners.add(listener);
@@ -199,6 +221,21 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
     models: modelsFacade,
     sessions,
     asks,
+    fileops,
+    policy: {
+      // Read-only posture for UIs — the canonical block itself is only
+      // writable through provisioning, never through this surface.
+      status: async () => ({
+        checksum: core.policy.checksum,
+        riskActions: core.policy.doc?.riskActions ?? {},
+        toolRules: Object.fromEntries(
+          Object.entries(core.policy.toolPolicy ?? {})
+            .map(([tool, r]) => [tool, { action: r.action ?? null, requiresPrediction: r.requiresPrediction === true }]),
+        ),
+        deniedTools: Object.entries(core.policy.toolPolicy ?? {})
+          .filter(([, r]) => r?.action === 'deny').map(([t]) => t),
+      }),
+    },
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

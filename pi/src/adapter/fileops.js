@@ -110,6 +110,20 @@ export class FileOpsGuard {
     return readFileSync(this.opsLog, 'utf-8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
   }
 
+  /** Receipted ops newest-first, plain data for the channel's fileops facade. */
+  list(n = 50) {
+    return this.#ops()
+      .filter((o) => o.receiptId && o.op !== 'restore')
+      .slice(-n).reverse()
+      .map((o) => ({
+        receiptId: o.receiptId,
+        op: o.op,
+        target: o.target,
+        at: o.at,
+        recoverable: Boolean(o.recycledTo ?? o.backup) && existsSync(o.recycledTo ?? o.backup),
+      }));
+  }
+
   #log(entry) {
     appendFileSync(this.opsLog, `${JSON.stringify({ ...entry, at: Date.now() })}\n`);
   }

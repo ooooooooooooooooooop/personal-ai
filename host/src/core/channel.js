@@ -34,6 +34,14 @@
  *   session_rename {name}   → name the current session
  *   session_fork {path}     → fork a session and continue in the copy
  *   session_history {}      → current session's messages as plain data
+ *   session_compact {instructions?} → compact context now (summarize window)
+ *   session_entries {}      → user-message anchors usable as rewind targets
+ *   session_rewind {entryId,summarize?} → move the session head to an entry
+ *   session_stats {}        → session-wide token/cost totals
+ *   session_export {}       → export transcript (body picks format+path)
+ *   fileops_list {}         → receipted file mutations (backup/recycle log)
+ *   fileops_restore {receiptId} → restore a receipted file mutation
+ *   policy_status {}        → read-only governance posture (rules + actions)
  *   pending_list {}         → operator asks awaiting an answer
  *   decision_resolve {id,answer} → answer a governance ask
  *                               (allow | allow_session | deny)
@@ -55,8 +63,10 @@ export class HostChannel {
    * @param {object} [facades.asks]   PendingAsks-like {ask,list,resolve,subscribe} —
    *        governance questions waiting on the operator; events re-emit as
    *        governance_ask / governance_resolved
+   * @param {object} [facades.fileops] {list,restore} — receipted file-mutation log
+   * @param {object} [facades.policy]  {status} — read-only policy posture for UIs
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null }) {
+  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -66,6 +76,8 @@ export class HostChannel {
     this.models = models;
     this.sessions = sessions;
     this.asks = asks;
+    this.fileops = fileops;
+    this.policy = policy;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -214,6 +226,40 @@ export class HostChannel {
         case 'session_history': {
           if (!this.session?.history) return reply(false, undefined, 'history unavailable');
           return reply(true, await this.session.history());
+        }
+        case 'session_compact': {
+          if (!this.session?.compact) return reply(false, undefined, 'compact unavailable');
+          return reply(true, await this.session.compact(cmd.instructions ? String(cmd.instructions) : undefined));
+        }
+        case 'session_entries': {
+          if (!this.session?.entries) return reply(false, undefined, 'entries unavailable');
+          return reply(true, await this.session.entries());
+        }
+        case 'session_rewind': {
+          if (!this.session?.rewind) return reply(false, undefined, 'rewind unavailable');
+          if (!cmd.entryId) return reply(false, undefined, 'session_rewind requires {entryId}');
+          return reply(true, await this.session.rewind(String(cmd.entryId), { summarize: cmd.summarize === true }));
+        }
+        case 'session_stats': {
+          if (!this.session?.stats) return reply(false, undefined, 'stats unavailable');
+          return reply(true, await this.session.stats());
+        }
+        case 'session_export': {
+          if (!this.session?.export) return reply(false, undefined, 'export unavailable');
+          return reply(true, await this.session.export());
+        }
+        case 'fileops_list': {
+          if (!this.fileops?.list) return reply(false, undefined, 'fileops facade unavailable');
+          return reply(true, await this.fileops.list());
+        }
+        case 'fileops_restore': {
+          if (!this.fileops?.restore) return reply(false, undefined, 'fileops facade unavailable');
+          if (!cmd.receiptId) return reply(false, undefined, 'fileops_restore requires {receiptId}');
+          return reply(true, await this.fileops.restore(String(cmd.receiptId)));
+        }
+        case 'policy_status': {
+          if (!this.policy?.status) return reply(false, undefined, 'policy facade unavailable');
+          return reply(true, await this.policy.status());
         }
         case 'pending_list': {
           if (!this.asks?.list) return reply(false, undefined, 'asks facade unavailable');
