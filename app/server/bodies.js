@@ -33,6 +33,9 @@ export function bodyCatalog({ repoRoot, instanceRoot, workdir, env = process.env
           '--instance', instanceRoot,
           '--workdir', workdir,
         ],
+        // Under Electron process.execPath is electron.exe; this env makes the
+        // child run as plain Node so the channel script executes normally.
+        env: process.versions?.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {},
       }),
     },
     dsh: {

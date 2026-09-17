@@ -7,7 +7,7 @@
   "main": "desktop/main.js",
   "scripts": {
     "start": "node server/dev.js",
-    "start:desktop": "electron .",
+    "start:desktop": "node desktop/start.js",
     "test": "node --test \"tests/*.test.js\""
   },
   "devDependencies": {
