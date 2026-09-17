@@ -15,6 +15,10 @@
       </div>
     </div>
 
+    <div class="side-search">
+      <input id="side-filter" type="text" placeholder="搜索身体…" />
+    </div>
+
     <nav class="side-nav">
       <button class="nav-item active" data-view="chat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>
@@ -41,6 +45,7 @@
     <div class="side-foot">
       <span id="status-dot" class="dot"></span>
       <span id="status">连接中…</span>
+      <span class="ver">v0.1.0</span>
     </div>
   </aside>
 
@@ -62,6 +67,11 @@
         </div>
       </div>
 
+      <button id="jump-latest" class="jump-latest" title="回到底部">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        最新
+      </button>
+
       <div id="composer-dock">
         <div id="composer">
           <textarea id="input" rows="1" placeholder="分配任务，或询问任何问题…"></textarea>
@@ -69,10 +79,10 @@
             <button id="steer" class="ghost-btn" title="运行中追加指示" disabled>插话</button>
             <span class="spacer"></span>
             <span id="model-chip" class="chip dim"></span>
-            <button id="abort" class="icon-btn danger hidden" title="中止">
-              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            <button id="abort" class="send-btn stop hidden" title="中止">
+              <svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
             </button>
-            <button id="send" class="send-btn" title="发送">
+            <button id="send" class="send-btn" title="发送" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
             </button>
           </div>
