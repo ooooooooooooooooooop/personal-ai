@@ -12,8 +12,10 @@ import { join } from 'node:path';
  * @param {object} deps.session   real AgentSession
  * @param {object} deps.core      host core ({paths, audit, ...})
  * @param {object} [deps.jobs]    JobStore
+ * @param {object} [deps.bodies]  {current()} — running body facts + selection
+ * @param {object} [deps.handoff] {prepare,export,release} — live handoff side
  */
-export function createChannelHost({ session, core, jobs = null }) {
+export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
   const sessionFacade = {
@@ -34,5 +36,5 @@ export function createChannelHost({ session, core, jobs = null }) {
       return lines.slice(-n).map((l) => JSON.parse(l));
     },
   };
-  return new HostChannel({ session: sessionFacade, jobs, audit: auditFacade });
+  return new HostChannel({ session: sessionFacade, jobs, audit: auditFacade, bodies, handoff });
 }

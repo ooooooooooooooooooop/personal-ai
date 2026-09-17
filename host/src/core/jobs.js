@@ -118,6 +118,13 @@ export class JobStore {
     ).all();
   }
 
+  /** Newest-first job list for UI/channel consumers. */
+  listRecent(limit = 20) {
+    return this.db.prepare(
+      'SELECT * FROM jobs ORDER BY created_at DESC, job_id DESC LIMIT ?',
+    ).all(limit);
+  }
+
   getAttempts(jobId) {
     return this.db.prepare('SELECT * FROM attempts WHERE job_id = ? ORDER BY started_at').all(jobId);
   }

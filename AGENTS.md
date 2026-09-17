@@ -18,6 +18,7 @@
 | ⑥ soul/ | `soul/`（`manifest.json` `schema/` `briefing/` `models/` `bootstrap/`） | ✅ | Personal AI 可携带认知状态：通用 L2/L3 脱敏模型 + schema 契约 + briefing 模板 + adopter 骨架；内容只能来自 declassification 链产物或为公开编写的模板，私有 canonical/L0-L1/未脱敏模型禁入；`manifest.json` 是发布锚 |
 | ⑦ host/ | `host/` | ✅ | Personal AI 中立控制宿主（`docs/pi-migration-design.md`）：**零外部依赖**，全目录禁止 import 任何身体/harness（`host/tests/firewall.test.js` 机械执行）；运行态写 instance root 禁入仓 |
 | ⑧ pi/ | `pi/` | ✅ | Pi 身体实现：adapter（Pi API ↔ host 契约）+ bootstrap（唯一 composition root）+ managed extensions；依赖方向恒为 `pi → host`；pin `@earendil-works/*@0.85.1`，lockfile 属 runtime identity |
+| ⑨ app/ | `app/` | ✅ | Personal AI 自有用户界面层：server（BodySupervisor 多身体组装根 + 零依赖 HTTP/SSE 桥）+ ui（零构建网页：对话 + 身体面板）+ desktop（Electron 壳）；**产品级组装根，可同时知道 pi/dsh 入口**；用户经 `body_select` 显式选身体，有会话时走真七态 handoff；`host/` 依然不 import 任何身体 |
 
 ## 硬约束（改目录结构的红线）
 
@@ -35,6 +36,7 @@ python -m unittest discover -s mcp/agent-switchboard/tests -v           # MCP �
 npm --prefix host test                            # host 契约测试（零依赖防火墙）
 npm --prefix pi test                              # pi 侧边界测试
 npm --prefix dsh test                             # dsh 身体适配器 L4 契约 + L5/L6 切换演练
+npm --prefix app test                             # app 层：supervisor/bridge 测试（fixture 身体真切换）
 git diff --check                                  # 空白错误
 ```
 

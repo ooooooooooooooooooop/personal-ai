@@ -14,54 +14,42 @@ import { FileOpsGuard } from '../adapter/fileops.js';
 import { makeDecide } from './decide.js';
 import { resolveManagedExtensions } from '../extensions/loader.js';
 import { writeRuntimeIdentity } from '../../../host/src/core/identity.js';
+import {
+  PI_GOVERNANCE_COVERAGE,
+  REQUIRED_BODY_CAPABILITIES,
+  piFacts,
+} from './facts.js';
+import { createHash } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 
 const PI_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const HOST_ROOT = fileURLToPath(new URL('../../../host/', import.meta.url));
 
-/** Pi body's declared capability coverage — facts, not status. */
-const PI_CAPABILITIES = {
-  final_post_extension_guard: 'supported',
-  canonical_prediction_binding: 'supported', // M2: kernel binds mutations to open predictions
-  loop_observability: 'supported',
-  provider_request_audit: 'supported',
-  compaction_governance: 'supported', // M3: session_before_compact governance + context-seam preservation
-  durable_jobs: 'supported', // M4: JobStore + executor + kill recovery
-  mcp_native: 'unsupported', // bridged via RPC/customTools at M4
-};
+/** Domain lease the live body holds: canonical writer authority. */
+const WRITER_LEASE = { scope: 'domain', name: 'canonical-writer' };
+const WRITER_TTL_SECONDS = 8;
 
-/** Which governance surfaces the Pi body actually enforces (M8-verified). */
-const PI_GOVERNANCE_COVERAGE = {
-  tool_decide: 'supported',
-  schema_revalidation: 'supported',
-  deny_hide: 'supported',
-  fileops_guard: 'supported',
-  audit: 'supported',
-  compaction_hooks: 'supported',
-  continuation_steer: 'supported',
-  usage_accounting: 'supported',
-};
-
-/** Cold-handoff phase support — the full seven-state machine is implemented. */
-const PI_HANDOFF_CAPABILITIES = {
-  quiesce: 'supported',
-  checkpoint: 'supported',
-  release: 'supported',
-  acquire: 'supported',
-  resume: 'supported',
-  verify: 'supported',
-};
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Production session's non-negotiable body requirements — the task profile
- * the selector is measured against. "Pi is the default body" means: pi is
- * the body selectBody() returns for THIS profile, re-evaluated every boot.
+ * Claim the canonical-writer lease, waiting out a dead predecessor's TTL.
+ * A lease held by a LIVE body (not yet stale past its expiry) is fail-closed:
+ * two bodies writing canonical at once is exactly what the fence exists to stop.
  */
-const REQUIRED_BODY_CAPABILITIES = [
-  { capability: 'final_post_extension_guard', negotiable: false },
-  { capability: 'durable_jobs', negotiable: false },
-  { capability: 'provider_request_audit', negotiable: false },
-];
+async function claimCanonicalWriter(leases, owner) {
+  const deadline = Date.now() + (WRITER_TTL_SECONDS + 5) * 1000;
+  for (;;) {
+    const r = leases.claim({ ...WRITER_LEASE, owner, ttlSeconds: WRITER_TTL_SECONDS });
+    if (r.ok) return r.lease;
+    const expiresAtMs = (r.heldBy?.expiresAt ?? 0) * 1000;
+    if (Date.now() + Math.max(0, expiresAtMs - Date.now()) > deadline) {
+      throw new Error(
+        `canonical-writer lease held by ${r.heldBy?.owner ?? 'unknown'} (gen ${r.heldBy?.generation}) — refusing to boot a second writer`,
+      );
+    }
+    await sleep(Math.min(500, Math.max(50, expiresAtMs - Date.now() + 50)));
+  }
+}
 
 /**
  * Concrete composition root for the Pi body.
@@ -97,15 +85,7 @@ export async function startHost({
     },
   });
 
-  core.registry.register({
-    body_id: 'pi',
-    adapter_version: '0.85.1',
-    verified_capabilities: PI_CAPABILITIES,
-    governance_coverage: PI_GOVERNANCE_COVERAGE,
-    handoff_capabilities: PI_HANDOFF_CAPABILITIES,
-    supported_effect_domains: ['tools', 'filesystem', 'shell', 'network'],
-    known_limitations: { mcp: 'no native MCP; bridged at M4' },
-  });
+  core.registry.register(piFacts());
 
   // Body selection is a mechanism, not a declaration: evaluate every
   // registered body against the production task profile and boot pi only
@@ -210,6 +190,67 @@ export async function startHost({
   });
   core.audit.annotations.governance_coverage = PI_GOVERNANCE_COVERAGE;
 
+  // Canonical writer authority: the live body holds this domain lease for the
+  // whole session. Handoff releases it before another body may acquire — the
+  // no-dual-writer window is enforced by the lease, not by politeness.
+  const writerOwner = `pi:${runId}`;
+  const writerLease = await claimCanonicalWriter(core.leases, writerOwner);
+  const renewTimer = setInterval(() => {
+    const r = core.leases.renew({
+      ...WRITER_LEASE, owner: writerOwner,
+      generation: writerLease.generation, ttlSeconds: WRITER_TTL_SECONDS,
+    });
+    if (!r.ok) {
+      core.audit.write({
+        kind: 'LEASE_LOST', runId,
+        data: { ...WRITER_LEASE, reason: r.reason },
+      });
+    }
+  }, Math.max(1000, (WRITER_TTL_SECONDS / 3) * 1000));
+  renewTimer.unref();
+  let writerReleased = false;
+  const releaseWriter = () => {
+    if (writerReleased) return { released: [] };
+    writerReleased = true;
+    clearInterval(renewTimer);
+    const r = core.leases.release({
+      ...WRITER_LEASE, owner: writerOwner, generation: writerLease.generation,
+    });
+    return { released: r.ok ? [WRITER_LEASE.name] : [], error: r.ok ? undefined : r.reason };
+  };
+
+  // Handoff facade — the body-owned side of the cold-handoff phases the app
+  // supervisor orchestrates through the channel. prepare/export/release are
+  // real operations on THIS live session, not declarations.
+  const handoffFacade = {
+    prepare: async () => {
+      await session.abort?.().catch(() => {});
+      return {
+        runId,
+        sessionId: session.sessionId ?? null,
+        heldLeases: writerReleased
+          ? []
+          : [{ ...WRITER_LEASE, owner: writerOwner, generation: writerLease.generation }],
+      };
+    },
+    export: async () => ({
+      goalIdentity: `goal:${session.sessionId ?? 'session'}`,
+      canonicalCursor: `sha256:${createHash('sha256')
+        .update(JSON.stringify(core.predictions.openPredictions())).digest('hex')}`,
+      soulIdentity: `soul:${core.soul?.manifest?.name ?? 'personal-ai'}`,
+      openPredictions: core.predictions.openPredictions().map((p) => p.id),
+      jobCursors: jobStore.listUnfinished().map((j) => ({
+        job_id: j.job_id,
+        current_attempt: jobStore.getAttempts(j.job_id).length,
+        checkpoint_ref: j.checkpoint_ref ?? null,
+      })),
+      policyIdentity: `sha256:${core.policy.checksum}`,
+      provenanceChain: [runId],
+      source: { body: 'pi', session: session.sessionId ?? 'session', run: runId },
+    }),
+    release: async () => releaseWriter(),
+  };
+
   core.audit.write({
     kind: 'HOST_STARTED',
     runId,
@@ -221,7 +262,26 @@ export async function startHost({
   });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
-  const channel = createChannelHost({ session, core, jobs: jobStore });
+  const channel = createChannelHost({
+    session, core, jobs: jobStore,
+    bodies: {
+      current: async () => ({
+        body_id: 'pi',
+        runId,
+        sessionId: session.sessionId ?? null,
+        facts: piFacts(),
+        selection: selection.results,
+      }),
+    },
+    handoff: handoffFacade,
+  });
 
-  return { ...core, identity, session, guard, runId, jobStore, executor, recoveryActions, channel, toolSurface, fileOps };
+  const dispose = () => {
+    releaseWriter();
+    channel.dispose();
+    jobStore.db.close();
+    core.leases.close();
+  };
+
+  return { ...core, identity, session, guard, runId, jobStore, executor, recoveryActions, channel, toolSurface, fileOps, dispose };
 }

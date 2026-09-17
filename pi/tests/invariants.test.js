@@ -57,7 +57,7 @@ test('M7 drill: kill → cold restart → identity invariants hold', async () =>
     jobId: job.job_id, writerId: 'life1', workerType: 'child_process',
     workerIdentity: { pid: 999_999_999 }, // dead-on-arrival pid: no live worker
   });
-  h1.jobStore.db.close(); // === the kill: host process gone ===
+  h1.dispose(); // === life 1 ends: clean shutdown releases the writer lease ===
 
   // === life 2: cold start on the same instance root ===
   const h2 = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });

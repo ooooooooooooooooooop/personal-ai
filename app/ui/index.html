@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personal AI</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <aside id="sidebar">
+    <div class="side-head">身体</div>
+    <div id="bodies"></div>
+    <div id="handoff" class="handoff hidden"></div>
+    <div class="side-head">会话</div>
+    <div id="state" class="kv"></div>
+  </aside>
+
+  <main>
+    <header>
+      <span id="current-body" class="badge">—</span>
+      <span id="status" class="status">连接中…</span>
+      <span class="spacer"></span>
+      <button id="tab-chat" class="tab active">对话</button>
+      <button id="tab-jobs" class="tab">任务</button>
+      <button id="tab-audit" class="tab">审计</button>
+    </header>
+
+    <section id="view-chat" class="view">
+      <div id="transcript"></div>
+      <div id="composer">
+        <textarea id="input" rows="3" placeholder="对当前身体说话… (Enter 发送, Shift+Enter 换行)"></textarea>
+        <div class="composer-bar">
+          <button id="send" class="primary">发送</button>
+          <button id="steer" title="在运行中追加指示">插话</button>
+          <button id="abort" class="danger">中止</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-jobs" class="view hidden">
+      <div class="view-bar"><button id="jobs-refresh">刷新</button></div>
+      <table id="jobs"><thead><tr><th>job</th><th>类型</th><th>状态</th><th>更新时间</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section id="view-audit" class="view hidden">
+      <div class="view-bar"><button id="audit-refresh">刷新</button></div>
+      <div id="audit-list"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

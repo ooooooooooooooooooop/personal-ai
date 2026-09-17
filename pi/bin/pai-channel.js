@@ -57,6 +57,14 @@ rl.on('line', async (line) => {
   write(await host.channel.handle(cmd));
 });
 rl.on('close', () => {
-  host.channel.dispose();
+  host.dispose?.();
   process.exit(0);
 });
+// A supervisor kills the channel with SIGTERM on body switch — release the
+// writer lease so the acquiring body does not wait out the TTL.
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, () => {
+    host.dispose?.();
+    process.exit(0);
+  });
+}
