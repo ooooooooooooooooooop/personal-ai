@@ -24,7 +24,7 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
-export function createHttpBridge({ supervisor, uiDir = UI_DIR }) {
+export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null }) {
   const sseClients = new Set();
   const unsub = supervisor.subscribe((msg) => {
     const frame = `data: ${JSON.stringify(msg)}\n\n`;
@@ -57,6 +57,17 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR }) {
         }));
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify(out));
+        return;
+      }
+      if (req.method === 'POST' && url.pathname === '/api/pick-dir') {
+        if (!pickDir) {
+          res.writeHead(501, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'directory picker unavailable' }));
+          return;
+        }
+        const dir = await pickDir().catch(() => null);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ dir: dir ?? null }));
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {

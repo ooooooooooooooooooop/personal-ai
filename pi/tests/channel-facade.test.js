@@ -29,7 +29,7 @@ test('facade exposes plain-data get_state and dispatches prompt/steer/abort', as
   writeFileSync(join(auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`),
     `${JSON.stringify({ kind: 'HOST_STARTED' })}\n${JSON.stringify({ kind: 'TURN_ACCOUNTING', data: { input: 10 } })}\n`);
   const core = { paths: { auditDir } };
-  const ch = createChannelHost({ session: fakeSessionRef, core });
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
 
   const state = await ch.handle({ type: 'get_state' });
   assert.equal(state.data.model.id, 'gpt-5.6-luna-max');
@@ -40,5 +40,5 @@ test('facade exposes plain-data get_state and dispatches prompt/steer/abort', as
 
   const tail = await ch.handle({ type: 'audit_tail', n: 1 });
   assert.equal(tail.data[0].kind, 'TURN_ACCOUNTING');
-  ch.dispose();
+  dispose();
 });

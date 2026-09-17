@@ -171,6 +171,23 @@ test('body_select on an empty session is a cold swap — no handoff record', asy
   } finally { await sup.dispose(); }
 });
 
+test('set_workdir persists to app-config and respawns the live body', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const before = (await sup.handle({ type: 'body_current' })).data.runId;
+    const newDir = mkdtempSync(join(tmpdir(), 'pai-wd-'));
+    const r = await sup.handle({ type: 'set_workdir', path: newDir });
+    assert.equal(r.success, true, JSON.stringify(r));
+    assert.equal(sup.workdir, newDir);
+    const cfg = JSON.parse(readFileSync(join(dir, 'app-config.json'), 'utf-8'));
+    assert.equal(cfg.workdir, newDir);
+    const after = (await sup.handle({ type: 'body_current' })).data.runId;
+    assert.notEqual(after, before); // respawned on the new workdir
+    const bad = await sup.handle({ type: 'set_workdir', path: join(dir, 'nope-does-not-exist') });
+    assert.equal(bad.success, false);
+  } finally { await sup.dispose(); }
+});
+
 test('handoff_status without id lists pending records', async () => {
   const { sup } = await boot();
   try {

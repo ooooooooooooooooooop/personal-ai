@@ -9,6 +9,9 @@ let busy = false;
 let assistantEl = null; // live message bubble being streamed into
 let sawMessage = false;
 let nearBottom = true;
+let modelStatus = null;   // last model_status payload
+let sessionsCache = [];   // last session_list payload
+let currentSessionFile = null;
 
 async function cmd(type, params = {}) {
   const res = await fetch('/cmd', {
@@ -56,10 +59,9 @@ function md(text) {
     }
     const lines = seg.split('\n');
     let html = '';
-    let list = null; // 'ul' | 'ol' | null
+    let list = null;
     const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
-    for (const raw of lines) {
-      const line = raw;
+    for (const line of lines) {
       let m;
       if ((m = line.match(/^\s*[-*]\s+(.+)/))) {
         if (list !== 'ul') { closeList(); html += '<ul>'; list = 'ul'; }
@@ -96,9 +98,14 @@ document.addEventListener('click', (e) => {
 const CARET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
 const COPY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>';
 const TOOL_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M14.7 6.3a4.5 4.5 0 0 0-6 6L3 18l3 3 5.7-5.7a4.5 4.5 0 0 0 6-6L14 13l-3-3 3.7-3.7z"/></svg>';
+const THINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 0-4 12.7V17a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-2.3A7 7 0 0 0 12 2z"/><path d="M10 22h4"/></svg>';
 
 function noteMessage() {
-  if (!sawMessage) { sawMessage = true; $('empty-state')?.remove(); }
+  if (!sawMessage) {
+    sawMessage = true;
+    $('empty-state')?.remove();
+    $('setup-card')?.classList.add('hidden');
+  }
 }
 function addMsg(who, text) {
   noteMessage();
@@ -111,6 +118,16 @@ function addMsg(who, text) {
   scrollTail();
   return div;
 }
+function addThinking(text) {
+  noteMessage();
+  const div = document.createElement('div');
+  div.className = 'think-row';
+  div.innerHTML = `<button class="think-head"><span class="t-caret">${CARET}</span><span class="t-icon">${THINK_ICON}</span>思考过程</button><div class="think-body"></div>`;
+  div.querySelector('.think-body').textContent = text;
+  div.querySelector('.think-head').onclick = () => div.classList.toggle('open');
+  transcript.appendChild(div);
+  return div;
+}
 function addSys(text, bad = false) {
   noteMessage();
   const div = document.createElement('div');
@@ -119,8 +136,12 @@ function addSys(text, bad = false) {
   transcript.appendChild(div);
   scrollTail();
 }
+function clearTranscript() {
+  transcript.querySelectorAll('.msg,.sys,.tool,.think-row,.handoff-card').forEach((n) => n.remove());
+  sawMessage = false;
+  nearBottom = true;
+}
 
-/* one-line signature of a tool call: first meaningful arg preview */
 function argPreview(args) {
   if (args == null) return '';
   const pick = args.path ?? args.file ?? args.command ?? args.cmd ?? args.url
@@ -139,7 +160,7 @@ function resultText(result) {
   }
   try { return JSON.stringify(result, null, 2); } catch { return String(result); }
 }
-const toolRows = new Map(); // toolCallId → element
+const toolRows = new Map();
 function addTool(ev) {
   noteMessage();
   const div = document.createElement('div');
@@ -199,6 +220,23 @@ function messageText(m) {
   return blocks.filter((b) => b?.type === 'text').map((b) => b.text ?? '').join('');
 }
 
+/* ---------- history replay (session switch / restart) ---------- */
+async function replayHistory() {
+  clearTranscript();
+  const r = await cmd('session_history');
+  const msgs = r.data ?? [];
+  for (const m of msgs) {
+    if (m.role === 'user') addMsg('user', m.text ?? '');
+    else if (m.role === 'assistant') {
+      if (m.thinking) addThinking(m.thinking);
+      if (m.text) addMsg('assistant', m.text);
+      for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
+      if (m.error) addSys(`模型错误：${m.error}`, true);
+    }
+  }
+  if (!sawMessage && modelStatus?.current == null) $('setup-card')?.classList.remove('hidden');
+}
+
 /* ---------- agent events ---------- */
 function onAgentEvent(ev) {
   switch (ev?.type) {
@@ -236,10 +274,17 @@ function onAgentEvent(ev) {
     case 'tool_execution_end':
       endTool(ev);
       break;
+    case 'session_changed':
+      currentSessionFile = ev.session?.file ?? null;
+      replayHistory();
+      refreshSessions();
+      refreshState();
+      break;
     case 'agent_end':
       setBusy(false);
       assistantEl = null;
       refreshState();
+      refreshSessionsSoon();
       break;
   }
 }
@@ -278,6 +323,8 @@ function onSupervisor(ev) {
     setStatus('就绪');
     addSys(`已切换到身体 ${ev.to}（${ev.mode}）`);
     refreshAll();
+  } else if (ev.kind === 'workdir_changed') {
+    addSys(`工作目录已切换：${ev.workdir}`);
   } else if (ev.kind === 'select_failed' || ev.kind === 'body_exited') {
     $('switch-progress').classList.remove('on');
     handoffEl = null;
@@ -286,6 +333,269 @@ function onSupervisor(ev) {
     refreshAll();
   }
 }
+
+/* ---------- sessions (sidebar) ---------- */
+function sessionGroup(dateStr) {
+  const d = dateStr ? new Date(dateStr) : null;
+  if (!d || Number.isNaN(+d)) return '更早';
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = 86400000;
+  if (d >= today) return '今天';
+  if (d >= today - day) return '昨天';
+  if (d >= today - 7 * day) return '近 7 天';
+  return '更早';
+}
+function renderSessions() {
+  const box = $('session-list');
+  const filter = $('side-filter').value.trim().toLowerCase();
+  box.innerHTML = '';
+  const items = sessionsCache
+    .filter((s) => !filter || `${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter))
+    .sort((a, b) => String(b.modified ?? '').localeCompare(String(a.modified ?? '')));
+  const groups = new Map();
+  for (const s of items) {
+    const g = sessionGroup(s.modified);
+    if (!groups.has(g)) groups.set(g, []);
+    groups.get(g).push(s);
+  }
+  if (!items.length) {
+    box.innerHTML = '<div class="sess-empty">还没有任务——从下方输入框开始</div>';
+    return;
+  }
+  for (const [g, rows] of groups) {
+    const h = document.createElement('div');
+    h.className = 'sess-group';
+    h.textContent = g;
+    box.appendChild(h);
+    for (const s of rows) {
+      const row = document.createElement('div');
+      row.className = `sess${s.path === currentSessionFile ? ' active' : ''}`;
+      const title = s.name || s.firstMessage || '未命名任务';
+      row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.messageCount ?? 0} 条</span>`;
+      row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
+      row.title = s.path;
+      row.onclick = () => switchSession(s.path);
+      box.appendChild(row);
+    }
+  }
+}
+async function switchSession(path) {
+  if (path === currentSessionFile) { switchView('chat'); return; }
+  const r = await cmd('session_switch', { path });
+  if (!r.success) addSys(`切换会话失败：${r.error ?? '未知'}`, true);
+  switchView('chat');
+}
+async function refreshSessions() {
+  const r = await cmd('session_list');
+  if (r.success) {
+    sessionsCache = r.data ?? [];
+    renderSessions();
+  }
+}
+let sessTimer = null;
+function refreshSessionsSoon() {
+  clearTimeout(sessTimer);
+  sessTimer = setTimeout(refreshSessions, 600);
+}
+$('new-task').onclick = async () => {
+  const r = await cmd('session_new');
+  if (!r.success) addSys(`新建会话失败：${r.error ?? '未知'}`, true);
+  switchView('chat');
+  $('input').focus();
+};
+$('side-filter').addEventListener('input', renderSessions);
+
+/* ---------- model / thinking chips ---------- */
+const chipMenu = $('chip-menu');
+function closeMenu() { chipMenu.classList.add('hidden'); chipMenu.innerHTML = ''; }
+document.addEventListener('click', (e) => {
+  if (!chipMenu.contains(e.target) && e.target.id !== 'model-chip' && e.target.id !== 'thinking-chip') closeMenu();
+});
+function openMenu(items, onPick) {
+  chipMenu.innerHTML = '';
+  for (const it of items) {
+    const b = document.createElement('button');
+    b.className = `menu-item${it.current ? ' current' : ''}`;
+    b.innerHTML = `<span class="mi-main"></span><span class="mi-sub"></span>`;
+    b.querySelector('.mi-main').textContent = it.label;
+    b.querySelector('.mi-sub').textContent = it.sub ?? '';
+    b.onclick = async () => { closeMenu(); await onPick(it); };
+    chipMenu.appendChild(b);
+  }
+  chipMenu.classList.remove('hidden');
+}
+$('model-chip').onclick = async () => {
+  if (!chipMenu.classList.contains('hidden')) { closeMenu(); return; }
+  const r = await cmd('model_list');
+  const models = r.data ?? [];
+  if (!models.length) {
+    openMenu([{ label: '没有可用模型——去设置里配密钥', sub: '' }], () => switchView('settings'));
+    return;
+  }
+  const cur = modelStatus?.current;
+  openMenu(models.map((m) => ({
+    label: m.name ?? m.id,
+    sub: m.provider,
+    current: cur && m.provider === cur.provider && m.id === cur.id,
+    value: m,
+  })), async (it) => {
+    if (!it.value) return;
+    const r2 = await cmd('model_set', { provider: it.value.provider, model: it.value.id });
+    if (!r2.success) addSys(`切换模型失败：${r2.error ?? '未知'}`, true);
+    refreshState();
+  });
+};
+const THINK_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh'];
+const THINK_LABEL = { off: '关', minimal: '极低', low: '低', medium: '中', high: '高', xhigh: '极高' };
+$('thinking-chip').onclick = () => {
+  if (!chipMenu.classList.contains('hidden')) { closeMenu(); return; }
+  const cur = modelStatus?.thinkingLevel ?? 'medium';
+  openMenu(THINK_LEVELS.map((lv) => ({
+    label: `推理 · ${THINK_LABEL[lv]}`,
+    sub: lv,
+    current: lv === cur,
+    value: lv,
+  })), async (it) => {
+    const r = await cmd('thinking_set', { level: it.value });
+    if (!r.success) addSys(`设置推理强度失败：${r.error ?? '未知'}`, true);
+    refreshState();
+  });
+};
+
+/* ---------- model setup (empty-state gate + settings) ---------- */
+function fillProviderSelect(sel, providers) {
+  sel.innerHTML = '';
+  for (const p of providers) {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = `${p.id}${p.hasAuth ? '（已配置）' : ''}`;
+    sel.appendChild(o);
+  }
+}
+function renderModelPick(box, models) {
+  box.innerHTML = '';
+  if (!models.length) {
+    box.innerHTML = '<div class="setup-msg">保存密钥后这里会列出该提供方的模型</div>';
+    return;
+  }
+  const cur = modelStatus?.current;
+  for (const m of models) {
+    const row = document.createElement('button');
+    row.className = `model-row${cur && cur.provider === m.provider && cur.id === m.id ? ' current' : ''}`;
+    row.innerHTML = `<span class="mr-name"></span><span class="mr-meta">${m.provider}${m.reasoning ? ' · 推理' : ''}${m.contextWindow ? ` · ${Math.round(m.contextWindow / 1000)}k` : ''}</span>`;
+    row.querySelector('.mr-name').textContent = m.name ?? m.id;
+    row.onclick = async () => {
+      const r = await cmd('model_set', { provider: m.provider, model: m.id });
+      if (!r.success) addSys(`切换模型失败：${r.error ?? '未知'}`, true);
+      else addSys(`已切换模型：${m.provider}/${m.id}`);
+      await refreshModels();
+    };
+    box.appendChild(row);
+  }
+}
+async function refreshModels() {
+  const [st, list] = await Promise.all([cmd('model_status'), cmd('model_list')]);
+  if (st.success) modelStatus = st.data;
+  const providers = modelStatus?.providers ?? [];
+  fillProviderSelect($('setup-provider'), providers);
+  fillProviderSelect($('set-provider'), providers);
+  const sel = $('set-provider');
+  const p = providers.find((x) => x.id === sel.value);
+  $('set-provider-auth').className = `pill ${p?.hasAuth ? 'ok' : 'err'}`;
+  $('set-provider-auth').textContent = p ? (p.hasAuth ? '已配置' : '未配置') : '';
+  renderModelPick($('setup-models'), list.data ?? []);
+  renderModelPick($('set-models'), list.data ?? []);
+  const lv = modelStatus?.thinkingLevel ?? 'medium';
+  $('set-thinking').innerHTML = THINK_LEVELS.map((l) => `<option value="${l}"${l === lv ? ' selected' : ''}>${THINK_LABEL[l]}</option>`).join('');
+  // Gate: no current model → setup card takes over the empty state
+  const noModel = modelStatus?.current == null;
+  $('setup-card')?.classList.toggle('hidden', sawMessage || !noModel);
+  if (!sawMessage && noModel) $('empty-state')?.classList.add('hidden');
+  else $('empty-state')?.classList.remove('hidden');
+  updateChips();
+}
+function updateChips() {
+  const cur = modelStatus?.current;
+  $('model-chip').textContent = cur ? `${cur.name ?? cur.id} ▾` : '选择模型 ▾';
+  $('thinking-chip').textContent = `推理 ${THINK_LABEL[modelStatus?.thinkingLevel ?? 'medium']} ▾`;
+}
+async function saveKey(providerSel, keyInput, msgEl) {
+  const provider = $(providerSel).value;
+  const key = $(keyInput).value.trim();
+  if (!provider || !key) return;
+  const r = await cmd('auth_set_key', { provider, key });
+  $(keyInput).value = '';
+  const msg = $(msgEl);
+  if (!r.success) {
+    msg.textContent = `保存失败：${r.error ?? '未知'}`;
+    msg.className = 'setup-msg err';
+  } else {
+    msg.textContent = `已保存 ${provider} 的密钥`;
+    msg.className = 'setup-msg ok';
+  }
+  await refreshModels();
+}
+$('setup-save-key').onclick = () => saveKey('setup-provider', 'setup-key', 'setup-msg');
+$('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
+$('set-clear-key').onclick = async () => {
+  const provider = $('set-provider').value;
+  if (!provider) return;
+  const r = await cmd('auth_clear', { provider });
+  const msg = $('set-model-msg');
+  msg.textContent = r.success ? `已清除 ${provider} 的凭据` : `清除失败：${r.error ?? '未知'}`;
+  msg.className = `setup-msg ${r.success ? 'ok' : 'err'}`;
+  await refreshModels();
+};
+$('set-provider').onchange = refreshModels;
+$('set-thinking').onchange = async () => {
+  const r = await cmd('thinking_set', { level: $('set-thinking').value });
+  if (!r.success) addSys(`设置推理强度失败：${r.error ?? '未知'}`, true);
+  refreshState();
+};
+$('cp-add').onclick = async () => {
+  const spec = {
+    provider: $('cp-id').value.trim(),
+    model: $('cp-model').value.trim(),
+    baseUrl: $('cp-base').value.trim(),
+    api: $('cp-api').value,
+    apiKeyEnv: $('cp-keyenv').value.trim() || undefined,
+  };
+  const msg = $('cp-msg');
+  if (!spec.provider || !spec.model || !spec.baseUrl) {
+    msg.textContent = '提供方 ID、模型 ID、Base URL 都要填';
+    msg.className = 'setup-msg err';
+    return;
+  }
+  const r = await cmd('provider_add', spec);
+  if (!r.success) {
+    msg.textContent = `添加失败：${r.error ?? '未知'}`;
+    msg.className = 'setup-msg err';
+    return;
+  }
+  msg.textContent = `已添加 ${spec.provider}——现在给它存 API Key`;
+  msg.className = 'setup-msg ok';
+  await refreshModels();
+  $('set-provider').value = spec.provider;
+  $('set-key').focus();
+};
+
+/* ---------- workdir / settings ---------- */
+async function refreshSettings() {
+  const r = await cmd('supervisor_status');
+  const s = r.data ?? {};
+  $('set-workdir').textContent = s.workdir ?? '';
+  $('set-instance').textContent = s.instanceRoot ?? '';
+}
+$('set-pick-dir').onclick = async () => {
+  const res = await fetch('/api/pick-dir', { method: 'POST' }).then((r) => r.json()).catch(() => ({}));
+  // No native picker (dev server): fall back to a manual path prompt.
+  const dir = res?.dir ?? prompt('输入工作目录完整路径', $('set-workdir').textContent);
+  if (!dir) return;
+  const r = await cmd('set_workdir', { path: dir });
+  if (!r.success) addSys(`切换工作目录失败：${r.error ?? '未知'}`, true);
+  refreshSettings();
+};
 
 /* ---------- audit / jobs ---------- */
 async function refreshAudit() {
@@ -325,27 +635,11 @@ async function refreshJobs() {
 const BODY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>';
 let bodiesCache = [];
 
-function renderSideBodies() {
-  const filter = $('side-filter').value.trim().toLowerCase();
-  const box = $('side-body');
-  box.innerHTML = '';
-  for (const b of bodiesCache) {
-    if (filter && !`${b.label} ${b.body_id}`.toLowerCase().includes(filter)) continue;
-    const row = document.createElement('div');
-    row.className = 's-body';
-    row.innerHTML = `<span class="s-dot${b.current ? ' on' : ''}"></span><span class="s-name"></span><span class="s-meta">${b.current ? '当前' : ''}</span>`;
-    row.querySelector('.s-name').textContent = b.label;
-    row.onclick = () => switchView('bodies');
-    box.appendChild(row);
-  }
-}
-
 async function refreshBodies() {
   const r = await cmd('body_list');
   const grid = $('body-grid');
   grid.innerHTML = '';
   bodiesCache = r.data ?? [];
-  renderSideBodies();
 
   const cur = bodiesCache.find((b) => b.current);
   $('body-chip').textContent = cur ? `${cur.label} ▾` : '选择身体 ▾';
@@ -395,28 +689,35 @@ async function refreshBodies() {
     grid.appendChild(card);
   }
 }
-$('side-filter').addEventListener('input', renderSideBodies);
 
 async function refreshState() {
   const r = await cmd('get_state');
   const s = r.data ?? {};
-  $('model-chip').textContent = s.model ? `${s.model.provider}/${s.model.id}` : '';
+  if (s.session?.file) currentSessionFile = s.session.file;
+  const name = s.session?.name;
+  if (currentView === 'chat') $('view-title').textContent = name || '当前任务';
+  await refreshModels();
+  renderSessions();
 }
-function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); }
+function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); }
 function setStatus(t, kind) {
   $('status').textContent = t;
   $('status-dot').className = `dot${kind === 'err' ? ' err' : t === '就绪' ? ' on' : ''}`;
 }
 
 /* ---------- views ---------- */
-const TITLES = { chat: '新建任务', bodies: '身体', jobs: '任务', audit: '审计' };
+const TITLES = { jobs: '任务', audit: '审计', bodies: '身体', settings: '设置' };
+let currentView = 'chat';
 function switchView(v) {
+  currentView = v;
   for (const item of document.querySelectorAll('.nav-item')) item.classList.toggle('active', item.dataset.view === v);
   for (const sec of document.querySelectorAll('.view')) sec.classList.toggle('hidden', sec.id !== `view-${v}`);
-  $('view-title').textContent = TITLES[v] ?? '';
+  if (v === 'chat') $('view-title').textContent = sessionsCache.find((s) => s.path === currentSessionFile)?.name || '当前任务';
+  else $('view-title').textContent = TITLES[v] ?? '';
   if (v === 'jobs') refreshJobs();
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
+  if (v === 'settings') { refreshSettings(); refreshModels(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
 $('body-chip').onclick = () => switchView('bodies');
@@ -468,4 +769,7 @@ es.onerror = () => setStatus('连接断开，重试中…', 'err');
 es.onopen = () => setStatus('就绪');
 
 autogrow();
-refreshAll();
+(async () => {
+  await refreshAll();
+  await replayHistory(); // reopened app should show the persisted session, not blank
+})();

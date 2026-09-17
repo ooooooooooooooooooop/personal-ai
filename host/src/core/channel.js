@@ -19,6 +19,20 @@
  *   handoff_prepare {}      → quiesce the session, report held writer leases
  *   handoff_export {}       → PortableContinuityEnvelope fields from live state
  *   handoff_release {}      → release held writer leases (then the proc may die)
+ *   model_status {}         → current model, thinking level, providers + auth state
+ *   model_list {}           → models usable right now (auth present)
+ *   model_set {provider,model} → switch active model (persisted by the body)
+ *   thinking_set {level}    → set reasoning effort on the active model
+ *   auth_set_key {provider,key} → store an API key in the body's auth store;
+ *                               the key is written, never echoed back
+ *   auth_clear {provider}   → remove stored credential for a provider
+ *   provider_add {id,baseUrl,api,model,…} → register a custom OpenAI/Anthropic-
+ *                               compatible provider in the body's model store
+ *   session_list {}         → persisted sessions for this workdir
+ *   session_new {}          → start a fresh persisted session
+ *   session_switch {path}   → resume a persisted session
+ *   session_rename {name}   → name the current session
+ *   session_history {}      → current session's messages as plain data
  *
  * Events: whatever the body's event stream emits, re-tagged as
  * {type:'event', event} plus host-side {type:'audit', event} lines.
@@ -32,14 +46,18 @@ export class HostChannel {
    * @param {object} [facades.bodies] {current()} → {body_id, facts, selection}
    * @param {object} [facades.handoff] {prepare,export,release} — body-owned side
    *        of the cold-handoff phases a supervisor orchestrates
+   * @param {object} [facades.models] {status,list,set,setThinking,setApiKey,clearApiKey}
+   * @param {object} [facades.sessions] {list,create,open,rename} — persisted session lifecycle
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null }) {
+  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
     this.audit = audit;
     this.bodies = bodies;
     this.handoff = handoff;
+    this.models = models;
+    this.sessions = sessions;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -112,6 +130,75 @@ export class HostChannel {
           if (!this.handoff?.release) return reply(false, undefined, 'handoff facade unavailable');
           return reply(true, await this.handoff.release());
         }
+        case 'model_status': {
+          if (!this.models?.status) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, await this.models.status());
+        }
+        case 'model_list': {
+          if (!this.models?.list) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, await this.models.list());
+        }
+        case 'model_set': {
+          if (!this.models?.set) return reply(false, undefined, 'models facade unavailable');
+          if (!cmd.provider || !cmd.model) return reply(false, undefined, 'model_set requires {provider, model}');
+          return reply(true, await this.models.set({ provider: String(cmd.provider), model: String(cmd.model) }));
+        }
+        case 'thinking_set': {
+          if (!this.models?.setThinking) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, await this.models.setThinking(String(cmd.level ?? '')));
+        }
+        case 'auth_set_key': {
+          if (!this.models?.setApiKey) return reply(false, undefined, 'models facade unavailable');
+          if (!cmd.provider || !cmd.key) return reply(false, undefined, 'auth_set_key requires {provider, key}');
+          // The key travels in the command envelope only — never into responses,
+          // events, or audit. Facades must not return key material.
+          return reply(true, await this.models.setApiKey({ provider: String(cmd.provider), key: String(cmd.key) }));
+        }
+        case 'auth_clear': {
+          if (!this.models?.clearApiKey) return reply(false, undefined, 'models facade unavailable');
+          if (!cmd.provider) return reply(false, undefined, 'auth_clear requires {provider}');
+          return reply(true, await this.models.clearApiKey(String(cmd.provider)));
+        }
+        case 'provider_add': {
+          if (!this.models?.addProvider) return reply(false, undefined, 'models facade unavailable');
+          const spec = {
+            // 'provider', not 'id' — cmd.id is the envelope id and gets
+            // rewritten to a seq number when a supervisor proxies the command
+            provider: String(cmd.provider ?? '').trim(),
+            baseUrl: String(cmd.baseUrl ?? '').trim(),
+            api: String(cmd.api ?? '').trim(),
+            model: String(cmd.model ?? '').trim(),
+            modelName: cmd.modelName ? String(cmd.modelName) : undefined,
+            contextWindow: cmd.contextWindow ? Number(cmd.contextWindow) : undefined,
+            maxTokens: cmd.maxTokens ? Number(cmd.maxTokens) : undefined,
+            apiKeyEnv: cmd.apiKeyEnv ? String(cmd.apiKeyEnv).replace(/^\$/, '') : undefined,
+          };
+          if (!spec.provider || !spec.baseUrl || !spec.api || !spec.model) {
+            return reply(false, undefined, 'provider_add requires {provider, baseUrl, api, model}');
+          }
+          return reply(true, await this.models.addProvider(spec));
+        }
+        case 'session_list': {
+          if (!this.sessions?.list) return reply(false, undefined, 'sessions facade unavailable');
+          return reply(true, await this.sessions.list());
+        }
+        case 'session_new': {
+          if (!this.sessions?.create) return reply(false, undefined, 'sessions facade unavailable');
+          return reply(true, await this.sessions.create());
+        }
+        case 'session_switch': {
+          if (!this.sessions?.open) return reply(false, undefined, 'sessions facade unavailable');
+          if (!cmd.path) return reply(false, undefined, 'session_switch requires {path}');
+          return reply(true, await this.sessions.open(String(cmd.path)));
+        }
+        case 'session_rename': {
+          if (!this.sessions?.rename) return reply(false, undefined, 'sessions facade unavailable');
+          return reply(true, await this.sessions.rename(String(cmd.name ?? '')));
+        }
+        case 'session_history': {
+          if (!this.session?.history) return reply(false, undefined, 'history unavailable');
+          return reply(true, await this.session.history());
+        }
         default:
           return reply(false, undefined, `unknown command '${cmd?.type}'`);
       }
@@ -123,6 +210,11 @@ export class HostChannel {
   /** Emit a host-side audit event to all subscribers (called by the host). */
   emitAudit(event) {
     this.#emit({ type: 'audit', event });
+  }
+
+  /** Emit a synthetic session-level event (e.g. session_changed after a rebuild). */
+  emitEvent(event) {
+    this.#emit({ type: 'event', event });
   }
 
   dispose() {

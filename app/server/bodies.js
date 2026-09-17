@@ -26,12 +26,12 @@ export function bodyCatalog({ repoRoot, instanceRoot, workdir, env = process.env
       installed: () =>
         existsSync(join(repoRoot, 'pi', 'node_modules', '@earendil-works', 'pi-coding-agent')),
       installHint: 'npm --prefix pi install',
-      channel: () => ({
+      channel: (opts = {}) => ({
         command: process.execPath,
         args: [
           join(repoRoot, 'pi', 'bin', 'pai-channel.js'),
           '--instance', instanceRoot,
-          '--workdir', workdir,
+          '--workdir', opts.workdir ?? workdir,
         ],
         // Under Electron process.execPath is electron.exe; this env makes the
         // child run as plain Node so the channel script executes normally.

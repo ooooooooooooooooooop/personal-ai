@@ -23,7 +23,17 @@ async function boot() {
 
   supervisor = new BodySupervisor({ instanceRoot, workdir, repoRoot: REPO_ROOT });
   await supervisor.start();
-  bridge = createHttpBridge({ supervisor });
+  bridge = createHttpBridge({
+    supervisor,
+    pickDir: async () => {
+      const r = await dialog.showOpenDialog({
+        title: '选择工作目录',
+        defaultPath: supervisor.workdir,
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      return r.canceled ? null : r.filePaths[0];
+    },
+  });
   const port = await bridge.listen(0);
 
   const win = new BrowserWindow({

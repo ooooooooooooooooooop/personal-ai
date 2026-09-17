@@ -13,21 +13,19 @@
         <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><circle cx="19" cy="18" r="2"/></svg>
         Personal AI
       </div>
+      <button id="new-task" class="new-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        新建任务
+      </button>
     </div>
 
     <div class="side-search">
-      <input id="side-filter" type="text" placeholder="搜索身体…" />
+      <input id="side-filter" type="text" placeholder="搜索任务…" />
     </div>
 
+    <div id="session-list"></div>
+
     <nav class="side-nav">
-      <button class="nav-item active" data-view="chat">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5z"/></svg>
-        对话
-      </button>
-      <button class="nav-item" data-view="bodies">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
-        身体
-      </button>
       <button class="nav-item" data-view="jobs">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
         任务
@@ -36,12 +34,16 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H8z"/><path d="M11 8h5M11 12h5M11 16h3"/></svg>
         审计
       </button>
+      <button class="nav-item" data-view="bodies">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>
+        身体
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.09a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
+        设置
+      </button>
     </nav>
 
-    <div class="side-section">当前身体</div>
-    <div id="side-body"></div>
-
-    <div class="side-spacer"></div>
     <div class="side-foot">
       <span id="status-dot" class="dot"></span>
       <span id="status">连接中…</span>
@@ -53,7 +55,7 @@
     <div class="topbar drag">
       <span id="view-title">新建任务</span>
       <span class="spacer"></span>
-      <button id="body-chip" class="chip no-drag" title="选择身体"></button>
+      <button id="body-chip" class="chip no-drag" title="当前身体——点击管理"></button>
     </div>
 
     <div id="switch-progress"><span></span></div>
@@ -63,7 +65,20 @@
         <div id="empty-state">
           <svg class="mascot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><circle cx="19" cy="18" r="2"/></svg>
           <div class="empty-title">今天想做点什么？</div>
-          <div class="empty-sub">输入一条消息，由当前身体执行。治理、审计与持久化在底下照常运转。</div>
+          <div class="empty-sub">输入一条消息开始。治理、审计与持久化在底下照常运转。</div>
+        </div>
+        <div id="setup-card" class="hidden">
+          <div class="setup-title">先接一个模型</div>
+          <div class="setup-sub">选一个提供方，粘贴 API Key——保存在本地实例的 auth 存储里，从不回显。</div>
+          <div class="setup-row">
+            <select id="setup-provider"></select>
+          </div>
+          <div class="setup-row">
+            <input id="setup-key" type="password" placeholder="API Key" autocomplete="off" />
+            <button id="setup-save-key" class="btn">保存密钥</button>
+          </div>
+          <div id="setup-models" class="setup-models"></div>
+          <div id="setup-msg" class="setup-msg"></div>
         </div>
       </div>
 
@@ -78,7 +93,8 @@
           <div class="composer-bar">
             <button id="steer" class="ghost-btn" title="运行中追加指示" disabled>插话</button>
             <span class="spacer"></span>
-            <span id="model-chip" class="chip dim"></span>
+            <button id="thinking-chip" class="chip dim" title="推理强度"></button>
+            <button id="model-chip" class="chip dim" title="选择模型"></button>
             <button id="abort" class="send-btn stop hidden" title="中止">
               <svg viewBox="0 0 24 24" fill="currentColor"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
             </button>
@@ -87,15 +103,8 @@
             </button>
           </div>
         </div>
+        <div id="chip-menu" class="chip-menu hidden"></div>
       </div>
-    </section>
-
-    <section id="view-bodies" class="view hidden">
-      <div class="page-head">
-        <h1>身体</h1>
-        <p class="page-sub">谁在驾驶由你决定。能力事实实测登记；不满足必要不变量的身体会被 fail-closed 拒绝执行。</p>
-      </div>
-      <div id="body-grid"></div>
     </section>
 
     <section id="view-jobs" class="view hidden">
@@ -114,6 +123,78 @@
         <p class="page-sub">治理与运行时事件流——谁在何时做了什么决定。</p>
       </div>
       <div id="audit-list"></div>
+    </section>
+
+    <section id="view-bodies" class="view hidden">
+      <div class="page-head">
+        <h1>身体</h1>
+        <p class="page-sub">谁在驾驶由你决定。能力事实实测登记；不满足必要不变量的身体会被 fail-closed 拒绝执行。</p>
+      </div>
+      <div id="body-grid"></div>
+    </section>
+
+    <section id="view-settings" class="view hidden">
+      <div class="page-head">
+        <h1>设置</h1>
+      </div>
+
+      <div class="set-card">
+        <div class="set-card-title">模型</div>
+        <div class="set-row">
+          <label>提供方</label>
+          <select id="set-provider"></select>
+          <span id="set-provider-auth" class="pill"></span>
+        </div>
+        <div class="set-row">
+          <label>API Key</label>
+          <input id="set-key" type="password" placeholder="sk-…" autocomplete="off" />
+          <button id="set-save-key" class="btn">保存</button>
+          <button id="set-clear-key" class="btn ghost">清除</button>
+        </div>
+        <div class="set-row">
+          <label>推理强度</label>
+          <select id="set-thinking"></select>
+        </div>
+        <div class="set-sub">可用模型（有凭据的提供方才出现）</div>
+        <div id="set-models"></div>
+        <div id="set-model-msg" class="setup-msg"></div>
+
+        <div class="set-sub" style="margin-top:14px">自定义提供方（OpenAI / Anthropic 兼容端点，比如本地网关）</div>
+        <div class="set-row">
+          <input id="cp-id" placeholder="提供方 ID，如 cpa" />
+          <input id="cp-model" placeholder="模型 ID" />
+        </div>
+        <div class="set-row">
+          <input id="cp-base" placeholder="Base URL，如 http://127.0.0.1:8317/v1" />
+          <input id="cp-keyenv" placeholder="密钥环境变量（可选，如 CPA_API_KEY）" />
+        </div>
+        <div class="set-row">
+          <select id="cp-api">
+            <option value="openai-completions">openai-completions</option>
+            <option value="openai-responses">openai-responses</option>
+            <option value="anthropic-messages">anthropic-messages</option>
+          </select>
+        </div>
+        <div class="set-row">
+          <button id="cp-add" class="btn ghost">添加提供方</button>
+          <span id="cp-msg" class="setup-msg" style="margin-top:0"></span>
+        </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-card-title">工作目录</div>
+        <div class="set-row">
+          <code id="set-workdir" class="path-code"></code>
+          <button id="set-pick-dir" class="btn">浏览…</button>
+        </div>
+        <div class="set-sub">身体在此目录里读写文件。修改会重启当前身体。</div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-card-title">实例</div>
+        <div class="set-row"><code id="set-instance" class="path-code"></code></div>
+        <div class="set-sub">审计、持久任务、模型凭据与会话文件都保存在这里。</div>
+      </div>
     </section>
   </main>
 

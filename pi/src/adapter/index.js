@@ -95,6 +95,13 @@ export function contextEnvelopeExtension(contextEnvelope) {
   };
 }
 
+/** Persisted-session lifecycle — the only @earendil-works seam bootstrap needs. */
+export const sessionManagers = {
+  create: (cwd, sessionDir) => SessionManager.create(cwd, sessionDir),
+  open: (path, sessionDir) => SessionManager.open(path, sessionDir),
+  list: (cwd, sessionDir) => SessionManager.list(cwd, sessionDir),
+};
+
 export async function createPiSession({
   sessionOptions = {},
   workdir,

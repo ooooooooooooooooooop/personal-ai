@@ -18,6 +18,8 @@
 import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
 import { BodyRegistry } from '../../host/src/core/registry.js';
@@ -54,6 +56,21 @@ export class BodySupervisor {
     this.active = null;
     this.switching = false;
     this.installed = {};
+    this.configPath = join(instanceRoot, 'app-config.json');
+  }
+
+  /** Persisted app-level config (workdir today). Best-effort, never fatal. */
+  #loadConfig() {
+    try {
+      const cfg = JSON.parse(readFileSync(this.configPath, 'utf-8'));
+      if (cfg.workdir && existsSync(cfg.workdir)) this.workdir = cfg.workdir;
+    } catch { /* first run or corrupt config — env/default workdir stands */ }
+  }
+
+  #saveConfig() {
+    try {
+      writeFileSync(this.configPath, JSON.stringify({ workdir: this.workdir }, null, 2));
+    } catch { /* persistence is best-effort */ }
   }
 
   subscribe(listener) {
@@ -73,6 +90,7 @@ export class BodySupervisor {
 
   async start() {
     this.paths = ensureInstance(this.instanceRoot);
+    this.#loadConfig();
     this.registry = new BodyRegistry(this.paths);
     this.leases = new DomainLeaseStore(this.paths);
     this.handoffs = new HandoffStore(this.paths);
@@ -124,7 +142,7 @@ export class BodySupervisor {
   async spawnBody(bodyId) {
     const entry = this.catalog[bodyId];
     if (!entry?.channel) throw new Error(`body '${bodyId}' has no channel entrypoint`);
-    const spec = entry.channel();
+    const spec = entry.channel({ workdir: this.workdir });
     const child = spawn(spec.command, spec.args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       env: { ...this.env, ...(spec.env ?? {}) },
@@ -392,8 +410,29 @@ export class BodySupervisor {
             switching: this.switching,
             installed: this.installed,
           });
+        case 'set_workdir': {
+          const dir = String(cmd.path ?? '').trim();
+          if (!dir) return reply(false, undefined, 'set_workdir requires {path}');
+          if (!existsSync(dir)) return reply(false, undefined, `directory not found: ${dir}`);
+          if (dir === this.workdir) return reply(true, { workdir: dir, already: true });
+          this.workdir = dir;
+          this.#saveConfig();
+          this.audit.write({ kind: 'WORKDIR_CHANGED', data: { workdir: dir } });
+          this.#emitSupervisor('workdir_changed', { workdir: dir });
+          // Respawn the live body on the new workdir — sessions/tools bind cwd.
+          const bodyId = this.active?.bodyId;
+          if (bodyId && !this.active.dead) {
+            await this.gracefulShutdown();
+            await this.spawnBody(bodyId);
+          }
+          return reply(true, { workdir: dir });
+        }
         default: {
-          if (this.switching && ['prompt', 'steer', 'abort'].includes(cmd?.type)) {
+          if (this.switching && [
+            'prompt', 'steer', 'abort',
+            'session_new', 'session_switch', 'session_rename',
+            'model_set', 'thinking_set', 'auth_set_key', 'auth_clear',
+          ].includes(cmd?.type)) {
             return reply(false, undefined, 'body switch in progress — try again after it completes');
           }
           return await this.sendToBody(cmd);

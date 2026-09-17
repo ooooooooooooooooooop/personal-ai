@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
-import { createPiSession } from '../adapter/index.js';
+import { createPiSession, sessionManagers } from '../adapter/index.js';
 import { parseShellCommand } from '../adapter/command-parse.js';
 import { ContinuationGovernor } from '../../../host/src/core/continuation.js';
 import { selectBody } from '../../../host/src/core/eligibility.js';
@@ -134,47 +134,59 @@ export async function startHost({
   const fileOps = new FileOpsGuard(core.paths.root);
   let toolSurface = null; // assigned once the session exists — decide runs later
 
-  const { session, guard, extensionsResult } = await createPiSession({
-    workdir,
-    sessionOptions: { agentDir: join(core.paths.root, 'pi-agent'), ...sessionOptions },
-    managedExtensions,
-    instructionEnvelope: core.instructionEnvelope,
-    contextEnvelope: core.contextProvider, // live provider — not a snapshot
-    audit: core.audit,
-    customTools,
-    excludeTools: initialDeny,
-    // revalidate defaults to the session's own tool registry via pi-ai
-    // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
-    // ctx.toolName — translate at the boundary, don't leak Pi shape inward.
-    decide: makeDecide({
-      core, executor, fileOps,
-      getSurface: () => toolSurface,
+  // Sessions persist under the instance root — the app lists/resumes them.
+  const sessionDir = join(core.paths.root, 'sessions');
+  const agentDir = join(core.paths.root, 'pi-agent');
+
+  // Session construction is a closure because session_new/session_switch
+  // rebuild it in-process: same guard + envelopes + tools, new SessionManager.
+  const buildSession = async (sessionManager) => {
+    const built = await createPiSession({
       workdir,
-    }),
-    loopGovernance: taskRequirements.length
-      ? {
-          continuation: new ContinuationGovernor({
-            ledgerPath: join(core.paths.root, 'continuation.jsonl'),
-            audit: core.audit,
-            requirements: taskRequirements,
-          }),
-          predictions: core.predictions,
-          observations: core.observations,
-        }
-      : null,
-  });
+      sessionOptions: { agentDir, ...sessionOptions, sessionManager },
+      managedExtensions,
+      instructionEnvelope: core.instructionEnvelope,
+      contextEnvelope: core.contextProvider, // live provider — not a snapshot
+      audit: core.audit,
+      customTools,
+      excludeTools: initialDeny,
+      // revalidate defaults to the session's own tool registry via pi-ai
+      // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
+      // ctx.toolName — translate at the boundary, don't leak Pi shape inward.
+      decide: makeDecide({
+        core, executor, fileOps,
+        getSurface: () => toolSurface,
+        workdir,
+      }),
+      loopGovernance: taskRequirements.length
+        ? {
+            continuation: new ContinuationGovernor({
+              ledgerPath: join(core.paths.root, 'continuation.jsonl'),
+              audit: core.audit,
+              requirements: taskRequirements,
+            }),
+            predictions: core.predictions,
+            observations: core.observations,
+          }
+        : null,
+    });
+    if (!built.guard.sealed()) {
+      throw new Error('composite guard failed to seal');
+    }
+    // runtime deny→hide surface: re-assert persisted denials on the real session
+    toolSurface = new ToolSurface({
+      session: built.session,
+      denyMemoryPath: defaultDenyMemoryPath(core.paths.root),
+      initialDeny,
+    });
+    toolSurface.reconcile();
+    return built;
+  };
 
-  if (!guard.sealed()) {
-    throw new Error('composite guard failed to seal');
-  }
-
-  // runtime deny→hide surface: re-assert persisted denials on the real session
-  toolSurface = new ToolSurface({
-    session,
-    denyMemoryPath: defaultDenyMemoryPath(core.paths.root),
-    initialDeny,
-  });
-  toolSurface.reconcile();
+  const { session, guard, extensionsResult } = await buildSession(
+    sessionManagers.create(workdir, sessionDir),
+  );
+  let currentSession = session;
 
   // runtime identity completes once the session exists — session id is part of
   // it, and every audit event cites this identity via the annotations below.
@@ -224,17 +236,17 @@ export async function startHost({
   // real operations on THIS live session, not declarations.
   const handoffFacade = {
     prepare: async () => {
-      await session.abort?.().catch(() => {});
+      await currentSession.abort?.().catch(() => {});
       return {
         runId,
-        sessionId: session.sessionId ?? null,
+        sessionId: currentSession.sessionId ?? null,
         heldLeases: writerReleased
           ? []
           : [{ ...WRITER_LEASE, owner: writerOwner, generation: writerLease.generation }],
       };
     },
     export: async () => ({
-      goalIdentity: `goal:${session.sessionId ?? 'session'}`,
+      goalIdentity: `goal:${currentSession.sessionId ?? 'session'}`,
       canonicalCursor: `sha256:${createHash('sha256')
         .update(JSON.stringify(core.predictions.openPredictions())).digest('hex')}`,
       soulIdentity: `soul:${core.soul?.manifest?.name ?? 'personal-ai'}`,
@@ -246,7 +258,7 @@ export async function startHost({
       })),
       policyIdentity: `sha256:${core.policy.checksum}`,
       provenanceChain: [runId],
-      source: { body: 'pi', session: session.sessionId ?? 'session', run: runId },
+      source: { body: 'pi', session: currentSession.sessionId ?? 'session', run: runId },
     }),
     release: async () => releaseWriter(),
   };
@@ -261,24 +273,85 @@ export async function startHost({
     },
   });
 
+  // Session lifecycle: session_new/session_switch rebuild the AgentSession
+  // in-process with a fresh/opened SessionManager — same guard, envelopes,
+  // tools, and governance; only the conversation state changes.
+  let channelHandle = null;
+  const rebuildSession = async (sessionManager, reason) => {
+    const old = currentSession;
+    await old.abort?.().catch(() => {});
+    const built = await buildSession(sessionManager);
+    currentSession = built.session;
+    channelHandle.rebind(built.session);
+    channelHandle.channel.emitEvent({
+      type: 'session_changed',
+      session: {
+        id: built.session.sessionId ?? null,
+        name: built.session.sessionManager?.getSessionName?.() ?? null,
+        file: built.session.sessionManager?.getSessionFile?.() ?? null,
+      },
+      reason,
+    });
+    old.dispose?.();
+    core.audit.write({
+      kind: 'SESSION_SWITCHED', runId,
+      data: { reason, sessionId: built.session.sessionId ?? null },
+    });
+    return built.session;
+  };
+
+  const sessionInfo = (s) => ({
+    path: s.path,
+    id: s.id,
+    cwd: s.cwd ?? '',
+    name: s.name ?? null,
+    created: s.created?.toISOString?.() ?? null,
+    modified: s.modified?.toISOString?.() ?? null,
+    messageCount: s.messageCount ?? 0,
+    firstMessage: s.firstMessage ?? '',
+  });
+
+  const sessionsFacade = {
+    list: async () => (await sessionManagers.list(workdir, sessionDir)).map(sessionInfo),
+    create: async () => {
+      const s = await rebuildSession(sessionManagers.create(workdir, sessionDir), 'new');
+      return { id: s.sessionId ?? null, file: s.sessionManager?.getSessionFile?.() ?? null };
+    },
+    open: async (path) => {
+      const s = await rebuildSession(sessionManagers.open(path, sessionDir), 'switch');
+      return {
+        id: s.sessionId ?? null,
+        file: s.sessionManager?.getSessionFile?.() ?? null,
+        name: s.sessionManager?.getSessionName?.() ?? null,
+      };
+    },
+    rename: async (name) => {
+      currentSession.setSessionName?.(name);
+      return { name };
+    },
+  };
+
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
-  const channel = createChannelHost({
+  channelHandle = createChannelHost({
     session, core, jobs: jobStore,
     bodies: {
       current: async () => ({
         body_id: 'pi',
         runId,
-        sessionId: session.sessionId ?? null,
+        sessionId: currentSession.sessionId ?? null,
         facts: piFacts(),
         selection: selection.results,
       }),
     },
     handoff: handoffFacade,
+    sessions: sessionsFacade,
   });
+  const channel = channelHandle.channel;
 
   const dispose = () => {
     releaseWriter();
-    channel.dispose();
+    channelHandle.dispose();
+    currentSession.dispose?.();
     jobStore.db.close();
     core.leases.close();
   };
