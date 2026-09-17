@@ -30,10 +30,12 @@ EXCLUDED_DIRS = {
     ".claude",
     ".grepai",
     ".taskflow",
+    ".venv",
     "node_modules",
     "Users",
     "__pycache__",
     "_template",
+    "venv",
 }
 MCP_FORBIDDEN_NAMES = {
     "config.json",

@@ -93,6 +93,7 @@
           <textarea id="input" rows="1" placeholder="分配任务，或询问任何问题…"></textarea>
           <div class="composer-bar">
             <button id="steer" class="ghost-btn" title="运行中追加指示" disabled>插话</button>
+            <span id="usage-chip" class="chip dim usage" title="上下文用量 / 本会话成本"></span>
             <span class="spacer"></span>
             <button id="thinking-chip" class="chip dim" title="推理强度"></button>
             <button id="model-chip" class="chip dim" title="选择模型"></button>
@@ -105,6 +106,7 @@
           </div>
         </div>
         <div id="chip-menu" class="chip-menu hidden"></div>
+        <div id="slash-menu" class="slash-menu hidden"></div>
       </div>
     </section>
 
@@ -123,6 +125,7 @@
         <h1>审计</h1>
         <p class="page-sub">治理与运行时事件流——谁在何时做了什么决定。</p>
       </div>
+      <div id="audit-filters" class="audit-filters"></div>
       <div id="audit-list"></div>
     </section>
 

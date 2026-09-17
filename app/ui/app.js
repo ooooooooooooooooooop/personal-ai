@@ -413,6 +413,7 @@ async function refreshPending() {
 /* ---------- history replay (session switch / restart) ---------- */
 async function replayHistory() {
   clearTranscript();
+  sessionCost = 0;
   const r = await cmd('session_history');
   const msgs = r.data ?? [];
   for (const m of msgs) {
@@ -421,6 +422,7 @@ async function replayHistory() {
       if (m.thinking) addThinking(m.thinking);
       if (m.text) addMsg('assistant', m.text);
       for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
+      if (m.usage?.cost?.total) sessionCost += Number(m.usage.cost.total);
       if (m.error) addSys(`模型错误：${m.error}`, true);
     } else if (m.role === 'toolResult' || m.role === 'tool_result') {
       // Replayed tool results render as completed tool rows with output.
@@ -480,6 +482,7 @@ function onAgentEvent(ev) {
       const m = ev.message;
       if (m?.role === 'assistant') {
         attachMeta(assistantEl, m);
+        if (m.usage?.cost?.total) { sessionCost += Number(m.usage.cost.total); updateUsageChip(); }
         if (m.errorMessage) addSys(`模型错误：${m.errorMessage}`, true);
       }
       break;
@@ -511,6 +514,7 @@ function onAgentEvent(ev) {
       break;
     case 'session_changed':
       currentSessionFile = ev.session?.file ?? null;
+      sessionCost = 0;
       replayHistory();
       refreshSessions();
       refreshPending();
@@ -559,6 +563,22 @@ function setBusy(v) {
   setStatus(v ? '运行中…' : '就绪');
 }
 
+/* ---------- usage chip: context window fill + session cost ---------- */
+let sessionCost = 0;      // accumulated $ over this session's assistant messages
+let lastCtxUsage = null;  // last contextUsage snapshot from get_state
+function updateUsageChip() {
+  const el = $('usage-chip');
+  const parts = [];
+  if (lastCtxUsage?.tokens != null) {
+    const k = (lastCtxUsage.tokens / 1000).toFixed(1);
+    const w = lastCtxUsage.contextWindow ? `${Math.round(lastCtxUsage.contextWindow / 1000)}k` : null;
+    parts.push(`⛁ ${k}k${w ? `/${w}` : ''}${lastCtxUsage.percent != null ? ` ${Math.round(lastCtxUsage.percent)}%` : ''}`);
+  }
+  if (sessionCost > 0) parts.push(`$${sessionCost.toFixed(4)}`);
+  el.textContent = parts.join(' · ');
+  el.classList.toggle('hidden', !parts.length);
+}
+
 /* ---------- supervisor events ---------- */
 const PHASES = ['prepared', 'quiesced', 'checkpointed', 'released', 'acquired', 'resumed', 'verified'];
 let handoffEl = null;
@@ -594,6 +614,28 @@ function onSupervisor(ev) {
     addSys(`身体事件：${ev.kind} ${ev.error ?? ev.body ?? ''}`, true);
     refreshAll();
   }
+}
+
+/* ---------- generic context menu ---------- */
+let ctxMenu = null;
+function closeCtxMenu() { ctxMenu?.remove(); ctxMenu = null; }
+document.addEventListener('click', closeCtxMenu);
+window.addEventListener('blur', closeCtxMenu);
+function showCtxMenu(x, y, items) {
+  closeCtxMenu();
+  ctxMenu = document.createElement('div');
+  ctxMenu.className = 'ctx-menu';
+  for (const it of items) {
+    const b = document.createElement('button');
+    b.className = 'ctx-item';
+    b.textContent = it.label;
+    b.onclick = async (e) => { e.stopPropagation(); closeCtxMenu(); await it.run(); };
+    ctxMenu.appendChild(b);
+  }
+  document.body.appendChild(ctxMenu);
+  const r = ctxMenu.getBoundingClientRect();
+  ctxMenu.style.left = `${Math.min(x, innerWidth - r.width - 8)}px`;
+  ctxMenu.style.top = `${Math.min(y, innerHeight - r.height - 8)}px`;
 }
 
 /* ---------- sessions (sidebar) ---------- */
@@ -638,6 +680,25 @@ function renderSessions() {
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
       row.title = s.path;
       row.onclick = () => switchSession(s.path);
+      row.oncontextmenu = (e) => {
+        e.preventDefault();
+        showCtxMenu(e.clientX, e.clientY, [
+          { label: '打开', run: () => switchSession(s.path) },
+          {
+            label: '重命名…',
+            run: async () => {
+              const name = prompt('会话名字', s.name || s.firstMessage || '');
+              if (name == null || !name.trim()) return;
+              // rename acts on the live session — switching first is honest
+              if (s.path !== currentSessionFile) await switchSession(s.path);
+              const r = await cmd('session_rename', { name: name.trim() });
+              if (!r.success) addSys(`重命名失败：${r.error ?? '未知'}`, true);
+              refreshSessions(); refreshState();
+            },
+          },
+          { label: '复制会话路径', run: () => navigator.clipboard?.writeText(s.path) },
+        ]);
+      };
       box.appendChild(row);
     }
   }
@@ -860,20 +921,58 @@ $('set-pick-dir').onclick = async () => {
 };
 
 /* ---------- audit / jobs ---------- */
-async function refreshAudit() {
-  const r = await cmd('audit_tail', { n: 60 });
+const AUDIT_GROUPS = {
+  全部: null,
+  治理: /TOOL_CALL_|GOVERNANCE_|PREDICTION_|FILEOP_|POLICY/,
+  '身体/租约': /LEASE_|HANDOFF|BODY_|SUPERVISOR|SESSION_/,
+  '计费/请求': /PROVIDER_|TURN_ACCOUNTING|MODEL_/,
+};
+let auditCache = [];
+let auditFilter = '全部';
+
+function auditKindClass(kind) {
+  if (/DENIED|FAIL|ERROR|DRIFT|LOST/.test(kind)) return 'bad';
+  if (/ASK/.test(kind)) return 'warn';
+  if (/PROVIDER_|TURN_ACCOUNTING/.test(kind)) return 'dim';
+  return '';
+}
+function renderAuditFilters() {
+  const box = $('audit-filters');
+  box.innerHTML = '';
+  for (const g of Object.keys(AUDIT_GROUPS)) {
+    const b = document.createElement('button');
+    b.className = `af-chip${auditFilter === g ? ' on' : ''}`;
+    b.textContent = g;
+    b.onclick = () => { auditFilter = g; renderAuditFilters(); renderAuditList(); };
+    box.appendChild(b);
+  }
+}
+function renderAuditList() {
   const list = $('audit-list');
   list.innerHTML = '';
-  const rows = (r.data ?? []).slice().reverse();
-  if (!rows.length) list.innerHTML = '<div class="sys">暂无审计事件</div>';
+  const re = AUDIT_GROUPS[auditFilter];
+  const rows = auditCache.filter((e) => !re || re.test(e.kind ?? ''));
+  if (!rows.length) { list.innerHTML = '<div class="sys">暂无匹配事件</div>'; return; }
   for (const e of rows) {
+    const kind = e.kind ?? '';
     const div = document.createElement('div');
     div.className = 'audit-row';
-    const ts = (e.ts ?? e.time ?? '').slice(11, 19);
-    div.innerHTML = `<b></b> <span>${ts}</span> <span>${e.runId ? `run ${String(e.runId).slice(0, 8)}` : ''}</span>`;
-    div.querySelector('b').textContent = e.kind ?? '';
+    div.innerHTML = `<span class="a-kind ${auditKindClass(kind)}"></span><span class="a-ts"></span><span class="a-run"></span><div class="a-detail hidden"></div>`;
+    div.querySelector('.a-kind').textContent = kind;
+    div.querySelector('.a-ts').textContent = (e.ts ?? e.time ?? '').slice(11, 19);
+    div.querySelector('.a-run').textContent = e.toolName ?? (e.runId ? `run ${String(e.runId).slice(0, 8)}` : '');
+    const detail = div.querySelector('.a-detail');
+    const payload = { ...(e.data ?? {}) };
+    detail.textContent = Object.keys(payload).length ? JSON.stringify(payload, null, 2) : '（无附加数据）';
+    div.onclick = () => detail.classList.toggle('hidden');
     list.appendChild(div);
   }
+}
+async function refreshAudit() {
+  const r = await cmd('audit_tail', { n: 80 });
+  auditCache = (r.data ?? []).slice().reverse();
+  renderAuditFilters();
+  renderAuditList();
 }
 async function refreshJobs() {
   const r = await cmd('job_list', { n: 50 });
@@ -955,6 +1054,7 @@ async function refreshBodies() {
 async function refreshState() {
   const r = await cmd('get_state');
   const s = r.data ?? {};
+  if (s.contextUsage) { lastCtxUsage = s.contextUsage; updateUsageChip(); }
   if (s.session?.file) currentSessionFile = s.session.file;
   const name = s.session?.name;
   if (currentView === 'chat') $('view-title').textContent = name || '当前任务';
@@ -991,8 +1091,71 @@ function autogrow() {
   input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
   $('send').disabled = busy ? false : !input.value.trim();
 }
-input.addEventListener('input', autogrow);
+/* ---------- slash commands — every entry maps to a real command ---------- */
+const SLASH = [
+  { cmd: '/new', label: '新建任务', hint: '开一个干净会话', run: () => $('new-task').click() },
+  { cmd: '/abort', label: '中止运行', hint: '停止当前任务', run: async () => { await cmd('abort'); } },
+  { cmd: '/model', label: '选择模型', hint: '弹出模型菜单', run: () => $('model-chip').click() },
+  { cmd: '/think', label: '推理强度', hint: '设置思考等级', run: () => $('thinking-chip').click() },
+  {
+    cmd: '/rename', label: '重命名会话', hint: '/rename 新名字',
+    run: async (arg) => {
+      if (!arg) { addSys('用法：/rename 新名字', true); return; }
+      const r = await cmd('session_rename', { name: arg });
+      if (!r.success) addSys(`重命名失败：${r.error ?? '未知'}`, true);
+      refreshSessions(); refreshState();
+    },
+  },
+  { cmd: '/sessions', label: '任务列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },
+  { cmd: '/body', label: '身体面板', hint: '谁在驾驶', run: () => switchView('bodies') },
+  { cmd: '/jobs', label: '持久任务', hint: '跨重启的任务', run: () => switchView('jobs') },
+  { cmd: '/audit', label: '审计日志', hint: '治理事件流', run: () => switchView('audit') },
+  { cmd: '/settings', label: '设置', hint: '模型与工作目录', run: () => switchView('settings') },
+];
+const slashMenu = $('slash-menu');
+let slashIdx = 0;
+let slashItems = [];
+
+function slashFilter() {
+  const v = input.value;
+  if (!v.startsWith('/') || v.includes('\n')) { closeSlash(); return; }
+  const head = v.slice(1).split(/\s+/)[0].toLowerCase();
+  slashItems = SLASH.filter((s) => s.cmd.slice(1).startsWith(head));
+  if (!slashItems.length) { closeSlash(); return; }
+  slashIdx = Math.min(slashIdx, slashItems.length - 1);
+  slashMenu.innerHTML = '';
+  slashItems.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = `slash-item${i === slashIdx ? ' sel' : ''}`;
+    b.innerHTML = '<span class="sl-cmd"></span><span class="sl-label"></span><span class="sl-hint"></span>';
+    b.querySelector('.sl-cmd').textContent = s.cmd;
+    b.querySelector('.sl-label').textContent = s.label;
+    b.querySelector('.sl-hint').textContent = s.hint ?? '';
+    b.onmouseenter = () => { slashIdx = i; paintSlashSel(); };
+    b.onclick = () => execSlash(s);
+    slashMenu.appendChild(b);
+  });
+  slashMenu.classList.remove('hidden');
+}
+function paintSlashSel() {
+  [...slashMenu.children].forEach((el, i) => el.classList.toggle('sel', i === slashIdx));
+}
+function closeSlash() { slashMenu.classList.add('hidden'); slashItems = []; slashIdx = 0; }
+async function execSlash(s) {
+  const arg = input.value.slice(1).split(/\s+/).slice(1).join(' ').trim();
+  closeSlash();
+  input.value = ''; autogrow();
+  await s.run(arg);
+}
+
+input.addEventListener('input', () => { autogrow(); slashFilter(); });
 input.addEventListener('keydown', (e) => {
+  if (!slashMenu.classList.contains('hidden')) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = (slashIdx + 1) % slashItems.length; paintSlashSel(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = (slashIdx - 1 + slashItems.length) % slashItems.length; paintSlashSel(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); closeSlash(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); execSlash(slashItems[slashIdx]); return; }
+  }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); }
 });
 /* prompt queue — messages sent while a run is active wait as chips above
@@ -1029,6 +1192,7 @@ function flushQueue() {
 async function send() {
   const text = input.value.trim();
   if (!text) return;
+  closeSlash();
   input.value = ''; autogrow();
   if (busy) { queue.push(text); renderQueue(); return; }
   lastUserText = text;
@@ -1039,6 +1203,7 @@ async function send() {
 async function steer() {
   const text = input.value.trim();
   if (!text) return;
+  closeSlash();
   input.value = ''; autogrow();
   const r = await cmd('steer', { message: text });
   if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
