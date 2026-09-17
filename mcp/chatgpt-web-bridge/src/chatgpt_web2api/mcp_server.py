@@ -59,6 +59,7 @@ from .lock_resolver import (
     OwnedTabRequiredError,
     resolve_mutation_lock,
 )
+from .request_pace import ReadThrottledError
 from .resilience import retry_on_rate_limit
 from .tab_registry import TabRegistry
 
@@ -877,21 +878,23 @@ async def do_chat_completion(
                 validated.model,
             )
 
-    # Navigate to correct conversation context. Skipped when the driver is
-    # already attached to the conversation's own tab (conv-affinity adoption
-    # ran before the mutation lock was resolved).
-    if validated.conversation_id and driver._current_conv_id != validated.conversation_id:
-        await driver.navigate_conversation(validated.conversation_id)
-    elif driver._current_conv_id and not validated.system_prompt and not project_id:
-        # Auto-continue: reconcile against the live tab before sending. Another
-        # process sharing the Chrome tab may have navigated it, leaving
-        # _current_conv_id stale. ensure_current_conversation verifies the live
-        # URL and navigates back if needed (fail-closed). Raises rather than
-        # typing into the wrong conversation.
+    # Route to the send target. Shared with the REST path via
+    # driver.route_chat_target: an explicit conversation_id ALWAYS continues
+    # that conversation — project_id only scopes NEW conversations and must
+    # never veto an explicit target (2026-09-17 misroute: conv-affine tab +
+    # project_id fell through to navigate_new_chat and spawned fresh convs).
+    route = await driver.route_chat_target(
+        conversation_id=validated.conversation_id,
+        project_id=project_id,
+        # MCP auto-continue heuristic: same session, no new context.
+        auto_continue=bool(
+            driver._current_conv_id
+            and not validated.system_prompt
+            and not project_id
+        ),
+    )
+    if route == "auto-continue":
         logger.info("Auto-continuing conversation: %s", driver._current_conv_id)
-        await driver.ensure_current_conversation(driver._current_conv_id)
-    else:
-        await driver.navigate_new_chat(gizmo_id=project_id)
 
     # Send and collect response. Progress notifications reset the MCP client's
     # idle timer during long generations so the tool call isn't killed at
@@ -1115,6 +1118,9 @@ async def _verify_reply_persisted(
             # Non-dict (mock/weird backend) = inconclusive, never crash the send.
             chain = _conversation_chain(data) if isinstance(data, dict) else []
             _conv_read_store(driver, conv_id, data)
+        except ReadThrottledError:
+            # Read gate in cooldown — inconclusive, don't spin retries.
+            return None
         except Exception:
             # A weird/failed fetch must never break a successful send —
             # inconclusive just means "retry or report unknown".
@@ -1143,9 +1149,22 @@ async def do_get_conversation(
     """Retrieve conversation history (paginated, oldest-first)."""
     validated = GetConversationInput(**args)
     fetch_lock = call_lock if call_lock is not None else contextlib.nullcontext()
-    data = await _conv_read_coalesced(
-        driver, validated.conversation_id, fetch_lock
-    )
+    try:
+        data = await _conv_read_coalesced(
+            driver, validated.conversation_id, fetch_lock
+        )
+    except ReadThrottledError as e:
+        return {
+            "id": validated.conversation_id,
+            "title": "",
+            "offset": validated.offset,
+            "limit": validated.limit,
+            "total": 0,
+            "has_more": False,
+            "reason": "read_throttled",
+            "retry_after": round(e.retry_after, 1),
+            "messages": [],
+        }
     chain = _conversation_chain(data)
 
     # Why the result looks the way it does — previously 404s, fetch errors
@@ -1219,6 +1238,19 @@ async def do_wait_reply(
             data = await _conv_read_coalesced(
                 driver, validated.conversation_id, fetch_lock
             )
+        except ReadThrottledError as e:
+            # The shared read gate is in cooldown — surface an actionable
+            # signal instead of burning the whole timeout waiting on fetches
+            # that cannot run.
+            return {
+                "conversation_id": validated.conversation_id,
+                "status": "read_throttled",
+                "retry_after": round(e.retry_after, 1),
+                "total": total,
+                "last_role": last_role,
+                "tail_status": tail_status,
+                "waited_s": round(time.monotonic() - start, 1),
+            }
         except Exception:
             data = {}
         chain = _conversation_chain(data, with_meta=True) if isinstance(data, dict) else []
@@ -2174,9 +2206,16 @@ def create_server() -> Server:
             )
         except Exception as exc:
             # Shared exception mapping (singleton parity, PR #42 fix #2).
+            # Log here: mapped results reach the MCP client but were
+            # previously invisible in the daemon log — which is how repeated
+            # tool failures went unattributed.
             mapped = _map_tool_exception(exc)
             if mapped is not None:
+                logger.warning(
+                    "tool %s failed (mapped): %s: %s", name, type(exc).__name__, exc
+                )
                 return mapped
+            logger.exception("tool %s failed with unmapped exception", name)
             raise
 
     async def _fail_fast_on_open_breaker(driver, breakers) -> None:

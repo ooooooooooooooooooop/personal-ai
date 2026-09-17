@@ -26,6 +26,7 @@ def _streaming_driver(deltas):
     driver.navigate_new_chat = AsyncMock()
     driver.navigate_conversation = AsyncMock()
     driver.navigate_gpt = AsyncMock()
+    driver.route_chat_target = AsyncMock(return_value="auto-continue")
 
     async def _stream(text, timeout=120, *, budgets=None, model=None):
         for d in deltas:

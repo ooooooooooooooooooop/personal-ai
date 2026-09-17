@@ -959,7 +959,7 @@ class CDPDriver:
                     return resp
             raise TimeoutError(f"Browser CDP timeout: {method}")
 
-    async def _create_owned_tab(self) -> str:
+    async def _create_owned_tab(self, *, scratch: bool = False) -> str:
         """Create a new chatgpt.com tab and return its page WS URL.
 
         Calls Target.createTarget via the browser WS, stores the targetId,
@@ -971,8 +971,11 @@ class CDPDriver:
         persistent shared resource: ``_owns_target`` stays False so no
         driver ever closes it, and it is never navigated to a different
         conversation (navigate_conversation switches target instead).
+        ``scratch=True`` forces the bare-home owned tab even under affinity —
+        used by ensure_scratch_tab when a conv-affine driver must detach
+        from its conversation tab.
         """
-        if self._conv_affinity:
+        if self._conv_affinity and not scratch:
             url = f"https://chatgpt.com/c/{self._conv_affinity}"
         else:
             url = "https://chatgpt.com/"
@@ -986,7 +989,7 @@ class CDPDriver:
         self._target_id = resp.get("result", {}).get("targetId")
         if not self._target_id:
             raise RuntimeError("Target.createTarget returned no targetId")
-        if self._conv_affinity:
+        if self._conv_affinity and not scratch:
             # Persistent shared conv tab: nobody owns it for close purposes.
             self._owns_target = False
             self._conv_target = True
@@ -1272,12 +1275,19 @@ class CDPDriver:
                 self._current_conv_id = None
                 await self.connect()
                 return
-        # None exists: create our own scratch tab.
+        # None exists: create our own scratch tab. A conv-affine driver must
+        # NOT bootstrap through a bare connect() — its _conv_affinity would
+        # re-adopt the conversation tab we are trying to leave (or create the
+        # "scratch" tab AT /c/{affinity}), re-binding us to the conv we meant
+        # to detach from. Create the tab with scratch=True, then connect()
+        # attaches to it via the _target_id reuse branch.
         self._target_id = None
         self._owns_target = False
         self._conv_target = False
         self._shared_home_target = False
         self._current_conv_id = None
+        if self._conv_affinity:
+            await self._create_owned_tab(scratch=True)
         await self.connect()
 
     async def ensure_conversation_tab(self, conv_id: str) -> None:
@@ -1503,6 +1513,13 @@ class CDPDriver:
         # conversation — switch to a scratch/home tab first.
         if self._conv_target:
             await self.ensure_scratch_tab()
+        if self._conv_target:
+            # ensure_scratch_tab could not detach us — navigating now would
+            # drive a shared conversation tab away from its conversation.
+            # Fail closed: better a failed call than a hijacked tab.
+            raise RuntimeError(
+                "refusing to navigate a conv-bound tab to a new chat"
+            )
         if gizmo_id:
             url = f"https://chatgpt.com/g/{gizmo_id}/project"
         else:
@@ -1771,6 +1788,43 @@ class CDPDriver:
             if self._current_conv_id == conversation_id:
                 self._current_conv_id = None
             raise RuntimeError(f"Failed to restore conversation context: {conversation_id}")
+
+    async def route_chat_target(
+        self,
+        *,
+        conversation_id: str | None,
+        project_id: str | None = None,
+        auto_continue: bool = False,
+    ) -> str:
+        """Route this driver's live tab to where the request must be sent.
+
+        ``conversation_id`` is the request's explicit target and ALWAYS wins:
+        the conversation already lives inside its project/system context, so
+        an explicit id continues it — ``project_id`` is never consulted (it
+        only scopes NEW conversations). Both MCP and REST call this one
+        function so the rule cannot drift.
+
+        Context: the 2026-09-17 misroute — conv-affine tabs preset
+        ``_current_conv_id``, which skipped the old "navigate if different"
+        branch, while a non-empty ``project_id`` vetoed auto-continue; the
+        request fell through to ``navigate_new_chat`` and sent the message
+        into a brand-new conversation.
+
+        ``auto_continue`` lets each transport apply its own "same context as
+        last turn" heuristic for the no-explicit-id case. Returns the route
+        taken: ``"explicit"``, ``"auto-continue"`` or ``"new"``.
+        """
+        if conversation_id:
+            # ensure_current_conversation verifies the LIVE url even when
+            # _current_conv_id already matches — a conv-affine tab may have
+            # been redirected since adoption.
+            await self.ensure_current_conversation(conversation_id)
+            return "explicit"
+        if auto_continue and self._current_conv_id:
+            await self.ensure_current_conversation(self._current_conv_id)
+            return "auto-continue"
+        await self.navigate_new_chat(gizmo_id=project_id)
+        return "new"
 
     # ── Message Input ─────────────────────────────────────────
 

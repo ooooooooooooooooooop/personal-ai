@@ -35,16 +35,18 @@ TURN_PROJECTION_LIMIT = int(os.getenv("W2A_TURN_PROJECTION_LIMIT", "50"))
 #   __D.token    — the access token
 #   __D.limit    — the node limit (TURN_PROJECTION_LIMIT)
 #
-# Returns a JSON string. On non-OK HTTP, returns ``{"__status": <code>}``
-# so the Python caller can status-decode (the ``__status`` blob convention
-# decoded in ``_fetch_recent_conversation_projection``).
+# Returns a JSON string. On non-OK HTTP, returns ``{"__status": <code>,
+# "__retry_after": <header or null>}`` so the Python caller can status-decode
+# (the ``__status`` blob convention decoded in
+# ``_fetch_recent_conversation_projection``) and honor upstream's own
+# Retry-After when present.
 CONVERSATION_PROJECTION_JS = """
 (async function() {
   try {
     var r = await fetch('/backend-api/conversation/' + __D.conv_id + '?offset=0&limit=' + __D.limit, {
       headers: {'Authorization': 'Bearer ' + __D.token}
     });
-    if (!r.ok) return JSON.stringify({__status: r.status});
+    if (!r.ok) return JSON.stringify({__status: r.status, __retry_after: r.headers.get('retry-after')});
     var conv = await r.json();
     var mapping = conv.mapping || {};
     var projected = {};

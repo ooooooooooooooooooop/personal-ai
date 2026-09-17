@@ -37,6 +37,8 @@ def _make_client():
     driver._refresh_token = AsyncMock()
     driver._pace = MagicMock()
     driver._pace.pace = AsyncMock()
+    # The shared read gate is open by default in tests.
+    driver._pace.read_blocked_seconds = MagicMock(return_value=0.0)
     return BackendClient(driver), driver
 
 
@@ -279,3 +281,35 @@ async def test_get_conversation_fetch_error_annotated():
     result = await client.get_conversation("c")
     assert result["_fetch_status"] is None
     assert "js boom" in result["_fetch_error"]
+
+
+# ── read-gate fast-fail ────────────────────────────────────
+# While the shared read gate is in cooldown, conversation reads must raise
+# ReadThrottledError immediately — never queue behind a multi-minute wait
+# (that's what stalled the completion detector and wait_reply for hours).
+
+@pytest.mark.asyncio
+async def test_get_conversation_fails_fast_during_read_cooldown():
+    from chatgpt_web2api.request_pace import ReadThrottledError
+
+    client, driver = _make_client()
+    driver._pace.read_blocked_seconds = MagicMock(return_value=240.0)
+
+    with pytest.raises(ReadThrottledError) as excinfo:
+        await client.get_conversation("c")
+    assert excinfo.value.retry_after == 240.0
+    driver._pace.pace.assert_not_called()          # never queued behind the gate
+    driver._js_with_data_strict.assert_not_called()  # and no fetch was fired
+
+
+@pytest.mark.asyncio
+async def test_projection_fails_fast_during_read_cooldown():
+    from chatgpt_web2api.request_pace import ReadThrottledError
+
+    client, driver = _make_client()
+    driver._pace.read_blocked_seconds = MagicMock(return_value=120.0)
+
+    with pytest.raises(ReadThrottledError):
+        await client._fetch_recent_conversation_projection("c")
+    driver._pace.pace.assert_not_called()
+    driver._js_with_data_strict.assert_not_called()

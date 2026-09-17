@@ -39,6 +39,53 @@ DEFAULT_SEND_INTERVAL = 30.0
 DEFAULT_READ_INTERVAL = 8.0
 DEFAULT_COOLDOWN_SECONDS = 300.0
 
+# Upper bound on any single cooldown (read-path escalation or a Retry-After
+# header). 30 min: long enough to stop poking a flagged account, short enough
+# that a stale flag can't lock reads out for a whole session.
+COOLDOWN_CAP_SECONDS = 1800.0
+
+
+class ReadThrottledError(RuntimeError):
+    """A conversation read was declined while the shared read gate is in
+    cooldown — fail fast instead of queueing behind a multi-minute wait.
+
+    Raised by conversation-read entry points that probe
+    ``read_blocked_seconds()`` before pacing. Carries ``retry_after``
+    (seconds until the gate reopens) so callers can surface an actionable
+    "come back in N" instead of hanging. Subclasses ``RuntimeError`` so the
+    detector's ``(CDPJSError, RuntimeError)`` fetch_failed wrappers degrade
+    to DOM observation without special-casing.
+    """
+
+    def __init__(self, retry_after: float) -> None:
+        super().__init__(
+            f"conversation read throttled by shared cooldown; retry in {retry_after:.0f}s"
+        )
+        self.retry_after = retry_after
+
+
+def retry_after_seconds(value) -> float | None:
+    """Parse a ``Retry-After`` header value (delta-seconds or HTTP-date).
+
+    Returns None when the header is absent or unparseable — callers then
+    fall back to the escalating default cooldown.
+    """
+    if value is None:
+        return None
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        pass
+    try:
+        from email.utils import parsedate_to_datetime
+
+        parsed = parsedate_to_datetime(str(value))
+        if parsed is None:
+            return None
+        return max(0.0, parsed.timestamp() - time.time())
+    except (TypeError, ValueError, OverflowError):
+        return None
+
 
 def _env_float(name: str, default: float) -> float:
     try:
@@ -131,6 +178,33 @@ class RequestPace:
             )
         return waited
 
+    def read_blocked_seconds(self) -> float:
+        """Seconds until the read gate reopens — cooldown only.
+
+        Callers that must not stall behind a multi-minute cooldown
+        (completion detector, wait_reply polling, persistence verification)
+        probe this before a paced read and fail fast / fall back to DOM when
+        it is positive. The normal per-read interval is deliberately NOT
+        reported: waiting a few seconds inside a poll loop is the designed
+        pacing; blocking it for minutes is not.
+        """
+        state = self._read_state()
+        now = time.time()
+        return max(
+            0.0,
+            state.get("cooldown_until", 0.0) - now,
+            state.get("read_cooldown_until", 0.0) - now,
+        )
+
+    def record_read_ok(self) -> None:
+        """A conversation read got a definitive non-429 response — reset the
+        read-path 429 streak so the next cooldown starts from the base
+        interval again."""
+        state = self._read_state()
+        if state.get("read_429_streak"):
+            state["read_429_streak"] = 0
+            self._write_state(state)
+
     def record_throttle(
         self,
         seconds: float | None = None,
@@ -148,16 +222,37 @@ class RequestPace:
         behavior where the modal blocks conversation history while other
         endpoints keep answering 200.
 
+        ``seconds`` is an explicit duration — normally a ``Retry-After``
+        header value from the 429 response. Without one, ``kind="read"``
+        escalates per consecutive-429 streak (``read_429_streak`` in the
+        shared state): a flagged account stays flagged for hours upstream,
+        so a flat 300s probe just re-pokes the limiter and re-arms it.
+        ``record_read_ok`` resets the streak on the first definitive
+        non-429 answer.
+
         Returns the cooldown_until timestamp. ``source`` names the observing
         call site so the log can attribute the cooldown.
         """
         key = "read_cooldown_until" if kind == "read" else "cooldown_until"
         state = self._read_state()
         now = time.time()
-        until = now + (seconds if seconds and seconds > 0 else self.cooldown_seconds)
+        if seconds and seconds > 0:
+            wait = min(seconds, COOLDOWN_CAP_SECONDS)
+        elif kind == "read":
+            streak = int(state.get("read_429_streak", 0))
+            wait = min(
+                self.cooldown_seconds * (1 << min(streak, 3)),
+                COOLDOWN_CAP_SECONDS,
+            )
+            state["read_429_streak"] = streak + 1
+        else:
+            wait = self.cooldown_seconds
+        until = now + wait
         if until > state.get(key, 0.0):
             state[key] = until
-            self._write_state(state)
+        # Always write: the streak counter must persist even when an earlier
+        # peer's cooldown already reaches further out.
+        self._write_state(state)
         logger.warning(
             "%s throttle recorded (source=%s): cooldown %.0fs, until %s",
             "read-path" if kind == "read" else "account",

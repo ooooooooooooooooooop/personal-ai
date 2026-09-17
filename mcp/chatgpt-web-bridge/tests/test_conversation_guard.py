@@ -263,6 +263,9 @@ async def test_rest_auto_continue_invokes_ensure_current(monkeypatch):
     driver._current_model = None
     driver.select_model = AsyncMock(return_value=True)
     driver.ensure_current_conversation = AsyncMock()
+    # The handler routes via driver.route_chat_target; "auto-continue" is the
+    # route this request's heuristic should select.
+    driver.route_chat_target = AsyncMock(return_value="auto-continue")
     server._driver = driver
 
     # Sentinel: _full_response records that we reached past the guard and
@@ -293,9 +296,12 @@ async def test_rest_auto_continue_invokes_ensure_current(monkeypatch):
 
     await server._handle_chat(request)
 
-    # The guard ran (proving the continue branch was taken), and execution
-    # reached _full_response (proving we proceeded past the guard correctly).
-    driver.ensure_current_conversation.assert_awaited_once_with("conv-rest-1")
+    # The router ran with the REST continue heuristic enabled (same conv,
+    # same project, no system prompt), and execution reached _full_response.
+    driver.route_chat_target.assert_awaited_once()
+    kw = driver.route_chat_target.call_args.kwargs
+    assert kw["conversation_id"] is None
+    assert kw["auto_continue"] is True
     assert reached["past_guard"] is True
 
 
@@ -319,6 +325,7 @@ async def test_mcp_auto_continue_invokes_ensure_current():
     driver.select_model = AsyncMock(return_value=True)
     driver.navigate_new_chat = AsyncMock()
     driver.navigate_conversation = AsyncMock()
+    driver.route_chat_target = AsyncMock(return_value="auto-continue")
 
     async def _boom(text, timeout=120, *, budgets=None, model=None):
         raise AssertionError("reached past the guard")
@@ -332,7 +339,10 @@ async def test_mcp_auto_continue_invokes_ensure_current():
             on_progress=None,
         )
 
-    driver.ensure_current_conversation.assert_awaited_once_with("conv-mcp-1")
+    driver.route_chat_target.assert_awaited_once()
+    kw = driver.route_chat_target.call_args.kwargs
+    assert kw["conversation_id"] is None
+    assert kw["auto_continue"] is True
 
 
 # ── 7. Connect-time send-readiness invariant ──────────────────────────
@@ -584,3 +594,156 @@ async def test_cdp_does_not_loop_if_reconnect_also_fails():
         await d._cdp("Runtime.evaluate")
 
     assert reconnect_calls["n"] == 1, "must reconnect at most ONCE, never loop"
+
+
+# ── 8. route_chat_target: explicit conversation_id always wins ────────
+#
+# The 2026-09-17 misroute: conv-affine pool tabs preset _current_conv_id at
+# materialization, which skipped the old "navigate if different" branch,
+# while a non-empty project_id vetoed auto-continue — the request fell
+# through to navigate_new_chat and sent the message into a brand-new
+# conversation (6 confirmed cases in one morning). The rule is now a single
+# shared function both MCP and REST call, so the transports cannot drift.
+
+@pytest.mark.asyncio
+async def test_route_explicit_conversation_ignores_project_id():
+    """THE regression: conversation_id + project_id must still continue the
+    conversation — it already lives inside its project context."""
+    d = CDPDriver(cdp_port=9222)
+    d._current_conv_id = "conv-1"  # conv-affine preset state
+    d.ensure_current_conversation = AsyncMock()
+    d.navigate_new_chat = AsyncMock()
+    d.navigate_conversation = AsyncMock()
+
+    route = await d.route_chat_target(
+        conversation_id="conv-1", project_id="g-p-x"
+    )
+
+    assert route == "explicit"
+    d.ensure_current_conversation.assert_awaited_once_with("conv-1")
+    d.navigate_new_chat.assert_not_called()
+    d.navigate_conversation.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_route_explicit_conversation_verifies_even_when_current():
+    """_current_conv_id matching is NOT trusted — ensure_current_conversation
+    runs anyway so a conv-affine tab that was redirected away gets fixed."""
+    d = CDPDriver(cdp_port=9222)
+    d._current_conv_id = "conv-1"
+    d.ensure_current_conversation = AsyncMock()
+    d.navigate_new_chat = AsyncMock()
+
+    route = await d.route_chat_target(conversation_id="conv-1")
+
+    assert route == "explicit"
+    d.ensure_current_conversation.assert_awaited_once_with("conv-1")
+
+
+@pytest.mark.asyncio
+async def test_route_explicit_conversation_when_not_current():
+    d = CDPDriver(cdp_port=9222)
+    d._current_conv_id = None
+    d.ensure_current_conversation = AsyncMock()
+    d.navigate_new_chat = AsyncMock()
+
+    route = await d.route_chat_target(conversation_id="conv-9")
+
+    assert route == "explicit"
+    d.ensure_current_conversation.assert_awaited_once_with("conv-9")
+    d.navigate_new_chat.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_route_auto_continue_only_when_heuristic_allows():
+    d = CDPDriver(cdp_port=9222)
+    d._current_conv_id = "conv-2"
+    d.ensure_current_conversation = AsyncMock()
+    d.navigate_new_chat = AsyncMock()
+
+    route = await d.route_chat_target(
+        conversation_id=None, project_id=None, auto_continue=True
+    )
+    assert route == "auto-continue"
+    d.ensure_current_conversation.assert_awaited_once_with("conv-2")
+
+
+@pytest.mark.asyncio
+async def test_route_auto_continue_needs_current_conversation():
+    """auto_continue=True with no current conversation is a new chat."""
+    d = CDPDriver(cdp_port=9222)
+    d._current_conv_id = None
+    d.ensure_current_conversation = AsyncMock()
+    d.navigate_new_chat = AsyncMock()
+
+    route = await d.route_chat_target(
+        conversation_id=None, project_id=None, auto_continue=True
+    )
+    assert route == "new"
+    d.navigate_new_chat.assert_awaited_once_with(gizmo_id=None)
+
+
+@pytest.mark.asyncio
+async def test_route_new_chat_scopes_project():
+    d = CDPDriver(cdp_port=9222)
+    d._current_conv_id = None
+    d.ensure_current_conversation = AsyncMock()
+    d.navigate_new_chat = AsyncMock()
+
+    route = await d.route_chat_target(
+        conversation_id=None, project_id="g-p-x", auto_continue=False
+    )
+    assert route == "new"
+    d.navigate_new_chat.assert_awaited_once_with(gizmo_id="g-p-x")
+
+
+# ── 9. conv-bound tab protection in the scratch/new-chat path ──────────
+
+@pytest.mark.asyncio
+async def test_ensure_scratch_tab_conv_affine_creates_owned_tab():
+    """A conv-affine driver with no scratch and no bare home tab must NOT
+    bootstrap through connect() — its affinity branch would re-adopt the
+    conversation tab we're leaving (or create the "scratch" tab AT
+    /c/{affinity}). It must create an owned bare-home scratch tab."""
+    d = CDPDriver(cdp_port=9222)
+    d._conv_target = True
+    d._conv_affinity = "conv-1"
+    d._scratch_target_id = None
+    # Only the conversation tab exists — nothing bare-home to adopt.
+    d._list_page_targets = lambda: [
+        {"id": "T-conv", "url": "https://chatgpt.com/c/conv-1"}
+    ]
+
+    created = {}
+
+    async def _create(*, scratch: bool = False):
+        created["scratch"] = scratch
+        d._target_id = "T-new"
+        d._owns_target = True
+        d._scratch_target_id = "T-new"
+
+    d._create_owned_tab = _create
+    d.connect = AsyncMock()
+
+    await d.ensure_scratch_tab()
+
+    assert created["scratch"] is True
+    d.connect.assert_awaited_once()
+    assert d._conv_target is False
+    assert d._owns_target is True
+
+
+@pytest.mark.asyncio
+async def test_navigate_new_chat_refuses_when_still_conv_bound():
+    """Fail-closed: if ensure_scratch_tab cannot detach us from a conv-bound
+    tab, navigate_new_chat must raise rather than drive a shared conversation
+    tab away from its conversation."""
+    d = CDPDriver(cdp_port=9222)
+    d._conv_target = True
+    d.ensure_scratch_tab = AsyncMock()  # detaches nothing (still conv-bound)
+    d._cdp = AsyncMock()
+
+    with pytest.raises(RuntimeError, match="conv-bound"):
+        await d.navigate_new_chat()
+
+    d._cdp.assert_not_called()  # Page.navigate never fired

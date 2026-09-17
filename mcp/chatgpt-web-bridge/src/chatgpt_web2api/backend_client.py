@@ -40,6 +40,7 @@ import logging
 import time
 
 from .breakers import BreakerKind
+from .request_pace import ReadThrottledError, retry_after_seconds
 
 logger = logging.getLogger(__name__)
 
@@ -298,6 +299,12 @@ class BackendClient:
 
         d = self._driver
         await self._driver.ensure_token()
+        # Fast-fail while the shared read gate is in cooldown: the completion
+        # detector and persistence checks poll on this path and must not
+        # stall minutes behind it — they degrade to DOM observation instead.
+        _blocked = d._pace.read_blocked_seconds()
+        if _blocked > 0:
+            raise ReadThrottledError(_blocked)
         # Account-level pace gate (cross-process): backend-api fetches count
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
@@ -329,9 +336,11 @@ class BackendClient:
                 # ChatGPT's conversation-endpoint limiter (endpoint-scoped —
                 # sends still work). Record a read-only cooldown so every
                 # process backs off reads before the next request without
-                # freezing the send path.
+                # freezing the send path. Upstream's Retry-After wins; else
+                # record_throttle escalates per the shared 429 streak.
                 try:
                     d._pace.record_throttle(
+                        retry_after_seconds(payload.get("__retry_after")),
                         kind="read",
                         source=f"backend-api 429 (conversation fetch {conversation_id})",
                     )
@@ -339,6 +348,8 @@ class BackendClient:
                     pass
                 raise RuntimeError(f"projection HTTP 429 for {conversation_id}")
             if status is not None:
+                # A definitive non-429 answer means the limiter isn't active.
+                d._pace.record_read_ok()
                 raise RuntimeError(f"projection HTTP {status} for {conversation_id}")
         # Decode projection JS errors (the JS catches exceptions and returns
         # {"__error": "..."}). Without this, a projection error would reach
@@ -354,9 +365,12 @@ class BackendClient:
             raise CDPJSError(f"projection JS error for {conversation_id}: {err_msg}")
         # Parse the projected mapping.
         try:
-            return json.loads(raw)
+            payload = json.loads(raw)
         except (json.JSONDecodeError, TypeError) as e:
             raise CDPJSError(f"projection returned unparseable JSON: {e}") from e
+        # Real conversation data came back — the limiter isn't active.
+        d._pace.record_read_ok()
+        return payload
 
     async def _fetch_text_for_turn(
         self, conversation_id: str, anchor
@@ -528,6 +542,12 @@ class BackendClient:
 
         d = self._driver
         await self._driver.ensure_token()
+        # Fast-fail while the shared read gate is in cooldown — see
+        # _fetch_recent_conversation_projection for why callers must not
+        # stall minutes behind it.
+        _blocked = d._pace.read_blocked_seconds()
+        if _blocked > 0:
+            raise ReadThrottledError(_blocked)
         # Account-level pace gate (cross-process): backend-api fetches count
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
@@ -538,7 +558,7 @@ class BackendClient:
                 "    headers: {'Authorization': 'Bearer ' + __D.token}"
                 "  });"
                 "  var t = await r.text();"
-                "  return JSON.stringify({status: r.status, body: t});"
+                "  return JSON.stringify({status: r.status, retry_after: r.headers.get('retry-after'), body: t});"
                 "})()",
                 {"conv_id": conversation_id, "token": d._access_token},
                 timeout=30,
@@ -549,14 +569,19 @@ class BackendClient:
             if status == 429:
                 # Same endpoint-scoped limiter as the projection path. Without
                 # this, polls during the upstream probation window keep firing
-                # every read interval and extend it.
+                # every read interval and extend it. Retry-After wins; else
+                # the shared streak escalates the cooldown.
                 try:
                     d._pace.record_throttle(
+                        retry_after_seconds(envelope.get("retry_after")),
                         kind="read",
                         source=f"backend-api 429 (get_conversation {conversation_id})",
                     )
                 except Exception:
                     pass
+            elif isinstance(status, int):
+                # Any definitive non-429 HTTP answer resets the streak.
+                d._pace.record_read_ok()
             try:
                 body = json.loads(envelope.get("body") or "")
             except json.JSONDecodeError:

@@ -52,6 +52,7 @@ def make_mock_driver():
     driver.navigate_new_chat = AsyncMock()
     driver.navigate_conversation = AsyncMock()
     driver.navigate_gpt = AsyncMock()
+    driver.route_chat_target = AsyncMock(return_value="new")
     driver.get_models = AsyncMock(return_value=[
         {"slug": "auto", "title": "Auto"},
         {"slug": "gpt-5-5", "title": "GPT-5.5"},

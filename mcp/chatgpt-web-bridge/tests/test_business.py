@@ -37,6 +37,9 @@ def mock_driver():
     driver.navigate_new_chat = AsyncMock()
     driver.navigate_conversation = AsyncMock()
     driver.navigate_gpt = AsyncMock()
+    # Routing goes through the shared router (driver.route_chat_target);
+    # its conv-wins-over-project priority is pinned in test_conversation_guard.
+    driver.route_chat_target = AsyncMock(return_value="new")
     driver.get_models = AsyncMock(return_value=[
         {"slug": "auto", "title": "Auto"},
         {"slug": "gpt-5-5", "title": "GPT-5.5"},
@@ -433,8 +436,11 @@ async def test_chat_completion_with_system_prompt(mock_driver, mock_config):
         "system_prompt": "Be concise",
     }, mock_config)
     assert result["content"] == "Hello!"
-    # Should have navigated to new chat (system prompt forces new conv)
-    mock_driver.navigate_new_chat.assert_called_once()
+    # System prompt vetoes auto-continue → the router must route to "new".
+    mock_driver.route_chat_target.assert_called_once()
+    kw = mock_driver.route_chat_target.call_args.kwargs
+    assert kw["conversation_id"] is None
+    assert kw["auto_continue"] is False
 
 
 @pytest.mark.asyncio
@@ -445,7 +451,10 @@ async def test_chat_completion_with_project(mock_driver, mock_config):
         "project_id": "g-p-test",
     }, mock_config)
     assert result["content"] == "Hello!"
-    mock_driver.navigate_new_chat.assert_called_once_with(gizmo_id="g-p-test")
+    mock_driver.route_chat_target.assert_called_once()
+    kw = mock_driver.route_chat_target.call_args.kwargs
+    assert kw["project_id"] == "g-p-test"
+    assert kw["auto_continue"] is False
 
 
 @pytest.mark.asyncio
@@ -1019,3 +1028,35 @@ async def test_verify_reply_persisted_bypasses_and_refreshes_cache(monkeypatch):
     assert d.get_conversation.await_count == 1
     fresh = ms._CONV_READ_CACHE["c"][1]
     assert fresh is not stale and fresh.get("id") == "c"
+
+
+# ── read_throttled: actionable signal instead of a hang ────
+# While the shared read gate sits in cooldown, read tools must return an
+# actionable "throttled, retry in Ns" — not poll silently until timeout.
+
+@pytest.mark.asyncio
+async def test_wait_reply_returns_read_throttled_during_cooldown():
+    from chatgpt_web2api.mcp_server import do_wait_reply
+    from chatgpt_web2api.request_pace import ReadThrottledError
+
+    d = _chain_driver([("user", "q")])
+    d.get_conversation = AsyncMock(side_effect=ReadThrottledError(240.0))
+    result = await do_wait_reply(
+        d, {"conversation_id": "c", "timeout_seconds": 300, "poll_seconds": 8}
+    )
+    assert result["status"] == "read_throttled"
+    assert result["retry_after"] == 240.0
+    assert result["waited_s"] < 5  # fast — did not burn the timeout
+
+
+@pytest.mark.asyncio
+async def test_get_conversation_returns_read_throttled_during_cooldown():
+    from chatgpt_web2api.mcp_server import do_get_conversation
+    from chatgpt_web2api.request_pace import ReadThrottledError
+
+    d = _chain_driver([("user", "q")])
+    d.get_conversation = AsyncMock(side_effect=ReadThrottledError(90.0))
+    result = await do_get_conversation(d, {"conversation_id": "c"})
+    assert result["reason"] == "read_throttled"
+    assert result["retry_after"] == 90.0
+    assert result["messages"] == []

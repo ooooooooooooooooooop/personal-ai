@@ -107,6 +107,32 @@ Local delta carried in this copy (applied on top of upstream):
   it is never navigated away from under its co-attached drivers.
   Conv-affinity drivers are unchanged: they still create/adopt dedicated
   `/c/{id}` tabs (per-conversation DOM isolation).
+- **single shared chat router** (`cdp_driver.route_chat_target`): MCP and REST
+  call one function — an explicit `conversation_id` ALWAYS continues that
+  conversation (`ensure_current_conversation` verifies the live URL even when
+  `_current_conv_id` already matches); `project_id` only scopes NEW
+  conversations and can never veto an explicit target. Kills the 2026-09-17
+  misroute (conv-affine tab preset `_current_conv_id` + non-empty
+  `project_id` fell through to `navigate_new_chat` → messages went into
+  fresh conversations).
+- **conv-bound tab protection**: `ensure_scratch_tab` no longer bootstraps a
+  conv-affine driver through bare `connect()` (its affinity re-adopted the
+  very tab it was leaving); it creates an owned scratch tab via
+  `_create_owned_tab(scratch=True)`. `navigate_new_chat` fails closed if the
+  driver is still `_conv_target` after detaching — a shared conversation tab
+  can never be navigated to a new chat.
+- **non-blocking read gate** (`RequestPace.read_blocked_seconds` +
+  `ReadThrottledError`): conversation reads probe the shared cooldown and
+  fail fast instead of queueing behind it — the completion detector degrades
+  to DOM observation (ReadThrottledError subclasses RuntimeError → the
+  `fetch_failed` wrapper path), `wait_reply`/`get_conversation` return
+  `status/reason=read_throttled` with `retry_after`, REST maps it to a 429.
+  Read-path 429s honor upstream `Retry-After` and otherwise escalate the
+  cooldown per consecutive-429 streak (300→600→1200→1800s cap), reset by
+  `record_read_ok` on the first definitive non-429 answer.
+- **tool-failure logging**: `_call_tool_pooled` logs every mapped exception
+  (`tool %s failed (mapped): %s: %s`) and unmapped ones with traceback — a
+  client-visible error can no longer leave zero trace in the daemon log.
 
 Runtime state is NOT vendored: `.venv`, `~/.chatgpt-web2api/` (config, tab
 registry, pace file, locks, diagnostics, chrome profile — consolidated from

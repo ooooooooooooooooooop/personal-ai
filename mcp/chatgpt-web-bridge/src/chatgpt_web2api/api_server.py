@@ -28,6 +28,7 @@ from .cdp_driver import (
 from .config import Config
 from .cross_process_lock import LockAcquisitionError
 from .lock_resolver import MutationLock, OwnedTabRequiredError, resolve_mutation_lock
+from .request_pace import ReadThrottledError
 from .resilience import retry_on_rate_limit
 
 logger = logging.getLogger(__name__)
@@ -348,14 +349,11 @@ class APIServer:
             # same value but needlessly couples the legacy path to the driver).
             # Conv-affinity: if a tab already shows this conversation, switch
             # the daemon driver onto it BEFORE the lock key is resolved — the
-            # key names the target, so the target must be final here. False
-            # means no existing tab → navigate our own tab onto it below.
-            _adopted_conv = False
+            # key names the target, so the target must be final here. A miss
+            # just means the route below navigates our own tab onto it.
             if conversation_id and self._driver._current_conv_id != conversation_id:
                 try:
-                    _adopted_conv = await self._driver.adopt_conversation_tab(
-                        conversation_id
-                    )
+                    await self._driver.adopt_conversation_tab(conversation_id)
                 except Exception:
                     logger.debug(
                         "conv-tab adopt failed (will navigate)", exc_info=True
@@ -391,27 +389,28 @@ class APIServer:
                         )
 
                 # Decide: continue existing conversation or start fresh?
-                if conversation_id:
-                    # Explicit conversation_id — navigate only if the conv
-                    # wasn't already adopted onto its own tab above.
-                    if not _adopted_conv and self._driver._current_conv_id != conversation_id:
-                        await self._driver.navigate_conversation(conversation_id)
-                elif (
-                    self._last_conv_id
-                    and self._driver._current_conv_id == self._last_conv_id
-                    and project_id == self._last_project_id
-                    and not system_parts
-                ):
-                    # Same session, same project, no system prompt override — continue.
-                    # Reconcile against the live tab before sending: another process
-                    # sharing the Chrome tab may have navigated it since our last turn,
-                    # which would leave _current_conv_id stale. ensure_current_conversation
-                    # verifies location.href and navigates back if needed (fail-closed).
+                # Shared rule (driver.route_chat_target, same function the
+                # MCP path calls): an explicit conversation_id ALWAYS
+                # continues that conversation — project_id only scopes NEW
+                # conversations and must never veto an explicit target.
+                route = await self._driver.route_chat_target(
+                    conversation_id=conversation_id,
+                    project_id=project_id,
+                    # REST auto-continue heuristic: same conversation AND same
+                    # project context as the previous request, no system
+                    # prompt override. Reconciles against the live tab URL —
+                    # another process may have navigated a shared tab,
+                    # leaving _current_conv_id stale (fail-closed).
+                    auto_continue=bool(
+                        self._last_conv_id
+                        and self._driver._current_conv_id == self._last_conv_id
+                        and project_id == self._last_project_id
+                        and not system_parts
+                    ),
+                )
+                if route == "auto-continue":
                     logger.info("Continuing conversation: %s", self._last_conv_id)
-                    await self._driver.ensure_current_conversation(self._last_conv_id)
-                else:
-                    # Fresh chat
-                    await self._driver.navigate_new_chat(gizmo_id=project_id)
+                elif route == "new":
                     self._last_project_id = project_id
 
                 if stream:
@@ -464,7 +463,7 @@ class APIServer:
         - Everything else stays a 500 ``server_error`` (a real failure, not
           retriable).
         """
-        if isinstance(exc, RateLimitError):
+        if isinstance(exc, (RateLimitError, ReadThrottledError)):
             retry_after = str(int(exc.retry_after))
             return web.json_response(
                 {

@@ -136,6 +136,7 @@ async def test_mcp_closed_breaker_does_not_fail_fast(monkeypatch):
     driver.navigate_new_chat = AsyncMock()
     driver.navigate_conversation = AsyncMock()
     driver.ensure_current_conversation = AsyncMock()
+    driver.route_chat_target = AsyncMock(return_value="new")
     driver.recover_auth = AsyncMock(return_value=False)
     driver._current_conv_id = ""
     driver._current_model = None
@@ -292,6 +293,7 @@ async def test_rest_auth_recovery_probes_then_proceeds(monkeypatch):
     driver.navigate_new_chat = AsyncMock()
     driver.navigate_conversation = AsyncMock()
     driver.ensure_current_conversation = AsyncMock()
+    driver.route_chat_target = AsyncMock(return_value="new")
 
     reached = {"sent": False}
 

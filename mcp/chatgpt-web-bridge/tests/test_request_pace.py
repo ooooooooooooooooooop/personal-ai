@@ -81,3 +81,101 @@ def test_read_and_send_cooldowns_are_independent(pace_file):
     state = json.loads(pace_file.read_text())
     assert state["cooldown_until"] > time.time() + 30
     assert state["read_cooldown_until"] > time.time() + 90
+
+
+# ── read_blocked_seconds: non-blocking cooldown probe ──────────────────
+
+def test_read_blocked_seconds_reflects_cooldowns(pace_file):
+    pace = rp.RequestPace(send_interval=0, read_interval=0, cooldown_seconds=60)
+    assert pace.read_blocked_seconds() == 0.0
+
+    pace.record_throttle(kind="read", source="t")
+    blocked = pace.read_blocked_seconds()
+    assert 30 < blocked <= 60
+
+    # A send-path (account) cooldown blocks reads too.
+    pace.record_throttle(seconds=120, kind="send", source="t")
+    assert pace.read_blocked_seconds() > 60
+
+
+def test_read_blocked_seconds_ignores_plain_interval(pace_file):
+    """The per-read interval is normal pacing, not a block — the probe must
+    only report cooldown state."""
+    pace = rp.RequestPace(send_interval=0, read_interval=60)
+    state = {"last_read_at": time.time()}
+    pace_file.write_text(json.dumps(state))
+    assert pace.read_blocked_seconds() == 0.0
+
+
+# ── read-429 streak escalation ──────────────────────────────────────────
+
+def test_read_throttle_escalates_on_consecutive_429s(pace_file):
+    """Each consecutive read-path 429 doubles the cooldown (cap 1800s) — a
+    flagged account stays flagged upstream for hours, and flat 300s probes
+    just re-poke the limiter."""
+    pace = rp.RequestPace(send_interval=0, read_interval=0, cooldown_seconds=100)
+
+    until1 = pace.record_throttle(kind="read", source="t")
+    assert until1 - time.time() == pytest.approx(100, abs=5)
+
+    until2 = pace.record_throttle(kind="read", source="t")
+    assert until2 - time.time() == pytest.approx(200, abs=5)
+
+    until3 = pace.record_throttle(kind="read", source="t")
+    assert until3 - time.time() == pytest.approx(400, abs=5)
+
+    state = json.loads(pace_file.read_text())
+    assert state["read_429_streak"] == 3
+
+
+def test_read_throttle_escalation_capped(pace_file):
+    pace = rp.RequestPace(send_interval=0, read_interval=0, cooldown_seconds=300)
+    pace_file.write_text(json.dumps({"read_429_streak": 10}))
+    until = pace.record_throttle(kind="read", source="t")
+    assert until - time.time() <= rp.COOLDOWN_CAP_SECONDS
+
+
+def test_explicit_seconds_win_over_streak(pace_file):
+    """A Retry-After from upstream overrides the streak escalation."""
+    pace = rp.RequestPace(send_interval=0, read_interval=0, cooldown_seconds=100)
+    pace_file.write_text(json.dumps({"read_429_streak": 5}))
+    until = pace.record_throttle(seconds=45, kind="read", source="t")
+    assert until - time.time() == pytest.approx(45, abs=5)
+
+
+def test_record_read_ok_resets_streak(pace_file):
+    pace = rp.RequestPace(send_interval=0, read_interval=0, cooldown_seconds=100)
+    pace.record_throttle(kind="read", source="t")
+    pace.record_throttle(kind="read", source="t")
+    assert json.loads(pace_file.read_text())["read_429_streak"] == 2
+
+    pace.record_read_ok()
+    assert json.loads(pace_file.read_text())["read_429_streak"] == 0
+
+    until = pace.record_throttle(kind="read", source="t")
+    assert until - time.time() == pytest.approx(100, abs=5)
+
+
+def test_record_read_ok_noop_without_streak(pace_file):
+    pace = rp.RequestPace()
+    pace.record_read_ok()
+    assert not pace_file.exists() or not json.loads(
+        pace_file.read_text()
+    ).get("read_429_streak")
+
+
+# ── retry_after_seconds header parsing ──────────────────────────────────
+
+def test_retry_after_seconds_parses_delta():
+    assert rp.retry_after_seconds("120") == 120.0
+    assert rp.retry_after_seconds("0") == 0.0
+    assert rp.retry_after_seconds(None) is None
+    assert rp.retry_after_seconds("garbage") is None
+
+
+def test_retry_after_seconds_parses_http_date():
+    from email.utils import formatdate
+
+    future = formatdate(time.time() + 300, usegmt=True)
+    parsed = rp.retry_after_seconds(future)
+    assert 250 < parsed <= 300
