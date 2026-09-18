@@ -255,3 +255,19 @@ test('plan mode fail-closed without an ask channel', async () => {
   assert.equal(d.block, true);
   assert.equal(d.rule, 'ask_unavailable');
 });
+
+test('kernel ask descriptor carries truncation flags for oversized args (B1)', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: { destructive: 'ask' } });
+  let pending = null;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    ask: async (p) => { pending = p; return 'deny'; },
+    commandClassifier: async (s) => ({ units: [{ raw: s }], parseError: null, risk: 'destructive', hasUnknown: false }),
+  });
+  await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: `rm ${'x'.repeat(60000)}` } }));
+  assert.equal(pending.rule, 'risk_destructive');
+  assert.equal(pending.argsTruncated, true);
+  assert.ok(pending.argsTotalChars > 60000);
+  assert.ok(pending.args.command.length < pending.argsTotalChars);
+});

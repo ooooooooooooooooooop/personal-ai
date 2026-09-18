@@ -18,8 +18,8 @@ const DRIVER = `(async () => {
   const waitFor = async (sel, fn, ms = 15000) => {
     const t0 = Date.now();
     while (Date.now() - t0 < ms) {
-      const el = document.querySelector(sel);
-      if (el && (!fn || fn(el))) return el;
+      const hit = [...document.querySelectorAll(sel)].find((e) => !fn || fn(e));
+      if (hit) return hit;
       await sleep(120);
     }
     return null;
@@ -68,6 +68,22 @@ const DRIVER = `(async () => {
     const resolved = await waitFor('.ask-card.resolved', null, 10000);
     checks.askResolved = { ok: !!resolved };
 
+    // 6b. image attachment — a pasted image must arrive as options.images (B2)
+    const f = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], 'shot.png', { type: 'image/png' });
+    const dt = new DataTransfer(); dt.items.add(f);
+    input.value = '看图';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    // Synthetic ClipboardEvent.clipboardData is unreliable in headless —
+    // the drop path exercises the same attachFiles() wiring via DragEvent,
+    // whose dataTransfer init IS honored.
+    const composer = document.querySelector('#composer');
+    composer.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+    const chipEl = await waitFor('#attach-row .attach-chip', null, 8000);
+    checks.imageChip = { ok: !!chipEl, text: chipEl?.textContent ?? '' };
+    document.querySelector('#send').click();
+    const imgEcho = await waitFor('.msg .bubble', (e) => e.textContent.includes('收到图片 1'), 10000);
+    checks.imageAttach = { ok: !!imgEcho, text: imgEcho?.textContent ?? '' };
+
     // 6. job detail — jobs view row → drawer with real command + output tail
     switchView('jobs');
     const row = await waitFor('#jobs tbody tr.clickable');
@@ -78,7 +94,12 @@ const DRIVER = `(async () => {
       cmd: jd?.textContent ?? '',
     };
 
-    return { ok: Object.values(checks).every((c) => c.ok), checks, pageErrors: window.__errs ?? [] };
+    return {
+      ok: Object.values(checks).every((c) => c.ok), checks,
+      pageErrors: window.__errs ?? [],
+      transcriptTail: document.querySelector('#transcript')?.textContent?.slice(-600) ?? '',
+      queueLen: queue.length, busy,
+    };
   } catch (e) {
     return { ok: false, error: String(e?.stack ?? e), checks, pageErrors: window.__errs ?? [] };
   }

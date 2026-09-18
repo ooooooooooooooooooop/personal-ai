@@ -80,3 +80,17 @@ test('dispose refuses everything still suspended', async () => {
   assert.equal(await p1, 'aborted');
   assert.equal(await p2, 'aborted');
 });
+
+test('truncation metadata survives into the governance_ask event (B1 WYSIWYG chain)', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((e) => events.push(e));
+  const p = asks.ask(desc({ args: { command: 'x'.repeat(100) }, argsTruncated: true, argsTotalChars: 99999 }));
+  const ev = events.find((e) => e.type === 'governance_ask');
+  assert.equal(ev.ask.argsTruncated, true);
+  assert.equal(ev.ask.argsTotalChars, 99999);
+  // also visible on the pending list — reconnecting UIs render the same warning
+  assert.equal(asks.list()[0].argsTruncated, true);
+  asks.resolve(ev.ask.id, 'deny');
+  await p;
+});

@@ -96,6 +96,10 @@ export class PendingAsks {
         summary: descriptor.summary ?? '',
         detail: descriptor.detail ?? null,
         args: descriptor.args ?? null,
+        // WYSIWYG chain: the UI's truncation warning depends on these
+        // surviving into the governance_ask event payload.
+        argsTruncated: Boolean(descriptor.argsTruncated),
+        argsTotalChars: descriptor.argsTotalChars ?? null,
         createdAt: new Date(this.now()).toISOString(),
         expiresAt,
         _finish: finish,

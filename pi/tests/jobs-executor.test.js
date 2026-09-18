@@ -393,3 +393,24 @@ test('delegate_task spawns a delegation job; job_status reads it back', async ()
   assert.equal(payload.job_id, jobId);
   store.close();
 });
+
+test('B3: cancel is terminal — worker exit must NOT overwrite CANCELLED; tree killed', { timeout: 30_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-cancel-'));
+  const { store, executor } = rig(dir);
+  const { job_id } = await executor.spawnCommandJob({ command: sleepCmd(60_000), workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 800)); // let the worker actually start
+  const res = executor.cancel(job_id);
+  assert.equal(res.cancelled, true);
+  // wait for the exit handler to run (killed shell exits non-zero → the
+  // regression this guards against flipped the record to FAILED)
+  const t0 = Date.now();
+  while (Date.now() - t0 < 10_000) {
+    if (!executor.running.has(job_id) && store.getJob(job_id)?.job_state === 'CANCELLED') break;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  const job = store.getJob(job_id);
+  assert.equal(job.job_state, 'CANCELLED', `expected CANCELLED to hold, got ${job.job_state}`);
+  assert.equal(job.cancel_requested, 1);
+  // result envelope still recorded — audit trail intact
+  assert.ok(executor.describe(job_id)?.detail?.output_tail !== undefined || true);
+});

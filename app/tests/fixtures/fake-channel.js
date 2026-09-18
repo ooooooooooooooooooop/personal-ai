@@ -56,7 +56,8 @@ rl.on('line', async (line) => {
     case 'prompt': {
       write({ type: 'event', event: { type: 'agent_start' } });
       write({ type: 'event', event: { type: 'message_start', message: { role: 'assistant', content: [{ type: 'text', text: '' }] } } });
-      write({ type: 'event', event: { type: 'message_update', message: { role: 'assistant', content: [{ type: 'text', text: `echo:${cmd.message}` }] } } });
+      const imgN = cmd.options?.images?.length ?? 0;
+      write({ type: 'event', event: { type: 'message_update', message: { role: 'assistant', content: [{ type: 'text', text: `echo:${cmd.message}${imgN ? ` | 收到图片 ${imgN}` : ''}` }] } } });
       if (process.env.FAKE_SCENARIO === 'domgate') {
         // Scripted turn for the DOM gate: a real tool card, then a pending
         // ask carrying a real payload — resolved when decision_resolve lands.

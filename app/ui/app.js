@@ -1770,14 +1770,15 @@ function renderQueue() {
   const row = $('queue-row');
   row.innerHTML = '';
   row.classList.toggle('hidden', queue.length === 0);
-  queue.forEach((text, i) => {
+  queue.forEach((q, i) => {
     const chip = document.createElement('div');
     chip.className = 'q-chip';
     chip.innerHTML = `<span class="q-text"></span><button class="q-btn" title="立即转向发送">转向</button><button class="q-x" title="移除">×</button>`;
-    chip.querySelector('.q-text').textContent = text.length > 60 ? `${text.slice(0, 60)}…` : text;
+    const label = q.label ?? q.text;
+    chip.querySelector('.q-text').textContent = label.length > 60 ? `${label.slice(0, 60)}…` : label;
     chip.querySelector('.q-btn').onclick = async () => {
       queue.splice(i, 1); renderQueue();
-      const r = await cmd('steer', { message: text });
+      const r = await cmd('steer', { message: q.text });
       if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
     };
     chip.querySelector('.q-x').onclick = () => { queue.splice(i, 1); renderQueue(); };
@@ -1788,9 +1789,9 @@ function flushQueue() {
   const next = queue.shift();
   renderQueue();
   if (!next) return;
-  lastUserText = next;
-  addMsg('user', next);
-  cmd('prompt', { message: next }).then((r) => {
+  lastUserText = next.label ?? next.text;
+  addMsg('user', next.label ?? next.text);
+  cmd('prompt', { message: next.text, ...(next.images?.length ? { options: { images: next.images } } : {}) }).then((r) => {
     if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
   });
 }
@@ -1861,10 +1862,8 @@ async function send() {
   if (!text && !pendingAttach.length) return;
   closeSlash();
   input.value = ''; autogrow();
-  if (busy) { queue.push(text); renderQueue(); return; }
-  lastUserText = text;
   // Fold pending attachments into the outgoing prompt: text → labeled block,
-  // images → ImageContent options (pi prompt accepts an images array).
+  // images → PromptOptions.images (pi prompt accepts {images: ImageContent[]}).
   let message = text;
   const attachCount = pendingAttach.length;
   const images = [];
@@ -1873,11 +1872,13 @@ async function send() {
     else message += `\n\n<file name="${a.name}">\n${a.text}\n</file>`;
   }
   renderAttach();
+  if (busy) { queue.push({ text: message, images, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }
+  lastUserText = text;
   addMsg('user', text || `（${attachCount} 个附件）`);
   const ex = await expandAtMentions(message);
   if (ex.attached.length) addSys(`已附着 ${ex.attached.length} 个文件：${ex.attached.join('、')}`);
   if (ex.missed.length) addSys(`未能读取：${ex.missed.join('、')}（请确认路径在 workdir 内）`, true);
-  const r = await cmd('prompt', { message: ex.text, ...(images.length ? { options: images } : {}) });
+  const r = await cmd('prompt', { message: ex.text, ...(images.length ? { options: { images } } : {}) });
   if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
 }
 async function steer() {

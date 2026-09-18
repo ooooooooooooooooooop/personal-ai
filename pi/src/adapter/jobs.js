@@ -114,7 +114,14 @@ export class JobExecutor {
   cancel(jobId, reason = 'user_cancellation') {
     const child = this.running.get(jobId);
     const killable = Boolean(child && child.exitCode == null && !child.killed);
-    if (killable) child.kill();
+    if (killable) {
+      // shell:true means the tracked pid is the cmd.exe wrapper — killing it
+      // alone orphans the real command. taskkill /T takes the whole tree.
+      if (process.platform === 'win32') {
+        try { spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); }
+        catch { child.kill(); }
+      } else child.kill();
+    }
     this.store.cancelJob(jobId, reason);
     this.audit?.write({ kind: 'JOB_CANCEL_REQUESTED', data: { job_id: jobId, reason, killed: killable, parent_run_id: this.runId } });
     return { cancelled: true, killed: killable };
@@ -251,7 +258,16 @@ export class JobExecutor {
         }, null, 2));
         this.store.recordResult(jobId, attemptId, resultPath);
         this.store.releaseLease(jobId, this.store.getLease(jobId)?.lease_id);
-        if (code === 0) this.store.completeJob(jobId);
+        // CANCELLED is terminal — a cancelled worker's exit must NOT overwrite
+        // it with FAILED/COMPLETED (the killed process exits non-zero, which
+        // would otherwise flip the record the operator just cancelled).
+        const cur = this.store.getJob(jobId);
+        if (cur?.cancel_requested || cur?.job_state === 'CANCELLED') {
+          this.audit?.write({
+            kind: 'JOB_CANCEL_HELD',
+            data: { job_id: jobId, attempt_id: attemptId, exit_code: code, parent_run_id: this.runId },
+          });
+        } else if (code === 0) this.store.completeJob(jobId);
         else this.store.failJob(jobId, `exit ${code ?? signal}`);
         this.audit?.write({
           kind: 'JOB_FINISHED',
