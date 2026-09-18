@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Pre-commit gate for the agent-tooling repository.
+# Pre-commit gate for the agent-tooling repository — snapshot edition.
 #
 # Install once per clone:
 #   git config core.hooksPath .githooks
 #
-# Two modes, chosen by scripts/gate_planner.py from the staged diff:
-#   DELTA — certified-base reasoning: base commit already passed the full
-#           gate, so only what this diff can affect is re-checked.
-#   FULL  — gate machinery / shared registries / unknown paths changed:
-#           the incremental argument no longer holds, run everything.
-# Either way the repo invariants stay identical; only the work differs.
+# The gate freezes the staged index into an immutable candidate tree
+# (`git write-tree`), materializes it into a temp dir, and runs every
+# check against THAT snapshot — never against the live index or working
+# tree. The plan comes from scripts/gate_planner.py inside the snapshot;
+# a tiny bootstrap classifier below (stable, embedded, not candidate
+# code) forces FULL when the change touches gate machinery, so a
+# candidate planner can never decide its own admission. The hook ends by
+# re-verifying HEAD and the index: if either moved during the checks the
+# commit is rejected — under a shared index there is no way to hold the
+# index atomically from hook-start to commit-creation, so we detect and
+# fail instead of certifying a diff we never saw.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -28,69 +33,116 @@ PY="${PYTHON:-python3}"
 "$PY" -c '' >/dev/null 2>&1 || PY=python
 
 step() { printf '\n== %s ==\n' "$1"; }
+fail() { printf '\npre-commit gate: FAIL — %s\n' "$1" >&2; exit 1; }
 
 step "canonical writer ownership"
 "$PY" scripts/governance/canonical_writer.py pre-commit
 
-step "impact plan"
-"$PY" scripts/gate_planner.py --staged
-MODE="$("$PY" scripts/gate_planner.py --staged --field mode)"
+step "freeze candidate snapshot"
+BASE_OID="$(git rev-parse HEAD)"
+TREE_OID="$(git write-tree)" || fail "index locked — retry"
+# Materialize the candidate as a real git repo: an ephemeral commit on
+# top of the frozen tree, cloned locally (hardlinked object db) and
+# checked out detached. Tests that exercise git mechanics (clone,
+# ls-files, oid resolution) see exactly the candidate state; the
+# stripped origin makes accidental pushes fail-closed.
+SNAP_OID="$(git commit-tree "$TREE_OID" -m 'gate candidate snapshot')"
+CAND="$(mktemp -d)/cand"
+trap 'rm -rf "$CAND"' EXIT
+git clone --local --quiet --no-checkout "$ROOT" "$CAND"
+git -C "$CAND" remote remove origin
+git -C "$CAND" checkout --quiet --detach "$SNAP_OID"
+echo "base=$BASE_OID"
+echo "tree=$TREE_OID"
+echo "snap=$SNAP_OID"
 
-step "whitespace check (git diff --check)"
-git diff --cached --check
-git diff --check
+step "bootstrap trigger scan"
+# Stable classifier: the FULL/DELTA decision for gate-machinery paths is
+# made HERE (frozen diff, fixed prefix list) — the candidate planner
+# only enumerates task sets, it cannot downgrade its own gate.
+FORCE_FLAG="$("$PY" - "$BASE_OID" "$TREE_OID" <<'PYEOF'
+import subprocess, sys
+TRIG = (
+    ".githooks/", ".github/workflows/",
+    "scripts/gate_planner.py", "scripts/validate_repo.py",
+    "scripts/governance/", "scripts/publish_check.py",
+    "scripts/run_skill_evals.py", "scripts/sync_skills.py",
+    "skills/skill-quality-gate/",
+    "skills.json", "mcp.json", "pyproject.toml",
+    "package.json", "package-lock.json", "requirements",
+)
+out = subprocess.run(
+    ["git", "diff", "--name-status", "-z", sys.argv[1], sys.argv[2]],
+    capture_output=True, text=True, check=True).stdout
+paths = []
+for tok in out.split("\0"):
+    if not tok:
+        continue
+    paths.append(tok.split("\t", 1)[1] if "\t" in tok else tok)
+print("--force-full" if any(
+    p.startswith(t) for p in paths for t in TRIG) else "")
+PYEOF
+)"
+
+step "impact plan"
+# The planner runs FROM the snapshot: it evaluates the code being
+# committed, on the frozen BASE..TREE diff, reading git objects from
+# the snapshot clone's own object db (hardlinked, read-only usage).
+PLAN_JSON="$("$PY" "$CAND/scripts/gate_planner.py" \
+  --repo "$CAND" --base "$BASE_OID" --tree "$TREE_OID" \
+  --src "$CAND" $FORCE_FLAG)"
+echo "$PLAN_JSON"
+field() { printf '%s' "$PLAN_JSON" | "$PY" -c '
+import json, sys
+for item in json.load(sys.stdin)[sys.argv[1]]:
+    print(item)' "$1" | tr -d '\r'; }
+MODE="$(printf '%s' "$PLAN_JSON" | "$PY" -c 'import json,sys; print(json.load(sys.stdin)["mode"])' | tr -d '\r')"
+
+step "whitespace check (git diff --check BASE TREE)"
+git diff --check "$BASE_OID" "$TREE_OID"
 
 # These two are cheap enough to run unconditionally (~2s combined): keeping
 # them global is simpler and safer than maintaining an affected-mapping for
-# structural invariants.
+# structural invariants. Both evaluate the snapshot, not the worktree.
 step "validate_repo.py --strict"
-"$PY" scripts/validate_repo.py --strict
+(cd "$CAND" && "$PY" scripts/validate_repo.py --strict)
 
 step "skill-quality-gate --strict"
-"$PY" skills/skill-quality-gate/scripts/quality_report.py --root . --strict
+"$PY" "$CAND/skills/skill-quality-gate/scripts/quality_report.py" --root "$CAND" --strict
 
 step "python syntax (batched)"
-# One interpreter compiles every target — the old per-file spawn loop cost
-# minutes at ~2753 files (Windows process creation dominates py_compile).
-if [ "$MODE" = "FULL" ]; then
-  "$PY" - <<'PYEOF'
+field compile | "$PY" -c '
 import compileall, pathlib, sys
-files = [p for p in pathlib.Path(".").rglob("*.py")
-         if "__pycache__" not in p.parts and "node_modules" not in p.parts]
-bad = [str(p) for p in files if not compileall.compile_file(str(p), quiet=2, force=True)]
+root = pathlib.Path(sys.argv[1])
+targets = [ln.strip() for ln in sys.stdin if ln.strip()]
+bad = [f for f in targets
+       if not compileall.compile_file(str(root / f), quiet=2, force=True)]
 for f in bad:
     print(f"py_compile FAIL: {f}", file=sys.stderr)
 sys.exit(1 if bad else 0)
-PYEOF
-else
-  "$PY" scripts/gate_planner.py --staged --field compile | "$PY" -c '
-import compileall, pathlib, sys
-targets = [ln.strip() for ln in sys.stdin if ln.strip() and ln.strip() != "ALL"]
-bad = [f for f in targets
-       if pathlib.Path(f).is_file() and not compileall.compile_file(f, quiet=2, force=True)]
-for f in bad:
-    print(f"py_compile FAIL: {f}", file=sys.stderr)
-sys.exit(1 if bad else 0)'
-fi
+' "$CAND"
 
 step "repository regression tests"
-if [ "$MODE" = "FULL" ]; then
-  "$PY" -m unittest discover -s tests -q
-else
-  mapfile -t TESTS < <("$PY" scripts/gate_planner.py --staged --field unittest)
-  if [ "${#TESTS[@]}" -gt 0 ]; then
-    MODS=()
-    for t in "${TESTS[@]}"; do MODS+=("$(echo "$t" | sed 's|/|.|g; s|\.py$||')"); done
-    "$PY" -m unittest "${MODS[@]}" -q
-  else
-    echo "no affected unittests — skipped"
-  fi
-  mapfile -t SUITES < <("$PY" scripts/gate_planner.py --staged --field mcp_suites)
-  for s in "${SUITES[@]}"; do
-    [ "$s" = "ALL" ] && s="mcp/agent-switchboard/tests"
-    "$PY" -m unittest discover -s "$s" -q
+mapfile -t TESTS < <(field unittest)
+if [ "${#TESTS[@]}" -gt 0 ]; then
+  MODS=()
+  for t in "${TESTS[@]}"; do
+    MODS+=("$(echo "$t" | sed 's|/|.|g; s|\.py$||')")
   done
+  (cd "$CAND" && "$PY" -m unittest "${MODS[@]}" -q)
+else
+  echo "no affected unittests — skipped"
 fi
+mapfile -t SUITES < <(field mcp_suites)
+for s in "${SUITES[@]}"; do
+  (cd "$CAND" && "$PY" -m unittest discover -s "$s" -q)
+done
+
+step "snapshot verify"
+[ "$(git rev-parse HEAD)" = "$BASE_OID" ] \
+  || fail "HEAD moved during checks — rerun the commit"
+[ "$(git write-tree)" = "$TREE_OID" ] \
+  || fail "index changed during checks (foreign stage) — rerun the commit"
 
 echo
-echo "pre-commit gate: PASS (mode=$MODE)"
+echo "pre-commit gate: PASS (mode=$MODE tree=${TREE_OID:0:12})"
