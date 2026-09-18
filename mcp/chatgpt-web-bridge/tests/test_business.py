@@ -6,7 +6,7 @@ with AsyncMock to avoid needing a live Chrome instance.
 
 import asyncio
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -690,6 +690,32 @@ async def test_verify_reply_persisted_none_when_unverifiable():
     )
     assert await _verify_reply_persisted(d, "c") is None
     assert await _verify_reply_persisted(d, None) is None
+
+
+@pytest.mark.asyncio
+async def test_verify_reply_persisted_dom_fallback_on_throttle():
+    """Read-gate cooldown → DOM tail is free evidence: a finished
+    assistant tail means persisted; a user tail stays inconclusive
+    (DOM lag must not masquerade as dead generation)."""
+    from chatgpt_web2api import conv_dom_read
+    from chatgpt_web2api.mcp_server import _verify_reply_persisted
+    from chatgpt_web2api.request_pace import ReadThrottledError
+
+    d = MagicMock()
+    d.get_conversation = AsyncMock(side_effect=ReadThrottledError(60))
+    d.port = 9222
+
+    with patch.object(
+        conv_dom_read, "conv_tail_state", new=AsyncMock(
+            return_value={"last_role": "assistant", "generating": False})
+    ):
+        assert await _verify_reply_persisted(d, "c") is True
+
+    with patch.object(
+        conv_dom_read, "conv_tail_state", new=AsyncMock(
+            return_value={"last_role": "user", "generating": False})
+    ):
+        assert await _verify_reply_persisted(d, "c") is None
 
 
 # ── get_conversation reason + out_file ──────────────────────

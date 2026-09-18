@@ -1170,7 +1170,24 @@ async def _verify_reply_persisted(
             chain = _conversation_chain(data) if isinstance(data, dict) else []
             _conv_read_store(driver, conv_id, data)
         except ReadThrottledError:
-            # Read gate in cooldown — inconclusive, don't spin retries.
+            # Read gate in cooldown — try the free DOM tail read before
+            # giving up: a finished assistant tail rendered in the tab is
+            # strong persisted-evidence (dead generations get retracted
+            # server-side and vanish from the DOM). A user tail stays
+            # inconclusive — DOM render lag must not masquerade as a dead
+            # generation and trigger a nudge.
+            try:
+                tail = await conv_dom_read.conv_tail_state(
+                    getattr(driver, "port", 0) or 0, conv_id
+                )
+                if (
+                    tail
+                    and tail.get("last_role") == "assistant"
+                    and not tail.get("generating")
+                ):
+                    return True
+            except Exception:
+                pass
             return None
         except Exception:
             # A weird/failed fetch must never break a successful send —
@@ -1356,6 +1373,11 @@ async def do_wait_reply(
                     "conversation_id": validated.conversation_id,
                     "status": "read_throttled",
                     "retry_after": round(e.retry_after, 1),
+                    "send_hint": (
+                        "a prior send is usually already DELIVERED — do "
+                        "NOT resend before checking the conversation tail "
+                        "(the cooldown only blocks reads, not generation)"
+                    ),
                     "total": total,
                     "last_role": last_role,
                     "tail_status": tail_status,
@@ -2124,8 +2146,10 @@ def _map_tool_exception(exc: Exception) -> object:
     if isinstance(exc, GenerationStuckError):
         return mcp_types.CallToolResult(
             content=[mcp_types.TextContent(type="text",
-                text=(f"Generation stalled — no DOM progress. Poll wait_reply "
-                      f"to check whether it recovered. (generation_stuck, "
+                text=(f"Generation stalled — no DOM progress. Your message "
+                      f"was already DELIVERED — do NOT resend it (that would "
+                      f"duplicate). Poll wait_reply to check whether it "
+                      f"recovered. (generation_stuck, "
                       f"phase={exc.phase}, stalled_for={exc.stalled_for_s:.0f}s)"))],
             isError=True,
         )
