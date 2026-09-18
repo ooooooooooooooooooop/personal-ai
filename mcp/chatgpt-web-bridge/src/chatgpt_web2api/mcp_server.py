@@ -45,7 +45,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from pydantic import BaseModel, Field
 
-from . import conv_binding
+from . import conv_binding, conv_dom_read
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
 from .cdp_driver import (
     AuthExpiredError,
@@ -1202,6 +1202,27 @@ async def do_get_conversation(
             driver, validated.conversation_id, fetch_lock
         )
     except ReadThrottledError as e:
+        # DOM fallback: if a tab is showing this conversation, its rendered
+        # messages are free even while the backend read endpoint is in a
+        # 429 cooldown. Partial by nature (virtualized history) — marked so.
+        msgs = await conv_dom_read.conv_messages(
+            getattr(driver, "port", 0) or 0,
+            validated.conversation_id,
+            limit=validated.limit,
+        )
+        if msgs is not None:
+            return {
+                "id": validated.conversation_id,
+                "title": "",
+                "offset": 0,
+                "limit": validated.limit,
+                "total": len(msgs),
+                "has_more": True,
+                "reason": "ok",
+                "source": "dom",
+                "partial": True,
+                "messages": msgs,
+            }
         return {
             "id": validated.conversation_id,
             "title": "",
@@ -1278,43 +1299,89 @@ async def do_wait_reply(
     total = 0
     last_role = None
     tail_status = None
+    source = "backend"
     user_tail_since: float | None = None
     fetch_lock = call_lock if call_lock is not None else contextlib.nullcontext()
+    # DOM-mode baseline: "replied" is judged against the tail state at wait
+    # start, not absolute backend totals (rendered counts differ).
+    baseline_tail_text: str | None = None
+    baseline_rendered = 0
 
     while True:
-        try:
-            data = await _conv_read_coalesced(
-                driver, validated.conversation_id, fetch_lock
-            )
-        except ReadThrottledError as e:
-            # The shared read gate is in cooldown — surface an actionable
-            # signal instead of burning the whole timeout waiting on fetches
-            # that cannot run.
-            return {
-                "conversation_id": validated.conversation_id,
-                "status": "read_throttled",
-                "retry_after": round(e.retry_after, 1),
-                "total": total,
-                "last_role": last_role,
-                "tail_status": tail_status,
-                "waited_s": round(time.monotonic() - start, 1),
-            }
-        except Exception:
-            data = {}
-        chain = _conversation_chain(data, with_meta=True) if isinstance(data, dict) else []
-        total = len(chain)
-        tail = chain[-1] if chain else {}
-        last_role = tail.get("role")
-        tail_status = tail.get("status") if last_role == "assistant" else None
-
-        # 'replied' requires a TERMINAL tail: a persisted assistant node can
-        # still be streaming (status='in_progress') — counting it was the
-        # 2026-09-15 false-replied incident.
-        replied = (
-            last_role == "assistant"
-            and _tail_reply_finished(tail)
-            and (validated.since_total is None or total > validated.since_total)
+        # DOM-first: when a tab is showing this conversation, its rendered
+        # tail answers everything we need — zero backend-api calls, immune
+        # to read cooldowns, and live during streaming. The throwaway CDP
+        # session doesn't take the owning driver's slot or lock.
+        dom = await conv_dom_read.conv_tail_state(
+            getattr(driver, "port", 0) or 0, validated.conversation_id
         )
+        if dom is not None:
+            source = "dom"
+            total = dom.get("rendered_total") or 0
+            last_role = dom.get("last_role")
+            generating = bool(dom.get("generating"))
+            tail_text = dom.get("tail_text") or ""
+            tail_status = (
+                "in_progress"
+                if generating
+                else ("finished_successfully" if last_role == "assistant" else None)
+            )
+            if baseline_tail_text is None:
+                baseline_tail_text = tail_text
+                baseline_rendered = total
+            replied = (
+                last_role == "assistant"
+                and not generating
+                and (
+                    validated.since_total is None
+                    or total > validated.since_total
+                    or total > baseline_rendered
+                    or tail_text != baseline_tail_text
+                )
+            )
+            data = None  # no backend payload in DOM mode
+        else:
+            try:
+                data = await _conv_read_coalesced(
+                    driver, validated.conversation_id, fetch_lock
+                )
+            except ReadThrottledError as e:
+                # The shared read gate is in cooldown AND no DOM tab was
+                # available — surface an actionable signal instead of
+                # burning the whole timeout on fetches that cannot run.
+                return {
+                    "conversation_id": validated.conversation_id,
+                    "status": "read_throttled",
+                    "retry_after": round(e.retry_after, 1),
+                    "total": total,
+                    "last_role": last_role,
+                    "tail_status": tail_status,
+                    "waited_s": round(time.monotonic() - start, 1),
+                }
+            except Exception:
+                data = {}
+            chain = (
+                _conversation_chain(data, with_meta=True)
+                if isinstance(data, dict)
+                else []
+            )
+            total = len(chain)
+            tail = chain[-1] if chain else {}
+            last_role = tail.get("role")
+            tail_status = (
+                tail.get("status") if last_role == "assistant" else None
+            )
+            # 'replied' requires a TERMINAL tail: a persisted assistant node
+            # can still be streaming (status='in_progress') — counting it was
+            # the 2026-09-15 false-replied incident.
+            replied = (
+                last_role == "assistant"
+                and _tail_reply_finished(tail)
+                and (
+                    validated.since_total is None
+                    or total > validated.since_total
+                )
+            )
         if replied:
             status = "replied"
             break
@@ -1345,6 +1412,7 @@ async def do_wait_reply(
     return {
         "conversation_id": validated.conversation_id,
         "status": status,
+        "source": source,
         "total": total,
         "last_role": last_role,
         "tail_status": tail_status,

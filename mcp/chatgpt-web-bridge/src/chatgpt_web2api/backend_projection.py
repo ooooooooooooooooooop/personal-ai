@@ -44,7 +44,7 @@ CONVERSATION_PROJECTION_JS = """
 (async function() {
   try {
     var r = await fetch('/backend-api/conversation/' + __D.conv_id + '?offset=0&limit=' + __D.limit, {
-      headers: {'Authorization': 'Bearer ' + __D.token}
+      headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}
     });
     if (!r.ok) return JSON.stringify({__status: r.status, __retry_after: r.headers.get('retry-after')});
     var conv = await r.json();

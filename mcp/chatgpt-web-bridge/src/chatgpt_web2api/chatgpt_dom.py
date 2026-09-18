@@ -571,6 +571,79 @@ class ChatGPTDom:
         except Exception:
             return False
 
+    async def read_tail_state(self) -> dict | None:
+        """Read conversation tail state straight from the rendered DOM.
+
+        Returns ``{rendered_total, last_role, generating, tail_text}`` or
+        None when the tab isn't showing a conversation. Zero backend-api
+        calls — this is what lets wait_reply keep working while the
+        backend read endpoint sits in a 429 cooldown. Note the count is
+        RENDERED messages: long conversations virtualize, so this is a
+        lower bound, not the backend total.
+        """
+        d = self._driver
+        try:
+            raw = await d._js(
+                "(function(){"
+                "  var msgs = document.querySelectorAll('[data-message-author-role]');"
+                "  if (!msgs.length) return null;"
+                "  var last = msgs[msgs.length-1];"
+                "  var md = last.querySelector('.markdown');"
+                "  var stopBtn = document.querySelector('[data-testid=\"stop-button\"], button[aria-label*=\"Stop\" i], button[aria-label*=\"停止\"]');"
+                "  var gen = document.querySelector('[class*=\"result-thinking\"], [class*=\"generating\"]');"
+                "  return JSON.stringify({"
+                "    rendered_total: msgs.length,"
+                "    last_role: last.getAttribute('data-message-author-role'),"
+                "    generating: !!(stopBtn || gen),"
+                "    tail_text: (md ? md.textContent : last.textContent || '').slice(-2000)"
+                "  });"
+                "})()",
+                timeout=8,
+            )
+            if not raw:
+                return None
+            import json as _json
+            data = _json.loads(raw) if isinstance(raw, str) else raw
+            return data if isinstance(data, dict) else None
+        except Exception:
+            return None
+
+    async def read_messages_dom(self, limit: int = 50) -> list[dict] | None:
+        """Extract the rendered messages (role + text) from the DOM.
+
+        Returns the last ``limit`` rendered messages oldest-first, or None
+        when the tab isn't on a conversation. Partial by nature —
+        virtualization clips long histories — so callers must mark the
+        result partial rather than pretending it's the full backend tree.
+        """
+        d = self._driver
+        try:
+            raw = await d._js_with_data(
+                "(function(){"
+                "  var msgs = document.querySelectorAll('[data-message-author-role]');"
+                "  var out = [];"
+                "  var start = Math.max(0, msgs.length - __D.limit);"
+                "  for (var i = start; i < msgs.length; i++) {"
+                "    var m = msgs[i];"
+                "    var md = m.querySelector('.markdown');"
+                "    out.push({"
+                "      role: m.getAttribute('data-message-author-role'),"
+                "      content: (md ? md.textContent : m.textContent || '').trim()"
+                "    });"
+                "  }"
+                "  return JSON.stringify(out);"
+                "})()",
+                {"limit": int(limit)},
+                timeout=10,
+            )
+            if not raw:
+                return None
+            import json as _json
+            data = _json.loads(raw) if isinstance(raw, str) else raw
+            return data if isinstance(data, list) else None
+        except Exception:
+            return None
+
     # ── Rate-limit popup ──────────────────────────────────────
 
     async def dismiss_rate_limit(self) -> bool:

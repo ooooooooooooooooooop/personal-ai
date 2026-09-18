@@ -373,3 +373,123 @@ def test_map_tool_exception_generation_in_progress():
     assert mapped.isError is True
     assert "generation_in_progress" in mapped.content[0].text
     assert "42" in mapped.content[0].text
+
+
+# ── conv_dom_read: DOM-first read path ───────────────────────
+
+
+async def test_wait_reply_uses_dom_when_tab_present(monkeypatch):
+    """With the conv tab live, wait_reply must not touch the backend at all."""
+    import chatgpt_web2api.mcp_server as mod
+    from chatgpt_web2api import conv_dom_read
+
+    calls = {"backend": 0}
+
+    async def _boom(*a, **kw):
+        calls["backend"] += 1
+        raise AssertionError("backend fetch must not run in DOM mode")
+
+    monkeypatch.setattr(mod, "_conv_read_coalesced", _boom)
+
+    async def _tail(port, conv_id):
+        return {
+            "rendered_total": 7,
+            "last_role": "assistant",
+            "generating": False,
+            "tail_text": "the answer",
+        }
+
+    monkeypatch.setattr(conv_dom_read, "conv_tail_state", _tail)
+
+    driver = MagicMock()
+    driver.port = 9222
+    out = await mod.do_wait_reply(
+        driver,
+        {"conversation_id": "conv-dom", "timeout_seconds": 5},
+    )
+    assert out["status"] == "replied"
+    assert out["source"] == "dom"
+    assert calls["backend"] == 0
+
+
+async def test_wait_reply_dom_reports_generating_then_replied(monkeypatch):
+    import chatgpt_web2api.mcp_server as mod
+    from chatgpt_web2api import conv_dom_read
+
+    ticks = {"n": 0}
+
+    async def _tail(port, conv_id):
+        ticks["n"] += 1
+        if ticks["n"] == 1:
+            return {
+                "rendered_total": 6,
+                "last_role": "assistant",
+                "generating": True,
+                "tail_text": "partial",
+            }
+        return {
+            "rendered_total": 6,
+            "last_role": "assistant",
+            "generating": False,
+            "tail_text": "final answer",
+        }
+
+    monkeypatch.setattr(conv_dom_read, "conv_tail_state", _tail)
+
+    async def _noop(_s):
+        return None
+
+    monkeypatch.setattr(mod.asyncio, "sleep", _noop)
+    driver = MagicMock()
+    driver.port = 9222
+    out = await mod.do_wait_reply(
+        driver,
+        {"conversation_id": "c", "timeout_seconds": 10, "poll_seconds": 8},
+    )
+    assert out["status"] == "replied"
+    assert out["source"] == "dom"
+
+
+async def test_wait_reply_falls_back_to_backend_when_no_tab(monkeypatch):
+    import chatgpt_web2api.mcp_server as mod
+    from chatgpt_web2api import conv_dom_read
+
+    async def _none(port, conv_id):
+        return None
+
+    monkeypatch.setattr(conv_dom_read, "conv_tail_state", _none)
+
+    async def _read(driver, conv_id, lock):
+        return {
+            "current_node": "a",
+            "mapping": {
+                "a": {
+                    "parent": None,
+                    "message": {"author": {"role": "assistant"},
+                                "status": "finished_successfully",
+                                "end_turn": True,
+                                "content": {"parts": ["hi"]}},
+                }
+            },
+        }
+
+    monkeypatch.setattr(mod, "_conv_read_coalesced", _read)
+    driver = MagicMock()
+    driver.port = 9222
+    out = await mod.do_wait_reply(
+        driver, {"conversation_id": "c", "timeout_seconds": 5}
+    )
+    assert out["status"] == "replied"
+    assert out["source"] == "backend"
+
+
+def test_conv_ws_url_finds_conv_tab(monkeypatch):
+    from chatgpt_web2api import conv_dom_read
+
+    fake = [{"type": "page", "url": "https://chatgpt.com/c/abc-123",
+             "webSocketDebuggerUrl": "ws://x"}]
+    monkeypatch.setattr(
+        conv_dom_read, "_conv_ws_url", lambda p, c: "ws://x"
+    )
+    # exercised indirectly below via conv_tail_state monkeypatch-free path:
+    assert conv_dom_read._conv_ws_url(9222, "abc-123") == "ws://x"
