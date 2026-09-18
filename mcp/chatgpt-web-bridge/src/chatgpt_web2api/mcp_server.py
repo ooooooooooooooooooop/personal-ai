@@ -128,12 +128,14 @@ class ChatCompletionInput(BaseModel):
     confirm: bool = Field(
         default=False,
         description=(
-            "Set true ONLY after the human user has confirmed the "
-            "conversation binding. The first send to an existing "
-            "conversation returns status=confirmation_required naming the "
-            "project, the conversation, and any session currently using it "
-            "— show that to the user, then resend with confirm=true. A "
-            "reconnect (new MCP session) must confirm again."
+            "Set true ONLY after the human user has explicitly approved "
+            "the conversation binding — never on your own initiative. The "
+            "first send to an existing conversation returns "
+            "status=confirmation_required naming the project, the "
+            "conversation, and any session currently using it — show "
+            "that to the user, WAIT for their approval, then resend with "
+            "confirm=true. A reconnect (new MCP session) must confirm "
+            "again."
         ),
     )
 
@@ -359,8 +361,9 @@ class ChatWithGptInput(BaseModel):
         description=(
             "Every chat_with_gpt call creates a NEW conversation, so every "
             "call needs user confirmation: the first call returns "
-            "status=confirmation_required; resend with confirm=true after "
-            "the user approves."
+            "status=confirmation_required — show it to the user, WAIT for "
+            "explicit approval (never self-confirm), then resend with "
+            "confirm=true."
         ),
     )
 

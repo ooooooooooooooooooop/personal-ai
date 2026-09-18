@@ -166,8 +166,10 @@ async def gate_check(
         action = (
             "This send will CREATE a new conversation"
             + (f" under project {project_label}" if project_label else "")
-            + ". Show this to the user; resend the SAME request with "
-            "confirm=true to proceed."
+            + ". STOP: show this to the user and WAIT for their explicit "
+            "approval — do not retry, rephrase, or set confirm=true on "
+            "your own. Only after the user approves, resend the SAME "
+            "request with confirm=true."
         )
         return {
             # content/model/conversation_id satisfy the tool output schema.
@@ -213,9 +215,11 @@ async def gate_check(
             generating = False
 
     action = (
-        "This session has not sent to this conversation yet. Show the "
-        "project and conversation (and the occupied_by warning, if set) "
-        "to the user; resend the SAME request with confirm=true to bind."
+        "This session has not sent to this conversation yet. STOP: show "
+        "the project and conversation (and the occupied_by warning, if "
+        "set) to the user and WAIT for their explicit approval — do not "
+        "retry, rephrase, or set confirm=true on your own. Only after "
+        "the user approves, resend the SAME request with confirm=true."
     )
     payload = {
         # content/model/conversation_id satisfy the tool output schema.
