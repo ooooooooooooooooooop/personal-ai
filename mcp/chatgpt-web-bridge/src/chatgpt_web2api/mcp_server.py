@@ -45,10 +45,12 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from pydantic import BaseModel, Field
 
+from . import conv_binding
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
 from .cdp_driver import (
     AuthExpiredError,
     CDPDriver,
+    GenerationInProgressError,
     GenerationStuckError,
     RateLimitError,
 )
@@ -121,6 +123,17 @@ class ChatCompletionInput(BaseModel):
             "landing in the wrong project. For project-scoped memory, "
             "custom instructions, and file attachments. Changing this value "
             "starts a new conversation."
+        ),
+    )
+    confirm: bool = Field(
+        default=False,
+        description=(
+            "Set true ONLY after the human user has confirmed the "
+            "conversation binding. The first send to an existing "
+            "conversation returns status=confirmation_required naming the "
+            "project, the conversation, and any session currently using it "
+            "— show that to the user, then resend with confirm=true. A "
+            "reconnect (new MCP session) must confirm again."
         ),
     )
 
@@ -852,6 +865,7 @@ async def do_chat_completion(
     args: dict,
     config: Config,
     on_progress: ProgressCallback | None = None,
+    session_key: str | None = None,
 ) -> dict:
     """Execute a chat completion through the CDP driver."""
     validated = ChatCompletionInput(**args)
@@ -896,6 +910,25 @@ async def do_chat_completion(
     if route == "auto-continue":
         logger.info("Auto-continuing conversation: %s", driver._current_conv_id)
 
+    # Conversation-binding gate: the FIRST send that binds this session to
+    # an existing conversation must be confirmed by the human user (project
+    # + conversation name + occupant warning are returned for display).
+    # Unconfirmed sends into a conv another session uses would silently
+    # hijack it — and a mid-flight send kills the streaming reply. New
+    # conversations skip the gate: nothing exists to take over yet.
+    target_conv = validated.conversation_id or (
+        driver._current_conv_id if route == "auto-continue" else None
+    )
+    binding_gate = await conv_binding.gate_check(
+        driver,
+        target_conv,
+        session_key,
+        confirmed=validated.confirm,
+        project_label=project_id,
+    )
+    if binding_gate is not None:
+        return binding_gate
+
     # Send and collect response. Progress notifications reset the MCP client's
     # idle timer during long generations so the tool call isn't killed at
     # ~30s. on_progress is None when the client can't receive progress.
@@ -932,6 +965,12 @@ async def do_chat_completion(
     # while the reply never persisted server-side (mid-stream death/retract).
     await _notify(on_progress, "Verifying reply persisted…")
     persisted = await _verify_reply_persisted(driver, conv_id)
+
+    # Bind this session to the conversation it just sent into — covers new
+    # conversations (no conv_id existed at gate-check time) and refreshes
+    # the heartbeat for already-bound ones.
+    if conv_id and session_key:
+        conv_binding.claim(conv_id, session_key)
 
     return {
         "content": full_response,
@@ -1450,6 +1489,7 @@ async def do_chat_with_gpt(
     driver: CDPDriver,
     args: dict,
     on_progress: ProgressCallback | None = None,
+    session_key: str | None = None,
 ) -> dict:
     """Chat with a specific Custom GPT."""
     validated = ChatWithGptInput(**args)
@@ -1468,6 +1508,10 @@ async def do_chat_with_gpt(
         if chunk.finish_reason:
             conv_id = driver._current_conv_id or ""
             await _notify(on_progress, "Finalizing…")
+
+    # The GPT chat created a fresh conversation — bind it to this session.
+    if conv_id and session_key:
+        conv_binding.claim(conv_id, session_key)
 
     persisted = await _verify_reply_persisted(driver, conv_id)
     return {
@@ -1922,6 +1966,15 @@ def _format_tool_result(name: str, result) -> object:
     """
     # chat_completion and chat_with_gpt return both text + structured output
     if name in (ToolName.CHAT_COMPLETION.value, ToolName.CHAT_WITH_GPT.value):
+        if isinstance(result, dict) and result.get("status") == "confirmation_required":
+            # Binding gate: no assistant content exists — the payload itself
+            # is the message the agent must relay to the user.
+            text_content = [
+                mcp_types.TextContent(
+                    type="text", text=json.dumps(result, ensure_ascii=False)
+                )
+            ]
+            return text_content, result
         text_content = [mcp_types.TextContent(type="text", text=result["content"])]
         return text_content, result
     # Status operations return status text + structured output
@@ -1967,11 +2020,21 @@ def _map_tool_exception(exc: Exception) -> object:
                 text="ChatGPT session expired — re-login required. (auth_expired)")],
             isError=True,
         )
+    if isinstance(exc, GenerationInProgressError):
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text",
+                text=(f"Conversation is mid-generation — a send now would "
+                      f"interrupt the streaming reply. Retry in "
+                      f"{exc.retry_after:.0f}s or poll wait_reply. "
+                      f"(generation_in_progress, retry_after={exc.retry_after:.0f})"))],
+            isError=True,
+        )
     if isinstance(exc, GenerationStuckError):
         return mcp_types.CallToolResult(
             content=[mcp_types.TextContent(type="text",
-                text=(f"Generation stuck in {exc.phase} for {exc.stalled_for_s:.0f}s "
-                      "— no DOM progress. (generation_stuck)"))],
+                text=(f"Generation stalled — no DOM progress. Poll wait_reply "
+                      f"to check whether it recovered. (generation_stuck, "
+                      f"phase={exc.phase}, stalled_for={exc.stalled_for_s:.0f}s)"))],
             isError=True,
         )
     if isinstance(exc, LockAcquisitionError):
@@ -2163,7 +2226,9 @@ def create_server() -> Server:
                     await _fail_fast_on_open_breaker(driver, breakers)
 
                     # Build handlers bound to the LEASED driver (not _driver).
-                    handler = _build_tool_handler(name, arguments, driver, on_progress)
+                    handler = _build_tool_handler(
+                        name, arguments, driver, on_progress, session_key=session_key
+                    )
                     if handler is None:
                         raise ValueError(f"Unknown tool: {name}")
 
@@ -2230,10 +2295,12 @@ def create_server() -> Server:
             if open_kind is not None:
                 raise CircuitOpenError(open_kind)
 
-    def _build_tool_handler(name, arguments, driver, on_progress):
+    def _build_tool_handler(name, arguments, driver, on_progress, session_key=None):
         """Build a tool handler bound to a specific driver (singleton or leased)."""
         handlers = {
-            ToolName.CHAT_COMPLETION.value: lambda: do_chat_completion(driver, arguments, _config, on_progress),
+            ToolName.CHAT_COMPLETION.value: lambda: do_chat_completion(
+                driver, arguments, _config, on_progress, session_key=session_key
+            ),
             ToolName.LIST_MODELS.value: lambda: do_list_models(driver),
             ToolName.LIST_PROJECTS.value: lambda: do_list_projects(driver),
             ToolName.GET_CONVERSATION.value: lambda: do_get_conversation(driver, arguments),
@@ -2248,7 +2315,9 @@ def create_server() -> Server:
             ToolName.CREATE_MEMORY.value: lambda: do_create_memory(driver, arguments, on_progress),
             ToolName.DELETE_MEMORY.value: lambda: do_delete_memory(driver, arguments),
             ToolName.LIST_GPTS.value: lambda: do_list_gpts(driver),
-            ToolName.CHAT_WITH_GPT.value: lambda: do_chat_with_gpt(driver, arguments, on_progress),
+            ToolName.CHAT_WITH_GPT.value: lambda: do_chat_with_gpt(
+                driver, arguments, on_progress, session_key=session_key
+            ),
             ToolName.LIST_PROJECT_FILES.value: lambda: do_list_project_files(driver, arguments),
         }
         return handlers.get(name)
@@ -2287,9 +2356,18 @@ def create_server() -> Server:
         # which is request-scoped. None when the client can't receive progress.
         on_progress = _make_progress_callback()
 
+        # Session identity for the conversation-binding gate (singleton mode:
+        # "singleton"/"stdio-singleton", or the SSE/http session id when the
+        # transport exposes one — a reconnect therefore re-confirms).
+        from .session_key import current_mcp_session_key
+
+        _session_key = current_mcp_session_key(
+            server, transport=_transport, pool_enabled=False
+        )
+
         handlers = {
             ToolName.CHAT_COMPLETION.value: lambda: do_chat_completion(
-                _driver, arguments, _config, on_progress
+                _driver, arguments, _config, on_progress, session_key=_session_key
             ),
             ToolName.LIST_MODELS.value: lambda: do_list_models(_driver),
             ToolName.LIST_PROJECTS.value: lambda: do_list_projects(_driver),
@@ -2309,7 +2387,9 @@ def create_server() -> Server:
             ToolName.CREATE_MEMORY.value: lambda: do_create_memory(_driver, arguments, on_progress),
             ToolName.DELETE_MEMORY.value: lambda: do_delete_memory(_driver, arguments),
             ToolName.LIST_GPTS.value: lambda: do_list_gpts(_driver),
-            ToolName.CHAT_WITH_GPT.value: lambda: do_chat_with_gpt(_driver, arguments, on_progress),
+            ToolName.CHAT_WITH_GPT.value: lambda: do_chat_with_gpt(
+                _driver, arguments, on_progress, session_key=_session_key
+            ),
             ToolName.LIST_PROJECT_FILES.value: lambda: do_list_project_files(_driver, arguments),
         }
 
@@ -2767,8 +2847,11 @@ async def _run_sse(server: Server, init_options, config: Config, port: int) -> N
 
     The stdio transport is unaffected — it stays on its existing path.
     """
+    import contextlib
+
     import uvicorn
     from mcp.server.sse import SseServerTransport
+    from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
     from starlette.applications import Starlette
     from starlette.responses import Response
     from starlette.routing import Mount, Route
@@ -2782,17 +2865,40 @@ async def _run_sse(server: Server, init_options, config: Config, port: int) -> N
             await server.run(streams[0], streams[1], init_options, raise_exceptions=True)
         return Response()
 
+    # Streamable-HTTP transport on the same port: harnesses that cannot speak
+    # legacy SSE (e.g. Codex's rmcp client only does stdio + streamable-http)
+    # register url=http://127.0.0.1:8090/mcp instead of spawning a per-session
+    # stdio server — one daemon, one driver pool, one mutation-lock regime.
+    http_sessions = StreamableHTTPSessionManager(
+        app=server,
+        event_store=None,
+        json_response=False,
+        stateless=False,
+    )
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        async with http_sessions.run():
+            yield
+
     # handle_post_message is a raw ASGI app (scope, receive, send) that
     # sends its own HTTP response. Mount it directly — not as a Starlette
-    # endpoint, which would try to wrap it in a second response.
+    # endpoint, which would try to wrap it in a second response. Same for
+    # the streamable-http session manager's handle_request.
     app = Starlette(
         routes=[
             Route("/sse", endpoint=handle_sse, methods=["GET"]),
             Mount("/messages", app=sse.handle_post_message),
-        ]
+            Mount("/mcp", app=http_sessions.handle_request),
+        ],
+        lifespan=lifespan,
     )
 
-    logger.info("MCP SSE server on http://%s:%d/sse", config.server.host, port)
+    logger.info(
+        "MCP SSE server on http://%s:%d/sse (streamable-http: /mcp)",
+        config.server.host,
+        port,
+    )
 
     uconfig = uvicorn.Config(
         app,

@@ -50,6 +50,20 @@ def current_mcp_session_key(
                 session_id = query_params.get("session_id")
                 if session_id:
                     return f"sse:{session_id}"
+            # Streamable-HTTP transport: session id arrives as the
+            # ``mcp-session-id`` header (set by the client after initialize),
+            # not as a query param. Same stability semantics as sse:{id} —
+            # one id per client session, held by the session manager.
+            headers = getattr(request, "headers", None)
+            if headers is not None:
+                try:
+                    http_sid = headers.get("mcp-session-id")
+                except Exception:
+                    http_sid = None
+                # isinstance guard: real headers are str; bare MagicMock
+                # attributes in tests must not read as a valid session id.
+                if isinstance(http_sid, str) and http_sid:
+                    return f"http:{http_sid}"
     except LookupError:
         # Not in a request context (e.g., list_tools at startup, or outside
         # a handler). Fall through to transport/pool-mode defaults below.

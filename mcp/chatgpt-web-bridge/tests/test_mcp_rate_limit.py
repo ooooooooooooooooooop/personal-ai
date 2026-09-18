@@ -131,7 +131,9 @@ async def test_mcp_chat_transient_rate_limit_retries_transparently(monkeypatch):
     async with create_connected_server_and_client_session(server) as session:
         await session.initialize()
         result = await session.call_tool(
-            "chat_completion", {"message": "hi"}
+            # confirm: auto-continue binds to an existing conversation,
+            # which the conv-binding gate holds for user confirmation.
+            "chat_completion", {"message": "hi", "confirm": True}
         )
 
     assert result.isError is not True  # transparent recovery

@@ -18,9 +18,11 @@ import uuid
 from aiohttp import web
 
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
+from . import conv_binding
 from .cdp_driver import (
     AuthExpiredError,
     CDPDriver,
+    GenerationInProgressError,
     GenerationStuckError,
     RateLimitError,
     is_rate_limited_text,
@@ -413,10 +415,53 @@ class APIServer:
                 elif route == "new":
                     self._last_project_id = project_id
 
+                # Conversation-binding gate (same contract as the MCP
+                # chat_completion tool): the first send that binds this
+                # client to an existing conversation needs explicit user
+                # confirmation — resend the same body with "confirm": true.
+                # Session identity comes from X-Session-Id; REST callers
+                # without one share the "rest:default" identity.
+                rest_session = request.headers.get("X-Session-Id")
+                rest_session = f"rest:{rest_session}" if rest_session else "rest:default"
+                target_conv = conversation_id or (
+                    self._driver._current_conv_id
+                    if route == "auto-continue"
+                    else None
+                )
+                binding_gate = await conv_binding.gate_check(
+                    self._driver,
+                    target_conv,
+                    rest_session,
+                    confirmed=bool(body.get("confirm")),
+                    project_label=project_id,
+                )
+                if binding_gate is not None:
+                    return web.json_response(
+                        {
+                            "error": {
+                                "message": (
+                                    "First send to this conversation requires "
+                                    "user confirmation — show the binding "
+                                    "details to the user, then resend with "
+                                    "\"confirm\": true."
+                                ),
+                                "type": "invalid_request_error",
+                                "param": "conversation_id",
+                                "code": "confirmation_required",
+                                "binding": binding_gate,
+                            }
+                        },
+                        status=409,
+                    )
+
                 if stream:
-                    return await self._stream_response(request, model_slug, full_text, timeout)
+                    return await self._stream_response(
+                        request, model_slug, full_text, timeout, session_key=rest_session
+                    )
                 else:
-                    return await self._full_response(request, model_slug, full_text, timeout)
+                    return await self._full_response(
+                        request, model_slug, full_text, timeout, session_key=rest_session
+                    )
 
         except Exception as e:
             logger.error("Chat error: %s", e, exc_info=True)
@@ -489,6 +534,22 @@ class APIServer:
                 },
                 status=401,
             )
+        if isinstance(exc, GenerationInProgressError):
+            # 409 Conflict: the conversation is mid-generation; a send would
+            # interrupt the streaming reply. Retry-After carries the gate's
+            # remaining window so clients can schedule a retry.
+            return web.json_response(
+                {
+                    "error": {
+                        "message": str(exc),
+                        "type": "invalid_request_error",
+                        "param": "conversation_id",
+                        "code": "generation_in_progress",
+                    }
+                },
+                status=409,
+                headers={"Retry-After": str(int(exc.retry_after))},
+            )
         if isinstance(exc, GenerationStuckError):
             return web.json_response(
                 {
@@ -547,7 +608,8 @@ class APIServer:
     # ── Response formatters ───────────────────────────────────
 
     async def _full_response(
-        self, request: web.Request, model: str, text: str, timeout: float
+        self, request: web.Request, model: str, text: str, timeout: float,
+        session_key: str | None = None,
     ) -> web.Response:
         """Non-streaming: collect all chunks, return one JSON.
 
@@ -574,6 +636,10 @@ class APIServer:
         conv_id = self._driver._current_conv_id or ""
         self._last_conv_id = conv_id
         self._last_successful_send_at = time.time()
+        # Bind this conversation to the REST session (covers fresh convs —
+        # no conv_id existed at gate-check time — and heartbeats bound ones).
+        if conv_id and session_key:
+            conv_binding.claim(conv_id, session_key)
 
         return web.json_response(
             {
@@ -594,7 +660,8 @@ class APIServer:
         )
 
     async def _stream_response(
-        self, request: web.Request, model: str, text: str, timeout: float
+        self, request: web.Request, model: str, text: str, timeout: float,
+        session_key: str | None = None,
     ) -> web.Response:
         """Streaming: SSE chunks as they arrive.
 
@@ -697,6 +764,8 @@ class APIServer:
                 if chunk.finish_reason:
                     conv_id = self._driver._current_conv_id or ""
                     self._last_conv_id = conv_id
+                    if conv_id and session_key:
+                        conv_binding.claim(conv_id, session_key)
                     if chunk.finish_reason == "stop":
                         self._last_successful_send_at = time.time()
                     await self._send_sse(

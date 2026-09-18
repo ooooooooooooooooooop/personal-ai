@@ -279,12 +279,15 @@ async def test_rest_auto_continue_invokes_ensure_current(monkeypatch):
     server._stream_response = _stub_response
 
     # Fake request: a user message, no conversation_id (→ continue branch),
-    # matching the server's _last_conv_id.
+    # matching the server's _last_conv_id. confirm=true: auto-continue binds
+    # to an existing conversation, which the conv-binding gate would
+    # otherwise hold for user confirmation.
     request = MagicMock()
     request.headers = {}
     request.json = AsyncMock(return_value={
         "messages": [{"role": "user", "content": "hello"}],
         "model": "auto",
+        "confirm": True,
     })
 
     # Bypass the cross-process file lock so the test runs without it.

@@ -133,6 +133,27 @@ Local delta carried in this copy (applied on top of upstream):
 - **tool-failure logging**: `_call_tool_pooled` logs every mapped exception
   (`tool %s failed (mapped): %s: %s`) and unmapped ones with traceback — a
   client-visible error can no longer leave zero trace in the daemon log.
+- **streamable-HTTP transport**: the SSE daemon's Starlette app also mounts
+  `/mcp` (`StreamableHTTPSessionManager`, stateful sessions) so harnesses
+  without legacy-SSE clients (e.g. Codex, stdio + streamable-http only)
+  converge on the same daemon/pool instead of spawning per-session stdio
+  processes that share one Chrome without a shared pool. Session identity for
+  the driver pool resolves `mcp-session-id` header → `http:{id}`.
+- **send-button selector**: `#composer-submit-button` leads the chain (the
+  2026 composer's canonical id); aria-label matching now also covers the
+  Chinese "发送" label instead of relying solely on the testid fallback.
+- **generation gate** (`generation_gate.py`): cross-process `generating.json`
+  marks a conversation mid-generation after send acknowledgement; a second
+  send to that conv — any process, any tab — fails fast with
+  `GenerationInProgressError` (MCP `generation_in_progress`, REST 409) plus
+  a live DOM probe (`is_generating`) covering manual browser sends.
+  MutationLock is per-target and cannot cover same-conv/different-tab sends.
+- **conversation binding** (`conv_binding.py`): `conv_bindings.json` binds a
+  conversation to the session that confirmed it. First send to an existing
+  conversation returns `confirmation_required` (project + title + occupant
+  warning); `confirm=true` claims/takes over. Reconnect ⇒ new session key ⇒
+  re-confirm. `last_seen` TTL (30 min) + owner-pid liveness reclaim
+  abandoned/daemon-restarted bindings. Reads never touch the registry.
 
 Runtime state is NOT vendored: `.venv`, `~/.chatgpt-web2api/` (config, tab
 registry, pace file, locks, diagnostics, chrome profile — consolidated from

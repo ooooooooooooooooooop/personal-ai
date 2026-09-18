@@ -82,7 +82,14 @@ COMPOSER_FALLBACK_SELECTOR = "textarea#prompt-textarea"
 # <button> inside the composer form whose aria-label is "send" (and
 # which is not the stop button). We match by aria-label first, then by
 # the legacy testid for older deployments.
-SEND_BUTTON_SELECTOR = 'button[aria-label*="Send" i]:not([data-testid="stop-button"])'
+# The current composer's canonical submit button id (2026 redesign). Listed
+# first: the aria-label match below only covers English/Chinese labels, and
+# the testid fallback can collide with a second inert button in some layouts.
+SEND_BUTTON_SELECTOR = (
+    '#composer-submit-button,'
+    ' button[aria-label*="Send" i]:not([data-testid="stop-button"]),'
+    ' button[aria-label*="发送"]:not([data-testid="stop-button"])'
+)
 SEND_BUTTON_FALLBACK_SELECTOR = 'button[data-testid="send-button"]'
 # P2.5: broader fallback — a submit-type button inside the COMPOSER FORM
 # (scoped to the form containing #prompt-textarea, not page-global, to avoid
@@ -540,6 +547,29 @@ class ChatGPTDom:
         # type_message alone, since a successful type can still fail to send.
         if d._breakers:
             d._breakers.record_success(BreakerKind.COMPOSER_SEND_READINESS)
+
+    async def is_generating(self) -> bool:
+        """Is the conversation on the CURRENT tab mid-generation?
+
+        Probes the same signals the selector-drift diagnostic reports:
+        the stop button (send affordance is replaced by stop while
+        generating) or a thinking/generating indicator. Best-effort: any
+        JS failure answers False — a broken probe must not block sends;
+        the file-backed generation gate is the authoritative layer.
+        """
+        d = self._driver
+        try:
+            raw = await d._js(
+                "(function(){"
+                "  var stopBtn = document.querySelector('[data-testid=\"stop-button\"], button[aria-label*=\"Stop\" i], button[aria-label*=\"停止\"]');"
+                "  var gen = document.querySelector('[class*=\"result-thinking\"], [class*=\"generating\"]');"
+                "  return (stopBtn || gen) ? 'yes' : 'no';"
+                "})()",
+                timeout=5,
+            )
+            return raw == "yes"
+        except Exception:
+            return False
 
     # ── Rate-limit popup ──────────────────────────────────────
 

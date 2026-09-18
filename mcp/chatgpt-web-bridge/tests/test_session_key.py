@@ -112,3 +112,32 @@ class TestNeverRandom:
         key2 = current_mcp_session_key(server, transport="sse", pool_enabled=False)
         # Both calls return the same deterministic "singleton" — not a random key.
         assert key1 == key2 == "singleton"
+
+
+class TestStreamableHttpSessionId:
+    """Streamable-HTTP transport: session id arrives as mcp-session-id header."""
+
+    def _make_server_with_header(self, header_value):
+        server = MagicMock()
+        server.request_context.request.query_params.get.return_value = None
+        server.request_context.request.headers.get.side_effect = (
+            lambda k, default=None: header_value if k == "mcp-session-id" else default
+        )
+        return server
+
+    def test_http_session_id_header(self):
+        server = self._make_server_with_header("sess-9f8e7d")
+        key = current_mcp_session_key(server, transport="http", pool_enabled=True)
+        assert key == "http:sess-9f8e7d"
+
+    def test_http_no_header_pool_enabled_returns_none(self):
+        server = self._make_server_with_header(None)
+        key = current_mcp_session_key(server, transport="http", pool_enabled=True)
+        assert key is None
+
+    def test_sse_query_param_still_wins_over_header(self):
+        """If both are present, the SSE query-param id wins (existing order)."""
+        server = self._make_server_with_header("sess-http")
+        server.request_context.request.query_params.get.return_value = "sess-sse"
+        key = current_mcp_session_key(server, transport="sse", pool_enabled=True)
+        assert key == "sse:sess-sse"

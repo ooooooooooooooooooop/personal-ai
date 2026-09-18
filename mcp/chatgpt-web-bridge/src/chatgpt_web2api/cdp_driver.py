@@ -274,6 +274,26 @@ class SendReadinessError(RuntimeError):
     """
 
 
+class GenerationInProgressError(RuntimeError):
+    """Raised when a send targets a conversation that is mid-generation.
+
+    ChatGPT's web UI lets a new message interrupt the streaming reply —
+    observed in the field as 1-2 char truncated answers when two harness
+    sessions shared one conv_id across different tabs/processes (the
+    MutationLock is per-target, not per-conversation). The gate is checked
+    before typing: fail fast with ``retry_after`` so the caller waits or
+    polls ``wait_reply`` instead of murdering the in-flight generation.
+    """
+
+    def __init__(self, conversation_id: str, retry_after: float = 0.0) -> None:
+        super().__init__(
+            f"conversation {conversation_id} is mid-generation; "
+            f"sending now would interrupt the streaming reply"
+        )
+        self.conversation_id = conversation_id
+        self.retry_after = retry_after
+
+
 class CDPReconnectError(RuntimeError):
     """Raised when CDP reconnect exhausts its 3-attempt backoff without
     re-establishing the websocket.
@@ -2129,6 +2149,7 @@ class CDPDriver:
         9. ALWAYS: scope.close() in finally (clears capture state on every
            terminal path — success, timeout, exception, cancellation).
         """
+        from . import generation_gate
         from .identity_listener import hash_sent_text
         from .turn_anchor import TurnReconciliationError
 
@@ -2146,6 +2167,23 @@ class CDPDriver:
         # The fallback anchor captures pre-send state (backend node-ids/times
         # or wall-clock) for dual-anchor correlation if UUID capture fails.
         fallback_anchor = await self._capture_pre_send_fallback_anchor(text)
+        # Generation gate (per-conversation, cross-process): a second send
+        # into a conversation that is mid-generation kills the streaming
+        # reply — observed as 1-2 char truncated answers when two harness
+        # sessions shared one conv_id from different tabs/processes.
+        # MutationLock is per-target and does not cover this. Fresh chats
+        # skip the gate: a nonexistent conversation can't be generating.
+        gen_gate_conv = self._current_conv_id
+        if gen_gate_conv:
+            busy_for = generation_gate.busy_remaining(gen_gate_conv)
+            if busy_for > 0:
+                raise GenerationInProgressError(gen_gate_conv, retry_after=busy_for)
+            if await self._dom.is_generating():
+                # Live generation this process never flagged — e.g. a manual
+                # browser send or a flag that outlived its watcher. The DOM
+                # can't tell us how much longer; retry on a short horizon.
+                raise GenerationInProgressError(gen_gate_conv, retry_after=60.0)
+
         if self._identity_listener is not None and self._identity_listener.is_alive():
             capture_scope = self._identity_listener.arm_capture_scope(
                 expected_text_hash=hash_sent_text(text),
@@ -2206,6 +2244,17 @@ class CDPDriver:
             except (Exception, asyncio.CancelledError):
                 await self._clear_composer()
                 raise
+
+            # Send verified → this conv is now mid-generation on OUR watch.
+            # Flag it so a concurrent send (any process/tab) fails fast at
+            # the gate instead of killing this stream. Cleared in finally
+            # when our observation ends; TTL covers crash paths.
+            # Re-resolve: a fresh-chat send had no conv_id at gate-check
+            # time — the conversation only exists now.
+            if not gen_gate_conv:
+                gen_gate_conv = self._current_conv_id
+            if gen_gate_conv:
+                generation_gate.mark_generating(gen_gate_conv)
 
             # A2 Step 7: build the final anchor (fallback + captured UUID).
             turn_anchor = fallback_anchor.with_captured_id(captured_uuid)
@@ -2305,6 +2354,11 @@ class CDPDriver:
             # A2 Step 9: ALWAYS clear the capture scope (failure-mode E).
             if capture_scope is not None:
                 capture_scope.close()
+            # Our observation of this generation ended (completed, timed
+            # out, or errored) — release the gate. If generation somehow
+            # continues past our watch, the DOM probe remains as backstop.
+            if gen_gate_conv:
+                generation_gate.clear_generating(gen_gate_conv)
 
         yield StreamChunk(delta="", finish_reason="stop")
 

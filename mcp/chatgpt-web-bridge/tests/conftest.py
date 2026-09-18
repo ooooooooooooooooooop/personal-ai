@@ -118,6 +118,21 @@ def event_loop():
     loop.close()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_shared_state_files(tmp_path, monkeypatch):
+    """Point cross-process state files at a scratch dir for every test.
+
+    conv_binding / generation_gate read+write JSON under the real runtime
+    dir (~/.chatgpt-web2api). Without this, a test that routes through the
+    binding gate would read or pollute live daemon state.
+    """
+    from chatgpt_web2api import conv_binding, generation_gate
+
+    monkeypatch.setattr(conv_binding, "BIND_PATH", tmp_path / "conv_bindings.json")
+    monkeypatch.setattr(generation_gate, "GEN_PATH", tmp_path / "generating.json")
+    yield
+
+
 @pytest.fixture(scope="session")
 def e2e_config() -> Config:
     """Config for the live run: default profile, headed, CDP on 9222."""
