@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -56,8 +57,8 @@ FULL_TRIGGERS = (
 
 FULL_TRIGGER_GLOBS = ("requirements",)
 
-# Top-level dirs the repo unittests can observe. Docs, soul manifests, and
-# JS layers are covered by validate_repo/npm instead — no unittest impact.
+# JS-only dirs have no python import edge into tests/, but dsh behavior is
+# exercised by these suites through config contracts — keep explicit.
 UNITS_BY_PREFIX = {
     "dsh/": [
         "tests/test_dsh_compatibility.py",
@@ -66,6 +67,36 @@ UNITS_BY_PREFIX = {
         "tests/test_dsh_source_state.py",
     ],
 }
+
+
+def _module_names(path: str) -> set[str]:
+    """Every dotted suffix of a .py path that tests might import.
+
+    'scripts/memory/provider.py' →
+    {'provider', 'memory.provider', 'scripts.memory.provider'}
+    Over-matching is safe (extra tests run); under-matching is the risk.
+    """
+    stem = path[:-3].replace("/", ".") if path.endswith(".py") else path
+    parts = stem.split(".")
+    return {".".join(parts[i:]) for i in range(len(parts))}
+
+
+def _tests_importing(repo: Path, names: set[str]) -> set[str]:
+    """tests/test_*.py files whose import lines reference any name."""
+    tests_dir = repo / "tests"
+    hits: set[str] = set()
+    pats = [
+        re.compile(rf"(?:^|\s)(?:import|from)\s+{re.escape(n)}(?:\.|\s|$)")
+        for n in names
+    ]
+    for tf in tests_dir.glob("test_*.py"):
+        try:
+            src = tf.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if any(p.search(src) for p in pats):
+            hits.add(f"tests/{tf.name}")
+    return hits
 
 # scripts/ entries that are ordinary tooling (not gate machinery): a change
 # still gets syntax-checked but only needs its own unittest coverage.
@@ -93,7 +124,8 @@ def _staged_files(repo: Path) -> list[str]:
     return [ln.strip() for ln in out.splitlines() if ln.strip()]
 
 
-def plan(files: list[str]) -> dict:
+def plan(files: list[str], repo: Path | None = None) -> dict:
+    repo = repo or Path(__file__).resolve().parent.parent
     reasons: list[str] = []
     compile_set: set[str] = set()
     unittest_set: set[str] = set()
@@ -114,6 +146,12 @@ def plan(files: list[str]) -> dict:
         # from the worktree since `git add`).
         if path.endswith(".py"):
             compile_set.add(path)
+            # Reverse-import mapping: run every test that imports the
+            # changed module (direct imports only — transitive coverage is
+            # the FULL gate's job when triggers fire).
+            unittest_set.update(
+                _tests_importing(repo, _module_names(path))
+            )
         for prefix, tests in UNITS_BY_PREFIX.items():
             if path.startswith(prefix):
                 unittest_set.update(tests)

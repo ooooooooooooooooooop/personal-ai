@@ -69,6 +69,17 @@ class TestGatePlanner(unittest.TestCase):
         p2 = gate_planner.plan(["mcp/chatgpt-web-bridge/src/x.py"])
         self.assertEqual(p2["mcp_suites"], [])
 
+    def test_scripts_change_runs_importing_tests(self):
+        # tests/test_personal_ai_sync.py imports personal_ai_sync
+        p = gate_planner.plan(["scripts/personal_ai_sync.py"])
+        self.assertEqual(p["mode"], "FULL")  # gate machinery → FULL anyway
+
+    def test_plain_script_maps_via_imports(self):
+        # A non-gate script covered by tests must select them via import scan.
+        p = gate_planner.plan(["scripts/trace_identity.py"])
+        self.assertEqual(p["mode"], "DELTA")
+        self.assertIn("tests/test_trace_identity.py", p["unittest"])
+
     def test_mixed_change_unions(self):
         p = gate_planner.plan(
             ["docs/a.md", "dsh/x.js", "tests/test_repository.py"]
