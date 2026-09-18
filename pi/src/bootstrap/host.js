@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -18,6 +18,7 @@ function numEnv(name) {
   return Number.isFinite(v) && v > 0 ? v : undefined;
 }
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
+import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { createChannelHost } from '../adapter/channel.js';
 import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
@@ -165,7 +166,7 @@ export async function startHost({
   // parked for review — never silently abandoned
   const recoveryActions = executor.recover({ workdir });
 
-  const customTools = [jobStatusTool(jobStore)];
+  const customTools = [jobStatusTool(jobStore), updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null)];
   if (delegationCommand) customTools.push(delegateTool(executor, {
     commandFor: delegationCommand,
     workdir,
@@ -397,6 +398,13 @@ export async function startHost({
       currentSession.setSessionName?.(name);
       return { name };
     },
+    // Deleting the LIVE session would orphan its in-memory tree — refuse;
+    // the caller switches away first.
+    remove: async (path) => {
+      const live = currentSession?.sessionManager?.getSessionFile?.();
+      if (live && resolve(path) === resolve(live)) throw new Error('cannot delete the active session');
+      return sessionManagers.remove(path, sessionDir);
+    },
     // Fork = copy the transcript into a new session file and continue there —
     // the original stays untouched. rebuildSession switches the live surface.
     fork: async (path) => {
@@ -433,6 +441,9 @@ export async function startHost({
     modes: {
       get: () => riskMode,
       set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },
+    },
+    todos: {
+      list: () => readTodos(core.paths.root, currentSession?.sessionId ?? null),
     },
   });
   const channel = channelHandle.channel;

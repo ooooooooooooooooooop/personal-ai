@@ -196,12 +196,13 @@ test('plan mode escalates mutating-capable calls to ask; benign stays allow', as
   const { audit, policy, predictions } = fixture();
   let mode = 'normal';
   const asked = [];
+  let askedArgs = null;
   const kernel = new GovernanceKernel({
     audit, policy, predictions,
     commandArgs: { shell: 'command' },
     mutatingTools: ['write', 'edit', 'delete'],
     modeProvider: () => mode,
-    ask: async (pending) => { asked.push(pending.rule); return 'allow'; },
+    ask: async (pending) => { asked.push(pending.rule); askedArgs ??= pending.args; return 'allow'; },
     commandClassifier: async (source) => source.startsWith('rm')
       ? { units: [{ raw: source }], parseError: null, risk: 'destructive', hasUnknown: false }
       : source.startsWith('mkdir')
@@ -221,6 +222,8 @@ test('plan mode escalates mutating-capable calls to ask; benign stays allow', as
   const r = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'ls -la' } }));
   assert.equal(r, undefined);
   assert.equal(asked.length, 2, 'benign read did not ask');
+  // the ask payload carries the real args — the operator approves what they see
+  assert.equal(askedArgs?.command, 'mkdir x');
 });
 
 test('plan mode cannot soften policy — destructive deny still denies', async () => {

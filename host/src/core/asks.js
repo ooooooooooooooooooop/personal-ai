@@ -95,6 +95,7 @@ export class PendingAsks {
         rule: descriptor.rule ?? 'ask',
         summary: descriptor.summary ?? '',
         detail: descriptor.detail ?? null,
+        args: descriptor.args ?? null,
         createdAt: new Date(this.now()).toISOString(),
         expiresAt,
         _finish: finish,

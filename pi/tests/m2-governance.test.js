@@ -12,6 +12,7 @@ import { createRevalidator } from '../src/adapter/revalidate.js';
 import { renderDenial } from '../src/adapter/errors.js';
 import { ToolSurface } from '../src/adapter/surface.js';
 import { FileOpsGuard } from '../src/adapter/fileops.js';
+import { updateTodosTool, readTodos } from '../src/adapter/todos.js';
 
 test('command parser extracts units hidden in substitutions and pipes', async () => {
   const { units, risk } = await parseShellCommand('rm -rf $(cat targets) | tee log');
@@ -138,4 +139,27 @@ test('FileOpsGuard: create tombstone lets rewind remove post-anchor files; listA
   for (let i = 0; i < 60; i++) await guard.backup(join(dir, `f${i}.txt`));
   assert.equal(guard.list().length, 50);
   assert.ok(guard.listAll().length > 50);
+});
+
+test('update_todos persists a session-scoped checklist readable via readTodos', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-todos-'));
+  let sid = 'sess-A';
+  const tool = updateTodosTool(dir, () => sid);
+  const r = await tool.execute('tc1', {
+    todos: [
+      { content: 'scan repo', status: 'completed' },
+      { content: 'write patch', status: 'in_progress', activeForm: 'writing patch' },
+      { content: 'run tests', status: 'pending' },
+    ],
+  });
+  assert.equal(r.isError, undefined);
+  const list = readTodos(dir, 'sess-A');
+  assert.equal(list.length, 3);
+  assert.equal(list[1].activeForm, 'writing patch');
+  // session switch isolates the list
+  sid = 'sess-B';
+  assert.equal(readTodos(dir, 'sess-B').length, 0);
+  // bad status coerced to pending
+  await tool.execute('tc2', { todos: [{ content: 'x', status: 'bogus' }] });
+  assert.equal(readTodos(dir, 'sess-B')[0].status, 'pending');
 });

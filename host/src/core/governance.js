@@ -94,7 +94,7 @@ export class GovernanceKernel {
       data: { toolCallId: ctx.toolCallId, rule, summary },
     });
     const answer = await this.ask(
-      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null },
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, args: sanitizeAskArgs(ctx.args) },
       ctx.signal,
     );
     this.audit.write({
@@ -283,3 +283,17 @@ function summarizeArgs(args) {
 }
 
 const clip = (s, n = 240) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
+/**
+ * Args carried onto the operator ask card — the operator approves what they
+ * can SEE, so the real payload (command/path/content) must be inspectable.
+ * Strings are clipped for transport; nothing is dropped by key.
+ */
+function sanitizeAskArgs(args, depth = 0) {
+  if (args == null || typeof args !== 'object') return typeof args === 'string' ? clip(args, 4000) : args;
+  if (Array.isArray(args)) return args.slice(0, 50).map((v) => sanitizeAskArgs(v, depth + 1));
+  if (depth > 4) return '[nested]';
+  const out = {};
+  for (const [k, v] of Object.entries(args)) out[k] = sanitizeAskArgs(v, depth + 1);
+  return out;
+}

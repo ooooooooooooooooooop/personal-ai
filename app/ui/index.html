@@ -72,6 +72,11 @@
           <svg class="mascot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><circle cx="19" cy="18" r="2"/></svg>
           <div class="empty-title">今天想做点什么？</div>
           <div class="empty-sub">输入一条消息开始。治理、审计与持久化在底下照常运转。</div>
+          <div id="starters">
+            <button class="starter" data-q="浏览当前工作目录，告诉我这个项目是做什么的">这个项目是做什么的？</button>
+            <button class="starter" data-q="检查工作目录里的测试能不能跑通，失败了先读错误再修">跑一遍测试并修失败</button>
+            <button class="starter" data-q="先列个计划给我确认，别急着改">帮我规划下一步改动</button>
+          </div>
         </div>
         <div id="setup-card" class="hidden">
           <div class="setup-title">先接一个模型</div>
@@ -95,6 +100,7 @@
 
       <div id="composer-dock">
         <div id="queue-row" class="hidden"></div>
+        <div id="todo-panel" class="hidden"></div>
         <div id="composer">
           <textarea id="input" rows="1" placeholder="分配任务，或询问任何问题…"></textarea>
           <div class="composer-bar">
@@ -114,6 +120,7 @@
         </div>
         <div id="chip-menu" class="chip-menu hidden"></div>
         <div id="slash-menu" class="slash-menu hidden"></div>
+        <div id="statusline"></div>
       </div>
     </section>
 
@@ -125,6 +132,7 @@
       <div class="table-wrap">
         <table id="jobs"><thead><tr><th>job</th><th>类型</th><th>状态</th><th>更新时间</th></tr></thead><tbody></tbody></table>
       </div>
+      <div id="job-detail" class="hidden"></div>
     </section>
 
     <section id="view-audit" class="view hidden">

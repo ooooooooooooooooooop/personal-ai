@@ -283,7 +283,23 @@ function addTool(ev) {
   div.querySelector('.t-arg').textContent = arg.length > 90 ? `${arg.slice(0, 90)}…` : arg;
   const body = div.querySelector('.tool-body');
   const argsStr = (() => { try { return JSON.stringify(ev.args, null, 2); } catch { return String(ev.args); } })();
-  if (argsStr && argsStr !== '{}') body.innerHTML = `<div class="tb-label">入参</div><pre></pre>`;
+  const a = ev.args ?? {};
+  const editPair = [a.oldText ?? a.old_string, a.newText ?? a.new_string];
+  if ((editPair[0] != null || editPair[1] != null) && /^(edit|write|patch|apply)/i.test(ev.toolName ?? '')) {
+    // Edit payloads render as a colored diff, not raw JSON.
+    body.innerHTML = `${a.path ? `<div class="tb-label"></div>` : ''}<pre class="diff-block"></pre>`;
+    if (a.path) body.querySelector('.tb-label').textContent = a.path;
+    body.querySelector('.diff-block').innerHTML = diffHtml(String(editPair[0] ?? ''), String(editPair[1] ?? ''));
+  } else if (/^(bash|shell|powershell|cmd|run|exec)/i.test(ev.toolName ?? '') && (a.command ?? a.cmd)) {
+    body.innerHTML = `<pre class="t-cmd"></pre>`;
+    body.querySelector('.t-cmd').textContent = `$ ${a.command ?? a.cmd}`;
+  } else if (/^write/i.test(ev.toolName ?? '') && a.content != null) {
+    body.innerHTML = `${a.path ? '<div class="tb-label"></div>' : ''}<pre class="diff-block"></pre>`;
+    if (a.path) body.querySelector('.tb-label').textContent = a.path;
+    body.querySelector('.diff-block').innerHTML = diffHtml('', String(a.content));
+  } else {
+    if (argsStr && argsStr !== '{}') body.innerHTML = `<div class="tb-label">入参</div><pre></pre>`;
+  }
   const argPre = body.querySelector('pre');
   if (argPre) argPre.textContent = argsStr;
   div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
@@ -337,6 +353,22 @@ function endTool(ev) {
   toolRows.delete(ev.toolCallId);
   scrollTail();
 }
+/* Minimal line diff for approval cards / edit tool payloads — shared head and
+   tail render as dim context, changed middle as - old / + new. */
+function diffHtml(oldStr, newStr) {
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  const a = String(oldStr).split('\n'), b = String(newStr).split('\n');
+  let i = 0, j = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  while (j < a.length - i && j < b.length - i && a[a.length - 1 - j] === b[b.length - 1 - j]) j++;
+  const out = [];
+  const ctx = (arr, from, to) => { for (let k = from; k < to; k++) out.push(`<span class="d-ctx">  ${esc(arr[k])}</span>`); };
+  if (i > 0) { ctx(a, 0, Math.min(i, 3)); if (i > 3) out.push('<span class="d-ctx">  ⋯</span>'); }
+  for (let k = i; k < a.length - j; k++) out.push(`<span class="d-del">- ${esc(a[k])}</span>`);
+  for (let k = i; k < b.length - j; k++) out.push(`<span class="d-add">+ ${esc(b[k])}</span>`);
+  if (j > 0) { if (j > 3) out.push('<span class="d-ctx">  ⋯</span>'); ctx(a, Math.max(i, a.length - Math.min(j, 3)), a.length); }
+  return out.join('\n');
+}
 function messageText(m) {
   const blocks = m?.content;
   if (!Array.isArray(blocks)) return '';
@@ -346,6 +378,29 @@ function thinkingText(m) {
   const blocks = m?.content;
   if (!Array.isArray(blocks)) return '';
   return blocks.filter((b) => b?.type === 'thinking').map((b) => b.thinking ?? b.text ?? '').join('');
+}
+
+/* ---------- live todo checklist (update_todos tool) ---------- */
+function renderTodos(todos) {
+  const panel = $('todo-panel');
+  if (!panel) return;
+  if (!Array.isArray(todos) || todos.length === 0) { panel.classList.add('hidden'); return; }
+  const done = todos.filter((t) => t.status === 'completed').length;
+  panel.classList.remove('hidden');
+  panel.innerHTML = `<button class="todo-head"><span class="t-caret">${CARET}</span>任务清单 · ${done}/${todos.length}</button><div class="todo-items"></div>`;
+  const items = panel.querySelector('.todo-items');
+  for (const t of todos) {
+    const row = document.createElement('div');
+    row.className = `todo-item ${t.status === 'in_progress' ? 'doing' : t.status === 'completed' ? 'done' : ''}`;
+    row.innerHTML = `<span class="todo-box">${t.status === 'completed' ? '☑' : t.status === 'in_progress' ? '◧' : '☐'}</span><span class="todo-text"></span>`;
+    row.querySelector('.todo-text').textContent = t.status === 'in_progress' && t.activeForm ? t.activeForm : t.content;
+    items.appendChild(row);
+  }
+  panel.querySelector('.todo-head').onclick = () => panel.classList.toggle('fold');
+}
+async function refreshTodos() {
+  const r = await cmd('todos_list');
+  if (r.success) renderTodos(r.data);
 }
 
 /* ---------- processing row: "处理中 · Ns" between turns ---------- */
@@ -425,6 +480,30 @@ function addAskCard(ask) {
   div.querySelector('.ask-summary').textContent = ask.summary || '（无详情）';
   if (ask.detail) div.querySelector('.ask-detail').textContent = ask.detail;
   else div.querySelector('.ask-detail').remove();
+  // The operator approves what they can see — render the real payload, not
+  // just a one-line summary. Command → mono block; write/edit → content or
+  // old→new diff; delete → path + consequence.
+  const payload = div.querySelector('.ask-detail') ?? div.insertBefore(document.createElement('div'), div.querySelector('.ask-foot'));
+  if (payload.classList?.contains('ask-detail') === false) payload.className = 'ask-detail';
+  if (ask.args && typeof ask.args === 'object') {
+    const cmdStr = ask.args.command ?? ask.args.cmd;
+    const editPair = [ask.args.oldText ?? ask.args.old_string, ask.args.newText ?? ask.args.new_string];
+    if (cmdStr) {
+      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre>`);
+      payload.querySelector('.ask-cmd').textContent = `$ ${cmdStr}`;
+    } else if (editPair[0] != null || editPair[1] != null) {
+      payload.insertAdjacentHTML('beforeend', `<div class="ask-path"></div><pre class="diff-block"></pre>`);
+      if (ask.args.path) payload.querySelector('.ask-path').textContent = ask.args.path;
+      payload.querySelector('.diff-block').innerHTML = diffHtml(String(editPair[0] ?? ''), String(editPair[1] ?? ''));
+    } else if (ask.args.path && ask.args.content != null) {
+      payload.insertAdjacentHTML('beforeend', `<div class="ask-path"></div><pre class="ask-cmd"></pre>`);
+      payload.querySelector('.ask-path').textContent = ask.args.path;
+      payload.querySelector('.ask-cmd').textContent = String(ask.args.content).slice(0, 3000);
+    } else if (ask.args.path) {
+      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre>`);
+      payload.querySelector('.ask-cmd').textContent = `${ask.toolName === 'delete' ? '删除（移入回收站，可经 fileops 回执恢复）' : ask.toolName}：${ask.args.path}`;
+    }
+  }
   div.querySelectorAll('.ask-btn').forEach((b) => {
     b.onclick = async () => {
       div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = true; });
@@ -556,6 +635,7 @@ function onAgentEvent(ev) {
     }
     case 'tool_execution_end':
       endTool(ev);
+      if (ev.toolName === 'update_todos' && !ev.isError) renderTodos(ev.args?.todos);
       break;
     case 'governance_ask':
       addAskCard(ev.ask);
@@ -615,6 +695,7 @@ function onAgentEvent(ev) {
       refreshPending();
       refreshState();
       refreshMode(); // plan/act is session-scoped — chip must follow the switch
+      refreshTodos();
       break;
     case 'agent_end':
       setBusy(false);
@@ -818,6 +899,16 @@ function renderSessions() {
             },
           },
           { label: '复制会话路径', run: () => navigator.clipboard?.writeText(s.path) },
+          {
+            label: '删除会话…',
+            run: async () => {
+              if (!confirm(`删除会话「${title}」？会话文件会被移除，不可恢复。`)) return;
+              if (s.path === currentSessionFile) { addSys('不能删除当前打开的会话——先切到别的会话', true); return; }
+              const r = await cmd('session_delete', { path: s.path });
+              if (!r.success) addSys(`删除失败：${r.error ?? '未知'}`, true);
+              else { toast('会话已删除'); refreshSessions(); }
+            },
+          },
         ]);
       };
       box.appendChild(row);
@@ -1127,8 +1218,42 @@ async function refreshJobs() {
     const cells = [j.job_id?.slice(0, 12) ?? '', j.job_type ?? '', j.job_state ?? '', (j.updated_at ?? '').slice(0, 19).replace('T', ' ')];
     tr.innerHTML = cells.map(() => '<td></td>').join('');
     tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
+    tr.classList.add('clickable');
+    tr.title = j.command ?? '';
+    tr.onclick = () => openJobDetail(j.job_id);
     tbody.appendChild(tr);
   }
+}
+
+async function openJobDetail(jobId) {
+  const panel = $('job-detail');
+  const r = await cmd('job_status', { job_id: jobId });
+  if (!r.success) { toast(`读取任务失败：${r.error ?? '未知'}`, 'err'); return; }
+  const { job, attempts, lease } = r.data ?? {};
+  const result = job?.result ?? {};
+  panel.classList.remove('hidden');
+  panel.innerHTML = `
+    <div class="jd-head"><span class="jd-title"></span><button class="icon-btn jd-close" title="关闭">✕</button></div>
+    <div class="jd-grid">
+      <div><span class="jd-k">状态</span><span class="jd-v"></span></div>
+      <div><span class="jd-k">编排</span><span class="jd-v"></span></div>
+      <div><span class="jd-k">尝试</span><span class="jd-v"></span></div>
+      <div><span class="jd-k">写租约</span><span class="jd-v"></span></div>
+      <div class="jd-full"><span class="jd-k">命令</span><pre class="jd-cmd"></pre></div>
+    </div>
+    <div class="jd-out-label">输出尾部</div>
+    <pre class="jd-out"></pre>`;
+  const vs = panel.querySelectorAll('.jd-v');
+  panel.querySelector('.jd-title').textContent = job?.job_id ?? jobId;
+  vs[0].textContent = job?.job_state ?? '—';
+  vs[1].textContent = job?.orchestration_state ?? '—';
+  vs[2].textContent = `${attempts ?? 0} 次`;
+  vs[3].textContent = lease?.writer_id ? `持有：${lease.writer_id}` : '空闲';
+  panel.querySelector('.jd-cmd').textContent = job?.command ?? job?.job_type ?? '—';
+  const tail = result.output_tail ?? result.output ?? job?.error ?? '';
+  panel.querySelector('.jd-out').textContent = tail || '（暂无输出）';
+  panel.querySelector('.jd-close').onclick = () => panel.classList.add('hidden');
+  panel.scrollIntoView({ block: 'nearest' });
 }
 
 /* ---------- bodies ---------- */
@@ -1202,8 +1327,26 @@ async function refreshState() {
   if (currentView === 'chat') $('view-title').textContent = name || '当前任务';
   await refreshModels();
   renderSessions();
+  paintStatusline();
 }
-function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); }
+
+/* Persistent statusline — the harness-standard bottom row: model, mode,
+   context headroom, session cost, workdir. Refreshed with state/mode changes. */
+async function paintStatusline() {
+  const el = $('statusline');
+  if (!el) return;
+  const mode = await cmd('risk_mode');
+  const parts = [];
+  const model = $('model-chip')?.textContent?.trim();
+  if (model) parts.push(model);
+  parts.push(mode.data?.mode === 'plan' ? '计划' : '执行');
+  if (lastCtxUsage?.contextWindow) parts.push(`ctx ${Math.round(100 * (lastCtxUsage.tokens ?? 0) / lastCtxUsage.contextWindow)}%`);
+  if (sessionCost > 0) parts.push(`$${sessionCost.toFixed(4)}`);
+  const wd = state?.workdir;
+  if (wd) parts.push(wd.split(/[\\/]/).pop() ?? wd);
+  el.textContent = parts.join('  ·  ');
+}
+function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); refreshTodos(); }
 function setStatus(t, kind) {
   $('status').textContent = t;
   $('status-dot').className = `dot${kind === 'err' ? ' err' : t === '就绪' ? ' on' : ''}`;
@@ -1376,6 +1519,75 @@ const SLASH = [
   { cmd: '/jobs', label: '持久任务', hint: '跨重启的任务', run: () => switchView('jobs') },
   { cmd: '/audit', label: '审计日志', hint: '治理事件流', run: () => switchView('audit') },
   { cmd: '/settings', label: '设置', hint: '模型与工作目录', run: () => switchView('settings') },
+  {
+    cmd: '/clear', label: '清空开始', hint: '新会话（同 /new）', run: () => $('new-task').click(),
+  },
+  {
+    cmd: '/resume', label: '继续会话', hint: '弹出会话选择器',
+    run: async () => {
+      const r = await cmd('session_list');
+      const items = (r.data ?? []).filter((s) => s.path !== currentSessionFile);
+      if (!items.length) { addSys('没有其它会话', true); return; }
+      openMenu(items.slice(0, 20).map((s) => ({
+        label: (s.name || s.firstMessage || '未命名任务').slice(0, 60),
+        sub: `${s.messageCount ?? 0} 条`,
+        value: s,
+      })), (it) => switchSession(it.value.path));
+    },
+  },
+  {
+    cmd: '/fork', label: '分支会话', hint: '复制当前会话并切入副本',
+    run: async () => {
+      if (!currentSessionFile) { addSys('当前没有会话', true); return; }
+      const r = await cmd('session_fork', { path: currentSessionFile });
+      if (r.success) { toast('已分支——当前在新会话里继续'); refreshSessions(); }
+      else addSys(`分支失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/status', label: '会话状态', hint: '模型/模式/上下文/预算一览',
+    run: async () => {
+      const [st, stats, mode] = await Promise.all([cmd('get_state'), cmd('session_stats'), cmd('risk_mode')]);
+      const s = st.data ?? {};
+      const u = s.contextUsage ?? stats.data?.contextUsage ?? {};
+      const pct = u.contextWindow ? Math.round(100 * (u.tokens ?? 0) / u.contextWindow) : null;
+      addSys([
+        `会话：${currentSessionFile ? currentSessionFile.split(/[\\/]/).pop() : '（未开）'}`,
+        `模型：${s.model?.id ?? ($('model-chip').textContent || '—')} · 模式：${mode.data?.mode ?? 'normal'}`,
+        pct != null ? `上下文：${u.tokens ?? '?'} / ${u.contextWindow}（${pct}%）` : '上下文：—',
+        `本会话成本：$${sessionCost.toFixed(4)}`,
+        `工作目录：${s.workdir ?? '—'}`,
+      ].join('\n'));
+    },
+  },
+  {
+    cmd: '/cost', label: '用量与成本', hint: '本会话 token/费用总账',
+    run: async () => {
+      const r = await cmd('session_stats');
+      const s = r.data;
+      if (!s) { addSys('暂无用量数据', true); return; }
+      const u = s.usage ?? s;
+      addSys(`累计：${u.totalTokens ?? u.tokens ?? '—'} tokens · $${(u.cost?.total ?? u.totalCost ?? sessionCost).toFixed ? (u.cost?.total ?? u.totalCost ?? sessionCost).toFixed(4) : '—'} · 消息 ${s.messageCount ?? '—'} 条 · 压缩 ${s.compactionCount ?? 0} 次`);
+    },
+  },
+  {
+    cmd: '/init', label: '生成 AGENTS.md', hint: '让模型分析 workdir 并写项目说明',
+    run: async () => {
+      input.value = '分析当前工作目录的结构与约定，生成一份 AGENTS.md 写进根目录——覆盖：项目用途、目录结构、构建/测试命令、代码风格、提交规范。';
+      await send();
+    },
+  },
+  {
+    cmd: '/help', label: '帮助', hint: '全部命令与快捷键',
+    run: async () => {
+      addSys([
+        '斜杠命令：' + SLASH.map((s) => s.cmd).join(' '),
+        '@路径 — 附着文件内容进上下文（自动补全）',
+        'Enter 发送 · Shift+Enter 换行 · Esc 中止运行 · ↑ 召回上一条 · Ctrl+K 命令面板',
+        '运行中发送 = 排队插话；点"转向"立即打断注入',
+      ].join('\n'));
+    },
+  },
 ];
 const slashMenu = $('slash-menu');
 let slashIdx = 0;
@@ -1394,6 +1606,7 @@ async function refreshMode() {
   const plan = r.success && r.data?.mode === 'plan';
   chip.textContent = plan ? '计划' : '执行';
   chip.classList.toggle('plan', plan);
+  paintStatusline();
 }
 $('mode-chip').onclick = async () => {
   const r = await cmd('risk_mode');
@@ -1488,7 +1701,21 @@ input.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') { e.preventDefault(); closeSlash(); return; }
     if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); execSlash(slashItems[slashIdx]); return; }
   }
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); return; }
+  // Esc interrupts a running turn (every harness: Esc = abort)
+  if (e.key === 'Escape' && busy) { e.preventDefault(); abort(); return; }
+  // ArrowUp on an empty composer recalls the last user message for edit-resend
+  if (e.key === 'ArrowUp' && !input.value.trim() && lastUserText) {
+    e.preventDefault(); input.value = lastUserText; autogrow(); return;
+  }
+});
+/* Ctrl+K / Ctrl+P — command palette over sessions + slash commands */
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault();
+    input.value = '/'; autogrow(); slashFilter();
+    input.focus();
+  }
 });
 /* prompt queue — messages sent while a run is active wait as chips above
  * the composer; agent_end flushes the next one. "立即转向" = steer now. */
@@ -1521,6 +1748,22 @@ function flushQueue() {
     if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
   });
 }
+/* @path mentions resolve to real file content before the prompt leaves —
+   the model receives the text, not just a path it must then go read. */
+async function expandAtMentions(text) {
+  const tokens = [...text.matchAll(/@([\w./\\-]+)/g)].map((m) => m[1]);
+  if (!tokens.length) return { text, attached: [], missed: [] };
+  const attached = [], missed = [];
+  const blocks = [];
+  for (const rel of [...new Set(tokens)]) {
+    const r = await cmd('file_read', { path: rel });
+    if (r.success && r.data?.content != null) {
+      attached.push(rel);
+      blocks.push(`\n\n<attached path="${rel}">\n${r.data.content}\n</attached>`);
+    } else missed.push(rel);
+  }
+  return { text: text + blocks.join(''), attached, missed };
+}
 async function send() {
   const text = input.value.trim();
   if (!text) return;
@@ -1529,7 +1772,10 @@ async function send() {
   if (busy) { queue.push(text); renderQueue(); return; }
   lastUserText = text;
   addMsg('user', text);
-  const r = await cmd('prompt', { message: text });
+  const ex = await expandAtMentions(text);
+  if (ex.attached.length) addSys(`已附着 ${ex.attached.length} 个文件：${ex.attached.join('、')}`);
+  if (ex.missed.length) addSys(`未能读取：${ex.missed.join('、')}（请确认路径在 workdir 内）`, true);
+  const r = await cmd('prompt', { message: ex.text });
   if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
 }
 async function steer() {
@@ -1542,6 +1788,9 @@ async function steer() {
 }
 $('send').onclick = () => (busy ? steer() : send());
 $('steer').onclick = steer;
+for (const b of document.querySelectorAll('.starter')) {
+  b.onclick = () => { input.value = b.dataset.q; autogrow(); input.focus(); };
+}
 $('abort').onclick = () => cmd('abort');
 
 /* ---------- SSE ---------- */

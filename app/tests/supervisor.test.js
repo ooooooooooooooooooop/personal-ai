@@ -219,6 +219,21 @@ test('files_list walks workdir, skips ignored dirs, filters by prefix', async ()
   } finally { await sup.dispose(); }
 });
 
+test('file_read returns workdir file content; escapes and missing paths refused', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(join(dir, 'note.txt'), 'hello attach');
+    const ok = await sup.handle({ type: 'file_read', path: 'note.txt' });
+    assert.equal(ok.success, true);
+    assert.equal(ok.data.content, 'hello attach');
+    const esc = await sup.handle({ type: 'file_read', path: '../outside.txt' });
+    assert.equal(esc.success, false);
+    const missing = await sup.handle({ type: 'file_read', path: 'nope.txt' });
+    assert.equal(missing.success, false);
+  } finally { await sup.dispose(); }
+});
+
 test('macro save/list/delete persists to instance macros.json', async () => {
   const { sup, dir } = await boot();
   try {

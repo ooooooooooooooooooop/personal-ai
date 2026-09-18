@@ -185,6 +185,22 @@ test('session_rewind restoreFiles undoes receipts newer than the anchor', async 
   assert.equal(restoredCalls.length, 0);
 });
 
+test('todos_list reads the session todo file; session_delete routes to the facade', async () => {
+  const ch = new HostChannel({
+    session: fakeSession(),
+    todos: { list: async () => [{ content: 'do thing', status: 'in_progress' }] },
+    sessions: { remove: async (p) => ({ removed: p }) },
+  });
+  const t = await ch.handle({ type: 'todos_list' });
+  assert.equal(t.success, true);
+  assert.equal(t.data[0].content, 'do thing');
+  const d = await ch.handle({ type: 'session_delete', path: 'sessions/x.jsonl' });
+  assert.equal(d.success, true);
+  assert.equal(d.data.removed, 'sessions/x.jsonl');
+  const bad = await ch.handle({ type: 'session_delete' });
+  assert.equal(bad.success, false);
+});
+
 test('session_rewind restoreFiles uses uncapped scan, undoes tombstones, reports partial failures', async () => {
   const session = fakeSession();
   session.entries = async () => [

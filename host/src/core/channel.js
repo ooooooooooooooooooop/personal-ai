@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null }) {
+  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -82,6 +82,7 @@ export class HostChannel {
     this.policy = policy;
     this.budget = budget;
     this.modes = modes;
+    this.todos = todos;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -227,6 +228,11 @@ export class HostChannel {
           if (!cmd.path) return reply(false, undefined, 'session_fork requires {path}');
           return reply(true, await this.sessions.fork(String(cmd.path)));
         }
+        case 'session_delete': {
+          if (!this.sessions?.remove) return reply(false, undefined, 'sessions facade unavailable');
+          if (!cmd.path) return reply(false, undefined, 'session_delete requires {path}');
+          return reply(true, await this.sessions.remove(String(cmd.path)));
+        }
         case 'session_history': {
           if (!this.session?.history) return reply(false, undefined, 'history unavailable');
           return reply(true, await this.session.history());
@@ -307,6 +313,10 @@ export class HostChannel {
           const mode = String(cmd.mode ?? '');
           if (!['normal', 'plan'].includes(mode)) return reply(false, undefined, "risk_mode_set: mode must be 'normal' or 'plan'");
           return reply(true, { mode: this.modes.set(mode) });
+        }
+        case 'todos_list': {
+          if (!this.todos?.list) return reply(false, undefined, 'todos facade unavailable');
+          return reply(true, await this.todos.list());
         }
         case 'pending_list': {
           if (!this.asks?.list) return reply(false, undefined, 'asks facade unavailable');

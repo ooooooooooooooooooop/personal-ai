@@ -9,6 +9,8 @@ import { loopGovernanceExtension } from './loop.js';
 import { withRenderedReason } from './errors.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { renderContext, renderInstruction } from '../../../host/src/core/envelopes.js';
+import { unlinkSync } from 'node:fs';
+import { resolve, sep } from 'node:path';
 
 /**
  * Create a Pi-backed engine session owned by the Host.
@@ -101,6 +103,14 @@ export const sessionManagers = {
   open: (path, sessionDir) => SessionManager.open(path, sessionDir),
   list: (cwd, sessionDir) => SessionManager.list(cwd, sessionDir),
   forkFrom: (sourcePath, cwd, sessionDir) => SessionManager.forkFrom(sourcePath, cwd, sessionDir),
+  // Delete = unlink the session file — contained to sessionDir so a crafted
+  // path cannot reach outside the session store.
+  remove: (path, sessionDir) => {
+    const abs = resolve(path);
+    if (!abs.startsWith(resolve(sessionDir) + sep)) throw new Error('session path outside sessionDir');
+    unlinkSync(abs);
+    return { removed: abs };
+  },
 };
 
 export async function createPiSession({

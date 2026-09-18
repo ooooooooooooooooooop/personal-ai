@@ -19,7 +19,7 @@ import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
 import { BodyRegistry } from '../../host/src/core/registry.js';
@@ -457,6 +457,18 @@ export class BodySupervisor {
           walk(this.workdir, '');
           const files = prefix ? out.filter((f) => f.toLowerCase().includes(prefix)) : out;
           return reply(true, { files: files.slice(0, 200), total: out.length });
+        }
+        case 'file_read': {
+          // @-attachment resolution: read a file under the workdir so the
+          // composer can inline its content into the outgoing prompt.
+          const rel = String(cmd.path ?? '');
+          const abs = resolve(this.workdir, rel);
+          if (!abs.startsWith(resolve(this.workdir) + sep)) return reply(false, undefined, 'path escapes workdir');
+          if (!existsSync(abs)) return reply(false, undefined, `not found: ${rel}`);
+          const st = statSync(abs);
+          if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
+          if (st.size > 512 * 1024) return reply(false, undefined, `file too large for inline attach (>512KB): ${rel}`);
+          return reply(true, { path: rel, content: readFileSync(abs, 'utf-8'), bytes: st.size });
         }
         case 'macro_list':
           return reply(true, { macros: this.#macros() });
