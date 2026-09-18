@@ -18,7 +18,7 @@
 import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
@@ -461,10 +461,17 @@ export class BodySupervisor {
         case 'file_read': {
           // @-attachment resolution: read a file under the workdir so the
           // composer can inline its content into the outgoing prompt.
+          // Boundary is checked on REAL paths — a symlink inside the workdir
+          // must not be able to point outside it.
           const rel = String(cmd.path ?? '');
           const abs = resolve(this.workdir, rel);
-          if (!abs.startsWith(resolve(this.workdir) + sep)) return reply(false, undefined, 'path escapes workdir');
           if (!existsSync(abs)) return reply(false, undefined, `not found: ${rel}`);
+          const wd = realpathSync(this.workdir);
+          const realAbs = realpathSync(abs);
+          const inside = process.platform === 'win32'
+            ? realAbs.toLowerCase().startsWith(wd.toLowerCase() + sep)
+            : realAbs.startsWith(wd + sep);
+          if (!inside) return reply(false, undefined, 'path escapes workdir');
           const st = statSync(abs);
           if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
           if (st.size > 512 * 1024) return reply(false, undefined, `file too large for inline attach (>512KB): ${rel}`);
@@ -500,7 +507,13 @@ export class BodySupervisor {
           ].includes(cmd?.type)) {
             return reply(false, undefined, 'body switch in progress — try again after it completes');
           }
-          return await this.sendToBody(cmd);
+          const r = await this.sendToBody(cmd);
+          // Workdir is supervisor-owned state — the body's get_state doesn't
+          // know it, so inject it for statusline/settings consumers.
+          if (cmd?.type === 'get_state' && r.success && r.data && typeof r.data === 'object') {
+            r.data.workdir = this.workdir;
+          }
+          return r;
         }
       }
     } catch (e) {

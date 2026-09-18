@@ -3,7 +3,7 @@
  * switch path are exercised end-to-end: discovery, eligibility, passthrough,
  * cold swap, and the seven-phase handoff with a real lease baton.
  */
-import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -256,5 +256,18 @@ test('macro save/list/delete persists to instance macros.json', async () => {
     assert.equal(del.success, true);
     const gone = await sup.handle({ type: 'macro_delete', name: 'fixup' });
     assert.equal(gone.success, false);
+  } finally { await sup.dispose(); }
+});
+
+test('file_read: symlink inside workdir pointing outside is refused (P0b)', async (t) => {
+  const { sup, dir } = await boot();
+  const outside = join(dir, '..', `outside-${Date.now()}.txt`);
+  writeFileSync(outside, 'secret');
+  try {
+    try { symlinkSync(outside, join(dir, 'link.txt')); }
+    catch (e) { t.skip(`symlink unavailable: ${e.code}`); return; }
+    const r = await sup.handle({ type: 'file_read', path: 'link.txt' });
+    assert.equal(r.success, false);
+    assert.match(r.error, /escapes workdir/);
   } finally { await sup.dispose(); }
 });

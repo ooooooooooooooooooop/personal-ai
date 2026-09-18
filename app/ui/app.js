@@ -297,11 +297,10 @@ function addTool(ev) {
     body.innerHTML = `${a.path ? '<div class="tb-label"></div>' : ''}<pre class="diff-block"></pre>`;
     if (a.path) body.querySelector('.tb-label').textContent = a.path;
     body.querySelector('.diff-block').innerHTML = diffHtml('', String(a.content));
-  } else {
-    if (argsStr && argsStr !== '{}') body.innerHTML = `<div class="tb-label">入参</div><pre></pre>`;
+  } else if (argsStr && argsStr !== '{}') {
+    body.innerHTML = `<div class="tb-label">入参</div><pre></pre>`;
+    body.querySelector('pre').textContent = argsStr;
   }
-  const argPre = body.querySelector('pre');
-  if (argPre) argPre.textContent = argsStr;
   div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
   div.querySelector('.t-copy').onclick = (e) => {
     e.stopPropagation();
@@ -485,6 +484,12 @@ function addAskCard(ask) {
   // old→new diff; delete → path + consequence.
   const payload = div.querySelector('.ask-detail') ?? div.insertBefore(document.createElement('div'), div.querySelector('.ask-foot'));
   if (payload.classList?.contains('ask-detail') === false) payload.className = 'ask-detail';
+  if (ask.argsTruncated) {
+    // WYSIWYG guard: never silently clip — tell the operator the approval
+    // covers a payload larger than what is shown.
+    payload.insertAdjacentHTML('beforeend',
+      `<div class="ask-trunc">载荷过长，仅显示截断前缀（完整参数 ${ask.argsTotalChars ?? '?'} 字符）——批准/拒绝作用于完整参数</div>`);
+  }
   if (ask.args && typeof ask.args === 'object') {
     const cmdStr = ask.args.command ?? ask.args.cmd;
     const editPair = [ask.args.oldText ?? ask.args.old_string, ask.args.newText ?? ask.args.new_string];
@@ -498,7 +503,7 @@ function addAskCard(ask) {
     } else if (ask.args.path && ask.args.content != null) {
       payload.insertAdjacentHTML('beforeend', `<div class="ask-path"></div><pre class="ask-cmd"></pre>`);
       payload.querySelector('.ask-path').textContent = ask.args.path;
-      payload.querySelector('.ask-cmd').textContent = String(ask.args.content).slice(0, 3000);
+      payload.querySelector('.ask-cmd').textContent = String(ask.args.content);
     } else if (ask.args.path) {
       payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre>`);
       payload.querySelector('.ask-cmd').textContent = `${ask.toolName === 'delete' ? '删除（移入回收站，可经 fileops 回执恢复）' : ask.toolName}：${ask.args.path}`;
@@ -635,7 +640,7 @@ function onAgentEvent(ev) {
     }
     case 'tool_execution_end':
       endTool(ev);
-      if (ev.toolName === 'update_todos' && !ev.isError) renderTodos(ev.args?.todos);
+      if (ev.toolName === 'update_todos' && !ev.isError) refreshTodos();
       break;
     case 'governance_ask':
       addAskCard(ev.ask);
@@ -743,6 +748,7 @@ function setBusy(v) {
 /* ---------- usage chip: context window fill + session cost ---------- */
 let sessionCost = 0;      // accumulated $ over this session's assistant messages
 let lastCtxUsage = null;  // last contextUsage snapshot from get_state
+let state = null;         // last get_state payload (+stats) — statusline source
 function updateUsageChip() {
   const el = $('usage-chip');
   const parts = [];
@@ -834,12 +840,17 @@ function sessionGroup(dateStr) {
   if (d >= today - 7 * day) return '近 7 天';
   return '更早';
 }
+// Full-text hits from session_search — Map(path → [snippets]); null when the
+// filter is too short to bother the backend.
+let searchHits = null;
 function renderSessions() {
   const box = $('session-list');
   const filter = $('side-filter').value.trim().toLowerCase();
   box.innerHTML = '';
   const items = sessionsCache
-    .filter((s) => !filter || `${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter))
+    .filter((s) => !filter
+      || `${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)
+      || searchHits?.has(s.path))
     .sort((a, b) => String(b.modified ?? '').localeCompare(String(a.modified ?? '')));
   const groups = new Map();
   for (const s of items) {
@@ -862,6 +873,13 @@ function renderSessions() {
       const title = s.name || s.firstMessage || '未命名任务';
       row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
+      const hit = searchHits?.get(s.path);
+      if (hit?.length && !`${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)) {
+        const snip = document.createElement('div');
+        snip.className = 'sess-snip';
+        snip.textContent = hit[0];
+        row.appendChild(snip);
+      }
       row.title = s.path;
       row.onclick = () => switchSession(s.path);
       row.oncontextmenu = (e) => {
@@ -939,7 +957,17 @@ $('new-task').onclick = async () => {
   switchView('chat');
   $('input').focus();
 };
-$('side-filter').addEventListener('input', renderSessions);
+let searchTimer = null;
+$('side-filter').addEventListener('input', () => {
+  clearTimeout(searchTimer);
+  const q = $('side-filter').value.trim();
+  if (q.length < 2) { searchHits = null; renderSessions(); return; }
+  searchTimer = setTimeout(async () => {
+    const r = await cmd('session_search', { query: q });
+    searchHits = r.success ? new Map((r.data ?? []).map((h) => [h.path, h.snippets])) : null;
+    renderSessions();
+  }, 300);
+});
 
 /* ---------- model / thinking chips ---------- */
 const chipMenu = $('chip-menu');
@@ -1229,29 +1257,44 @@ async function openJobDetail(jobId) {
   const panel = $('job-detail');
   const r = await cmd('job_status', { job_id: jobId });
   if (!r.success) { toast(`读取任务失败：${r.error ?? '未知'}`, 'err'); return; }
-  const { job, attempts, lease } = r.data ?? {};
-  const result = job?.result ?? {};
+  const { job, attempts, lease, detail } = r.data ?? {};
   panel.classList.remove('hidden');
   panel.innerHTML = `
-    <div class="jd-head"><span class="jd-title"></span><button class="icon-btn jd-close" title="关闭">✕</button></div>
+    <div class="jd-head"><span class="jd-title"></span><button class="ghost-btn jd-cancel hidden">停止任务</button><button class="icon-btn jd-close" title="关闭">✕</button></div>
     <div class="jd-grid">
       <div><span class="jd-k">状态</span><span class="jd-v"></span></div>
       <div><span class="jd-k">编排</span><span class="jd-v"></span></div>
       <div><span class="jd-k">尝试</span><span class="jd-v"></span></div>
       <div><span class="jd-k">写租约</span><span class="jd-v"></span></div>
+      <div><span class="jd-k">退出码</span><span class="jd-v"></span></div>
       <div class="jd-full"><span class="jd-k">命令</span><pre class="jd-cmd"></pre></div>
     </div>
     <div class="jd-out-label">输出尾部</div>
-    <pre class="jd-out"></pre>`;
+    <pre class="jd-out"></pre>
+    <div class="jd-out-label">最近事件</div>
+    <pre class="jd-events"></pre>`;
   const vs = panel.querySelectorAll('.jd-v');
   panel.querySelector('.jd-title').textContent = job?.job_id ?? jobId;
   vs[0].textContent = job?.job_state ?? '—';
   vs[1].textContent = job?.orchestration_state ?? '—';
   vs[2].textContent = `${attempts ?? 0} 次`;
   vs[3].textContent = lease?.writer_id ? `持有：${lease.writer_id}` : '空闲';
-  panel.querySelector('.jd-cmd').textContent = job?.command ?? job?.job_type ?? '—';
-  const tail = result.output_tail ?? result.output ?? job?.error ?? '';
-  panel.querySelector('.jd-out').textContent = tail || '（暂无输出）';
+  vs[4].textContent = detail?.exit_code ?? detail?.signal ?? '—';
+  panel.querySelector('.jd-cmd').textContent = detail?.command ?? job?.job_type ?? '—';
+  panel.querySelector('.jd-out').textContent = detail?.output_tail || '（暂无输出）';
+  const evLines = (detail?.events ?? []).map((e) => `${(e.timestamp ?? '').slice(11, 19)}  ${e.event_type}`).join('\n');
+  panel.querySelector('.jd-events').textContent = evLines || '（无事件）';
+  const cancelBtn = panel.querySelector('.jd-cancel');
+  const cancellable = detail?.running || (job?.job_state && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.job_state));
+  if (cancellable) {
+    cancelBtn.classList.remove('hidden');
+    cancelBtn.onclick = async () => {
+      if (!confirm(`确定停止任务 ${jobId}？`)) return;
+      const cr = await cmd('job_cancel', { job_id: jobId });
+      if (cr.success) { toast(cr.data?.killed ? '任务已停止' : '任务已标记取消', 'ok'); openJobDetail(jobId); renderJobs(); }
+      else toast(`停止失败：${cr.error ?? '未知'}`, 'err');
+    };
+  }
   panel.querySelector('.jd-close').onclick = () => panel.classList.add('hidden');
   panel.scrollIntoView({ block: 'nearest' });
 }
@@ -1341,7 +1384,10 @@ async function paintStatusline() {
   if (model) parts.push(model);
   parts.push(mode.data?.mode === 'plan' ? '计划' : '执行');
   if (lastCtxUsage?.contextWindow) parts.push(`ctx ${Math.round(100 * (lastCtxUsage.tokens ?? 0) / lastCtxUsage.contextWindow)}%`);
-  if (sessionCost > 0) parts.push(`$${sessionCost.toFixed(4)}`);
+  // Prefer the ledger total (session_stats.cost is a number in pi's
+  // SessionStats) — incremental sessionCost drifts after compaction/reconnects.
+  const costTotal = typeof state?.stats?.cost === 'number' ? state.stats.cost : sessionCost;
+  if (costTotal > 0) parts.push(`$${Number(costTotal).toFixed(4)}`);
   const wd = state?.workdir;
   if (wd) parts.push(wd.split(/[\\/]/).pop() ?? wd);
   el.textContent = parts.join('  ·  ');
@@ -1764,18 +1810,74 @@ async function expandAtMentions(text) {
   }
   return { text: text + blocks.join(''), attached, missed };
 }
+/* ---------- attachments: paste/drop files + images into the composer ---------- */
+// Browser File API reads the bytes locally — no server-side path access, so
+// files from ANYWHERE (not just the workdir) can be attached. Text files land
+// inline as labeled blocks; images ride prompt options as ImageContent.
+const pendingAttach = []; // {name, kind:'text'|'image', text?, data?, mimeType?, bytes}
+const ATTACH_MAX = 512 * 1024;
+function renderAttach() {
+  const row = $('attach-row');
+  if (!row) return;
+  row.classList.toggle('hidden', pendingAttach.length === 0);
+  row.innerHTML = '';
+  pendingAttach.forEach((a, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'attach-chip';
+    chip.innerHTML = `<span class="attach-name"></span><button class="attach-x" title="移除">✕</button>`;
+    chip.querySelector('.attach-name').textContent = `${a.kind === 'image' ? '🖼' : '📄'} ${a.name} (${Math.round(a.bytes / 1024)}KB)`;
+    chip.querySelector('.attach-x').onclick = () => { pendingAttach.splice(i, 1); renderAttach(); };
+    row.appendChild(chip);
+  });
+}
+async function attachFiles(fileList) {
+  for (const f of fileList ?? []) {
+    if (f.size > ATTACH_MAX) { toast(`${f.name} 超过 512KB，未附着`, 'err'); continue; }
+    if (f.type.startsWith('image/')) {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      pendingAttach.push({ name: f.name, kind: 'image', data: btoa(bin), mimeType: f.type, bytes: f.size });
+    } else {
+      const text = await f.text();
+      pendingAttach.push({ name: f.name, kind: 'text', text, bytes: f.size });
+    }
+  }
+  renderAttach();
+}
+input.addEventListener('paste', (e) => {
+  if (e.clipboardData?.files?.length) { e.preventDefault(); attachFiles(e.clipboardData.files); }
+});
+const composerEl = $('composer');
+composerEl.addEventListener('dragover', (e) => { e.preventDefault(); composerEl.classList.add('drop'); });
+composerEl.addEventListener('dragleave', () => composerEl.classList.remove('drop'));
+composerEl.addEventListener('drop', (e) => {
+  e.preventDefault(); composerEl.classList.remove('drop');
+  attachFiles(e.dataTransfer?.files);
+});
+
 async function send() {
   const text = input.value.trim();
-  if (!text) return;
+  if (!text && !pendingAttach.length) return;
   closeSlash();
   input.value = ''; autogrow();
   if (busy) { queue.push(text); renderQueue(); return; }
   lastUserText = text;
-  addMsg('user', text);
-  const ex = await expandAtMentions(text);
+  // Fold pending attachments into the outgoing prompt: text → labeled block,
+  // images → ImageContent options (pi prompt accepts an images array).
+  let message = text;
+  const attachCount = pendingAttach.length;
+  const images = [];
+  for (const a of pendingAttach.splice(0)) {
+    if (a.kind === 'image') images.push({ type: 'image', data: a.data, mimeType: a.mimeType });
+    else message += `\n\n<file name="${a.name}">\n${a.text}\n</file>`;
+  }
+  renderAttach();
+  addMsg('user', text || `（${attachCount} 个附件）`);
+  const ex = await expandAtMentions(message);
   if (ex.attached.length) addSys(`已附着 ${ex.attached.length} 个文件：${ex.attached.join('、')}`);
   if (ex.missed.length) addSys(`未能读取：${ex.missed.join('、')}（请确认路径在 workdir 内）`, true);
-  const r = await cmd('prompt', { message: ex.text });
+  const r = await cmd('prompt', { message: ex.text, ...(images.length ? { options: images } : {}) });
   if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
 }
 async function steer() {

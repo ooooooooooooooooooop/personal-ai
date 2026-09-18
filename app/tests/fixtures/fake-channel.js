@@ -47,18 +47,88 @@ rl.on('line', async (line) => {
     case 'body_info':
       return reply({ body_id: body, runId, sessionId: `sess-${body}` });
     case 'get_state':
-      return reply({ model: { provider: 'fake', id: 'fake-1' }, streaming: false, messageCount: Number(process.env.FAKE_MSGS ?? 0) });
-    case 'prompt':
+      return reply({
+        model: { provider: 'fake', id: 'fake-1' }, streaming: false,
+        messageCount: Number(process.env.FAKE_MSGS ?? 0),
+        session: { file: `${instance}/sessions/s1.jsonl`, name: 'DOM验收' },
+        contextUsage: { tokens: 51200, contextWindow: 200000 },
+      });
+    case 'prompt': {
       write({ type: 'event', event: { type: 'agent_start' } });
-      write({ type: 'event', event: { type: 'message_start', message: { content: [{ type: 'text', text: '' }] } } });
-      write({ type: 'event', event: { type: 'message_update', message: { content: [{ type: 'text', text: `echo:${cmd.message}` }] } } });
+      write({ type: 'event', event: { type: 'message_start', message: { role: 'assistant', content: [{ type: 'text', text: '' }] } } });
+      write({ type: 'event', event: { type: 'message_update', message: { role: 'assistant', content: [{ type: 'text', text: `echo:${cmd.message}` }] } } });
+      if (process.env.FAKE_SCENARIO === 'domgate') {
+        // Scripted turn for the DOM gate: a real tool card, then a pending
+        // ask carrying a real payload — resolved when decision_resolve lands.
+        write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tc1', toolName: 'bash', args: { command: 'echo domgate' } } });
+        write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc1', toolName: 'bash', isError: false, result: { content: [{ type: 'text', text: 'domgate-out' }] } } });
+        write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tc2', toolName: 'edit', args: { path: 'src/a.js', oldText: 'const x = 1;', newText: 'const x = 2;' } } });
+        write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc2', toolName: 'edit', isError: false, result: { content: [{ type: 'text', text: 'edited' }] } } });
+        write({
+          type: 'event', event: {
+            type: 'governance_ask', ask: {
+              id: 'ask-dom-1', toolName: 'bash', riskCategory: 'shell',
+              summary: 'bash: rm -rf scratch/', expiresAt: Date.now() + 60000,
+              args: { command: 'rm -rf scratch/' },
+            },
+          },
+        });
+        return reply({ accepted: true, awaiting: 'decision' });
+      }
       write({ type: 'event', event: { type: 'agent_end', messages: [] } });
       return reply({ echoed: cmd.message });
+    }
+    case 'decision_resolve':
+      write({ type: 'event', event: { type: 'governance_resolved', askId: cmd.askId, answer: cmd.answer } });
+      write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tc3', toolName: 'bash', args: { command: 'rm -rf scratch/' } } });
+      write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc3', toolName: 'bash', isError: false, result: { content: [{ type: 'text', text: 'removed' }] } } });
+      write({ type: 'event', event: { type: 'message_update', message: { role: 'assistant', content: [{ type: 'text', text: 'done' }] } } });
+      write({ type: 'event', event: { type: 'message_end', message: { role: 'assistant', usage: { cost: { total: 0.0042 } } } } });
+      write({ type: 'event', event: { type: 'agent_end', messages: [] } });
+      return reply({ resolved: cmd.askId });
     case 'steer':
     case 'abort':
       return reply({});
-    case 'job_status': return fail('no jobs');
-    case 'job_list': return reply([]);
+    case 'session_stats':
+      return reply({
+        sessionId: 'sess-fake', totalMessages: 4, userMessages: 2, assistantMessages: 2,
+        tokens: { input: 1200, output: 300, cacheRead: 0, cacheWrite: 0, total: 1500 },
+        cost: 0.0042,
+      });
+    case 'todos_list':
+      return reply([
+        { id: 't1', content: '盘点实现缺口', status: 'completed' },
+        { id: 't2', content: '写 DOM 门测试', status: 'in_progress', activeForm: '正在写 DOM 门测试' },
+      ]);
+    case 'pending_list': return reply([]);
+    case 'session_list':
+      return reply([{ path: `${instance}/sessions/s1.jsonl`, name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3 }]);
+    case 'session_history': return reply([]);
+    case 'model_status': return reply({
+      current: { provider: 'fake', id: 'fake-1', name: 'fake-1' },
+      providers: [{ id: 'fake', hasAuth: true }],
+      thinkingLevel: 'medium',
+    });
+    case 'model_list': return reply([{ provider: 'fake', id: 'fake-1', name: 'fake-1', reasoning: false }]);
+    case 'risk_mode': return reply({ mode: 'execute' });
+    case 'job_status':
+      return reply({
+        job: { job_id: cmd.job_id, job_type: 'shell', job_state: 'RUNNING', orchestration_state: 'foreground' },
+        attempts: 1,
+        lease: { writer_id: 'fake-writer' },
+        detail: {
+          command: 'pytest -q', running: true, exit_code: null,
+          output_tail: 'collecting… 12 items',
+          events: [{ timestamp: '2026-01-01T00:00:01Z', event_type: 'SPAWN' }],
+        },
+      });
+    case 'job_cancel': return reply({ killed: true });
+    case 'job_list':
+      return reply([{ job_id: 'job-dom-1', job_type: 'shell', job_state: 'RUNNING', updated_at: '2026-01-01T00:00:00Z' }]);
+    case 'audit_tail': return reply([]);
+    case 'session_entries': return reply([]);
+    case 'session_export': return fail('export unsupported in fixture');
+    case 'session_search': return reply([]);
     case 'audit_tail': return reply([]);
     case 'handoff_prepare':
       return reply({

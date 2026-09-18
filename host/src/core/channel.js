@@ -68,10 +68,11 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
+    this.jobDetail = jobDetail;
     this.audit = audit;
     this.bodies = bodies;
     this.handoff = handoff;
@@ -132,7 +133,17 @@ export class HostChannel {
             job,
             attempts: this.jobs.getAttempts(cmd.job_id).length,
             lease: this.jobs.getLease(cmd.job_id),
+            detail: this.jobDetail?.describe?.(cmd.job_id) ?? null,
           });
+        }
+        case 'job_cancel': {
+          if (!cmd.job_id) return reply(false, undefined, 'job_cancel requires {job_id}');
+          if (this.jobDetail?.cancel) return reply(true, this.jobDetail.cancel(cmd.job_id));
+          if (this.jobs?.cancelJob) {
+            this.jobs.cancelJob(cmd.job_id);
+            return reply(true, { cancelled: true, killed: false });
+          }
+          return reply(false, undefined, 'job cancel unavailable');
         }
         case 'audit_tail': {
           if (!this.audit) return reply(false, undefined, 'audit facade unavailable');
@@ -232,6 +243,10 @@ export class HostChannel {
           if (!this.sessions?.remove) return reply(false, undefined, 'sessions facade unavailable');
           if (!cmd.path) return reply(false, undefined, 'session_delete requires {path}');
           return reply(true, await this.sessions.remove(String(cmd.path)));
+        }
+        case 'session_search': {
+          if (!this.sessions?.search) return reply(false, undefined, 'sessions facade unavailable');
+          return reply(true, await this.sessions.search(String(cmd.query ?? '')));
         }
         case 'session_history': {
           if (!this.session?.history) return reply(false, undefined, 'history unavailable');

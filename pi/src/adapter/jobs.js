@@ -68,7 +68,56 @@ export class JobExecutor {
     this.writeLease = writeLease;
     this.classifier = classifier;
     this.budget = budget;
+    this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
+  }
+
+  /**
+   * User-facing detail projection: the DB record carries refs, the operator
+   * wants the actual command and output — resolve checkpoint/result files.
+   */
+  describe(jobId) {
+    const job = this.store.getJob(jobId);
+    if (!job) return null;
+    const attempts = this.store.getAttempts(jobId);
+    const cur = attempts.find((a) => a.attempt_id === job.current_attempt_id) ?? attempts.at(-1) ?? null;
+    let command = null; let outputTail = null; let exitCode = cur?.exit_code ?? null; let signal = null;
+    const cpPath = cur?.checkpoint_ref ?? job.checkpoint_ref;
+    if (cpPath && existsSync(cpPath)) {
+      try {
+        const cp = JSON.parse(readFileSync(cpPath, 'utf-8'));
+        if (typeof cp.input_identity === 'string') command = cp.input_identity.replace(/^sha256:/, '');
+      } catch { /* unreadable checkpoint → leave null */ }
+    }
+    const resPath = cur?.result_envelope_ref;
+    if (resPath && existsSync(resPath)) {
+      try {
+        const r = JSON.parse(readFileSync(resPath, 'utf-8'));
+        outputTail = r.output_tail ?? null;
+        exitCode = r.exit_code ?? exitCode;
+        signal = r.signal ?? null;
+      } catch { /* unreadable envelope → leave null */ }
+    }
+    return {
+      job, attempts: attempts.length, lease: this.store.getLease(jobId),
+      command, output_tail: outputTail, exit_code: exitCode, signal,
+      running: this.running.has(jobId),
+      events: this.store.getEvents(jobId).slice(-10),
+    };
+  }
+
+  /**
+   * Operator cancel: flag the record (store authority) and kill the live
+   * worker if this process spawned it. Workers from a dead parent are not
+   * ours to kill — recovery decides their fate.
+   */
+  cancel(jobId, reason = 'user_cancellation') {
+    const child = this.running.get(jobId);
+    const killable = Boolean(child && child.exitCode == null && !child.killed);
+    if (killable) child.kill();
+    this.store.cancelJob(jobId, reason);
+    this.audit?.write({ kind: 'JOB_CANCEL_REQUESTED', data: { job_id: jobId, reason, killed: killable, parent_run_id: this.runId } });
+    return { cancelled: true, killed: killable };
   }
 
   /**
@@ -118,6 +167,7 @@ export class JobExecutor {
     // shell:true — Node quotes for cmd.exe/sh correctly; the tracked worker
     // pid is the shell, which waits on its children
     const child = spawn(command, { cwd: workdir, windowsHide: true, shell: true });
+    this.running.set(jobId, child);
 
     // machine checkpoint — the resumability contract
     writeFileSync(checkpointPath, JSON.stringify({
@@ -162,6 +212,7 @@ export class JobExecutor {
     child.stderr?.on('data', (d) => { out += d; if (out.length > 8192) out = out.slice(-8192); });
 
     child.on('exit', (code, signal) => {
+      this.running.delete(jobId);
       clearInterval(heartbeat);
       if (mutating) this.writeLease?.release(leaseHolder);
       // If the store is closed (host shutting down) the exit is recorded by

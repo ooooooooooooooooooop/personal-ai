@@ -1,4 +1,5 @@
 import { join, resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -398,6 +399,36 @@ export async function startHost({
       currentSession.setSessionName?.(name);
       return { name };
     },
+    // Full-text search across persisted session JSONL — the sidebar filter
+    // only covers name/firstMessage; this scans message bodies too.
+    search: async (query) => {
+      const q = String(query ?? '').toLowerCase().trim();
+      if (!q) return [];
+      const metas = new Map((await sessionManagers.list(workdir, sessionDir)).map((s) => [s.path, s]));
+      const hits = [];
+      let files;
+      try { files = readdirSync(sessionDir).filter((x) => x.endsWith('.jsonl')); }
+      catch { return []; }
+      for (const f of files) {
+        const p = join(sessionDir, f);
+        const snippets = [];
+        try {
+          for (const line of readFileSync(p, 'utf-8').split('\n')) {
+            if (!line.includes(q) && !line.toLowerCase().includes(q)) continue;
+            let e; try { e = JSON.parse(line); } catch { continue; }
+            const c = e?.message?.content ?? e?.content;
+            const flat = typeof c === 'string' ? c
+              : Array.isArray(c) ? c.filter((x) => x?.type === 'text').map((x) => x.text).join(' ') : '';
+            const idx = flat.toLowerCase().indexOf(q);
+            if (idx < 0) continue;
+            snippets.push(flat.slice(Math.max(0, idx - 40), idx + q.length + 60).trim());
+            if (snippets.length >= 3) break;
+          }
+        } catch { continue; }
+        if (snippets.length) hits.push({ path: p, ...sessionInfo(metas.get(p) ?? { path: p }), snippets });
+      }
+      return hits;
+    },
     // Deleting the LIVE session would orphan its in-memory tree — refuse;
     // the caller switches away first.
     remove: async (path) => {
@@ -418,7 +449,7 @@ export async function startHost({
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   channelHandle = createChannelHost({
-    session, core, jobs: jobStore,
+    session, core, jobs: jobStore, jobDetail: executor,
     bodies: {
       current: async () => ({
         body_id: 'pi',

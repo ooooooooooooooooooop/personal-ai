@@ -93,8 +93,15 @@ export class GovernanceKernel {
       kind: 'GOVERNANCE_ASK', toolName: ctx.toolName,
       data: { toolCallId: ctx.toolCallId, rule, summary },
     });
+    // WYSIWYG contract: the operator must know whether the card shows the
+    // complete payload or a clipped prefix — truncated args carry an explicit
+    // flag + original size so the UI can say "you are approving N chars shown
+    // of M total".
+    const argState = { truncated: false };
+    const askArgs = sanitizeAskArgs(ctx.args, 0, argState);
+    const argsTotalChars = (() => { try { return JSON.stringify(ctx.args ?? {}).length; } catch { return null; } })();
     const answer = await this.ask(
-      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, args: sanitizeAskArgs(ctx.args) },
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars },
       ctx.signal,
     );
     this.audit.write({
@@ -289,11 +296,17 @@ const clip = (s, n = 240) => (s.length > n ? `${s.slice(0, n)}…` : s);
  * can SEE, so the real payload (command/path/content) must be inspectable.
  * Strings are clipped for transport; nothing is dropped by key.
  */
-function sanitizeAskArgs(args, depth = 0) {
-  if (args == null || typeof args !== 'object') return typeof args === 'string' ? clip(args, 4000) : args;
-  if (Array.isArray(args)) return args.slice(0, 50).map((v) => sanitizeAskArgs(v, depth + 1));
-  if (depth > 4) return '[nested]';
+function sanitizeAskArgs(args, depth = 0, state = { truncated: false }) {
+  if (args == null || typeof args !== 'object') {
+    if (typeof args === 'string' && args.length > 4000) { state.truncated = true; return clip(args, 4000); }
+    return args;
+  }
+  if (Array.isArray(args)) {
+    if (args.length > 50) state.truncated = true;
+    return args.slice(0, 50).map((v) => sanitizeAskArgs(v, depth + 1, state));
+  }
+  if (depth > 4) { state.truncated = true; return '[nested]'; }
   const out = {};
-  for (const [k, v] of Object.entries(args)) out[k] = sanitizeAskArgs(v, depth + 1);
+  for (const [k, v] of Object.entries(args)) out[k] = sanitizeAskArgs(v, depth + 1, state);
   return out;
 }
