@@ -17,6 +17,14 @@ class TestGatePlanner(unittest.TestCase):
         self.assertEqual(p["unittest"], [])
         self.assertEqual(p["mcp_suites"], [])
 
+    def test_research_doc_change_is_delta(self):
+        p = gate_planner.plan(
+            ["research/agent-harness-survey-v1/FEATURE_AUDIT.md"]
+        )
+        self.assertEqual(p["mode"], "DELTA")
+        self.assertEqual(p["compile"], [])
+        self.assertEqual(p["unittest"], [])
+
     def test_skill_change_scopes_to_nothing_but_compile(self):
         p = gate_planner.plan(["skills/minimal-implementation/SKILL.md"])
         self.assertEqual(p["mode"], "DELTA")

@@ -109,6 +109,7 @@ KNOWN_PLAIN_PREFIXES = (
     "app/",
     "soul/",
     "docs/",
+    "research/",
     "tests/",
     "scripts/",
     "_template/",
