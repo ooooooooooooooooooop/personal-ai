@@ -151,6 +151,82 @@ test('mutating durable job refuses while the lease is held', async () => {
   store.close();
 });
 
+test('loop detector blocks an identical call repeated past threshold', async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const { dir, decide } = rig();
+  // re-rig with the detector wired like production bootstrap does
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const decide2 = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: new LoopDetector({ warnAt: 2, blockAt: 4 }) });
+
+  const call = () => decide2({ toolCall: { name: 'bash' }, args: { command: 'grep x' } });
+  await call(); await call(); await call();
+  const r = await call(); // 4th identical → block
+  assert.equal(r.block, true);
+  assert.equal(r.rule, 'loop_detect');
+  assert.match(r.reason, /identically 4 times/);
+});
+
+test('loop escalation goes to the operator; allow lets the call through', async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-loop-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const asked = [];
+  const asks = { ask: async (pending) => { asked.push(pending); return 'allow'; } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: new LoopDetector({ warnAt: 2, blockAt: 3, escalateAfter: 1 }), asks });
+
+  const call = () => decide({ toolCall: { name: 'read' }, args: { path: 'a' } });
+  await call(); await call();
+  assert.equal((await call()).block, true); // 3rd → block
+  const r = await call();                    // retried → escalate to operator
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].rule, 'loop_detect');
+  assert.equal(r, undefined);                // operator allowed → admitted
+});
+
+test('loop escalation denied by operator stays blocked; no asks channel fails closed', async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-loop2-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+
+  // operator denies
+  const asks = { ask: async () => 'deny' };
+  const d1 = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: new LoopDetector({ warnAt: 2, blockAt: 3, escalateAfter: 1 }), asks });
+  const call1 = () => d1({ toolCall: { name: 'read' }, args: { path: 'b' } });
+  await call1(); await call1(); await call1(); // block
+  const denied = await call1();
+  assert.equal(denied.block, true);
+  assert.match(denied.reason, /operator \(deny\)/);
+
+  // no responder at all → escalate fails closed as a block, never an admit
+  const d2 = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: new LoopDetector({ warnAt: 2, blockAt: 3, escalateAfter: 1 }) });
+  const call2 = () => d2({ toolCall: { name: 'read' }, args: { path: 'c' } });
+  await call2(); await call2(); await call2();
+  const r = await call2();
+  assert.equal(r.block, true);
+  assert.match(r.reason, /fail-closed/);
+});
+
+test('job_status polling never trips the loop detector', async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-loop3-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: new LoopDetector({ warnAt: 2, blockAt: 3 }) });
+  for (let i = 0; i < 8; i++) {
+    assert.equal(await decide({ toolCall: { name: 'job_status' }, args: { job_id: 'j' } }), undefined);
+  }
+});
+
 test('B4: context seam re-projects LIVE open predictions (not a snapshot)', async () => {
   const { PredictionStore } = await import('../../host/src/core/prediction.js');
   const { buildContextEnvelope } = await import('../../host/src/core/envelopes.js');

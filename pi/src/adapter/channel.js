@@ -90,7 +90,21 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   const sessionFacade = {
     prompt: (message, options) => { admitSpend(); return box.s.prompt(message, options); },
     steer: (message) => { admitSpend(); return box.s.steer(message); },
-    abort: async () => { await box.s.abort?.(); },
+    abort: async () => {
+      await box.s.abort?.();
+      // Interrupt annotation: stopReason 'aborted' is metadata the model never
+      // sees in its prompt. A non-display custom message enters the next turn's
+      // context, so a continued run knows the interruption was the operator's —
+      // other abort paths (budget breach, session switch, handoff) deliberately
+      // bypass this facade and leave no such note.
+      try {
+        await box.s.sendCustomMessage?.({
+          customType: 'pai.user_interrupt',
+          content: 'The user interrupted this run. Treat the interrupted turn as partially complete — resume from the current state instead of restarting the work.',
+          display: false,
+        }, { triggerTurn: false, deliverAs: 'nextTurn' });
+      } catch { /* annotation is best-effort; abort already landed */ }
+    },
     getState: async () => {
       const s = box.s;
       return {

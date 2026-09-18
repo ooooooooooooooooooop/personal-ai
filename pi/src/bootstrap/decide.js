@@ -9,11 +9,12 @@ const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
  * tests can drive it directly instead of treating production wiring as
  * untestable internals.
  *
- * Order: kernel deny (terminate → deny→hide) → workspace write-lease mutex
+ * Order: kernel deny (terminate → deny→hide) → loop detector (warn/block/
+ * operator-escalate on stuck repetition) → workspace write-lease mutex
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null }) {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null }) {
   return async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
     // signal rides on ctx so the kernel's ask path can abort a pending
@@ -24,6 +25,46 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
       // surface (deny→hide) so the model stops retrying it — persisted.
       if (decision.terminate) getSurface()?.deny(toolName);
       return decision; // kernel denied — done
+    }
+    // Kernel admitted — loop detector scores the call. Only calls that would
+    // execute are counted; block reasons are returned as the tool result so
+    // the refusal text itself is the steering channel.
+    if (loopwatch) {
+      const v = loopwatch.observe(toolName, ctx.args ?? {});
+      if (v.level === 'warn') {
+        core.audit.write({ kind: 'LOOP_DETECT_WARN', toolName, data: { toolCallId: ctx.toolCall?.id, loop: v.kind, count: v.count } });
+      } else if (v.level === 'block' || (v.level === 'escalate' && !asks)) {
+        core.audit.write({ kind: 'LOOP_DETECT_BLOCK', toolName, data: { toolCallId: ctx.toolCall?.id, loop: v.kind, count: v.count, blocked: v.blocked } });
+        return {
+          block: true,
+          rule: 'loop_detect',
+          reason: v.level === 'escalate'
+            ? `${v.reason} — no operator channel configured (fail-closed)`
+            : v.reason,
+        };
+      } else if (v.level === 'escalate') {
+        // Persistent retry after refusals → the operator adjudicates.
+        const answer = await asks.ask({
+          toolName,
+          toolCallId: ctx.toolCall?.id,
+          rule: 'loop_detect',
+          summary: `${toolName} repeated ${v.count}× consecutively after ${v.blocked} refusals`,
+          detail: v.reason,
+          args: { signature: v.signature.slice(0, 80), count: v.count, blocked: v.blocked },
+          argsTruncated: false,
+          argsTotalChars: null,
+        }, signal);
+        core.audit.write({ kind: 'LOOP_DETECT_RESOLVED', toolName, data: { toolCallId: ctx.toolCall?.id, answer } });
+        if (answer === 'allow' || answer === 'allow_session') {
+          loopwatch.forgive(v.signature); // operator's allow = scored fresh
+        } else {
+          return {
+            block: true,
+            rule: 'loop_detect',
+            reason: `loop refusal confirmed by operator (${answer}) — ${v.reason}`,
+          };
+        }
+      }
     }
     // kernel admitted: long-running commands become durable jobs FIRST —
     // the job acquires its own `job:` write lease, so this path must run

@@ -12,6 +12,7 @@ import { JobExecutor } from '../adapter/jobs.js';
 import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
+import { LoopDetector } from '../../../host/src/core/loopwatch.js';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -210,6 +211,9 @@ export async function startHost({
         writeLease,
         classifier: parseShellCommand,
         getSessionScope: () => currentSession?.sessionId ?? null,
+        // stuck-loop scoring is session-scoped: a rebuilt session starts fresh
+        loopwatch: new LoopDetector(),
+        asks, // loop escalations reuse the operator-ask surface
       }),
       writeLease,
       loopGovernance: taskRequirements.length
