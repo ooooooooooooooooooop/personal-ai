@@ -28,6 +28,23 @@ if (sep === -1 || sep === argv.length - 1) {
 }
 const tIdx = argv.indexOf('--target');
 const target = tIdx !== -1 ? argv[tIdx + 1] : 'unknown';
+// Bounded delegation: the parent issues the child an enforceable budget cap
+// via env. A pai-channel child reads PAI_BUDGET_MAX_* at bootstrap and gates
+// every provider request itself — the cap is enforcement, not a hint.
+const flagVal = (name) => {
+  const i = argv.indexOf(name);
+  return i !== -1 ? argv[i + 1] : null;
+};
+const childEnv = { ...process.env };
+const budgetEnv = {
+  '--budget-tokens': 'PAI_BUDGET_MAX_TOKENS',
+  '--budget-calls': 'PAI_BUDGET_MAX_CALLS',
+  '--budget-cost': 'PAI_BUDGET_MAX_COST_USD',
+};
+for (const [flag, envName] of Object.entries(budgetEnv)) {
+  const v = flagVal(flag);
+  if (v != null) childEnv[envName] = String(v);
+}
 // re-quote args that lost their shell quoting through argv — whitespace must
 // survive the shell:true respawn as one token
 const command = argv.slice(sep + 1)
@@ -35,7 +52,7 @@ const command = argv.slice(sep + 1)
   .join(' ');
 
 const started = Date.now();
-const child = spawn(command, { windowsHide: true, shell: true });
+const child = spawn(command, { windowsHide: true, shell: true, env: childEnv });
 let out = '';
 let outputBytes = 0;
 child.stdout.on('data', (d) => { out += d; outputBytes += d.length; });

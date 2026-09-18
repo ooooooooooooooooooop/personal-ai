@@ -86,6 +86,71 @@ test('audit ledger carries FILEOP events for the real chain', async () => {
   assert.ok(ledger.includes('FILEOP_BACKUP'));
 });
 
+test('workspace write lease: foreground mutation refused while a job holds it', async () => {
+  const { WorkspaceWriteLease } = await import('../src/adapter/writelease.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-lease-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const writeLease = new WorkspaceWriteLease(join(dir, 'lease.json'));
+  const core = { audit, kernel: { decideToolCall: async () => null } }; // kernel admits
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, writeLease });
+
+  writeLease.acquire('job:build-1');
+  const target = join(dir, 'f.txt');
+  writeFileSync(target, 'v');
+  const r = await decide({ toolCall: { name: 'write' }, args: { path: target, content: 'x' } });
+  assert.equal(r.block, true);
+  assert.equal(r.rule, 'workspace_lease');
+  assert.match(r.reason, /build-1/);
+
+  writeLease.release('job:build-1');
+  const r2 = await decide({ toolCall: { name: 'write' }, args: { path: target, content: 'x' } });
+  assert.equal(r2, undefined); // free again
+});
+
+test('workspace write lease: mutating shell command refused while held; benign passes', async () => {
+  const { WorkspaceWriteLease } = await import('../src/adapter/writelease.js');
+  const { parseShellCommand } = await import('../src/adapter/command-parse.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-lease2-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const writeLease = new WorkspaceWriteLease(join(dir, 'lease.json'));
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, writeLease, classifier: parseShellCommand });
+
+  writeLease.acquire('job:watch-1');
+  const denied = await decide({ toolCall: { name: 'bash' }, args: { command: 'echo hi > out.txt' } });
+  assert.equal(denied?.block, true);
+  assert.equal(denied?.rule, 'workspace_lease');
+  const denied2 = await decide({ toolCall: { name: 'bash' }, args: { command: 'npm run build' } });
+  assert.equal(denied2?.rule, 'workspace_lease'); // classified mutating
+  const allowed = await decide({ toolCall: { name: 'bash' }, args: { command: 'ls -la' } });
+  assert.equal(allowed, undefined); // read-only command unaffected by the lease
+});
+
+test('mutating durable job refuses while the lease is held', async () => {
+  const { WorkspaceWriteLease } = await import('../src/adapter/writelease.js');
+  const { JobExecutor } = await import('../src/adapter/jobs.js');
+  const { JobStore } = await import('../../host/src/core/jobs.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-job-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const writeLease = new WorkspaceWriteLease(join(dir, 'lease.json'));
+  writeLease.acquire('job:other');
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    audit, writeLease,
+    classifier: async () => ({ risk: 'mutating', hasUnknown: false, parseError: null, units: [] }),
+  });
+  const r = await executor.spawnCommandJob({ command: 'npm run build', workdir: dir });
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /other/);
+  assert.equal(store.getJob(r.job_id).job_state, 'FAILED');
+  store.close();
+});
+
 test('B4: context seam re-projects LIVE open predictions (not a snapshot)', async () => {
   const { PredictionStore } = await import('../../host/src/core/prediction.js');
   const { buildContextEnvelope } = await import('../../host/src/core/envelopes.js');

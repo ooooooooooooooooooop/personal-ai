@@ -11,8 +11,10 @@ import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JobStore } from '../../host/src/core/jobs.js';
+import { BudgetGovernor } from '../../host/src/core/budget.js';
 import { JobExecutor, isLongRunningCommand, isWorkerAlive, validateCheckpoint } from '../src/adapter/jobs.js';
 import { delegateTool, jobStatusTool } from '../src/adapter/delegate.js';
+import { WorkspaceWriteLease } from '../src/adapter/writelease.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -88,10 +90,104 @@ test('KILL DRILL: worker killed → cold restart → recoveryTick resumes under 
   store.close(); store2.close();
 });
 
+test('ORPHAN DRILL: parent dead, worker alive — cold executor adopts its lease', { timeout: 30_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-orphan-'));
+  const { store } = rig(dir);
+  const workdir = tmpdir();
+  const leasePath = join(dir, 'ws-lease.json');
+
+  // A worker that outlives its parent — spawned outside any executor, with a
+  // workspace lease the DEAD parent took out under `job:<id>` but carrying the
+  // WORKER's pid (so it stays live while the orphan lives).
+  const orphan = spawn('node', ['-e', 'setTimeout(()=>{},60000)'], { windowsHide: true });
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: workdir });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'dead_host', workerType: 'child_process',
+    workerIdentity: { pid: orphan.pid, host: 'local' }, workspaceRef: workdir,
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, JSON.stringify({
+    checkpoint_version: 1, job_id: job.job_id, attempt_id,
+    input_identity: 'sha256:cmd', authorized_root: workdir,
+    algorithm_version: '1.0.0', next_operation: 'await_exit',
+    created_at: new Date().toISOString(), pid: orphan.pid,
+    mutating: true, budget_scope: 'sess-dead',
+  }));
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  // the dead parent's lease — worker pid keeps it alive
+  const deadParentLease = new WorkspaceWriteLease(leasePath, { ttlMs: 4_000 });
+  deadParentLease.acquire(`job:${job.job_id}`, { command: 'rm -rf stuff' });
+  // overwrite the recorded pid with the WORKER's pid — what production does
+  deadParentLease.release(`job:${job.job_id}`);
+  const { writeFileSync: w } = await import('node:fs');
+  w(leasePath, JSON.stringify({ holder: `job:${job.job_id}`, pid: orphan.pid, acquiredAt: Date.now(), expiresAt: Date.now() + 1500 }));
+
+  // === cold restart: new executor over the same db, same lease file ===
+  const store2 = new JobStore(join(dir, 'durable_jobs.db'));
+  const liveLease = new WorkspaceWriteLease(leasePath, { ttlMs: 4_000 });
+  const auditRows = [];
+  const executor2 = new JobExecutor(store2, join(dir, 'jobs'), {
+    writeLease: liveLease,
+    audit: { write: (r) => auditRows.push(r) },
+  });
+  const actions = executor2.recover({ workdir });
+  const act = actions.find((a) => a.job_id === job.job_id);
+  assert.equal(act.action_type, 'NO_ACTION', 'live worker must never be duplicated');
+  assert.ok(auditRows.some((r) => r.kind === 'JOB_LEASE_ADOPTED'), 'lease adoption audited');
+
+  // while the orphan lives the lease keeps renewing — a rival cannot take it
+  await new Promise((r) => setTimeout(r, 2500)); // past the original 1.5s expiry
+  const cur = liveLease.held();
+  assert.equal(cur?.holder, `job:${job.job_id}`, 'adopted lease still held');
+
+  // orphan exits → watchdog releases the lease
+  orphan.kill();
+  await new Promise((r) => setTimeout(r, 6_500)); // watchdog interval ~1.3s + margin
+  assert.equal(liveLease.held(), null, 'lease released once the orphan dies');
+  store.close(); store2.close();
+});
+
+test('ORPHAN DRILL: lease stolen while orphan alive — orphan killed, audited', { timeout: 15_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-orphan-kill-'));
+  const { store } = rig(dir);
+  const workdir = tmpdir();
+  const leasePath = join(dir, 'ws-lease.json');
+
+  const orphan = spawn('node', ['-e', 'setTimeout(()=>{},60000)'], { windowsHide: true });
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: workdir });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'dead_host', workerType: 'child_process',
+    workerIdentity: { pid: orphan.pid, host: 'local' }, workspaceRef: workdir,
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, JSON.stringify({
+    checkpoint_version: 1, job_id: job.job_id, attempt_id,
+    input_identity: 'sha256:cmd', authorized_root: workdir,
+    algorithm_version: '1.0.0', next_operation: 'await_exit',
+    created_at: new Date().toISOString(), pid: orphan.pid, mutating: true,
+  }));
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  // a DIFFERENT holder took the lease — the orphan writes unguarded
+  const thief = new WorkspaceWriteLease(leasePath, { ttlMs: 60_000 });
+  thief.acquire('fg:someone-else', {});
+
+  const store2 = new JobStore(join(dir, 'durable_jobs.db'));
+  const auditRows = [];
+  const executor2 = new JobExecutor(store2, join(dir, 'jobs'), {
+    writeLease: new WorkspaceWriteLease(leasePath, { ttlMs: 60_000 }),
+    audit: { write: (r) => auditRows.push(r) },
+  });
+  executor2.recover({ workdir });
+  await new Promise((r) => setTimeout(r, 400));
+  assert.ok(auditRows.some((r) => r.kind === 'JOB_ORPHAN_KILLED'), 'orphan kill audited');
+  assert.equal(isWorkerAlive({ pid: orphan.pid }), false, 'unguarded orphan terminated');
+  store.close(); store2.close();
+});
+
 test('job completes end-to-end: fast command runs to COMPLETED with result envelope', { timeout: 15_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-jobok-'));
   const { store, executor } = rig(dir);
-  const { job_id } = executor.spawnCommandJob({
+  const { job_id } = await executor.spawnCommandJob({
     command: process.platform === 'win32' ? 'echo ACCEPT_OK' : 'echo ACCEPT_OK',
     workdir: tmpdir(),
   });
@@ -140,6 +236,144 @@ test('B7: real delegate path — bridge produces usage attributed to parent_run_
   assert.equal(finished.data.parent_run_id, 'parent-run-1');
   assert.equal(finished.data.usage.via, 'delegate-bridge');
   assert.deepEqual(finished.data.usage.childUsage, { input: 1200, output: 80, cost: 0.0042 });
+  store.close();
+});
+
+// ─── delegate hard-budget admission (external review blocker) ─────────────
+
+const mkBudget = (dir, limits) => new BudgetGovernor({
+  ledgerPath: join(dir, 'budget.jsonl'), limits,
+  audit: { write: () => {} },
+});
+
+test('delegate admission: enforceable child gets parent-remaining budget via env', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-budget-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, { maxTokensPerSession: 2000, maxCallsPerSession: 10 });
+  budget.record({ scope: 'sess-p', source: 'turn', usage: { input: 1500 }, countCall: false });
+  budget.record({ scope: 'sess-p', source: 'turn', usage: {}, countCall: true }); // calls=1
+
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    // commandFor yields a REAL pai-channel child (fixture prints its env)
+    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    workdir: tmpdir(),
+    getScope: () => 'sess-p',
+    budget,
+  });
+  const res = await tool.execute('tc1', { target: 'pi', task: 'do work' });
+  assert.equal(res.details.refused, undefined, `not refused: ${res.content[0].text}`);
+  // child budget issued = parent's remaining headroom: tokens 500, calls 9
+  assert.match(res.details.child_budget ?? '', /--budget-tokens 500/);
+  assert.match(res.details.child_budget ?? '', /--budget-calls 9/);
+  // wait for the real bridge → fixture child → env echo lands in the envelope
+  await new Promise((r) => setTimeout(r, 3000));
+  const attempt = store.getAttempts(res.details.job_id)[0];
+  const envelope = JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
+  // env propagation is provable via the child's own echo in captured output
+  const m = String(envelope.output_tail ?? '').match(/CHILD_ENV (\{[^}]*\})/);
+  assert.ok(m, `fixture child env echo in output_tail; got: ${String(envelope.output_tail).slice(0, 300)}`);
+  const env = JSON.parse(m[1]);
+  assert.equal(env.PAI_BUDGET_MAX_TOKENS, '500');
+  assert.equal(env.PAI_BUDGET_MAX_CALLS, '9');
+  store.close();
+});
+
+test('delegate admission: committed slice cannot be double-spent by a second delegate', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-dbl-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, { maxTokensPerSession: 2000 });
+  budget.record({ scope: 'sess-d', source: 'turn', usage: { input: 1500 }, countCall: false });
+
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    workdir: tmpdir(),
+    getScope: () => 'sess-d',
+    budget,
+  });
+  // delegate A commits the whole remaining 500 — atomically owned, not copied
+  const a = await tool.execute('tc1', { target: 'pi', task: 'a' });
+  assert.equal(a.details.refused, undefined);
+  assert.equal(budget.consumed('sess-d').tokens, 2000, 'slice charged to parent ledger at admission');
+  // delegate B must be refused at parent admission — no double-spend
+  const b = await tool.execute('tc2', { target: 'pi', task: 'b' });
+  assert.equal(b.details.refused, true);
+  assert.match(b.details.reason, /budget exceeded/);
+  // parent itself is also over — the committed slice is real spend
+  const gate = budget.admit('sess-d');
+  assert.equal(gate.ok, false);
+  store.close();
+});
+
+test('delegate admission: committed child usage does NOT double-bill the parent', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-nodbl-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, { maxTokensPerSession: 100000 });
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    workdir: tmpdir(),
+    getScope: () => 'sess-c',
+    budget,
+  });
+  const res = await tool.execute('tc1', { target: 'pi', task: 'x' });
+  assert.equal(res.details.refused, undefined);
+  const afterCommit = budget.consumed('sess-c').tokens; // = 100000 committed
+  assert.equal(afterCommit, 100000);
+  // wait for the child to finish and report PAI_USAGE — committed jobs skip re-billing
+  await new Promise((r) => setTimeout(r, 3000));
+  assert.equal(budget.consumed('sess-c').tokens, 100000, 'child usage envelope must not double-bill a committed slice');
+  store.close();
+});
+
+test('delegate admission: unenforceable target refused before spawn under finite budget', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-unenf-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, { maxTokensPerSession: 2000 });
+  const tool = delegateTool(executor, {
+    commandFor: (t, task) => `echo "ext agent ${t}: ${task}"`, // not pai-channel
+    workdir: tmpdir(),
+    getScope: () => 'sess-x',
+    budget,
+  });
+  const res = await tool.execute('tc1', { target: 'codex', task: 'x' });
+  assert.equal(res.details.refused, true);
+  assert.equal(res.details.reason, 'unenforceable_child_budget');
+  assert.match(res.content[0].text, /cannot enforce a hard request-level budget/);
+  store.close();
+});
+
+test('delegate admission: exhausted parent scope refuses before spawn', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-cap-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, { maxTokensPerSession: 100 });
+  budget.record({ scope: 'sess-x', source: 'turn', usage: { input: 150 }, countCall: false });
+  const tool = delegateTool(executor, {
+    commandFor: () => `"${process.execPath}" "${join(here, 'fixtures', 'pai-channel.js')}"`,
+    workdir: tmpdir(),
+    getScope: () => 'sess-x',
+    budget,
+  });
+  const res = await tool.execute('tc1', { target: 'pi', task: 'x' });
+  assert.equal(res.details.refused, true);
+  assert.match(res.details.reason, /budget exceeded: max_tokens 150 >= 100/);
+  store.close();
+});
+
+test('delegate admission: unconfigured budget stays observe-only (no refusal)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-obs-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, null); // no limits — observe-only
+  const tool = delegateTool(executor, {
+    commandFor: (t) => `echo "delegating to ${t}"`,
+    workdir: tmpdir(),
+    getScope: () => 'sess-x',
+    budget,
+  });
+  const res = await tool.execute('tc1', { target: 'codex', task: 'x' });
+  assert.equal(res.details.refused, undefined);
+  assert.ok(res.details.job_id);
   store.close();
 });
 

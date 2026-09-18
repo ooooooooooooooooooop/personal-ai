@@ -23,7 +23,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null }) {
+export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -31,21 +31,65 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
   // session is current; rebind() retargets the pump to a rebuilt session.
   const box = { s: session };
   const uiListeners = new Set();
+  const emit = (ev) => {
+    for (const l of uiListeners) {
+      try { l(ev); } catch { /* a dead UI listener must not break the pump */ }
+    }
+  };
+  // Bounded autonomy: bill every usage-bearing event onto the append-only
+  // ledger, and on breach refuse further spend — emit + abort + audit.
+  const bill = (usage, source) => {
+    if (!budget || !usage) return;
+    try {
+      const scope = box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown';
+      // tokens/cost only — the provider request itself was already counted
+      // at the fetch gate (one HTTP call = one call, retries included)
+      budget.record({ scope, source, usage, countCall: false });
+      const breach = budget.breach(scope);
+      if (breach) {
+        core.audit?.write({ kind: 'BUDGET_EXCEEDED', data: { scope, source, ...breach } });
+        emit({ type: 'budget_exceeded', ...breach, consumed: budget.consumed(scope) });
+        box.s.abort?.().catch(() => {});
+      }
+    } catch (e) {
+      // a recording failure with configured limits is governance-relevant —
+      // surface it rather than silently un-metering the run
+      emit({ type: 'budget_error', error: String(e?.message ?? e) });
+    }
+  };
   let pump = null;
   const rebind = (newSession) => {
     pump?.();
     box.s = newSession;
     pump = newSession.subscribe((ev) => {
-      for (const l of uiListeners) {
-        try { l(ev); } catch { /* a dead UI listener must not break the pump */ }
+      if (ev?.type === 'message_end' && ev.message?.role === 'assistant' && ev.message?.usage) {
+        bill(ev.message.usage, 'turn');
+      } else if (ev?.type === 'compaction_end' && ev.result?.usage) {
+        bill(ev.result.usage, 'compaction');
+      } else if (ev?.type === 'tool_execution_end' && writeLease) {
+        // belt for the afterToolCall release — idempotent, holder-matched
+        writeLease.release(`fg:${ev.toolCallId}`);
+      } else if (ev?.type === 'agent_end' && writeLease) {
+        // abort can skip afterToolCall — sweep any foreground-held lease so a
+        // dead write never wedges the workspace
+        const h = writeLease.held();
+        if (h?.holder?.startsWith('fg:')) writeLease.release(h.holder);
       }
+      emit(ev);
     });
   };
   rebind(session);
+  // Expensive-call admission — prompt/steer/compact all go through here.
+  const admitSpend = () => {
+    if (!budget) return;
+    const scope = box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown';
+    const gate = budget.admit(scope);
+    if (!gate.ok) throw new Error(`budget gate: ${gate.reason}`);
+  };
 
   const sessionFacade = {
-    prompt: (message, options) => box.s.prompt(message, options),
-    steer: (message) => box.s.steer(message),
+    prompt: (message, options) => { admitSpend(); return box.s.prompt(message, options); },
+    steer: (message) => { admitSpend(); return box.s.steer(message); },
     abort: async () => { await box.s.abort?.(); },
     getState: async () => {
       const s = box.s;
@@ -64,6 +108,7 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
     },
     // Context lifecycle — pi-native compact / tree rewind / stats / export.
     compact: async (instructions) => {
+      admitSpend();
       const r = await box.s.compact?.(instructions);
       return r ? { compacted: true } : { compacted: false };
     },
@@ -222,12 +267,16 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
     sessions,
     asks,
     fileops,
+    budget: budget ? {
+      status: async () => budget.status(box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown'),
+    } : null,
     policy: {
       // Read-only posture for UIs — the canonical block itself is only
       // writable through provisioning, never through this surface.
       status: async () => ({
         checksum: core.policy.checksum,
         riskActions: core.policy.doc?.riskActions ?? {},
+        budget: core.policy.doc?.budget ?? null,
         toolRules: Object.fromEntries(
           Object.entries(core.policy.toolPolicy ?? {})
             .map(([tool, r]) => [tool, { action: r.action ?? null, requiresPrediction: r.requiresPrediction === true }]),

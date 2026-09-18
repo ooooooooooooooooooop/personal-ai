@@ -65,8 +65,9 @@ export class HostChannel {
    *        governance_ask / governance_resolved
    * @param {object} [facades.fileops] {list,restore} — receipted file-mutation log
    * @param {object} [facades.policy]  {status} — read-only policy posture for UIs
+   * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null }) {
+  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -78,6 +79,7 @@ export class HostChannel {
     this.asks = asks;
     this.fileops = fileops;
     this.policy = policy;
+    this.budget = budget;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -260,6 +262,10 @@ export class HostChannel {
         case 'policy_status': {
           if (!this.policy?.status) return reply(false, undefined, 'policy facade unavailable');
           return reply(true, await this.policy.status());
+        }
+        case 'budget_status': {
+          if (!this.budget?.status) return reply(false, undefined, 'budget facade unavailable');
+          return reply(true, await this.budget.status());
         }
         case 'pending_list': {
           if (!this.asks?.list) return reply(false, undefined, 'asks facade unavailable');

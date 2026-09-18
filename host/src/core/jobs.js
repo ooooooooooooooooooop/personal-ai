@@ -282,7 +282,7 @@ export class JobStore {
    * @param {(checkpoint:object)=>{valid:boolean,reason?:string}} validateCheckpoint
    * @param {(job,attempt,checkpoint)=>void} [onRespawn]
    */
-  recoveryTick({ isWorkerAlive, validateCheckpoint, onRespawn, now, readCheckpoint }) {
+  recoveryTick({ isWorkerAlive, validateCheckpoint, onRespawn, onAlive, now, readCheckpoint }) {
     const actions = [];
     for (const job of this.listUnfinished()) {
       if (job.job_state === JobState.WAITING_EVENT) {
@@ -297,6 +297,10 @@ export class JobStore {
         try { alive = isWorkerAlive(JSON.parse(attempt.worker_identity)); } catch { alive = false; }
       }
       if (alive) {
+        // The worker outlived our process — the pi side may need to adopt its
+        // workspace write lease (renew while the orphan lives, release when it
+        // dies) or a new writer could take an expired lease under it.
+        try { onAlive?.(job, attempt); } catch { /* adoption is best-effort; lease staleness still bounds it */ }
         actions.push({ job_id: job.job_id, action_type: 'NO_ACTION', reason: 'worker healthy — never spawn a duplicate' });
         continue;
       }

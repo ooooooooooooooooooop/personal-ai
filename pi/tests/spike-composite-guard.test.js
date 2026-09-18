@@ -25,6 +25,7 @@ import {
   defineTool,
 } from '@earendil-works/pi-coding-agent';
 import { installCompositeGuard } from '../src/adapter/session.js';
+import { WorkspaceWriteLease } from '../src/adapter/writelease.js';
 
 const stubModel = {
   id: 'stub', name: 'stub', api: 'openai-completions', provider: 'openai',
@@ -192,4 +193,72 @@ test('S0: seal survives reload swap; a NEW session requires reinstall', async ()
     session.agent.beforeToolCall,
     'new session must carry its own bridge; composite must be reinstalled',
   );
+});
+
+// ─── foreground write lease: held THROUGH execution, released after ─────────
+
+function fgLease() {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fglease-'));
+  return new WorkspaceWriteLease(join(dir, 'lease.json'), { ttlMs: 60_000 });
+}
+
+test('fg lease: decide acquires → held during execution → afterToolCall releases', async () => {
+  const session = await makeSession(() => {});
+  const writeLease = fgLease();
+  installCompositeGuard(session.agent, {
+    revalidate: () => ({ ok: true }),
+    decide: async (c) => {
+      // production decide: acquire before admitting a mutating call
+      writeLease.acquire(`fg:${c.toolCall.id}`, { tool: c.toolCall.name });
+      return undefined;
+    },
+    writeLease,
+  });
+
+  await session.agent.beforeToolCall(ctx('bash', { command: 'rm x' }, 'tcA'));
+  // lease must STILL be held while the tool body would be executing
+  const held = writeLease.held();
+  assert.equal(held?.holder, 'fg:tcA');
+  // a second fg call contending mid-execution is refused by the lease itself
+  const rival = writeLease.acquire('fg:tcB', {});
+  assert.equal(rival.ok, false);
+
+  // real AfterToolCallContext shape: {toolCall, args, result, isError}
+  await session.agent.afterToolCall({
+    toolCall: { id: 'tcA', name: 'bash' },
+    args: { command: 'rm x' },
+    result: { content: [{ type: 'text', text: 'done' }] },
+    isError: false,
+  });
+  assert.equal(writeLease.held(), null);
+  assert.equal(writeLease.acquire('fg:tcB', {}).ok, true);
+});
+
+test('fg lease: release happens even when pi afterToolCall bridge throws', async () => {
+  const writeLease = fgLease();
+  const session = await makeSession(() => {});
+  // install over a THROWING pi bridge — finally must still release
+  const orig = session.agent.afterToolCall;
+  session.agent.afterToolCall = async () => { throw new Error('pi bridge exploded'); };
+  installCompositeGuard(session.agent, {
+    revalidate: () => ({ ok: true }),
+    decide: async () => undefined,
+    writeLease,
+  });
+  writeLease.acquire('fg:tcErr', {});
+  await assert.rejects(() => session.agent.afterToolCall({
+    toolCall: { id: 'tcErr', name: 'bash' }, args: {}, result: {}, isError: true,
+  }));
+  assert.equal(writeLease.held(), null, 'finally releases even when pi bridge throws');
+  session.agent.afterToolCall = orig;
+});
+
+test('fg lease: guard without writeLease leaves afterToolCall untouched', async () => {
+  const session = await makeSession(() => {});
+  const piAfter = session.agent.afterToolCall;
+  installCompositeGuard(session.agent, {
+    revalidate: () => ({ ok: true }),
+    decide: async () => undefined,
+  });
+  assert.equal(session.agent.afterToolCall, piAfter, 'no lease → no composite wrap');
 });

@@ -26,12 +26,18 @@
  * @param {(ctx, signal) => Promise<object|undefined>} hooks.decide
  *        PAI authoritative final guard (GovernanceKernel.decideToolCall).
  *        Throws = fail-closed block; the kernel must not crash-open the guard.
+ * @param {object} [hooks.writeLease]  WorkspaceWriteLease — foreground mutating
+ *        calls acquire `fg:<toolCallId>` in decide and must hold it through the
+ *        real execution. Released here in a finally AFTER Pi's own tool_result
+ *        bridge, so errors/abort/normal results all release. The `agent_end`
+ *        sweep in the channel covers aborts that skip afterToolCall.
  */
-export function installCompositeGuard(agent, { revalidate, decide }) {
+export function installCompositeGuard(agent, { revalidate, decide, writeLease = null }) {
   const piBridge = agent.beforeToolCall;
   if (typeof piBridge !== 'function') {
     throw new Error('expected Pi extension bridge at agent.beforeToolCall');
   }
+  const piAfter = agent.afterToolCall; // pi's tool_result extension bridge
 
   const composite = async (ctx, signal) => {
     // 1. Pi extension bridge — managed extensions may mutate ctx.args in place
@@ -68,12 +74,26 @@ export function installCompositeGuard(agent, { revalidate, decide }) {
 
   agent.beforeToolCall = composite;
 
+  // afterToolCall composite — runs Pi's tool_result bridge first, then always
+  // releases the foreground write lease (if this call held one).
+  if (writeLease) {
+    agent.afterToolCall = async (ctx, signal) => {
+      try {
+        return piAfter ? await piAfter(ctx, signal) : undefined;
+      } finally {
+        writeLease.release(`fg:${ctx.toolCall?.id ?? 'unknown'}`);
+      }
+    };
+  }
+
   return {
     /** Assert the composite is still installed (call after reload/replacement). */
-    sealed: () => agent.beforeToolCall === composite,
-    /** Restore Pi's original bridge (tests, teardown). */
+    sealed: () => agent.beforeToolCall === composite
+      && (!writeLease || typeof agent.afterToolCall === 'function'),
+    /** Restore Pi's original bridges (tests, teardown). */
     restore: () => {
       agent.beforeToolCall = piBridge;
+      if (writeLease) agent.afterToolCall = piAfter;
     },
   };
 }

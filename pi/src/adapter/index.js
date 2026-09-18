@@ -112,6 +112,7 @@ export async function createPiSession({
   audit = null,
   revalidate,
   decide,
+  writeLease = null, // workspace write mutex — fg mutating calls hold it through execution
   loopGovernance = null, // {continuation, predictions} — M3 evidence-gated loop
   customTools = [], // host-owned tools (job_status, delegate_task) — go through the same composite chain
   excludeTools = [], // policy-derived initial suppression — model never sees them
@@ -155,6 +156,7 @@ export async function createPiSession({
   const guard = installCompositeGuard(session.agent, {
     revalidate: effectiveRevalidate,
     decide: effectiveDecide,
+    writeLease,
   });
   return { session, guard, extensionsResult };
 }

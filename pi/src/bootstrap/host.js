@@ -8,6 +8,15 @@ import { selectBody } from '../../../host/src/core/eligibility.js';
 import { JobStore } from '../../../host/src/core/jobs.js';
 import { PendingAsks } from '../../../host/src/core/asks.js';
 import { JobExecutor } from '../adapter/jobs.js';
+import { BudgetGovernor } from '../../../host/src/core/budget.js';
+import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
+import { WorkspaceWriteLease } from '../adapter/writelease.js';
+
+/** Operator env lever — a number or undefined; never NaN into limits. */
+function numEnv(name) {
+  const v = Number(process.env[name]);
+  return Number.isFinite(v) && v > 0 ? v : undefined;
+}
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { createChannelHost } from '../adapter/channel.js';
 import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
@@ -120,18 +129,44 @@ export async function startHost({
     baseDir: PI_ROOT,
   });
 
+  // Bounded autonomy: cumulative spend gate. Limits come from the attested
+  // policy doc (policy.doc.budget) or the operator env — never from anything
+  // the agent can reach. The ledger is append-only so session rewind can
+  // never un-spend tokens.
+  const budget = new BudgetGovernor({
+    ledgerPath: join(core.paths.root, 'budget-ledger.jsonl'),
+    limits: core.policy.doc?.budget ?? {
+      maxTokensPerSession: numEnv('PAI_BUDGET_MAX_TOKENS'),
+      maxCostPerSessionUsd: numEnv('PAI_BUDGET_MAX_COST_USD'),
+      maxCallsPerSession: numEnv('PAI_BUDGET_MAX_CALLS'),
+    },
+    audit: core.audit,
+  });
+
+  // Workspace write mutex: a mutating durable job holds it; foreground
+  // mutating calls are refused while held. Closes the fore/background race.
+  const writeLease = new WorkspaceWriteLease(join(core.paths.root, 'workspace-write-lease.json'));
+
   // M4: durable jobs — state machine in host, executor in the body.
   const jobStore = new JobStore(join(core.paths.root, 'jobs', 'durable_jobs.db'));
   const executor = new JobExecutor(jobStore, join(core.paths.root, 'jobs'), {
     audit: core.audit,
     runId,
+    writeLease,
+    classifier: parseShellCommand,
+    budget, // child PAI_USAGE bills into the spawning session's scope
   });
   // cold-start sweep: dead workers from a previous process get recovered or
   // parked for review — never silently abandoned
   const recoveryActions = executor.recover({ workdir });
 
   const customTools = [jobStatusTool(jobStore)];
-  if (delegationCommand) customTools.push(delegateTool(executor, { commandFor: delegationCommand, workdir }));
+  if (delegationCommand) customTools.push(delegateTool(executor, {
+    commandFor: delegationCommand,
+    workdir,
+    getScope: () => currentSession?.sessionId ?? null,
+    budget,
+  }));
 
   // M2 production wiring: policy-denied tools never reach the visible surface
   // (excludeTools at construction); runtime terminate-level denials hide the
@@ -165,7 +200,11 @@ export async function startHost({
         core, executor, fileOps,
         getSurface: () => toolSurface,
         workdir,
+        writeLease,
+        classifier: parseShellCommand,
+        getSessionScope: () => currentSession?.sessionId ?? null,
       }),
+      writeLease,
       loopGovernance: taskRequirements.length
         ? {
             continuation: new ContinuationGovernor({
@@ -195,6 +234,20 @@ export async function startHost({
     sessionManagers.create(workdir, sessionDir),
   );
   let currentSession = session;
+
+  // Authoritative budget admission sits at the provider-request layer, not
+  // just the channel entry — auto-retry, compaction summarizer, and provider
+  // retries all end in an HTTP call through this fetch. Denial is a synthetic
+  // 402 (non-retryable 4xx) so an over-budget request fails once, cleanly.
+  const ungateFetch = installBudgetFetch({
+    budget,
+    getScope: () => currentSession?.sessionId ?? 'unknown',
+    getProviderHosts: () => collectProviderHosts(currentSession?.modelRuntime),
+    audit: core.audit,
+    onGateEvent: process.env.PAI_BUDGET_GATE_DEBUG
+      ? (e) => process.stderr.write(`[budget-gate] ${JSON.stringify(e)}\n`)
+      : null,
+  });
 
   // runtime identity completes once the session exists — session id is part of
   // it, and every audit event cites this identity via the annotations below.
@@ -368,10 +421,13 @@ export async function startHost({
       list: (n) => fileOps.list(n),
       restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
     },
+    budget,
+    writeLease,
   });
   const channel = channelHandle.channel;
 
   const dispose = () => {
+    ungateFetch();
     releaseWriter();
     asks.dispose();
     channelHandle.dispose();

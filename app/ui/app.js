@@ -595,6 +595,15 @@ function onAgentEvent(ev) {
       refreshSessions();
       refreshState();
       break;
+    case 'budget_exceeded':
+      addSys(`预算超限——会话已停止：${ev.rule} ${ev.consumed} ≥ ${ev.limit}（上限来自规范策略/操作员环境，模型不能自行放宽）`, true);
+      toast('预算超限，运行已中止');
+      setStatus('预算超限', 'err');
+      refreshState();
+      break;
+    case 'budget_error':
+      addSys(`预算记账失败：${ev.error}——已配限时这是治理事件`, true);
+      break;
     case 'thinking_level_changed':
       refreshState();
       break;
@@ -1034,6 +1043,10 @@ function renderGovCard(p) {
   $('gov-denied').textContent = denied.length ? `禁用工具：${denied.join('、')}` : '无显式禁用工具';
   $('gov-sum').textContent = `${rows.length} 条规则`;
   $('gov-checksum').textContent = (p.checksum ?? '').slice(0, 16);
+  const b = p.budget;
+  $('gov-denied').textContent += (b && (b.maxTokensPerSession || b.maxCostPerSessionUsd || b.maxCallsPerSession))
+    ? `；预算上限：${[b.maxTokensPerSession && `${b.maxTokensPerSession} tok`, b.maxCostPerSessionUsd && `$${b.maxCostPerSessionUsd}`, b.maxCallsPerSession && `${b.maxCallsPerSession} 次调用`].filter(Boolean).join(' · ')}`
+    : '；无预算上限（所有用量仍记 append-only 账）';
 }
 $('set-pick-dir').onclick = async () => {
   const res = await fetch('/api/pick-dir', { method: 'POST' }).then((r) => r.json()).catch(() => ({}));

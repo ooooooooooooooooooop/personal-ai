@@ -42,3 +42,36 @@ test('facade exposes plain-data get_state and dispatches prompt/steer/abort', as
   assert.equal(tail.data[0].kind, 'TURN_ACCOUNTING');
   dispose();
 });
+
+test('budget gate: over-limit prompt is refused and billed events emit budget_exceeded', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-budget-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { BudgetGovernor } = await import('../../host/src/core/budget.js');
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const budget = new BudgetGovernor({
+    ledgerPath: join(dir, 'budget-ledger.jsonl'),
+    limits: { maxTokensPerSession: 100 },
+    audit,
+  });
+  const core = { paths: { auditDir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, budget });
+  fakeSessionRef.sessionId = 's-test';
+  fakeSessionRef.sessionManager = { getSessionId: () => 's-test' };
+
+  // bill the session over the cap via a usage-bearing assistant event
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+  for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant', usage: { input: 80, output: 40, cost: { total: 0.01 } } } });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.ok(events.some((m) => m.event?.type === 'budget_exceeded'), 'budget_exceeded emitted');
+  assert.ok(fakeSessionRef.calls.some((c) => c[0] === 'abort'), 'run aborted on breach');
+
+  // next prompt is refused at admission — the model never gets to spend more
+  const r = await ch.handle({ type: 'prompt', message: 'again' });
+  assert.equal(r.success, false);
+  assert.match(r.error, /budget/);
+  dispose();
+});
