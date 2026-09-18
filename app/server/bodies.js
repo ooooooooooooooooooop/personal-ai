@@ -8,6 +8,7 @@
 import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { piFacts } from '../../pi/src/bootstrap/facts.js';
 import { DshBody } from '../../dsh/adapter/index.js';
 
@@ -15,6 +16,21 @@ function commandOnPath(name) {
   const probe = process.platform === 'win32' ? 'where' : 'which';
   const r = spawnSync(probe, [name], { encoding: 'utf-8' });
   return r.status === 0 ? r.stdout.split(/\r?\n/)[0].trim() : null;
+}
+
+/**
+ * Resolve the dsh CLI bin.js. Discovery order: explicit DSH_CLI → PATH → the
+ * managed composition's profile-level install
+ * (<DSH_HOME|~/.dsh>/profiles/node_modules/@deepseek-ai/dsh/lib/bin.js).
+ * Returns null when no runtime exists — callers must not pretend it does.
+ */
+export function resolveDshBin(env = process.env) {
+  const home = env.DSH_HOME ?? join(homedir(), '.dsh');
+  return [
+    env.DSH_CLI,
+    commandOnPath('dsh'),
+    join(home, 'profiles', 'node_modules', '@deepseek-ai', 'dsh', 'lib', 'bin.js'),
+  ].find((c) => c && existsSync(c)) ?? null;
 }
 
 export function bodyCatalog({ repoRoot, instanceRoot, workdir, env = process.env }) {
@@ -41,12 +57,25 @@ export function bodyCatalog({ repoRoot, instanceRoot, workdir, env = process.env
     dsh: {
       id: 'dsh',
       label: 'DSH',
-      facts: () => new DshBody({ runId: 'app-discovery' }).facts(),
-      installed: () => Boolean(env.DSH_CLI && existsSync(env.DSH_CLI)) || Boolean(commandOnPath('dsh')),
+      facts: () => new DshBody({ runId: 'app-discovery', dshCli: resolveDshBin(env) }).facts(),
+      installed: () => Boolean(resolveDshBin(env)),
       installHint: 'install the dsh CLI (headless profile) or set DSH_CLI',
-      // DSH has no session channel yet — it can take handoff/task effects via
-      // the adapter, but cannot host a chat session behind the host protocol.
-      channel: null,
+      // The channel spawns `dsh --profile web` and bridges its Typert /api
+      // behind the host protocol. No runtime = fail closed (null).
+      channel: (opts = {}) => {
+        const bin = resolveDshBin(env);
+        if (!bin) return null;
+        return {
+          command: process.execPath,
+          args: [
+            join(repoRoot, 'dsh', 'bin', 'dsh-channel.js'),
+            '--instance', instanceRoot,
+            '--workdir', opts.workdir ?? workdir,
+            '--dsh-bin', bin,
+          ],
+          env: process.versions?.electron ? { ELECTRON_RUN_AS_NODE: '1' } : {},
+        };
+      },
     },
   };
 }

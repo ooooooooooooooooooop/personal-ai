@@ -51,7 +51,7 @@ test('L5/L6: real task switches pi→dsh — continuity holds end-to-end', { tim
   // ===== life 1: pi body runs the real task =====
   const h1 = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
   const prediction = h1.predictions.open({ claim: 'deploy friday', horizon: '1d' });
-  const { job_id } = h1.executor.spawnCommandJob({
+  const { job_id } = await h1.executor.spawnCommandJob({
     command: 'echo SWITCH_TASK_OK', workdir: dir, jobType: 'shell_command',
   });
   await new Promise((r) => setTimeout(r, 1500));
