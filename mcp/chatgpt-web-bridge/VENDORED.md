@@ -149,9 +149,10 @@ Local delta carried in this copy (applied on top of upstream):
   a live DOM probe (`is_generating`) covering manual browser sends.
   MutationLock is per-target and cannot cover same-conv/different-tab sends.
 - **conversation binding** (`conv_binding.py`): `conv_bindings.json` binds a
-  conversation to the session that confirmed it. First send to an existing
-  conversation returns `confirmation_required` (project + title + occupant
-  warning); `confirm=true` claims/takes over. Reconnect ⇒ new session key ⇒
+  conversation to the session that confirmed it. EVERY first send — existing
+  conv or brand-new chat — returns `confirmation_required` (project + title +
+  occupant warning, or `is_new_conversation` for fresh chats);
+  `confirm=true` claims/takes over. Reconnect ⇒ new session key ⇒
   re-confirm. `last_seen` TTL (30 min) + owner-pid liveness reclaim
   abandoned/daemon-restarted bindings. Reads never touch the registry.
 

@@ -69,7 +69,7 @@ def _write_all(state: dict) -> None:
 
 def binding_for(conv_id: str, *, now: float | None = None) -> dict | None:
     """The live binding for ``conv_id``, or None if free/expired/dead."""
-    if not conv_id:
+    if not isinstance(conv_id, str) or not conv_id:
         return None
     entry = _read_all().get(conv_id)
     if not isinstance(entry, dict):
@@ -86,7 +86,7 @@ def binding_for(conv_id: str, *, now: float | None = None) -> dict | None:
 
 def claim(conv_id: str, session_key: str) -> None:
     """Bind ``conv_id`` to ``session_key`` (fresh claim or takeover)."""
-    if not conv_id or not session_key:
+    if not isinstance(conv_id, str) or not conv_id or not session_key:
         return
     state = _read_all()
     prev = state.get(conv_id) or {}
@@ -101,7 +101,7 @@ def claim(conv_id: str, session_key: str) -> None:
 
 def heartbeat(conv_id: str, session_key: str) -> None:
     """Refresh ``last_seen`` — only for the current owner."""
-    if not conv_id or not session_key:
+    if not isinstance(conv_id, str) or not conv_id or not session_key:
         return
     state = _read_all()
     entry = state.get(conv_id)
@@ -113,7 +113,7 @@ def heartbeat(conv_id: str, session_key: str) -> None:
 
 def release(conv_id: str, session_key: str) -> None:
     """Unbind — only by the owning session (or a dead owner's record)."""
-    if not conv_id:
+    if not isinstance(conv_id, str) or not conv_id:
         return
     state = _read_all()
     entry = state.get(conv_id)
@@ -149,11 +149,40 @@ async def gate_check(
     this session — heartbeated — or ``confirmed`` claimed it). Otherwise
     returns a ``confirmation_required`` payload describing the target for
     the human to approve.
+
+    Fresh chats (``conv_id=None``) also require confirmation — the user
+    approves "open a new conversation (under project X)" before the send
+    creates it. Only a missing session identity bypasses the gate: there
+    is nothing to bind to without one.
     """
-    if not conv_id or not session_key:
-        # No conversation to bind (fresh chat) or no session identity to
-        # bind it to — nothing to confirm.
+    if not session_key:
         return None
+
+    if not isinstance(conv_id, str) or not conv_id:
+        # Fresh chat — or a non-string conv sentinel (defensive: mock
+        # drivers in tests) — treated as the new-conversation branch.
+        if confirmed:
+            return None
+        action = (
+            "This send will CREATE a new conversation"
+            + (f" under project {project_label}" if project_label else "")
+            + ". Show this to the user; resend the SAME request with "
+            "confirm=true to proceed."
+        )
+        return {
+            # content/model/conversation_id satisfy the tool output schema.
+            "content": action,
+            "model": "",
+            "conversation_id": "",
+            "status": "confirmation_required",
+            "is_new_conversation": True,
+            "conversation_title": None,
+            "project": project_label,
+            "occupied": False,
+            "occupied_by": None,
+            "generating": False,
+            "action": action,
+        }
 
     rec = binding_for(conv_id)
     if rec and rec.get("session_key") == session_key:
@@ -183,19 +212,24 @@ async def gate_check(
         except Exception:
             generating = False
 
+    action = (
+        "This session has not sent to this conversation yet. Show the "
+        "project and conversation (and the occupied_by warning, if set) "
+        "to the user; resend the SAME request with confirm=true to bind."
+    )
     payload = {
+        # content/model/conversation_id satisfy the tool output schema.
+        "content": action,
+        "model": "",
         "status": "confirmation_required",
+        "is_new_conversation": False,
         "conversation_id": conv_id,
         "conversation_title": title,
         "project": project_label,
         "occupied": rec is not None,
         "occupied_by": rec.get("session_key") if rec else None,
         "generating": generating,
-        "action": (
-            "This session has not sent to this conversation yet. Show the "
-            "project and conversation (and the occupied_by warning, if set) "
-            "to the user; resend the SAME request with confirm=true to bind."
-        ),
+        "action": action,
     }
     if rec is not None:
         last_seen = rec.get("last_seen")

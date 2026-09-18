@@ -162,7 +162,9 @@ async def test_client_calls_chat_completion(monkeypatch):
     ctx, session = await _session_for(server)
     try:
         result = await session.call_tool(
-            "chat_completion", {"message": "Hello"}
+            # confirm: first send creating/binding a conversation requires
+            # user confirmation (conv-binding gate).
+            "chat_completion", {"message": "Hello", "confirm": True}
         )
         assert result.isError is not True
         assert "Mocked ChatGPT response" in result.content[0].text

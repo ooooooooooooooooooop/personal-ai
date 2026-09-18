@@ -354,6 +354,15 @@ class ChatWithGptInput(BaseModel):
         ),
     )
     message: str = Field(description="The message to send to the GPT")
+    confirm: bool = Field(
+        default=False,
+        description=(
+            "Every chat_with_gpt call creates a NEW conversation, so every "
+            "call needs user confirmation: the first call returns "
+            "status=confirmation_required; resend with confirm=true after "
+            "the user approves."
+        ),
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -910,12 +919,12 @@ async def do_chat_completion(
     if route == "auto-continue":
         logger.info("Auto-continuing conversation: %s", driver._current_conv_id)
 
-    # Conversation-binding gate: the FIRST send that binds this session to
-    # an existing conversation must be confirmed by the human user (project
-    # + conversation name + occupant warning are returned for display).
-    # Unconfirmed sends into a conv another session uses would silently
-    # hijack it — and a mid-flight send kills the streaming reply. New
-    # conversations skip the gate: nothing exists to take over yet.
+    # Conversation-binding gate: EVERY first send that binds this session
+    # to a conversation must be confirmed by the human user — existing convs
+    # return project + title + occupant warning; fresh chats return
+    # is_new_conversation + the project label. Unconfirmed sends into a conv
+    # another session uses would silently hijack it — and a mid-flight send
+    # kills the streaming reply.
     target_conv = validated.conversation_id or (
         driver._current_conv_id if route == "auto-continue" else None
     )
@@ -924,7 +933,7 @@ async def do_chat_completion(
         target_conv,
         session_key,
         confirmed=validated.confirm,
-        project_label=project_id,
+        project_label=validated.project_id or project_id,
     )
     if binding_gate is not None:
         return binding_gate
@@ -1493,6 +1502,18 @@ async def do_chat_with_gpt(
 ) -> dict:
     """Chat with a specific Custom GPT."""
     validated = ChatWithGptInput(**args)
+    # Every GPT chat creates a new conversation — first call must be
+    # user-confirmed (conv_id is always None here; the gate returns the
+    # new-conversation payload).
+    binding_gate = await conv_binding.gate_check(
+        driver,
+        None,
+        session_key,
+        confirmed=validated.confirm,
+        project_label=f"gpt:{validated.gpt_id}",
+    )
+    if binding_gate is not None:
+        return binding_gate
     await driver.navigate_gpt(gizmo_id=validated.gpt_id)
     full_response = ""
     conv_id = ""

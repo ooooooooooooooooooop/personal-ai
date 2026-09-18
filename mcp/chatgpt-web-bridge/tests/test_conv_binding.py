@@ -153,12 +153,29 @@ async def test_gate_reports_live_dom_generation():
     assert out["generating"] is True
 
 
-async def test_gate_no_conv_or_session_passes():
+async def test_gate_new_conversation_requires_confirm():
+    # Fresh chat (no conv yet) — confirmation names the project.
+    out = await conv_binding.gate_check(
+        _driver(), None, "http:sess-A", confirmed=False,
+        project_label="proj-X",
+    )
+    assert out is not None
+    assert out["status"] == "confirmation_required"
+    assert out["is_new_conversation"] is True
+    assert out["project"] == "proj-X"
+    # Confirmed → proceed (nothing to claim; the conv doesn't exist yet).
     assert await conv_binding.gate_check(
-        _driver(), None, "http:sess-A", confirmed=False
+        _driver(), None, "http:sess-A", confirmed=True
     ) is None
+
+
+async def test_gate_no_session_passes():
+    # No session identity → nothing to bind to; gate can't engage.
     assert await conv_binding.gate_check(
         _driver(), "conv-1", None, confirmed=False
+    ) is None
+    assert await conv_binding.gate_check(
+        _driver(), None, None, confirmed=False
     ) is None
 
 

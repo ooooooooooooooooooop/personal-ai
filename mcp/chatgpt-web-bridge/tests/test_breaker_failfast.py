@@ -328,6 +328,9 @@ async def test_rest_auth_recovery_probes_then_proceeds(monkeypatch):
             "messages": [{"role": "user", "content": "hello"}],
             "model": "auto",
             "stream": False,
+            # confirm: even a fresh conversation needs user confirmation
+            # before the send proceeds (conv-binding gate).
+            "confirm": True,
         }
     )
 

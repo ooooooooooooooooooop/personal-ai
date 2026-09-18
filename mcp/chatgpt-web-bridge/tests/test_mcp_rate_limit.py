@@ -77,7 +77,9 @@ async def test_mcp_chat_persistent_rate_limit_returns_structured_error(monkeypat
     async with create_connected_server_and_client_session(server) as session:
         await session.initialize()
         result = await session.call_tool(
-            "chat_completion", {"message": "hi"}
+            # confirm: the conv-binding gate requires user confirmation
+            # before any send proceeds.
+            "chat_completion", {"message": "hi", "confirm": True}
         )
 
     assert result.isError is True
