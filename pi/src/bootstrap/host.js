@@ -79,6 +79,7 @@ export async function startHost({
   // Operator-ask registry: constructed right after core (it audits), but the
   // kernel needs an ask callback at construction — lazy closure resolves it.
   let asks = null;
+  let riskMode = 'normal';
   const core = createHostCore({
     instanceRoot,
     manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
@@ -88,6 +89,10 @@ export async function startHost({
       commandArgs: { powershell: 'command', bash: 'command', shell: 'command' },
       // no responder yet = fail-closed deny, never crash-open
       ask: (pending, signal) => (asks ? asks.ask(pending, signal) : Promise.resolve('deny')),
+      // session risk mode — 'plan' turns the session read-only (mutating
+      // calls escalate to ask). Session-scoped: resets on session switch.
+      modeProvider: () => riskMode,
+      mutatingTools: ['write', 'edit', 'delete'],
     },
     runtime: {
       hostVersion: '0.0.1',
@@ -342,6 +347,7 @@ export async function startHost({
     const old = currentSession;
     await old.abort?.().catch(() => {});
     asks.resetSession(); // "本会话允许" grants die with the conversation
+    riskMode = 'normal'; // plan mode is session-scoped too
     const built = await buildSession(sessionManager);
     currentSession = built.session;
     channelHandle.rebind(built.session);
@@ -423,6 +429,10 @@ export async function startHost({
     },
     budget,
     writeLease,
+    modes: {
+      get: () => riskMode,
+      set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },
+    },
   });
   const channel = channelHandle.channel;
 

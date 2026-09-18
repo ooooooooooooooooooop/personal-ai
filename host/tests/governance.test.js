@@ -191,3 +191,64 @@ test('admitted calls are audited', async () => {
   const log = readFileSync(join(paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8');
   assert.ok(log.includes('TOOL_CALL_ADMITTED'));
 });
+
+test('plan mode escalates mutating-capable calls to ask; benign stays allow', async () => {
+  const { audit, policy, predictions } = fixture();
+  let mode = 'normal';
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    mutatingTools: ['write', 'edit', 'delete'],
+    modeProvider: () => mode,
+    ask: async (pending) => { asked.push(pending.rule); return 'allow'; },
+    commandClassifier: async (source) => source.startsWith('rm')
+      ? { units: [{ raw: source }], parseError: null, risk: 'destructive', hasUnknown: false }
+      : source.startsWith('mkdir')
+        ? { units: [{ raw: source }], parseError: null, risk: 'mutating', hasUnknown: false }
+        : { units: [{ raw: source }], parseError: null, risk: 'benign', hasUnknown: false },
+  });
+
+  mode = 'plan';
+  // mutating command → suspended to operator ask (rule plan_mode)
+  const w = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'mkdir x' } }));
+  assert.equal(w, undefined); // operator approved → allow
+  assert.deepEqual(asked, ['plan_mode']);
+  // file mutation tool → same escalation
+  await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: 'a.txt' } }));
+  assert.deepEqual(asked, ['plan_mode', 'plan_mode']);
+  // benign read command → untouched by the mode
+  const r = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'ls -la' } }));
+  assert.equal(r, undefined);
+  assert.equal(asked.length, 2, 'benign read did not ask');
+});
+
+test('plan mode cannot soften policy — destructive deny still denies', async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { destructive: 'deny' },
+  });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    modeProvider: () => 'plan',
+    mutatingTools: ['write'],
+    ask: async () => 'allow', // even a willing operator cannot lift a deny
+    commandClassifier: async (s) => ({ units: [{ raw: s }], parseError: null, risk: 'destructive', hasUnknown: false }),
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'rm -rf /' } }));
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'risk_destructive');
+});
+
+test('plan mode fail-closed without an ask channel', async () => {
+  const { audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    modeProvider: () => 'plan',
+    mutatingTools: ['write'],
+    // no ask channel — the escalation must resolve to a denial, not a crash
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: 'a.txt' } }));
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'ask_unavailable');
+});

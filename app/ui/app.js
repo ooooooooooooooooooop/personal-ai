@@ -614,6 +614,7 @@ function onAgentEvent(ev) {
       refreshSessions();
       refreshPending();
       refreshState();
+      refreshMode(); // plan/act is session-scoped — chip must follow the switch
       break;
     case 'agent_end':
       setBusy(false);
@@ -1202,7 +1203,7 @@ async function refreshState() {
   await refreshModels();
   renderSessions();
 }
-function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); }
+function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); }
 function setStatus(t, kind) {
   $('status').textContent = t;
   $('status-dot').className = `dot${kind === 'err' ? ' err' : t === '就绪' ? ' on' : ''}`;
@@ -1311,6 +1312,65 @@ const SLASH = [
       });
     },
   },
+  {
+    cmd: '/plan', label: '计划模式', hint: '只读模式——改动类调用都要批准',
+    run: async () => {
+      const r = await cmd('risk_mode_set', { mode: 'plan' });
+      if (r.success) { refreshMode(); toast('已切到计划模式：只读，改动会逐一询问'); }
+      else addSys(`切换失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/act', label: '执行模式', hint: '恢复正常执行',
+    run: async () => {
+      const r = await cmd('risk_mode_set', { mode: 'normal' });
+      if (r.success) { refreshMode(); toast('已切回执行模式'); }
+      else addSys(`切换失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/reset', label: '回退会话+文件', hint: '会话倒回并把之后的文件改动一并还原',
+    run: async () => {
+      const r = await cmd('session_entries');
+      const items = (r.data ?? []).slice().reverse();
+      if (!items.length) { addSys('没有可回退的提问点', true); return; }
+      openMenu(items.map((e) => ({
+        label: (e.text || '(空)').slice(0, 60),
+        sub: e.entryId.slice(0, 8),
+        value: e,
+      })), async (it) => {
+        const r2 = await cmd('session_rewind', { entryId: it.value.entryId, restoreFiles: true });
+        if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
+        if (r2.data?.editorText) { input.value = r2.data.editorText; autogrow(); }
+        await replayHistory();
+        refreshState();
+        const n = r2.data?.restoredFiles?.length ?? 0;
+        toast(`已回退${n ? `并还原 ${n} 个文件` : '（无文件改动要还原）'}`);
+      });
+    },
+  },
+  {
+    cmd: '/macro', label: '保存宏', hint: '/macro 名字 模板文本——之后打 /名字 直接调用',
+    run: async (arg) => {
+      const sp = arg.indexOf(' ');
+      const name = sp === -1 ? arg.trim() : arg.slice(0, sp).trim();
+      const text = sp === -1 ? '' : arg.slice(sp + 1).trim();
+      if (!name || !text) { addSys('用法：/macro 名字 模板文本', true); return; }
+      const r = await cmd('macro_save', { name, text });
+      if (r.success) { await refreshMacros(); toast(`宏 /${name} 已保存`); }
+      else addSys(`保存失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/unmacro', label: '删除宏', hint: '/unmacro 名字',
+    run: async (arg) => {
+      const name = arg.trim();
+      if (!name) { addSys('用法：/unmacro 名字', true); return; }
+      const r = await cmd('macro_delete', { name });
+      if (r.success) { await refreshMacros(); toast(`宏 /${name} 已删除`); }
+      else addSys(`删除失败：${r.error ?? '未知'}`, true);
+    },
+  },
   { cmd: '/sessions', label: '任务列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },
   { cmd: '/body', label: '身体面板', hint: '谁在驾驶', run: () => switchView('bodies') },
   { cmd: '/jobs', label: '持久任务', hint: '跨重启的任务', run: () => switchView('jobs') },
@@ -1320,12 +1380,41 @@ const SLASH = [
 const slashMenu = $('slash-menu');
 let slashIdx = 0;
 let slashItems = [];
+let MACROS = {}; // user-defined prompt macros — /name expands to template text
+let atToken = null; // active @file-ref token {start,end,prefix} or null
+
+async function refreshMacros() {
+  const r = await cmd('macro_list');
+  if (r.success) MACROS = r.data?.macros ?? {};
+}
+
+async function refreshMode() {
+  const r = await cmd('risk_mode');
+  const chip = $('mode-chip');
+  const plan = r.success && r.data?.mode === 'plan';
+  chip.textContent = plan ? '计划' : '执行';
+  chip.classList.toggle('plan', plan);
+}
+$('mode-chip').onclick = async () => {
+  const r = await cmd('risk_mode');
+  const cur = r.success && r.data?.mode === 'plan' ? 'plan' : 'normal';
+  const r2 = await cmd('risk_mode_set', { mode: cur === 'plan' ? 'normal' : 'plan' });
+  if (r2.success) { refreshMode(); toast(r2.data.mode === 'plan' ? '计划模式：改动类调用会逐一询问' : '执行模式'); }
+};
 
 function slashFilter() {
   const v = input.value;
+  // @file-ref autocomplete: a @token anywhere (start or after whitespace)
+  const upto = v.slice(0, input.selectionStart);
+  const m = upto.match(/(?:^|\s)@([\w./\\-]*)$/);
+  if (m) { atComplete(m, input.selectionStart); return; }
+  atToken = null;
   if (!v.startsWith('/') || v.includes('\n')) { closeSlash(); return; }
   const head = v.slice(1).split(/\s+/)[0].toLowerCase();
-  slashItems = SLASH.filter((s) => s.cmd.slice(1).startsWith(head));
+  slashItems = SLASH.filter((s) => s.cmd.slice(1).startsWith(head))
+    .concat(Object.keys(MACROS)
+      .filter((n) => n.toLowerCase().startsWith(head))
+      .map((n) => ({ cmd: `/${n}`, label: '宏', hint: MACROS[n].slice(0, 60), macro: MACROS[n] })));
   if (!slashItems.length) { closeSlash(); return; }
   slashIdx = Math.min(slashIdx, slashItems.length - 1);
   slashMenu.innerHTML = '';
@@ -1342,11 +1431,49 @@ function slashFilter() {
   });
   slashMenu.classList.remove('hidden');
 }
+
+let atSeq = 0;
+async function atComplete(m, caret) {
+  const prefix = m[1];
+  atToken = { start: caret - prefix.length - 1, end: caret, prefix };
+  const seq = ++atSeq;
+  const r = await cmd('files_list', { prefix });
+  if (seq !== atSeq || !r.success) return;
+  const files = (r.data?.files ?? []).slice(0, 12);
+  if (!files.length) { closeSlash(); return; }
+  slashItems = files.map((f) => ({ cmd: `@${f}`, label: f, file: f }));
+  slashIdx = 0;
+  slashMenu.innerHTML = '';
+  slashItems.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.className = `slash-item${i === slashIdx ? ' sel' : ''}`;
+    b.innerHTML = '<span class="sl-cmd"></span><span class="sl-label"></span>';
+    b.querySelector('.sl-cmd').textContent = '📄';
+    b.querySelector('.sl-label').textContent = s.file;
+    b.onmouseenter = () => { slashIdx = i; paintSlashSel(); };
+    b.onclick = () => execSlash(s);
+    slashMenu.appendChild(b);
+  });
+  slashMenu.classList.remove('hidden');
+}
 function paintSlashSel() {
   [...slashMenu.children].forEach((el, i) => el.classList.toggle('sel', i === slashIdx));
 }
-function closeSlash() { slashMenu.classList.add('hidden'); slashItems = []; slashIdx = 0; }
+function closeSlash() { slashMenu.classList.add('hidden'); slashItems = []; slashIdx = 0; atToken = null; }
 async function execSlash(s) {
+  // file-ref / macro entries edit the draft, not execute a command
+  if (s.file && atToken) {
+    const v = input.value;
+    input.value = v.slice(0, atToken.start) + `@${s.file} ` + v.slice(atToken.end);
+    input.selectionStart = input.selectionEnd = atToken.start + s.file.length + 2;
+    closeSlash(); autogrow(); input.focus();
+    return;
+  }
+  if (s.macro != null) {
+    closeSlash();
+    input.value = s.macro; autogrow(); input.focus();
+    return;
+  }
   const arg = input.value.slice(1).split(/\s+/).slice(1).join(' ').trim();
   closeSlash();
   input.value = ''; autogrow();

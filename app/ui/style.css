@@ -763,3 +763,6 @@ body.side-collapsed #sidebar {
 #sidebar { position: relative; }
 #side-toggle { position: absolute; top: 14px; right: 8px; z-index: 5; }
 #side-expand { margin-right: 8px; }
+
+/* plan mode chip — amber accent when the session is read-only */
+.chip.plan { color: var(--warn, #e0a832); border-color: var(--warn, #e0a832); font-weight: 600; }

@@ -28,8 +28,13 @@ export class GovernanceKernel {
    * @param {(pending:object, signal?:AbortSignal) => Promise<string>} [deps.ask]
    *        operator-in-the-loop surface for the 'ask' policy action; absent =
    *        ask rules fail closed (unanswerable questions are denials)
+   * @param {() => string} [deps.modeProvider]  session risk-mode ('normal'|'plan').
+   *        'plan' escalates mutating-capable calls to 'ask'; it can only
+   *        tighten, never loosen — deny/negative-capability rules return first.
+   * @param {string[]} [deps.mutatingTools]  tool names that mutate without a
+   *        shell command (write/edit/delete) — plan mode asks these too.
    */
-  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null }) {
+  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [] }) {
     if (!audit) throw new Error('GovernanceKernel requires an AuditWriter');
     if (!policy) throw new Error('GovernanceKernel requires an AttestedPolicy');
     this.audit = audit;
@@ -39,6 +44,8 @@ export class GovernanceKernel {
     this.protectedRoots = protectedRoots.map((r) => r.replace(/\\/g, '/'));
     this.commandArgs = commandArgs;
     this.ask = ask;
+    this.modeProvider = modeProvider;
+    this.mutatingTools = new Set(mutatingTools);
   }
 
   #deny(ctx, rule, detail) {
@@ -148,6 +155,7 @@ export class GovernanceKernel {
     }
 
     // 4. command classification
+    let cmdMutatingCapable = false;
     const cmdArg = this.commandArgs[ctx.toolName];
     if (cmdArg && typeof args[cmdArg] === 'string' && this.commandClassifier) {
       const parsed = await this.commandClassifier(args[cmdArg]);
@@ -161,6 +169,8 @@ export class GovernanceKernel {
       // strictest applicable action: known worst risk AND unknown-unit policy
       const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
         .map((cls) => riskActions[cls] ?? 'allow');
+      // anything above benign reads can mutate state — plan mode escalates it
+      cmdMutatingCapable = parsed.risk !== 'benign' || parsed.hasUnknown === true;
       const action = actions.includes('terminate') ? 'terminate'
         : actions.includes('deny') ? 'deny'
         : actions.includes('ask') ? 'ask' : 'allow';
@@ -220,6 +230,17 @@ export class GovernanceKernel {
           repair: 'bind to an OPEN prediction',
         });
       }
+    }
+
+    // 7. session risk mode — 'plan' turns the session read-only by escalating
+    // every mutating-capable call to an operator ask. It can only tighten:
+    // deny/negative-capability/unparseable paths already returned above, and
+    // the mode never softens an explicit policy rule.
+    const mode = this.modeProvider?.() ?? 'normal';
+    if (mode === 'plan' && (this.mutatingTools.has(ctx.toolName) || cmdMutatingCapable)) {
+      return this.#ask(ctx, 'plan_mode', {
+        reason: `session is in plan mode — '${ctx.toolName}' can mutate state; approve once, for the session, or switch back to act mode`,
+      });
     }
 
     return this.#allow(ctx, 'kernel');

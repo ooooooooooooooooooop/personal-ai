@@ -66,8 +66,9 @@ export class HostChannel {
    * @param {object} [facades.fileops] {list,restore} — receipted file-mutation log
    * @param {object} [facades.policy]  {status} — read-only policy posture for UIs
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
+   * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null }) {
+  constructor({ session, jobs = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -80,6 +81,7 @@ export class HostChannel {
     this.fileops = fileops;
     this.policy = policy;
     this.budget = budget;
+    this.modes = modes;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -240,7 +242,25 @@ export class HostChannel {
         case 'session_rewind': {
           if (!this.session?.rewind) return reply(false, undefined, 'rewind unavailable');
           if (!cmd.entryId) return reply(false, undefined, 'session_rewind requires {entryId}');
-          return reply(true, await this.session.rewind(String(cmd.entryId), { summarize: cmd.summarize === true }));
+          // Dual-scope rewind (ZCode): restoreFiles additionally undoes every
+          // receipted file mutation recorded AFTER the rewind anchor — the
+          // chat head and the worktree move together instead of diverging.
+          const anchor = cmd.restoreFiles === true && this.session.entries
+            ? (await this.session.entries()).find((e) => e.entryId === String(cmd.entryId)) ?? null
+            : null;
+          const r = await this.session.rewind(String(cmd.entryId), { summarize: cmd.summarize === true });
+          if (cmd.restoreFiles === true && !r?.cancelled && !r?.aborted && this.fileops?.list && this.fileops?.restore) {
+            const anchorTs = anchor?.ts != null ? Date.parse(anchor.ts) : null;
+            const undo = anchorTs != null
+              ? (await this.fileops.list()).filter((o) => o.at >= anchorTs && o.recoverable)
+              : [];
+            const restored = [];
+            for (const o of undo) { // list() is newest-first — undo order
+              try { await this.fileops.restore(o.receiptId); restored.push(o.receiptId); } catch { /* unreceiptable op — keep going */ }
+            }
+            return reply(true, { ...r, restoredFiles: restored });
+          }
+          return reply(true, r);
         }
         case 'session_stats': {
           if (!this.session?.stats) return reply(false, undefined, 'stats unavailable');
@@ -266,6 +286,16 @@ export class HostChannel {
         case 'budget_status': {
           if (!this.budget?.status) return reply(false, undefined, 'budget facade unavailable');
           return reply(true, await this.budget.status());
+        }
+        case 'risk_mode': {
+          if (!this.modes?.get) return reply(false, undefined, 'modes facade unavailable');
+          return reply(true, { mode: this.modes.get() });
+        }
+        case 'risk_mode_set': {
+          if (!this.modes?.set) return reply(false, undefined, 'modes facade unavailable');
+          const mode = String(cmd.mode ?? '');
+          if (!['normal', 'plan'].includes(mode)) return reply(false, undefined, "risk_mode_set: mode must be 'normal' or 'plan'");
+          return reply(true, { mode: this.modes.set(mode) });
         }
         case 'pending_list': {
           if (!this.asks?.list) return reply(false, undefined, 'asks facade unavailable');

@@ -23,7 +23,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null }) {
+export function createChannelHost({ session, core, jobs = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -113,9 +113,15 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
       return r ? { compacted: true } : { compacted: false };
     },
     // User-message anchors are the natural rewind targets (pi ships
-    // getUserMessagesForForking for exactly this picker shape).
+    // getUserMessagesForForking for exactly this picker shape). ts is
+    // resolved from the tree entry — rewind+restore binds fileops receipts
+    // to it by timestamp.
     entries: async () => (box.s.getUserMessagesForForking?.() ?? [])
-      .map((e) => ({ entryId: e.entryId, text: e.text ?? '' })),
+      .map((e) => ({
+        entryId: e.entryId,
+        text: e.text ?? '',
+        ts: box.s.sessionManager?.getEntry?.(e.entryId)?.timestamp ?? null,
+      })),
     rewind: async (entryId, { summarize = false } = {}) => {
       const r = await box.s.navigateTree?.(entryId, { summarize });
       return {
@@ -285,6 +291,7 @@ export function createChannelHost({ session, core, jobs = null, bodies = null, h
           .filter(([, r]) => r?.action === 'deny').map(([t]) => t),
       }),
     },
+    modes,
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

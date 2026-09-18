@@ -18,7 +18,7 @@
 import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
@@ -71,6 +71,16 @@ export class BodySupervisor {
     try {
       writeFileSync(this.configPath, JSON.stringify({ workdir: this.workdir }, null, 2));
     } catch { /* persistence is best-effort */ }
+  }
+
+  #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
+
+  #macros() {
+    try { return JSON.parse(readFileSync(this.#macrosPath(), 'utf-8')); } catch { return {}; }
+  }
+
+  #saveMacros(macros) {
+    writeFileSync(this.#macrosPath(), JSON.stringify(macros, null, 2));
   }
 
   subscribe(listener) {
@@ -426,6 +436,49 @@ export class BodySupervisor {
             await this.spawnBody(bodyId);
           }
           return reply(true, { workdir: dir });
+        }
+        case 'files_list': {
+          // @-reference picker: bounded recursive walk of the workdir.
+          const prefix = String(cmd.prefix ?? '').toLowerCase();
+          const out = [];
+          const skip = new Set(['.git', 'node_modules', '.venv', 'venv', 'dist', '.taskflow']);
+          const walk = (dir, rel) => {
+            if (out.length >= 500) return;
+            let ents;
+            try { ents = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const e of ents) {
+              if (out.length >= 500) return;
+              if (e.name.startsWith('.') && e.name !== '.') continue;
+              const r = rel ? `${rel}/${e.name}` : e.name;
+              if (e.isDirectory()) { if (!skip.has(e.name)) walk(join(dir, e.name), r); }
+              else out.push(r);
+            }
+          };
+          walk(this.workdir, '');
+          const files = prefix ? out.filter((f) => f.toLowerCase().includes(prefix)) : out;
+          return reply(true, { files: files.slice(0, 200), total: out.length });
+        }
+        case 'macro_list':
+          return reply(true, { macros: this.#macros() });
+        case 'macro_save': {
+          const name = String(cmd.name ?? '').trim();
+          const text = String(cmd.text ?? '');
+          if (!/^[a-zA-Z][\w-]{0,31}$/.test(name)) return reply(false, undefined, 'macro name: letters/digits/-_, starts with a letter, ≤32 chars');
+          if (!text.trim()) return reply(false, undefined, 'macro_save requires {text}');
+          const macros = this.#macros();
+          macros[name] = text;
+          this.#saveMacros(macros);
+          this.audit.write({ kind: 'MACRO_SAVED', data: { name } });
+          return reply(true, { name, count: Object.keys(macros).length });
+        }
+        case 'macro_delete': {
+          const name = String(cmd.name ?? '');
+          const macros = this.#macros();
+          if (!(name in macros)) return reply(false, undefined, `no macro '${name}'`);
+          delete macros[name];
+          this.#saveMacros(macros);
+          this.audit.write({ kind: 'MACRO_DELETED', data: { name } });
+          return reply(true, { deleted: name });
         }
         default: {
           if (this.switching && [

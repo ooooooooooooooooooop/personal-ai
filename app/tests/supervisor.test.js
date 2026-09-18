@@ -196,3 +196,50 @@ test('handoff_status without id lists pending records', async () => {
     assert.ok(Array.isArray(r.data.pending));
   } finally { await sup.dispose(); }
 });
+
+test('files_list walks workdir, skips ignored dirs, filters by prefix', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const { mkdirSync, writeFileSync } = await import('node:fs');
+    mkdirSync(join(dir, 'src', 'deep'), { recursive: true });
+    mkdirSync(join(dir, 'node_modules', 'junk'), { recursive: true });
+    writeFileSync(join(dir, 'src', 'a.js'), 'x');
+    writeFileSync(join(dir, 'src', 'deep', 'b.js'), 'x');
+    writeFileSync(join(dir, 'node_modules', 'junk', 'c.js'), 'x');
+    writeFileSync(join(dir, 'README.md'), 'x');
+    const all = await sup.handle({ type: 'files_list' });
+    assert.equal(all.success, true);
+    const files = all.data.files;
+    assert.ok(files.includes('src/a.js'));
+    assert.ok(files.includes('src/deep/b.js'));
+    assert.ok(files.includes('README.md'));
+    assert.ok(!files.some((f) => f.includes('node_modules')), 'ignored dirs excluded');
+    const filtered = await sup.handle({ type: 'files_list', prefix: 'deep' });
+    assert.deepEqual(filtered.data.files, ['src/deep/b.js']);
+  } finally { await sup.dispose(); }
+});
+
+test('macro save/list/delete persists to instance macros.json', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const bad = await sup.handle({ type: 'macro_save', name: '9bad name', text: 'x' });
+    assert.equal(bad.success, false);
+    const save = await sup.handle({ type: 'macro_save', name: 'fixup', text: '修复所有 lint 错误' });
+    assert.equal(save.success, true);
+    const list = await sup.handle({ type: 'macro_list' });
+    assert.equal(list.data.macros.fixup, '修复所有 lint 错误');
+    // durable — a fresh supervisor on the same instance sees it
+    const sup2 = await new BodySupervisor({
+      instanceRoot: dir, workdir: dir, repoRoot: REPO,
+      catalog: catalogFor(dir, {}), env: { ...process.env },
+    }).start();
+    try {
+      const l2 = await sup2.handle({ type: 'macro_list' });
+      assert.equal(l2.data.macros.fixup, '修复所有 lint 错误');
+    } finally { await sup2.dispose(); }
+    const del = await sup.handle({ type: 'macro_delete', name: 'fixup' });
+    assert.equal(del.success, true);
+    const gone = await sup.handle({ type: 'macro_delete', name: 'fixup' });
+    assert.equal(gone.success, false);
+  } finally { await sup.dispose(); }
+});

@@ -141,3 +141,46 @@ test('pending_list/decision_resolve drive the asks facade; ask events fan out', 
   assert.equal((await bare.handle({ type: 'pending_list' })).success, false);
   ch.dispose();
 });
+
+test('risk_mode get/set roundtrip; invalid mode refused', async () => {
+  let mode = 'normal';
+  const modes = { get: () => mode, set: (m) => { mode = m; return mode; } };
+  const ch = new HostChannel({ session: fakeSession(), modes });
+  const g = await ch.handle({ type: 'risk_mode' });
+  assert.equal(g.data.mode, 'normal');
+  const s = await ch.handle({ type: 'risk_mode_set', mode: 'plan' });
+  assert.equal(s.data.mode, 'plan');
+  assert.equal(mode, 'plan');
+  const bad = await ch.handle({ type: 'risk_mode_set', mode: 'yolo' });
+  assert.equal(bad.success, false);
+});
+
+test('session_rewind restoreFiles undoes receipts newer than the anchor', async () => {
+  const session = fakeSession();
+  session.entries = async () => [
+    { entryId: 'e-old', text: 'first', ts: '2026-01-01T00:00:00.000Z' },
+    { entryId: 'e-new', text: 'second', ts: '2026-01-02T00:00:00.000Z' },
+  ];
+  session.rewind = async (id, opts) => ({ cancelled: false, editorText: 'second', id, opts });
+  const restoredCalls = [];
+  const fileops = {
+    // newest-first, as the real facade returns
+    list: async () => [
+      { receiptId: 'r3', op: 'write', at: Date.parse('2026-01-03T00:00:00Z'), recoverable: true },
+      { receiptId: 'r2', op: 'delete', at: Date.parse('2026-01-02T12:00:00Z'), recoverable: true },
+      { receiptId: 'r1', op: 'write', at: Date.parse('2026-01-01T12:00:00Z'), recoverable: true },
+      { receiptId: 'r0', op: 'write', at: Date.parse('2026-01-04T00:00:00Z'), recoverable: false },
+    ],
+    restore: async (receiptId) => { restoredCalls.push(receiptId); return { restored: 'x' }; },
+  };
+  const ch = new HostChannel({ session, fileops });
+  const r = await ch.handle({ type: 'session_rewind', entryId: 'e-new', restoreFiles: true });
+  assert.equal(r.success, true);
+  // r1 predates the anchor — untouched; r0 unrecoverable — skipped; r2/r3 undone newest-first
+  assert.deepEqual(restoredCalls, ['r3', 'r2']);
+  assert.deepEqual(r.data.restoredFiles, ['r3', 'r2']);
+  // plain rewind without restoreFiles leaves fileops alone
+  restoredCalls.length = 0;
+  await ch.handle({ type: 'session_rewind', entryId: 'e-new' });
+  assert.equal(restoredCalls.length, 0);
+});
