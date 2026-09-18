@@ -249,16 +249,27 @@ export class HostChannel {
             ? (await this.session.entries()).find((e) => e.entryId === String(cmd.entryId)) ?? null
             : null;
           const r = await this.session.rewind(String(cmd.entryId), { summarize: cmd.summarize === true });
-          if (cmd.restoreFiles === true && !r?.cancelled && !r?.aborted && this.fileops?.list && this.fileops?.restore) {
+          if (cmd.restoreFiles === true && !r?.cancelled && !r?.aborted && this.fileops?.restore) {
             const anchorTs = anchor?.ts != null ? Date.parse(anchor.ts) : null;
+            // Uncapped scan — the UI list cap must not silently drop undoable
+            // mutations between the anchor and now.
+            const all = this.fileops.listAll ? await this.fileops.listAll() : await this.fileops.list?.() ?? [];
             const undo = anchorTs != null
-              ? (await this.fileops.list()).filter((o) => o.at >= anchorTs && o.recoverable)
+              ? all.filter((o) => o.at >= anchorTs && (o.recoverable || o.undoable))
               : [];
             const restored = [];
-            for (const o of undo) { // list() is newest-first — undo order
-              try { await this.fileops.restore(o.receiptId); restored.push(o.receiptId); } catch { /* unreceiptable op — keep going */ }
+            const failed = [];
+            for (const o of undo) { // receipts are newest-first — undo order
+              try {
+                await this.fileops.restore(o.receiptId);
+                restored.push(o.receiptId);
+              } catch (e) {
+                failed.push({ receiptId: o.receiptId, error: String(e?.message ?? e) });
+              }
             }
-            return reply(true, { ...r, restoredFiles: restored });
+            // Honest partial semantics: failures are reported, not swallowed —
+            // a rewind that left worktree state divergent must not claim success.
+            return reply(true, { ...r, restoredFiles: restored, failedFiles: failed, partial: failed.length > 0 });
           }
           return reply(true, r);
         }

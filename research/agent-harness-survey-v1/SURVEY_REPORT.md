@@ -97,7 +97,7 @@ Mini-SWE-Agent implements all seven subsystems in ~100 LoC — a while loop, one
 | Harness | Distinctive mechanisms evidenced |
 |---|---|
 | Claude Code | ~44 tools + ToolSearch deferred loading; ~30 hook events; 6 permission modes + auto-mode classifier; sandboxed bash w/ per-domain egress; subagent `isolation: worktree`; SKILL.md + `` !`cmd` `` injection; plugin manifest surface |
-| Cursor | codebase index → **retired 2026** (Merkle-synced encrypted vectors → local "Instant Grep"); Agent/Composer; Shadow Workspace; checkpoints; own small models for tab/apply |
+| Cursor | codebase index (Merkle-synced encrypted vectors); Agent/Composer; Shadow Workspace; checkpoints; own small models for tab/apply |
 | Trae | `#` context system; code index + `.trae/.ignore`; custom `.md` subagents; 4-tier command auto-run + sandbox beta; SOLO Coder/Builder; open-source `trae-agent` w/ trajectory recording |
 | Kiro | one standalone harness process behind all surfaces over ACP; specs (EARS requirements/design/tasks dep-graph in parallel waves); agent hooks; deny>ask>allow capability algebra; **Kiro Crew**: open-source OpenClaw-genre gateway w/ pluggable backends |
 | Devin | VM-per-session + blueprints/snapshots; secrets scopes; playbooks/`!macros`; planning mode + Agency; `/handoff` (100KB diff cap); ACU metering + sleep; Dynamic Workflows (hash-keyed resume); fail-closed bubblewrap sandbox |
@@ -123,7 +123,7 @@ Mini-SWE-Agent implements all seven subsystems in ~100 LoC — a while loop, one
 
 ### 7.1 Where the paper's claims bend (our expanded corpus)
 
-- **"No vector embeddings for code" (Obs 9) is a terminal-harness truth, not an industry truth.** In the added corpus: Roo Code ships Qdrant-backed `codebase_search`; CodeArts advertises a 10M-line keyword+semantic+graph index; Trae maintains a code index. And the strongest data point is a *retreat*: Cursor's Merkle-synced encrypted vector index was being retired in favor of local "Instant Grep" as of mid-2026 — the flagship indexer converged toward the deterministic norm. Net: IDE/enterprise harnesses still buy indexes; terminal harnesses don't; the trend arrow points away from embeddings.
+- **"No vector embeddings for code" (Obs 9) is a terminal-harness truth, not an industry truth.** In the added corpus: Roo Code ships Qdrant-backed `codebase_search`; CodeArts advertises a 10M-line keyword+semantic+graph index; Trae and Cursor both maintain code indexes. Net: IDE/enterprise harnesses still buy indexes; terminal harnesses don't. (An earlier draft claimed Cursor's index was being retired in favor of local grep — that claim was not substantiated by a primary source and has been removed.)
 - **"No agentic frameworks" still holds** — closest boundary case found: Crush delegates its loop to external module `charm.land/fantasy` (a loop library, not a framework), and Cline split a stateless `AgentRuntime` SDK from its stateful core. Both are ownership-preserving extractions, not framework adoption.
 - **Forks as a research instrument**: qwen-code (fork of gemini-cli) shows exactly which surfaces a vendor rewires for a different model family — prompts, permission classifier, code-mode tool calls, extension converters — and what they leave untouched.
 

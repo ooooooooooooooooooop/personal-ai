@@ -47,13 +47,18 @@ export class FileOpsGuard {
   /**
    * Pre-execution snapshot: byte-copy the existing target into backups/ and
    * receipt it — the mutation itself is then performed by the admitted tool.
-   * New files get {backup:null, receiptId:null} (nothing to preserve).
+   * New files get a 'create' tombstone receipt instead of nothing: the
+   * receipt records that the target did NOT exist pre-mutation, so a
+   * dual-scope rewind can undo the creation by removing the file.
    */
   async backup(targetPath) {
     const abs = resolve(targetPath);
     return withFileMutationQueue(abs, async () => {
-      if (!existsSync(abs)) return { backup: null, receiptId: null };
       const receiptId = `fo-${randomUUID().slice(0, 8)}`;
+      if (!existsSync(abs)) {
+        this.#log({ receiptId, op: 'create', target: abs, backup: null, preSha: null });
+        return { backup: null, receiptId };
+      }
       const preSha = createHash('sha256').update(readFileSync(abs)).digest('hex');
       const backup = join(this.backupDir, `${Date.now()}-${basename(abs)}`);
       copyFileSync(abs, backup);
@@ -84,13 +89,29 @@ export class FileOpsGuard {
     });
   }
 
-  /** Restore the most recent backup/recycled copy of a path. */
+  /**
+   * Restore the most recent backup/recycled copy of a path. Creation
+   * tombstones (op 'create', or 'write' with no backup artifact) undo by
+   * recycling the target — the file did not exist pre-mutation, so undo
+   * means it should not exist afterwards either.
+   */
   restore(receiptId) {
     const ops = this.#ops().filter((o) => o.receiptId === receiptId);
     const op = ops.at(-1);
     if (!op) throw new Error(`no fileops receipt ${receiptId}`);
     const source = op.recycledTo ?? op.backup;
-    if (!source || !existsSync(source)) throw new Error(`receipt ${receiptId} has no recoverable artifact`);
+    if (!source) {
+      if (op.op !== 'create' && !(op.op === 'write' && !op.backup)) {
+        throw new Error(`receipt ${receiptId} has no recoverable artifact`);
+      }
+      if (existsSync(op.target)) {
+        const dest = join(this.recycleDir, `${Date.now()}-${basename(op.target)}`);
+        renameSync(op.target, dest);
+        this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore', target: op.target, removedTo: dest });
+      }
+      return op.target;
+    }
+    if (!existsSync(source)) throw new Error(`receipt ${receiptId} has no recoverable artifact`);
     copyFileSync(source, op.target);
     this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore', target: op.target, from: source });
     return op.target;
@@ -112,16 +133,32 @@ export class FileOpsGuard {
 
   /** Receipted ops newest-first, plain data for the channel's fileops facade. */
   list(n = 50) {
+    return this.#listOps().slice(-n).reverse();
+  }
+
+  /**
+   * Uncapped receipt scan for dual-scope rewind — the UI list cap (50) must
+   * not silently drop undoable mutations past the anchor.
+   */
+  listAll() {
+    return this.#listOps().reverse();
+  }
+
+  #listOps() {
     return this.#ops()
       .filter((o) => o.receiptId && o.op !== 'restore')
-      .slice(-n).reverse()
-      .map((o) => ({
-        receiptId: o.receiptId,
-        op: o.op,
-        target: o.target,
-        at: o.at,
-        recoverable: Boolean(o.recycledTo ?? o.backup) && existsSync(o.recycledTo ?? o.backup),
-      }));
+      .map((o) => {
+        const recoverable = Boolean(o.recycledTo ?? o.backup) && existsSync(o.recycledTo ?? o.backup);
+        return {
+          receiptId: o.receiptId,
+          op: o.op,
+          target: o.target,
+          at: o.at,
+          recoverable,
+          // Tombstone semantics: undo removes the target rather than copying.
+          undoable: recoverable || o.op === 'create' || (o.op === 'write' && !o.backup),
+        };
+      });
   }
 
   #log(entry) {

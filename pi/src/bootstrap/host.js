@@ -425,6 +425,7 @@ export async function startHost({
     asks,
     fileops: {
       list: (n) => fileOps.list(n),
+      listAll: () => fileOps.listAll(),
       restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
     },
     budget,

@@ -107,6 +107,8 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         const { backup, receiptId } = await fileOps.backup(filePath);
         if (backup) {
           core.audit.write({ kind: 'FILEOP_BACKUP', toolName, data: { receiptId, pathHash: hashOf(filePath) } });
+        } else if (receiptId) {
+          core.audit.write({ kind: 'FILEOP_CREATE_TOMBSTONE', toolName, data: { receiptId, pathHash: hashOf(filePath) } });
         }
       }
     }

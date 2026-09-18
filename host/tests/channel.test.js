@@ -184,3 +184,32 @@ test('session_rewind restoreFiles undoes receipts newer than the anchor', async 
   await ch.handle({ type: 'session_rewind', entryId: 'e-new' });
   assert.equal(restoredCalls.length, 0);
 });
+
+test('session_rewind restoreFiles uses uncapped scan, undoes tombstones, reports partial failures', async () => {
+  const session = fakeSession();
+  session.entries = async () => [
+    { entryId: 'e-anchor', text: 'go', ts: '2026-01-01T00:00:00.000Z' },
+  ];
+  session.rewind = async () => ({ cancelled: false });
+  const restoredCalls = [];
+  const fileops = {
+    // listAll only — proves the rewind path does not depend on the capped UI list
+    listAll: async () => [
+      { receiptId: 'new-created', op: 'create', at: Date.parse('2026-01-02T00:00:00Z'), recoverable: false, undoable: true },
+      { receiptId: 'boom', op: 'write', at: Date.parse('2026-01-02T00:00:00Z'), recoverable: true, undoable: true },
+      { receiptId: 'old', op: 'write', at: Date.parse('2025-12-31T00:00:00Z'), recoverable: true, undoable: true },
+    ],
+    restore: async (receiptId) => {
+      restoredCalls.push(receiptId);
+      if (receiptId === 'boom') throw new Error('artifact gone');
+      return { restored: 'x' };
+    },
+  };
+  const ch = new HostChannel({ session, fileops });
+  const r = await ch.handle({ type: 'session_rewind', entryId: 'e-anchor', restoreFiles: true });
+  assert.equal(r.success, true);
+  assert.deepEqual(restoredCalls, ['new-created', 'boom']);
+  assert.deepEqual(r.data.restoredFiles, ['new-created']);
+  assert.equal(r.data.partial, true);
+  assert.equal(r.data.failedFiles[0].receiptId, 'boom');
+});

@@ -105,3 +105,37 @@ test('FileOpsGuard: delete recycles, write backs up, restore undoes', async () =
   const restored = guard.restore(w.receiptId);
   assert.equal(readFileSync(restored, 'utf-8'), 'original');
 });
+
+test('FileOpsGuard: create tombstone lets rewind remove post-anchor files; listAll is uncapped', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fileops-'));
+  const guard = new FileOpsGuard(dir);
+  const created = join(dir, 'fresh.txt');
+
+  // Pre-mutation backup() on a missing file records a 'create' tombstone —
+  // the receipt proves the target did not exist, so undo = remove.
+  const c = await guard.backup(created);
+  assert.equal(c.backup, null);
+  assert.ok(c.receiptId);
+  writeFileSync(created, 'made by the agent');
+
+  const all = guard.listAll();
+  const tomb = all.find((o) => o.receiptId === c.receiptId);
+  assert.equal(tomb.op, 'create');
+  assert.equal(tomb.recoverable, false);
+  assert.equal(tomb.undoable, true);
+
+  guard.restore(c.receiptId);
+  assert.equal(existsSync(created), false);
+
+  // write() to a new file carries the same un-create semantics
+  const w = await guard.write(join(dir, 'newwrite.txt'), 'x');
+  assert.equal(w.backup, null);
+  assert.ok(existsSync(join(dir, 'newwrite.txt')));
+  guard.restore(w.receiptId);
+  assert.equal(existsSync(join(dir, 'newwrite.txt')), false);
+
+  // listAll() is not bound by the UI cap
+  for (let i = 0; i < 60; i++) await guard.backup(join(dir, `f${i}.txt`));
+  assert.equal(guard.list().length, 50);
+  assert.ok(guard.listAll().length > 50);
+});
