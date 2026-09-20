@@ -424,6 +424,16 @@ function endTool(ev) {
     const pres = body.querySelectorAll('pre');
     pres[pres.length - 1].textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
   }
+  // browser_screenshot → inline preview (Trae browser-preview analogue);
+  // served through /api/artifact, which only exposes <instance>/exports/**
+  if (ev.toolName === 'browser_screenshot' && !ev.isError) {
+    const m = out.match(/screenshot saved: (.+)/);
+    if (m) {
+      const src = `/api/artifact?path=${encodeURIComponent(m[1].trim())}`;
+      el.querySelector('.tool-body').insertAdjacentHTML('beforeend',
+        `<a href="${src}" target="_blank" rel="noopener"><img class="shot-preview" src="${src}" alt="browser screenshot" /></a>`);
+    }
+  }
   toolRows.delete(ev.toolCallId);
   scrollTail();
 }
@@ -751,6 +761,11 @@ function onAgentEvent(ev) {
       break;
     case 'jobs_changed':
       if (currentView === 'jobs') refreshJobs();
+      break;
+    case 'verify_result':
+      // Aider-style post-write verifier — failures already reflect into the
+      // model's context via the observation stream; this is the operator's copy
+      addSys(ev.ok ? `验证通过：${ev.command}` : `验证失败：${ev.command}（失败输出已回注上下文）`, !ev.ok);
       break;
     case 'projection':
       lastProjection = ev.projection ?? null;
@@ -2293,6 +2308,30 @@ const SLASH = [
       if (!s) { addSys('暂无用量数据', true); return; }
       const u = s.usage ?? s;
       addSys(`累计：${u.totalTokens ?? u.tokens ?? '—'} tokens · $${(u.cost?.total ?? u.totalCost ?? sessionCost).toFixed ? (u.cost?.total ?? u.totalCost ?? sessionCost).toFixed(4) : '—'} · 消息 ${s.messageCount ?? '—'} 条 · 压缩 ${s.compactionCount ?? 0} 次`);
+    },
+  },
+  {
+    cmd: '/doctor', label: '配置检视', hint: '有效姿态一览——模式/政策/记忆/目标/自动化配置（agent debug 对等）',
+    run: async () => {
+      const [st, pol, modes, mem, aliases] = await Promise.all([
+        cmd('get_state'), cmd('policy_status'), cmd('mode_list'), cmd('memory_stats'), cmd('model_alias_list'),
+      ]);
+      const s = st.data ?? {};
+      const p = pol.data ?? {};
+      const g = s.goals;
+      const counts = {};
+      for (const dir of ['steering', 'microagents', 'recipes', 'plans', 'agents']) {
+        const l = await cmd('files_list', { prefix: `.pai/${dir}/` }).catch(() => null);
+        counts[dir] = l?.success ? (l.data?.files ?? []).length : 0;
+      }
+      addSys([
+        `模型：${s.model?.id ?? '—'} · 模式：${modes.data?.active ?? 'normal'} · 政策指纹：${String(p.checksum ?? '—').slice(0, 12)}`,
+        `规则：${Object.keys(p.toolRules ?? {}).length} 条工具规则 · 禁表：${(p.deniedTools ?? []).length} 项 · 预算：${p.budget ? '已配' : '未配'}`,
+        `记忆：${mem.data ? `${mem.data.total ?? mem.data.rows ?? '—'} 条（置顶 ${mem.data.pinned ?? 0}）` : '—'}`,
+        g?.requirements?.length ? `目标契约：${g.requirements.length} 项 · 续 ${g.continuations}/${g.maxContinuations} · 最近：${g.lastAction ?? '—'}` : '目标契约：未挂',
+        `.pai 面：steering×${counts.steering} microagents×${counts.microagents} recipes×${counts.recipes} plans×${counts.plans} agents×${counts.agents}`,
+        `别名：${(aliases.data ?? []).length} 个 · 会话：${s.session?.name ?? '（未开）'} · 上下文：${s.contextUsage?.tokens ?? '?'}/${s.contextUsage?.contextWindow ?? '?'}`,
+      ].join('\n'));
     },
   },
   {

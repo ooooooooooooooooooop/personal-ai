@@ -55,6 +55,7 @@ import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
+import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
@@ -754,6 +755,16 @@ export async function startHost({
     },
     asks,
     goals: () => currentGovernor?.status() ?? null,
+    // Aider lint/test reflection loop — armed by .pai/verify.json, gated by
+    // the same shell classifier + riskActions the kernel enforces
+    verify: createVerifier({
+      workdir,
+      classify: parseShellCommand,
+      riskActions: core.policy.doc?.riskActions ?? null,
+      audit: core.audit,
+      emit: (ev) => channelHandle?.channel.emitEvent(ev),
+      observations: core.observations,
+    }),
     fileops: {
       list: (n) => fileOps.list(n),
       listAll: () => fileOps.listAll(),

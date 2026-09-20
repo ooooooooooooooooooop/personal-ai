@@ -1034,3 +1034,13 @@ tr.clickable:hover td { background: var(--field); }
   opacity: 0.85;
   flex-shrink: 0;
 }
+
+/* browser_screenshot inline preview */
+.shot-preview {
+  max-width: 420px;
+  max-height: 300px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 8px;
+  display: block;
+}

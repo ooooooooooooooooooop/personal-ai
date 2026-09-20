@@ -841,7 +841,7 @@
 
 | # | 状态 | 处置/残余 |
 |---|---|---|
-| U1 DSH 身体投影 | **部分** | 会话通道/审批桥/审计 parity 已落；goal 面板、DSH jobs 接入 job 面板未做 |
+| U1 DSH 身体投影 | **已有** | 会话通道/审批桥/审计 parity + `session/jobs` 帧进 `job_list` + `session/projection` 帧→goal-line/`get_state.projection`；job_cancel 保持 fail-closed（不伪装能杀 DSH 侧任务） |
 | U2 不可信内容封套 | **已有** | `host/src/core/envelopes.js` 不可信封套 + unicode 隐形字符消毒（strict 拒/free-text 剥） |
 | U3 rewind 强化 | **部分** | `/undo` 回合回执组回滚 + 聚合 `/diff` + `/btw` 只读分叉；Vibe 式"rewind 默认 fork"未做 |
 | U4 写前 secret 扫描 | **已有** | `host/src/core/secrets.js`（写前问/失败关闭） |
@@ -869,3 +869,25 @@
 | D6 | 逐改动 revert 面板 | 自行排期 → **已落地** | 变更面板逐回执「差异」按钮行内展开 unified diff（`fileops_diff receiptId` 过滤）+恢复按钮 |
 
 **维持不适用-拒绝**：G12 远程执行、插件市场、code-mode、企业面、多渠道形态、headless 产品面、MCP sampling（v1 外）、向量 codebase 索引（D1 裁定）。
+
+### 28.4 残余消耗批（2026-09-20 续，`7a038ab`/`ece8c24` 之后）
+
+逐家缺口清单的剩余散点——不再按族而是按真实对等物逐项落地：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| `!cmd` 操作员直跑 | Claude Code bang mode | `bash_run` 通道命令→同一 decide 链（ask 弹卡/deny 拦截）→输出暂存注入下条 prompt |
+| `#note` 快速记忆 | Claude Code hash mode | `memory_save` 复用族 G 存储 |
+| 外部内容提示面 | WorkBuddy 第三方内容风险 | web_*/browser_* 工具卡"外部"徽章 |
+| agent 自写技能 | OpenClaw skill-creator / Hermes skill_manage / WorkBuddy 描述造技能 | `skill_save`→`.pai/microagents/<name>.md`（loader 即激活） |
+| 持久计划库 | Devin plans | `plan_save`/`plan_list` + `/plans` 载入续跑 |
+| goal 面板（pi 侧） | Qwen goals / Trae | `ContinuationGovernor.status()`→`get_state.goals`→状态行"目标 n/m·续k" |
+| DSH jobs/goal 投影 | U1 残余 | `session/jobs`+`session/projection` 帧→job_list/goal-line；cancel fail-closed |
+| 写后验证反思环 | Aider lint/test 自动跑 | `.pai/verify.json onWrite` 武装——命令经同一分类器+riskActions 裁决，deny/ask 类配置拒装（VERIFY_REFUSED），失败回注 observation 流 |
+| browser 预览面板 | Trae | `browser_screenshot` 工具卡内联 PNG 预览（`/api/artifact` 限 exports/） |
+| 配置检视面 | CodeArts `agent debug` | `/doctor` 姿态汇总卡（模式/政策指纹/记忆/目标/.pai 面/别名/上下文） |
+| 模型能力声明 | Codex models.json | `model_list` 透传注册表 vision/reasoning 能力→菜单徽章 |
+| notify_user | Kimi NotifyUser | 单向通知工具（toast+系统行，不挂起回合） |
+| 内置 review 模式 | Codex `/review` | 写族 deny+执行族 ask 的内置 overlay preset |
+
+**仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）、长会话分页/闪屏/通知历史（UI-BACKLOG 长尾）。

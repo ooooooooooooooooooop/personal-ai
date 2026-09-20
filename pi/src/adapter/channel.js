@@ -24,7 +24,9 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null }) {
+const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create']);
+
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -104,6 +106,11 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         // dead write never wedges the workspace
         const h = writeLease.held();
         if (h?.holder?.startsWith('fg:')) writeLease.release(h.holder);
+      }
+      // Aider verify loop: a successful write-family call runs the project's
+      // .pai/verify.json command (armed only if policy allows its class)
+      if (ev?.type === 'tool_execution_end' && !ev.isError && VERIFY_WRITE_TOOLS.has(ev.toolName)) {
+        verify?.afterWrite().catch(() => {});
       }
       emit(ev);
     });

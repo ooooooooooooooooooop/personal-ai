@@ -10,7 +10,7 @@
  */
 import { createServer } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
-import { join, normalize, extname } from 'node:path';
+import { join, normalize, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const UI_DIR = fileURLToPath(new URL('../ui/', import.meta.url));
@@ -68,6 +68,19 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         const dir = await pickDir().catch(() => null);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ dir: dir ?? null }));
+        return;
+      }
+      if (req.method === 'GET' && url.pathname === '/api/artifact') {
+        // Confined download surface: only files under <instance>/exports/** are
+        // servable — browser screenshots/exports render in the UI, nothing else.
+        const p = url.searchParams.get('path') ?? '';
+        const root = normalize(join(supervisor.instanceRoot ?? '', 'exports'));
+        const file = normalize(p);
+        if (!file.startsWith(root + sep) || !existsSync(file)) {
+          res.writeHead(404); res.end('not found'); return;
+        }
+        res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
+        res.end(readFileSync(file));
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {
