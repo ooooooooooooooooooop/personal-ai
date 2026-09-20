@@ -23,6 +23,7 @@
  */
 import { HostChannel } from '../../host/src/core/channel.js';
 import { PendingAsks } from '../../host/src/core/asks.js';
+import { hashOf } from '../../host/src/core/audit.js';
 import { MUX_EVENTS_PATH, HOST_EVENTS_PATH } from './typert-paths.js';
 
 const textOf = (blocks) => (blocks ?? [])
@@ -81,9 +82,12 @@ function foldHistory(entries) {
  * @param {string} deps.sessionId initial DSH session id
  * @param {string} deps.cwd       session working directory (for create/open)
  * @param {object} [deps.facts]   DshBody.facts() for body_info
+ * @param {object} [deps.audit]   AuditWriter — D3: DSH tool calls and
+ *        operator asks land in the canonical audit stream (DSH_* kinds).
+ *        Absent = observable-only channel (tests, dry runs).
  * @returns {{channel: HostChannel, dispose: () => void}}
  */
-export function createDshChannel({ client, sessionId, cwd, facts = null }) {
+export function createDshChannel({ client, sessionId, cwd, facts = null, audit = null }) {
   const uiListeners = new Set();
   const emit = (ev) => {
     for (const l of uiListeners) {
@@ -173,6 +177,10 @@ export function createDshChannel({ client, sessionId, cwd, facts = null }) {
       case 'tool/call': {
         let args = null;
         try { args = JSON.parse(d.arguments); } catch { args = d.arguments; }
+        audit?.write({
+          kind: 'DSH_TOOL_CALL', toolName: d.name ?? 'tool',
+          data: { callId: d.callId ?? null, argsHash: hashOf(JSON.stringify(args ?? null)) },
+        });
         emit({
           type: 'tool_execution_start',
           toolCallId: d.callId,
@@ -184,6 +192,10 @@ export function createDshChannel({ client, sessionId, cwd, facts = null }) {
       }
       case 'tool/result': {
         const block = d.message?.content?.[0];
+        audit?.write({
+          kind: 'DSH_TOOL_RESULT', toolName: block?.name ?? 'tool',
+          data: { callId: block?.toolCallId ?? d.callId ?? null, isError: Boolean(d.error) || block?.isError === true },
+        });
         emit({
           type: 'tool_execution_end',
           toolCallId: block?.toolCallId ?? d.callId ?? null,
@@ -216,11 +228,19 @@ export function createDshChannel({ client, sessionId, cwd, facts = null }) {
     // Answerable server-requests: echo the frame's rpcId on /api/respond.
     const p = frame.payload;
     if (p?.type === 'approval/requested') {
+      audit?.write({
+        kind: 'DSH_ASK', toolName: p.toolName ?? 'unknown',
+        data: { callId: p.callId ?? null, approvalId: p.approvalId ?? null, rule: 'dsh-approval' },
+      });
       const answer = await asks.ask({
         toolName: p.toolName ?? 'unknown',
         toolCallId: p.callId ?? null,
         rule: 'dsh-approval',
         summary: p.reason ?? `DSH requests approval for ${p.toolName}`,
+      });
+      audit?.write({
+        kind: 'DSH_ASK_RESOLVED', toolName: p.toolName ?? 'unknown',
+        data: { callId: p.callId ?? null, approvalId: p.approvalId ?? null, answer },
       });
       await client.respond(frame.rpcId, {
         sessionId: p.sessionId,
@@ -230,6 +250,10 @@ export function createDshChannel({ client, sessionId, cwd, facts = null }) {
     } else if (p?.type === 'question/requested') {
       const qs = Array.isArray(p.questions) ? p.questions : [];
       const first = qs[0] ?? {};
+      audit?.write({
+        kind: 'DSH_ASK', toolName: 'ask_user',
+        data: { approvalId: p.approvalId ?? null, rule: 'dsh-question', questions: qs.length },
+      });
       const answer = await asks.ask({
         kind: 'question',
         toolName: 'ask_user',
@@ -239,6 +263,10 @@ export function createDshChannel({ client, sessionId, cwd, facts = null }) {
         options: (first.options ?? []).map((o) => ({ label: String(o?.label ?? ''), description: o?.description ?? null })),
       });
       const refused = ['deny', 'timeout', 'aborted'].includes(answer);
+      audit?.write({
+        kind: 'DSH_ASK_RESOLVED', toolName: 'ask_user',
+        data: { approvalId: p.approvalId ?? null, answer: refused ? answer : 'answered' },
+      });
       await client.respond(frame.rpcId, {
         sessionId: p.sessionId,
         answer: refused

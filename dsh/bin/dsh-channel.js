@@ -23,6 +23,8 @@ import { createServer } from 'node:net';
 import { createTypertClient } from '../adapter/typert.js';
 import { createDshChannel } from '../adapter/channel.js';
 import { DshBody } from '../adapter/index.js';
+import { AuditWriter } from '../../host/src/core/audit.js';
+import { instancePaths } from '../../host/src/core/instance.js';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -33,6 +35,7 @@ const opt = (name, dflt) => {
 const workdir = opt('workdir', process.cwd());
 const dshBin = opt('dsh-bin', process.env.DSH_CLI ?? null);
 const readyTimeoutMs = Number(opt('ready-timeout', '60000'));
+const instanceRoot = opt('instance', null);
 
 if (!dshBin) {
   process.stderr.write('dsh-channel: --dsh-bin <dsh lib/bin.js> or DSH_CLI required\n');
@@ -92,11 +95,18 @@ const created = await client.call('session.create', { cwd: workdir }).catch((e) 
 });
 
 const facts = new DshBody({ runId: 'channel', dshCli: dshBin }).facts();
+// D3: DSH tool calls / operator asks land in the canonical audit stream —
+// the body's own runtime executes them, but the instance's audit record is
+// the single evidence trail both bodies write into.
+const audit = instanceRoot
+  ? new AuditWriter(instancePaths(instanceRoot), { annotations: { body: 'dsh' } })
+  : null;
 const { channel, dispose } = createDshChannel({
   client,
   sessionId: created.sessionId,
   cwd: workdir,
   facts,
+  audit,
 });
 
 const write = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);

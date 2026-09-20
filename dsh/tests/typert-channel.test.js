@@ -148,7 +148,11 @@ test('dsh channel: mux session events translate to host UI events', async () => 
   const { server, port, push, muxOpen , close } = await fakeDsh();
   try {
     const client = createTypertClient({ baseUrl: base(port) });
-    const { channel, dispose } = createDshChannel({ client, sessionId: 's-1', cwd: '/tmp' });
+    const auditEvents = [];
+    const { channel, dispose } = createDshChannel({
+      client, sessionId: 's-1', cwd: '/tmp',
+      audit: { write: (e) => auditEvents.push(e) },
+    });
     const events = [];
     channel.subscribe((m) => events.push(m));
     await muxOpen;
@@ -175,6 +179,10 @@ test('dsh channel: mux session events translate to host UI events', async () => 
     assert.deepEqual(events[5].event.args, { command: 'ls' });
     assert.equal(events[6].event.toolCallId, 'c1');
     assert.equal(events[6].event.isError, false);
+    // D3: the canonical audit trail carries the DSH tool lifecycle
+    assert.deepEqual(auditEvents.map((e) => e.kind), ['DSH_TOOL_CALL', 'DSH_TOOL_RESULT']);
+    assert.equal(auditEvents[0].toolName, 'bash');
+    assert.equal(auditEvents[1].data.isError, false);
     dispose();
   } finally {
     await close();
