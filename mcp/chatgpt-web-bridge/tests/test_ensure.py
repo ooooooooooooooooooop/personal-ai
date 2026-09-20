@@ -17,6 +17,12 @@ from chatgpt_web2api.ensure import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _isolated_tcp_probe(monkeypatch):
+    # Unit policies must not inspect operational listeners on this machine.
+    monkeypatch.setattr(ensure_mod, "_port_accepts", lambda port: False)
+
+
 def _install_virtual_clock(monkeypatch):
     t = [0.0]
     monkeypatch.setattr(ensure_mod.time, "monotonic", lambda: t[0])
@@ -65,23 +71,18 @@ def _patch_sse_verify(monkeypatch, result):
 
 
 def _patch_listener_stop(monkeypatch):
-    """Patch _stop_listener + _find_listener_pid + _terminate_pid so restart
-    tests don't call real netstat/taskkill. Returns a dict tracking calls."""
+    """Patch listener discovery and stopping so policy tests touch no processes."""
     calls = {"find": 0, "terminate": 0, "stopped_ports": []}
 
     def fake_find(port):
         calls["find"] += 1
         return 12345  # pretend a listener exists
 
-    def fake_terminate(pid):
-        calls["terminate"] += 1
-
     async def fake_stop(port, label="REST"):
         calls["stopped_ports"].append(port)
         return True  # success
 
     monkeypatch.setattr(ensure_mod, "_find_listener_pid", fake_find)
-    monkeypatch.setattr(ensure_mod, "_terminate_pid", fake_terminate)
     monkeypatch.setattr(ensure_mod, "_stop_listener", fake_stop)
     return calls
 

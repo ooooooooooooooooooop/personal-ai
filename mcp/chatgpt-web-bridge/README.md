@@ -48,13 +48,39 @@ Chrome 里登录 ChatGPT 一次（profile 持久）。
 - `wait_reply` 只在 tail assistant 终态（非 `in_progress`）报 `replied`；
   timeout 看 `tail_status`——`in_progress` = 网页端还在生成，再 wait 别催促
 - `no driver slot available` / health `degraded` + `driver_connected:false`：
-  daemon 丢了 CDP 连接且不自愈，重跑 `start.ps1`（幂等，不动 Chrome/登录态）；
-  若存在多个同名 daemon 进程，先清掉再起
+  重跑 `start.ps1`，内部通过 `ensure` 检查 REST 和真实 MCP 握手。恢复只终止
+  身份核验通过的故障监听进程；venv launcher/子进程同名属正常现象，禁止据此清理。
+  `healthy + ready:true + usage_state:unused` 表示连接正常但未使用；健康范围是传输层，
+  不代表网页一定加载成功。锁文件存在不表示 OS 锁仍被持有，不按文件名删除锁
+- Windows 的会话归属、生成标记及 tab 登记共用只读的 Win32 存活查询；
+  禁用 `os.kill(pid, 0)` 作为 Windows 存活探针，避免发送控制事件或终止进程。
 - 所有调用一起变慢/挂住：先看 `~/.chatgpt-web2api/request_pace.json`——
   `cooldown_until` 未过期 = 账号级冷却（读写都等）；`read_cooldown_until`
   未过期 = 只读端点被限（读等、发送不受影响）。谁触发的看 daemon 日志
   `~/.chatgpt-web2api/diagnostics/mcp-sse-8090.log`（REST 在
   `rest-8080.log`）里的 `account/read-path throttle recorded (source=…)`；
   `lease released … held=` 给出每次调用占槽时长
+
+## 中断后的发送恢复
+
+MCP `chat_completion` / `chat_with_gpt` 可带稳定的 `operation_id`；REST
+`POST /v1/chat/completions` 可用同名字段或 `Idempotency-Key` 请求头。每个逻辑发送
+使用一个 ID，确认、超时和重连重试沿用该 ID；下一条有意发送才使用新 ID。
+
+记录存于运行目录 `~/.chatgpt-web2api/send_receipts.sqlite3`，不保存正文或凭据。
+点击前先持久化；取消只结束观察，不撤销网页提交。重复调用返回已有发送状态，
+不重发。同一 ID 换正文或目标返回冲突；未带 ID 的旧客户端也不能自动重发相同的
+未决请求。流式 REST 在响应头 `X-Operation-ID` 提供 ID，非流式响应附 `send_receipt`。
+
+- `get_send_status(operation_id=...)` 或 `GET /v1/send-status?operation_id=...`
+  只读本地记录，Chrome 不在线也能查询；省略 ID 返回最近记录。
+- 加 `refresh:true`（REST 为 `refresh=true`）按已记录的会话和消息 UUID 核对网页持久化。
+- `not_sent` 才能原 ID 重试；`delivery_unknown` / `dispatched` 表示结果未确认，
+  `delivered` 表示用户消息已落盘，`completed` 表示该消息的终态回复已落盘。
+  `reply_received` 是本地收到回复，仍需核对持久化。`not_found` 不证明未发送。
+
+新建聊天只在目标 URL、文档、应用和输入框均就绪后继续；仅对无草稿、无生成的
+“重试”错误页进行一次恢复。错误附失败阶段及脱敏网络状态；明确 challenge/401/
+403/429 不循环刷新，不因此重启健康服务。
 
 License: MIT（见 `LICENSE`）。

@@ -96,6 +96,12 @@ async def retry_on_rate_limit(
                 )
             except Exception:
                 pass
+            from . import send_receipts
+
+            receipt = getattr(e, "send_receipt", {})
+            if (receipt and receipt.get("state") not in {"not_sent", "preparing"}) or send_receipts.submission_started():
+                logger.warning("Rate limit after submission; keeping receipt and refusing a second send")
+                raise
             if attempt >= max_attempts:
                 logger.warning(
                     "Rate limit persisted after %d attempt(s); giving up.", attempt

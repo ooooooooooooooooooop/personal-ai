@@ -60,12 +60,12 @@ description: |
 - **长等待是常态**：联网搜索 + 长报告要数分钟到十几分钟。等待本身就是工作的一部分，不是回合结束信号。
 - **轮询到有结果为止**：发出消息后对方仍在生成 ≠ 本轮结束。在回合内持续拉取（REST 返回或 backend-api 拉尾部）直到拿到完整回文或明确失败；回合时长、上下文压缩预期都不构成停止理由。拿不准时就拉尾部确认——「还在写」和「写完了」是可观测的两种状态，不许靠猜。
 - **阻塞抛给协作者**：本地卡住的点（环境门禁、授权边界、协议歧义、缺工具）先发回同一 conversation_id 求方案，写清「阻塞事实 + 已试过的路径 + 待裁决项」，不要在本地只汇报给用户或写进任务控制就停。网页端看不见本机状态，它要的是可裁决的输入不是进度摘要。
-- **本地中断 ≠ 消息未送达**：chat_completion 在本地被 cancel/打断时，消息可能已落盘网页端——重发前先 `get_conversation` 核实尾部，否则产生重复发送（2026-09-12 实证：被打断的发送已完整落盘）。同理，`not_ready` / `Turn reconciliation failed` / `generation_stuck` 等报错也可能已送达（同日实证：两次 not_ready 报错均落盘，造成同一里程碑重复上报）——**任何报错后重发前必须先核实**
+- **本地中断 ≠ 消息未送达**：每个逻辑发送先指定稳定的 `operation_id`（REST 也支持 `Idempotency-Key`）；确认和重连沿用原 ID。取消、超时、`not_ready` / `generation_stuck` / `read_throttled` 后先 `get_send_status(operation_id=..., refresh=true)`，按已记录会话与消息 UUID 核实；Chrome 不通时不带 refresh 仍能查本地记录。只有 `not_sent` 可原 ID 重试；`delivery_unknown` / `dispatched` / `reply_received` 均不允许盲目重发，`delivered` / `completed` 转为读取原会话。旧版本或无记录时用 `get_conversation` 核实，`not_found` 不能证明未发送。
 - **失败发送会留草稿**：`Composer text verification failed` 时插入内容可能部分留在 composer 里成为该会话的草稿，后续发送连带校验失败——2026-09-15 起桥在发送窗口（type→click→ack）任何失败时自动清 composer 草稿；若仍见校验失败，草稿来自别的原因（人工输入/旧残留），用 `evaluate_script` 清或换新会话（2026-09-14 实证）
 - **`Composer text verification failed after retry`**：2026-09-14 前的主因是会话页 composer 遇 `\n` 只插入首段（ChatGPT 前端更新，`Input.insertText` 截断）；vendored 源码已改走 `execCommand('insertText')`，若再见此错先怀疑残留草稿或前端又改
-- **`no driver slot available` / health `degraded`**：daemon 丢 CDP 连接不自愈。查 `http://127.0.0.1:8080/health` 的 `driver_connected`；为 false 则重跑 `start.ps1`（幂等，不动 Chrome/登录）；若有多组同名 daemon 进程先清孤儿
+- **服务恢复先核对身份**：`start.ps1` 内部调用 `ensure`，检查 REST 健康和真实 MCP 握手，只停止可执行文件、命令行、创建时间及监听归属均验证通过的故障进程。`ready:true + usage_state:unused` 是连接正常但未使用；旧版 `starting` 且三个连接标志为 true 也不表示卡死。venv launcher 与 Python 子进程同名属正常，禁止据此判孤儿、按进程名批量终止或删除仍可能被使用的锁文件。网页“重试”/缺输入框另按页面失败阶段排查；明确 challenge/401/403/429 不循环刷新、不重启健康 daemon。
 - **新会话 ≠ 干净隔离**：换 system_prompt 开新会话仍共享同账号、同 Memory、同项目上下文——A/B 生成、盲评这类需要真隔离的活只能用本地子代理，多开网页会话只是表面隔离（2026-09-14 实证：B 侧生成会话混进了盲评消息，评审看到了被评审稿的生成过程）
-- **死生成判定**：发完后拉尾部若最后一条仍是自己发的 user 消息 = 回复未持久化（生成中途死亡/被回收，`chat_completion` 可能只返回了残缺流）——**立即发短催促（「继续」）续接，不要轮询等一条永远不会来的回复**（2026-09-14 实证：轮询 ~7 分钟/8 次拉取后才催促）；分页前先无参拉一次拿 `total` 再 `offset=total-2` 定位尾部，不许盲试 offset。机制侧：`chat_completion` 返回带 `reply_persisted`（true/false/null），false 即此情形；等回复用 `wait_reply` 工具而不是手写轮询——它在 tail 卡 user 超 `dead_after_seconds`（默认 120s）时返回 `status:"dead"` 提前退出，在长超时时也带进度通知防掐断
+- **回复未落盘需继续核查**：尾部仍是 user 或 `reply_persisted:false` 只说明当前未读到持久化回复，不能单次判定生成死亡。用 `wait_reply` 观察，并结合网页生成状态、发送记录和完整会话判断；仅在确认已停止生成、该发送已落盘且原任务授权包含继续时，才在原 conversation_id 发新的短催促，使用新 `operation_id`。读取失败、429、空/不完整结果均不构成重发依据；分页先查 total 再定位尾部。
 - **桥侧超时 ≠ 网页端死**：`generation_stuck` / 读超时只是桥等不到了，网页端可能仍在正常生成——**尾部有 assistant 消息 ≠ 生成完**（引言节点会先落盘、status=in_progress 持续更新）。`wait_reply` 只在终态（非 in_progress）报 `replied`；若它 timeout 先看 `tail_status`——`in_progress` = 还在写，再 `wait_reply` 即可，**此时催促是错误动作**（2026-09-15 实证：误判死生成发「继续」，网页端实际仍在生成）
 
 ## 四种用法

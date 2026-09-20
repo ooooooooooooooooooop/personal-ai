@@ -29,6 +29,13 @@ def e2e_enabled() -> bool:
 
 
 @pytest.fixture(autouse=True)
+def _isolated_send_receipts(monkeypatch, tmp_path):
+    from chatgpt_web2api import send_receipts
+
+    monkeypatch.setattr(send_receipts, "DB_PATH", tmp_path / "send_receipts.sqlite3")
+
+
+@pytest.fixture(autouse=True)
 def _fast_persist_check(monkeypatch):
     """Zero the reply-persistence retry delays in mcp_server so mocked-driver
     tests don't sleep real seconds (the check retries on 'tail still user')."""
@@ -126,10 +133,16 @@ def _isolate_shared_state_files(tmp_path, monkeypatch):
     dir (~/.chatgpt-web2api). Without this, a test that routes through the
     binding gate would read or pollute live daemon state.
     """
-    from chatgpt_web2api import conv_binding, generation_gate
+    from chatgpt_web2api import conv_binding, generation_gate, request_pace
 
     monkeypatch.setattr(conv_binding, "BIND_PATH", tmp_path / "conv_bindings.json")
     monkeypatch.setattr(generation_gate, "GEN_PATH", tmp_path / "generating.json")
+    if not e2e_enabled():
+        # Unit tests must neither throttle the live account nor sleep between
+        # mocked browser requests. Pacing-specific tests set explicit intervals.
+        monkeypatch.setattr(request_pace, "PACE_PATH", tmp_path / "request_pace.json")
+        monkeypatch.setenv("W2A_PACE_READ_S", "0")
+        monkeypatch.setenv("W2A_PACE_SEND_S", "0")
     yield
 
 

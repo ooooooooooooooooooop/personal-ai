@@ -45,7 +45,7 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from pydantic import BaseModel, Field
 
-from . import conv_binding, conv_dom_read
+from . import conv_binding, conv_dom_read, send_receipts
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
 from .cdp_driver import (
     AuthExpiredError,
@@ -88,6 +88,10 @@ class ChatCompletionInput(BaseModel):
     """Input schema for chat_completion tool."""
 
     message: str = Field(description="The user message to send to ChatGPT")
+    operation_id: str | None = Field(
+        default=None, max_length=128,
+        description="Stable ID for this logical send. Reuse after timeout/cancel/reconnect; never change the payload under the same ID. Query get_send_status before retrying.",
+    )
     system_prompt: str | None = Field(
         default=None,
         description=(
@@ -144,6 +148,12 @@ class ListModelsInput(BaseModel):
     """No inputs needed — empty schema."""
 
     pass
+
+
+class GetSendStatusInput(BaseModel):
+    operation_id: str | None = Field(default=None, max_length=128)
+    refresh: bool = Field(default=False, description="Read the recorded conversation to verify persistence; never sends a message.")
+    limit: int = Field(default=10, ge=1, le=20)
 
 
 class ListProjectsInput(BaseModel):
@@ -356,6 +366,7 @@ class ChatWithGptInput(BaseModel):
         ),
     )
     message: str = Field(description="The message to send to the GPT")
+    operation_id: str | None = Field(default=None, max_length=128)
     confirm: bool = Field(
         default=False,
         description=(
@@ -376,6 +387,7 @@ class ChatWithGptInput(BaseModel):
 class ToolName(str, Enum):
     # Core chat
     CHAT_COMPLETION = "chat_completion"
+    GET_SEND_STATUS = "get_send_status"
     # Discovery
     LIST_MODELS = "list_models"
     LIST_PROJECTS = "list_projects"
@@ -879,6 +891,37 @@ async def do_chat_completion(
     on_progress: ProgressCallback | None = None,
     session_key: str | None = None,
 ) -> dict:
+    validated = ChatCompletionInput(**args)
+    request = validated.model_dump(exclude={"confirm", "operation_id"})
+    request["project_id"] = validated.project_id or (config.chatgpt.default_project_id if config else None)
+    request["tool"] = "chat_completion"
+    return await send_receipts.run(
+        request, validated.operation_id,
+        lambda: _do_chat_completion(driver, args, config, on_progress, session_key),
+    )
+
+
+async def do_get_send_status(driver, args: dict) -> dict:
+    validated = GetSendStatusInput(**args)
+    if not validated.operation_id:
+        return {"receipts": send_receipts.recent(validated.limit)}
+    record = send_receipts.get(validated.operation_id)
+    if record is None:
+        return {"operation_id": validated.operation_id, "state": "not_found", "can_retry_send": False}
+    refresh_error = None
+    if validated.refresh and record.get("conversation_id") and driver is not None:
+        try:
+            data = await driver.get_conversation(record["conversation_id"])
+            record = send_receipts.reconcile(validated.operation_id, data)
+        except Exception as exc:
+            refresh_error = type(exc).__name__
+    result = send_receipts.public_record(record)
+    if refresh_error:
+        result["refresh_error"] = refresh_error
+    return result
+
+
+async def _do_chat_completion(driver, args, config, on_progress=None, session_key=None) -> dict:
     """Execute a chat completion through the CDP driver."""
     validated = ChatCompletionInput(**args)
     project_id = validated.project_id or (config.chatgpt.default_project_id if config else None)
@@ -944,9 +987,8 @@ async def do_chat_completion(
     # Send and collect response. Progress notifications reset the MCP client's
     # idle timer during long generations so the tool call isn't killed at
     # ~30s. on_progress is None when the client can't receive progress.
-    # NOTE: across a rate-limit retry ChatGPT re-types and re-streams the
-    # response from scratch, so the message may visually "reset" even though
-    # the numeric progress counter keeps climbing — see _make_progress_callback.
+    # Retries are allowed only before submission. Once clicking starts,
+    # callers recover via the durable receipt instead of repeating the send.
     full_response = ""
     conv_id = ""
     chunk_count = 0
@@ -1593,6 +1635,15 @@ async def do_chat_with_gpt(
     on_progress: ProgressCallback | None = None,
     session_key: str | None = None,
 ) -> dict:
+    validated = ChatWithGptInput(**args)
+    request = validated.model_dump(exclude={"operation_id", "confirm"}) | {"tool": "chat_with_gpt"}
+    return await send_receipts.run(
+        request, validated.operation_id,
+        lambda: _do_chat_with_gpt(driver, args, on_progress, session_key),
+    )
+
+
+async def _do_chat_with_gpt(driver, args, on_progress=None, session_key=None) -> dict:
     """Chat with a specific Custom GPT."""
     validated = ChatWithGptInput(**args)
     # Every GPT chat creates a new conversation — first call must be
@@ -1650,6 +1701,22 @@ def _build_tools() -> list[mcp_types.Tool]:
     :func:`build_tools`, which applies the access gates.
     """
     return [
+        mcp_types.Tool(
+            name=ToolName.GET_SEND_STATUS.value,
+            title="Send receipt",
+            description="Query durable send receipts after cancellation, timeout or reconnect. Works without Chrome when refresh=false. Omit operation_id to list recent receipts. Never resends; unknown delivery remains unknown.",
+            inputSchema=GetSendStatusInput.model_json_schema(),
+            outputSchema={"type": "object", "properties": {
+                "operation_id": {"type": "string"},
+                "state": {"type": "string"},
+                "can_retry_send": {"type": "boolean"},
+                "next_action": {"type": "string"},
+                "receipts": {"type": "array", "items": {"type": "object"}},
+            }},
+            annotations=mcp_types.ToolAnnotations(
+                readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False,
+            ),
+        ),
         # ── Core: Chat ────────────────────────────────────────
         mcp_types.Tool(
             name=ToolName.CHAT_COMPLETION.value,
@@ -2107,6 +2174,43 @@ def _map_tool_exception(exc: Exception) -> object:
     type is not mapped (caller should re-raise).
     """
     # Lazy imports for circular-dependency avoidance.
+    receipt = getattr(exc, "receipt", None) or getattr(exc, "send_receipt", None)
+    if receipt is not None:
+        payload = {"error": type(exc).__name__, "message": str(exc), "send_receipt": receipt}
+        # Keep established error codes while making replay safety explicit.
+        # retry_after describes a cooldown, never permission to resubmit.
+        if isinstance(exc, RateLimitError):
+            payload.update(code="rate_limit_exceeded", retry_after=exc.retry_after)
+        elif isinstance(exc, CircuitOpenError):
+            payload.update(code="circuit_open", kind=exc.kind.value)
+        elif isinstance(exc, AuthExpiredError):
+            payload["code"] = "auth_expired"
+        elif isinstance(exc, GenerationInProgressError):
+            payload.update(code="generation_in_progress", retry_after=exc.retry_after)
+        elif isinstance(exc, GenerationStuckError):
+            payload["code"] = "generation_stuck"
+        elif isinstance(exc, LockAcquisitionError):
+            payload["code"] = "lock_timeout"
+        from .navigation import NavigationError
+
+        if isinstance(exc, NavigationError):
+            payload["navigation"] = {"reason": exc.reason, "stage": exc.stage, "evidence": exc.evidence}
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
+            structuredContent=payload, isError=True,
+        )
+    if isinstance(exc, send_receipts.SendConflictError):
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=str(exc))], isError=True,
+        )
+    from .navigation import NavigationError
+
+    if isinstance(exc, NavigationError):
+        payload = {"error": "navigation_failed", "reason": exc.reason, "stage": exc.stage, "evidence": exc.evidence}
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
+        )
 
     if isinstance(exc, OwnedTabRequiredError):
         return mcp_types.CallToolResult(
@@ -2165,7 +2269,7 @@ def _map_tool_exception(exc: Exception) -> object:
 def create_server() -> Server:
     """Create and configure the MCP server with all capabilities."""
 
-    server = Server("chatgpt-web2api")
+    server = Server("chatgpt-web2api", version=f"0.2.0+{send_receipts.BUILD_ID}")
 
     def _make_progress_callback() -> ProgressCallback | None:
         """Build a best-effort progress notifier from the in-flight MCP request.
@@ -2460,6 +2564,33 @@ def create_server() -> Server:
         name: str, arguments: dict
     ) -> tuple[list[mcp_types.TextContent], dict] | list[mcp_types.TextContent] | dict:
         """Route tool calls to business logic functions."""
+        if name == ToolName.GET_SEND_STATUS.value:
+            validated = GetSendStatusInput(**arguments)
+            if validated.refresh and validated.operation_id:
+                try:
+                    if _driver_pool is not None:
+                        async with _driver_pool.acquire("send-status") as lease:
+                            async with lease.call_lock:
+                                return await do_get_send_status(lease.driver, arguments)
+                    return await do_get_send_status(_driver, arguments)
+                except Exception as exc:
+                    result = await do_get_send_status(None, arguments)
+                    result["refresh_error"] = type(exc).__name__
+                    return result
+            return await do_get_send_status(None, arguments)
+        if name in {ToolName.CHAT_COMPLETION.value, ToolName.CHAT_WITH_GPT.value}:
+            try:
+                model = ChatCompletionInput if name == ToolName.CHAT_COMPLETION.value else ChatWithGptInput
+                validated = model(**arguments)
+                logical = validated.model_dump(exclude={"confirm", "operation_id"}) | {"tool": name}
+                if name == ToolName.CHAT_COMPLETION.value:
+                    logical["project_id"] = validated.project_id or (_config.chatgpt.default_project_id if _config else None)
+                send_receipts.reject_recorded(logical, validated.operation_id)
+            except (ValueError, send_receipts.SendAlreadyRecorded) as exc:
+                mapped = _map_tool_exception(exc)
+                if mapped is not None:
+                    return mapped
+                raise
         # B1: in pool mode, acquire a session-affine driver lease.
         # In singleton mode, use the global _driver directly (unchanged).
         if _driver_pool is not None:

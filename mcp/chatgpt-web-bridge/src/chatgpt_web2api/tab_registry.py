@@ -51,21 +51,31 @@ def _pid_alive(pid: int) -> bool:
 
     On Unix, ``os.kill(pid, 0)`` returns silently if alive, raises ProcessLookupError
     if not. On Windows, there's no signal 0, so we use OpenProcess via ctypes.
-    Returns True only on positive confirmation; any error → False (treat as
-    gone, so a crashed process's entry becomes reclaimable).
+    Permission-denied or uncertain Windows queries preserve ownership; never
+    send a Windows control event just to test whether a process exists.
     """
     if not pid or pid <= 0:
         return False
     if os.name == "nt":
         try:
             import ctypes
+            from ctypes import wintypes
             PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
             handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
             if not handle:
-                return False
-            kernel32.CloseHandle(handle)
-            return True
+                return ctypes.get_last_error() == 5  # access denied is not proof of death
+            try:
+                code = wintypes.DWORD()
+                if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                    return True  # uncertain: do not steal a possibly live owner's state
+                return code.value == 259  # STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
         except Exception:
             return False
     try:

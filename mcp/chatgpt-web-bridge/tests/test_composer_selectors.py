@@ -271,16 +271,18 @@ async def test_navigate_new_chat_ready_when_prosemirror_present(monkeypatch):
     d._cdp = AsyncMock(return_value={})  # Page.navigate
 
     ready_returned = {"v": json.dumps({
-        "ready": True,
+        "ready_state": "complete", "app_shell": True, "composer": True,
+        "draft_length": 0, "generating": False,
         "url": "https://chatgpt.com/",
     })}
 
     async def _fake_js(expr, timeout=15):
         # Confirm the readiness expression references the new composer.
-        assert COMPOSER_SELECTOR in expr, \
+        assert json.dumps(COMPOSER_SELECTOR) in expr, \
             "readiness check does not query the new composer selector"
         return ready_returned["v"]
-    d._js = _fake_js
+    d._js_strict = _fake_js
+    d._dom.is_generating = AsyncMock(return_value=False)
     monkeypatch.setattr("chatgpt_web2api.cdp_driver.asyncio.sleep", AsyncMock())
 
     await d.navigate_new_chat()  # must not raise / must not loop forever

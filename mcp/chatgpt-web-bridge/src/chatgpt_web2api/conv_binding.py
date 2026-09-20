@@ -37,7 +37,7 @@ import logging
 import os
 import time
 
-from .tab_registry import REGISTRY_DIR
+from .tab_registry import REGISTRY_DIR, _pid_alive
 from . import generation_gate
 
 logger = logging.getLogger(__name__)
@@ -127,12 +127,6 @@ def release(conv_id: str, session_key: str) -> None:
         _write_all(state)
 
 
-def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError, PermissionError):
-        return False
 
 
 async def gate_check(

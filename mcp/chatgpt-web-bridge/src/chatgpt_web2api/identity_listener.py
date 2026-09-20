@@ -89,6 +89,7 @@ class CaptureScope:
         self.send_sequence_id = send_sequence_id
         self._future: asyncio.Future[CaptureResult] | None = None
         self._closed = False
+        self.on_capture = None
 
     def _arm(self) -> None:
         """Resolve the wait future when a result lands or the scope closes."""
@@ -111,6 +112,8 @@ class CaptureScope:
     def _resolve(self, result: CaptureResult) -> None:
         """Called by the listener when a matching POST is observed."""
         if self._future is not None and not self._future.done():
+            if result.uuid and self.on_capture is not None and not self._closed:
+                self.on_capture(result)
             self._future.set_result(result)
 
 

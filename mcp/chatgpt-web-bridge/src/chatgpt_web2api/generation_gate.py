@@ -29,7 +29,7 @@ import logging
 import os
 import time
 
-from .tab_registry import REGISTRY_DIR
+from .tab_registry import REGISTRY_DIR, _pid_alive
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +102,3 @@ def clear_generating(conv_id: str, *, owner_pid: int | None = None) -> None:
         return
     state.pop(conv_id, None)
     _write_all(state)
-
-
-def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError, PermissionError):
-        return False
