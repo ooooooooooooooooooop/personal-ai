@@ -75,3 +75,30 @@ test('budget gate: over-limit prompt is refused and billed events emit budget_ex
   assert.match(r.error, /budget/);
   dispose();
 });
+
+test('U5 attachments: images ride options.images, media degrade to descriptors', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-att-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const audit = { events: [], write(e) { this.events.push(e); } };
+  const core = { paths: { auditDir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  await ch.handle({
+    type: 'prompt', message: 'look at these',
+    options: { attachments: [
+      { name: 'p.png', mime: 'image/png', data: 'aGk=' },
+      { name: 's.mp3', mime: 'audio/mpeg', data: 'aGk=' },
+      { name: 'bad' }, // rejected — must not eat the prompt
+    ] },
+  });
+  const [msg, opts] = calls[0];
+  assert.deepEqual(opts.images, [{ type: 'image', data: 'aGk=', mimeType: 'image/png' }]);
+  assert.match(msg, /look at these/);
+  assert.match(msg, /<attachment kind="audio" name="s.mp3"/);
+  assert.ok(audit.events.some((e) => e.kind === 'ATTACHMENT_REJECTED'));
+  dispose();
+});
