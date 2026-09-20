@@ -23,7 +23,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -69,6 +69,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       } else if (ev?.type === 'tool_execution_end' && writeLease) {
         // belt for the afterToolCall release — idempotent, holder-matched
         writeLease.release(`fg:${ev.toolCallId}`);
+        hooks?.fire('tool_end', { toolName: ev.toolName, isError: Boolean(ev.isError) });
       } else if (ev?.type === 'agent_end' && writeLease) {
         // abort can skip afterToolCall — sweep any foreground-held lease so a
         // dead write never wedges the workspace
@@ -79,6 +80,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     });
   };
   rebind(session);
+  hooks?.fire('session_start', { sessionId: session?.sessionId ?? null });
   // Expensive-call admission — prompt/steer/compact all go through here.
   const admitSpend = () => {
     if (!budget) return;
@@ -88,7 +90,11 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
 
   const sessionFacade = {
-    prompt: (message, options) => { admitSpend(); return box.s.prompt(message, options); },
+    prompt: (message, options) => {
+      admitSpend();
+      hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
+      return box.s.prompt(message, options);
+    },
     steer: (message) => { admitSpend(); return box.s.steer(message); },
     abort: async () => {
       await box.s.abort?.();

@@ -14,6 +14,7 @@ import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
+import { HookRunner } from '../../../host/src/core/hooks.js';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -490,6 +491,12 @@ export async function startHost({
     },
   };
 
+  // G5: typed lifecycle hooks — observational only, never in the decide path
+  // (hook config is agent-writable workdir state; a veto there would let the
+  // agent gate itself). Absent .pai/hooks.json → no-op; malformed config
+  // throws at boot so the operator hears about it.
+  const hooks = new HookRunner(workdir, { audit: core.audit });
+
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   channelHandle = createChannelHost({
     session, core, jobs: jobStore, jobDetail: executor,
@@ -512,6 +519,7 @@ export async function startHost({
     },
     budget,
     writeLease,
+    hooks,
     modes: {
       get: () => riskMode,
       set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },
