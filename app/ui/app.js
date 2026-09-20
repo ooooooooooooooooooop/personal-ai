@@ -2464,6 +2464,16 @@ const SLASH = [
     },
   },
   {
+    cmd: '/map', label: '仓库地图', hint: '源码文件+顶层符号的结构大纲（Aider /map 对等）',
+    run: async (arg) => {
+      const r = await cmd('repo_map', { subdir: arg.trim() || null });
+      if (!r.success) { addSys(`repo map 不可用：${r.error ?? '未知'}`, true); return; }
+      const d = r.data ?? {};
+      addSys(`仓库地图：${d.files} 文件 / ${d.symbols} 符号${d.truncated ? '（截断）' : ''}`, false);
+      addMsg('sys', `\`\`\`\n${d.text ?? '(空)'}\n\`\`\``);
+    },
+  },
+  {
     cmd: '/review', label: '审查变更', hint: '切只读审查模式并审查当前变更（Codex /review 对等）',
     run: async () => {
       const r = await cmd('mode_set', { name: 'review' });

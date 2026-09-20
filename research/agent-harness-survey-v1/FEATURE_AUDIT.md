@@ -957,4 +957,11 @@
 | provider 连接测试 | Cline `doctor` / 各家"测试连接" | `model_ping` → `rt.getAuth` 解析凭据 + GET `{baseUrl}/models`（8s 超时）→ {ok,httpStatus,ms,authSource}；密钥不出进程；设置页"测试连接"按钮 |
 | 长命令后台化（核实行） | Cline "proceed while running" | **已有**——`isLongRunningCommand` 在 decide 链自动转 durable job（自带写租约+预算域+重启恢复），`job_status` 模型轮询；快照行过期 |
 
+**复扫第九批**：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| repo-map 结构大纲 | Aider `/map` + tree-sitter tags→PageRank（288/289）、Cursor Code Index（226）、ZCode Repo Wiki（207）、Trae code index（235）、Kiro `code` 工具（264） | `host/core/repomap.js` 无依赖构建器：源码文件走查 + 按语言正则抽顶层符号（fn/class/iface/type）+ token 预算截断 + .paiignore + subdir 收窄 + 构建器自身路径禁锢；`repo_map` 模型工具 + `/map` 操作员命令同构双面。**PageRank/索引库有意不做**——声明式抽取覆盖"找东西在哪"主诉，依赖/复杂度不合算 |
+| 旧会话拉进上下文 | Trae `#Past Chats` / Devin `#`历史链接（228/193） | `session_read` 模型工具——配合 `session_search` 先搜后读；会话目录禁锢（仅 .jsonl）、尾部限界（≤60 条/条≤2000 字符）、`<past_session trust="untrusted">` 封套 |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto（与现有入口/压缩面设计冲突，维持有意不做；project-trust 已按微agent注入面窄化落地见上）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

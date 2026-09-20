@@ -62,7 +62,9 @@ import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
-import { sessionSearchTool } from '../adapter/sessionsearch.js';
+import { sessionSearchTool, sessionReadTool } from '../adapter/sessionsearch.js';
+import { repoMapTool } from '../adapter/repomap.js';
+import { buildRepoMap } from '../../../host/src/core/repomap.js';
 import { specTools } from '../adapter/specs.js';
 import { ScheduleStore } from '../../../host/src/core/scheduler.js';
 import { loadAgentProfiles } from '../adapter/agentprofiles.js';
@@ -290,6 +292,9 @@ export async function startHost({
   // found (unconfigured = not advertised). Dedicated profile dir keeps
   // the operator's real cookies/credentials out of reach.
   const browserToolset = browserTools({ instanceRoot: core.paths.root, audit: core.audit });
+  // repo_map builds scan hundreds of files — one PaiIgnore instance per
+  // build (fresh .paiignore each call, not per file and not boot-stale)
+  const repoMapIgnore = () => { const ig = new PaiIgnore(workdir); return (rel) => ig.isIgnored(rel); };
   const customTools = [
     jobStatusTool(jobStore),
     ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
@@ -311,6 +316,10 @@ export async function startHost({
     // agent-facing past-session recall — same index the operator's Ctrl+K
     // uses, late-bound to sessionsFacade.search (built below)
     sessionSearchTool(() => sessionsFacade.search),
+    sessionReadTool({ sessionDir: join(core.paths.root, 'sessions') }),
+    // Aider repo-map analogue: dependency-free structural outline, .paiignore
+    // honored — the model gets "where things live" without burning reads
+    repoMapTool({ workdir, getIgnored: repoMapIgnore }),
     // G11 thin SDD: spec artifacts under .pai/specs/ — the model writes
     // docs via governed write/edit; these tools only scaffold + report
     ...specTools({ getWorkdir: () => workdir }),
@@ -858,6 +867,10 @@ export async function startHost({
     schedules: {
       list: () => scheduleStore.list(),
       cancel: (id) => scheduleStore.remove(id),
+    },
+    // /map — operator surface over the same builder repo_map wraps
+    repoMap: {
+      build: (subdir) => buildRepoMap(workdir, { isIgnored: repoMapIgnore(), subdir }),
     },
     memory: memoryStore,
     // H-family microagents — .pai/microagents/*.md frontmatter triggers

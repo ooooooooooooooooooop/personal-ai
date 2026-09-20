@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -93,6 +93,7 @@ export class HostChannel {
     this.verify = verify;
     this.projectTrust = projectTrust;
     this.schedules = schedules;
+    this.repoMap = repoMap;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -557,6 +558,13 @@ export class HostChannel {
         case 'schedule_cancel': {
           if (!this.schedules?.cancel) return reply(false, undefined, 'schedules facade unavailable');
           const r = this.schedules.cancel(String(cmd.id ?? ''));
+          if (r?.error) return reply(false, undefined, r.error);
+          return reply(true, r);
+        }
+        // /map operator surface — same host builder the repo_map tool wraps
+        case 'repo_map': {
+          if (!this.repoMap?.build) return reply(false, undefined, 'repo map unavailable');
+          const r = this.repoMap.build(cmd.subdir ? String(cmd.subdir) : null);
           if (r?.error) return reply(false, undefined, r.error);
           return reply(true, r);
         }
