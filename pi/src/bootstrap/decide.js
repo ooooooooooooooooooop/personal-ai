@@ -18,7 +18,12 @@ const FILE_ACCESS_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null }) {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null }) {
+  // Qwen MAX_TURNS analogue: hard cap on admitted tool calls per user turn.
+  // The refusal reason is the steering channel — it tells the model to stop
+  // and report, not to retry.
+  const cap = maxTurnCalls ?? (Number(process.env.PAI_MAX_TOOL_CALLS) > 0 ? Number(process.env.PAI_MAX_TOOL_CALLS) : 100);
+  let turnCalls = 0;
   const inner = async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
     // signal rides on ctx so the kernel's ask path can abort a pending
@@ -29,6 +34,14 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
       // surface (deny→hide) so the model stops retrying it — persisted.
       if (decision.terminate) getSurface()?.deny(toolName);
       return decision; // kernel denied — done
+    }
+    if (turnCalls >= cap) {
+      core.audit.write({ kind: 'TURN_CAP_BLOCK', toolName, data: { toolCallId: ctx.toolCall?.id, turnCalls, cap } });
+      return {
+        block: true,
+        rule: 'turn_cap',
+        reason: `turn tool-call budget exhausted (${turnCalls}/${cap}) — stop calling tools, report what was accomplished and what remains; the user can send a follow-up to continue`,
+      };
     }
     // .paiignore context exclusion — refused for read AND write families.
     // Patterns can only restrict, never grant, so an agent-writable ignore
@@ -210,17 +223,20 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         }
       }
     }
+    turnCalls += 1; // admitted — counts against the per-turn budget
     return undefined;
   };
   // G9: shadow-only LLM second opinion — observes the FINAL deterministic
   // verdict for telemetry. Never awaited into the outcome, never feeds back:
   // a deny here is structurally incapable of being downgraded.
-  if (!shadowJudge) return inner;
-  return async (ctx, signal) => {
+  const decideFn = !shadowJudge ? inner : async (ctx, signal) => {
     const outcome = await inner(ctx, signal);
     try {
       shadowJudge.observe({ toolName: ctx.toolCall?.name ?? ctx.toolName, args: ctx.args, outcome });
     } catch { /* a telemetry path must never break the decide chain */ }
     return outcome;
   };
+  // A new user message (prompt/steer) starts a fresh turn budget.
+  decideFn.resetTurn = () => { turnCalls = 0; };
+  return decideFn;
 }

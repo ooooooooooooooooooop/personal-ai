@@ -24,7 +24,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -205,6 +205,20 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
 
   // Model/auth surface — the body's ModelRuntime owns models.json + auth.json
   // under the instance's agentDir. Plain data out; key material never returns.
+  // Model aliases (Gemini CLI alias analogue): <instance>/model-aliases.json
+  // maps short names → {provider, model[, thinking]}. Read per call so edits
+  // take effect without respawn.
+  const aliasPath = core.paths.root ? join(core.paths.root, 'model-aliases.json') : null;
+  const readAliases = () => {
+    if (!aliasPath) return {};
+    try { return JSON.parse(readFileSync(aliasPath, 'utf-8')); }
+    catch { return {}; }
+  };
+  const writeAliases = (doc) => {
+    if (!aliasPath) throw new Error('instance root unavailable');
+    writeFileSync(aliasPath, JSON.stringify(doc, null, 2));
+  };
+
   const modelsFacade = {
     status: async () => {
       const s = box.s;
@@ -242,13 +256,34 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         maxTokens: m.maxTokens ?? null,
       }));
     },
-    set: async ({ provider, model }) => {
+    set: async ({ provider, model, alias }) => {
+      let target = { provider, model };
+      if (alias) {
+        const hit = readAliases()[String(alias)];
+        if (!hit) throw new Error(`model alias '${alias}' is not registered`);
+        target = hit;
+      }
       const s = box.s;
-      const m = s.modelRuntime.getModel(provider, model);
-      if (!m) throw new Error(`model '${provider}/${model}' is not registered`);
+      const m = s.modelRuntime.getModel(target.provider, target.model);
+      if (!m) throw new Error(`model '${target.provider}/${target.model}' is not registered`);
       await s.setModel(m);
-      s.settingsManager?.setDefaultModelAndProvider?.(provider, model);
-      return { provider: m.provider, id: m.id, name: m.name ?? m.id };
+      s.settingsManager?.setDefaultModelAndProvider?.(target.provider, target.model);
+      if (target.thinking) await modelsFacade.setThinking(target.thinking).catch(() => {});
+      return { provider: m.provider, id: m.id, name: m.name ?? m.id, alias: alias ?? null };
+    },
+    aliasList: () => Object.entries(readAliases()).map(([name, a]) => ({ name, ...a })),
+    aliasSet: ({ name, provider, model, thinking }) => {
+      if (!name || !provider || !model) throw new Error('alias requires {name, provider, model}');
+      const doc = readAliases();
+      doc[String(name)] = { provider: String(provider), model: String(model), ...(thinking ? { thinking: String(thinking) } : {}) };
+      writeAliases(doc);
+      return { name: String(name), ...doc[String(name)] };
+    },
+    aliasDel: ({ name }) => {
+      const doc = readAliases();
+      const had = delete doc[String(name)];
+      writeAliases(doc);
+      return { removed: had };
     },
     setThinking: async (level) => {
       const s = box.s;
@@ -335,6 +370,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       }),
     },
     modes,
+    turns,
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

@@ -236,6 +236,7 @@ export async function startHost({
     .map(([name]) => name);
   const fileOps = new FileOpsGuard(core.paths.root);
   let toolSurface = null; // assigned once the session exists — decide runs later
+  let currentDecide = null; // per-session decide fn — carries the turn-call budget
 
   // Sessions persist under the instance root — the app lists/resumes them.
   const sessionDir = join(core.paths.root, 'sessions');
@@ -258,7 +259,7 @@ export async function startHost({
       // revalidate defaults to the session's own tool registry via pi-ai
       // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
       // ctx.toolName — translate at the boundary, don't leak Pi shape inward.
-      decide: makeDecide({
+      decide: (currentDecide = makeDecide({
         core, executor, fileOps,
         getSurface: () => toolSurface,
         workdir,
@@ -273,7 +274,7 @@ export async function startHost({
         // workdir context exclusion — rebuilt per session so .paiignore edits
         // take effect on the next session build
         paiignore: new PaiIgnore(workdir),
-      }),
+      })),
       writeLease,
       loopGovernance: taskRequirements.length
         ? {
@@ -571,6 +572,7 @@ export async function startHost({
     budget,
     writeLease,
     hooks,
+    turns: { reset: () => currentDecide?.resetTurn?.() },
     modes: {
       get: () => riskMode,
       set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },

@@ -162,3 +162,30 @@ test('mode_list/mode_set dispatch to modes facade; unknown mode fails closed', a
   bare.dispose();
   dispose();
 });
+
+test('model alias commands manage <instance>/model-aliases.json; prompt/steer reset turn budget', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-alias-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir, root: dir } };
+  let resets = 0;
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    turns: { reset: () => { resets += 1; } },
+  });
+  // alias CRUD through real channel commands
+  const s = await ch.handle({ type: 'model_alias_set', name: 'fast', provider: 'cpa', model: 'm1' });
+  assert.equal(s.success, true);
+  const l = await ch.handle({ type: 'model_alias_list' });
+  assert.deepEqual(l.data, [{ name: 'fast', provider: 'cpa', model: 'm1' }]);
+  // model_set {alias} resolves through the facade's alias path — the facade
+  // itself is session-bound, so here we assert the command reaches it
+  await ch.handle({ type: 'model_alias_del', name: 'fast' });
+  assert.equal((await ch.handle({ type: 'model_alias_list' })).data.length, 0);
+  // turn-budget reset fires on prompt AND steer (a user msg = fresh budget)
+  await ch.handle({ type: 'prompt', message: 'go' });
+  await ch.handle({ type: 'steer', message: 'hold' });
+  assert.equal(resets, 2);
+  dispose();
+});

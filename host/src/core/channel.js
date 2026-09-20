@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -83,6 +83,7 @@ export class HostChannel {
     this.policy = policy;
     this.budget = budget;
     this.modes = modes;
+    this.turns = turns;
     this.todos = todos;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
@@ -115,9 +116,11 @@ export class HostChannel {
     try {
       switch (cmd?.type) {
         case 'prompt':
+          this.turns?.reset(); // a user message starts a fresh tool-call budget
           await this.session.prompt(String(cmd.message ?? ''), cmd.options);
           return reply(true);
         case 'steer':
+          this.turns?.reset();
           await this.session.steer(String(cmd.message ?? ''));
           return reply(true);
         case 'abort':
@@ -179,8 +182,21 @@ export class HostChannel {
         }
         case 'model_set': {
           if (!this.models?.set) return reply(false, undefined, 'models facade unavailable');
-          if (!cmd.provider || !cmd.model) return reply(false, undefined, 'model_set requires {provider, model}');
+          if (cmd.alias) return reply(true, await this.models.set({ alias: String(cmd.alias) }));
+          if (!cmd.provider || !cmd.model) return reply(false, undefined, 'model_set requires {provider, model} or {alias}');
           return reply(true, await this.models.set({ provider: String(cmd.provider), model: String(cmd.model) }));
+        }
+        case 'model_alias_list': {
+          if (!this.models?.aliasList) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, this.models.aliasList());
+        }
+        case 'model_alias_set': {
+          if (!this.models?.aliasSet) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, this.models.aliasSet({ name: cmd.name, provider: cmd.provider, model: cmd.model, thinking: cmd.thinking }));
+        }
+        case 'model_alias_del': {
+          if (!this.models?.aliasDel) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, this.models.aliasDel({ name: cmd.name }));
         }
         case 'thinking_set': {
           if (!this.models?.setThinking) return reply(false, undefined, 'models facade unavailable');

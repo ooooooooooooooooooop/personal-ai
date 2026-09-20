@@ -1065,14 +1065,25 @@ $('model-chip').onclick = async () => {
     return;
   }
   const cur = modelStatus?.current;
-  openMenu(models.map((m) => ({
+  const ar = await cmd('model_alias_list');
+  const aliases = ar.success ? (ar.data ?? []) : [];
+  const items = models.map((m) => ({
     label: m.name ?? m.id,
     sub: m.provider,
     current: cur && m.provider === cur.provider && m.id === cur.id,
     value: m,
-  })), async (it) => {
+  }));
+  if (aliases.length) {
+    items.push({ label: '— 别名 —', sub: '', value: null });
+    for (const a of aliases) {
+      items.push({ label: `@${a.name}`, sub: `${a.provider}/${a.model}`, value: { alias: a.name } });
+    }
+  }
+  openMenu(items, async (it) => {
     if (!it.value) return;
-    const r2 = await cmd('model_set', { provider: it.value.provider, model: it.value.id });
+    const r2 = it.value.alias
+      ? await cmd('model_set', { alias: it.value.alias })
+      : await cmd('model_set', { provider: it.value.provider, model: it.value.id });
     if (!r2.success) addSys(`切换模型失败：${r2.error ?? '未知'}`, true);
     refreshState();
   });
@@ -1711,6 +1722,51 @@ const SLASH = [
     },
   },
   {
+    cmd: '/recipe', label: '任务包', hint: '运行 .pai/recipes/<name>.md——/recipe name 参数=值',
+    run: async (arg) => {
+      const recipes = await loadRecipes();
+      if (!recipes.length) { addSys('没有任务包——在 workdir 下建 .pai/recipes/<name>.md（frontmatter: description/params，正文 {{参数}} 占位）', true); return; }
+      const [name, ...kv] = String(arg ?? '').trim().split(/\s+/).filter(Boolean);
+      const run = async (r, args) => {
+        const missing = (r.params ?? []).filter((p) => p.required && args[p.name] == null && p.default == null);
+        if (missing.length) {
+          addSys(`缺少参数：${missing.map((p) => p.name).join('、')}——用法：/recipe ${r.name} ${missing.map((p) => `${p.name}=值`).join(' ')}`, true);
+          return;
+        }
+        let text = r.body;
+        for (const p of r.params ?? []) {
+          const v = args[p.name] ?? p.default ?? '';
+          text = text.split(`{{${p.name}}}`).join(v);
+        }
+        input.value = text; autogrow();
+        await send();
+      };
+      if (!name) {
+        openMenu(recipes.map((r) => ({
+          label: r.name, sub: r.description || '',
+          value: r,
+        })), async (it) => {
+          const needArgs = (it.value.params ?? []).filter((p) => p.required && p.default == null);
+          if (needArgs.length) {
+            addSys(`/${it.value.name} 需要参数：${needArgs.map((p) => p.name).join('、')}——输入 /recipe ${it.value.name} ${needArgs.map((p) => `${p.name}=值`).join(' ')}`);
+            input.value = `/recipe ${it.value.name} `; autogrow(); input.focus();
+            return;
+          }
+          await run(it.value, {});
+        });
+        return;
+      }
+      const r = recipes.find((x) => x.name === name);
+      if (!r) { addSys(`没有任务包 '${name}'——可用：${recipes.map((x) => x.name).join('、')}`, true); return; }
+      const args = {};
+      for (const pair of kv) {
+        const i = pair.indexOf('=');
+        if (i > 0) args[pair.slice(0, i)] = pair.slice(i + 1);
+      }
+      await run(r, args);
+    },
+  },
+  {
     cmd: '/plan', label: '计划模式', hint: '只读模式——改动类调用都要批准',
     run: async () => {
       const r = await cmd('risk_mode_set', { mode: 'plan' });
@@ -2049,6 +2105,34 @@ async function expandAtMentions(text) {
   }
   return { text: text + blocks.join(''), attached, missed };
 }
+/* ---------- recipes: .pai/recipes/<name>.md parameterized task packages ---------- */
+// Thin Goose-recipe analogue: frontmatter declares description + params
+// (`params: a(required), b=default`), body carries {{param}} placeholders.
+// Files come through file_read/files_list so .paiignore exclusions apply.
+async function loadRecipes() {
+  const l = await cmd('files_list', { prefix: '.pai/recipes/' });
+  const files = (l.data?.files ?? []).filter((f) => f.endsWith('.md'));
+  const out = [];
+  for (const f of files) {
+    const r = await cmd('file_read', { path: f });
+    if (!r.success || r.data?.content == null) continue;
+    const m = r.data.content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+    const meta = m ? m[1] : '';
+    const body = (m ? m[2] : r.data.content).trim();
+    const description = meta.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? '';
+    const paramsRaw = meta.match(/^params:\s*(.+)$/m)?.[1] ?? '';
+    const params = paramsRaw.split(',').map((s) => s.trim()).filter(Boolean).map((p) => {
+      const req = p.match(/^(\w+)\(required\)$/);
+      if (req) return { name: req[1], required: true };
+      const d = p.match(/^(\w+)=(.*)$/);
+      if (d) return { name: d[1], default: d[2] };
+      return { name: p, required: true };
+    });
+    out.push({ name: f.replace(/^\.pai\/recipes\//, '').replace(/\.md$/, ''), description, params, body });
+  }
+  return out;
+}
+
 /* ---------- attachments: paste/drop files + images into the composer ---------- */
 // Browser File API reads the bytes locally — no server-side path access, so
 // files from ANYWHERE (not just the workdir) can be attached. Text files land

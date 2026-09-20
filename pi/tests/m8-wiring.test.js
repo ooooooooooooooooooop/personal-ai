@@ -319,3 +319,23 @@ test('.paiignore blocks read AND write families on excluded paths', async () => 
   const ok = await decideIg({ toolCall: { name: 'read' }, args: { path: join(dir, 'src/app.js') } });
   assert.equal(ok, undefined);
 });
+
+test('turn cap: admitted calls over the budget are refused with a readable stop reason; prompt/steer reset restores', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-cap-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => undefined } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, maxTurnCalls: 3 });
+
+  const call = () => decide({ toolCall: { name: 'read' }, args: { path: 'x' } });
+  assert.equal(await call(), undefined);
+  assert.equal(await call(), undefined);
+  assert.equal(await call(), undefined);
+  const capped = await call();
+  assert.equal(capped.block, true);
+  assert.equal(capped.rule, 'turn_cap');
+  assert.match(capped.reason, /3\/3/); // model-readable: spent/budget
+  decide.resetTurn(); // prompt/steer boundary via channel turns.reset()
+  assert.equal(await call(), undefined);
+});
