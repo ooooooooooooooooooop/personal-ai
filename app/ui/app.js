@@ -2867,8 +2867,21 @@ function refreshAuditSoon() {
   clearTimeout(auditTimer);
   auditTimer = setTimeout(refreshAudit, 400);
 }
-es.onerror = () => setStatus('连接断开，重试中…', 'err');
-es.onopen = () => { setStatus('就绪'); refreshPending(); }; // asks raised while disconnected are still live
+es.onerror = () => {
+  setStatus('连接断开，重试中…', 'err');
+  const ss = $('splash-status');
+  if (ss && !$('splash')?.classList.contains('done')) ss.textContent = '连接断开，重试中…';
+};
+es.onopen = () => {
+  setStatus('就绪');
+  refreshPending(); // asks raised while disconnected are still live
+  // splash is honest: it covers only the real connect wait, no fake progress
+  const sp = $('splash');
+  if (sp && !sp.classList.contains('done')) {
+    sp.classList.add('done');
+    setTimeout(() => sp.remove(), 450);
+  }
+};
 
 autogrow();
 (async () => {

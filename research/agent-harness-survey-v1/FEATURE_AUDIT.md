@@ -892,4 +892,4 @@
 | 长会话分页 | Codex/OpenCode 虚拟滚动 | UI 侧虚拟分页：首渲染最近 50 条+"加载更早"按批上移，协议零改动 |
 | 通知历史抽屉 | PI-Desktop notification center | 顶部铃铛+计数徽章+最近 50 条抽屉（toast 转瞬即逝的补全） |
 
-**仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）、启动闪屏（UI-BACKLOG 长尾）。
+**仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

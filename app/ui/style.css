@@ -1072,3 +1072,14 @@ tr.clickable:hover td { background: var(--field); }
   color: var(--text-3); font-size: 12px; cursor: pointer;
 }
 .older-btn:hover { background: var(--tile-hover); color: var(--text-2); }
+
+/* startup splash — covers only the real connect wait */
+#splash {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: var(--bg);
+  transition: opacity .4s ease;
+}
+#splash.done { opacity: 0; pointer-events: none; }
+.splash-mark { font-size: 22px; font-weight: 650; letter-spacing: .04em; color: var(--text); }
+.splash-sub { font-size: 12.5px; color: var(--text-4); }
