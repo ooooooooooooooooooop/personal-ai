@@ -1,4 +1,5 @@
 import { join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
@@ -27,6 +28,25 @@ function numEnv(name) {
   const v = Number(process.env[name]);
   return Number.isFinite(v) && v > 0 ? v : undefined;
 }
+
+/** Bounded shell for `!cmd` operator direct-exec — 200KB cap, 120s kill. */
+function runShell(command, cwd) {
+  return new Promise((resolveP) => {
+    const child = spawn(command, { shell: true, cwd, windowsHide: true });
+    const cap = 200 * 1024;
+    let out = '';
+    let killed = false;
+    const timer = setTimeout(() => { killed = true; child.kill('SIGTERM'); }, 120_000);
+    const eat = (d) => { if (out.length < cap) out += d.toString('utf-8'); };
+    child.stdout.on('data', eat);
+    child.stderr.on('data', eat);
+    child.on('error', (e) => { clearTimeout(timer); resolveP({ ok: false, code: -1, output: String(e.message) }); });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolveP({ ok: code === 0, code: killed ? -9 : (code ?? -1), output: out + (killed ? '\n[killed: 120s timeout]' : '') });
+    });
+  });
+}
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
@@ -34,6 +54,7 @@ import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../hos
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
+import { skillTools } from '../adapter/skilltools.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
@@ -240,6 +261,9 @@ export async function startHost({
     // G11 thin SDD: spec artifacts under .pai/specs/ — the model writes
     // docs via governed write/edit; these tools only scaffold + report
     ...specTools({ getWorkdir: () => workdir }),
+    // self-authored skills (triggered knowledge) + durable plan library —
+    // agent writes .pai/microagents|plans, governed like every other call
+    ...skillTools({ workdir, audit: core.audit }),
     ...browserToolset,
   ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
@@ -263,6 +287,7 @@ export async function startHost({
   const fileOps = new FileOpsGuard(core.paths.root);
   let toolSurface = null; // assigned once the session exists — decide runs later
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
+  let currentGovernor = null; // evidence contract governor — goals status source
 
   // Sessions persist under the instance root — the app lists/resumes them.
   const sessionDir = join(core.paths.root, 'sessions');
@@ -324,11 +349,11 @@ export async function startHost({
       writeLease,
       loopGovernance: taskRequirements.length
         ? {
-            continuation: new ContinuationGovernor({
+            continuation: (currentGovernor = new ContinuationGovernor({
               ledgerPath: join(core.paths.root, 'continuation.jsonl'),
               audit: core.audit,
               requirements: taskRequirements,
-            }),
+            })),
             predictions: core.predictions,
             observations: core.observations,
           }
@@ -728,6 +753,7 @@ export async function startHost({
       },
     },
     asks,
+    goals: () => currentGovernor?.status() ?? null,
     fileops: {
       list: (n) => fileOps.list(n),
       listAll: () => fileOps.listAll(),
@@ -738,6 +764,28 @@ export async function startHost({
     writeLease,
     hooks,
     turns: { reset: () => currentDecide?.resetTurn?.() },
+    exec: {
+      // `!cmd` operator direct-exec (Claude Code bang-mode analogue): the
+      // command runs through the SAME decide chain as a model call — ask
+      // rules still pop the approval card, denies still block. Operator
+      // typing is not a policy bypass.
+      run: async (command) => {
+        if (!currentDecide) return { ok: false, error: 'session not ready' };
+        const callId = `op-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`;
+        const emit = (ev) => channelHandle?.channel.emitEvent(ev);
+        const d = await currentDecide({ toolCall: { name: 'bash', id: callId }, args: { command } });
+        emit({ type: 'tool_execution_start', toolCallId: callId, toolName: 'bash', args: { command } });
+        if (d?.block) {
+          emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'bash', result: d.reason ?? 'blocked', isError: true });
+          core.audit.write({ kind: 'OPERATOR_BASH_BLOCK', data: { command: command.slice(0, 200), rule: d.rule ?? 'deny' } });
+          return { ok: false, blocked: true, reason: d.reason ?? 'blocked' };
+        }
+        const r = await runShell(command, workdir);
+        emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'bash', result: r.output.slice(0, 8000), isError: r.code !== 0 });
+        core.audit.write({ kind: 'OPERATOR_BASH', data: { command: command.slice(0, 200), code: r.code } });
+        return r;
+      },
+    },
     modes: {
       get: () => riskMode,
       set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },

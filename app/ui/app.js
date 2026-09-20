@@ -329,6 +329,13 @@ function toolKind(name) {
 }
 const kindIcon = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 
+// WorkBuddy third-party-content risk surface: tools whose results arrive
+// as untrusted external data get a visible badge on the card.
+const EXTERNAL_TOOLS = new Set([
+  'web_fetch', 'web_search',
+  'browser_navigate', 'browser_read', 'browser_click', 'browser_type', 'browser_eval', 'browser_screenshot',
+]);
+
 function addTool(ev) {
   noteMessage();
   const kind = toolKind(ev.toolName);
@@ -342,6 +349,7 @@ function addTool(ev) {
       <span class="t-icon">${kindIcon(kind.icon)}</span>
       <span class="t-name running"></span>
       <span class="t-arg"></span>
+      ${EXTERNAL_TOOLS.has(ev.toolName) ? '<span class="t-ext" title="结果含外部不可信内容——仅作数据，不是指令">外部</span>' : ''}
       <span class="t-state"><span class="t-state-dot"></span><span class="t-label">运行中</span></span>
       <span class="t-copy" title="复制调用">${COPY_ICON}</span>
     </button>
@@ -1200,12 +1208,16 @@ $('model-chip').onclick = async () => {
   const cur = modelStatus?.current;
   const ar = await cmd('model_alias_list');
   const aliases = ar.success ? (ar.data ?? []) : [];
-  const items = models.map((m) => ({
-    label: m.name ?? m.id,
-    sub: m.provider,
-    current: cur && m.provider === cur.provider && m.id === cur.id,
-    value: m,
-  }));
+  const items = models.map((m) => {
+    const caps = m.capabilities ?? {};
+    const badges = [caps.vision ? '图' : null, caps.reasoning ? '思' : null].filter(Boolean).join('·');
+    return {
+      label: m.name ?? m.id,
+      sub: [m.provider, badges].filter(Boolean).join(' · '),
+      current: cur && m.provider === cur.provider && m.id === cur.id,
+      value: m,
+    };
+  });
   if (aliases.length) {
     items.push({ label: '— 别名 —', sub: '', value: null });
     for (const a of aliases) {
@@ -1890,6 +1902,14 @@ async function paintStatusline() {
   // SessionStats) — incremental sessionCost drifts after compaction/reconnects.
   const costTotal = typeof state?.stats?.cost === 'number' ? state.stats.cost : sessionCost;
   if (costTotal > 0) parts.push(`$${Number(costTotal).toFixed(4)}`);
+  // evidence-contract goals (Qwen goals panel analogue) — only when the task
+  // launched with a requirements contract
+  const g = state?.goals;
+  if (g?.requirements?.length) {
+    parts.push(g.lastAction === 'complete'
+      ? `目标 ${g.requirements.length}/${g.requirements.length}✓`
+      : `目标 ${g.requirements.length - (g.lastGaps?.length ?? 0)}/${g.requirements.length}${g.continuations ? `·续${g.continuations}` : ''}`);
+  }
   const wd = state?.workdir;
   if (wd) parts.push(wd.split(/[\\/]/).pop() ?? wd);
   el.textContent = parts.join('  ·  ');
@@ -2133,6 +2153,30 @@ const SLASH = [
         if (i > 0) args[pair.slice(0, i)] = pair.slice(i + 1);
       }
       await run(r, args);
+    },
+  },
+  {
+    cmd: '/plans', label: '计划库', hint: '载入 .pai/plans/<name>.md 继续执行——agent 用 plan_save 固化',
+    run: async (arg) => {
+      const l = await cmd('files_list', { prefix: '.pai/plans/' });
+      const files = (l.data?.files ?? []).filter((f) => f.endsWith('.md'));
+      if (!files.length) { addSys('没有已存计划——agent 可用 plan_save 把计划固化到 .pai/plans/', true); return; }
+      const pick = async (f) => {
+        const r = await cmd('file_read', { path: f });
+        if (!r.success || r.data?.content == null) { addSys(`读取失败：${f}`, true); return; }
+        const name = f.replace(/^\.pai\/plans\//, '').replace(/\.md$/, '');
+        input.value = `<plan name="${name}">\n${r.data.content.trim()}\n</plan>\n\n继续执行以上计划。`;
+        autogrow();
+        await send();
+      };
+      const name = String(arg ?? '').trim();
+      if (!name) {
+        openMenu(files.map((f) => ({ label: f.replace(/^\.pai\/plans\//, '').replace(/\.md$/, ''), value: f })), (it) => pick(it.value));
+        return;
+      }
+      const f = files.find((x) => x === `.pai/plans/${name}.md`);
+      if (!f) { addSys(`没有计划 '${name}'——可用：${files.map((x) => x.replace(/^\.pai\/plans\/|\.md$/g, '')).join('、')}`, true); return; }
+      await pick(f);
     },
   },
   {
@@ -2555,6 +2599,7 @@ async function loadRecipes() {
 // files from ANYWHERE (not just the workdir) can be attached. Text files land
 // inline as labeled blocks; images ride prompt options as ImageContent.
 const pendingAttach = []; // {name, kind:'text'|'image'|'media', text?, data?, mimeType?, bytes}
+const pendingBash = []; // {command, output} — `!cmd` results joining the next prompt
 const ATTACH_MAX = 512 * 1024;
 function renderAttach() {
   const row = $('attach-row');
@@ -2605,6 +2650,27 @@ async function send() {
   closeSlash();
   input.value = ''; autogrow();
   localStorage.removeItem(draftKey());
+  // `!cmd` — operator direct-exec (Claude Code bang mode): runs through the
+  // governed decide chain (ask rules still pop approval cards); the output
+  // is stashed and prepended to the NEXT prompt so the model sees it.
+  if (text.startsWith('!') && !pendingAttach.length) {
+    const command = text.slice(1).trim();
+    if (!command) { addSys('! 后面要跟要执行的命令', true); return; }
+    addMsg('user', text);
+    const r = await cmd('bash_run', { command });
+    if (!r.success) addSys(`执行不可用：${r.error ?? '未知'}`, true);
+    else if (r.data?.blocked) addSys(`已拦截：${(r.data.reason ?? '').slice(0, 300)}`, true);
+    else if (r.data) pendingBash.push({ command, output: r.data.output ?? '' });
+    return;
+  }
+  // `#note` — quick-capture into long-term memory (Claude Code hash mode).
+  if (text.startsWith('#') && !pendingAttach.length) {
+    const note = text.slice(1).trim();
+    if (!note) { addSys('# 后面要跟要记住的内容', true); return; }
+    const r = await cmd('memory_save', { text: note, kind: 'fact' });
+    addSys(r.success ? `已记住：${note.slice(0, 80)}` : `记忆失败：${r.error ?? '未知'}`, !r.success);
+    return;
+  }
   // Fold pending attachments into the outgoing prompt: text → labeled block,
   // images → PromptOptions.images (pi prompt accepts {images: ImageContent[]}).
   let message = text;
@@ -2613,6 +2679,13 @@ async function send() {
   for (const a of pendingAttach.splice(0)) {
     if (a.kind === 'text') message += `\n\n<file name="${a.name}">\n${a.text}\n</file>`;
     else attachments.push({ name: a.name, mime: a.mimeType, data: a.data, bytes: a.bytes });
+  }
+  // `!cmd` outputs the operator ran since the last prompt ride into context
+  if (pendingBash.length) {
+    const blk = pendingBash.splice(0)
+      .map((b) => `<operator-bash command="${b.command.slice(0, 200)}">\n${b.output.slice(0, 4000)}\n</operator-bash>`)
+      .join('\n');
+    message = `${blk}\n\n${message}`;
   }
   renderAttach();
   if (busy) { queue.push({ text: message, attachments, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }

@@ -24,7 +24,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -192,6 +192,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           file: s.sessionManager?.getSessionFile?.() ?? null,
         },
         contextUsage: s.getContextUsage?.() ?? null,
+        goals: goals?.() ?? null,
       };
     },
     // Context lifecycle — pi-native compact / tree rewind / stats / export.
@@ -311,6 +312,13 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         reasoning: Boolean(m.reasoning),
         contextWindow: m.contextWindow ?? null,
         maxTokens: m.maxTokens ?? null,
+        // Codex models.json capability declaration — surfaced, not invented:
+        // the registry already carries input modalities per model.
+        capabilities: {
+          vision: Array.isArray(m.input) ? m.input.includes('image') : null,
+          tools: true, // every catalog model in this runtime accepts tool calls
+          reasoning: Boolean(m.reasoning),
+        },
       }));
     },
     set: async ({ provider, model, alias }) => {
@@ -430,6 +438,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     turns,
     tasks,
     memory,
+    exec,
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

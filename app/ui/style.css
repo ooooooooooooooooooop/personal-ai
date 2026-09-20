@@ -1023,3 +1023,14 @@ tr.clickable:hover td { background: var(--field); }
   color: var(--text-2);
   background: var(--tile);
 }
+
+/* external-content badge on tool cards (WorkBuddy risk hint) */
+.t-ext {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--yellow);
+  border: 1px solid var(--yellow);
+  opacity: 0.85;
+  flex-shrink: 0;
+}

@@ -366,3 +366,31 @@ test('modes_read/modes_save dispatch; fileops_diff forwards receiptId filter', a
   assert.deepEqual(calls[1], ['diff', undefined, 'r-9']);
   dispose();
 });
+
+test('bash_run dispatches to exec facade; unavailable exec fails closed; goals ride get_state', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-'));
+  const core = { paths: { auditDir: join(dir, 'audit') } };
+  const ran = [];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    exec: { run: async (command) => (ran.push(command), { ok: true, code: 0, output: 'hi' }) },
+    goals: () => ({ requirements: [{ id: 'r1', kind: 'tool_success' }], continuations: 2, maxContinuations: 8, lastAction: 'continue', lastGaps: ['r1'] }),
+  });
+  const r = await ch.handle({ type: 'bash_run', command: 'ls -la' });
+  assert.equal(r.success, true);
+  assert.deepEqual(ran, ['ls -la']);
+  assert.equal(r.data.output, 'hi');
+  const st = await ch.handle({ type: 'get_state' });
+  assert.equal(st.data.goals.requirements[0].id, 'r1');
+  assert.equal(st.data.goals.lastAction, 'continue');
+  dispose();
+
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  const r2 = await bare.channel.handle({ type: 'bash_run', command: 'ls' });
+  assert.equal(r2.success, false);
+  assert.match(r2.error, /exec facade unavailable/);
+  const st2 = await bare.channel.handle({ type: 'get_state' });
+  assert.equal(st2.data.goals, null);
+  bare.dispose();
+});

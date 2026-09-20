@@ -68,9 +68,10 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
+    this.exec = exec;
     this.jobs = jobs;
     this.jobDetail = jobDetail;
     this.audit = audit;
@@ -128,6 +129,13 @@ export class HostChannel {
         case 'abort':
           await this.session.abort();
           return reply(true);
+        case 'bash_run': {
+          // `!cmd` operator direct-exec (Claude Code bang-mode analogue): the
+          // command still runs through the full decide chain — nothing the
+          // operator types bypasses policy.
+          if (!this.exec?.run) return reply(false, undefined, 'exec facade unavailable');
+          return reply(true, await this.exec.run(String(cmd.command ?? '')));
+        }
         case 'get_state':
           return reply(true, await this.session.getState());
         case 'job_status': {

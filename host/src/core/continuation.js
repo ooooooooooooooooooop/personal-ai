@@ -93,4 +93,16 @@ export class ContinuationGovernor {
     this.history.push({ ...entry, at: Date.now() });
     appendFileSync(this.ledgerPath, `${JSON.stringify({ ...entry, at: Date.now() })}\n`);
   }
+
+  /** Goal-contract posture for the UI surface (Qwen goals-panel analogue). */
+  status() {
+    const last = this.history[this.history.length - 1] ?? null;
+    return {
+      requirements: this.requirements.map((r) => ({ id: r.id, kind: r.kind, tool: r.tool ?? null })),
+      continuations: this.#continuations(),
+      maxContinuations: this.maxContinuations,
+      lastAction: last?.action ?? null,
+      lastGaps: last?.gaps ?? [],
+    };
+  }
 }
