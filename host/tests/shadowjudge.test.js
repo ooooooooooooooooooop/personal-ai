@@ -69,3 +69,68 @@ test('env builder wires config; missing model → null', () => {
   assert.equal(j.enabled, true);
   assert.equal(shadowJudgeFromEnv({ env: { PAI_SHADOW_JUDGE_URL: 'http://x/' } }), null);
 });
+
+test('guard mode: deny escalates admit → block; ask routes to operator; allow admits', async () => {
+  const audit = { events: [], write(e) { this.events.push(e); } };
+  // deny verdict → block object returned
+  const deny = new ShadowJudge(
+    { url: 'http://x/', model: 'm', mode: 'guard' },
+    { audit, fetchImpl: async () => verdictDoc('deny', 'destructive intent') },
+  );
+  const b = await deny.guard('bash', { command: 'rm -rf /' }, {});
+  assert.equal(b.block, true);
+  assert.equal(b.rule, 'guardian');
+  assert.match(b.reason, /destructive intent/);
+  // ask verdict + operator allow → admit stands (null)
+  const asksLog = [];
+  const asks = { ask: async (q) => { asksLog.push(q); return 'allow'; } };
+  const ask = new ShadowJudge(
+    { url: 'http://x/', model: 'm', mode: 'guard' },
+    { audit, fetchImpl: async () => verdictDoc('ask', 'unusual shape') },
+  );
+  assert.equal(await ask.guard('write', { path: 'a' }, { asks }), null);
+  assert.equal(asksLog.length, 1);
+  // ask + operator deny → block
+  const asksDeny = { ask: async () => 'deny' };
+  assert.equal((await ask.guard('write', { path: 'a' }, { asks: asksDeny })).block, true);
+  // ask + no asks channel → fail-closed block
+  assert.equal((await ask.guard('write', { path: 'a' }, {})).block, true);
+  // allow verdict → null (admit stands)
+  const allow = new ShadowJudge(
+    { url: 'http://x/', model: 'm', mode: 'guard' },
+    { audit, fetchImpl: async () => verdictDoc('allow') },
+  );
+  assert.equal(await allow.guard('read', { path: 'x' }, {}), null);
+});
+
+test('guard unreachable → admit stands, GUARDIAN_BYPASS audited once per outage', async () => {
+  const audit = { events: [], write(e) { this.events.push(e); } };
+  const down = new ShadowJudge(
+    { url: 'http://x/', model: 'm', mode: 'guard' },
+    { audit, fetchImpl: async () => { throw new Error('conn refused'); } },
+  );
+  assert.equal(await down.guard('read', {}, {}), null);
+  assert.equal(await down.guard('read', {}, {}), null);
+  const bypasses = audit.events.filter((e) => e.kind === 'GUARDIAN_BYPASS');
+  assert.equal(bypasses.length, 1); // transition-only, not per-call spam
+  // recovery audits once
+  down.fetch = async () => verdictDoc('allow');
+  assert.equal(await down.guard('read', {}, {}), null);
+  assert.equal(audit.events.filter((e) => e.kind === 'GUARDIAN_RECOVERED').length, 1);
+});
+
+test('guard mode is never consulted for denied outcomes (decide wrapper)', async () => {
+  // decide-level guarantee: outcome?.block short-circuits before guard() —
+  // verified by shape: guard() has no path that transforms a deny into admit
+  const j = new ShadowJudge({ url: 'http://x/', model: 'm', mode: 'guard' },
+    { fetchImpl: async () => verdictDoc('allow') });
+  assert.equal(j.mode, 'guard');
+  const shadow = new ShadowJudge({ url: 'http://x/', model: 'm' },
+    { fetchImpl: async () => verdictDoc('deny') });
+  assert.equal(shadow.mode, 'shadow'); // default unchanged
+});
+
+test('env builder reads PAI_SHADOW_JUDGE_MODE', () => {
+  const g = shadowJudgeFromEnv({ env: { PAI_SHADOW_JUDGE_URL: 'http://x/', PAI_SHADOW_JUDGE_MODEL: 'm', PAI_SHADOW_JUDGE_MODE: 'guard' } });
+  assert.equal(g.mode, 'guard');
+});

@@ -272,14 +272,24 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     turnCalls += 1; // admitted — counts against the per-turn budget
     return undefined;
   };
-  // G9: shadow-only LLM second opinion — observes the FINAL deterministic
-  // verdict for telemetry. Never awaited into the outcome, never feeds back:
-  // a deny here is structurally incapable of being downgraded.
+  // G9: LLM second opinion. shadow mode = post-hoc telemetry only. guard
+  // mode (PAI_SHADOW_JUDGE_MODE=guard) = the judge reviews admitted calls
+  // before execution — one-way ratchet (escalate-only): 'deny'/'ask' block
+  // or route to the operator, 'allow' lets the admit stand. A deterministic
+  // deny returns without ever consulting the judge — downgrading a deny is
+  // structurally impossible on this path.
   const decideFn = !shadowJudge ? inner : async (ctx, signal) => {
+    const toolName = ctx.toolCall?.name ?? ctx.toolName;
     const outcome = await inner(ctx, signal);
     try {
-      shadowJudge.observe({ toolName: ctx.toolCall?.name ?? ctx.toolName, args: ctx.args, outcome });
-    } catch { /* a telemetry path must never break the decide chain */ }
+      if (!outcome?.block && shadowJudge.mode === 'guard') {
+        const g = await shadowJudge.guard(toolName, ctx.args,
+          { asks, signal, toolCallId: ctx.toolCall?.id });
+        if (g) return g;
+      } else {
+        shadowJudge.observe({ toolName, args: ctx.args, outcome });
+      }
+    } catch { /* a telemetry/guard path must never break the decide chain */ }
     return outcome;
   };
   // A new user message (prompt/steer) starts a fresh turn budget.
