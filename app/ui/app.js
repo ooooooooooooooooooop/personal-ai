@@ -286,6 +286,32 @@ function addSys(text, bad = false) {
   scrollTail();
   if (bad) toast(text, 'err'); // errors surface as toasts too — transcript keeps the record
 }
+// project trust (Pi trust.json analogue): repo-planted .pai/microagents are
+// silent prompt injection — they only activate after an operator trust grant.
+// Banner once per workdir per app run; grant persists in instance state.
+const trustChecked = new Set();
+async function checkProjectTrust() {
+  const r = await cmd('project_trust_status');
+  const d = r.data ?? {};
+  if (!r.success || !d.hasInjectableContent || d.trusted) return;
+  const key = state?.workdir ?? 'wd';
+  if (trustChecked.has(key)) return;
+  trustChecked.add(key);
+  const div = document.createElement('div');
+  div.className = 'sys';
+  const btn = document.createElement('button');
+  btn.className = 'btn';
+  btn.textContent = '信任此项目';
+  btn.onclick = async () => {
+    const g = await cmd('project_trust_set', { trusted: true });
+    if (g.success) { toast('已信任——microagents 自动注入生效'); div.remove(); }
+    else addSys(`信任失败：${g.error ?? '未知'}`, true);
+  };
+  div.append('此项目的 .pai/microagents 含自动注入知识——信任后才会进 prompt。', btn);
+  transcript.appendChild(div);
+  scrollTail();
+}
+
 function clearTranscript() {
   transcript.querySelectorAll('.msg,.sys,.tool,.think-row,.handoff-card').forEach((n) => n.remove());
   sawMessage = false;
@@ -922,6 +948,7 @@ function onAgentEvent(ev) {
       currentSessionFile = ev.session?.file ?? null;
       sessionCost = 0;
       loadDraft();
+      checkProjectTrust();
       replayHistory();
       refreshSessions();
       refreshPending();
@@ -1823,6 +1850,30 @@ function refreshTaskSoon() {
 /* ---------- changes & artifacts (fileops receipt stream) ---------- */
 const OP_LABEL = { write: '写入', create: '新建', delete: '删除', backup: '备份' };
 
+// Artifacts panel — everything exported under <instance>/exports browsable.
+async function refreshArtifacts() {
+  const tbody = $('artifacts')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await fetch('/api/artifacts').then((x) => x.json()).catch(() => ({}));
+  const rows = r.artifacts ?? [];
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-4);padding:20px">暂无产物</td></tr>';
+    return;
+  }
+  for (const a of rows) {
+    const tr = document.createElement('tr');
+    const name = a.path.split(/[\\/]/).slice(-2).join('/');
+    tr.innerHTML = `<td><a href="/api/artifact?path=${encodeURIComponent(a.path)}" target="_blank" rel="noopener"></a></td><td></td><td></td>`;
+    const [c1, c2, c3] = tr.querySelectorAll('td');
+    c1.querySelector('a').textContent = name;
+    c1.querySelector('a').title = a.path;
+    c2.textContent = a.bytes > 1024 * 1024 ? `${(a.bytes / 1048576).toFixed(1)}MB` : `${Math.round(a.bytes / 1024)}KB`;
+    c3.textContent = a.mtime ? new Date(a.mtime).toLocaleString() : '';
+    tbody.appendChild(tr);
+  }
+}
+
 async function refreshChanges() {
   const r = await cmd('fileops_list', { n: 200 });
   const tbody = $('changes').querySelector('tbody');
@@ -2036,7 +2087,7 @@ async function paintStatusline() {
   if (wd) parts.push(wd.split(/[\\/]/).pop() ?? wd);
   el.textContent = parts.join('  ·  ');
 }
-function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); refreshTodos(); }
+function refreshAll() { refreshBodies(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); refreshTodos(); refreshState().then(checkProjectTrust); }
 function setStatus(t, kind) {
   $('status').textContent = t;
   $('status-dot').className = `dot${kind === 'err' ? ' err' : t === '就绪' ? ' on' : ''}`;
@@ -2052,7 +2103,7 @@ function switchView(v) {
   if (v === 'chat') $('view-title').textContent = sessionsCache.find((s) => s.path === currentSessionFile)?.name || '当前任务';
   else $('view-title').textContent = TITLES[v] ?? '';
   if (v === 'jobs') refreshJobs();
-  if (v === 'changes') refreshChanges();
+  if (v === 'changes') { refreshChanges(); refreshArtifacts(); }
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
   if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); refreshCommandsCard(); }

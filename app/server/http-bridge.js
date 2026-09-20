@@ -9,7 +9,7 @@
  * Localhost-only by construction — the listener binds 127.0.0.1.
  */
 import { createServer } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, normalize, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,6 +81,32 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         }
         res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
         res.end(readFileSync(file));
+        return;
+      }
+      // Artifact listing (CodeBuddy 成果面板 analogue): everything the body
+      // exported — screenshots, debug bundles, exports — browsable + openable.
+      if (req.method === 'GET' && url.pathname === '/api/artifacts') {
+        const root = normalize(join(supervisor.instanceRoot ?? '', 'exports'));
+        const rows = [];
+        const walk = (d, depth) => {
+          if (depth > 4 || rows.length >= 200) return;
+          let ents = [];
+          try { ents = readdirSync(d, { withFileTypes: true }); } catch { return; }
+          for (const e of ents) {
+            const p = join(d, e.name);
+            if (e.isDirectory()) walk(p, depth + 1);
+            else {
+              try {
+                const st = statSync(p);
+                rows.push({ path: p, bytes: st.size, mtime: st.mtime.toISOString() });
+              } catch { /* transient */ }
+            }
+          }
+        };
+        walk(root, 0);
+        rows.sort((a, b) => String(b.mtime).localeCompare(String(a.mtime)));
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ artifacts: rows }));
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {

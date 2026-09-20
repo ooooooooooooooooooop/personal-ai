@@ -2,16 +2,17 @@
  * HTTP bridge: POST /cmd round-trips to the supervisor handle(), /events
  * streams pushed records as SSE, static UI serves.
  */
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHttpBridge } from '../server/http-bridge.js';
 
-function stubSupervisor() {
+function stubSupervisor(instanceRoot = null) {
   const listeners = new Set();
   return {
+    instanceRoot,
     subscribe(l) { listeners.add(l); return () => listeners.delete(l); },
     push(m) { for (const l of listeners) l(m); },
     async handle(cmd) {
@@ -59,6 +60,34 @@ test('bridge: /cmd round-trip, /events SSE, static index', async () => {
     assert.match(html, /Personal AI/);
     const nf = await fetch(`${base}/../secret`);
     assert.equal(nf.status === 404 || nf.status === 400, true);
+  } finally {
+    await bridge.close();
+  }
+});
+
+test('bridge: /api/artifacts lists exports; /api/artifact confined to it', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-inst-'));
+  mkdirSync(join(inst, 'exports', 'shots'), { recursive: true });
+  writeFileSync(join(inst, 'exports', 'shots', 's.png'), 'PNGDATA');
+  writeFileSync(join(inst, 'exports', 'debug.json'), '{}');
+  const outside = join(inst, 'secret.txt');
+  writeFileSync(outside, 'nope');
+  const bridge = createHttpBridge({ supervisor: stubSupervisor(inst) });
+  const port = await bridge.listen(0);
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    const list = await (await fetch(`${base}/api/artifacts`)).json();
+    const names = list.artifacts.map((a) => a.path.split(/[\\/]/).pop()).sort();
+    assert.deepEqual(names, ['debug.json', 's.png']);
+    assert.ok(list.artifacts.every((a) => typeof a.bytes === 'number' && a.mtime));
+    // inside → 200 with bytes; outside / traversal / missing → 404
+    const ok = await fetch(`${base}/api/artifact?path=${encodeURIComponent(join(inst, 'exports', 'debug.json'))}`);
+    assert.equal(ok.status, 200);
+    assert.equal(await ok.text(), '{}');
+    for (const p of [outside, join(inst, 'exports', '..', 'secret.txt'), join(inst, 'exports', 'missing.txt')]) {
+      const r = await fetch(`${base}/api/artifact?path=${encodeURIComponent(p)}`);
+      assert.equal(r.status, 404, p);
+    }
   } finally {
     await bridge.close();
   }

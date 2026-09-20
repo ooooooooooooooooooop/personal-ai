@@ -52,10 +52,12 @@ import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
+import { isTrusted, setTrust, hasInjectableContent } from '../../../host/src/core/trust.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
+import { modeRequestTool } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
@@ -130,6 +132,40 @@ export async function startHost({
   // Presets re-read on every list/set so an edited modes.json takes effect
   // on the next mode_set without a respawn (two small JSONs — negligible).
   const loadModePresets = () => new ModePresets({ instanceRoot, workdir });
+  // Shared by the channel facade AND the model's mode_request tool —
+  // Claude ExitPlanMode analogue: the model may REQUEST a mode switch, the
+  // operator approves it on an ask card, applyMode performs it.
+  const applyMode = (name) => {
+    if (name === 'normal' || name === 'plan') {
+      riskMode = name;
+      modeOverlay = null;
+      toolSurface?.setModeDenied([]);
+      core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: null } });
+      return { mode: name };
+    }
+    if (name === 'review') {
+      modeOverlay = {
+        name: 'review',
+        toolActions: { write: 'deny', edit: 'deny', delete: 'deny', bash: 'ask', delegate_task: 'ask' },
+        allowSet: new Set(),
+        pathRules: [],
+        defaultAction: 'allow',
+        hideTools: [],
+        hash: 'builtin-review',
+      };
+      riskMode = 'normal';
+      toolSurface?.setModeDenied([]);
+      core.audit.write({ kind: 'MODE_SET', data: { mode: 'review', overlay: true, policy_hash: 'builtin-review' } });
+      return { mode: 'review', overlay: { hideTools: [], defaultAction: 'allow' } };
+    }
+    const overlay = loadModePresets().compile(name); // null = unknown → fail closed
+    if (!overlay) return null;
+    riskMode = 'normal';
+    modeOverlay = overlay;
+    toolSurface?.setModeDenied(overlay.hideTools);
+    core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: true, policy_hash: overlay.hash } });
+    return { mode: name, overlay: { hideTools: overlay.hideTools, defaultAction: overlay.defaultAction } };
+  };
   const core = createHostCore({
     instanceRoot,
     manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
@@ -281,6 +317,14 @@ export async function startHost({
     // self-authored skills (triggered knowledge) + durable plan library —
     // agent writes .pai/microagents|plans, governed like every other call
     ...skillTools({ workdir, audit: core.audit }),
+    // Claude ExitPlanMode analogue: the model REQUESTS a mode switch; the
+    // operator approves on an ask card. Never self-applies — a model asking
+    // to leave plan mode is exactly the escalation the mode exists for.
+    modeRequestTool({
+      catalogModes: () => ['normal', 'plan', 'review', ...loadModePresets().list().map((m) => m.name)],
+      applyMode,
+      asks,
+    }),
     ...browserToolset,
   ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
@@ -812,9 +856,13 @@ export async function startHost({
     },
     memory: memoryStore,
     // H-family microagents — .pai/microagents/*.md frontmatter triggers
-    // inject topic-scoped knowledge into the matching prompt, this turn only
+    // inject topic-scoped knowledge into the matching prompt, this turn only.
+    // TRUST-GATED (Pi project-trust analogue): repo-planted auto-inject
+    // content only activates on an operator-recorded trust grant —
+    // cloned code must never write straight into the model's prompt.
     knowledge: {
       match: (text) => {
+        if (!isTrusted(core.paths.root, workdir)) return null;
         const hits = matchMicroagents(loadMicroagents(workdir), text);
         return hits.length ? { text: renderKnowledge(hits), agents: hits.map((h) => h.name) } : null;
       },
@@ -887,6 +935,15 @@ export async function startHost({
     },
     // /context add analogue — pinned files re-read live into the envelope
     // every turn. .paiignore wins over pinning both at add time and render.
+    // project trust — operator grant gates .pai/microagents auto-injection
+    projectTrust: {
+      status: () => ({ trusted: isTrusted(core.paths.root, workdir), hasInjectableContent: hasInjectableContent(workdir) }),
+      set: (v) => {
+        const r = setTrust(core.paths.root, workdir, v === true);
+        core.audit.write({ kind: 'PROJECT_TRUST', data: { trusted: r.trusted } });
+        return r;
+      },
+    },
     pins: {
       list: () => editPins(workdir, 'list'),
       add: (p) => {
@@ -937,40 +994,7 @@ export async function startHost({
         ...loadModePresets().list(),
       ],
       active: () => modeOverlay?.name ?? riskMode,
-      setMode: (name) => {
-        if (name === 'normal' || name === 'plan') {
-          riskMode = name;
-          modeOverlay = null;
-          toolSurface?.setModeDenied([]);
-          core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: null } });
-          return { mode: name };
-        }
-        if (name === 'review') {
-          // builtin review posture (Codex /review analogue): same overlay
-          // shape a project preset compiles to — denies mutation tools,
-          // escalates execution; can never widen anything canonical denies
-          modeOverlay = {
-            name: 'review',
-            toolActions: { write: 'deny', edit: 'deny', delete: 'deny', bash: 'ask', delegate_task: 'ask' },
-            allowSet: new Set(),
-            pathRules: [],
-            defaultAction: 'allow',
-            hideTools: [],
-            hash: 'builtin-review',
-          };
-          riskMode = 'normal';
-          toolSurface?.setModeDenied([]);
-          core.audit.write({ kind: 'MODE_SET', data: { mode: 'review', overlay: true, policy_hash: 'builtin-review' } });
-          return { mode: 'review', overlay: { hideTools: [], defaultAction: 'allow' } };
-        }
-        const overlay = loadModePresets().compile(name); // null = unknown → fail closed
-        if (!overlay) return null;
-        riskMode = 'normal'; // the overlay is the posture; keep plan orthogonal
-        modeOverlay = overlay;
-        toolSurface?.setModeDenied(overlay.hideTools);
-        core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: true, policy_hash: overlay.hash } });
-        return { mode: name, overlay: { hideTools: overlay.hideTools, defaultAction: overlay.defaultAction } };
-      },
+      setMode: applyMode,
       // project-level editor surface (.pai/modes.json) — validated before
       // write; instance modes.json stays operator-edited, not agent/UI-facing
       readProject: () => {

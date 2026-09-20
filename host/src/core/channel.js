@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -91,6 +91,7 @@ export class HostChannel {
     this.commands = commands;
     this.pins = pins;
     this.verify = verify;
+    this.projectTrust = projectTrust;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -530,6 +531,16 @@ export class HostChannel {
         case 'verify_run': {
           if (!this.verify?.runNow) return reply(false, undefined, 'verify facade unavailable');
           return reply(true, await this.verify.runNow());
+        }
+        // Project trust (Pi trust.json analogue) — the operator's grant that
+        // lets repo-planted .pai/microagents auto-inject into prompts.
+        case 'project_trust_status': {
+          if (!this.projectTrust?.status) return reply(false, undefined, 'trust facade unavailable');
+          return reply(true, this.projectTrust.status());
+        }
+        case 'project_trust_set': {
+          if (!this.projectTrust?.set) return reply(false, undefined, 'trust facade unavailable');
+          return reply(true, this.projectTrust.set(cmd.trusted === true));
         }
         case 'pins_add': {
           if (!this.pins?.add) return reply(false, undefined, 'pins facade unavailable');

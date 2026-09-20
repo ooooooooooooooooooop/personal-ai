@@ -13,7 +13,7 @@
  * like any other call; they never bypass FileOpsGuard territory because
  * .pai/** is agent config surface, not user work files.
  */
-import { mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ok = (text) => ({ content: [{ type: 'text', text }] });
@@ -62,6 +62,27 @@ export function skillTools({ workdir, audit }) {
         const file = write('microagents', name, `---\ntriggers: ${triggers.join(', ')}\n---\n\n${body}\n`);
         audit?.write({ kind: 'SKILL_SAVED', data: { name, triggers: triggers.length } });
         return ok(`skill '${name}' saved to ${file} — activates on: ${triggers.join(', ')}`);
+      },
+    },
+    {
+      name: 'skill_delete',
+      label: 'Delete Skill',
+      description:
+        'Remove an agent-authored skill (.pai/microagents/<name>.md). Update is ' +
+        'skill_save with the same name; this removes the file entirely.',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: 'skill name to delete' } },
+        required: ['name'],
+      },
+      async execute(_id, p) {
+        const name = String(p?.name ?? '').trim();
+        if (!SLUG.test(name)) return err('skill_delete: name must be kebab-case (a-z, 0-9, _ or -)');
+        const file = join(dir('microagents'), `${name}.md`);
+        if (!existsSync(file)) return err(`skill '${name}' not found`);
+        rmSync(file);
+        audit?.write({ kind: 'SKILL_DELETED', data: { name } });
+        return ok(`skill '${name}' deleted`);
       },
     },
     {

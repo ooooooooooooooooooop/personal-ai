@@ -69,3 +69,16 @@ test('recipe_run expands {{param}} placeholders; missing required refused', asyn
   const miss = await recipe.execute('t3', { name: 'nope' });
   assert.equal(miss.isError, true);
 });
+
+test('skill_delete removes only .pai/microagents files, audited', async () => {
+  const { workdir, audits, byName } = fixture();
+  await byName.skill_save.execute('t', { name: 'deploy-notes', triggers: ['deploy'], body: 'ship it' });
+  assert.equal(existsSync(join(workdir, '.pai', 'microagents', 'deploy-notes.md')), true);
+  const r = await byName.skill_delete.execute('t', { name: 'deploy-notes' });
+  assert.equal(r.isError, undefined);
+  assert.equal(existsSync(join(workdir, '.pai', 'microagents', 'deploy-notes.md')), false);
+  assert.equal(audits.at(-1).kind, 'SKILL_DELETED');
+  // unknown + bad names refuse; plans/ files untouchable
+  assert.equal((await byName.skill_delete.execute('t', { name: 'nope' })).isError, true);
+  assert.equal((await byName.skill_delete.execute('t', { name: '../x' })).isError, true);
+});
