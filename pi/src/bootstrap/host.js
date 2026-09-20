@@ -16,6 +16,8 @@ import { WorkspaceWriteLease } from '../adapter/writelease.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
 import { HookRunner } from '../../../host/src/core/hooks.js';
 import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
+import { loadSteering } from '../../../host/src/core/steering.js';
+import { PaiIgnore } from '../../../host/src/core/paiignore.js';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -27,6 +29,7 @@ import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
+import { sessionSearchTool } from '../adapter/sessionsearch.js';
 import { specTools } from '../adapter/specs.js';
 import { ScheduleStore } from '../../../host/src/core/scheduler.js';
 import { loadAgentProfiles } from '../adapter/agentprofiles.js';
@@ -203,6 +206,9 @@ export async function startHost({
       ? [webSearchTool({ endpoint: process.env.PAI_WEB_SEARCH_URL, apiKey: process.env.PAI_WEB_SEARCH_KEY ?? null })]
       : []),
     scheduleTool(scheduleStore),
+    // agent-facing past-session recall — same index the operator's Ctrl+K
+    // uses, late-bound to sessionsFacade.search (built below)
+    sessionSearchTool(() => sessionsFacade.search),
     // G11 thin SDD: spec artifacts under .pai/specs/ — the model writes
     // docs via governed write/edit; these tools only scaffold + report
     ...specTools({ getWorkdir: () => workdir }),
@@ -237,7 +243,9 @@ export async function startHost({
       sessionOptions: { agentDir, ...sessionOptions, sessionManager },
       managedExtensions,
       instructionEnvelope: core.instructionEnvelope,
-      contextEnvelope: core.contextProvider, // live provider — not a snapshot
+      // live provider — not a snapshot; steering files are workdir-scoped
+      // context composed at this boundary (host core stays workdir-blind)
+      contextEnvelope: () => ({ ...core.contextProvider(), steering: loadSteering(workdir) }),
       audit: core.audit,
       customTools,
       excludeTools: initialDeny,
@@ -256,6 +264,9 @@ export async function startHost({
         asks, // loop escalations reuse the operator-ask surface
         // G9: env-configured shadow LLM — telemetry only, never authoritative
         shadowJudge: shadowJudgeFromEnv({ audit: core.audit }),
+        // workdir context exclusion — rebuilt per session so .paiignore edits
+        // take effect on the next session build
+        paiignore: new PaiIgnore(workdir),
       }),
       writeLease,
       loopGovernance: taskRequirements.length

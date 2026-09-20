@@ -4,6 +4,9 @@ import { scanForSecrets } from '../adapter/secrets.js';
 
 const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
+// File-access tool surface the .paiignore check applies to — read AND write
+// families: context exclusion means invisible AND untouchable.
+const FILE_ACCESS_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files', 'write', 'edit', 'delete', 'apply_patch', 'patch']);
 
 /**
  * The post-kernel decide chain used by the real composite guard. Extracted so
@@ -15,7 +18,7 @@ const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null }) {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null }) {
   const inner = async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
     // signal rides on ctx so the kernel's ask path can abort a pending
@@ -26,6 +29,20 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
       // surface (deny→hide) so the model stops retrying it — persisted.
       if (decision.terminate) getSurface()?.deny(toolName);
       return decision; // kernel denied — done
+    }
+    // .paiignore context exclusion — refused for read AND write families.
+    // Patterns can only restrict, never grant, so an agent-writable ignore
+    // file cannot loosen the boundary.
+    if (paiignore?.loaded && FILE_ACCESS_TOOLS.has(toolName)) {
+      const p = ctx.args?.path ?? ctx.args?.file ?? ctx.args?.target;
+      if (typeof p === 'string' && paiignore.isIgnored(p)) {
+        core.audit.write({ kind: 'PAIIGNORE_BLOCK', toolName, data: { path: p.slice(0, 200) } });
+        return {
+          block: true,
+          rule: 'paiignore',
+          reason: `'${p}' is excluded by .paiignore — context-excluded paths are invisible and untouchable`,
+        };
+      }
     }
     // Kernel admitted — loop detector scores the call. Only calls that would
     // execute are counted; block reasons are returned as the tool result so

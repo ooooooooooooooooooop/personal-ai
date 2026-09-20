@@ -2016,6 +2016,16 @@ async function expandAtMentions(text) {
     if (r.success && r.data?.content != null) {
       attached.push(rel);
       blocks.push(`\n\n<attached path="${rel}">\n${r.data.content}\n</attached>`);
+      continue;
+    }
+    // @folder: directory mention expands to a bounded listing block — the
+    // model sees the tree shape, not a fake file dump
+    const dirName = rel.replace(/[\\/]+$/, '');
+    const d = await cmd('files_list', { prefix: dirName });
+    const dirFiles = (d.data?.files ?? []).filter((f) => f === dirName || f.startsWith(dirName + '/'));
+    if (dirFiles.length) {
+      attached.push(rel);
+      blocks.push(`\n\n<folder path="${dirName}/">\n${dirFiles.slice(0, 200).join('\n')}\n</folder>`);
     } else missed.push(rel);
   }
   return { text: text + blocks.join(''), attached, missed };

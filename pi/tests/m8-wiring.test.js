@@ -301,3 +301,21 @@ test('U4 secret scan: no asks channel fails closed', async () => {
   assert.equal(r.block, true);
   assert.match(r.reason, /fail-closed/);
 });
+
+test('.paiignore blocks read AND write families on excluded paths', async () => {
+  const { dir, decide } = rig();
+  const { PaiIgnore } = await import('../../host/src/core/paiignore.js');
+  const decideIg = makeDecide({
+    core: { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } },
+    executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+    paiignore: new PaiIgnore(dir, 'secrets/\n*.pem\n'),
+  });
+  const blockedRead = await decideIg({ toolCall: { name: 'read' }, args: { path: join(dir, 'secrets/k.txt') } });
+  assert.equal(blockedRead.block, true);
+  assert.equal(blockedRead.rule, 'paiignore');
+  const blockedWrite = await decideIg({ toolCall: { name: 'write' }, args: { path: join(dir, 'a.pem'), content: 'x' } });
+  assert.equal(blockedWrite.block, true);
+  // unaffected path passes through to admit
+  const ok = await decideIg({ toolCall: { name: 'read' }, args: { path: join(dir, 'src/app.js') } });
+  assert.equal(ok, undefined);
+});

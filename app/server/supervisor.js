@@ -29,6 +29,7 @@ import { PredictionStore } from '../../host/src/core/prediction.js';
 import { loadPolicy } from '../../host/src/core/policy.js';
 import { eligible } from '../../host/src/core/eligibility.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
+import { PaiIgnore } from '../../host/src/core/paiignore.js';
 import { REQUIRED_BODY_CAPABILITIES } from '../../pi/src/bootstrap/facts.js';
 
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
@@ -489,6 +490,8 @@ export class BodySupervisor {
         }
         case 'files_list': {
           // @-reference picker: bounded recursive walk of the workdir.
+          // .paiignore entries are pruned — excluded names never reach the picker.
+          const ignore = new PaiIgnore(this.workdir);
           const prefix = String(cmd.prefix ?? '').toLowerCase();
           const out = [];
           const skip = new Set(['.git', 'node_modules', '.venv', 'venv', 'dist', '.taskflow']);
@@ -500,6 +503,7 @@ export class BodySupervisor {
               if (out.length >= 500) return;
               if (e.name.startsWith('.') && e.name !== '.') continue;
               const r = rel ? `${rel}/${e.name}` : e.name;
+              if (ignore.isIgnored(join(this.workdir, r))) continue;
               if (e.isDirectory()) { if (!skip.has(e.name)) walk(join(dir, e.name), r); }
               else out.push(r);
             }
@@ -522,6 +526,9 @@ export class BodySupervisor {
             ? realAbs.toLowerCase().startsWith(wd.toLowerCase() + sep)
             : realAbs.startsWith(wd + sep);
           if (!inside) return reply(false, undefined, 'path escapes workdir');
+          if (new PaiIgnore(this.workdir).isIgnored(abs)) {
+            return reply(false, undefined, `'${rel}' is excluded by .paiignore`);
+          }
           const st = statSync(abs);
           if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
           if (st.size > 512 * 1024) return reply(false, undefined, `file too large for inline attach (>512KB): ${rel}`);

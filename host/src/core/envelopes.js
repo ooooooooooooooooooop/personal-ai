@@ -33,7 +33,7 @@ export function buildInstructionEnvelope({ soulManifest, policyText, policyCheck
   return env;
 }
 
-export function buildContextEnvelope({ briefing = '', openPredictions = [], observations = [], memoryDigest = null } = {}) {
+export function buildContextEnvelope({ briefing = '', openPredictions = [], observations = [], memoryDigest = null, steering = null } = {}) {
   return {
     kind: 'ContextEnvelope',
     version: 1,
@@ -41,6 +41,7 @@ export function buildContextEnvelope({ briefing = '', openPredictions = [], obse
     openPredictions,
     observations,
     memoryDigest,
+    steering,
   };
 }
 
@@ -82,6 +83,11 @@ export function renderContext(env) {
     throw new Error('renderContext expects ContextEnvelope');
   }
   const parts = [env.briefing];
+  if (env.steering) {
+    parts.push('<steering>');
+    parts.push(env.steering);
+    parts.push('</steering>');
+  }
   if (env.openPredictions.length) {
     parts.push('<open-predictions>');
     for (const p of env.openPredictions) {
