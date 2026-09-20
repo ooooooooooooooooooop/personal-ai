@@ -394,3 +394,67 @@ test('bash_run dispatches to exec facade; unavailable exec fails closed; goals r
   assert.equal(st2.data.goals, null);
   bare.dispose();
 });
+
+test('commands_read/save dispatch; project file refuses allowPrefixes (layered ownership)', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-cmd-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const workdir = join(dir, 'work'); mkdirSync(workdir, { recursive: true });
+  const instanceRoot = join(dir, 'inst'); mkdirSync(instanceRoot, { recursive: true });
+  const { readFileSync, writeFileSync: wf, mkdirSync: md } = await import('node:fs');
+  const core = { paths: { auditDir }, audit };
+  // same facade shape bootstrap builds — exercised through the real channel
+  const commands = {
+    readProject: () => {
+      const f = join(workdir, '.pai', 'commands.json');
+      try { return { path: f, content: readFileSync(f, 'utf-8') }; } catch { return { path: f, content: '' }; }
+    },
+    saveProject: (content) => {
+      let doc; try { doc = JSON.parse(content); } catch (e) { return { error: `invalid JSON: ${e.message}` }; }
+      if (Object.keys(doc ?? {}).some((k) => k !== 'denyPrefixes')) return { error: 'only denyPrefixes is allowed here' };
+      if (!Array.isArray(doc.denyPrefixes ?? [])) return { error: 'denyPrefixes must be an array' };
+      md(join(workdir, '.pai'), { recursive: true });
+      const f = join(workdir, '.pai', 'commands.json');
+      wf(f, JSON.stringify({ denyPrefixes: doc.denyPrefixes ?? [] }, null, 2));
+      return { ok: true, path: f };
+    },
+    readAllow: () => {
+      const f = join(instanceRoot, 'command-allow.json');
+      try { return { path: f, content: readFileSync(f, 'utf-8') }; } catch { return { path: f, content: '' }; }
+    },
+    saveAllow: (content) => {
+      let doc; try { doc = JSON.parse(content); } catch (e) { return { error: `invalid JSON: ${e.message}` }; }
+      if (Object.keys(doc ?? {}).some((k) => k !== 'allowPrefixes')) return { error: 'only allowPrefixes is allowed' };
+      const f = join(instanceRoot, 'command-allow.json');
+      wf(f, JSON.stringify({ allowPrefixes: doc.allowPrefixes ?? [] }, null, 2));
+      return { ok: true, path: f };
+    },
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, commands });
+
+  // project deny file: save + read roundtrip — allowPrefixes is refused at
+  // the facade (agent-writable config can only tighten)
+  const bad = await ch.handle({ type: 'commands_save', content: '{"allowPrefixes":["npm"]}' });
+  assert.equal(bad.success, false);
+  assert.match(bad.error, /only denyPrefixes/);
+  const good = await ch.handle({ type: 'commands_save', content: '{"denyPrefixes":["rm -rf"]}' });
+  assert.equal(good.data.ok, true);
+  const rd = await ch.handle({ type: 'commands_read' });
+  assert.match(rd.data.content, /rm -rf/);
+
+  // operator allow file roundtrip
+  const sa = await ch.handle({ type: 'command_allow_save', content: '{"allowPrefixes":["git status"]}' });
+  assert.equal(sa.data.ok, true);
+  const ra = await ch.handle({ type: 'command_allow_read' });
+  assert.match(ra.data.content, /git status/);
+
+  // unavailable facade fails closed
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  const nr = await bare.channel.handle({ type: 'commands_read' });
+  assert.equal(nr.success, false);
+  bare.dispose();
+  dispose();
+});

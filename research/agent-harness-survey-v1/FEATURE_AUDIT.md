@@ -827,7 +827,7 @@
 | G1 循环/卡死检测 | LoopDetector 连发/乒乓/升级操作员裁决 + 打断回注（U8 并入） | **已有** | `host/src/core/loopwatch.js`；abort 作为消息回注上下文 |
 | G2 结构化提问 | ask_user 工具 + PendingAsks 面板 | **已有** | `pi/src/adapter/askuser.js` |
 | G3 定时/调度 | ScheduleStore cron + heartbeat 泵（实例级配置、空闲才发、走预算门） | **已有** | `host/src/core/scheduler.js`；pi bootstrap heartbeat |
-| G4 子代理 profile/拓扑 | AgentTask mailbox（持久 inbox/outbox/events+seq/ack）+ 任务中心 + 拓扑树 + scope 认领链；内置画像库/多对多任务池未做 | **部分** | `host/src/core/tasks.js`、`pi/src/adapter/tasktools.js`、UI tasks 树 |
+| G4 子代理 profile/拓扑 | AgentTask mailbox（持久 inbox/outbox/events+seq/ack）+任务中心+拓扑树+scope 认领链+**画像库已有**：`loadAgentProfiles` 读 `.pai/agents`+`<instance>/agents/` frontmatter persona，`delegate_task(profile=…)` 解析 target+前置 preamble；多对多任务池=裁定书 v1 外项（parent↔child），记"不适用-推迟" | **已有** | `host/src/core/tasks.js`、`pi/src/adapter/agentprofiles.js`、`tasktools.js`、UI tasks 树 |
 | G5 生命周期 hooks | 双层：workdir `.pai/hooks.json` 四事件**观察面**（agent 可写→永不许 veto，pre_tool 载入即拒）+ 实例私有 `<instance>/hooks.json` **gate 面**（agent 够不到→`pre_tool` 真否决：exit≠0 或 `{"deny"}` JSON→block，`match` 工具前缀过滤，热读，fail-closed） | **已有** | `host/src/core/hooks.js` fireGate、`pi/src/bootstrap/decide.js` preToolGate |
 | G6 持久记忆 | SQLite+FTS5 检索+review 蒸馏+pinned 注入（不可信证据边界）+secret 拒写 | **已有** | `host/src/core/memory.js`、`pi/src/adapter/memtools.js` |
 | G7 OS 级沙箱 | WSL2 路线落地 | **已有** | `host/src/core/sandbox.js` |
