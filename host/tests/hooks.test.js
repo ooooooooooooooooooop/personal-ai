@@ -123,3 +123,15 @@ test('fireGate on a non-gate runner throws', async () => {
   const h = new HookRunner(dir());
   await assert.rejects(() => h.fireGate('pre_tool', {}), /non-gate/);
 });
+
+test('expanded event family: tool_start/agent_stop/compact_* accepted at load', () => {
+  const w = dir();
+  cfg(w, { hooks: {
+    tool_start: [{ command: 'echo ts' }],
+    agent_stop: [{ command: 'echo as' }],
+    compact_start: [{ command: 'echo cs' }],
+    compact_end: [{ command: 'echo ce' }],
+  } });
+  const h = new HookRunner(w);
+  assert.deepEqual(h.events.sort(), ['agent_stop', 'compact_end', 'compact_start', 'tool_start']);
+});

@@ -31,7 +31,11 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const HOOK_EVENTS = new Set(['session_start', 'prompt_submit', 'tool_end', 'session_end']);
+export const HOOK_EVENTS = new Set([
+  'session_start', 'prompt_submit', 'session_end',
+  'tool_start', 'tool_end', 'agent_stop',
+  'compact_start', 'compact_end',
+]);
 export const GATE_EVENTS = new Set(['pre_tool']);
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_CHARS = 4000;

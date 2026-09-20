@@ -1167,7 +1167,8 @@ function renderSessions() {
     for (const s of rows) {
       const row = document.createElement('div');
       row.className = `sess${s.path === currentSessionFile ? ' active' : ''}${s.archived ? ' archived' : ''}`;
-      const title = s.name || s.firstMessage || '未命名任务';
+      const typeTag = s.type === 'teammate' ? '👥 ' : s.type === 'subagent' ? '↳ ' : '';
+      const title = `${typeTag}${s.name || s.firstMessage || '未命名任务'}`;
       row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
       const hit = searchHits?.get(s.path);

@@ -72,3 +72,24 @@ test('native .pai steering precedes compat files in render order', () => {
   const out = loadSteering(w);
   assert.ok(out.indexOf('NATIVE_BODY') < out.indexOf('COMPAT_BODY'));
 });
+
+test('ancestor walk: parent-dir AGENTS.md applies to workdirs below it', () => {
+  const root = dir();
+  const w = join(root, 'repo', 'packages', 'sub');
+  mkdirSync(w, { recursive: true });
+  writeFileSync(join(root, 'repo', 'AGENTS.md'), 'ANCESTOR_GUIDANCE');
+  writeFileSync(join(root, 'repo', 'CLAUDE.md'), 'ANCESTOR_CLAUDE');
+  const out = loadSteering(w);
+  assert.match(out, /ANCESTOR_GUIDANCE/);
+  assert.match(out, /ANCESTOR_CLAUDE/);
+  assert.match(out, /dir=".*repo"/); // marked as ancestor-sourced
+});
+
+test('new compat files: .goosehints/.clinerules/CONVENTIONS.md load', () => {
+  const w = dir();
+  writeFileSync(join(w, '.goosehints'), 'goose hints');
+  writeFileSync(join(w, '.clinerules'), 'cline rules');
+  writeFileSync(join(w, 'CONVENTIONS.md'), 'house conventions');
+  const out = loadSteering(w);
+  for (const re of [/goose hints/, /cline rules/, /house conventions/]) assert.match(out, re);
+});

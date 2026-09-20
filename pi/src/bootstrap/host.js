@@ -587,7 +587,18 @@ export async function startHost({
   });
 
   const sessionsFacade = {
-    list: async () => (await sessionManagers.list(workdir, sessionDir)).map(sessionInfo),
+    list: async () => {
+      const rows = (await sessionManagers.list(workdir, sessionDir)).map(sessionInfo);
+      // Goose session-type facet: a session claimed as a task's run_scope is
+      // a spawned child — surfaced as 'subagent'/'teammate' so the drawer
+      // can distinguish operator sessions from delegated ones.
+      const byScope = new Map(taskStore.list().filter((t) => t.run_scope).map((t) => [t.run_scope, t]));
+      for (const s of rows) {
+        const t = byScope.get(s.id);
+        if (t) s.type = t.kind === 'teammate' ? 'teammate' : 'subagent';
+      }
+      return rows;
+    },
     create: async () => {
       const s = await rebuildSession(sessionManagers.create(workdir, sessionDir), 'new');
       return { id: s.sessionId ?? null, file: s.sessionManager?.getSessionFile?.() ?? null };

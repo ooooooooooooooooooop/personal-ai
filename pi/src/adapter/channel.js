@@ -100,12 +100,25 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       } else if (ev?.type === 'tool_execution_end' && writeLease) {
         // belt for the afterToolCall release — idempotent, holder-matched
         writeLease.release(`fg:${ev.toolCallId}`);
-        hooks?.fire('tool_end', { toolName: ev.toolName, isError: Boolean(ev.isError) });
       } else if (ev?.type === 'agent_end' && writeLease) {
         // abort can skip afterToolCall — sweep any foreground-held lease so a
         // dead write never wedges the workspace
         const h = writeLease.held();
         if (h?.holder?.startsWith('fg:')) writeLease.release(h.holder);
+      }
+      // Lifecycle hooks (observational family — Claude Code SessionStart /
+      // Stop / PreToolUse-event analogue; the operator-private veto gate is
+      // the separate pre_tool hook on the decide path)
+      if (ev?.type === 'tool_execution_start') {
+        hooks?.fire('tool_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
+      } else if (ev?.type === 'tool_execution_end') {
+        hooks?.fire('tool_end', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
+      } else if (ev?.type === 'agent_end') {
+        hooks?.fire('agent_stop', {});
+      } else if (ev?.type === 'compaction_start') {
+        hooks?.fire('compact_start', {});
+      } else if (ev?.type === 'compaction_end') {
+        hooks?.fire('compact_end', {});
       }
       // Aider verify loop: a successful write-family call runs the project's
       // .pai/verify.json command (armed only if policy allows its class)

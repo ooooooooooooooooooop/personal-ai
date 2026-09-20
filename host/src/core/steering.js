@@ -15,7 +15,7 @@
  * a giant steering doc must not eat the context window.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 
 const PER_FILE_MAX = 16 * 1024;
 const TOTAL_MAX = 32 * 1024;
@@ -29,6 +29,7 @@ const COMPAT_DIRS = ['.claude/rules', '.cursor/rules', '.windsurf/rules', '.devi
 const COMPAT_FILES = [
   'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.cursorrules', '.windsurfrules',
   '.github/copilot-instructions.md',
+  '.goosehints', '.clinerules', 'CONVENTIONS.md', // Goose / Cline / Aider
 ];
 
 /**
@@ -61,6 +62,19 @@ export function loadSteering(workdir) {
     const p = join(workdir, f);
     if (existsSync(p)) files.push({ name: f, path: p });
   }
+  // Codex/OpenCode ancestor merge: root instruction files in PARENT dirs of
+  // the workdir still apply (a repo's AGENTS.md governs workdirs below it).
+  // Ancestor files render behind workdir files and carry a dir= marker.
+  let dir = workdir;
+  for (let depth = 0; depth < 6; depth++) {
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+    for (const f of COMPAT_FILES) {
+      const p = join(dir, f);
+      if (existsSync(p)) files.push({ name: f, path: p, ancestor: dir });
+    }
+  }
   if (!files.length) return null;
 
   let out = '';
@@ -76,7 +90,8 @@ export function loadSteering(workdir) {
     // touched path is the v2 refinement (declared scope is honest about it).
     if (fm.apply === 'manual') { manual.push(f.name); continue; }
     const scope = fm.globs?.length ? ` scope="${fm.globs.join(', ')}"` : '';
-    out += `\n<steering-file name="${f.name}"${scope}>\n${fm.body}\n</steering-file>\n`;
+    const anc = f.ancestor ? ` dir="${f.ancestor}"` : '';
+    out += `\n<steering-file name="${f.name}"${scope}${anc}>\n${fm.body}\n</steering-file>\n`;
   }
   if (manual.length) {
     out += `\n<manual-rules>${manual.join(', ')}</manual-rules>\n`;

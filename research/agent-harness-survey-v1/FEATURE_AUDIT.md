@@ -924,4 +924,13 @@
 | 陈旧任务对账 | Cline stale session 对账 | `task_list` 对 open 任务 join 绑定 job 终态→`stale:true` 标记（UI 显示"失联"）；teammate 是常驻设计所以只标不关 |
 | 会话归档清扫 | ZCode 3/7/14/30 天自动归档候选 | `session_sweep {days=14}` + 抽屉"归档 N 个旧会话"按钮——pinned/已归档跳过，归档可逆不删除 |
 
+**复扫第五批**：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| 指令文件祖先上溯 | Codex/OpenCode AGENTS.md 向上逐级合并 | `loadSteering` 沿 workdir 上溯≤6级收集根级兼容文件，带 `dir=` 标记排在 workdir 文件之后 |
+| 更多根级兼容文件 | Goose `.goosehints` / Cline `.clinerules` / Aider `CONVENTIONS.md` | COMPAT_FILES 扩到 9 个 |
+| hook 事件族扩展 | Claude Code/Codex/Kiro 生命周期事件族 | `HOOK_EVENTS` 扩到 8 个：增 `tool_start`/`agent_stop`/`compact_start`/`compact_end`（泵上真实事件点，观察面）；`tool_end` 不再挂在 writeLease 分支上 |
+| 会话类型分面 | Goose sessions.db type 分面（user/subagent/scheduled） | `session_list` join 任务 run_scope→委派会话标 `subagent`/`teammate`，抽屉标题带 ↳/👥 徽章 |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。
