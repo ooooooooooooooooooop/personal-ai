@@ -21,6 +21,11 @@ function numEnv(name) {
 }
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
+import { askUserTool } from '../adapter/askuser.js';
+import { webFetchTool, webSearchTool } from '../adapter/web.js';
+import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
+import { ScheduleStore } from '../../../host/src/core/scheduler.js';
+import { loadAgentProfiles } from '../adapter/agentprofiles.js';
 import { createChannelHost } from '../adapter/channel.js';
 import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
@@ -168,12 +173,39 @@ export async function startHost({
   // parked for review — never silently abandoned
   const recoveryActions = executor.recover({ workdir });
 
-  const customTools = [jobStatusTool(jobStore), updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null)];
+  // Durable schedule pump: due entries fire as durable jobs (own write lease,
+  // restart-safe); boot tick catches up missed fires exactly once. The store
+  // instance is shared with the schedule_task tool so list shows live truth.
+  const scheduleStore = new ScheduleStore(core.paths.root);
+  const schedulerPump = startSchedulerPump({
+    store: scheduleStore,
+    executor,
+    workdir,
+    audit: core.audit,
+    getScope: () => currentSession?.sessionId ?? null,
+  });
+
+  const customTools = [
+    jobStatusTool(jobStore),
+    updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null),
+    // structured operator questions — kind:'question' asks bypass session
+    // auto-allow by design (a question can never answer itself)
+    askUserTool(() => asks),
+    // network tools — web_fetch always on (policy maps it to ask); web_search
+    // only when the operator configures an endpoint (never advertised empty)
+    webFetchTool(),
+    ...(process.env.PAI_WEB_SEARCH_URL
+      ? [webSearchTool({ endpoint: process.env.PAI_WEB_SEARCH_URL, apiKey: process.env.PAI_WEB_SEARCH_KEY ?? null })]
+      : []),
+    scheduleTool(scheduleStore),
+  ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
     commandFor: delegationCommand,
     workdir,
     getScope: () => currentSession?.sessionId ?? null,
     budget,
+    // frontmatter subagent personas: project .pai/agents + instance agents/
+    profiles: loadAgentProfiles({ workdir, instanceRoot: core.paths.root }),
   }));
 
   // M2 production wiring: policy-denied tools never reach the visible surface
@@ -352,6 +384,7 @@ export async function startHost({
   const rebuildSession = async (sessionManager, reason) => {
     const old = currentSession;
     await old.abort?.().catch(() => {});
+    asks.abortPending(); // questions/asks from the old session must not leak
     asks.resetSession(); // "本会话允许" grants die with the conversation
     riskMode = 'normal'; // plan mode is session-scoped too
     const built = await buildSession(sessionManager);
@@ -485,6 +518,7 @@ export async function startHost({
 
   const dispose = () => {
     ungateFetch();
+    schedulerPump.dispose();
     releaseWriter();
     asks.dispose();
     channelHandle.dispose();

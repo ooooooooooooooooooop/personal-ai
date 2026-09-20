@@ -94,3 +94,54 @@ test('truncation metadata survives into the governance_ask event (B1 WYSIWYG cha
   asks.resolve(ev.ask.id, 'deny');
   await p;
 });
+
+test('question kind resolves with arbitrary operator text; empty answers rejected', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((e) => events.push(e));
+  const p = asks.ask(desc({
+    kind: 'question',
+    toolName: 'ask_user',
+    summary: 'which database?',
+    options: [{ label: 'sqlite', description: 'local file' }, { label: 'postgres' }],
+  }));
+  const ev = events.find((e) => e.type === 'governance_ask');
+  assert.equal(ev.ask.kind, 'question');
+  assert.equal(ev.ask.options.length, 2);
+  assert.equal(ev.ask.options[0].description, 'local file');
+  // option label is a valid answer; so is arbitrary text
+  assert.equal(asks.resolve(ev.ask.id, '').ok, false);
+  assert.equal(asks.resolve(ev.ask.id, '  ').ok, false);
+  assert.equal(asks.resolve(ev.ask.id, 'postgres').ok, true);
+  assert.equal(await p, 'postgres');
+});
+
+test('questions bypass sessionAllows and never record it', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  // approve the tool for the session, then ask a question under the same name
+  const p1 = asks.ask(desc({ toolName: 'ask_user' }));
+  asks.resolve(asks.list()[0].id, 'allow_session');
+  assert.equal(await p1, 'allow_session');
+  assert.deepEqual(asks.sessionAllows(), ['ask_user']);
+  // a question under the same tool name must still suspend for the operator
+  const p2 = asks.ask(desc({ kind: 'question', toolName: 'ask_user', summary: 'q?' }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'free text');
+  assert.equal(await p2, 'free text');
+  // and answering a question must not create an allow_session grant
+  assert.deepEqual(asks.sessionAllows(), ['ask_user']);
+});
+
+test('abortPending refuses open asks but keeps listeners (session rebuild)', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((e) => events.push(e));
+  const p = asks.ask(desc({ kind: 'question', toolName: 'ask_user' }));
+  asks.abortPending();
+  assert.equal(await p, 'aborted');
+  // listeners survive — a new ask still emits
+  const p2 = asks.ask(desc());
+  assert.equal(events.filter((e) => e.type === 'governance_ask').length, 2);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+});

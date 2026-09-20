@@ -63,13 +63,19 @@ export class PendingAsks {
 
   /**
    * Suspend until the operator answers, the ask expires, or the call aborts.
-   * @param {object} descriptor {toolName, toolCallId, rule, summary, detail}
+   * @param {object} descriptor {toolName, toolCallId, rule, summary, detail,
+   *        kind?, options?}
+   *        kind 'approval' (default) resolves to allow/allow_session/deny/
+   *        timeout/aborted; kind 'question' resolves to the operator's chosen
+   *        option label or free text — questions are never session-allowed and
+   *        never recorded into sessionAllows.
    * @param {AbortSignal} [signal]
-   * @returns {Promise<'allow'|'allow_session'|'deny'|'timeout'|'aborted'>}
+   * @returns {Promise<'allow'|'allow_session'|'deny'|'timeout'|'aborted'|string>}
    */
   ask(descriptor, signal) {
     const { toolName } = descriptor;
-    if (this.#sessionAllows.has(toolName)) return Promise.resolve('allow');
+    const isQuestion = descriptor.kind === 'question';
+    if (!isQuestion && this.#sessionAllows.has(toolName)) return Promise.resolve('allow');
     const id = `ask-${randomUUID()}`;
     const expiresAt = this.now() + this.timeoutMs;
     return new Promise((resolve) => {
@@ -79,7 +85,7 @@ export class PendingAsks {
         this.#pending.delete(id);
         clearTimeout(rec._timer);
         signal?.removeEventListener?.('abort', rec._onAbort);
-        if (answer === 'allow_session') this.#sessionAllows.add(toolName);
+        if (answer === 'allow_session' && rec.kind !== 'question') this.#sessionAllows.add(toolName);
         this.#emit({ type: 'governance_resolved', askId: id, toolName, answer });
         resolve(answer);
       };
@@ -93,6 +99,13 @@ export class PendingAsks {
         toolName,
         toolCallId: descriptor.toolCallId ?? null,
         rule: descriptor.rule ?? 'ask',
+        kind: isQuestion ? 'question' : 'approval',
+        options: isQuestion && Array.isArray(descriptor.options)
+          ? descriptor.options.map((o) => ({
+              label: String(o?.label ?? '').slice(0, 200),
+              description: o?.description != null ? String(o.description).slice(0, 500) : null,
+            })).filter((o) => o.label)
+          : null,
         summary: descriptor.summary ?? '',
         detail: descriptor.detail ?? null,
         args: descriptor.args ?? null,
@@ -119,11 +132,28 @@ export class PendingAsks {
   resolve(id, answer) {
     const rec = this.#pending.get(id);
     if (!rec) return { ok: false, error: `no pending ask '${id}' (already resolved or expired)` };
+    if (rec.kind === 'question') {
+      // question answers are the operator's own words/choice — any non-empty
+      // string; the reserved refusal answers still come from timeout/abort
+      if (typeof answer !== 'string' || !answer.trim()) {
+        return { ok: false, error: 'question answers must be a non-empty string' };
+      }
+      rec._finish(answer.slice(0, 2000));
+      return { ok: true };
+    }
     if (!['allow', 'allow_session', 'deny'].includes(answer)) {
       return { ok: false, error: "answer must be 'allow', 'allow_session' or 'deny'" };
     }
     rec._finish(answer);
     return { ok: true };
+  }
+
+  /**
+   * Session teardown without process teardown: refuse everything open while
+   * keeping listeners — a rebuilt session keeps the same UI subscriptions.
+   */
+  abortPending() {
+    for (const rec of [...this.#pending.values()]) rec._finish('aborted');
   }
 
   /** Process teardown: nothing may stay suspended — refuse everything open. */

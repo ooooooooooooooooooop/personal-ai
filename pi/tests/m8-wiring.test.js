@@ -265,3 +265,39 @@ test('B4: context seam re-projects LIVE open predictions (not a snapshot)', asyn
   out = contextHandler({ messages: ['m0', 'm1', 'm2'] });
   assert.ok(!out.messages.at(-1).content[0].text.includes('<open-predictions>'));
 });
+
+test('U4 secret scan: credential-looking write asks the operator; deny blocks', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-sec-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const asked = [];
+  const asks = { ask: async (p) => { asked.push(p); return 'deny'; } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, asks });
+  const target = join(dir, 'cfg.env');
+  const fakeKey = `sk-${'a'.repeat(24)}`; // built at runtime — literal keys must never sit in the repo (push privacy gate)
+  const r = await decide({ toolCall: { name: 'write' }, args: { path: target, content: `KEY=${fakeKey}` } });
+  assert.equal(r.block, true);
+  assert.equal(r.rule, 'secret_scan');
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].rule, 'secret_scan');
+  assert.ok(!existsSync(target)); // denied write never touched disk
+
+  // clean content passes with no ask
+  const ok = await decide({ toolCall: { name: 'write' }, args: { path: join(dir, 'ok.txt'), content: 'plain text' } });
+  assert.equal(ok, undefined);
+  assert.equal(asked.length, 1);
+});
+
+test('U4 secret scan: no asks channel fails closed', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-sec2-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir });
+  const r = await decide({ toolCall: { name: 'write' }, args: { path: join(dir, 'x'), content: '-----BEGIN PRIVATE KEY-----\nabc' } });
+  assert.equal(r.block, true);
+  assert.match(r.reason, /fail-closed/);
+});

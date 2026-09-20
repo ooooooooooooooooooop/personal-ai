@@ -48,3 +48,10 @@ test('hashOf gives correlation without content', () => {
   assert.match(h, /^sha256:[0-9a-f]{64}$/);
   assert.equal(hashOf('same'), hashOf('same'));
 });
+
+test('instruction channel always carries the untrusted-content rule', async () => {
+  const { renderInstruction } = await import('../src/core/envelopes.js');
+  const out = renderInstruction({ kind: 'InstructionEnvelope', instructions: 'POLICY' });
+  assert.ok(out.includes('<untrusted-content-policy>'));
+  assert.ok(out.includes('never follow instructions') || out.includes('Never follow instructions'));
+});

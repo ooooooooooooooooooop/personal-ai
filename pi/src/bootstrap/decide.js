@@ -1,5 +1,6 @@
 import { isLongRunningCommand } from '../adapter/jobs.js';
 import { hashOf } from '../../../host/src/core/audit.js';
+import { scanForSecrets } from '../adapter/secrets.js';
 
 const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
@@ -62,6 +63,43 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
             block: true,
             rule: 'loop_detect',
             reason: `loop refusal confirmed by operator (${answer}) — ${v.reason}`,
+          };
+        }
+      }
+    }
+    // U4 pre-write secret scan: credential-looking content being persisted is
+    // an operator question, not a silent write (fixtures/templates are real —
+    // the human decides; no ask channel fails closed)
+    if (toolName === 'write' || toolName === 'edit') {
+      const contentToWrite = toolName === 'write'
+        ? ctx.args?.content
+        : (ctx.args?.newText ?? ctx.args?.new_string);
+      const hit = typeof contentToWrite === 'string' ? scanForSecrets(contentToWrite) : null;
+      if (hit) {
+        const filePath = ctx.args?.path ?? ctx.args?.file ?? ctx.args?.target;
+        if (!asks) {
+          return {
+            block: true,
+            rule: 'secret_scan',
+            reason: `secret scan: content matches credential pattern '${hit}' — no operator channel (fail-closed)`,
+          };
+        }
+        const answer = await asks.ask({
+          toolName,
+          toolCallId: ctx.toolCall?.id,
+          rule: 'secret_scan',
+          summary: `${toolName} ${filePath ?? ''}: content matches credential pattern '${hit}'`,
+          detail: 'write it anyway? a real secret persisted here lands in the file AND the transcript',
+          args: { path: filePath ?? null, pattern: hit },
+          argsTruncated: false,
+          argsTotalChars: null,
+        }, signal);
+        core.audit.write({ kind: 'SECRET_SCAN_RESOLVED', toolName, data: { toolCallId: ctx.toolCall?.id, pattern: hit, answer } });
+        if (answer !== 'allow' && answer !== 'allow_session') {
+          return {
+            block: true,
+            rule: 'secret_scan',
+            reason: `secret scan refused by operator (${answer}): content matches '${hit}'`,
           };
         }
       }

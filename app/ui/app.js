@@ -461,6 +461,7 @@ function addAskCard(ask) {
   const div = document.createElement('div');
   div.className = 'ask-card';
   div.dataset.exp = ask.expiresAt ?? 0;
+  div.dataset.kind = ask.kind ?? 'approval';
   div.innerHTML = `
     <div class="ask-head">
       <span class="t-icon">${kindIcon(kind.icon)}</span>
@@ -509,6 +510,40 @@ function addAskCard(ask) {
       payload.querySelector('.ask-cmd').textContent = `${ask.toolName === 'delete' ? '删除（移入回收站，可经 fileops 回执恢复）' : ask.toolName}：${ask.args.path}`;
     }
   }
+  // Structured question card (ask_user): option buttons + free text replace
+  // the approval buttons — the answer is the operator's words, not a verdict.
+  if (ask.kind === 'question') {
+    div.querySelector('.ask-title').textContent = '需要你的回答';
+    const foot = div.querySelector('.ask-foot');
+    foot.innerHTML = '';
+    foot.classList.add('ask-question');
+    const submit = async (answer) => {
+      foot.querySelectorAll('button,input').forEach((x) => { x.disabled = true; });
+      const r = await cmd('decision_resolve', { askId: ask.id, answer });
+      if (!r.success) {
+        foot.querySelectorAll('button,input').forEach((x) => { x.disabled = false; });
+        addSys(`回答提交失败：${r.error ?? '未知'}`, true);
+      }
+    };
+    for (const o of ask.options ?? []) {
+      const b = document.createElement('button');
+      b.className = 'ask-btn';
+      b.textContent = o.label;
+      if (o.description) b.title = o.description;
+      b.onclick = () => submit(o.label);
+      foot.appendChild(b);
+    }
+    const input = document.createElement('input');
+    input.className = 'ask-free';
+    input.placeholder = '或直接输入回答…';
+    input.onkeydown = (e) => { if (e.key === 'Enter' && input.value.trim()) submit(input.value.trim()); };
+    const send = document.createElement('button');
+    send.className = 'ask-btn primary';
+    send.textContent = '回答';
+    send.onclick = () => { if (input.value.trim()) submit(input.value.trim()); };
+    foot.appendChild(input);
+    foot.appendChild(send);
+  } else {
   div.querySelectorAll('.ask-btn').forEach((b) => {
     b.onclick = async () => {
       div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = true; });
@@ -519,6 +554,7 @@ function addAskCard(ask) {
       }
     };
   });
+  }
   askCards.set(ask.id, div);
   transcript.appendChild(div);
   ensureAskTick();
@@ -534,7 +570,9 @@ function markAskResolved(askId, answer) {
   el.querySelector('.ask-timer')?.remove();
   const tag = document.createElement('span');
   tag.className = `ask-verdict ${answer === 'deny' || answer === 'timeout' ? 'no' : 'yes'}`;
-  tag.textContent = ANSWER_LABEL[answer] ?? String(answer);
+  tag.textContent = ANSWER_LABEL[answer]
+    ?? (answer === 'aborted' ? '已中止'
+      : (el.dataset.kind === 'question' ? `已回答：${String(answer).slice(0, 80)}` : String(answer)));
   el.querySelector('.ask-head').appendChild(tag);
 }
 

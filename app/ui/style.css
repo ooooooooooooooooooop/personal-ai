@@ -636,6 +636,11 @@ pre:hover .code-copy, .code-copy.copied { opacity: 1; }
 .ask-btn.danger { color: var(--red); }
 .ask-btn.danger:hover { background: rgba(224, 92, 92, .12); }
 .ask-btn:disabled { opacity: .45; cursor: default; }
+.ask-question { flex-wrap: wrap; align-items: center; }
+.ask-free {
+  flex: 1; min-width: 140px; padding: 6px 10px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--field); color: var(--text);
+}
 .ask-card.resolved { border-color: var(--line); opacity: .75; }
 .ask-card.resolved .ask-summary { max-height: 60px; }
 .ask-verdict { margin-left: auto; font-size: 12px; font-weight: 600; }

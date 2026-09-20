@@ -92,6 +92,9 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     steer: (message) => { admitSpend(); return box.s.steer(message); },
     abort: async () => {
       await box.s.abort?.();
+      // question-kind asks carry no ctx.signal — the session abort above
+      // resolves approval asks via their signal; sweep whatever is left
+      asks?.abortPending?.();
       // Interrupt annotation: stopReason 'aborted' is metadata the model never
       // sees in its prompt. A non-display custom message enters the next turn's
       // context, so a continued run knows the interruption was the operator's —

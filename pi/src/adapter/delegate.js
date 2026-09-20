@@ -28,40 +28,64 @@ export const DELEGATE_BRIDGE = fileURLToPath(new URL('../../bin/delegate-bridge.
  * @param {string} [opts.bridgePath] override the bridge executable (tests)
  * @param {() => string} [opts.getScope]   session budget scope — delegated
  *        worker usage bills into the parent's budget, never evades the cap
- * @param {object} [opts.budget]   BudgetGovernor — delegation admission:
- *        a finite-budget session issues the child an enforceable budget no
- *        larger than its own remaining headroom, and only to a target that
- *        can enforce it (our own pai-channel body inherits caps via
- *        PAI_BUDGET_MAX_* env → its own provider-request gate). A target
  *        without provable enforcement is refused BEFORE spawn — post-hoc
  *        usage accounting alone cannot bound a child's spend. The child
  *        slice is charged to the parent ledger ATOMICALLY at admission
  *        (commit-on-issue, never auto-refunded) so concurrent delegates
  *        and the parent itself cannot spend the same headroom twice.
+ * @param {Map} [opts.profiles]  frontmatter subagent profiles (.pai/agents,
+ *        <instance>/agents) — `profile` param resolves target + prepends the
+ *        profile preamble to the task
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
     description:
       'Delegate a task to another agent via the switchboard RPC bridge. ' +
+      'Pass a subagent `profile` name (project .pai/agents or instance agents/) ' +
+      'to delegate with that persona, or a raw `target` agent id. ' +
       'Returns immediately with a durable job id; the delegated work survives ' +
-      'restarts and its usage is attributed to this run.',
+      'restarts and its usage is attributed to this run.' +
+      (profiles?.size ? ` Available profiles: ${[...profiles.values()].map((p) => `${p.name}→${p.target}${p.description ? ` (${p.description})` : ''}`).join(', ')}` : ''),
     parameters: {
       type: 'object',
       properties: {
         target: { type: 'string', description: 'target agent id (e.g. codex, claude, gemini)' },
+        profile: { type: 'string', description: 'named subagent profile — resolves target and prepends its preamble' },
         task: { type: 'string', description: 'task description for the delegate' },
       },
-      required: ['target', 'task'],
+      required: ['task'],
     },
-    promptSnippet: 'delegate_task(target, task): run a task on another agent as a durable job',
+    promptSnippet: 'delegate_task(profile|target, task): run a task on another agent as a durable job',
     async execute(_toolCallId, params) {
       // Every delegation goes through the bridge: it spawns the real worker,
       // measures wall time/output, forwards child-reported usage, and emits
       // the single authoritative PAI_USAGE line the executor attributes to
       // parent_run_id. Usage attribution is produced, not hoped for.
-      const inner = commandFor(params.target, params.task);
+      // profile resolution: a named persona maps to its target and prepends
+      // its preamble — the delegated worker receives persona + task as one
+      let target = params.target;
+      let task = String(params.task ?? '');
+      if (params.profile != null && params.profile !== '') {
+        const p = profiles?.get(String(params.profile).toLowerCase());
+        if (!p) {
+          const known = profiles?.size ? [...profiles.keys()].join(', ') : 'none';
+          return {
+            content: [{ type: 'text', text: `unknown subagent profile '${params.profile}' — available: ${known}` }],
+            isError: true,
+          };
+        }
+        target = p.target;
+        if (p.preamble) task = `${p.preamble}\n\n---\n\n${task}`;
+      }
+      if (!target) {
+        return {
+          content: [{ type: 'text', text: 'delegate_task requires a `target` agent id or a `profile` name' }],
+          isError: true,
+        };
+      }
+      const inner = commandFor(target, task);
       const scope = getScope?.() ?? null;
       let budgetFlags = '';
       let committedSlice = null;
@@ -105,7 +129,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           };
         }
         const slice = { total: rem.tokens ?? 0, cost: rem.costUsd ?? 0, calls: rem.calls ?? 0 };
-        const commit = budget.tryCommit(scope, slice, `delegate_commit:${params.target}`);
+        const commit = budget.tryCommit(scope, slice, `delegate_commit:${target}`);
         if (!commit.ok) {
           return {
             content: [{ type: 'text', text: `delegation refused: budget gate: ${commit.reason}` }],
@@ -117,7 +141,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (rem.calls != null) budgetFlags += ` --budget-calls ${Math.floor(rem.calls)}`;
         if (rem.costUsd != null) budgetFlags += ` --budget-cost ${rem.costUsd}`;
       }
-      const command = `"${process.execPath}" "${bridgePath}" --target ${params.target}${budgetFlags} -- ${inner}`;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,
@@ -131,7 +155,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       if (r.refused) {
         // spawn never happened — roll the committed slice back out
         if (committedSlice && scope) {
-          try { budget.refund(scope, committedSlice, `delegate_refund:${params.target}`); } catch { /* ledger fail — stays over-accounted, safe side */ }
+          try { budget.refund(scope, committedSlice, `delegate_refund:${target}`); } catch { /* ledger fail — stays over-accounted, safe side */ }
         }
         return {
           content: [{ type: 'text', text: `delegation refused: ${r.reason}` }],
@@ -142,10 +166,10 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       return {
         content: [{
           type: 'text',
-          text: `delegated to ${params.target} as durable job ${job_id} (attempt ${attempt_id}). ` +
+          text: `delegated to ${target} as durable job ${job_id} (attempt ${attempt_id}). ` +
             'Poll job_status for completion; the result envelope lands in the jobs directory.',
         }],
-        details: { job_id, attempt_id, target: params.target, ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}) },
+        details: { job_id, attempt_id, target, profile: params.profile ?? null, ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}) },
       };
     },
   };

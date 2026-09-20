@@ -10,7 +10,12 @@ import { instancePaths } from '../../host/src/core/instance.js';
 const DEFAULT_POLICY = {
   version: 1,
   deny: [],
-  tools: {},
+  // network egress is never silent — fetches/searches ask the operator;
+  // existing canonical blocks are operator-owned and opt in by adding the rule
+  tools: {
+    web_fetch: { action: 'ask' },
+    web_search: { action: 'ask' },
+  },
   // destructive commands ask the operator instead of hard-denying — the
   // ask card is the product's governance surface; privilege stays a hard no
   riskActions: { destructive: 'ask', privilege: 'deny' },
