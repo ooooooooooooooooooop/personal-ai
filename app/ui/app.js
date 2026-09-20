@@ -849,6 +849,50 @@ function updateUsageChip() {
   el.classList.toggle('hidden', !parts.length);
 }
 
+/* ---------- ctx breakdown: click usage chip → estimated composition ---------- */
+// Honest estimate: chars→tokens by script density (CJK ≈1.4 chars/tok,
+// latin ≈4) per category, scaled so the sum equals the body's reported
+// contextUsage.tokens. Labelled estimate — never a fake exact meter.
+const estTok = (s) => {
+  if (!s) return 0;
+  let cjk = 0, other = 0;
+  for (const ch of String(s)) (ch.codePointAt(0) > 0x2E7F ? cjk++ : other++);
+  return cjk / 1.4 + other / 4;
+};
+async function showCtxBreakdown() {
+  const r = await cmd('session_history');
+  if (!r.success) { toast('拉取历史失败'); return; }
+  const cat = { user: 0, assistant: 0, thinking: 0, tool: 0 };
+  for (const m of r.data ?? []) {
+    if (m.role === 'user') cat.user += estTok(m.text);
+    else if (m.role === 'assistant') {
+      cat.assistant += estTok(m.text) + estTok((m.tools ?? []).join(' '));
+      cat.thinking += estTok(m.thinking);
+    } else cat.tool += estTok(m.text ?? m.output ?? '');
+  }
+  const total = lastCtxUsage?.tokens ?? 0;
+  const msgSum = cat.user + cat.assistant + cat.thinking + cat.tool;
+  const sys = Math.max(0, total - msgSum); // envelope/steering/system residue
+  const rows = [
+    ['系统·信封', sys, 'var(--g500)'],
+    ['用户消息', cat.user, 'var(--green)'],
+    ['助手回复', cat.assistant, '#6ea8fe'],
+    ['思考', cat.thinking, '#b98cf0'],
+    ['工具结果', cat.tool, 'var(--yellow)'],
+  ].filter(([, v]) => v > 0);
+  const sum = rows.reduce((a, [, v]) => a + v, 0) || 1;
+  const box = $('ctx-pop');
+  box.innerHTML = `<div class="ctx-title">上下文分解（估算）· ${total.toLocaleString()} tok</div>
+    <div class="ctx-bar">${rows.map(([n, v, c]) => `<span style="width:${(100 * v / sum).toFixed(1)}%;background:${c}" title="${n}"></span>`).join('')}</div>
+    ${rows.map(([n, v, c]) => `<div class="ctx-row"><i style="background:${c}"></i><span>${n}</span><b>${Math.round(v).toLocaleString()}</b><em>${Math.round(100 * v / sum)}%</em></div>`).join('')}`;
+  box.classList.toggle('hidden');
+}
+$('usage-chip').onclick = () => showCtxBreakdown();
+document.addEventListener('click', (e) => {
+  const pop = $('ctx-pop');
+  if (pop && !pop.classList.contains('hidden') && !pop.contains(e.target) && e.target.id !== 'usage-chip') pop.classList.add('hidden');
+});
+
 /* ---------- supervisor events ---------- */
 const PHASES = ['prepared', 'quiesced', 'checkpointed', 'released', 'acquired', 'resumed', 'verified'];
 let handoffEl = null;
@@ -923,15 +967,26 @@ function sessionGroup(dateStr) {
 // Full-text hits from session_search — Map(path → [snippets]); null when the
 // filter is too short to bother the backend.
 let searchHits = null;
+let showArchived = false;
 function renderSessions() {
   const box = $('session-list');
   const filter = $('side-filter').value.trim().toLowerCase();
   box.innerHTML = '';
+  const hasArchived = sessionsCache.some((s) => s.archived);
   const items = sessionsCache
+    .filter((s) => showArchived || !s.archived)
     .filter((s) => !filter
       || `${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)
       || searchHits?.has(s.path))
-    .sort((a, b) => String(b.modified ?? '').localeCompare(String(a.modified ?? '')));
+    .sort((a, b) => (Number(b.pinned ?? 0) - Number(a.pinned ?? 0))
+      || String(b.modified ?? '').localeCompare(String(a.modified ?? '')));
+  if (hasArchived) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle';
+    t.textContent = showArchived ? '收起归档' : `显示归档（${sessionsCache.filter((s) => s.archived).length}）`;
+    t.onclick = () => { showArchived = !showArchived; renderSessions(); };
+    box.appendChild(t);
+  }
   const groups = new Map();
   for (const s of items) {
     const g = sessionGroup(s.modified);
@@ -949,9 +1004,9 @@ function renderSessions() {
     box.appendChild(h);
     for (const s of rows) {
       const row = document.createElement('div');
-      row.className = `sess${s.path === currentSessionFile ? ' active' : ''}`;
+      row.className = `sess${s.path === currentSessionFile ? ' active' : ''}${s.archived ? ' archived' : ''}`;
       const title = s.name || s.firstMessage || '未命名任务';
-      row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.messageCount ?? 0} 条</span>`;
+      row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
       const hit = searchHits?.get(s.path);
       if (hit?.length && !`${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)) {
@@ -966,6 +1021,20 @@ function renderSessions() {
         e.preventDefault();
         showCtxMenu(e.clientX, e.clientY, [
           { label: '打开', run: () => switchSession(s.path) },
+          {
+            label: s.pinned ? '取消置顶' : '置顶',
+            run: async () => {
+              await cmd('session_pin', { path: s.path, pinned: !s.pinned });
+              refreshSessions();
+            },
+          },
+          {
+            label: s.archived ? '取消归档' : '归档',
+            run: async () => {
+              await cmd('session_archive', { path: s.path, archived: !s.archived });
+              refreshSessions();
+            },
+          },
           {
             label: '重命名…',
             run: async () => {
@@ -1173,6 +1242,21 @@ function updateChips() {
   const cur = modelStatus?.current;
   $('model-chip').textContent = cur ? `${cur.name ?? cur.id} ▾` : '选择模型 ▾';
   $('thinking-chip').textContent = `推理 ${THINK_LABEL[modelStatus?.thinkingLevel ?? 'medium']} ▾`;
+}
+
+/* ---------- theme: UI-local preference (localStorage, zero governance) ---------- */
+const THEME_KEY = 'pai.theme';
+function applyTheme(name) {
+  document.documentElement.dataset.theme = name === 'light' ? 'light' : '';
+}
+applyTheme(localStorage.getItem(THEME_KEY) ?? 'dark');
+if ($('set-theme')) {
+  $('set-theme').value = localStorage.getItem(THEME_KEY) ?? 'dark';
+  $('set-theme').onchange = () => {
+    const v = $('set-theme').value;
+    localStorage.setItem(THEME_KEY, v);
+    applyTheme(v);
+  };
 }
 async function saveKey(providerSel, keyInput, msgEl) {
   const provider = $(providerSel).value;

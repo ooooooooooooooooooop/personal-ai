@@ -306,3 +306,32 @@ test('workspace registry: add/list/remove, set_workdir auto-registers, active pr
     assert.equal(bad.success, false);
   } finally { await sup.dispose(); }
 });
+
+test('session meta: pin/archive persists and decorates session_list', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const path = `${dir}/sessions/s1.jsonl`;
+    // undecorated at first
+    let r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].pinned, undefined);
+    // pin + archive
+    r = await sup.handle({ type: 'session_pin', path });
+    assert.equal(r.success, true);
+    assert.equal(r.data.meta.pinned, true);
+    r = await sup.handle({ type: 'session_archive', path });
+    assert.equal(r.data.meta.archived, true);
+    // list is decorated
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].pinned, true);
+    assert.equal(r.data[0].archived, true);
+    // persisted to instance session-meta.json (survives supervisor restart)
+    const meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[path].pinned, true);
+    // unpin
+    r = await sup.handle({ type: 'session_pin', path, pinned: false });
+    assert.equal(r.data.meta.pinned, false);
+    // missing path refused
+    r = await sup.handle({ type: 'session_pin' });
+    assert.equal(r.success, false);
+  } finally { await sup.dispose(); }
+});

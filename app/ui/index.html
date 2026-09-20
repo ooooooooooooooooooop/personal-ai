@@ -110,7 +110,8 @@
           <textarea id="input" rows="1" placeholder="分配任务，或询问任何问题…（可粘贴/拖入文件或图片）"></textarea>
           <div class="composer-bar">
             <button id="steer" class="ghost-btn" title="运行中追加指示" disabled>插话</button>
-            <span id="usage-chip" class="chip dim usage" title="上下文用量 / 本会话成本"></span>
+            <span id="usage-chip" class="chip dim usage" title="上下文用量 / 本会话成本——点击看分解"></span>
+            <div id="ctx-pop" class="ctx-pop hidden"></div>
             <span class="spacer"></span>
             <button id="mode-chip" class="chip dim" title="执行/计划模式——计划模式下所有会改状态的调用都要你批准"></button>
             <button id="thinking-chip" class="chip dim" title="推理强度"></button>
@@ -213,6 +214,18 @@
           <button id="cp-add" class="btn ghost">添加提供方</button>
           <span id="cp-msg" class="setup-msg" style="margin-top:0"></span>
         </div>
+      </div>
+
+      <div class="set-card">
+        <div class="set-card-title">外观</div>
+        <div class="set-row">
+          <label>主题</label>
+          <select id="set-theme">
+            <option value="dark">深色</option>
+            <option value="light">浅色</option>
+          </select>
+        </div>
+        <div class="set-sub">界面偏好，存本机——不影响任何治理或会话状态。</div>
       </div>
 
       <div class="set-card">

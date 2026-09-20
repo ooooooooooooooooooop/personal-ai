@@ -76,6 +76,29 @@ export class BodySupervisor {
 
   #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
 
+  /* Session pin/archive (product metadata, body-agnostic): keyed by session
+   * file path so it works for pi AND dsh sessions. Decorated onto
+   * session_list results — the body never sees it. */
+  #sessMetaPath() { return join(this.instanceRoot, 'session-meta.json'); }
+
+  #sessMeta() {
+    try { return JSON.parse(readFileSync(this.#sessMetaPath(), 'utf-8')); }
+    catch { return {}; }
+  }
+
+  #saveSessMeta(meta) {
+    try { writeFileSync(this.#sessMetaPath(), JSON.stringify(meta, null, 2)); } catch { /* best-effort */ }
+  }
+
+  #setSessMeta(path, patch) {
+    if (!path) return null;
+    const meta = this.#sessMeta();
+    meta[path] = { ...(meta[path] ?? {}), ...patch };
+    this.#saveSessMeta(meta);
+    this.audit.write({ kind: 'SESSION_META', data: { path, ...patch } });
+    return meta[path];
+  }
+
   /* Workspace registry (U9) — remembered project roots the operator can
    * switch between. Switching still goes through set_workdir's respawn
    * path; the registry is a persisted MRU, not a parallel session space. */
@@ -533,6 +556,22 @@ export class BodySupervisor {
           if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
           if (st.size > 512 * 1024) return reply(false, undefined, `file too large for inline attach (>512KB): ${rel}`);
           return reply(true, { path: rel, content: readFileSync(abs, 'utf-8'), bytes: st.size });
+        }
+        case 'session_pin': {
+          const m = this.#setSessMeta(String(cmd.path ?? ''), { pinned: cmd.pinned !== false });
+          return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_pin requires {path}');
+        }
+        case 'session_archive': {
+          const m = this.#setSessMeta(String(cmd.path ?? ''), { archived: cmd.archived !== false });
+          return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_archive requires {path}');
+        }
+        case 'session_list': {
+          const r = await this.sendToBody(cmd);
+          if (r.success && Array.isArray(r.data)) {
+            const meta = this.#sessMeta();
+            r.data = r.data.map((s) => ({ ...s, ...(meta[s.path] ?? {}) }));
+          }
+          return r;
         }
         case 'macro_list':
           return reply(true, { macros: this.#macros() });
