@@ -105,15 +105,17 @@ export class HookRunner {
           try { child.kill('SIGKILL'); } catch { /* gone */ }
         }
       };
+      // The timeout timer owns this pending Promise: keep the event loop
+      // alive until it fires or the child exits. Unref'ing timer/child lets
+      // the loop drain while the caller is still suspended (win32: unref on
+      // the child also drops its stdio pipes).
       const timer = setTimeout(() => {
         killTree();
         dropPipes();
         reject(new Error(`hook timed out after ${timeoutMs}ms`));
       }, timeoutMs);
-      timer.unref?.();
       child.on('error', (e) => { clearTimeout(timer); this.#children.delete(child); dropPipes(); reject(e); });
       child.on('exit', (code) => { clearTimeout(timer); this.#children.delete(child); dropPipes(); resolve({ code, tail: out }); });
-      child.unref?.();
       child.stdin.on('error', () => {});
       try {
         child.stdin.write(JSON.stringify(payload));
