@@ -1011,3 +1011,15 @@ tr.clickable:hover td { background: var(--field); }
   background: var(--g1000); border: 1px solid var(--line); border-radius: var(--r-sm);
   white-space: pre; color: var(--text-3);
 }
+
+/* DSH projection — goal line above the jobs table */
+.goal-line {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--text-3);
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  background: var(--tile);
+}

@@ -741,6 +741,13 @@ function onAgentEvent(ev) {
       toast(ev.message, ev.level === 'err' ? 'err' : 'info');
       addSys(`通知：${ev.message}`, ev.level === 'err');
       break;
+    case 'jobs_changed':
+      if (currentView === 'jobs') refreshJobs();
+      break;
+    case 'projection':
+      lastProjection = ev.projection ?? null;
+      paintGoalLine();
+      break;
     case 'tool_execution_start':
       addTool(ev);
       break;
@@ -1534,7 +1541,23 @@ async function refreshAudit() {
   renderAuditFilters();
   renderAuditList();
 }
+/* ---------- DSH projection (goal line) ---------- */
+let lastProjection = null;
+function paintGoalLine() {
+  const el = $('goal-line');
+  if (!el) return;
+  const p = lastProjection;
+  const goal = p?.goal ?? p?.goalIdentity ?? p?.summary ?? null;
+  const subs = p?.subagents ?? p?.children ?? null;
+  const text = typeof goal === 'string' && goal ? goal : null;
+  if (!text && !(Array.isArray(subs) && subs.length)) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.textContent = (text ? `目标：${text}` : '')
+    + (Array.isArray(subs) && subs.length ? `${text ? '　' : ''}子代理 ×${subs.length}` : '');
+}
+
 async function refreshJobs() {
+  paintGoalLine();
   const r = await cmd('job_list', { n: 50 });
   const tbody = $('jobs').querySelector('tbody');
   tbody.innerHTML = '';
