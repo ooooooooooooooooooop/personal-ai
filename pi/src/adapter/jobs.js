@@ -59,8 +59,11 @@ export class JobExecutor {
    *        and a second mutating job is refused while one is held.
    *        budget: child usage (PAI_USAGE) is billed into the spawning
    *        session's budget scope — delegated work cannot evade the parent cap.
+   *        sandbox: SandboxProvider — wraps the spawned command (none|wsl);
+   *        covers the durable-job surface only — foreground tool calls execute
+   *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -68,6 +71,7 @@ export class JobExecutor {
     this.writeLease = writeLease;
     this.classifier = classifier;
     this.budget = budget;
+    this.sandbox = sandbox;
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
   }
@@ -171,9 +175,17 @@ export class JobExecutor {
     const leaseHolder = `job:${jobId}`;
     const resultPath = join(this.jobsDir, `${attemptId}.result.json`);
     const job = this.store.getJob(jobId);
-    // shell:true — Node quotes for cmd.exe/sh correctly; the tracked worker
-    // pid is the shell, which waits on its children
-    const child = spawn(command, { cwd: workdir, windowsHide: true, shell: true });
+    // sandbox provider decides the real spawn shape — 'none' preserves the
+    // historical shell:true path; 'wsl' spawns wsl.exe argv-style (no cmd.exe
+    // quoting of the user command). Unavailable backend = fail-closed throw.
+    const spec = (this.sandbox ?? { spawnSpec: (c, w) => ({ file: c, args: [], shell: true, cwd: w }) })
+      .spawnSpec(command, workdir);
+    const child = spec.shell
+      ? spawn(spec.file, { cwd: spec.cwd, windowsHide: true, shell: true })
+      : spawn(spec.file, spec.args, { cwd: spec.cwd, windowsHide: true });
+    if (this.sandbox?.kind && this.sandbox.kind !== 'none') {
+      this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: this.sandbox.kind } });
+    }
     this.running.set(jobId, child);
 
     // machine checkpoint — the resumability contract

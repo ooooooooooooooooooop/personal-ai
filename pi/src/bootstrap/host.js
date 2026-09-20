@@ -9,6 +9,7 @@ import { selectBody } from '../../../host/src/core/eligibility.js';
 import { JobStore } from '../../../host/src/core/jobs.js';
 import { PendingAsks } from '../../../host/src/core/asks.js';
 import { JobExecutor } from '../adapter/jobs.js';
+import { SandboxProvider } from '../../../host/src/core/sandbox.js';
 import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
@@ -168,6 +169,7 @@ export async function startHost({
     writeLease,
     classifier: parseShellCommand,
     budget, // child PAI_USAGE bills into the spawning session's scope
+    sandbox: SandboxProvider.fromEnv(), // PAI_SANDBOX=none|wsl — durable-job surface only
   });
   // cold-start sweep: dead workers from a previous process get recovered or
   // parked for review — never silently abandoned

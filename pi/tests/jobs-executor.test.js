@@ -414,3 +414,40 @@ test('B3: cancel is terminal — worker exit must NOT overwrite CANCELLED; tree 
   // result envelope still recorded — audit trail intact
   assert.ok(executor.describe(job_id)?.detail?.output_tail !== undefined || true);
 });
+
+test('sandbox provider wraps the spawned command via argv spec and audits it', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-sbx-'));
+  const { store } = rig(dir);
+  const auditEvents = [];
+  // fake provider: argv-style spawn — proves executeAttempt honors the spec
+  // (the wrapped process writes a marker file the bare command never would)
+  const marker = join(dir, 'wrapped.txt');
+  const fake = {
+    kind: 'test-wrap',
+    spawnSpec: (command, cwd) => ({
+      file: process.execPath,
+      args: ['-e', `require('fs').writeFileSync(${JSON.stringify(marker)}, 'sb:'+process.cwd())`],
+      shell: false,
+      cwd,
+    }),
+  };
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    audit: { write: (e) => auditEvents.push(e) },
+    sandbox: fake,
+  });
+  const r = await executor.spawnCommandJob({
+    command: 'echo never-runs-bare',
+    workdir: dir,
+    budgetCommitted: true, // skip budget attribution — testing spawn shape
+  });
+  assert.ok(r.job_id, JSON.stringify(r));
+  // wait for the wrapped child to exit
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    const job = store.getJob(r.job_id);
+    if (job && (job.job_state === 'completed' || job.job_state === 'failed' || job.job_state === 'exited')) break;
+    await new Promise((res) => setTimeout(res, 100));
+  }
+  assert.ok(existsSync(marker), 'sandbox spec was spawned instead of the bare command');
+  assert.ok(auditEvents.some((e) => e.kind === 'JOB_SANDBOXED' && e.data.provider === 'test-wrap'));
+});
