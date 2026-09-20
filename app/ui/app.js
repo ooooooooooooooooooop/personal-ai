@@ -2219,8 +2219,11 @@ const SLASH = [
       const r = await cmd('agent_stats');
       if (!r.success) { addSys(`统计失败：${r.error ?? '未知'}`, true); return; }
       const s = r.data ?? {};
+      const a = s.asks ?? {};
+      const asksLine = (a.allow || a.deny || a.timeout || a.always)
+        ? `\n批准卡结局：放行 ${a.allow ?? 0} · 总是允许 ${a.always ?? 0} · 本会话放行 ${a.allow_session ?? 0} · 拒绝 ${a.deny ?? 0} · 超时 ${a.timeout ?? 0}` : '';
       addSys(`累计 ${s.sessions ?? 0} 个会话 · ${s.messages ?? 0} 条消息（你发了 ${s.userMessages ?? 0} 条）· ${(s.tokens ?? 0).toLocaleString()} tok · $${s.cost ?? 0}`
-        + (s.firstSession ? `——自 ${new Date(s.firstSession).toLocaleDateString()} 起` : ''));
+        + (s.firstSession ? `——自 ${new Date(s.firstSession).toLocaleDateString()} 起` : '') + asksLine);
     },
   },
   {

@@ -933,4 +933,11 @@
 | hook 事件族扩展 | Claude Code/Codex/Kiro 生命周期事件族 | `HOOK_EVENTS` 扩到 8 个：增 `tool_start`/`agent_stop`/`compact_start`/`compact_end`（泵上真实事件点，观察面）；`tool_end` 不再挂在 writeLease 分支上 |
 | 会话类型分面 | Goose sessions.db type 分面（user/subagent/scheduled） | `session_list` join 任务 run_scope→委派会话标 `subagent`/`teammate`，抽屉标题带 ↳/👥 徽章 |
 
+**复扫第六批**：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| 模型可调任务包 | Roo `run_slash_command`（agent 自调 slash） | `recipe_run` 工具——读 `.pai/recipes/<name>.md`，required 参数缺失报错，`{{k}}` 展开后包 `<recipe>` 不可信标记返回 |
+| 批准结局统计 | Vibe AgentStats 按结局计数（agreed/rejected/hook_denied） | `PendingAsks` 每次解析写 `ASK_RESOLVED` 审计行；`agent_stats` 扫审计目录聚合 `asks{allow,always,allow_session,deny,timeout,aborted,question_answered}`；`/stats` 显示批准卡结局行 |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

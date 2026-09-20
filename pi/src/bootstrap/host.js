@@ -753,9 +753,27 @@ export async function startHost({
           }
         } catch { continue; }
       }
+      // Vibe AgentStats outcome buckets — approval answers counted by结局
+      // from the ASK_RESOLVED audit trail (survives session reloads)
+      const asks = { allow: 0, allow_session: 0, always: 0, deny: 0, timeout: 0, aborted: 0, question_answered: 0 };
+      try {
+        const auditDir = core.paths?.auditDir;
+        if (auditDir && existsSync(auditDir)) {
+          for (const f of readdirSync(auditDir).filter((x) => x.endsWith('.jsonl'))) {
+            for (const line of readFileSync(join(auditDir, f), 'utf-8').split('\n')) {
+              if (!line || !line.includes('ASK_RESOLVED')) continue;
+              let e; try { e = JSON.parse(line); } catch { continue; }
+              const a = e?.data?.answer;
+              if (e?.data?.kind === 'question') { if (a && a !== 'timeout' && a !== 'aborted') asks.question_answered++; else if (a) asks[a]++; }
+              else if (a && asks[a] != null) asks[a]++;
+            }
+          }
+        }
+      } catch { /* stats are best-effort */ }
       return {
         ...agg,
         cost: Number(agg.cost.toFixed(4)),
+        asks,
         firstSession: first?.toISOString?.() ?? null,
         lastSession: last?.toISOString?.() ?? null,
       };

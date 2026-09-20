@@ -2,7 +2,7 @@
  * PendingAsks — the operator-in-the-loop surface behind policy 'ask' rules.
  * Every unresolved path must resolve to a refusal; nothing may stay suspended.
  */
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -186,4 +186,23 @@ test("'always' refused on truncated payload; deny cascades same tool:arg for the
   assert.equal(asks.list().length, 1);
   asks.resolve(asks.list()[0].id, 'deny');
   await d2;
+});
+
+test('ASK_RESOLVED audit row lands per resolution (stats outcome trail)', async () => {
+  const { AuditWriter } = await import('../src/core/audit.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-askres-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const asks = new PendingAsks({ audit, timeoutMs: 50 });
+  const p = asks.ask({ toolName: 'bash', args: { command: 'ls' } });
+  const pend = asks.list()[0];
+  asks.resolve(pend.id, 'deny');
+  const ans = await p;
+  assert.equal(ans, 'deny');
+  const rows = readFileSync(readdirSync(join(dir, 'audit')).map((f) => join(dir, 'audit', f))[0], 'utf-8')
+    .split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const r = rows.find((e) => e.kind === 'ASK_RESOLVED');
+  assert.equal(r.toolName, 'bash');
+  assert.equal(r.data.answer, 'deny');
+  assert.equal(r.data.kind, 'approval');
 });

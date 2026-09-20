@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { skillTools } from '../src/adapter/skilltools.js';
@@ -48,4 +48,24 @@ test('plan_save + plan_list round-trip the plans library', async () => {
   const list = await byName.plan_list.execute('t', {});
   assert.match(list.content[0].text, /migrate-db: # DB 迁移/);
   assert.equal(audits[0].kind, 'PLAN_SAVED');
+});
+
+test('recipe_run expands {{param}} placeholders; missing required refused', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-recipe-'));
+  mkdirSync(join(dir, '.pai', 'recipes'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'recipes', 'deploy.md'),
+    '---\ndescription: ship it\nparams: env(required), tag=v1\n---\nDeploy {{env}} with tag {{tag}} now.');
+  const tools = skillTools({ workdir: dir, audit: null });
+  const recipe = tools.find((t) => t.name === 'recipe_run');
+  // missing required param → error naming it
+  const bad = await recipe.execute('t1', { name: 'deploy', args: {} });
+  assert.equal(bad.isError, true);
+  assert.match(bad.content[0].text, /env/);
+  // defaults fill; explicit args win; body wrapped in <recipe>
+  const good = await recipe.execute('t2', { name: 'deploy', args: { env: 'prod' } });
+  assert.match(good.content[0].text, /<recipe name="deploy">/);
+  assert.match(good.content[0].text, /Deploy prod with tag v1 now/);
+  // unknown recipe → error
+  const miss = await recipe.execute('t3', { name: 'nope' });
+  assert.equal(miss.isError, true);
 });

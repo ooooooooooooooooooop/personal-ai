@@ -143,6 +143,9 @@ export class PendingAsks {
         if (answer === 'deny' && rec.kind !== 'question') {
           this.#sessionDenies.add(PendingAsks.#sigOf(toolName, rec.args));
         }
+        // outcome ledger — AgentStats outcome-bucketed counts (agreed/
+        // rejected/timed-out) read this trail, not the transient event
+        this.audit?.write?.({ kind: 'ASK_RESOLVED', toolName, data: { rule: rec.rule ?? 'ask', kind: rec.kind, answer } });
         this.#emit({ type: 'governance_resolved', askId: id, toolName, answer });
         resolve(answer);
       };

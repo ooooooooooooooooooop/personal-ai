@@ -110,5 +110,47 @@ export function skillTools({ workdir, audit }) {
         return ok(rows.length ? `saved plans:\n${rows.join('\n')}` : 'no saved plans');
       },
     },
+    {
+      name: 'recipe_run',
+      label: 'Run Recipe',
+      description:
+        'Expand a parameterised task package (.pai/recipes/<name>.md) and receive ' +
+        'its instructions to execute (Roo run_slash_command analogue). Pass ' +
+        'args as {k: v}; {{k}} placeholders in the recipe body are substituted.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'recipe name (file stem under .pai/recipes/)' },
+          args: { type: 'object', description: 'parameter values keyed by name' },
+        },
+        required: ['name'],
+      },
+      async execute(_id, p) {
+        const name = String(p?.name ?? '').trim();
+        if (!SLUG.test(name)) return err('recipe_run: name must be kebab-case (a-z, 0-9, _ or -)');
+        const file = join(dir('recipes'), `${name}.md`);
+        let raw = '';
+        try { raw = readFileSync(file, 'utf-8'); } catch { return err(`recipe '${name}' not found in .pai/recipes/`); }
+        const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
+        const meta = m?.[1] ?? '';
+        const body = (m ? m[2] : raw).trim();
+        const params = (meta.match(/^params:\s*(.+)$/m)?.[1] ?? '')
+          .split(',').map((s) => s.trim()).filter(Boolean).map((spec) => {
+            const req = spec.match(/^(\w+)\(required\)$/);
+            if (req) return { name: req[1], required: true };
+            const d = spec.match(/^(\w+)=(.*)$/);
+            return d ? { name: d[1], default: d[2] } : { name: spec, required: true };
+          });
+        const args = p?.args && typeof p.args === 'object' ? p.args : {};
+        const missing = params.filter((x) => x.required && args[x.name] == null).map((x) => x.name);
+        if (missing.length) return err(`recipe '${name}' missing required params: ${missing.join(', ')}`);
+        const values = Object.fromEntries(params.map((x) => [x.name, String(args[x.name] ?? x.default ?? '')]));
+        const expanded = body.replace(/\{\{(\w+)\}\}/g, (all, k) => values[k] ?? all);
+        audit?.write({ kind: 'RECIPE_RUN', data: { name, params: Object.keys(values).length } });
+        // instructions arrive as untrusted recipe content — the model follows
+        // them inside the normal governance chain like any microagent body
+        return ok(`<recipe name="${name}">\n${expanded}\n</recipe>`);
+      },
+    },
   ];
 }
