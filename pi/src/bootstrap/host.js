@@ -126,7 +126,7 @@ export async function startHost({
     },
   });
 
-  asks = new PendingAsks({ audit: core.audit });
+  asks = new PendingAsks({ audit: core.audit }, join(core.paths.root, 'always-allow.json'));
 
   core.registry.register(piFacts());
 
@@ -252,7 +252,24 @@ export async function startHost({
       instructionEnvelope: core.instructionEnvelope,
       // live provider — not a snapshot; steering files are workdir-scoped
       // context composed at this boundary (host core stays workdir-blind)
-      contextEnvelope: () => ({ ...core.contextProvider(), steering: loadSteering(workdir) }),
+      contextEnvelope: () => ({
+        ...core.contextProvider(),
+        steering: loadSteering(workdir),
+        // moim-style turn budget hint: consumed/limits visible every turn so
+        // the model paces itself instead of learning at the hard gate.
+        budget: (() => {
+          if (!budget?.configured) return null;
+          const c = budget.consumed(currentSession?.sessionId ?? 'unknown');
+          const l = budget.limits ?? {};
+          const parts = [];
+          if (l.maxTokensPerSession) parts.push(`tokens ${c.tokens}/${l.maxTokensPerSession} (${Math.round(100 * c.tokens / l.maxTokensPerSession)}%)`);
+          if (l.maxCostPerSessionUsd) parts.push(`cost $${c.cost.toFixed(4)}/$${l.maxCostPerSessionUsd}`);
+          if (l.maxCallsPerSession) parts.push(`calls ${c.calls}/${l.maxCallsPerSession}`);
+          return parts.length
+            ? `session budget consumed: ${parts.join(', ')} — pace accordingly; exceeding a limit halts the session`
+            : null;
+        })(),
+      }),
       audit: core.audit,
       customTools,
       excludeTools: initialDeny,

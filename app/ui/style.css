@@ -616,6 +616,7 @@ pre:hover .code-copy, .code-copy.copied { opacity: 1; }
 .ask-head .t-icon { color: var(--amber, #b08830); }
 .ask-title { font-weight: 600; }
 .ask-tool { color: var(--text-3); font-size: 12px; }
+.ask-risk { color: var(--amber, #b08830); font-size: 11.5px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ask-timer { margin-left: auto; color: var(--text-4); font-size: 11.5px; font-variant-numeric: tabular-nums; }
 .ask-summary {
   margin: 10px 0 0; padding: 8px 10px;

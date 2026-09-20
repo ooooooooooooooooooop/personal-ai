@@ -2,6 +2,9 @@
  * PendingAsks — the operator-in-the-loop surface behind policy 'ask' rules.
  * Every unresolved path must resolve to a refusal; nothing may stay suspended.
  */
+import { mkdtempSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PendingAsks } from '../src/core/asks.js';
@@ -144,4 +147,43 @@ test('abortPending refuses open asks but keeps listeners (session rebuild)', asy
   assert.equal(events.filter((e) => e.type === 'governance_ask').length, 2);
   asks.resolve(asks.list()[0].id, 'deny');
   await p2;
+});
+
+test("'always' persists {tool,command} to alwaysPath and auto-allows across restart", async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  const p = asks.ask(desc({ args: { command: 'git status' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  assert.equal(await p, 'always');
+  // exact command auto-allows; different command still asks
+  assert.equal(await asks.ask(desc({ args: { command: 'git status' } })), 'allow');
+  const p2 = asks.ask(desc({ toolCallId: 'tc-3', args: { command: 'git push' } }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+  // restart: persisted entries survive
+  const asks2 = new PendingAsks({ timeoutMs: 5000 }, path);
+  assert.equal(await asks2.ask(desc({ args: { command: 'git status' } })), 'allow');
+});
+
+test("'always' refused on truncated payload; deny cascades same tool:arg for the session", async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask(desc({ args: { command: 'x' }, argsTruncated: true }));
+  const r = asks.resolve(asks.list()[0].id, 'always');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /truncated/);
+  asks.resolve(asks.list()[0].id, 'allow');
+
+  // deny cascade: deny once → same tool:command refused without re-asking
+  const d1 = asks.ask(desc({ args: { command: 'rm -rf build' } }));
+  asks.resolve(asks.list()[0].id, 'deny');
+  assert.equal(await d1, 'deny');
+  assert.equal(await asks.ask(desc({ toolCallId: 'tc-9', args: { command: 'rm -rf build' } })), 'deny');
+  assert.equal(asks.list().length, 0); // never even opened a card
+  // different args still get their own card
+  const d2 = asks.ask(desc({ toolCallId: 'tc-10', args: { command: 'rm -rf other' } }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await d2;
 });

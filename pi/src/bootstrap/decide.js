@@ -4,6 +4,35 @@ import { scanForSecrets } from '../adapter/secrets.js';
 
 const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
+// Goose unicode-tag sanitization analogue — invisible format chars that can
+// hide instructions or spoof identifiers (zero-width, bidi controls, BOM).
+// \u200B-\u200F zero-width, \u202A-\u202E bidi embed/override,
+// \u2060-\u2064 word joiner/invisible ops, \uFEFF BOM, \u00AD soft hyphen
+const INVISIBLE_UNICODE = /[\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF\u00AD]/g;
+// Command/path args: invisible chars are ~always adversarial → block.
+const STRICT_ARG_KEYS = new Set(['command', 'path', 'file', 'target', 'pattern', 'query', 'url']);
+// Free-text payloads (write content, edits, messages): strip, don't refuse —
+// prose can legitimately carry odd whitespace.
+function sanitizeArgs(args) {
+  const out = { blocked: [], stripped: 0, args };
+  const walk = (v) => {
+    if (typeof v === 'string' && INVISIBLE_UNICODE.test(v)) {
+      out.stripped += 1;
+      return v.replace(INVISIBLE_UNICODE, '');
+    }
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+    return v;
+  };
+  for (const [k, v] of Object.entries(args ?? {})) {
+    if (STRICT_ARG_KEYS.has(k) && typeof v === 'string' && INVISIBLE_UNICODE.test(v)) {
+      out.blocked.push(k);
+    } else {
+      out.args = { ...out.args, [k]: walk(v) };
+    }
+  }
+  return out;
+}
 // File-access tool surface the .paiignore check applies to — read AND write
 // families: context exclusion means invisible AND untouchable.
 const FILE_ACCESS_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files', 'write', 'edit', 'delete', 'apply_patch', 'patch']);
@@ -26,6 +55,23 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
   let turnCalls = 0;
   const inner = async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
+    // Invisible-unicode sanitization FIRST (Goose analogue): the kernel must
+    // classify the same text that would execute — zero-width chars can spoof
+    // both classifier patterns and identifiers. Strict arg keys block;
+    // free-text payloads are stripped so model text == executed text.
+    const san = sanitizeArgs(ctx.args);
+    if (san.blocked.length) {
+      core.audit.write({ kind: 'UNICODE_BLOCK', toolName, data: { keys: san.blocked } });
+      return {
+        block: true,
+        rule: 'unicode_invisible',
+        reason: `invisible unicode in ${san.blocked.map((k) => `'${k}'`).join(', ')} (zero-width/bidi/format chars) — likely hidden-instruction or identifier spoofing; rewrite with visible characters`,
+      };
+    }
+    if (san.stripped) {
+      ctx = { ...ctx, args: san.args };
+      core.audit.write({ kind: 'UNICODE_SANITIZED', toolName, data: { stripped: san.stripped } });
+    }
     // signal rides on ctx so the kernel's ask path can abort a pending
     // operator question when the session is interrupted mid-decision
     const decision = await core.kernel.decideToolCall({ ...ctx, toolName, signal });

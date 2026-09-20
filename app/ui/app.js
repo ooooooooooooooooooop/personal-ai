@@ -465,7 +465,7 @@ function stopProc(final = false) {
 const askCards = new Map(); // askId -> card element
 let askTick = null;
 const ANSWER_LABEL = {
-  allow: '已允许', allow_session: '本会话已允许',
+  allow: '已允许', allow_session: '本会话已允许', always: '总是允许',
   deny: '已拒绝', timeout: '超时未答 · 已拒绝', aborted: '已中止',
 };
 
@@ -495,6 +495,7 @@ function addAskCard(ask) {
       <span class="t-icon">${kindIcon(kind.icon)}</span>
       <span class="ask-title">需要你的批准</span>
       <span class="ask-tool"></span>
+      <span class="ask-risk"></span>
       <span class="ask-timer"></span>
     </div>
     <pre class="ask-summary"></pre>
@@ -502,9 +503,15 @@ function addAskCard(ask) {
     <div class="ask-foot">
       <button class="ask-btn primary" data-a="allow">允许一次</button>
       <button class="ask-btn" data-a="allow_session">本会话允许</button>
+      <button class="ask-btn" data-a="always">总是允许</button>
       <button class="ask-btn danger" data-a="deny">拒绝</button>
     </div>`;
   div.querySelector('.ask-tool').textContent = `${kind.verb} · ${ask.toolName}`;
+  // SecurityAnalyzer-style risk line: WHICH class and WHICH units earned it
+  if (ask.risk?.class) {
+    const units = (ask.risk.units ?? []).slice(0, 3).join(' | ');
+    div.querySelector('.ask-risk').textContent = `风险·${ask.risk.class}${units ? `：${units.slice(0, 120)}` : ''}`;
+  } else div.querySelector('.ask-risk').remove();
   div.querySelector('.ask-summary').textContent = ask.summary || '（无详情）';
   if (ask.detail) div.querySelector('.ask-detail').textContent = ask.detail;
   else div.querySelector('.ask-detail').remove();
@@ -515,7 +522,9 @@ function addAskCard(ask) {
   if (payload.classList?.contains('ask-detail') === false) payload.className = 'ask-detail';
   if (ask.argsTruncated) {
     // WYSIWYG guard: never silently clip — tell the operator the approval
-    // covers a payload larger than what is shown.
+    // covers a payload larger than what is shown. "总是允许" is withheld:
+    // a durable grant cannot be made over a clipped payload.
+    div.querySelector('[data-a="always"]')?.remove();
     payload.insertAdjacentHTML('beforeend',
       `<div class="ask-trunc">载荷过长，仅显示截断前缀（完整参数 ${ask.argsTotalChars ?? '?'} 字符）——批准/拒绝作用于完整参数</div>`);
   }
@@ -747,6 +756,9 @@ function onAgentEvent(ev) {
     case 'session_info_changed':
       refreshSessions();
       refreshState();
+      break;
+    case 'budget_warning':
+      addSys(`预算已用 ${ev.pct}%——接近上限，建议收敛任务或继续前确认`, true);
       break;
     case 'budget_exceeded':
       addSys(`预算超限——会话已停止：${ev.rule} ${ev.consumed} ≥ ${ev.limit}（上限来自规范策略/操作员环境，模型不能自行放宽）`, true);

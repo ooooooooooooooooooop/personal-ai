@@ -102,14 +102,14 @@ export class GovernanceKernel {
     const askArgs = sanitizeAskArgs(ctx.args, 0, argState);
     const argsTotalChars = (() => { try { return JSON.stringify(ctx.args ?? {}).length; } catch { return null; } })();
     const answer = await this.ask(
-      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars },
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars },
       ctx.signal,
     );
     this.audit.write({
       kind: 'GOVERNANCE_ASK_RESOLVED', toolName: ctx.toolName,
       data: { toolCallId: ctx.toolCallId, rule, answer },
     });
-    if (answer === 'allow' || answer === 'allow_session') {
+    if (answer === 'allow' || answer === 'allow_session' || answer === 'always') {
       return this.#allow(ctx, `operator:${answer}`);
     }
     const reasons = {
@@ -185,6 +185,9 @@ export class GovernanceKernel {
       if (action === 'ask') {
         return this.#ask(ctx, `risk_${parsed.risk}`, {
           reason: `command risk class '${parsed.risk}' requires operator approval by policy`,
+          // SecurityAnalyzer analogue: the card shows WHICH class and WHICH
+          // command units earned it — not just "policy says ask".
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
         });
       }
       if (action === 'deny') {

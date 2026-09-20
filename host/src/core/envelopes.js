@@ -33,7 +33,7 @@ export function buildInstructionEnvelope({ soulManifest, policyText, policyCheck
   return env;
 }
 
-export function buildContextEnvelope({ briefing = '', openPredictions = [], observations = [], memoryDigest = null, steering = null } = {}) {
+export function buildContextEnvelope({ briefing = '', openPredictions = [], observations = [], memoryDigest = null, steering = null, budget = null } = {}) {
   return {
     kind: 'ContextEnvelope',
     version: 1,
@@ -42,6 +42,7 @@ export function buildContextEnvelope({ briefing = '', openPredictions = [], obse
     observations,
     memoryDigest,
     steering,
+    budget,
   };
 }
 
@@ -87,6 +88,13 @@ export function renderContext(env) {
     parts.push('<steering>');
     parts.push(env.steering);
     parts.push('</steering>');
+  }
+  if (env.budget) {
+    // moim-style turn budget: the model sees consumption every turn and can
+    // pace itself — a hard gate alone teaches it nothing until it trips.
+    parts.push('<budget>');
+    parts.push(env.budget);
+    parts.push('</budget>');
   }
   if (env.openPredictions.length) {
     parts.push('<open-predictions>');

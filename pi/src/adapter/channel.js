@@ -39,6 +39,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
   // Bounded autonomy: bill every usage-bearing event onto the append-only
   // ledger, and on breach refuse further spend — emit + abort + audit.
+  const warnedScopes = new Set(); // 80% wrap-up hint fires once per scope
   const bill = (usage, source) => {
     if (!budget || !usage) return;
     try {
@@ -46,6 +47,18 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // tokens/cost only — the provider request itself was already counted
       // at the fetch gate (one HTTP call = one call, retries included)
       budget.record({ scope, source, usage, countCall: false });
+      const c = budget.consumed(scope);
+      const l = budget.limits ?? {};
+      const pct = Math.max(
+        l.maxTokensPerSession ? c.tokens / l.maxTokensPerSession : 0,
+        l.maxCostPerSessionUsd ? c.cost / l.maxCostPerSessionUsd : 0,
+        l.maxCallsPerSession ? c.calls / l.maxCallsPerSession : 0,
+      );
+      if (pct >= 0.8 && !warnedScopes.has(scope)) {
+        warnedScopes.add(scope);
+        core.audit?.write({ kind: 'BUDGET_WARNING', data: { scope, source, pct: Math.round(pct * 100), consumed: c } });
+        emit({ type: 'budget_warning', scope, pct: Math.round(pct * 100), consumed: c });
+      }
       const breach = budget.breach(scope);
       if (breach) {
         core.audit?.write({ kind: 'BUDGET_EXCEEDED', data: { scope, source, ...breach } });

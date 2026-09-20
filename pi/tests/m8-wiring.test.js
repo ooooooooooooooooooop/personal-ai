@@ -339,3 +339,22 @@ test('turn cap: admitted calls over the budget are refused with a readable stop 
   decide.resetTurn(); // prompt/steer boundary via channel turns.reset()
   assert.equal(await call(), undefined);
 });
+
+test('unicode sanitization: invisible chars in strict args block; free-text strips and executes', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-uni-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const kernelArgs = [];
+  const core = { audit, kernel: { decideToolCall: async (c) => { kernelArgs.push(c.args); return undefined; } } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir });
+
+  // zero-width space inside a command → block (identifier/classifier spoofing)
+  const b = await decide({ toolCall: { name: 'bash' }, args: { command: 'git​ status' } });
+  assert.equal(b.block, true);
+  assert.equal(b.rule, 'unicode_invisible');
+  // bidi override inside write content → stripped, kernel sees clean text
+  const ok = await decide({ toolCall: { name: 'write' }, args: { path: join(dir, 'a.txt'), content: 'he‮llo‬' } });
+  assert.equal(ok, undefined);
+  assert.equal(kernelArgs.at(-1).content, 'hello');
+});
