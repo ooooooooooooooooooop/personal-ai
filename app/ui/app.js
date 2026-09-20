@@ -1928,7 +1928,7 @@ function flushQueue() {
   if (!next) return;
   lastUserText = next.label ?? next.text;
   addMsg('user', next.label ?? next.text);
-  cmd('prompt', { message: next.text, ...(next.images?.length ? { options: { images: next.images } } : {}) }).then((r) => {
+  cmd('prompt', { message: next.text, ...(next.attachments?.length ? { options: { attachments: next.attachments } } : {}) }).then((r) => {
     if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
   });
 }
@@ -1952,7 +1952,7 @@ async function expandAtMentions(text) {
 // Browser File API reads the bytes locally — no server-side path access, so
 // files from ANYWHERE (not just the workdir) can be attached. Text files land
 // inline as labeled blocks; images ride prompt options as ImageContent.
-const pendingAttach = []; // {name, kind:'text'|'image', text?, data?, mimeType?, bytes}
+const pendingAttach = []; // {name, kind:'text'|'image'|'media', text?, data?, mimeType?, bytes}
 const ATTACH_MAX = 512 * 1024;
 function renderAttach() {
   const row = $('attach-row');
@@ -1971,11 +1971,14 @@ function renderAttach() {
 async function attachFiles(fileList) {
   for (const f of fileList ?? []) {
     if (f.size > ATTACH_MAX) { toast(`${f.name} 超过 512KB，未附着`, 'err'); continue; }
-    if (f.type.startsWith('image/')) {
+    if (f.type.startsWith('image/') || /^(audio|video)\//.test(f.type)
+        || (!f.type.startsWith('text/') && !/\.(md|txt|json|js|ts|py|java|c|cpp|h|css|html|xml|ya?ml|toml|csv|log|sh|bat|ps1|sql)$/i.test(f.name))) {
+      // Binary + media: carry as base64 MediaAttachment — the channel maps it
+      // by body capability (images native, the rest a truthful descriptor).
       const bytes = new Uint8Array(await f.arrayBuffer());
       let bin = '';
       for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-      pendingAttach.push({ name: f.name, kind: 'image', data: btoa(bin), mimeType: f.type, bytes: f.size });
+      pendingAttach.push({ name: f.name, kind: f.type.startsWith('image/') ? 'image' : 'media', data: btoa(bin), mimeType: f.type || 'application/octet-stream', bytes: f.size });
     } else {
       const text = await f.text();
       pendingAttach.push({ name: f.name, kind: 'text', text, bytes: f.size });
@@ -2003,19 +2006,19 @@ async function send() {
   // images → PromptOptions.images (pi prompt accepts {images: ImageContent[]}).
   let message = text;
   const attachCount = pendingAttach.length;
-  const images = [];
+  const attachments = [];
   for (const a of pendingAttach.splice(0)) {
-    if (a.kind === 'image') images.push({ type: 'image', data: a.data, mimeType: a.mimeType });
-    else message += `\n\n<file name="${a.name}">\n${a.text}\n</file>`;
+    if (a.kind === 'text') message += `\n\n<file name="${a.name}">\n${a.text}\n</file>`;
+    else attachments.push({ name: a.name, mime: a.mimeType, data: a.data, bytes: a.bytes });
   }
   renderAttach();
-  if (busy) { queue.push({ text: message, images, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }
+  if (busy) { queue.push({ text: message, attachments, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }
   lastUserText = text;
   addMsg('user', text || `（${attachCount} 个附件）`);
   const ex = await expandAtMentions(message);
   if (ex.attached.length) addSys(`已附着 ${ex.attached.length} 个文件：${ex.attached.join('、')}`);
   if (ex.missed.length) addSys(`未能读取：${ex.missed.join('、')}（请确认路径在 workdir 内）`, true);
-  const r = await cmd('prompt', { message: ex.text, ...(images.length ? { options: { images } } : {}) });
+  const r = await cmd('prompt', { message: ex.text, ...(attachments.length ? { options: { attachments } } : {}) });
   if (!r.success) addSys(`发送失败：${r.error ?? '未知'}`, true);
 }
 async function steer() {

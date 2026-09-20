@@ -4,6 +4,7 @@
  * shapes get translated into plain-data snapshots a UI can consume.
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
+import { normalizeAttachments, partitionByCapability, describeAttachment } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -93,7 +94,25 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     prompt: (message, options) => {
       admitSpend();
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
-      return box.s.prompt(message, options);
+      // U5: generalized attachments normalize at the channel boundary, then
+      // split by body capability — pi carries images natively; other media
+      // degrades to a truthful descriptor block (never a fake modality).
+      let msg = message;
+      let opts = options;
+      if (options?.attachments?.length) {
+        const { attachments, rejected } = normalizeAttachments(options.attachments);
+        const { native, degraded } = partitionByCapability(attachments, { images: true });
+        if (native.length) {
+          opts = { ...options, images: [...(options.images ?? []), ...native.map((a) => ({ type: 'image', data: a.source.data, mimeType: a.mime }))] };
+        }
+        if (degraded.length) {
+          msg = `${msg ?? ''}\n\n${degraded.map(describeAttachment).join('\n')}`;
+        }
+        if (rejected.length) {
+          core.audit?.write({ kind: 'ATTACHMENT_REJECTED', data: { rejected } });
+        }
+      }
+      return box.s.prompt(msg, opts);
     },
     steer: (message) => { admitSpend(); return box.s.steer(message); },
     abort: async () => {
