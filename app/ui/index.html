@@ -139,6 +139,22 @@
         <table id="jobs"><thead><tr><th>job</th><th>类型</th><th>状态</th><th>更新时间</th></tr></thead><tbody></tbody></table>
       </div>
       <div id="job-detail" class="hidden"></div>
+      <div class="page-head" style="margin-top:24px">
+        <h1 style="font-size:16px">AgentTask 协作</h1>
+        <p class="page-sub">委派任务的双向信箱——父子任务互发消息、共享事件流。</p>
+      </div>
+      <div class="table-wrap">
+        <table id="tasks"><thead><tr><th>task</th><th>标签</th><th>状态</th><th>job</th><th>消息</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div id="task-detail" class="hidden">
+        <div id="task-stream"></div>
+        <div id="task-send-row">
+          <input id="task-send-input" placeholder="发消息给子任务（运行中 steer 送达）…" />
+          <button id="task-send-btn" class="ghost-btn">发送</button>
+          <button id="task-interrupt-btn" class="ghost-btn warn">中断</button>
+          <button id="task-close-btn" class="ghost-btn">关闭</button>
+        </div>
+      </div>
     </section>
 
     <section id="view-changes" class="view hidden">

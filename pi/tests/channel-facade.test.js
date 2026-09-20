@@ -232,6 +232,50 @@ test('session_save/saved_list/agent_stats dispatch; auto-name fills only the nul
   dispose();
 });
 
+test('task_* commands dispatch to the mailbox facade; interrupt maps to job cancel', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-task-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const { TaskStore } = await import('../../host/src/core/tasks.js');
+  const store = new TaskStore(dir);
+  const t = store.create({ label: 'child work' });
+  store.bindJob(t.task_id, 'job-1');
+  const interrupts = [];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    tasks: {
+      list: () => store.list(), get: (id) => store.get(id),
+      read: (id, s, since) => store.read(id, s, since),
+      postInbox: (id, m) => store.postInbox(id, m),
+      postEvent: (id, k, d) => store.postEvent(id, k, d),
+      setState: (id, s) => store.setState(id, s),
+      interrupt: async (jobId) => { interrupts.push(jobId); return { ok: true }; },
+    },
+  });
+  const l = await ch.handle({ type: 'task_list' });
+  assert.equal(l.data[0].task_id, t.task_id);
+  const send = await ch.handle({ type: 'task_send', taskId: t.task_id, body: 'operator note' });
+  assert.equal(send.data.seq, 1);
+  const ev = await ch.handle({ type: 'task_events', taskId: t.task_id });
+  assert.equal(ev.data.inbox[0].body, 'operator note');
+  assert.ok(ev.data.events.some((e) => e.kind === 'task_created'));
+  const ix = await ch.handle({ type: 'task_interrupt', taskId: t.task_id });
+  assert.equal(ix.success, true);
+  assert.deepEqual(interrupts, ['job-1']);
+  const cl = await ch.handle({ type: 'task_close', taskId: t.task_id });
+  assert.equal(cl.data.state, 'closed');
+  const late = await ch.handle({ type: 'task_send', taskId: t.task_id, body: 'x' });
+  assert.equal(late.success, false); // closed refuses
+  // no store → fail closed
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  assert.equal((await bare.channel.handle({ type: 'task_list' })).success, false);
+  assert.equal((await bare.channel.handle({ type: 'task_send', taskId: 't', body: 'x' })).success, false);
+  bare.dispose();
+  dispose();
+});
+
 test('session_export format=jsonl copies the raw session file to exports/', async () => {
   fakeSessionRef = fakeSession(); listeners.clear();
   const dir = mkdtempSync(join(tmpdir(), 'pai-chan-exp-'));

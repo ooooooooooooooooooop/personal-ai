@@ -1477,6 +1477,94 @@ async function refreshJobs() {
     tr.onclick = () => openJobDetail(j.job_id);
     tbody.appendChild(tr);
   }
+  refreshTasks();
+}
+
+/* ---------- AgentTask mailbox center (F-family) ---------- */
+let activeTask = null;
+
+async function refreshTasks() {
+  const tbody = $('tasks').querySelector('tbody');
+  tbody.innerHTML = '';
+  const r = await cmd('task_list');
+  const tasks = r.success ? (r.data ?? []) : [];
+  if (!tasks.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-4);padding:20px">暂无协作任务——delegate_task 委派自动建档</td></tr>';
+    return;
+  }
+  for (const t of tasks) {
+    const tr = document.createElement('tr');
+    const cells = [t.task_id?.slice(0, 16) ?? '', t.label ?? '', t.state ?? '', (t.job_id ?? '').slice(0, 12), `收${t.inbox_count ?? 0}/发${t.outbox_count ?? 0}`];
+    tr.innerHTML = cells.map(() => '<td></td>').join('');
+    tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
+    tr.classList.add('clickable');
+    tr.onclick = () => openTask(t.task_id);
+    tbody.appendChild(tr);
+  }
+  if (activeTask) paintTask(); // live stream follows the same refresh tick
+}
+
+async function openTask(taskId) {
+  activeTask = taskId;
+  const box = $('task-detail');
+  box.classList.remove('hidden');
+  await paintTask();
+}
+
+async function paintTask() {
+  if (!activeTask) return;
+  const r = await cmd('task_events', { taskId: activeTask });
+  if (!r.success) { $('task-stream').innerHTML = `<div class="dim" style="padding:12px">${escHtml(r.error ?? '读取失败')}</div>`; return; }
+  const stream = $('task-stream');
+  stream.innerHTML = '';
+  const rows = [
+    ...(r.data.inbox ?? []).map((m) => ({ tag: '→子', cls: 'dir-in', body: m.body, ts: m.ts })),
+    ...(r.data.outbox ?? []).map((m) => ({ tag: '子→', cls: 'dir-out', body: m.body, ts: m.ts })),
+    ...(r.data.events ?? []).map((e) => ({ tag: e.kind, cls: 'dir-ev', body: e.data?.note ?? e.data?.body ?? JSON.stringify(e.data ?? {}), ts: e.ts })),
+  ].sort((a, b) => (a.ts ?? '').localeCompare(b.ts ?? ''));
+  for (const m of rows) {
+    const div = document.createElement('div');
+    div.className = `task-msg ${m.cls}`;
+    div.innerHTML = `<span class="tm-tag"></span><span class="tm-body selectable"></span><span class="tm-ts dim"></span>`;
+    div.querySelector('.tm-tag').textContent = m.tag;
+    div.querySelector('.tm-body').textContent = String(m.body ?? '');
+    div.querySelector('.tm-ts').textContent = (m.ts ?? '').slice(11, 19);
+    stream.appendChild(div);
+  }
+  stream.scrollTop = stream.scrollHeight;
+  const st = r.data.task?.state;
+  $('task-send-input').disabled = st === 'closed';
+  $('task-send-btn').disabled = st === 'closed';
+}
+
+$('task-send-btn').onclick = async () => {
+  const body = $('task-send-input').value.trim();
+  if (!body || !activeTask) return;
+  $('task-send-input').value = '';
+  const r = await cmd('task_send', { taskId: activeTask, body });
+  if (!r.success) toast(`发送失败：${r.error ?? '未知'}`, 'err');
+  await paintTask();
+};
+$('task-send-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('task-send-btn').click(); }
+});
+$('task-interrupt-btn').onclick = async () => {
+  if (!activeTask || !confirm('中断该协作任务？绑定的 job 会被取消。')) return;
+  const r = await cmd('task_interrupt', { taskId: activeTask });
+  if (!r.success) toast(`中断失败：${r.error ?? '未知'}`, 'err');
+  else toast('任务已中断');
+  await paintTask(); refreshJobs();
+};
+$('task-close-btn').onclick = async () => {
+  if (!activeTask) return;
+  const r = await cmd('task_close', { taskId: activeTask });
+  if (!r.success) toast(`关闭失败：${r.error ?? '未知'}`, 'err');
+  await paintTask(); refreshTasks();
+};
+let taskTimer = null;
+function refreshTaskSoon() {
+  clearTimeout(taskTimer);
+  if (activeTask) taskTimer = setTimeout(paintTask, 1500);
 }
 
 /* ---------- changes & artifacts (fileops receipt stream) ---------- */

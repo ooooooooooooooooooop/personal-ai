@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -85,6 +85,7 @@ export class HostChannel {
     this.modes = modes;
     this.turns = turns;
     this.todos = todos;
+    this.tasks = tasks;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -331,6 +332,47 @@ export class HostChannel {
         case 'agent_stats': {
           if (!this.sessions?.agentStats) return reply(false, undefined, 'agent stats unavailable');
           return reply(true, await this.sessions.agentStats());
+        }
+        // F-family AgentTask mailbox — operator-facing mirrors of the
+        // model's task_* tools (same store, same state machine).
+        case 'task_list': {
+          if (!this.tasks) return reply(false, undefined, 'task store unavailable');
+          return reply(true, this.tasks.list());
+        }
+        case 'task_events': {
+          if (!this.tasks) return reply(false, undefined, 'task store unavailable');
+          if (!cmd.taskId) return reply(false, undefined, 'task_events requires {taskId}');
+          const t = this.tasks.get(String(cmd.taskId));
+          if (!t) return reply(false, undefined, `task '${cmd.taskId}' not found`);
+          return reply(true, {
+            task: t,
+            inbox: this.tasks.read(t.task_id, 'inbox'),
+            outbox: this.tasks.read(t.task_id, 'outbox'),
+            events: this.tasks.read(t.task_id, 'events', Number(cmd.since ?? 0)),
+          });
+        }
+        case 'task_send': {
+          if (!this.tasks) return reply(false, undefined, 'task store unavailable');
+          if (!cmd.taskId || cmd.body == null) return reply(false, undefined, 'task_send requires {taskId,body}');
+          const r = this.tasks.postInbox(String(cmd.taskId), { from: 'operator', body: String(cmd.body) });
+          if (!r) return reply(false, undefined, `task '${cmd.taskId}' not found`);
+          if (r.refused) return reply(false, undefined, r.refused);
+          return reply(true, { seq: r.seq });
+        }
+        case 'task_close': {
+          if (!this.tasks) return reply(false, undefined, 'task store unavailable');
+          const t = this.tasks.setState(String(cmd.taskId ?? ''), 'closed');
+          if (!t) return reply(false, undefined, `task '${cmd.taskId}' not found`);
+          return reply(true, { task_id: t.task_id, state: t.state });
+        }
+        case 'task_interrupt': {
+          if (!this.tasks?.interrupt) return reply(false, undefined, 'task interrupt unavailable');
+          const t = this.tasks.get(String(cmd.taskId ?? ''));
+          if (!t) return reply(false, undefined, `task '${cmd.taskId}' not found`);
+          if (!t.job_id) return reply(false, undefined, 'task has no bound job');
+          const r = await this.tasks.interrupt(t.job_id);
+          this.tasks.postEvent(t.task_id, 'interrupted', { job_id: t.job_id, ok: r?.ok !== false });
+          return reply(r?.ok !== false, r ?? {});
         }
         case 'fileops_list': {
           if (!this.fileops?.list) return reply(false, undefined, 'fileops facade unavailable');

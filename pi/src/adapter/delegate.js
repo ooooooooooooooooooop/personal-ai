@@ -36,8 +36,11 @@ export const DELEGATE_BRIDGE = fileURLToPath(new URL('../../bin/delegate-bridge.
  * @param {Map} [opts.profiles]  frontmatter subagent profiles (.pai/agents,
  *        <instance>/agents) — `profile` param resolves target + prepends the
  *        profile preamble to the task
+ * @param {TaskStore} [opts.taskStore]  F-family mailbox — when present every
+ *        delegation creates a task record and the bridge binds --task-dir,
+ *        upgrading the one-shot job to a bidirectional AgentTask.
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, taskStore = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -141,7 +144,13 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (rem.calls != null) budgetFlags += ` --budget-calls ${Math.floor(rem.calls)}`;
         if (rem.costUsd != null) budgetFlags += ` --budget-cost ${rem.costUsd}`;
       }
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags} -- ${inner}`;
+      // F-family: a task record upgrades the delegation to a mailbox-backed
+      // AgentTask — the bridge watches inbox→stdin and captures child
+      // markers→outbox/events. v1 is strictly parent↔child.
+      const agentTask = taskStore
+        ? taskStore.create({ label: task.slice(0, 80), parent: scope, kind: 'delegation' })
+        : null;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,
@@ -163,13 +172,19 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         };
       }
       const { job_id, attempt_id } = r;
+      if (agentTask) taskStore.bindJob(agentTask.task_id, job_id);
       return {
         content: [{
           type: 'text',
-          text: `delegated to ${target} as durable job ${job_id} (attempt ${attempt_id}). ` +
+          text: `delegated to ${target} as durable job ${job_id} (attempt ${attempt_id})` +
+            (agentTask ? ` — AgentTask ${agentTask.task_id}: use task_send/task_wait/task_yield/task_interrupt/task_close for two-way coordination. ` : '. ') +
             'Poll job_status for completion; the result envelope lands in the jobs directory.',
         }],
-        details: { job_id, attempt_id, target, profile: params.profile ?? null, ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}) },
+        details: {
+          job_id, attempt_id, target, profile: params.profile ?? null,
+          ...(agentTask ? { task_id: agentTask.task_id } : {}),
+          ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}),
+        },
       };
     },
   };

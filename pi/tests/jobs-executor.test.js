@@ -451,3 +451,48 @@ test('sandbox provider wraps the spawned command via argv spec and audits it', {
   assert.ok(existsSync(marker), 'sandbox spec was spawned instead of the bare command');
   assert.ok(auditEvents.some((e) => e.kind === 'JOB_SANDBOXED' && e.data.provider === 'test-wrap'));
 });
+
+// ─── F-family AgentTask mailbox — real two-way bridge streams ───────────
+
+test('mailbox bridge: inbox→stdin steer + child markers→outbox/events', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mailbox-'));
+  const taskDir = join(dir, 'tasks', 'task-t1');
+  mkdirSync(taskDir, { recursive: true });
+  writeFileSync(join(taskDir, 'task.json'),
+    JSON.stringify({ task_id: 'task-t1', state: 'open', acks: {} }));
+
+  const worker = join(here, 'fixtures', 'mailbox-child.js');
+  const bridge = join(here, '..', 'bin', 'delegate-bridge.js');
+  const child = spawn(process.execPath,
+    [bridge, '--target', 'fakechild', '--task-dir', taskDir, '--', process.execPath, worker],
+    { stdio: ['ignore', 'pipe', 'pipe'] });
+  let out = '';
+  child.stdout.on('data', (d) => { out += d; });
+  child.stderr.on('data', (d) => { out += d; });
+
+  // mid-run: the parent posts to inbox — the bridge forwards it as a steer
+  // frame on the child's stdin; the fixture echoes it back as GOT:
+  await new Promise((r) => setTimeout(r, 600));
+  const { appendFileSync } = await import('node:fs');
+  appendFileSync(join(taskDir, 'inbox.jsonl'),
+    `${JSON.stringify({ seq: 1, ts: new Date().toISOString(), from: 'parent', body: 'focus on tests' })}\n`);
+
+  await new Promise((r) => child.on('exit', r));
+
+  const readJsonl = (name) => {
+    const p = join(taskDir, name);
+    return existsSync(p) ? readFileSync(p, 'utf-8').split('\n').filter(Boolean).map(JSON.parse) : [];
+  };
+  const outbox = readJsonl('outbox.jsonl');
+  assert.equal(outbox.length, 2, 'two child posts landed in outbox');
+  assert.equal(outbox[0].body, 'child partial result');
+  assert.equal(outbox[1].body, 'child final result');
+  const events = readJsonl('events.jsonl');
+  assert.ok(events.some((e) => e.kind === 'progress' && e.data.pct === 50));
+  assert.ok(events.some((e) => e.kind === 'child_exited'));
+  // steer frame actually reached the child's stdin and marker lines were
+  // stripped from passthrough output
+  assert.match(out, /GOT:\{"type":"steer","message":"\[parent\] focus on tests"\}/);
+  assert.ok(!out.includes('PAI_TASK_POST'));
+  assert.match(out, /PAI_USAGE/);
+});

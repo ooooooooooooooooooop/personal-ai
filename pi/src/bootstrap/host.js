@@ -7,6 +7,7 @@ import { parseShellCommand } from '../adapter/command-parse.js';
 import { ContinuationGovernor } from '../../../host/src/core/continuation.js';
 import { selectBody } from '../../../host/src/core/eligibility.js';
 import { JobStore } from '../../../host/src/core/jobs.js';
+import { TaskStore } from '../../../host/src/core/tasks.js';
 import { PendingAsks } from '../../../host/src/core/asks.js';
 import { JobExecutor } from '../adapter/jobs.js';
 import { SandboxProvider } from '../../../host/src/core/sandbox.js';
@@ -26,6 +27,7 @@ function numEnv(name) {
   return Number.isFinite(v) && v > 0 ? v : undefined;
 }
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
+import { taskTools } from '../adapter/tasktools.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
@@ -199,8 +201,12 @@ export async function startHost({
     getScope: () => currentSession?.sessionId ?? null,
   });
 
+  // F-family AgentTask mailbox — durable task records binding delegation
+  // jobs to two-way inbox/outbox/event streams (v1: parent↔child only).
+  const taskStore = new TaskStore(core.paths.root);
   const customTools = [
     jobStatusTool(jobStore),
+    ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
     updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null),
     // structured operator questions — kind:'question' asks bypass session
     // auto-allow by design (a question can never answer itself)
@@ -226,6 +232,9 @@ export async function startHost({
     budget,
     // frontmatter subagent personas: project .pai/agents + instance agents/
     profiles: loadAgentProfiles({ workdir, instanceRoot: core.paths.root }),
+    // every delegation becomes a mailbox-backed AgentTask — the bridge
+    // binds --task-dir for real two-way coordination
+    taskStore,
   }));
 
   // M2 production wiring: policy-denied tools never reach the visible surface
@@ -645,6 +654,16 @@ export async function startHost({
     },
     handoff: handoffFacade,
     sessions: sessionsFacade,
+    // task facade — channel-facing mirror of the model's task_* tools
+    tasks: {
+      list: () => taskStore.list(),
+      get: (id) => taskStore.get(id),
+      read: (id, s, since) => taskStore.read(id, s, since),
+      postInbox: (id, m) => taskStore.postInbox(id, m),
+      postEvent: (id, k, d) => taskStore.postEvent(id, k, d),
+      setState: (id, s) => taskStore.setState(id, s),
+      interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt'),
+    },
     asks,
     fileops: {
       list: (n) => fileOps.list(n),
