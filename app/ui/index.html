@@ -298,6 +298,22 @@
       </div>
 
       <div class="set-card">
+        <div class="set-card-title">命令清单</div>
+        <div class="set-sub" style="margin:0 0 4px">项目禁前缀 <code>.pai/commands.json</code>——命中即在执行前拦截（只能收紧）。</div>
+        <textarea id="commands-json" class="modes-json" spellcheck="false" placeholder='{"denyPrefixes":["rm -rf","git push","curl"]}'></textarea>
+        <div class="set-row" style="margin-top:6px">
+          <button id="commands-save" class="btn">保存项目禁表</button>
+          <span id="commands-msg" class="setup-msg"></span>
+        </div>
+        <div class="set-sub" style="margin:12px 0 4px">操作员白名单 <code>command-allow.json</code>（实例级，agent 不可写）——命中前缀跳过批准卡。</div>
+        <textarea id="command-allow-json" class="modes-json" spellcheck="false" placeholder='{"allowPrefixes":["git status","npm test"]}'></textarea>
+        <div class="set-row" style="margin-top:6px">
+          <button id="command-allow-save" class="btn">保存白名单</button>
+          <span id="command-allow-msg" class="setup-msg"></span>
+        </div>
+      </div>
+
+      <div class="set-card">
         <div class="set-card-title">治理姿态 <span id="gov-sum" class="pill"></span></div>
         <div id="gov-actions"></div>
         <div id="gov-denied" class="set-sub" style="margin-top:8px"></div>

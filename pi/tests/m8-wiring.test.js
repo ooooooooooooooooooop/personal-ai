@@ -358,3 +358,14 @@ test('unicode sanitization: invisible chars in strict args block; free-text stri
   assert.equal(ok, undefined);
   assert.equal(kernelArgs.at(-1).content, 'hello');
 });
+
+test('command denylist: .pai/commands.json denyPrefix blocks before kernel admit', async () => {
+  const { dir, decide } = rig();
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'commands.json'), JSON.stringify({ denyPrefixes: ['rm -rf', 'git push'] }));
+  const blocked = await decide({ toolCall: { name: 'bash', id: 'c1' }, args: { command: 'rm -rf node_modules' } });
+  assert.equal(blocked.block, true);
+  assert.equal(blocked.rule, 'command_denylist');
+  const ok = await decide({ toolCall: { name: 'bash', id: 'c2' }, args: { command: 'npm test' } });
+  assert.equal(ok, undefined); // non-matching passes through to kernel admit
+});

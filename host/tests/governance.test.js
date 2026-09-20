@@ -271,3 +271,33 @@ test('kernel ask descriptor carries truncation flags for oversized args (B1)', a
   assert.ok(pending.argsTotalChars > 60000);
   assert.ok(pending.args.command.length < pending.argsTotalChars);
 });
+
+test("command allowlist skips the ask card but never a deny (Roo whitelist analogue)", async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { destructive: 'ask', privilege: 'deny' },
+  });
+  const calls = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: src }], parseError: null,
+      risk: src.startsWith('sudo') ? 'privilege' : 'destructive',
+    }),
+    commandAllowlist: (ctx) => String(ctx.args?.command ?? '').startsWith('rm -rf build'),
+    ask: async (pending) => { calls.push(pending); return 'deny'; },
+  });
+  // allowlisted prefix → admitted without consulting the operator
+  const ok = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 't1', args: { command: 'rm -rf build/out' } }));
+  assert.equal(ok, undefined);
+  assert.equal(calls.length, 0);
+  // non-matching prefix → still asks (operator denies → blocked)
+  const no = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 't2', args: { command: 'rm -rf src' } }));
+  assert.equal(no.block, true);
+  assert.equal(calls.length, 1);
+  // deny-class commands are unreachable for the allowlist (deny ran first)
+  const deny = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 't3', args: { command: 'sudo rm -rf build/x' } }));
+  assert.equal(deny.block, true);
+  assert.equal(deny.rule, 'risk_privilege');
+  assert.equal(calls.length, 1); // no new ask
+});

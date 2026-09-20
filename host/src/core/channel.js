@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -88,6 +88,7 @@ export class HostChannel {
     this.todos = todos;
     this.tasks = tasks;
     this.memory = memory;
+    this.commands = commands;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -468,6 +469,26 @@ export class HostChannel {
         case 'modes_save': {
           if (!this.modes?.saveProject) return reply(false, undefined, 'modes editor facade unavailable');
           const out = this.modes.saveProject(String(cmd.content ?? ''));
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
+        case 'commands_read': {
+          if (!this.commands?.readProject) return reply(false, undefined, 'commands facade unavailable');
+          return reply(true, this.commands.readProject());
+        }
+        case 'commands_save': {
+          if (!this.commands?.saveProject) return reply(false, undefined, 'commands facade unavailable');
+          const out = this.commands.saveProject(String(cmd.content ?? ''));
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
+        case 'command_allow_read': {
+          if (!this.commands?.readAllow) return reply(false, undefined, 'commands facade unavailable');
+          return reply(true, this.commands.readAllow());
+        }
+        case 'command_allow_save': {
+          if (!this.commands?.saveAllow) return reply(false, undefined, 'commands facade unavailable');
+          const out = this.commands.saveAllow(String(cmd.content ?? ''));
           if (out?.error) return reply(false, undefined, out.error);
           return reply(true, out);
         }

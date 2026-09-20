@@ -1386,6 +1386,25 @@ $('modes-save') && ($('modes-save').onclick = async () => {
   else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
   refreshModesCard(); refreshMode();
 });
+/* command prefix lists — .pai/commands.json (deny) + command-allow.json (ask bypass) */
+async function refreshCommandsCard() {
+  if (!$('commands-json')) return;
+  const [d, a] = await Promise.all([cmd('commands_read'), cmd('command_allow_read')]);
+  if (d?.success) $('commands-json').value = d.data.content || '';
+  if (a?.success) $('command-allow-json').value = a.data.content || '';
+}
+$('commands-save') && ($('commands-save').onclick = async () => {
+  const r = await cmd('commands_save', { content: $('commands-json').value });
+  const msg = $('commands-msg');
+  if (r.success) { msg.textContent = '已保存'; msg.className = 'setup-msg ok'; }
+  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+});
+$('command-allow-save') && ($('command-allow-save').onclick = async () => {
+  const r = await cmd('command_allow_save', { content: $('command-allow-json').value });
+  const msg = $('command-allow-msg');
+  if (r.success) { msg.textContent = '已保存——命中前缀的命令不再弹批准卡'; msg.className = 'setup-msg ok'; }
+  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+});
 $('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
 $('set-clear-key').onclick = async () => {
   const provider = $('set-provider').value;
@@ -1948,7 +1967,7 @@ function switchView(v) {
   if (v === 'changes') refreshChanges();
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
-  if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); }
+  if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); refreshCommandsCard(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
 $('body-chip').onclick = () => switchView('bodies');

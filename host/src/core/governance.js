@@ -34,7 +34,7 @@ export class GovernanceKernel {
    * @param {string[]} [deps.mutatingTools]  tool names that mutate without a
    *        shell command (write/edit/delete) — plan mode asks these too.
    */
-  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [], modeOverlay = null }) {
+  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [], modeOverlay = null, commandAllowlist = null }) {
     if (!audit) throw new Error('GovernanceKernel requires an AuditWriter');
     if (!policy) throw new Error('GovernanceKernel requires an AttestedPolicy');
     this.audit = audit;
@@ -47,6 +47,7 @@ export class GovernanceKernel {
     this.modeProvider = modeProvider;
     this.modeOverlay = modeOverlay;
     this.mutatingTools = new Set(mutatingTools);
+    this.commandAllowlist = commandAllowlist;
   }
 
   #deny(ctx, rule, detail) {
@@ -94,6 +95,17 @@ export class GovernanceKernel {
       kind: 'GOVERNANCE_ASK', toolName: ctx.toolName,
       data: { toolCallId: ctx.toolCallId, rule, summary },
     });
+    // Roo command-allowlist analogue: an OPERATOR-owned prefix list (instance
+    // root, not the agent-writable workdir) pre-approves matching commands —
+    // the ask is skipped but every other deny layer already ran. Only ever
+    // consulted inside #ask, so it can soften an approval request, never a deny.
+    if (this.commandAllowlist?.(ctx)) {
+      this.audit.write({
+        kind: 'COMMAND_ALLOWLIST_HIT', toolName: ctx.toolName,
+        data: { toolCallId: ctx.toolCallId, rule, summary },
+      });
+      return this.#allow(ctx, 'operator:command_allowlist');
+    }
     // WYSIWYG contract: the operator must know whether the card shows the
     // complete payload or a clipped prefix — truncated args carry an explicit
     // flag + original size so the UI can say "you are approving N chars shown

@@ -1,6 +1,8 @@
 import { isLongRunningCommand } from '../adapter/jobs.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { scanForSecrets } from '../adapter/secrets.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
@@ -36,6 +38,22 @@ function sanitizeArgs(args) {
 // File-access tool surface the .paiignore check applies to — read AND write
 // families: context exclusion means invisible AND untouchable.
 const FILE_ACCESS_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files', 'write', 'edit', 'delete', 'apply_patch', 'patch']);
+// Tools whose args carry a shell command string — prefix lists apply here.
+const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'command', cmd: 'command' };
+
+/**
+ * Roo command deny-list analogue: `.pai/commands.json` `{denyPrefixes:[]}` —
+ * workdir-side tightening only. A prefix match blocks before the kernel runs;
+ * there is no allow list here because an agent-writable file must never widen.
+ * Operator-side allowlists live at <instance>/command-allow.json (kernel dep).
+ */
+function commandDenyPrefixes(workdir) {
+  try {
+    const doc = JSON.parse(readFileSync(join(workdir, '.pai', 'commands.json'), 'utf-8'));
+    return (Array.isArray(doc?.denyPrefixes) ? doc.denyPrefixes : [])
+      .map((p) => String(p).trim()).filter(Boolean).slice(0, 100);
+  } catch { return []; }
+}
 
 /**
  * The post-kernel decide chain used by the real composite guard. Extracted so
@@ -88,6 +106,21 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         rule: 'turn_cap',
         reason: `turn tool-call budget exhausted (${turnCalls}/${cap}) — stop calling tools, report what was accomplished and what remains; the user can send a follow-up to continue`,
       };
+    }
+    // .pai/commands.json deny prefixes — project-side tightening, checked
+    // before the kernel so a matched command never reaches any admit path.
+    const cmdKey = COMMAND_ARG_KEYS[toolName];
+    if (cmdKey && typeof ctx.args?.[cmdKey] === 'string') {
+      const cmdText = ctx.args[cmdKey].trim();
+      const hit = commandDenyPrefixes(workdir).find((p) => cmdText.startsWith(p));
+      if (hit) {
+        core.audit.write({ kind: 'COMMAND_DENYLIST_BLOCK', toolName, data: { prefix: hit } });
+        return {
+          block: true,
+          rule: 'command_denylist',
+          reason: `command matches .pai/commands.json denyPrefix '${hit}' — project-level deny`,
+        };
+      }
     }
     // .paiignore context exclusion — refused for read AND write families.
     // Patterns can only restrict, never grant, so an agent-writable ignore

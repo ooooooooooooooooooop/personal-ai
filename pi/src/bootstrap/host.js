@@ -143,6 +143,21 @@ export async function startHost({
       modeProvider: () => riskMode,
       modeOverlay: () => modeOverlay,
       mutatingTools: ['write', 'edit', 'delete'],
+      // Roo command allowlist — OPERATOR-owned <instance>/command-allow.json
+      // (never the workdir): matching prefixes skip the approval card. Only
+      // consulted inside the kernel's ask path — it can soften an ask, never
+      // a deny. Re-read per call so operator edits take effect live.
+      commandAllowlist: (ctx) => {
+        const arg = { powershell: 'command', bash: 'command', shell: 'command', cmd: 'command' }[ctx.toolName];
+        const c = arg ? ctx.args?.[arg] : null;
+        if (typeof c !== 'string') return false;
+        let prefixes = [];
+        try {
+          const doc = JSON.parse(readFileSync(join(instanceRoot, 'command-allow.json'), 'utf-8'));
+          prefixes = (Array.isArray(doc?.allowPrefixes) ? doc.allowPrefixes : []).map((p) => String(p).trim()).filter(Boolean).slice(0, 100);
+        } catch { return false; }
+        return prefixes.some((p) => c.trim().startsWith(p));
+      },
     },
     runtime: {
       hostVersion: '0.0.1',
@@ -765,6 +780,54 @@ export async function startHost({
       emit: (ev) => channelHandle?.channel.emitEvent(ev),
       observations: core.observations,
     }),
+    // Roo command allow/deny lists, split by who owns the file:
+    //   .pai/commands.json (workdir) — denyPrefixes only; the project file can
+    //     tighten, never widen — a stray allowPrefixes key is a validation error
+    //   <instance>/command-allow.json — operator-owned allowlist that skips
+    //     approval cards for matching command prefixes
+    commands: {
+      readProject: () => {
+        const f = join(workdir, '.pai', 'commands.json');
+        try { return { path: f, content: readFileSync(f, 'utf-8') }; }
+        catch { return { path: f, content: '' }; }
+      },
+      saveProject: (content) => {
+        let doc;
+        try { doc = JSON.parse(content); }
+        catch (e) { return { error: `invalid JSON: ${e.message}` }; }
+        const keys = Object.keys(doc ?? {});
+        if (keys.some((k) => k !== 'denyPrefixes')) {
+          return { error: 'only denyPrefixes is allowed here — allow lists live in the operator-owned command-allow.json' };
+        }
+        if (!Array.isArray(doc.denyPrefixes ?? []) || (doc.denyPrefixes ?? []).some((p) => typeof p !== 'string' || !p.trim())) {
+          return { error: 'denyPrefixes must be an array of non-empty strings' };
+        }
+        mkdirSync(join(workdir, '.pai'), { recursive: true });
+        const f = join(workdir, '.pai', 'commands.json');
+        writeFileSync(f, JSON.stringify({ denyPrefixes: doc.denyPrefixes ?? [] }, null, 2) + '\n');
+        core.audit.write({ kind: 'COMMANDS_SAVED', data: { file: '.pai/commands.json', denyPrefixes: (doc.denyPrefixes ?? []).length } });
+        return { ok: true, path: f };
+      },
+      readAllow: () => {
+        const f = join(instanceRoot, 'command-allow.json');
+        try { return { path: f, content: readFileSync(f, 'utf-8') }; }
+        catch { return { path: f, content: '' }; }
+      },
+      saveAllow: (content) => {
+        let doc;
+        try { doc = JSON.parse(content); }
+        catch (e) { return { error: `invalid JSON: ${e.message}` }; }
+        const keys = Object.keys(doc ?? {});
+        if (keys.some((k) => k !== 'allowPrefixes')) return { error: 'only allowPrefixes is allowed' };
+        if (!Array.isArray(doc.allowPrefixes ?? []) || (doc.allowPrefixes ?? []).some((p) => typeof p !== 'string' || !p.trim())) {
+          return { error: 'allowPrefixes must be an array of non-empty strings' };
+        }
+        const f = join(instanceRoot, 'command-allow.json');
+        writeFileSync(f, JSON.stringify({ allowPrefixes: doc.allowPrefixes ?? [] }, null, 2) + '\n');
+        core.audit.write({ kind: 'COMMAND_ALLOW_SAVED', data: { file: 'command-allow.json', allowPrefixes: (doc.allowPrefixes ?? []).length } });
+        return { ok: true, path: f };
+      },
+    },
     fileops: {
       list: (n) => fileOps.list(n),
       listAll: () => fileOps.listAll(),
