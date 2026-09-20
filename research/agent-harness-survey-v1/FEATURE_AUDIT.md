@@ -915,4 +915,13 @@
 | knowledge 注入审计 | Crush `skills.Tracker` 命中可观测 | `KNOWLEDGE_INJECTED` 审计事件（agents 名单载荷）——已存在并有测试断言 |
 | 委派 spawn 深度帽 | Codex thread-tree 深度控制 | `PAI_SPAWN_DEPTH` env 经桥注入子进程，`PAI_MAX_SPAWN_DEPTH`（默认 3）封顶——到顶拒绝返回工具结果（模型可读、可绕行），teammate spawnSpec 记 depth |
 
+**复扫第四批**：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| 兼容 agent 目录 | Cursor `.cursor/agents` / Kiro `.kiro/agents` / CC `.claude/agents` / Devin `.devin/agents` | `loadAgentProfiles` 增读四家兼容目录（同名先到先赢）；无 `target:` 的画像仅在 `PAI_DELEGATE_DEFAULT_TARGET` 设定时载入（他家 in-process 无 target 概念，我方必须指名身体） |
+| `/verify` 手动跑 | Aider `/lint` `/test` 命令面 | `verify_run`/`verify_status` 通道 + `/verify` slash——绕过突发节流但**保留 arm-check**（agent 自写 verify.json 仍只能跑政策本就 allow 的类） |
+| 陈旧任务对账 | Cline stale session 对账 | `task_list` 对 open 任务 join 绑定 job 终态→`stale:true` 标记（UI 显示"失联"）；teammate 是常驻设计所以只标不关 |
+| 会话归档清扫 | ZCode 3/7/14/30 天自动归档候选 | `session_sweep {days=14}` + 抽屉"归档 N 个旧会话"按钮——pinned/已归档跳过，归档可逆不删除 |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

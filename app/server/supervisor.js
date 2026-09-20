@@ -565,6 +565,26 @@ export class BodySupervisor {
           const m = this.#setSessMeta(String(cmd.path ?? ''), { archived: cmd.archived !== false });
           return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_archive requires {path}');
         }
+        // ZCode auto-archive candidates, one-click form: archive every
+        // unpinned, unarchived session idle longer than {days} (default 14).
+        // Reversible via unarchive — sweep never deletes.
+        case 'session_sweep': {
+          const days = Number(cmd.days) > 0 ? Number(cmd.days) : 14;
+          const cutoff = Date.now() - days * 86400_000;
+          const r = await this.sendToBody({ type: 'session_list' });
+          if (!r.success || !Array.isArray(r.data)) return r;
+          const meta = this.#sessMeta();
+          const swept = [];
+          for (const s of r.data) {
+            if (meta[s.path]?.pinned || meta[s.path]?.archived) continue;
+            const idle = Date.parse(s.modified ?? s.created ?? '');
+            if (Number.isFinite(idle) && idle < cutoff) {
+              this.#setSessMeta(s.path, { archived: true });
+              swept.push(s.path);
+            }
+          }
+          return reply(true, { swept: swept.length, paths: swept, days });
+        }
         case 'session_list': {
           const r = await this.sendToBody(cmd);
           if (r.success && Array.isArray(r.data)) {

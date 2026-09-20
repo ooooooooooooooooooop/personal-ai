@@ -1134,6 +1134,21 @@ function renderSessions() {
     t.onclick = () => { showArchived = !showArchived; renderSessions(); };
     box.appendChild(t);
   }
+  // Sweep affordance: archive candidates = unpinned sessions idle >14d
+  // (ZCode auto-archive analogue — operator-triggered, always reversible).
+  const sweepable = sessionsCache.filter((s) => !s.pinned && !s.archived
+    && Date.parse(s.modified ?? s.created ?? '') < Date.now() - 14 * 86400_000);
+  if (sweepable.length) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle';
+    t.textContent = `归档 ${sweepable.length} 个 14 天前的旧会话`;
+    t.onclick = async () => {
+      const r = await cmd('session_sweep', { days: 14 });
+      if (r.success) { toast(`已归档 ${r.data?.swept ?? 0} 个旧会话`); await refreshSessions(); }
+      else addSys(`归档清扫失败：${r.error ?? '未知'}`, true);
+    };
+    box.appendChild(t);
+  }
   const groups = new Map();
   for (const s of items) {
     const g = sessionGroup(s.modified);
@@ -1726,7 +1741,7 @@ async function refreshTasks() {
   for (const r of roots) walk(r, 0);
   for (const { t, depth } of ordered) {
     const tr = document.createElement('tr');
-    const cells = [t.task_id?.slice(0, 16) ?? '', t.label ?? '', t.state ?? '', (t.job_id ?? '').slice(0, 12), `收${t.inbox_count ?? 0}/发${t.outbox_count ?? 0}`];
+    const cells = [t.task_id?.slice(0, 16) ?? '', t.label ?? '', t.stale ? `${t.state ?? ''} · 失联` : (t.state ?? ''), (t.job_id ?? '').slice(0, 12), `收${t.inbox_count ?? 0}/发${t.outbox_count ?? 0}`];
     tr.innerHTML = cells.map(() => '<td></td>').join('');
     tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
     if (depth) {
@@ -2335,6 +2350,16 @@ const SLASH = [
       const f = files.find((x) => x === `.pai/plans/${name}.md`);
       if (!f) { addSys(`没有计划 '${name}'——可用：${files.map((x) => x.replace(/^\.pai\/plans\/|\.md$/g, '')).join('、')}`, true); return; }
       await pick(f);
+    },
+  },
+  {
+    cmd: '/verify', label: '跑验证命令', hint: '手动触发 .pai/verify.json 的 onWrite 命令（Aider /lint /test 对等）',
+    run: async () => {
+      const r = await cmd('verify_run');
+      if (!r.success) { addSys(`验证不可用：${r.error ?? '未知'}`, true); return; }
+      const d = r.data ?? {};
+      if (!d.ran) { addSys(`验证未运行：${d.reason ?? '未配置'}`, true); return; }
+      addSys(`验证 ${d.ok ? '通过' : `失败（exit ${d.code}）`}：${(d.outputTail ?? '').split('\n').filter(Boolean).slice(-3).join(' / ') || '(无输出)'}`, !d.ok);
     },
   },
   {

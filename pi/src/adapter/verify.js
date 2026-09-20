@@ -55,12 +55,26 @@ export function createVerifier({ workdir, classify, riskActions, audit = null, e
     },
     /** Run the verifier once after a successful write-family tool call. */
     async afterWrite() {
-      let cfg = null;
-      try { cfg = JSON.parse(readFileSync(configPath, 'utf-8')); } catch { return; }
-      const command = String(cfg?.onWrite ?? '').trim();
-      if (!command) return;
       const now = Date.now();
       if (now - lastRun < BURST_MS) return; // one verify per write burst, not per file
+      return run(now, 'auto');
+    },
+
+    /**
+     * Operator-initiated run (`/verify`, Aider /lint /test analogue) — the
+     * burst throttle does not apply to an explicit ask; the arm-check does
+     * (an agent-written config still can't smuggle a gated command).
+     */
+    async runNow() {
+      return run(Date.now(), 'manual');
+    },
+  };
+
+  async function run(now, origin) {
+      let cfg = null;
+      try { cfg = JSON.parse(readFileSync(configPath, 'utf-8')); } catch { return { ran: false, reason: 'no .pai/verify.json onWrite configured' }; }
+      const command = String(cfg?.onWrite ?? '').trim();
+      if (!command) return { ran: false, reason: 'no .pai/verify.json onWrite configured' };
 
       const parsed = await classify(command).catch((e) => ({ parseError: String(e?.message ?? e) }));
       const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
@@ -68,15 +82,15 @@ export function createVerifier({ workdir, classify, riskActions, audit = null, e
       if (parsed.parseError || actions.some((a) => a !== 'allow')) {
         audit?.write({
           kind: 'VERIFY_REFUSED',
-          data: { command: command.slice(0, 200), risk: parsed.risk ?? null, parseError: parsed.parseError ?? null },
+          data: { command: command.slice(0, 200), risk: parsed.risk ?? null, parseError: parsed.parseError ?? null, origin },
         });
-        return;
+        return { ran: false, refused: true, reason: 'configured command is not policy-allowable — verify refused to arm it' };
       }
 
       lastRun = now;
       const timeoutMs = Number(cfg.timeoutMs) > 0 ? Math.min(Number(cfg.timeoutMs), 300_000) : 60_000;
       const r = await runBounded(command, workdir, timeoutMs);
-      audit?.write({ kind: 'VERIFY_RUN', data: { command: command.slice(0, 200), code: r.code } });
+      audit?.write({ kind: 'VERIFY_RUN', data: { command: command.slice(0, 200), code: r.code, origin } });
       emit?.({ type: 'verify_result', command, ok: r.code === 0 });
       if (r.code !== 0) {
         observations?.record({
@@ -86,6 +100,6 @@ export function createVerifier({ workdir, classify, riskActions, audit = null, e
           actor: 'host',
         });
       }
-    },
-  };
+      return { ran: true, ok: r.code === 0, code: r.code, outputTail: r.output.slice(-4000) };
+  }
 }

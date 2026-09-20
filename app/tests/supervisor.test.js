@@ -335,3 +335,24 @@ test('session meta: pin/archive persists and decorates session_list', async () =
     assert.equal(r.success, false);
   } finally { await sup.dispose(); }
 });
+
+test('session sweep: archives idle unpinned sessions; pinned survive', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const path = `${dir}/sessions/s1.jsonl`;
+    // fixture session is modified 2026-01-01 — far older than 14d
+    let r = await sup.handle({ type: 'session_sweep', days: 14 });
+    assert.equal(r.success, true);
+    assert.equal(r.data.swept, 1);
+    assert.deepEqual(r.data.paths, [path]);
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].archived, true);
+    // pinned sessions are never swept — unarchive then pin, sweep again
+    await sup.handle({ type: 'session_archive', path, archived: false });
+    await sup.handle({ type: 'session_pin', path });
+    r = await sup.handle({ type: 'session_sweep', days: 14 });
+    assert.equal(r.data.swept, 0);
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].archived, false);
+  } finally { await sup.dispose(); }
+});

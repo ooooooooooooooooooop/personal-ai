@@ -265,3 +265,40 @@ test('session_fork forwards entryId for fork-at-point', async () => {
   assert.equal(r.success, true);
   assert.deepEqual(calls, [['sessions/a.jsonl', 'e-mid']]);
 });
+
+test('task_list flags open tasks whose bound job is terminal as stale', async () => {
+  const { TaskStore } = await import('../src/core/tasks.js');
+  const { mkdtempSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-task-'));
+  const tasks = new TaskStore(dir);
+  const open = tasks.create({ label: 'running child', kind: 'delegation' });
+  const done = tasks.create({ label: 'finished child', kind: 'delegation' });
+  tasks.bindJob(done.task_id, 'job-terminal');
+  const jobs = {
+    getJob: (id) => id === 'job-terminal' ? { job_state: 'COMPLETED' } : null,
+  };
+  const ch = new HostChannel({ session: fakeSession(), tasks, jobs });
+  const r = await ch.handle({ type: 'task_list' });
+  const staleRow = r.data.find((t) => t.task_id === done.task_id);
+  const liveRow = r.data.find((t) => t.task_id === open.task_id);
+  assert.equal(staleRow.stale, true);
+  assert.equal(liveRow.stale, undefined);
+});
+
+test('verify_run/verify_status dispatch to the verify facade; absent facade fails closed', async () => {
+  const calls = [];
+  const verify = {
+    status: () => ({ armed: true, command: 'npm test' }),
+    runNow: async () => { calls.push('run'); return { ran: true, ok: true, code: 0 }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), verify });
+  const s = await ch.handle({ type: 'verify_status' });
+  assert.equal(s.data.armed, true);
+  const r = await ch.handle({ type: 'verify_run' });
+  assert.equal(r.data.ran, true);
+  assert.equal(calls.length, 1);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'verify_run' })).success, false);
+});

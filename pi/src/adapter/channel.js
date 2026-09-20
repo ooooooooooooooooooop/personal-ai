@@ -521,6 +521,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     exec,
     commands,
     pins,
+    verify,
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

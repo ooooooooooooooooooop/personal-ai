@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -90,6 +90,7 @@ export class HostChannel {
     this.memory = memory;
     this.commands = commands;
     this.pins = pins;
+    this.verify = verify;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -357,7 +358,20 @@ export class HostChannel {
         // model's task_* tools (same store, same state machine).
         case 'task_list': {
           if (!this.tasks) return reply(false, undefined, 'task store unavailable');
-          return reply(true, this.tasks.list());
+          const rows = this.tasks.list();
+          // Stale-task reconciliation (Cline stale-session analogue): an open
+          // task whose bound job reached a terminal state is marked `stale` —
+          // the mailbox stays readable/addressable, but nothing is listening
+          // on the other end. Flag-only: teammates are persistent by design,
+          // so we annotate instead of auto-closing.
+          const TERMINAL = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
+          for (const t of rows) {
+            if (t.state === 'open' && t.job_id) {
+              const j = this.jobs?.getJob?.(t.job_id);
+              if (j && TERMINAL.has(j.job_state)) t.stale = true;
+            }
+          }
+          return reply(true, rows);
         }
         case 'task_events': {
           if (!this.tasks) return reply(false, undefined, 'task store unavailable');
@@ -505,6 +519,17 @@ export class HostChannel {
         case 'pins_list': {
           if (!this.pins?.list) return reply(false, undefined, 'pins facade unavailable');
           return reply(true, this.pins.list());
+        }
+        // /verify — operator-triggered lint/test run (Aider /lint /test
+        // analogue). Same arm-check as the post-write loop: an agent-written
+        // verify.json can only run what policy already allows.
+        case 'verify_status': {
+          if (!this.verify?.status) return reply(false, undefined, 'verify facade unavailable');
+          return reply(true, this.verify.status());
+        }
+        case 'verify_run': {
+          if (!this.verify?.runNow) return reply(false, undefined, 'verify facade unavailable');
+          return reply(true, await this.verify.runNow());
         }
         case 'pins_add': {
           if (!this.pins?.add) return reply(false, undefined, 'pins facade unavailable');

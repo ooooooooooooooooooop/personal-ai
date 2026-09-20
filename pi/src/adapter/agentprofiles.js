@@ -6,6 +6,11 @@
  * Discovery order (first hit wins on name collision):
  *   <workdir>/.pai/agents/*.md   project-local profiles
  *   <instance>/agents/*.md       user-level profiles
+ *   compat dirs from other harnesses (Cursor .cursor/agents, Kiro
+ *   .kiro/agents, Claude Code .claude/agents, Devin .devin/agents) — same
+ *   md+frontmatter shape; a file without `target:` only loads when
+ *   PAI_DELEGATE_DEFAULT_TARGET is set (their agents ran in-process; ours
+ *   must name a body to spawn).
  *
  * File shape:
  *   ---
@@ -30,7 +35,7 @@ function parseProfile(text, fallbackName) {
     if (kv) fields[kv[1].toLowerCase()] = kv[2].trim().replace(/^["']|["']$/g, '');
   }
   const name = (fields.name || fallbackName).toLowerCase();
-  const target = fields.target ?? '';
+  const target = fields.target ?? process.env.PAI_DELEGATE_DEFAULT_TARGET ?? '';
   if (!target) return null; // a profile without a delegation target is dead config
   return {
     name,
@@ -48,6 +53,11 @@ export function loadAgentProfiles({ workdir, instanceRoot }) {
   const dirs = [
     join(workdir, '.pai', 'agents'),
     join(instanceRoot, 'agents'),
+    // compat: other harnesses' agent dirs, same file shape
+    join(workdir, '.cursor', 'agents'),
+    join(workdir, '.kiro', 'agents'),
+    join(workdir, '.claude', 'agents'),
+    join(workdir, '.devin', 'agents'),
   ];
   const profiles = new Map();
   for (const dir of dirs) {
