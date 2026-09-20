@@ -24,6 +24,9 @@ export class DomainLeaseStore {
     mkdirSync(paths.root, { recursive: true });
     this.now = now;
     this.db = new DatabaseSync(join(paths.root, 'leases.db'));
+    // Separate writers can briefly overlap even with one atomic statement.
+    // Bound SQLite's lock wait instead of failing immediately with SQLITE_BUSY.
+    this.db.exec('PRAGMA busy_timeout = 1000');
     this.db.exec('PRAGMA journal_mode = WAL');
     this.db.exec(`CREATE TABLE IF NOT EXISTS leases (
       scope TEXT NOT NULL,

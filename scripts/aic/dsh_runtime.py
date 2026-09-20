@@ -205,7 +205,8 @@ def validate_contract(contract: dict[str, Any], *, check_lock: bool = True) -> l
 def _powershell_launcher(cfg: dict[str, Any]) -> str:
     return r'''param(
   [string]$ProfileRoot = $PSScriptRoot,
-  [string]$NodePath = $env:DSH_NODE_PATH
+  [string]$NodePath = $env:DSH_NODE_PATH,
+  [ValidateRange(1, 65535)][int]$Port = 3080
 )
 
 $ErrorActionPreference = 'Stop'
@@ -280,13 +281,14 @@ Write-Host 'Preflight gate: PASS (version cohesion / service contracts / ownersh
 # incident (DSH_WORKSPACE_REGISTRY_INTEGRITY, 2026-09-04): each process keeps
 # its own in-memory view and republishes the whole file (last-write-wins, no
 # cross-process lock). Fail closed instead of ever running two writers.
-$portInUse = netstat -ano 2>$null | Select-String ':3080\s' | Select-String 'LISTENING'
+$portInUse = netstat -ano 2>$null | Select-String (':{0}\s' -f $Port) | Select-String 'LISTENING'
 if ($portInUse) {
-  throw "Port 3080 is already in use by another DSH Web host; refusing to start a second instance (SINGLE_INSTANCE_GUARD)."
+  throw "Port $Port is already in use by another DSH Web host; refusing to start a second instance (SINGLE_INSTANCE_GUARD)."
 }
 
+$env:DSH_HOME = $DshHome
 Set-Location -LiteralPath $ProfileRoot
-& $NodePath $entry web --no-open
+& $NodePath $entry web --no-open --port $Port
 exit $LASTEXITCODE
 '''
 

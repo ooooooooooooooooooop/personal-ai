@@ -1,16 +1,25 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { DomainLeaseStore } from '../src/core/lease.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const tempDirs = [];
+const temporaryRoot = (prefix) => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+};
+after(() => {
+  for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
+});
 
 function store(nowRef) {
-  const dir = mkdtempSync(join(tmpdir(), 'pai-lease-'));
+  const dir = temporaryRoot('pai-lease-');
   return new DomainLeaseStore({ root: dir }, { now: () => nowRef.t });
 }
 
@@ -99,24 +108,62 @@ test('scopes are independent: capability lease does not collide with domain leas
   s.close();
 });
 
-test('E4: real multi-process competition — exactly one winner, release visible across processes', { timeout: 30_000 }, async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'pai-lease-race-'));
+test('E4: real multi-process competition — exactly one winner, release visible across processes', { timeout: 30_000 }, async (t) => {
+  const dir = temporaryRoot('pai-lease-race-');
   // init schema from the parent so children only race on the claim itself
   const init = new DomainLeaseStore({ root: dir });
   init.close();
 
   const fixture = join(here, 'fixtures', 'lease-contender.js');
   const owners = ['proc-a', 'proc-b', 'proc-c', 'proc-d'];
-  const run = (owner) => new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [fixture, dir, owner], { stdio: ['ignore', 'pipe', 'pipe'] });
-    let out = '';
-    child.stdout.on('data', (d) => { out += d; });
-    child.on('exit', (code) => code === 0 ? resolve(out) : reject(new Error(`${owner} exited ${code}`)));
+  const children = owners.map((owner) => {
+    const child = spawn(process.execPath, [fixture, dir, owner], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
+    const record = { child, owner, stderr: '' };
+    child.stderr.on('data', (chunk) => { record.stderr += chunk; });
+    record.exited = new Promise((resolve) => {
+      child.once('exit', resolve);
+      child.once('error', (error) => { record.spawnError = error; resolve(null); });
+    });
+    return record;
   });
+  t.after(async () => {
+    for (const { child } of children) {
+      if (child.exitCode === null && child.signalCode === null) child.kill();
+    }
+    await Promise.all(children.map(({ exited }) => exited));
+    for (const { child } of children) child.stderr.destroy();
+  });
+  const receive = (record, type) => new Promise((resolve, reject) => {
+    const { child } = record;
+    const cleanup = () => {
+      child.off('message', onMessage);
+      child.off('exit', onExit);
+      child.off('error', onError);
+      t.signal.removeEventListener('abort', onAbort);
+    };
+    const onError = (error) => { cleanup(); reject(error); };
+    const onExit = (code) => onError(new Error(`${record.owner} exited ${code} before ${type}: ${record.stderr}`));
+    const onAbort = () => onError(t.signal.reason);
+    const onMessage = (message) => {
+      cleanup();
+      if (message.type !== type) reject(new Error(`expected ${type}, got ${message.type}`));
+      else resolve(message);
+    };
+    if (record.spawnError) return onError(record.spawnError);
+    if (child.exitCode !== null || child.signalCode !== null) return onExit(child.exitCode);
+    if (t.signal.aborted) return onAbort();
+    child.once('message', onMessage);
+    child.once('exit', onExit);
+    child.once('error', onError);
+    t.signal.addEventListener('abort', onAbort, { once: true });
+  });
+  await Promise.all(children.map((record) => receive(record, 'ready')));
 
-  const outputs = await Promise.all(owners.map(run));
-  const lines = outputs.flatMap((o) => o.trim().split('\n').map((l) => JSON.parse(l)));
-  const claims = lines.filter((l) => 'ok' in l);
+  // The old fixture released after 300 ms, before a slow contender even
+  // started. Keep the winner alive until all claims have been observed.
+  const results = children.map((record) => receive(record, 'claimed'));
+  for (const { child } of children) child.send({ type: 'claim' });
+  const claims = await Promise.all(results);
   const winners = claims.filter((l) => l.ok);
   const losers = claims.filter((l) => !l.ok);
 
@@ -125,13 +172,25 @@ test('E4: real multi-process competition — exactly one winner, release visible
   assert.equal(winners[0].generation, 1); // first-ever claim on this db
   for (const l of losers) assert.equal(l.heldBy, winners[0].owner); // CAS told the loser who holds it
 
-  const released = lines.find((l) => l.released === true);
-  assert.equal(released.owner, winners[0].owner);
-
-  // release is visible cross-process: a NEW process claims the same name
   const parent = new DomainLeaseStore({ root: dir });
-  const after = parent.claim({ scope: 'domain', name: 'contended', owner: 'parent', ttlSeconds: 10 });
-  assert.ok(after.ok);
-  assert.equal(after.lease.generation, 2); // fencing moved forward
-  parent.close();
+  try {
+    assert.equal(parent.heldBy({ scope: 'domain', name: 'contended' }).status, 'active');
+    const winner = children[owners.indexOf(winners[0].owner)];
+    const releaseResult = receive(winner, 'released');
+    winner.child.send({ type: 'release' });
+    const released = await releaseResult;
+    assert.equal(released.owner, winners[0].owner);
+    assert.equal(released.released, true);
+    assert.equal(parent.heldBy({ scope: 'domain', name: 'contended' }).status, 'released');
+
+    // The parent is a different OS process from every contender.
+    const next = parent.claim({ scope: 'domain', name: 'contended', owner: 'parent', ttlSeconds: 10 });
+    assert.ok(next.ok);
+    assert.equal(next.lease.generation, 2);
+  } finally {
+    parent.close();
+  }
+  for (const { child } of children) child.disconnect();
+  const codes = await Promise.all(children.map(({ exited }) => exited));
+  assert.deepEqual(codes, owners.map(() => 0));
 });

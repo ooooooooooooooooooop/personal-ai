@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import contextlib
+import io
 import os
 import shutil
 import sqlite3
@@ -44,6 +46,28 @@ from skill_visibility import INDETERMINATE
 from sync_v2.engine import SyncEngine
 from sync_v2.receipt import render_human_receipt
 from jobs import DurableJobRegistry
+
+
+def setUpModule():
+    # This is a fixture-based regression suite. It may inspect local git
+    # state, but must never fetch the user's remotes or install a real runtime.
+    from sync_v2 import planes
+    original_git = planes._run_git
+
+    def offline_git(cwd, *args, **kwargs):
+        if args and args[0] == "fetch":
+            return 0, ""
+        if args and args[0] in {"clone", "pull", "push", "ls-remote"}:
+            raise AssertionError(f"external git operation in offline test: {args[0]}")
+        return original_git(cwd, *args, **kwargs)
+
+    stack = contextlib.ExitStack()
+    unittest.addModuleCleanup(stack.close)
+    stack.enter_context(mock.patch("sync_v2.planes._run_git", side_effect=offline_git))
+    stack.enter_context(mock.patch("sync_v2.engine._run_git", side_effect=offline_git))
+    runtime_apply = stack.enter_context(mock.patch(
+        "dsh_runtime.apply", side_effect=AssertionError("real runtime install in offline test")))
+    unittest.addModuleCleanup(runtime_apply.assert_not_called)
 
 
 class FakeSyncRegressionTests(unittest.TestCase):
@@ -381,14 +405,17 @@ class FakeSyncRegressionTests(unittest.TestCase):
         Guarantees that invoking 'python scripts/personal_ai_sync.py sync' or 'check'
         never regresses to the obsolete unsegmented plaintext output.
         """
-        proc = subprocess.run(
-            [sys.executable, str(REPO / "scripts" / "personal_ai_sync.py"), "check"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=120,
-        )
-        output = proc.stdout
+        import personal_ai_sync
+        output_stream = io.StringIO()
+        with (
+            mock.patch.object(sys, "argv", ["personal_ai_sync.py", "check"]),
+            mock.patch("sync_v2.engine.run_sync", side_effect=self.engine.run) as dispatch,
+            mock.patch("personal_ai_sync.run_sync", side_effect=AssertionError("unexpected legacy fallback")),
+            contextlib.redirect_stdout(output_stream),
+        ):
+            personal_ai_sync.main()
+        dispatch.assert_called_once_with(check_only=True)
+        output = output_stream.getvalue()
         self.assertIn("## 1. 一句话结果", output)
         self.assertIn("## 5. 同步结果", output)
         self.assertIn("## 6. 安全与健康检查", output)
@@ -1217,7 +1244,7 @@ class SyncV3ConvergenceDriftReconciliationTests(unittest.TestCase):
                 self.assertEqual(receipt.convergence_status, "PARTIAL")
 
     def test_G_normal_sync_detects_and_repairs(self) -> None:
-        engine = SyncEngine(home=self.home, repo_root=REPO, db_path=self.db_path, state_repo=self.state_repo)
+        engine, patches, mocks = self._make_engine_and_patches()
         mock_repaired = ResourceRecord(
             resource_id="skills",
             plane=SyncPlane.SKILL,
@@ -1225,10 +1252,13 @@ class SyncV3ConvergenceDriftReconciliationTests(unittest.TestCase):
             status=PlaneStatus.REPAIRED,
             summary="21/21 全部对齐 (已修复 1 项)",
         )
-        with mock.patch("sync_v2.engine.evaluate_skills_plane", return_value=mock_repaired):
-            with mock.patch("sync_v2.engine._find_live_dsh_process", return_value=None):
-                receipt, _ = engine.run(check_only=False)
-                self.assertTrue(any("Skills 已收敛同步" in c for c in receipt.changes_applied))
+        mocks["skills_eval"].return_value = mock_repaired
+        with contextlib.ExitStack() as stack:
+            for patch in patches:
+                stack.enter_context(patch)
+            receipt, _ = engine.run(check_only=False)
+        self.assertTrue(any("Skills 已收敛同步" in c for c in receipt.changes_applied))
+        self.assertTrue(mocks["skills_eval"].call_args.kwargs["repair"])
 
     def test_H_repair_deltas_prevent_human_receipt_saying_no_changes(self) -> None:
         # Case 1: changes applied -> Section 2 lists changes, Section 1 does not say no changes

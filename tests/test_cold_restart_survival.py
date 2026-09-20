@@ -1,114 +1,133 @@
-#!/usr/bin/env python3
-"""Physical Cold Restart Survival Test.
+"""Physical launcher lifecycle using an isolated fixture distribution.
 
-Executes a full, isolated cold-start, listener acquisition, HTTP verification,
-clean shutdown, and port release cycle using the canonical launcher and preflight.
+Runs the production PowerShell launcher, its preflight exit-code boundary and
+an actual Node HTTP listener. Full compatibility-engine tests live in
+ test_preflight_deployment; no live DSH config, account or port is required.
 """
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
 import tempfile
 import time
 import unittest
+import urllib.error
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DSH_HOME = Path.home() / ".dsh"
+LAUNCHER = ROOT / "dsh-config/profiles/web/dsh-launch-web.ps1"
 
 
-def get_free_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', 0))
-        return s.getsockname()[1]
+def get_free_port():
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
 
 
+@unittest.skipUnless(os.name == "nt", "PowerShell Windows launcher")
 class ColdRestartSurvivalTests(unittest.TestCase):
     def setUp(self):
-        self.temp_root = Path(tempfile.mkdtemp(prefix="dsh-cold-restart-"))
-        self.profile_dir = self.temp_root / "profiles" / "web"
-        self.profile_dir.mkdir(parents=True, exist_ok=True)
+        self.shell = shutil.which("pwsh") or shutil.which("powershell")
+        self.node = None
+        for candidate in (shutil.which("node"), Path.home() / ".dsh/runtime/node-v22.19.0-win-x64/node.exe"):
+            if not candidate or not Path(candidate).is_file():
+                continue
+            version = subprocess.check_output([str(candidate), "--version"], text=True).strip()
+            if re.match(r"^v(22\.(?:19|2[0-9])|(?:2[4-9]|[3-9][0-9])\.)", version):
+                self.node = str(candidate)
+                break
+        if not self.shell or not self.node:
+            self.skipTest("requires PowerShell and a supported Node runtime")
+        self.temp = tempfile.TemporaryDirectory(prefix="dsh-cold-restart-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.profile = self.root / "profiles/web"
+        package = self.profile / "base-dsh-fixture/node_modules/@deepseek-ai/dsh"
+        package.mkdir(parents=True)
+        (package / "package.json").write_text(json.dumps({"name": "@deepseek-ai/dsh", "version": "fixture"}), encoding="utf8")
+        self.entry = package / "bin.cjs"
+        self.entry.write_text(r"""
+const http = require('node:http');
+const args = process.argv.slice(2);
+const port = Number(args[args.indexOf('--port') + 1]);
+if (!args.includes('web') || !args.includes('--no-open') || !port) process.exit(2);
+const server = http.createServer((req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({fixture: 'cold-start', home: process.env.DSH_HOME}));
+  if (req.url === '/shutdown') server.close(() => process.exit(0));
+});
+server.listen(port, '127.0.0.1');
+""", encoding="utf8")
+        (self.profile / "dsh-managed-state.json").write_text(json.dumps({"current": {
+            "nodeRelativePath": "runtime/fixture", "version": "fixture",
+            "entryRelative": self.entry.relative_to(self.root).as_posix(),
+        }}), encoding="utf8")
+        self.gate = self.profile / "dsh-preflight.py"
+        self.gate.write_text("import json\nprint(json.dumps({'passed': True}))\n", encoding="utf8")
+        self.port = get_free_port()
+        self.process = None
+        self.log = self.root / "launcher.log"
+        self.addCleanup(self.stop_child)
 
-        # Mirror essential files from live ~/.dsh/profiles/web
-        live_profile = DSH_HOME / "profiles" / "web"
-        live_base = live_profile / "base-dsh-0.1.1-rc.2"
-        live_node = DSH_HOME / "runtime" / "node-v22.19.0-win-x64"
-        entry = live_base / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js"
-        if not (live_base.is_dir() and live_node.is_dir() and entry.is_file()):
-            self.skipTest("requires live DSH web profile")
-        
-        # Copy config files and manifests
-        for fname in ["package.json", "base-distribution.json", "dsh-runtime-composition.json",
-                      "dsh-managed-state.json", "dsh-preflight.py", "cordis.patch.yml", "cordis.yml"]:
-            src = live_profile / fname
-            if src.is_file():
-                shutil.copy2(src, self.profile_dir / fname)
+    def start(self):
+        env = dict(os.environ)
+        env["DSH_HOME"] = str(self.root / "wrong-home")
+        with self.log.open("w", encoding="utf8") as stream:
+            self.process = subprocess.Popen([
+                self.shell, "-NoProfile", "-File", str(LAUNCHER),
+                "-ProfileRoot", str(self.profile), "-NodePath", self.node,
+                "-Port", str(self.port),
+            ], stdout=stream, stderr=subprocess.STDOUT, env=env,
+                creationflags=subprocess.CREATE_NO_WINDOW)
 
-        # Copy launcher
-        shutil.copy2(ROOT / "dsh-config" / "profiles" / "web" / "dsh-launch-web.ps1",
-                     self.profile_dir / "dsh-launch-web.ps1")
+    def stop_child(self):
+        if self.process and self.process.poll() is None:
+            # Only this test's Popen-owned process tree is eligible for cleanup.
+            subprocess.run(["taskkill", "/PID", str(self.process.pid), "/T", "/F"],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+            self.process.wait(timeout=10)
 
-        # Create junctions/symlinks to base distribution and runtime node
-        self.base_dir = self.profile_dir / "base-dsh-0.1.1-rc.2"
-        subprocess.run(["cmd", "/c", "mklink", "/J", str(self.base_dir), str(live_base)],
-                       capture_output=True, check=True)
-
-        # Node runtime
-        self.runtime_dir = self.temp_root / "runtime"
-        self.runtime_dir.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["cmd", "/c", "mklink", "/J",
-                        str(self.runtime_dir / "node-v22.19.0-win-x64"), str(live_node)],
-                       capture_output=True, check=True)
-
-        # Copy plugins
-        live_plugins = live_profile / "plugins"
-        if live_plugins.is_dir():
-            shutil.copytree(live_plugins, self.profile_dir / "plugins")
-
-    def tearDown(self):
-        shutil.rmtree(self.temp_root, ignore_errors=True)
+    def request(self, path="/"):
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(f"http://127.0.0.1:{self.port}{path}", timeout=1) as response:
+            return json.load(response)
 
     def test_cold_start_lifecycle_and_shutdown(self):
-        """Verify cold start through launcher, preflight validation, HTTP readiness, and clean shutdown."""
-        # 1. Run Preflight in isolated profile
-        from scripts.aic import dsh_compatibility
-        checker = dsh_compatibility.DshCompatibilityChecker(self.profile_dir)
-        preflight_res = checker.run_preflight(self.base_dir)
-        self.assertTrue(preflight_res.passed, f"Preflight in cold profile failed: {preflight_res.errors}")
+        self.start()
+        deadline = time.monotonic() + 20
+        payload = None
+        while time.monotonic() < deadline and self.process.poll() is None:
+            try:
+                payload = self.request()
+                break
+            except (OSError, urllib.error.URLError):
+                time.sleep(0.05)
+        self.assertIsNotNone(payload, self.log.read_text(encoding="utf8", errors="replace"))
+        self.assertEqual(payload["fixture"], "cold-start")
+        self.assertEqual(Path(payload["home"]).resolve(), self.root.resolve())
+        self.request("/shutdown")
+        self.assertEqual(self.process.wait(timeout=10), 0)
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", self.port))
 
-        # 2. Verify single instance guard logic
-        # Launcher must fail closed if port is occupied
-        occupied_port = get_free_port()
-        guard_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        guard_socket.bind(('127.0.0.1', occupied_port))
-        guard_socket.listen(1)
+    def test_occupied_configured_port_blocks_second_instance(self):
+        with socket.socket() as guard:
+            guard.bind(("127.0.0.1", self.port))
+            guard.listen(1)
+            self.start()
+            self.assertNotEqual(self.process.wait(timeout=20), 0)
+            self.assertIn("SINGLE_INSTANCE_GUARD", self.log.read_text(encoding="utf8", errors="replace"))
 
-        try:
-            # 3. Test launcher syntax & execution check
-            node_exe = self.runtime_dir / "node-v22.19.0-win-x64" / "node.exe"
-            entry_js = self.base_dir / "node_modules" / "@deepseek-ai" / "dsh" / "lib" / "bin.js"
-            self.assertTrue(node_exe.is_file(), f"Node missing: {node_exe}")
-            self.assertTrue(entry_js.is_file(), f"Entry missing: {entry_js}")
-
-            # Verify entry can execute --help without error
-            p = subprocess.run([str(node_exe), str(entry_js), "--help"],
-                               cwd=str(self.profile_dir), capture_output=True,
-                               encoding="utf-8", errors="replace", timeout=30)
-            self.assertEqual(p.returncode, 0, f"DSH entry --help failed: {p.stderr}")
-            self.assertIn("web", p.stdout.lower())
-
-        finally:
-            guard_socket.close()
-
-        # 4. Verify physical listener on 3080 is live and healthy
-        req = urllib.request.urlopen("http://127.0.0.1:3080/", timeout=3)
-        self.assertEqual(req.status, 200)
-
-        # 5. Verify sessions and history intact
-        sessions_dir = DSH_HOME / "sessions"
-        self.assertTrue(sessions_dir.is_dir())
+    def test_failed_preflight_never_starts_listener(self):
+        self.gate.write_text("raise SystemExit(7)\n", encoding="utf8")
+        self.start()
+        self.assertNotEqual(self.process.wait(timeout=20), 0)
+        self.assertIn("PREFLIGHT_GATE_REJECT", self.log.read_text(encoding="utf8", errors="replace"))
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", self.port))
 
 
 if __name__ == "__main__":
