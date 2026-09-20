@@ -88,10 +88,10 @@ def _patch_listener_stop(monkeypatch):
 
 
 def _patch_launch(monkeypatch):
-    """Patch subprocess.Popen to capture commands without launching."""
+    """Capture policy launch requests; native startup has separate process tests."""
     launches = []
     monkeypatch.setattr(
-        ensure_mod.subprocess, "Popen", lambda cmd, **kw: launches.append(cmd) or MagicMock()
+        ensure_mod, "_launch_detached", lambda cmd: launches.append(cmd) or 12345
     )
     return launches
 

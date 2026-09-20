@@ -165,7 +165,7 @@ description: |
 - 注册：harness MCP 配置用 stdio `chatgpt-web2api-mcp`（随会话生灭，首调自动拉起 Chrome，不用零进程）；共享 daemon 才用 SSE `:8090`
 - 启动（仅 daemon 模式）：`<本仓库>/mcp/chatgpt-web-bridge/start.ps1`（Chrome 独立进程 + REST :8080 + MCP :8090）；venv 在仓库外时由 `W2A_VENV` 解析
 - 自愈：`chatgpt-web2api ensure`（daemon 挂了/重启后跑一次即可，幂等带锁；stdio 模式不需要）
-- Chrome 与 daemon 生命周期解耦：重启 daemon 不动浏览器，反之亦然
+- Chrome 与 daemon 生命周期解耦：重启 daemon 不动浏览器；Windows daemon 经原生 WMI 进程代理隐藏启动，脱离工具任务的父进程及其 Job。代理创建失败会明确报错，不退回可能随任务退出的后台进程。
 - 登录态掉了：在专用 profile 的 Chrome 里登录，daemon 自动恢复
 - 排查 tab 绑定：`http://127.0.0.1:9222/json/list`
 - 其它设备安装：见 `examples/install-other-devices.md`（桥已 vendored 在 `mcp/chatgpt-web-bridge/`，随本仓库同步）

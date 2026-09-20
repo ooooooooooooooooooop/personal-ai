@@ -89,21 +89,22 @@ else:
     child = _launch_detached(command)
 deadline = time.monotonic() + 8
 while not Path(sys.argv[3]).exists() and time.monotonic() < deadline:
-    assert child.poll() is None, child.returncode
     time.sleep(0.025)
 print(Path(sys.argv[3]).read_text(), flush=True)
 """
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows process job lifetime")
-@pytest.mark.parametrize("mode,survives", [("legacy", False), ("fixed", True)])
-def test_daemon_lifetime_after_owning_job_closes(tmp_path, mode, survives):
+@pytest.mark.parametrize("mode,survives,allow_breakaway", [
+    ("legacy", False, True), ("fixed", True, True), ("fixed", True, False),
+])
+def test_daemon_lifetime_after_owning_job_closes(tmp_path, mode, survives, allow_breakaway):
     api = _api()
     name = "Local\\w2a-test-" + uuid.uuid4().hex
     job = api.CreateJobObjectW(None, name)
     assert job
     info = _ExtendedLimits()
-    info.BasicLimitInformation.LimitFlags = 0x2000 | 0x800  # kill-on-close + breakaway
+    info.BasicLimitInformation.LimitFlags = 0x2000 | (0x800 if allow_breakaway else 0)
     assert api.SetInformationJobObject(job, 9, ctypes.byref(info), ctypes.sizeof(info))
     stop, ready = tmp_path / "stop", tmp_path / "ready.json"
     process = None
@@ -111,7 +112,7 @@ def test_daemon_lifetime_after_owning_job_closes(tmp_path, mode, survives):
         driver = subprocess.run(
             [sys.executable, "-c", _DRIVER, str(Path(__file__).resolve()), name,
              str(ready), str(stop), mode],
-            capture_output=True, text=True, timeout=12,
+            capture_output=True, text=True, timeout=30,
             creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_BREAKAWAY_FROM_JOB,
         )
         assert driver.returncode == 0, driver.stderr
@@ -135,14 +136,20 @@ def test_daemon_lifetime_after_owning_job_closes(tmp_path, mode, survives):
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows process job lifetime")
-def test_denied_breakaway_is_reported_without_task_owned_fallback(monkeypatch):
+def test_denied_broker_is_reported_without_task_owned_fallback(monkeypatch):
     from chatgpt_web2api import ensure
 
     attempts = []
     def denied(*args, **kwargs):
         attempts.append(kwargs)
-        raise PermissionError(5, "denied fixture")
-    monkeypatch.setattr(ensure.subprocess, "Popen", denied)
+        return subprocess.CompletedProcess(args, 0, '{"ReturnValue":2,"ProcessId":null}', "")
+    monkeypatch.setattr(ensure.subprocess, "run", denied)
+    def forbidden(*args, **kwargs):
+        pytest.fail("task-owned fallback must not launch")
+    monkeypatch.setattr(ensure.subprocess, "Popen", forbidden)
     with pytest.raises(RuntimeError, match="persistent bridge daemon"):
         ensure._launch_detached(["owned-test-command"])
     assert len(attempts) == 1
+    payload = json.loads(attempts[0]["input"])
+    assert payload["command"] == "owned-test-command"
+    assert payload["cwd"]

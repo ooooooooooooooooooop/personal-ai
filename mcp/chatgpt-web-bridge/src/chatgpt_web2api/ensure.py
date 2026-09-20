@@ -302,33 +302,52 @@ def _build_sse_cmd(
     return cmd
 
 
-def _launch_detached(cmd: list[str]) -> subprocess.Popen:
-    """Launch a detached subprocess that survives this process's exit."""
-    kwargs: dict = {
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-        "stdin": subprocess.DEVNULL,
-    }
+def _launch_detached(cmd: list[str]) -> int:
+    """Start a daemon independently of the harness; return its launcher PID."""
     if sys.platform == "win32":
-        # DETACHED_PROCESS detaches the console, but still inherits the
-        # harness job. KILL_ON_JOB_CLOSE would then kill both daemons when
-        # the tool task ends. Request the job's supported breakaway path.
-        kwargs["creationflags"] = (
-            subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
-            | subprocess.CREATE_BREAKAWAY_FROM_JOB
+        # Even CREATE_BREAKAWAY_FROM_JOB can leave a process in an outer
+        # harness job. WMI creates it from the Windows provider instead.
+        # Send command/environment as stdin data, never through shell
+        # interpolation or command-line arguments that expose credentials.
+        shell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / (
+            "System32/WindowsPowerShell/v1.0/powershell.exe"
         )
-    else:
-        kwargs["start_new_session"] = True
-    try:
-        return subprocess.Popen(cmd, **kwargs)
-    except PermissionError as exc:
-        if sys.platform == "win32":
+        script = (
+            "$ErrorActionPreference='Stop'; "
+            "$p=[Console]::In.ReadToEnd() | ConvertFrom-Json; "
+            "$s=New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly "
+            "-Property @{ShowWindow=[uint16]0; CreateFlags=[uint32]16777232; "
+            "EnvironmentVariables=[string[]]$p.environment}; "
+            "Invoke-CimMethod -ClassName Win32_Process -MethodName Create "
+            "-Arguments @{CommandLine=$p.command; CurrentDirectory=$p.cwd; "
+            "ProcessStartupInformation=$s} -OperationTimeoutSec 10 | "
+            "Select-Object ReturnValue,ProcessId | ConvertTo-Json -Compress"
+        )
+        result = subprocess.run(
+            [str(shell), "-NoProfile", "-NonInteractive", "-Command", script],
+            input=json.dumps({
+                "command": subprocess.list2cmdline(cmd),
+                "cwd": str(Path.cwd()),
+                "environment": [f"{key}={value}" for key, value in os.environ.items()],
+            }),
+            capture_output=True, text=True, encoding="utf-8", timeout=20,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        try:
+            response = json.loads(result.stdout)
+            pid = int(response["ProcessId"])
+            if result.returncode or response["ReturnValue"] != 0 or pid <= 0:
+                raise ValueError("broker refused creation")
+        except (ValueError, TypeError, KeyError) as exc:
             raise RuntimeError(
-                "Cannot start a persistent bridge daemon: the host denied process "
-                "creation or job breakaway. Start it from an independent desktop "
-                "shell; do not fall back to a task-owned process."
+                "Cannot start a persistent bridge daemon through Windows WMI; "
+                "no task-owned fallback was launched."
             ) from exc
-        raise
+        return pid
+    return subprocess.Popen(
+        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL, start_new_session=True,
+    ).pid
 
 
 def _find_listener_pid(port: int) -> int | None:

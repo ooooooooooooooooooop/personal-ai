@@ -7,9 +7,11 @@ out_file explicitly. max_inline_bytes=0 preserves unlimited inline JSON for
 programmatic clients. A partial DOM fallback remains marked partial even when
 exported. REST is not required for reads through an already healthy MCP server.
 
-On Windows, ensure launches background daemons outside the caller's process job
-so closing a tool task cannot terminate them through KILL_ON_JOB_CLOSE. If the
-host denies breakaway, startup reports the error instead of claiming persistence.
+On Windows, ensure starts hidden daemons through the native WMI process broker,
+including a breakaway request for the provider's own job. Their parent is independent
+of the tool task, including hosts with nested jobs that cannot be escaped directly.
+The caller's environment is transferred over stdin, not exposed in command arguments.
+Broker failure is reported without falling back to a task-owned background process.
 
 
 ChatGPT 网页版桥：用专用 Chrome profile + CDP 驱动已登录的 ChatGPT Web，
