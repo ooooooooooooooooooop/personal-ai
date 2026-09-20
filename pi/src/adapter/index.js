@@ -136,7 +136,7 @@ export async function createPiSession({
       ...(audit ? [providerAuditExtension(audit)] : []),
       ...(contextEnvelope ? [contextEnvelopeExtension(contextEnvelope)] : []),
       ...(audit && loopGovernance
-        ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit })]
+        ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]
         : []),
     ],
     noSkills: true,

@@ -341,3 +341,28 @@ test('session_export format=jsonl copies the raw session file to exports/', asyn
   assert.equal(h.data.format, 'html');
   dispose();
 });
+
+test('modes_read/modes_save dispatch; fileops_diff forwards receiptId filter', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-med-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const calls = [];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    modes: {
+      list: () => [], active: () => 'normal',
+      readProject: () => ({ path: '/w/.pai/modes.json', content: '{"modes":[]}' }),
+      saveProject: (c) => (calls.push(['save', c]), { ok: true, presets: 1 }),
+    },
+    fileops: { diff: async (n, rid) => (calls.push(['diff', n, rid]), { diffs: [], skipped: [] }) },
+  });
+  const rd = await ch.handle({ type: 'modes_read' });
+  assert.equal(rd.data.content, '{"modes":[]}');
+  const sv = await ch.handle({ type: 'modes_save', content: '{"modes":[{"name":"review"}]}' });
+  assert.equal(sv.data.ok, true);
+  await ch.handle({ type: 'fileops_diff', receiptId: 'r-9' });
+  assert.deepEqual(calls[1], ['diff', undefined, 'r-9']);
+  dispose();
+});

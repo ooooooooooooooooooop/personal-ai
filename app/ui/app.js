@@ -1322,6 +1322,31 @@ $('tour-dismiss').onclick = () => {
   localStorage.setItem('pai.onboarded', '1');
   $('tour-card')?.classList.add('hidden');
 };
+
+/* ---------- modes editor (settings) — project .pai/modes.json ---------- */
+async function refreshModesCard() {
+  const list = $('modes-list');
+  if (!list) return;
+  const [r, rd] = await Promise.all([cmd('mode_list'), cmd('modes_read')]);
+  const modes = r.success ? (r.data?.modes ?? []) : [];
+  $('modes-active').textContent = r.success ? (r.data?.active ?? 'normal') : '';
+  list.innerHTML = modes.length
+    ? modes.map((m) => `<div class="mode-row"><span class="mode-name"></span><span class="dim mode-src"></span></div>`).join('')
+    : '<div class="dim" style="padding:6px 0">无预设——下方 JSON 保存即创建项目模式</div>';
+  modes.forEach((m, i) => {
+    const row = list.children[i];
+    row.querySelector('.mode-name').textContent = `${m.name}${m.description ? ` — ${m.description}` : ''}`;
+    row.querySelector('.mode-src').textContent = m.source ?? '';
+  });
+  if (rd?.success) $('modes-json').value = rd.data.content ?? '';
+}
+$('modes-save') && ($('modes-save').onclick = async () => {
+  const r = await cmd('modes_save', { content: $('modes-json').value });
+  const msg = $('modes-msg');
+  if (r.success) { msg.textContent = `已保存 ${r.data.presets} 个预设`; msg.className = 'setup-msg ok'; }
+  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+  refreshModesCard(); refreshMode();
+});
 $('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
 $('set-clear-key').onclick = async () => {
   const provider = $('set-provider').value;
@@ -1661,6 +1686,29 @@ async function refreshChanges() {
     tr.querySelector('.change-path').title = op.target ?? '';
     tr.querySelector('td:nth-child(3)').textContent = op.at ? new Date(op.at).toLocaleString('zh-CN', { hour12: false }) : '';
     const actCell = tr.querySelector('td:last-child');
+    // per-receipt diff preview — Trae 逐改动面板语义：先看差异再决定回滚
+    const dbtn = document.createElement('button');
+    dbtn.className = 'btn ghost sm';
+    dbtn.textContent = '差异';
+    dbtn.title = `回执 ${op.receiptId} — 备份与现状的 unified diff`;
+    let diffRow = null;
+    dbtn.onclick = async () => {
+      if (diffRow) { diffRow.remove(); diffRow = null; return; }
+      dbtn.disabled = true;
+      const rd = await cmd('fileops_diff', { receiptId: op.receiptId });
+      dbtn.disabled = false;
+      diffRow = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      const body = rd.success && rd.data?.diffs?.length
+        ? rd.data.diffs[0].diff
+        : (rd.data?.skipped?.[0]?.reason ?? rd.error ?? '无差异（产物已不在）');
+      td.innerHTML = '<pre class="change-diff"></pre>';
+      td.querySelector('pre').textContent = body;
+      diffRow.appendChild(td);
+      tr.after(diffRow);
+    };
+    actCell.appendChild(dbtn);
     if (op.undoable) {
       const btn = document.createElement('button');
       btn.className = 'btn ghost sm';
@@ -1837,7 +1885,7 @@ function switchView(v) {
   if (v === 'changes') refreshChanges();
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
-  if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); }
+  if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
 $('body-chip').onclick = () => switchView('bodies');

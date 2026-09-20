@@ -29,6 +29,30 @@ import { join } from 'node:path';
 
 const VALID_ACTIONS = new Set(['allow', 'ask', 'deny']);
 
+function validatePreset(p) {
+  if (!p?.name || typeof p.name !== 'string') return 'name required';
+  for (const k of ['toolDeny', 'toolAsk', 'toolAllow', 'pathAsk', 'pathDeny', 'hideTools']) {
+    if (p[k] != null && !Array.isArray(p[k])) return `${k} must be an array`;
+  }
+  if (p.defaultAction != null && !VALID_ACTIONS.has(p.defaultAction)) {
+    return `defaultAction must be allow|ask|deny`;
+  }
+  return null;
+}
+
+/** Validate a whole modes.json doc before it is written (UI save path). */
+export function validateModesDoc(doc) {
+  if (!doc || typeof doc !== 'object' || !Array.isArray(doc.modes)) return 'doc must be {modes:[...]}';
+  const names = new Set();
+  for (const p of doc.modes) {
+    const err = validatePreset(p);
+    if (err) return `preset '${p?.name ?? '?'}': ${err}`;
+    if (names.has(p.name)) return `duplicate preset name '${p.name}'`;
+    names.add(p.name);
+  }
+  return null;
+}
+
 function globRe(pat) {
   let re = '';
   for (let i = 0; i < pat.length; i++) {
@@ -57,21 +81,10 @@ export class ModePresets {
     try { doc = JSON.parse(readFileSync(file, 'utf-8')); }
     catch (e) { throw new Error(`modes.json malformed (${file}): ${e.message}`); }
     for (const p of doc?.modes ?? []) {
-      const err = this.#validate(p);
+      const err = validatePreset(p);
       if (err) throw new Error(`modes.json preset '${p?.name ?? '?'}' (${file}): ${err}`);
       this.presets.set(p.name, { ...p, source, file });
     }
-  }
-
-  #validate(p) {
-    if (!p?.name || typeof p.name !== 'string') return 'name required';
-    for (const k of ['toolDeny', 'toolAsk', 'toolAllow', 'pathAsk', 'pathDeny', 'hideTools']) {
-      if (p[k] != null && !Array.isArray(p[k])) return `${k} must be an array`;
-    }
-    if (p.defaultAction != null && !VALID_ACTIONS.has(p.defaultAction)) {
-      return `defaultAction must be allow|ask|deny`;
-    }
-    return null;
   }
 
   /** Plain-data catalog for the mode chip / settings surface. */

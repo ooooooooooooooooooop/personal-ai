@@ -286,6 +286,17 @@
       </div>
 
       <div class="set-card">
+        <div class="set-card-title">模式 <span id="modes-active" class="pill"></span></div>
+        <div id="modes-list" class="modes-list"></div>
+        <div class="set-sub" style="margin:8px 0 4px">项目预设 <code>.pai/modes.json</code>——预设只能收紧审批面，永远不能放宽规范锚。</div>
+        <textarea id="modes-json" class="modes-json" spellcheck="false" placeholder='{"modes":[{"name":"review","toolDeny":["write","edit","delete"],"toolAsk":["bash"]}]}'></textarea>
+        <div class="set-row" style="margin-top:6px">
+          <button id="modes-save" class="btn">保存项目模式</button>
+          <span id="modes-msg" class="setup-msg"></span>
+        </div>
+      </div>
+
+      <div class="set-card">
         <div class="set-card-title">治理姿态 <span id="gov-sum" class="pill"></span></div>
         <div id="gov-actions"></div>
         <div id="gov-denied" class="set-sub" style="margin-top:8px"></div>

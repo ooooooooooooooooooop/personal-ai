@@ -20,7 +20,7 @@ import { HookRunner } from '../../../host/src/core/hooks.js';
 import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
 import { loadSteering } from '../../../host/src/core/steering.js';
 import { PaiIgnore } from '../../../host/src/core/paiignore.js';
-import { ModePresets } from '../../../host/src/core/modes.js';
+import { ModePresets, validateModesDoc } from '../../../host/src/core/modes.js';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -728,7 +728,7 @@ export async function startHost({
       list: (n) => fileOps.list(n),
       listAll: () => fileOps.listAll(),
       restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
-      diff: (n) => fileOps.diff(n),
+      diff: (n, receiptId) => fileOps.diff(n, receiptId),
     },
     budget,
     writeLease,
@@ -758,6 +758,25 @@ export async function startHost({
         toolSurface?.setModeDenied(overlay.hideTools);
         core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: true, policy_hash: overlay.hash } });
         return { mode: name, overlay: { hideTools: overlay.hideTools, defaultAction: overlay.defaultAction } };
+      },
+      // project-level editor surface (.pai/modes.json) — validated before
+      // write; instance modes.json stays operator-edited, not agent/UI-facing
+      readProject: () => {
+        const f = join(workdir, '.pai', 'modes.json');
+        try { return { path: f, content: readFileSync(f, 'utf-8') }; }
+        catch { return { path: f, content: '' }; }
+      },
+      saveProject: (content) => {
+        let doc;
+        try { doc = JSON.parse(content); }
+        catch (e) { return { error: `invalid JSON: ${e.message}` }; }
+        const err = validateModesDoc(doc);
+        if (err) return { error: err };
+        const f = join(workdir, '.pai', 'modes.json');
+        mkdirSync(join(workdir, '.pai'), { recursive: true });
+        writeFileSync(f, JSON.stringify(doc, null, 2) + '\n');
+        core.audit.write({ kind: 'MODES_SAVED', data: { file: '.pai/modes.json', presets: doc.modes.length } });
+        return { ok: true, path: f, presets: doc.modes.length };
       },
     },
     todos: {

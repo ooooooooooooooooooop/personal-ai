@@ -417,7 +417,7 @@ export class HostChannel {
         }
         case 'fileops_diff': {
           if (!this.fileops?.diff) return reply(false, undefined, 'fileops diff unavailable');
-          return reply(true, await this.fileops.diff(cmd.n));
+          return reply(true, await this.fileops.diff(cmd.n, cmd.receiptId ?? null));
         }
         case 'session_btw': {
           if (!this.sessions?.btw) return reply(false, undefined, 'btw unavailable');
@@ -451,6 +451,16 @@ export class HostChannel {
           const name = String(cmd.name ?? '');
           const out = this.modes.setMode(name);
           if (!out) return reply(false, undefined, `mode_set: unknown mode '${name}'`);
+          return reply(true, out);
+        }
+        case 'modes_read': {
+          if (!this.modes?.readProject) return reply(false, undefined, 'modes editor facade unavailable');
+          return reply(true, this.modes.readProject());
+        }
+        case 'modes_save': {
+          if (!this.modes?.saveProject) return reply(false, undefined, 'modes editor facade unavailable');
+          const out = this.modes.saveProject(String(cmd.content ?? ''));
+          if (out?.error) return reply(false, undefined, out.error);
           return reply(true, out);
         }
         case 'todos_list': {

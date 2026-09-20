@@ -153,8 +153,10 @@ export class FileOpsGuard {
    * {diffs:[{receiptId,op,target,diff}], skipped:[{receiptId,reason}]} — a
    * receipt whose artifacts vanished is reported, not silently dropped.
    */
-  diff(n = 10) {
-    const ops = this.#ops().filter((o) => o.receiptId && o.op !== 'restore').slice(-n);
+  diff(n = 10, receiptId = null) {
+    let ops = this.#ops().filter((o) => o.receiptId && o.op !== 'restore');
+    if (receiptId) ops = ops.filter((o) => o.receiptId === receiptId);
+    else ops = ops.slice(-n);
     const diffs = [];
     const skipped = [];
     for (const op of ops) {

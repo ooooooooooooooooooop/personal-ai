@@ -852,20 +852,20 @@
 | U9 命令白/黑名单+配额 ask | **部分** | mode overlay deny+预算帽已有；用户级命令前缀清单编辑面未做 |
 | U10 recipes | **已有** | `.pai/recipes/*.md`+`{{var}}` 参数+`/recipe` 展开 |
 | U11 LSP 工具组 | **已有** | 只读面（definition/references/hover/diagnostics） |
-| U12 fsmonitor/git 卫生 | **缺失** | 小件未排（做 git 上下文时一并） |
+| U12 fsmonitor/git 卫生 | **不适用-拒绝** | 运行态从不 shell-out git——Vibe 防的是恶意仓 hook 经 `git status` 触发；我方无此调用面，风险前提不存在 |
 | U13 自动会话命名 | **已有** | 首条用户消息自动命名+`/chat` 命名存档+JSONL trajectory 导出 |
 | U14 UX 工艺面 | **已有** | 置顶/归档、dark/light 主题、ctx 分解条、minimap、onboarding 向导、委派拓扑树全落 |
-| U15 子目录 hint/文件族 | **部分** | steering 文件族+`.paiignore` 语境排除已落；SubdirectoryHintTracker 渐进 hint 未做 |
+| U15 子目录 hint/文件族 | **已有** | steering 文件族+`.paiignore`+SubdirectoryHint 观察（path 工具首触新目录→有界目录 listing 进 observation 流） |
 
-### 28.3 待用户裁定的残余决策项
+### 28.3 残余决策项——用户裁定（2026-09-20）
 
-| # | 项 | 正反方 |
-|---|---|---|
-| D1 | 向量 codebase 索引 | §27.3 留待裁未锁死；CodeArts 托管索引/Roo Qdrant 是反例，Cursor 退役方向是正例 |
-| D2 | browser 自动化面 | web_fetch 之上：浏览器预览面板/浏览器工具（Trae/ZCode/Hermes 有）——新供给面 |
-| D3 | agent teams 常驻 teammate | mailbox v1 父子已落；多对多常驻池是 v2 架构决策（Cline teams/码道 Agent Team） |
-| D4 | Guardian 独立复审生效 | shadow judge 升级 real——终裁要求先积 disagree 率数据再升 |
-| D5 | mode 粒度加深 | Roo fileRegex×工具组、命令前缀白/黑名单用户编辑面 |
-| D6 | 逐改动 revert 面板+AI review 弹回 | Trae 参考；FileOpsGuard 回执已具备数据面，差 UI 编排 |
+| # | 项 | 裁定 | 落地形态 |
+|---|---|---|---|
+| D1 | 向量 codebase 索引 | **拒绝** | 移入 §27.3 不适用-拒绝：grep+LSP+session_search 覆盖导航面；与 Cursor 退役方向一致 |
+| D2 | browser 自动化面 | **做：完整浏览器工具 → 已落地** | `browser_navigate/read/click/type/eval/screenshot` 零依赖 CDP（内置 WebSocket）；专属 browser-profile；不可信封套+`browser_*`→ask+PAI_BROWSER_BLOCKED 域名黑名单 |
+| D3 | agent teams 常驻 teammate | **做：v2 常驻池 → 已落地** | `delegate_task(name=…)`→kind:'teammate' 命名持久任务+spawn_spec；`teammate_msg` 按名投递；byName 跨重启可寻址 |
+| D4 | Guardian 独立复审 | **做：现在就升 → 已落地** | `PAI_SHADOW_JUDGE_MODE=guard`：判官执行前复核 admitted 调用（deny→block、ask→批准卡、不可达→放行+BYPASS 审计）；单向棘轮，deny 永不降级 |
+| D5 | mode 粒度加深 | 自行排期 → **已落地** | pathAsk/pathDeny 即 fileRegex 等价（path glob 规则进 overlay）；Settings→模式 卡列预设+项目 `.pai/modes.json` 校验编辑（`modes_read`/`modes_save`） |
+| D6 | 逐改动 revert 面板 | 自行排期 → **已落地** | 变更面板逐回执「差异」按钮行内展开 unified diff（`fileops_diff receiptId` 过滤）+恢复按钮 |
 
-**维持不适用-拒绝**：G12 远程执行、插件市场、code-mode、企业面、多渠道形态、headless 产品面、MCP sampling（v1 外）、向量索引默认开（待 D1 裁定）。
+**维持不适用-拒绝**：G12 远程执行、插件市场、code-mode、企业面、多渠道形态、headless 产品面、MCP sampling（v1 外）、向量 codebase 索引（D1 裁定）。

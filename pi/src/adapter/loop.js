@@ -19,8 +19,19 @@
  *                    re-injection is the correct preservation mechanism,
  *                    not instruction mutation)
  *  - model_select  → audit (model switches are governance-visible events)
+ *  - turn_end      → subdirectory hints (U15): the first time a path-arg tool
+ *                    touches a directory inside workdir, record a bounded
+ *                    dir-listing observation — Goose SubdirectoryHintTracker
+ *                    analogue riding the canonical observation channel
+ *                    (persistent, cache-friendly, never a tool-result rewrite)
  */
-export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit }) {
+import { readdirSync } from 'node:fs';
+import { dirname, resolve, relative, sep } from 'node:path';
+
+const PATH_TOOLS = new Set(['read', 'ls', 'edit', 'write', 'delete', 'grep', 'glob']);
+const HINT_CAP = 30;
+
+export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit, workdir = null }) {
   return {
     name: 'pai-loop-governance',
     factory: (pi) => {
@@ -32,6 +43,35 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       const freshTranscript = () => ({ toolCalls: [], assistantText: '', fileChanges: [] });
       let transcript = freshTranscript();
       let pendingSteer = false;
+      // U15: directories already hinted this session — hint once, not per touch
+      const hintedDirs = new Set();
+      const wd = workdir ? resolve(workdir) : null;
+      const argOf = (ctx, callId) => {
+        for (const m of ctx?.messages ?? []) {
+          for (const b of m.content ?? m.blocks ?? []) {
+            if ((b?.type === 'toolCall' || b?.type === 'tool_use') && b?.id === callId) {
+              return b.args ?? b.input ?? null;
+            }
+          }
+        }
+        return null;
+      };
+      const hintDir = (dirPath) => {
+        if (!wd || hintedDirs.has(dirPath)) return;
+        hintedDirs.add(dirPath);
+        try {
+          const rel = relative(wd, dirPath);
+          if (rel.startsWith('..') || rel.includes(`..${sep}`) || resolve(dirPath) === wd) return;
+          const entries = readdirSync(dirPath, { withFileTypes: true }).slice(0, HINT_CAP)
+            .map((e) => `${e.isDirectory() ? 'd' : 'f'} ${e.name}`);
+          observations.record({
+            kind: 'subdirectory_hint',
+            subject: rel || '.',
+            detail: { entries, truncated: entries.length === HINT_CAP },
+            actor: 'pi',
+          });
+        } catch { /* unreadable dir — hint is best-effort */ }
+      };
 
       pi.on('agent_start', () => {
         if (pendingSteer) {
@@ -53,6 +93,16 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
             detail: { isError: Boolean(r.isError) },
             actor: 'pi',
           });
+          // U15 subdirectory hint: first touch of a new dir inside workdir
+          // records a bounded listing into the observation stream
+          if (observations && PATH_TOOLS.has(r.toolName)) {
+            const args = argOf(event.context, r.toolCallId);
+            const p = args?.path ?? args?.file ?? args?.target ?? args?.dir;
+            if (typeof p === 'string' && p) {
+              const abs = resolve(wd ?? process.cwd(), p);
+              hintDir(r.toolName === 'ls' ? abs : dirname(abs));
+            }
+          }
         }
         const text = extractText(event.message);
         if (text) transcript.assistantText += (transcript.assistantText ? '\n' : '') + text;
