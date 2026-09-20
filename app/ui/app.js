@@ -1521,6 +1521,24 @@ $('command-allow-save') && ($('command-allow-save').onclick = async () => {
   else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
 });
 $('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
+// provider doctor — real GET {baseUrl}/models through the resolved credential
+$('set-ping').onclick = async () => {
+  const out = $('set-ping-result');
+  out.className = 'pill';
+  out.textContent = '…';
+  const r = await cmd('model_ping', { provider: $('set-provider').value });
+  const d = r.data ?? {};
+  if (!r.success || d.ok == null) {
+    out.className = 'pill err';
+    out.textContent = r.error ?? d.error ?? '失败';
+    return;
+  }
+  out.className = `pill ${d.ok ? 'ok' : 'err'}`;
+  out.textContent = d.ok
+    ? `通 ${d.ms}ms`
+    : d.reachable ? `HTTP ${d.httpStatus}` : '不可达';
+  out.title = d.error ?? `auth=${d.authSource ?? 'none'} http=${d.httpStatus ?? '—'} ${d.ms}ms`;
+};
 $('set-clear-key').onclick = async () => {
   const provider = $('set-provider').value;
   if (!provider) return;
@@ -1737,7 +1755,35 @@ async function refreshJobs() {
     tr.onclick = () => openJobDetail(j.job_id);
     tbody.appendChild(tr);
   }
+  refreshSchedules();
   refreshTasks();
+}
+
+/* ---------- durable schedules (operator mirror of schedule_task) ---------- */
+async function refreshSchedules() {
+  const tbody = $('schedules')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await cmd('schedule_list');
+  const rows = r.success ? (r.data ?? []) : [];
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-4);padding:16px">暂无定时任务</td></tr>';
+    return;
+  }
+  for (const s of rows) {
+    const tr = document.createElement('tr');
+    const kind = `${s.kind}${s.every_seconds ? ` ${s.every_seconds}s` : ''}${s.enabled === false ? '（停用）' : ''}`;
+    const cells = [
+      s.id, kind,
+      s.nextRunAt ? new Date(s.nextRunAt).toLocaleString() : '—',
+      s.lastFiredAt ? new Date(s.lastFiredAt).toLocaleString() : '从未',
+      (s.label ?? s.command ?? '').slice(0, 60),
+    ];
+    tr.innerHTML = cells.map(() => '<td></td>').join('') + '<td><button class="ghost-btn warn">取消</button></td>';
+    tr.querySelectorAll('td').forEach((td, i) => { if (i < cells.length) td.textContent = cells[i]; });
+    tr.querySelector('button').onclick = async () => { await cmd('schedule_cancel', { id: s.id }); refreshSchedules(); };
+    tbody.appendChild(tr);
+  }
 }
 
 /* ---------- AgentTask mailbox center (F-family) ---------- */

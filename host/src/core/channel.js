@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -92,6 +92,7 @@ export class HostChannel {
     this.pins = pins;
     this.verify = verify;
     this.projectTrust = projectTrust;
+    this.schedules = schedules;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -193,6 +194,10 @@ export class HostChannel {
         case 'model_list': {
           if (!this.models?.list) return reply(false, undefined, 'models facade unavailable');
           return reply(true, await this.models.list());
+        }
+        case 'model_ping': {
+          if (!this.models?.ping) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, await this.models.ping(cmd.provider));
         }
         case 'model_set': {
           if (!this.models?.set) return reply(false, undefined, 'models facade unavailable');
@@ -541,6 +546,19 @@ export class HostChannel {
         case 'project_trust_set': {
           if (!this.projectTrust?.set) return reply(false, undefined, 'trust facade unavailable');
           return reply(true, this.projectTrust.set(cmd.trusted === true));
+        }
+        // Operator surface for the durable schedule store — the model's
+        // schedule_task creates entries; the operator needs the same
+        // list/cancel truth (Cline cron panel analogue).
+        case 'schedule_list': {
+          if (!this.schedules?.list) return reply(false, undefined, 'schedules facade unavailable');
+          return reply(true, this.schedules.list());
+        }
+        case 'schedule_cancel': {
+          if (!this.schedules?.cancel) return reply(false, undefined, 'schedules facade unavailable');
+          const r = this.schedules.cancel(String(cmd.id ?? ''));
+          if (r?.error) return reply(false, undefined, r.error);
+          return reply(true, r);
         }
         case 'pins_add': {
           if (!this.pins?.add) return reply(false, undefined, 'pins facade unavailable');

@@ -854,6 +854,11 @@ export async function startHost({
       setState: (id, s) => taskStore.setState(id, s),
       interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt'),
     },
+    // operator mirror of schedule_task — same store, list/cancel only
+    schedules: {
+      list: () => scheduleStore.list(),
+      cancel: (id) => scheduleStore.remove(id),
+    },
     memory: memoryStore,
     // H-family microagents — .pai/microagents/*.md frontmatter triggers
     // inject topic-scoped knowledge into the matching prompt, this turn only.

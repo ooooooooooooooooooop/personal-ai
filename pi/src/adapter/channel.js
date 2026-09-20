@@ -26,7 +26,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  */
 const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -396,6 +396,34 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         availableCount: available.length,
       };
     },
+    // provider doctor (Cline `doctor` analogue): real connectivity probe —
+    // GET {baseUrl}/models with the resolved credential. Returns reachability
+    // + auth source; key material never leaves the process.
+    ping: async (providerId) => {
+      const rt = box.s.modelRuntime;
+      const pid = String(providerId ?? '').trim()
+        || (box.s.model?.provider ?? rt.getProviders()[0]?.id);
+      const p = rt.getProvider(pid);
+      if (!p) return { ok: false, error: `unknown provider '${pid}'` };
+      const configured = rt.hasConfiguredAuth(pid);
+      const auth = await rt.getAuth(pid).catch(() => undefined);
+      const base = auth?.auth?.baseUrl ?? p.baseUrl;
+      if (!base) return { ok: false, configured, error: 'provider has no baseUrl' };
+      const t0 = Date.now();
+      try {
+        const headers = { ...(p.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
+        if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
+        const res = await fetch(`${String(base).replace(/\/+$/, '')}/models`, {
+          headers, signal: AbortSignal.timeout(8000),
+        });
+        return {
+          ok: res.ok, reachable: true, httpStatus: res.status, ms: Date.now() - t0,
+          configured, authSource: auth?.source ?? null,
+        };
+      } catch (e) {
+        return { ok: false, reachable: false, configured, error: String(e?.message ?? e), ms: Date.now() - t0 };
+      }
+    },
     list: async () => {
       const available = await box.s.modelRuntime.getAvailable();
       return available.map((m) => ({
@@ -536,6 +564,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     pins,
     verify,
     projectTrust,
+    schedules,
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

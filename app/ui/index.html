@@ -160,6 +160,13 @@
       </div>
       <div id="job-detail" class="hidden"></div>
       <div class="page-head" style="margin-top:24px">
+        <h1 style="font-size:16px">定时任务</h1>
+        <p class="page-sub">持久化调度（实例级）——到点作为 durable job 触发，跨重启存活。</p>
+      </div>
+      <div class="table-wrap">
+        <table id="schedules"><thead><tr><th>id</th><th>类型</th><th>下次触发</th><th>上次</th><th>命令</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="page-head" style="margin-top:24px">
         <h1 style="font-size:16px">AgentTask 协作</h1>
         <p class="page-sub">委派任务的双向信箱——父子任务互发消息、共享事件流。</p>
       </div>
@@ -219,6 +226,8 @@
           <label>提供方</label>
           <select id="set-provider"></select>
           <span id="set-provider-auth" class="pill"></span>
+          <button id="set-ping" class="btn ghost">测试连接</button>
+          <span id="set-ping-result" class="pill"></span>
         </div>
         <div class="set-row">
           <label>API Key</label>

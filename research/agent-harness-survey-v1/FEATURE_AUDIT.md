@@ -949,4 +949,12 @@
 | 产物列表面 | CodeBuddy 成果面板 | `/api/artifacts` 列出 `<instance>/exports/**`（限深4/200条）+ `/api/artifact` 单件下载（路径前缀硬约束，越界404）+ 变更页"产物"区可点击打开 |
 | skill 生命周期删除面 | OpenClaw/Hermes skill_manage（save+delete 成对） | `skill_delete` 工具——只删 `.pai/microagents/<name>.md`（slug 校验），`SKILL_DELETED` 审计 |
 
+**复扫第八批**：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| 调度操作员面 | Cline `.cline/cron` 面板（操作员可见可管） | `schedule_list`/`schedule_cancel` 通道 + 任务页"定时任务"区（id/类型/下次/上次/命令/取消）——`schedule_task` 模型的同一 ScheduleStore 真源 |
+| provider 连接测试 | Cline `doctor` / 各家"测试连接" | `model_ping` → `rt.getAuth` 解析凭据 + GET `{baseUrl}/models`（8s 超时）→ {ok,httpStatus,ms,authSource}；密钥不出进程；设置页"测试连接"按钮 |
+| 长命令后台化（核实行） | Cline "proceed while running" | **已有**——`isLongRunningCommand` 在 decide 链自动转 durable job（自带写租约+预算域+重启恢复），`job_status` 模型轮询；快照行过期 |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto（与现有入口/压缩面设计冲突，维持有意不做；project-trust 已按微agent注入面窄化落地见上）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

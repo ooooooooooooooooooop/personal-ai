@@ -536,3 +536,63 @@ test('mistake_limit: operator allow leaves the run unstopped', async () => {
   assert.equal(lw.stopped, false);
   dispose();
 });
+
+test('schedule_list / schedule_cancel dispatch to the shared store', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-sched-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const rows = [{ id: 's1', kind: 'interval', every_seconds: 300, enabled: true, nextRunAt: Date.now(), command: 'npm test' }];
+  const schedules = {
+    list: () => rows.filter((s) => s.enabled !== false),
+    cancel: (id) => { const s = rows.find((x) => x.id === id); if (!s) return { error: 'not found' }; s.enabled = false; return { ok: true, id }; },
+  };
+  const core = { paths: { auditDir }, audit: { write: () => {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, schedules });
+
+  const listed = await ch.handle({ type: 'schedule_list' });
+  assert.equal(listed.success, true);
+  assert.equal(listed.data[0].id, 's1');
+  const c = await ch.handle({ type: 'schedule_cancel', id: 's1' });
+  assert.equal(c.success, true);
+  assert.equal((await ch.handle({ type: 'schedule_list' })).data.length, 0);
+  const miss = await ch.handle({ type: 'schedule_cancel', id: 'nope' });
+  assert.equal(miss.success, false);
+  dispose();
+});
+
+test('model_ping probes {baseUrl}/models with resolved auth, never leaks the key', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-ping-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const seen = { url: null, auth: null };
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    seen.url = String(url); seen.auth = opts?.headers?.Authorization ?? null;
+    return { ok: true, status: 200 };
+  };
+  fakeSessionRef.modelRuntime = {
+    getProviders: () => [{ id: 'cpa', name: 'CPA', baseUrl: 'https://api.test/v1' }],
+    getProvider: (id) => (id === 'cpa' ? { id: 'cpa', baseUrl: 'https://api.test/v1', headers: {} } : undefined),
+    hasConfiguredAuth: () => true,
+    getAuth: async () => ({ auth: { apiKey: 'sk-secret' }, source: 'stored key' }),
+    getAvailable: async () => [],
+  };
+  const core = { paths: { auditDir }, audit: { write: () => {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  try {
+    const r = await ch.handle({ type: 'model_ping', provider: 'cpa' });
+    assert.equal(r.success, true);
+    assert.equal(r.data.ok, true);
+    assert.equal(seen.url, 'https://api.test/v1/models');
+    assert.equal(seen.auth, 'Bearer sk-secret');
+    assert.ok(!JSON.stringify(r.data).includes('sk-secret')); // key never returned
+    const bad = await ch.handle({ type: 'model_ping', provider: 'nope' });
+    assert.equal(bad.data.ok, false);
+    assert.match(bad.data.error, /unknown provider/);
+  } finally {
+    globalThis.fetch = origFetch;
+    dispose();
+  }
+});
