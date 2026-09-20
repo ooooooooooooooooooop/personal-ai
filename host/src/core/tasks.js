@@ -43,18 +43,29 @@ export class TaskStore {
     writeFileSync(join(this.#taskDir(taskId), 'task.json'), JSON.stringify(meta, null, 2));
   }
 
-  create({ label = '', jobId = null, parent = null, kind = 'delegation' } = {}) {
+  create({ label = '', jobId = null, parent = null, kind = 'delegation', name = null, spawnSpec = null } = {}) {
     const taskId = `task-${randomUUID().slice(0, 12)}`;
     mkdirSync(this.#taskDir(taskId), { recursive: true });
     const meta = {
       task_id: taskId, job_id: jobId, label, kind,
+      name, // teammate pool: stable human/model address across restarts
+      spawn_spec: spawnSpec, // {target, profile, task} — respawnable identity
       parent_task_id: parent,
       state: 'open', created: new Date().toISOString(),
       acks: { inbox: 0, outbox: 0, events: 0 },
     };
     this.#writeMeta(taskId, meta);
-    this.postEvent(taskId, 'task_created', { label, job_id: jobId, parent });
+    this.postEvent(taskId, 'task_created', { label, job_id: jobId, parent, name });
     return meta;
+  }
+
+  /** Teammate pool addressing — latest open task carrying this name. */
+  byName(name) {
+    const n = String(name ?? '').toLowerCase();
+    if (!n) return null;
+    return this.list().find((t) => t.name?.toLowerCase() === n && t.state === 'open')
+      ?? this.list().find((t) => t.name?.toLowerCase() === n)
+      ?? null;
   }
 
   get(taskId) {

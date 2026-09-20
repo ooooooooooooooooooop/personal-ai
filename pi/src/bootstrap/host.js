@@ -34,6 +34,7 @@ import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../hos
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
+import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
 import { sessionSearchTool } from '../adapter/sessionsearch.js';
 import { specTools } from '../adapter/specs.js';
@@ -210,6 +211,10 @@ export async function startHost({
   // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
   // into every context envelope as untrusted evidence.
   const memoryStore = new MemoryStore(memoryDbPath(core.paths.root));
+  // D2 full browser: CDP tools register only when a browser binary is
+  // found (unconfigured = not advertised). Dedicated profile dir keeps
+  // the operator's real cookies/credentials out of reach.
+  const browserToolset = browserTools({ instanceRoot: core.paths.root, audit: core.audit });
   const customTools = [
     jobStatusTool(jobStore),
     ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
@@ -231,6 +236,7 @@ export async function startHost({
     // G11 thin SDD: spec artifacts under .pai/specs/ — the model writes
     // docs via governed write/edit; these tools only scaffold + report
     ...specTools({ getWorkdir: () => workdir }),
+    ...browserToolset,
   ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
     commandFor: delegationCommand,
@@ -795,6 +801,7 @@ export async function startHost({
     releaseWriter();
     asks.dispose();
     channelHandle.dispose();
+    browserToolset.dispose?.(); // browser session teardown (kills the child)
     currentSession.dispose?.();
     jobStore.db.close();
     core.leases.close();

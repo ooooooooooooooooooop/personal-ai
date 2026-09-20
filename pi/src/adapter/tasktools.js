@@ -108,6 +108,27 @@ export function taskTools(store, { interrupt = null } = {}) {
       },
     },
     {
+      name: 'teammate_msg', label: 'Teammate Message',
+      description: 'Message a NAMED teammate by pool name (delegate_task with `name` creates one). Resolves the latest open task carrying that name and delivers to its inbox.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          message: { type: 'string' },
+        },
+        required: ['name', 'message'],
+      },
+      async execute(_id, p) {
+        const err = need(p.name, 'name') ?? need(p.message, 'message');
+        if (err) return txt(err, { isError: true });
+        const t = store.byName(p.name);
+        if (!t) return txt(`no teammate named '${p.name}' — create one via delegate_task(name=...)`, { isError: true });
+        const r = store.postInbox(t.task_id, { from: 'parent', body: p.message });
+        if (r?.refused) return txt(`send refused: ${r.refused}`, { isError: true });
+        return txt(`delivered to teammate '${t.name}' (${t.task_id}) inbox seq ${r.seq}`);
+      },
+    },
+    {
       name: 'task_close', label: 'Task Close',
       description: 'Close a task — no further inbox posts; the event stream stays readable.',
       parameters: {

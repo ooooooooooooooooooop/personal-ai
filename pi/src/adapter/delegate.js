@@ -57,6 +57,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         target: { type: 'string', description: 'target agent id (e.g. codex, claude, gemini)' },
         profile: { type: 'string', description: 'named subagent profile — resolves target and prepends its preamble' },
         task: { type: 'string', description: 'task description for the delegate' },
+        name: { type: 'string', description: 'optional teammate name — makes the task a named, persistent member of the teammate pool (addressable via teammate_msg)' },
       },
       required: ['task'],
     },
@@ -147,8 +148,15 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // F-family: a task record upgrades the delegation to a mailbox-backed
       // AgentTask — the bridge watches inbox→stdin and captures child
       // markers→outbox/events. v1 is strictly parent↔child.
+      const tname = params.name ? String(params.name).trim() : null;
       const agentTask = taskStore
-        ? taskStore.create({ label: task.slice(0, 80), parent: scope, kind: 'delegation' })
+        ? taskStore.create({
+            label: tname ? `@${tname} ${task.slice(0, 60)}` : task.slice(0, 80),
+            parent: scope,
+            kind: tname ? 'teammate' : 'delegation',
+            name: tname,
+            spawnSpec: tname ? { target, profile: params.profile ?? null, task } : null,
+          })
         : null;
       const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} -- ${inner}`;
       const r = await executor.spawnCommandJob({

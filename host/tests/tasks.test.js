@@ -96,3 +96,18 @@ test('list resolves parent scope → task_id once the child claims its mailbox',
   assert.equal(g.parent_task_id, child.task_id);
   assert.equal(g.parent_scope, 'sess-child-42'); // raw scope preserved
 });
+
+test('teammate pool: named task + byName addressing (latest open wins)', () => {
+  const { store: s, root } = mk();
+  const a = s.create({ label: '@nova first', kind: 'teammate', name: 'nova', spawnSpec: { target: 'pai', task: 'watch logs' } });
+  assert.equal(s.byName('nova').task_id, a.task_id);
+  assert.equal(s.byName('NOVA').task_id, a.task_id); // case-insensitive
+  assert.equal(s.byName('ghost'), null);
+  // a respawned teammate with the same name shadows the closed old one
+  s.setState(a.task_id, 'closed');
+  const b = s.create({ label: '@nova second', kind: 'teammate', name: 'nova' });
+  assert.equal(s.byName('nova').task_id, b.task_id);
+  // spawn_spec persists across a cold store re-read
+  const s2 = new TaskStore(root);
+  assert.equal(s2.byName('nova').task_id, b.task_id);
+});

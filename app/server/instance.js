@@ -15,6 +15,9 @@ const DEFAULT_POLICY = {
   tools: {
     web_fetch: { action: 'ask' },
     web_search: { action: 'ask' },
+    // real-browser effects (navigate/click/type/eval) ask the operator —
+    // a click is an external side effect, never silent
+    'browser_*': { action: 'ask' },
     // dynamic MCP tools are opaque external effects — prefix rule gates the
     // whole namespace; narrower per-server rules can refine it explicitly
     'mcp__*': { action: 'ask' },
