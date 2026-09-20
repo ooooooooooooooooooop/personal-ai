@@ -102,3 +102,33 @@ test('U5 attachments: images ride options.images, media degrade to descriptors',
   assert.ok(audit.events.some((e) => e.kind === 'ATTACHMENT_REJECTED'));
   dispose();
 });
+
+test('fileops_diff and session_btw dispatch to their facades; unavailable surfaces fail closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-ops-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const calls = [];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    fileops: { diff: async (n) => (calls.push(['diff', n]), { diffs: [], skipped: [] }) },
+    sessions: { btw: async (m) => (calls.push(['btw', m]), { answer: 'side' }) },
+  });
+  const d = await ch.handle({ type: 'fileops_diff', n: 5 });
+  assert.equal(d.success, true);
+  const b = await ch.handle({ type: 'session_btw', message: 'side q' });
+  assert.equal(b.data.answer, 'side');
+  const bad = await ch.handle({ type: 'session_btw' });
+  assert.equal(bad.success, false);
+  assert.deepEqual(calls, [['diff', 5], ['btw', 'side q']]);
+  dispose();
+
+  // no facades → fail closed, not crash
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  const r1 = await bare.channel.handle({ type: 'fileops_diff' });
+  const r2 = await bare.channel.handle({ type: 'session_btw', message: 'x' });
+  assert.equal(r1.success, false);
+  assert.equal(r2.success, false);
+  bare.dispose();
+});

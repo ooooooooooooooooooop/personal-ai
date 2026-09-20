@@ -14,6 +14,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, 
 import { appendFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { withFileMutationQueue } from '@earendil-works/pi-coding-agent';
+import { unifiedDiff } from '../../../host/src/core/diffutil.js';
 import { createHash, randomUUID } from 'node:crypto';
 
 export class FileOpsGuard {
@@ -142,6 +143,38 @@ export class FileOpsGuard {
    */
   listAll() {
     return this.#listOps().reverse();
+  }
+
+  /**
+   * Aggregated unified diff of the N newest receipted mutations (newest-first
+   * receipts, emitted oldest-first so the diff reads chronologically). For
+   * 'backup'/'write' ops: backup bytes → current target bytes. For 'create':
+   * empty → current. For 'delete': recycled bytes → empty. Returns
+   * {diffs:[{receiptId,op,target,diff}], skipped:[{receiptId,reason}]} — a
+   * receipt whose artifacts vanished is reported, not silently dropped.
+   */
+  diff(n = 10) {
+    const ops = this.#ops().filter((o) => o.receiptId && o.op !== 'restore').slice(-n);
+    const diffs = [];
+    const skipped = [];
+    for (const op of ops) {
+      try {
+        const current = existsSync(op.target) ? readFileSync(op.target, 'utf-8') : null;
+        if (op.op === 'create' || ((op.op === 'write' || op.op === 'backup') && !op.backup)) {
+          // create-tombstone: file did not exist pre-mutation — empty → current
+          diffs.push({ receiptId: op.receiptId, op: op.op, target: op.target, diff: unifiedDiff('', current ?? '', { path: op.target }) });
+        } else if (op.op === 'delete' && op.recycledTo && existsSync(op.recycledTo)) {
+          diffs.push({ receiptId: op.receiptId, op: op.op, target: op.target, diff: unifiedDiff(readFileSync(op.recycledTo, 'utf-8'), '', { path: op.target }) });
+        } else if (op.backup && existsSync(op.backup)) {
+          diffs.push({ receiptId: op.receiptId, op: op.op, target: op.target, diff: unifiedDiff(readFileSync(op.backup, 'utf-8'), current ?? '', { path: op.target }) });
+        } else {
+          skipped.push({ receiptId: op.receiptId, reason: 'artifact gone — nothing to diff against' });
+        }
+      } catch (e) {
+        skipped.push({ receiptId: op.receiptId, reason: String(e?.message ?? e).slice(0, 200) });
+      }
+    }
+    return { diffs, skipped };
   }
 
   #listOps() {

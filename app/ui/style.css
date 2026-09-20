@@ -885,3 +885,12 @@ tr.clickable:hover td { background: var(--field); }
 .ws-row .ws-path { color: var(--text-3); font-size: 11.5px; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ws-row.active .ws-name { color: var(--green); }
 .ws-row .spacer { flex: 1; }
+
+/* diff / btw collapsible blocks */
+.diff-row .diff-body {
+  display: none; font-family: var(--mono); font-size: 11.5px; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-all; padding: 8px 10px 10px;
+  color: var(--text-2); max-height: 420px; overflow-y: auto;
+}
+.diff-row.open .diff-body { display: block; }
+.diff-title { font-size: 12px; color: var(--text-2); }

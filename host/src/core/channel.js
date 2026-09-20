@@ -311,6 +311,15 @@ export class HostChannel {
           if (!cmd.receiptId) return reply(false, undefined, 'fileops_restore requires {receiptId}');
           return reply(true, await this.fileops.restore(String(cmd.receiptId)));
         }
+        case 'fileops_diff': {
+          if (!this.fileops?.diff) return reply(false, undefined, 'fileops diff unavailable');
+          return reply(true, await this.fileops.diff(cmd.n));
+        }
+        case 'session_btw': {
+          if (!this.sessions?.btw) return reply(false, undefined, 'btw unavailable');
+          if (typeof cmd.message !== 'string' || !cmd.message.trim()) return reply(false, undefined, 'session_btw requires {message}');
+          return reply(true, await this.sessions.btw(cmd.message));
+        }
         case 'policy_status': {
           if (!this.policy?.status) return reply(false, undefined, 'policy facade unavailable');
           return reply(true, await this.policy.status());

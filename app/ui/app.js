@@ -187,6 +187,19 @@ function addMsg(who, text) {
       const r = await cmd('prompt', { message: b.textContent ?? '' });
       if (!r.success) addSys(`重发失败：${r.error ?? '未知'}`, true);
     });
+    // 编辑重发：回退到这条提问点，原文进输入框改完再发（rewind 给 editorText）
+    mkBtn('编辑', '回退到这条并编辑重发', async () => {
+      const r = await cmd('session_entries');
+      const myText = b.textContent ?? '';
+      const entry = [...(r.data ?? [])].reverse()
+        .find((e) => (e.text ?? '').slice(0, 80) === myText.slice(0, 80));
+      if (!entry) { addSys('找不到这条消息对应的回退点', true); return; }
+      const r2 = await cmd('session_rewind', { entryId: entry.entryId });
+      if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
+      input.value = r2.data?.editorText ?? myText;
+      autogrow(); input.focus();
+      await replayHistory(); refreshState();
+    });
   } else {
     mkBtn('重新生成', '重新回答上一条', async () => {
       if (!lastUserText) return;
@@ -207,6 +220,21 @@ function addThinking(text) {
   div.querySelector('.think-body').textContent = text;
   div.querySelector('.think-head').onclick = () => div.classList.toggle('open');
   transcript.appendChild(div);
+  return div;
+}
+/* Collapsible pre-formatted block — /diff output, /btw answers. Reuses the
+   think-row collapse pattern but renders monospace payload. */
+function addDiffBlock(title, badge, text) {
+  noteMessage();
+  actGroup = null;
+  const div = document.createElement('div');
+  div.className = 'think-row diff-row open';
+  div.innerHTML = `<button class="think-head"><span class="t-caret">${CARET}</span><span class="op-badge op-${badge === 'btw' ? 'create' : badge}">${badge}</span> <span class="diff-title"></span></button><pre class="diff-body"></pre>`;
+  div.querySelector('.diff-title').textContent = title;
+  div.querySelector('.diff-body').textContent = text;
+  div.querySelector('.think-head').onclick = () => div.classList.toggle('open');
+  transcript.appendChild(div);
+  scrollTail();
   return div;
 }
 function addSys(text, bad = false) {
@@ -1618,6 +1646,50 @@ const SLASH = [
       const r = await cmd('session_export');
       if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
       else addSys(`导出失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/undo', label: '撤销上轮改动', hint: '恢复最近一次提问以来的全部文件操作',
+    run: async () => {
+      const [ops, ent] = await Promise.all([cmd('fileops_list'), cmd('session_entries')]);
+      const undoable = (ops.data ?? []).filter((o) => o.undoable);
+      if (!undoable.length) { addSys('没有可撤销的文件操作', true); return; }
+      // Turn-scoped undo: receipts since the last user prompt, newest-first
+      // restore order. No entries yet → just the single newest op.
+      const lastTs = (ent.data ?? []).at(-1)?.ts;
+      const scope = lastTs ? undoable.filter((o) => o.at >= lastTs) : undoable.slice(0, 1);
+      if (!scope.length) { addSys('上一轮没有文件改动可撤销', true); return; }
+      let restored = 0, failed = 0;
+      for (const o of scope) {
+        const r = await cmd('fileops_restore', { receiptId: o.receiptId });
+        r.success ? restored++ : failed++;
+      }
+      addSys(`已撤销 ${restored} 项文件改动${failed ? `（${failed} 项失败）` : ''}——原始回执仍在变更面板可查`);
+      refreshChanges?.();
+    },
+  },
+  {
+    cmd: '/diff', label: '查看改动聚合', hint: '最近文件改动的统一 diff（/diff N 指定条数）',
+    run: async (arg) => {
+      const n = Math.max(1, Math.min(50, parseInt(arg, 10) || 10));
+      const r = await cmd('fileops_diff', { n });
+      if (!r.success) { addSys(`diff 失败：${r.error ?? '未知'}`, true); return; }
+      const { diffs = [], skipped = [] } = r.data ?? {};
+      if (!diffs.length) { addSys('没有可展示的改动', true); return; }
+      for (const d of diffs) {
+        addDiffBlock(d.target.split(/[\\/]/).pop(), d.op, d.diff || '（无文本差异）');
+      }
+      if (skipped.length) addSys(`${skipped.length} 项回执无法 diff（备份工件已失）`, true);
+    },
+  },
+  {
+    cmd: '/btw', label: '旁路提问', hint: '临时分叉问一句，不污染当前会话',
+    run: async (arg) => {
+      if (!arg) { addSys('用法：/btw 你的问题', true); return; }
+      addSys('旁路提问中——临时分叉，回答不进本会话记录…');
+      const r = await cmd('session_btw', { message: arg });
+      if (!r.success) { addSys(`旁路失败：${r.error ?? '未知'}`, true); return; }
+      addDiffBlock('旁路回答', 'btw', r.data?.answer ?? '(无回答)');
     },
   },
   {

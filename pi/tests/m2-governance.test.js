@@ -163,3 +163,30 @@ test('update_todos persists a session-scoped checklist readable via readTodos', 
   await tool.execute('tc2', { todos: [{ content: 'x', status: 'bogus' }] });
   assert.equal(readTodos(dir, 'sess-B')[0].status, 'pending');
 });
+
+test('FileOpsGuard.diff: backup→current unified diff per receipt, artifacts gone → skipped', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fodiff-'));
+  const guard = new FileOpsGuard(dir);
+  const target = join(dir, 'f.txt');
+  writeFileSync(target, 'line1\nline2');
+  await guard.write(target, 'line1\nLINE2\nline3');
+  const created = join(dir, 'new.txt');
+  await guard.write(created, 'fresh');
+
+  const { diffs, skipped } = guard.diff(10);
+  assert.equal(diffs.length, 2);
+  // chronological order: oldest receipt first
+  assert.equal(diffs[0].op, 'write');
+  assert.match(diffs[0].diff, /-line2/);
+  assert.match(diffs[0].diff, /\+LINE2/);
+  assert.match(diffs[0].diff, /\+line3/);
+  assert.equal(diffs[1].op, 'write');
+  assert.match(diffs[1].diff, /\+fresh/);
+  assert.equal(skipped.length, 0);
+
+  // delete → recycled content vs empty
+  await guard.delete(target);
+  const d2 = guard.diff(1);
+  assert.equal(d2.diffs[0].op, 'delete');
+  assert.match(d2.diffs[0].diff, /-line1/);
+});

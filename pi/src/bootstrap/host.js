@@ -492,6 +492,35 @@ export async function startHost({
         file: s.sessionManager?.getSessionFile?.() ?? null,
       };
     },
+    // /btw — a side question on an EPHEMERAL fork: same context, answer never
+    // lands in the live transcript. The fork is a real governed session
+    // (same guard/lease/audit) — read-only is enforced by the operator's
+    // intent, not by faking a restricted tool surface. Fork file deleted
+    // after; the live session never rebinds.
+    btw: async (message) => {
+      const liveFile = currentSession?.sessionManager?.getSessionFile?.();
+      if (!liveFile) throw new Error('no live session to fork for btw');
+      const forkMgr = sessionManagers.forkFrom(liveFile, workdir, sessionDir);
+      const forkFile = forkMgr?.getSessionFile?.() ?? forkMgr?.path ?? null;
+      const built = await buildSession(forkMgr);
+      const s = built.session;
+      try {
+        core.audit.write({ kind: 'BTW_FORK', runId, data: { preview: String(message).slice(0, 120) } });
+        await Promise.race([
+          s.prompt(message),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('btw timed out after 120s')), 120_000)),
+        ]);
+        const last = [...(s.messages ?? [])].reverse().find((m) => m.role === 'assistant');
+        const text = Array.isArray(last?.content)
+          ? last.content.filter((b) => b?.type === 'text').map((b) => b.text).join('')
+          : (typeof last?.content === 'string' ? last.content : '');
+        return { answer: text || '(无回答)', ephemeral: true };
+      } finally {
+        try { s.dispose?.(); } catch { /* best-effort */ }
+        if (forkFile) { try { sessionManagers.remove(forkFile, sessionDir); } catch { /* leftover fork file is cosmetic */ } }
+        core.audit.write({ kind: 'BTW_DONE', runId });
+      }
+    },
   };
 
   // G5: typed lifecycle hooks — observational only, never in the decide path
@@ -519,6 +548,7 @@ export async function startHost({
       list: (n) => fileOps.list(n),
       listAll: () => fileOps.listAll(),
       restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
+      diff: (n) => fileOps.diff(n),
     },
     budget,
     writeLease,
