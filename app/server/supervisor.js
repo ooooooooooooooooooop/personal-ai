@@ -75,6 +75,34 @@ export class BodySupervisor {
 
   #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
 
+  /* Workspace registry (U9) — remembered project roots the operator can
+   * switch between. Switching still goes through set_workdir's respawn
+   * path; the registry is a persisted MRU, not a parallel session space. */
+  #workspacesPath() { return join(this.instanceRoot, 'workspaces.json'); }
+
+  #workspaces() {
+    try {
+      const list = JSON.parse(readFileSync(this.#workspacesPath(), 'utf-8'));
+      return Array.isArray(list) ? list : [];
+    } catch { return []; }
+  }
+
+  #saveWorkspaces(list) {
+    try { writeFileSync(this.#workspacesPath(), JSON.stringify(list, null, 2)); } catch { /* best-effort */ }
+  }
+
+  #touchWorkspace(dir) {
+    const list = this.#workspaces();
+    const now = Date.now();
+    const i = list.findIndex((w) => w.path === dir);
+    if (i >= 0) list[i].lastUsedAt = now;
+    else list.push({ path: dir, name: dir.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || dir, addedAt: now });
+    const cur = list[i >= 0 ? i : list.length - 1];
+    cur.lastUsedAt = now;
+    this.#saveWorkspaces(list);
+  }
+
+
   #macros() {
     try { return JSON.parse(readFileSync(this.#macrosPath(), 'utf-8')); } catch { return {}; }
   }
@@ -427,6 +455,7 @@ export class BodySupervisor {
           if (dir === this.workdir) return reply(true, { workdir: dir, already: true });
           this.workdir = dir;
           this.#saveConfig();
+          this.#touchWorkspace(dir);
           this.audit.write({ kind: 'WORKDIR_CHANGED', data: { workdir: dir } });
           this.#emitSupervisor('workdir_changed', { workdir: dir });
           // Respawn the live body on the new workdir — sessions/tools bind cwd.
@@ -436,6 +465,27 @@ export class BodySupervisor {
             await this.spawnBody(bodyId);
           }
           return reply(true, { workdir: dir });
+        }
+        case 'workspace_list': {
+          return reply(true, {
+            active: this.workdir,
+            workspaces: this.#workspaces()
+              .map((w) => ({ ...w, exists: existsSync(w.path), active: w.path === this.workdir }))
+              .sort((a, b) => (b.lastUsedAt ?? 0) - (a.lastUsedAt ?? 0)),
+          });
+        }
+        case 'workspace_add': {
+          const dir = String(cmd.path ?? '').trim();
+          if (!dir) return reply(false, undefined, 'workspace_add requires {path}');
+          if (!existsSync(dir) || !statSync(dir).isDirectory()) return reply(false, undefined, `not a directory: ${dir}`);
+          this.#touchWorkspace(dir);
+          return reply(true, { workspaces: this.#workspaces() });
+        }
+        case 'workspace_remove': {
+          const dir = String(cmd.path ?? '').trim();
+          if (dir === this.workdir) return reply(false, undefined, 'cannot remove the active workspace — switch away first');
+          this.#saveWorkspaces(this.#workspaces().filter((w) => w.path !== dir));
+          return reply(true, { workspaces: this.#workspaces() });
         }
         case 'files_list': {
           // @-reference picker: bounded recursive walk of the workdir.

@@ -1191,6 +1191,7 @@ async function refreshSettings() {
   $('set-instance').textContent = s.instanceRoot ?? '';
   const pol = await cmd('policy_status');
   if (pol.success) renderGovCard(pol.data);
+  refreshWorkspaces();
 }
 const RISK_LABEL = { benign: '常规', mutating: '改文件', destructive: '删改', network: '网络', privilege: '提权', exec: '执行', unknown: '未知' };
 const ACTION_LABEL = { allow: '放行', deny: '拒绝', ask: '询问' };
@@ -1216,6 +1217,55 @@ $('set-pick-dir').onclick = async () => {
   const r = await cmd('set_workdir', { path: dir });
   if (!r.success) addSys(`切换工作目录失败：${r.error ?? '未知'}`, true);
   refreshSettings();
+};
+
+/* Workspace registry (U9) — remembered roots under the workdir card. */
+async function refreshWorkspaces() {
+  const box = $('workspace-list');
+  if (!box) return;
+  const r = await cmd('workspace_list');
+  const list = r.data?.workspaces ?? [];
+  box.innerHTML = '';
+  if (!r.success || !list.length) {
+    box.innerHTML = '<div class="set-sub">尚未登记工作区——切换工作目录会自动登记。</div>';
+    return;
+  }
+  for (const w of list) {
+    const row = document.createElement('div');
+    row.className = `ws-row${w.active ? ' active' : ''}`;
+    row.innerHTML = `<span class="ws-name"></span><code class="ws-path"></code><span class="ws-when dim"></span><span class="spacer"></span>`;
+    row.querySelector('.ws-name').textContent = w.name ?? '';
+    row.querySelector('.ws-path').textContent = w.path;
+    row.querySelector('.ws-path').title = w.path;
+    row.querySelector('.ws-when').textContent = w.lastUsedAt ? new Date(w.lastUsedAt).toLocaleDateString('zh-CN') : '';
+    if (w.active) {
+      row.insertAdjacentHTML('beforeend', '<span class="pill ok">当前</span>');
+    } else {
+      const sw = document.createElement('button');
+      sw.className = 'btn ghost sm';
+      sw.textContent = w.exists ? '切换' : '目录已不存在';
+      sw.disabled = !w.exists;
+      sw.onclick = async () => {
+        const rr = await cmd('set_workdir', { path: w.path });
+        if (!rr.success) toast(`切换失败：${rr.error ?? '未知'}`, 'err');
+        refreshSettings();
+      };
+      const rm = document.createElement('button');
+      rm.className = 'btn ghost sm';
+      rm.textContent = '移除';
+      rm.onclick = async () => { await cmd('workspace_remove', { path: w.path }); refreshWorkspaces(); };
+      row.append(sw, rm);
+    }
+    box.appendChild(row);
+  }
+}
+$('ws-add').onclick = async () => {
+  const res = await fetch('/api/pick-dir', { method: 'POST' }).then((r) => r.json()).catch(() => ({}));
+  const dir = res?.dir ?? prompt('要登记的工作区目录完整路径');
+  if (!dir) return;
+  const r = await cmd('workspace_add', { path: dir });
+  if (!r.success) toast(`登记失败：${r.error ?? '未知'}`, 'err');
+  refreshWorkspaces();
 };
 
 /* ---------- audit / jobs ---------- */

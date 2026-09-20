@@ -271,3 +271,38 @@ test('file_read: symlink inside workdir pointing outside is refused (P0b)', asyn
     assert.match(r.error, /escapes workdir/);
   } finally { await sup.dispose(); }
 });
+
+test('workspace registry: add/list/remove, set_workdir auto-registers, active protected', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const other = mkdtempSync(join(tmpdir(), 'pai-ws-'));
+    // empty at first
+    let r = await sup.handle({ type: 'workspace_list' });
+    assert.equal(r.success, true);
+    // set_workdir auto-registers the new root
+    const sw = await sup.handle({ type: 'set_workdir', path: other });
+    assert.equal(sw.success, true);
+    r = await sup.handle({ type: 'workspace_list' });
+    const active = r.data.workspaces.find((w) => w.path === other);
+    assert.ok(active, 'switched dir was auto-registered');
+    assert.equal(active.active, true);
+    assert.equal(r.data.active, other);
+    // explicit add
+    const third = mkdtempSync(join(tmpdir(), 'pai-ws2-'));
+    r = await sup.handle({ type: 'workspace_add', path: third });
+    assert.equal(r.success, true);
+    r = await sup.handle({ type: 'workspace_list' });
+    assert.ok(r.data.workspaces.some((w) => w.path === third));
+    // removing the active workspace is refused
+    const rmActive = await sup.handle({ type: 'workspace_remove', path: other });
+    assert.equal(rmActive.success, false);
+    // removing a non-active entry works
+    const rm = await sup.handle({ type: 'workspace_remove', path: third });
+    assert.equal(rm.success, true);
+    r = await sup.handle({ type: 'workspace_list' });
+    assert.ok(!r.data.workspaces.some((w) => w.path === third));
+    // nonexistent dir refused at add time
+    const bad = await sup.handle({ type: 'workspace_add', path: join(dir, 'nope') });
+    assert.equal(bad.success, false);
+  } finally { await sup.dispose(); }
+});

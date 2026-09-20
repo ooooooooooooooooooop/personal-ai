@@ -877,3 +877,11 @@ tr.clickable:hover td { background: var(--field); }
 .op-badge.op-backup { background: var(--field); color: var(--text-3); }
 .change-path { font-family: var(--mono); font-size: 12px; max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .btn.sm { padding: 3px 10px; font-size: 12px; }
+
+/* workspace registry rows */
+.ws-list { margin-top: 10px; border-top: 1px solid var(--line, #2a2d35); padding-top: 8px; }
+.ws-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 12.5px; }
+.ws-row .ws-name { font-weight: 550; min-width: 90px; }
+.ws-row .ws-path { color: var(--text-3); font-size: 11.5px; max-width: 380px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-row.active .ws-name { color: var(--green); }
+.ws-row .spacer { flex: 1; }
