@@ -901,5 +901,7 @@
 | 多路径规则兼容装载 | Devin `.devin/`+`.claude`/`.cursor` 兼容 | `loadSteering` 增读 `.claude/rules`、`.cursor/rules`(.md/.mdc)、`.windsurf/rules`、`.devin/rules`——迁移团队规则零拷贝生效 |
 | `/export debug` 调试包 | Devin `/debug` 含 subagent 链 trajectory | 原始轨迹+本会话 spawn 的任务子树（run_scope/parent 链闭包）+事件流+jobs 打包 JSON |
 | G5 veto 钩 | Claude Code PreToolUse | `<instance>/hooks.json` gate（操作员私有）——exit≠0/`{"deny"}`→block，match 前缀过滤，fail-closed |
+| 三 scope rewind+分叉点 | ZCode EscEsc（chat/files/both）+fork 自任一消息 | `session_rewind {scope:'chat'|'files'|'both'}`（files 不动对话头；restoreFiles 为 both 的旧拼写）+`session_fork {entryId}` 分叉到任一 entry；`/rewind` 两级菜单 |
+| 规则应用模式 | Trae/Kiro frontmatter globs+apply | steering frontmatter：`apply: manual`→不注入只进 `<manual-rules>` 索引；`globs:`→注入带 scope 声明属性（按触碰路径真条件注入=v2） |
 
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

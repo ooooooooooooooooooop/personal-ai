@@ -2096,12 +2096,35 @@ const SLASH = [
         sub: e.entryId.slice(0, 8),
         value: e,
       })), async (it) => {
-        const r2 = await cmd('session_rewind', { entryId: it.value.entryId });
-        if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
-        if (r2.data?.editorText) { input.value = r2.data.editorText; autogrow(); }
-        await replayHistory();
-        refreshState();
-        toast('已回退——之后的回合仍在文件里，未删除');
+        // ZCode EscEsc scope choice: chat-only, files-only, both, or fork
+        // a NEW session from this point (original timeline untouched).
+        openMenu([
+          { label: '仅回退会话', sub: '对话头回到该点，文件不动', value: 'chat' },
+          { label: '仅回退文件', sub: '撤销该点之后的文件改动，对话不动', value: 'files' },
+          { label: '会话+文件一起回退', sub: '回到该点的完整现场', value: 'both' },
+          { label: '从此处开分叉会话', sub: '复制到该点为止的历史进新会话，原会话原样', value: 'fork' },
+        ], async (scope) => {
+          if (scope.value === 'fork') {
+            const fr = await cmd('session_fork', { path: currentSessionFile, entryId: it.value.entryId });
+            if (!fr.success) { addSys(`分叉失败：${fr.error ?? '未知'}`, true); return; }
+            await replayHistory(); refreshSessions(); refreshState();
+            toast('已分叉——当前会话切到从该点长出的新会话');
+            return;
+          }
+          const r2 = await cmd('session_rewind', { entryId: it.value.entryId, scope: scope.value });
+          if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
+          if (scope.value === 'files') {
+            const n = r2.data?.restoredFiles?.length ?? 0;
+            toast(`已回退文件：恢复 ${n} 处改动${r2.data?.partial ? '（部分失败）' : ''}`);
+            refreshChanges();
+            return;
+          }
+          if (r2.data?.editorText) { input.value = r2.data.editorText; autogrow(); }
+          await replayHistory();
+          refreshState();
+          if (scope.value === 'both') refreshChanges();
+          toast('已回退——之后的回合仍在文件里，未删除');
+        });
       });
     },
   },

@@ -51,11 +51,47 @@ export function loadSteering(workdir) {
   if (!files.length) return null;
 
   let out = '';
+  const manual = [];
   for (const f of files) {
     if (out.length >= TOTAL_MAX) break;
     let body = '';
     try { body = readFileSync(f.path, 'utf-8').slice(0, PER_FILE_MAX); } catch { continue; }
-    out += `\n<steering-file name="${f.name}">\n${body}\n</steering-file>\n`;
+    const fm = parseFrontmatter(body);
+    // Trae/Kiro apply modes: 'manual' rules are not auto-injected — they are
+    // indexed by name so the model reads them on demand. 'globs' rules are
+    // injected with their declared scope attribute; conditional injection by
+    // touched path is the v2 refinement (declared scope is honest about it).
+    if (fm.apply === 'manual') { manual.push(f.name); continue; }
+    const scope = fm.globs?.length ? ` scope="${fm.globs.join(', ')}"` : '';
+    out += `\n<steering-file name="${f.name}"${scope}>\n${fm.body}\n</steering-file>\n`;
+  }
+  if (manual.length) {
+    out += `\n<manual-rules>${manual.join(', ')}</manual-rules>\n`;
   }
   return out.trim() || null;
+}
+
+/**
+ * Minimal YAML-frontmatter reader for steering apply modes.
+ *   ---
+ *   apply: always|manual     (default always)
+ *   globs: ["src/**"]  or  globs: src/**, tests/**
+ *   ---
+ * Returns { apply, globs, body } — body has the frontmatter block removed.
+ */
+function parseFrontmatter(raw) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  if (!m) return { apply: 'always', globs: null, body: raw };
+  const fm = m[1];
+  const apply = (fm.match(/^apply:\s*(\w+)/m)?.[1] ?? 'always').toLowerCase();
+  let globs = null;
+  const inline = fm.match(/^globs:\s*\[([^\]]*)\]/m);
+  const plain = fm.match(/^globs:\s*(.+)$/m);
+  const rawGlobs = inline ? inline[1] : plain?.[1];
+  if (rawGlobs) {
+    globs = rawGlobs.split(',')
+      .map((g) => g.trim().replace(/^["']|["']$/g, ''))
+      .filter(Boolean).slice(0, 20);
+  }
+  return { apply, globs, body: raw.slice(m[0].length) };
 }

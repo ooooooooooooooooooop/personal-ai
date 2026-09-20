@@ -35,3 +35,17 @@ test('compat rule dirs (.claude/.cursor/.windsurf/.devin) load as steering', () 
   assert.match(out, /\.cursor\/rules\/api\.mdc/); // .mdc included
   assert.doesNotMatch(out, /skip\.txt/);          // non-md ignored
 });
+
+test('frontmatter apply modes: manual indexed not injected, globs declare scope', () => {
+  const w = dir();
+  mkdirSync(join(w, '.pai', 'steering'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'steering', 'always.md'), 'always here');
+  writeFileSync(join(w, '.pai', 'steering', 'scoped.md'), '---\nglobs: ["src/**", "tests/**"]\n---\nonly in src');
+  writeFileSync(join(w, '.pai', 'steering', 'manual.md'), '---\napply: manual\n---\nread me on demand');
+  const out = loadSteering(w);
+  assert.match(out, /always here/);
+  assert.match(out, /scope="src\/\*\*, tests\/\*\*"/);
+  assert.match(out, /only in src/);
+  assert.doesNotMatch(out, /read me on demand/);       // manual body not injected
+  assert.match(out, /<manual-rules>.*manual\.md/);      // but indexed by name
+});

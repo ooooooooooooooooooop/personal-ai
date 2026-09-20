@@ -264,7 +264,7 @@ export class HostChannel {
         case 'session_fork': {
           if (!this.sessions?.fork) return reply(false, undefined, 'sessions facade unavailable');
           if (!cmd.path) return reply(false, undefined, 'session_fork requires {path}');
-          return reply(true, await this.sessions.fork(String(cmd.path)));
+          return reply(true, await this.sessions.fork(String(cmd.path), { entryId: cmd.entryId ?? null }));
         }
         case 'session_delete': {
           if (!this.sessions?.remove) return reply(false, undefined, 'sessions facade unavailable');
@@ -290,14 +290,23 @@ export class HostChannel {
         case 'session_rewind': {
           if (!this.session?.rewind) return reply(false, undefined, 'rewind unavailable');
           if (!cmd.entryId) return reply(false, undefined, 'session_rewind requires {entryId}');
-          // Dual-scope rewind (ZCode): restoreFiles additionally undoes every
-          // receipted file mutation recorded AFTER the rewind anchor — the
-          // chat head and the worktree move together instead of diverging.
-          const anchor = cmd.restoreFiles === true && this.session.entries
+          // Triple-scope rewind (ZCode EscEsc): 'chat' moves only the session
+          // head, 'files' undoes only receipted mutations after the anchor
+          // (conversation untouched), 'both' does both. restoreFiles:true is
+          // the legacy spelling of 'both'.
+          const scope = ['chat', 'files', 'both'].includes(cmd.scope)
+            ? cmd.scope
+            : (cmd.restoreFiles === true ? 'both' : 'chat');
+          const anchor = scope !== 'chat' && this.session.entries
             ? (await this.session.entries()).find((e) => e.entryId === String(cmd.entryId)) ?? null
             : null;
-          const r = await this.session.rewind(String(cmd.entryId), { summarize: cmd.summarize === true });
-          if (cmd.restoreFiles === true && !r?.cancelled && !r?.aborted && this.fileops?.restore) {
+          if (scope !== 'chat' && !anchor) {
+            return reply(false, undefined, `anchor entry '${cmd.entryId}' not found — cannot locate the file-restore boundary`);
+          }
+          const r = scope === 'files'
+            ? { filesOnly: true }
+            : await this.session.rewind(String(cmd.entryId), { summarize: cmd.summarize === true });
+          if (scope !== 'chat' && !r?.cancelled && !r?.aborted && this.fileops?.restore) {
             const anchorTs = anchor?.ts != null ? Date.parse(anchor.ts) : null;
             // Uncapped scan — the UI list cap must not silently drop undoable
             // mutations between the anchor and now.

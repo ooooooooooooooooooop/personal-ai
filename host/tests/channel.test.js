@@ -229,3 +229,39 @@ test('session_rewind restoreFiles uses uncapped scan, undoes tombstones, reports
   assert.equal(r.data.partial, true);
   assert.equal(r.data.failedFiles[0].receiptId, 'boom');
 });
+
+test('session_rewind scope=files restores without moving the chat head', async () => {
+  const session = fakeSession();
+  session.entries = async () => [
+    { entryId: 'e-a', text: 'x', ts: '2026-01-01T00:00:00.000Z' },
+  ];
+  let rewindCalls = 0;
+  session.rewind = async () => { rewindCalls += 1; return { cancelled: false }; };
+  const restoredCalls = [];
+  const fileops = {
+    listAll: async () => [
+      { receiptId: 'r1', op: 'write', at: Date.parse('2026-01-02T00:00:00Z'), recoverable: true },
+    ],
+    restore: async (id) => { restoredCalls.push(id); return { restored: 'x' }; },
+  };
+  const ch = new HostChannel({ session, fileops });
+  const r = await ch.handle({ type: 'session_rewind', entryId: 'e-a', scope: 'files' });
+  assert.equal(r.success, true);
+  assert.equal(rewindCalls, 0);                       // conversation head unmoved
+  assert.deepEqual(restoredCalls, ['r1']);            // files still restored
+  assert.equal(r.data.filesOnly, true);
+  // unknown anchor on a file-scoped request fails loudly, not silent no-op
+  const bad = await ch.handle({ type: 'session_rewind', entryId: 'ghost', scope: 'files' });
+  assert.equal(bad.success, false);
+});
+
+test('session_fork forwards entryId for fork-at-point', async () => {
+  const calls = [];
+  const ch = new HostChannel({
+    session: fakeSession(),
+    sessions: { fork: async (path, opts) => { calls.push([path, opts?.entryId]); return { id: 's2' }; } },
+  });
+  const r = await ch.handle({ type: 'session_fork', path: 'sessions/a.jsonl', entryId: 'e-mid' });
+  assert.equal(r.success, true);
+  assert.deepEqual(calls, [['sessions/a.jsonl', 'e-mid']]);
+});

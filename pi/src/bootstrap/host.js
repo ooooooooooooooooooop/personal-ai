@@ -638,8 +638,12 @@ export async function startHost({
     },
     // Fork = copy the transcript into a new session file and continue there —
     // the original stays untouched. rebuildSession switches the live surface.
-    fork: async (path) => {
+    // entryId (ZCode fork-from-any-assistant-message): navigate the fork's
+    // tree head to that entry first — the fork inherits history up to the
+    // chosen point instead of the source's current leaf.
+    fork: async (path, { entryId = null } = {}) => {
       const s = await rebuildSession(sessionManagers.forkFrom(path, workdir, sessionDir), 'fork');
+      if (entryId) await s.navigateTree?.(String(entryId));
       return {
         id: s.sessionId ?? null,
         file: s.sessionManager?.getSessionFile?.() ?? null,
