@@ -30,9 +30,10 @@ def e2e_enabled() -> bool:
 
 @pytest.fixture(autouse=True)
 def _isolated_send_receipts(monkeypatch, tmp_path):
-    from chatgpt_web2api import send_receipts
+    from chatgpt_web2api import mcp_server, send_receipts
 
     monkeypatch.setattr(send_receipts, "DB_PATH", tmp_path / "send_receipts.sqlite3")
+    monkeypatch.setattr(mcp_server, "_CONVERSATION_EXPORT_DIR", tmp_path / "exports")
 
 
 @pytest.fixture(autouse=True)

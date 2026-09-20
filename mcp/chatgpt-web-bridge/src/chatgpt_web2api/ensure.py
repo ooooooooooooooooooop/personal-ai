@@ -310,10 +310,25 @@ def _launch_detached(cmd: list[str]) -> subprocess.Popen:
         "stdin": subprocess.DEVNULL,
     }
     if sys.platform == "win32":
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+        # DETACHED_PROCESS detaches the console, but still inherits the
+        # harness job. KILL_ON_JOB_CLOSE would then kill both daemons when
+        # the tool task ends. Request the job's supported breakaway path.
+        kwargs["creationflags"] = (
+            subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
+            | subprocess.CREATE_BREAKAWAY_FROM_JOB
+        )
     else:
         kwargs["start_new_session"] = True
-    return subprocess.Popen(cmd, **kwargs)
+    try:
+        return subprocess.Popen(cmd, **kwargs)
+    except PermissionError as exc:
+        if sys.platform == "win32":
+            raise RuntimeError(
+                "Cannot start a persistent bridge daemon: the host denied process "
+                "creation or job breakaway. Start it from an independent desktop "
+                "shell; do not fall back to a task-owned process."
+            ) from exc
+        raise
 
 
 def _find_listener_pid(port: int) -> int | None:

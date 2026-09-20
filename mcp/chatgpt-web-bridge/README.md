@@ -1,5 +1,17 @@
 # chatgpt-web-bridge（vendored）
 
+Long conversation pages are exported automatically as complete UTF-8 Markdown.
+The MCP result contains out_file, file_bytes and file_sha256; read that file in
+bounded chunks. Use offset plus limit=1 to export a single message, or specify
+out_file explicitly. max_inline_bytes=0 preserves unlimited inline JSON for
+programmatic clients. A partial DOM fallback remains marked partial even when
+exported. REST is not required for reads through an already healthy MCP server.
+
+On Windows, ensure launches background daemons outside the caller's process job
+so closing a tool task cannot terminate them through KILL_ON_JOB_CLOSE. If the
+host denies breakaway, startup reports the error instead of claiming persistence.
+
+
 ChatGPT 网页版桥：用专用 Chrome profile + CDP 驱动已登录的 ChatGPT Web，
 对外暴露 OpenAI 兼容 REST（`:8080`）与 MCP SSE（`:8090`）双通道。
 网页端只有文本——永远不拿本地工具。

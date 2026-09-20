@@ -133,7 +133,7 @@ description: |
 - 拿到长资料本地只做筛选/引用，不改写它的结论
 - 触发词：「用网页端 XXX 的资料」「看看它/项目里怎么说的」「把 XXX 会话的结论拉下来」
 - **空结果先看 `reason`**：`get_conversation` 返回带 `reason` 字段消歧——`not_found`=后端 404（先核 conversation_id，以 `list_conversations` 的 id 逐字符为准或从 tab 的 `/c/{id}` URL 取）、`empty`=可达但暂无可视内容（常见于生成中）、`fetch_failed`=拉取本身报错、`ok`=正常。历史行为是把 404 `conversation_inaccessible` 静默映射成空——别再把空结果一律当「会话还在」
-- **长文回读走文件**：单页结果可能超 tool-result 预算被截断——`get_conversation` 传 `out_file`（绝对路径）把该页直接写盘再读文件，回文再长也不占上下文；不传 `out_file` 时记着小 `limit` 分页
+- **长文自动导出全文**：get_conversation 的长页默认返回 out_file、file_bytes、file_sha256；按行区间或字符切片读该 UTF-8 文件至末尾。单条长消息用 offset 定位、limit=1，可指定 out_file；需要程序直接消费完整 JSON 时才设 max_inline_bytes=0。客户端提示 truncated 或 JSON 单行被截短时，先用现有导出参数，或解析原始 JSON 文件的 messages[].content；只查工具名会漏掉参数。REST 缺失不妨碍正常 SSE 读取；页面 DOM 是虚拟列表，不能用“最后一个/最长一个 turn”认定最新完整计划。返回 partial:true 时文件也只是部分 DOM 内容，不能宣称已读全。
 - **真实错误取证**：直连 `127.0.0.1:9222`（browser-level flatten attach，不占用桥的 tab），在 chatgpt.com 页内 fetch `/api/auth/session` 拿 token 后 fetch `/backend-api/conversation/{id}`，看真实 status——区分 404(ID 错) / 429(限流) / mapping 结构变化
 
 ## 硬规则

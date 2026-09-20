@@ -30,10 +30,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import hashlib
 import json
 import logging
 import os
 import sys
+import tempfile
 import time
 from collections.abc import Awaitable, Callable
 from enum import Enum
@@ -66,6 +68,10 @@ from .resilience import retry_on_rate_limit
 from .tab_registry import TabRegistry
 
 logger = logging.getLogger(__name__)
+
+# Keep even an ASCII-escaped client preview below the observed 10 KB cap.
+_MAX_INLINE_CONVERSATION_BYTES = 8000
+_CONVERSATION_EXPORT_DIR = Path.home() / ".chatgpt-web2api" / "exports"
 
 # How many streamed chunks between coalesced progress notifications. The
 # underlying DOM poll yields roughly one delta per ~0.5s, so notifying every
@@ -197,6 +203,16 @@ class GetConversationInput(BaseModel):
             "returned inline — the tool result stays tiny no matter how long "
             "the messages are, and you read the file instead. Use this for "
             "long replies instead of fighting tool-result truncation."
+        ),
+    )
+
+    max_inline_bytes: int = Field(
+        default=_MAX_INLINE_CONVERSATION_BYTES,
+        ge=0,
+        description=(
+            "Large pages automatically export complete UTF-8 text and return out_file "
+            "instead of a truncated preview. Budget counts ASCII-escaped JSON bytes. "
+            "Set 0 only when the client explicitly needs unlimited inline messages."
         ),
     )
 
@@ -520,12 +536,18 @@ GET_CONVERSATION_OUTPUT = {
         },
         "out_file": {
             "type": "string",
-            "description": "Absolute path the page was written to (only when requested).",
+            "description": "Absolute path containing the complete page, requested or automatically exported.",
         },
         "messages_written": {
             "type": "integer",
             "description": "How many messages were written to out_file.",
         },
+        "exported_automatically": {"type": "boolean"},
+        "file_bytes": {"type": "integer"},
+        "file_sha256": {"type": "string"},
+        "read_hint": {"type": "string"},
+        "source": {"type": "string"},
+        "partial": {"type": "boolean"},
     },
     "required": ["id", "total", "has_more"],
 }
@@ -1251,6 +1273,51 @@ async def _verify_reply_persisted(
     return None
 
 
+def _conversation_page_output(result: dict, validated: GetConversationInput) -> dict:
+    """Export before a client truncates long JSON lines; preserve partial-read flags."""
+    automatic = not validated.out_file and bool(validated.max_inline_bytes) and (
+        len(json.dumps(result, ensure_ascii=True, indent=2).encode("utf-8"))
+        > validated.max_inline_bytes
+    )
+    if not validated.out_file and not automatic:
+        return result
+
+    page = result["messages"]
+    payload = "".join(f"## {m['role']}\n\n{m['content']}\n\n" for m in page).encode("utf-8")
+    if validated.out_file:
+        path = Path(validated.out_file)
+        if not path.is_absolute():
+            raise ValueError("out_file must be an absolute path")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    else:
+        _CONVERSATION_EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", prefix="conversation-", suffix=".md",
+            dir=_CONVERSATION_EXPORT_DIR, delete=False,
+        ) as output:
+            path = Path(output.name)
+            try:
+                output.write(payload)
+            except BaseException:
+                output.close()
+                path.unlink(missing_ok=True)
+                raise
+
+    result.pop("messages")
+    result.update(
+        out_file=str(path),
+        messages_written=len(page),
+        exported_automatically=automatic,
+        file_bytes=len(payload),
+        file_sha256=hashlib.sha256(payload).hexdigest(),
+        read_hint="Read UTF-8 out_file in bounded line ranges or character slices until EOF.",
+    )
+    if result.get("partial"):
+        result["read_hint"] += " This is a partial DOM view, not complete conversation history."
+    return result
+
+
 async def do_get_conversation(
     driver: CDPDriver,
     args: dict,
@@ -1273,7 +1340,7 @@ async def do_get_conversation(
             limit=validated.limit,
         )
         if msgs is not None:
-            return {
+            return _conversation_page_output({
                 "id": validated.conversation_id,
                 "title": "",
                 "offset": 0,
@@ -1284,7 +1351,7 @@ async def do_get_conversation(
                 "source": "dom",
                 "partial": True,
                 "messages": msgs,
-            }
+            }, validated)
         return {
             "id": validated.conversation_id,
             "title": "",
@@ -1323,19 +1390,8 @@ async def do_get_conversation(
         "reason": reason,
     }
 
-    if validated.out_file:
-        p = Path(validated.out_file)
-        if not p.is_absolute():
-            raise ValueError("out_file must be an absolute path")
-        p.parent.mkdir(parents=True, exist_ok=True)
-        text = "".join(f"## {m['role']}\n\n{m['content']}\n\n" for m in page)
-        p.write_text(text, encoding="utf-8")
-        result["out_file"] = str(p)
-        result["messages_written"] = len(page)
-    else:
-        result["messages"] = page
-
-    return result
+    result["messages"] = page
+    return _conversation_page_output(result, validated)
 
 
 async def do_wait_reply(
@@ -1823,8 +1879,10 @@ def _build_tools() -> list[mcp_types.Tool]:
                 "most recent page), page through by increasing offset by limit each "
                 "call until has_more is false: "
                 "get_conversation(id, offset=0, limit=50), then offset=50, offset=100, … . "
-                "If a single page's result is truncated before reaching you, either "
-                "lower limit (e.g. 15) and retry, or pass `out_file` (absolute path) "
+                "Long pages automatically return out_file, file_bytes and file_sha256 "
+                "instead of inline messages. Read that UTF-8 file in bounded chunks; "
+                "the complete text is preserved. max_inline_bytes=0 opts into unlimited "
+                "inline output for clients that can consume it. You can also pass `out_file` (absolute path) "
                 "to write the page to disk and read the file — the tool result then "
                 "stays tiny no matter how long the messages are.\n\n"
                 "Empty results are disambiguated by `reason`: 'not_found' = backend "
