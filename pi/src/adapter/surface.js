@@ -32,6 +32,7 @@ export class ToolSurface {
       ...initialDeny,
       ...(existsSync(denyMemoryPath) ? JSON.parse(readFileSync(denyMemoryPath, 'utf-8')) : []),
     ]);
+    this.modeDenied = new Set();
     if (initialDeny.length) this.#persist(); // initial suppression is durable too
   }
 
@@ -57,6 +58,21 @@ export class ToolSurface {
     this.#apply();
   }
 
+  /**
+   * Session-scoped mode hide (Policy Preset Overlay `hideTools`). NOT
+   * persisted — a mode posture dies with the session/mode switch, unlike
+   * operator denials which are durable deny-memory.
+   */
+  setModeDenied(names) {
+    // candidates must include tools hidden by the PREVIOUS mode so a mode
+    // switch can restore them — the active list alone has already lost them
+    const candidates = [...this.session.getActiveToolNames(), ...(this.lastModeHidden ?? [])];
+    this.modeDenied = new Set(names ?? []);
+    const visible = candidates.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n));
+    this.lastModeHidden = candidates.filter((n) => this.modeDenied.has(n));
+    this.session.setActiveToolsByName(visible);
+  }
+
   isDenied(toolName) {
     return this.denied.has(toolName);
   }
@@ -67,7 +83,7 @@ export class ToolSurface {
 
   #apply() {
     const active = this.session.getActiveToolNames();
-    const visible = active.filter((n) => !this.denied.has(n));
+    const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n));
     if (visible.length !== active.length) {
       this.session.setActiveToolsByName(visible);
     }

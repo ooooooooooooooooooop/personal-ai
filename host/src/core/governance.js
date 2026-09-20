@@ -34,7 +34,7 @@ export class GovernanceKernel {
    * @param {string[]} [deps.mutatingTools]  tool names that mutate without a
    *        shell command (write/edit/delete) — plan mode asks these too.
    */
-  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [] }) {
+  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [], modeOverlay = null }) {
     if (!audit) throw new Error('GovernanceKernel requires an AuditWriter');
     if (!policy) throw new Error('GovernanceKernel requires an AttestedPolicy');
     this.audit = audit;
@@ -45,6 +45,7 @@ export class GovernanceKernel {
     this.commandArgs = commandArgs;
     this.ask = ask;
     this.modeProvider = modeProvider;
+    this.modeOverlay = modeOverlay;
     this.mutatingTools = new Set(mutatingTools);
   }
 
@@ -253,7 +254,57 @@ export class GovernanceKernel {
       });
     }
 
+    // 8. mode preset overlay — a named session posture (Roo custom-mode
+    // analogue). Resolved LAST so it can only tighten: every canonical
+    // deny path above already returned. An overlay can never turn a deny
+    // into an allow — it adds asks and denies, nothing else.
+    const overlay = this.modeOverlay?.();
+    if (overlay) {
+      const act = this.#overlayAction(ctx, args, overlay);
+      if (act === 'deny') {
+        return this.#deny(ctx, 'mode_overlay', {
+          reason: `mode '${overlay.name}' denies '${ctx.toolName}'`,
+          repair: `switch mode or ask the operator to adjust the preset`,
+        });
+      }
+      if (act === 'ask') {
+        return this.#ask(ctx, 'mode_overlay', {
+          reason: `mode '${overlay.name}' requires approval for '${ctx.toolName}'`,
+        });
+      }
+    }
+
     return this.#allow(ctx, 'kernel');
+  }
+
+  /** Strictest applicable overlay action for this call. */
+  #overlayAction(ctx, args, overlay) {
+    const actions = [];
+    // tool rules — exact then longest '*' prefix (same convention as #toolRules)
+    const t = ctx.toolName;
+    if (overlay.toolActions[t]) actions.push(overlay.toolActions[t]);
+    else {
+      let best = null;
+      for (const key of Object.keys(overlay.toolActions)) {
+        if (!key.endsWith('*')) continue;
+        const prefix = key.slice(0, -1);
+        if (typeof t === 'string' && t.startsWith(prefix) && (!best || prefix.length > best.length)) best = prefix;
+      }
+      if (best) actions.push(overlay.toolActions[best + '*']);
+    }
+    // path rules — any path-like arg matched against preset globs
+    const paths = [args.path, args.file, args.target].filter((x) => typeof x === 'string');
+    for (const p of paths) {
+      const norm = p.replace(/\\/g, '/');
+      for (const r of overlay.pathRules) if (r.re.test(norm)) actions.push(r.action);
+    }
+    // default posture — toolAllow is the bypass list for a strict default
+    if (overlay.defaultAction && overlay.defaultAction !== 'allow' && !overlay.allowSet.has(t)) {
+      actions.push(overlay.defaultAction);
+    }
+    if (actions.includes('deny')) return 'deny';
+    if (actions.includes('ask')) return 'ask';
+    return 'allow';
   }
 
   /**

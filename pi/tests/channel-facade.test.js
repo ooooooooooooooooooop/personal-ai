@@ -132,3 +132,33 @@ test('fileops_diff and session_btw dispatch to their facades; unavailable surfac
   assert.equal(r2.success, false);
   bare.dispose();
 });
+
+test('mode_list/mode_set dispatch to modes facade; unknown mode fails closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-mode-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  let active = 'normal';
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    modes: {
+      list: () => [{ name: 'normal' }, { name: 'review', description: 'read-only' }],
+      active: () => active,
+      setMode: (name) => (name === 'review' ? (active = name, { mode: name }) : null),
+    },
+  });
+  const l = await ch.handle({ type: 'mode_list' });
+  assert.equal(l.success, true);
+  assert.equal(l.data.modes.length, 2);
+  const s = await ch.handle({ type: 'mode_set', name: 'review' });
+  assert.equal(s.data.mode, 'review');
+  const bad = await ch.handle({ type: 'mode_set', name: 'ghost' });
+  assert.equal(bad.success, false);
+  assert.match(bad.error, /unknown mode/);
+  // no facade → fail closed
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  assert.equal((await bare.channel.handle({ type: 'mode_list' })).success, false);
+  bare.dispose();
+  dispose();
+});

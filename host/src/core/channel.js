@@ -338,6 +338,17 @@ export class HostChannel {
           if (!['normal', 'plan'].includes(mode)) return reply(false, undefined, "risk_mode_set: mode must be 'normal' or 'plan'");
           return reply(true, { mode: this.modes.set(mode) });
         }
+        case 'mode_list': {
+          if (!this.modes?.list) return reply(false, undefined, 'modes facade unavailable');
+          return reply(true, { modes: this.modes.list(), active: this.modes.active?.() ?? this.modes.get() });
+        }
+        case 'mode_set': {
+          if (!this.modes?.setMode) return reply(false, undefined, 'modes facade unavailable');
+          const name = String(cmd.name ?? '');
+          const out = this.modes.setMode(name);
+          if (!out) return reply(false, undefined, `mode_set: unknown mode '${name}'`);
+          return reply(true, out);
+        }
         case 'todos_list': {
           if (!this.todos?.list) return reply(false, undefined, 'todos facade unavailable');
           return reply(true, await this.todos.list());

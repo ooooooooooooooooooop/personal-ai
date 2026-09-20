@@ -18,6 +18,7 @@ import { HookRunner } from '../../../host/src/core/hooks.js';
 import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
 import { loadSteering } from '../../../host/src/core/steering.js';
 import { PaiIgnore } from '../../../host/src/core/paiignore.js';
+import { ModePresets } from '../../../host/src/core/modes.js';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -95,6 +96,10 @@ export async function startHost({
   // kernel needs an ask callback at construction — lazy closure resolves it.
   let asks = null;
   let riskMode = 'normal';
+  let modeOverlay = null; // named preset overlay (Policy Preset Overlay)
+  // Presets re-read on every list/set so an edited modes.json takes effect
+  // on the next mode_set without a respawn (two small JSONs — negligible).
+  const loadModePresets = () => new ModePresets({ instanceRoot, workdir });
   const core = createHostCore({
     instanceRoot,
     manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
@@ -107,6 +112,7 @@ export async function startHost({
       // session risk mode — 'plan' turns the session read-only (mutating
       // calls escalate to ask). Session-scoped: resets on session switch.
       modeProvider: () => riskMode,
+      modeOverlay: () => modeOverlay,
       mutatingTools: ['write', 'edit', 'delete'],
     },
     runtime: {
@@ -408,6 +414,7 @@ export async function startHost({
     asks.abortPending(); // questions/asks from the old session must not leak
     asks.resetSession(); // "本会话允许" grants die with the conversation
     riskMode = 'normal'; // plan mode is session-scoped too
+    modeOverlay = null; // preset overlays die with the session as well
     const built = await buildSession(sessionManager);
     currentSession = built.session;
     channelHandle.rebind(built.session);
@@ -567,6 +574,28 @@ export async function startHost({
     modes: {
       get: () => riskMode,
       set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },
+      list: () => [
+        { name: 'normal', description: 'full posture', source: 'builtin' },
+        { name: 'plan', description: 'read-only planning — mutations escalate to operator asks', source: 'builtin' },
+        ...loadModePresets().list(),
+      ],
+      active: () => modeOverlay?.name ?? riskMode,
+      setMode: (name) => {
+        if (name === 'normal' || name === 'plan') {
+          riskMode = name;
+          modeOverlay = null;
+          toolSurface?.setModeDenied([]);
+          core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: null } });
+          return { mode: name };
+        }
+        const overlay = loadModePresets().compile(name); // null = unknown → fail closed
+        if (!overlay) return null;
+        riskMode = 'normal'; // the overlay is the posture; keep plan orthogonal
+        modeOverlay = overlay;
+        toolSurface?.setModeDenied(overlay.hideTools);
+        core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: true, policy_hash: overlay.hash } });
+        return { mode: name, overlay: { hideTools: overlay.hideTools, defaultAction: overlay.defaultAction } };
+      },
     },
     todos: {
       list: () => readTodos(core.paths.root, currentSession?.sessionId ?? null),

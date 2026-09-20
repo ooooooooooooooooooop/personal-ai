@@ -1041,7 +1041,7 @@ $('side-filter').addEventListener('input', () => {
 const chipMenu = $('chip-menu');
 function closeMenu() { chipMenu.classList.add('hidden'); chipMenu.innerHTML = ''; }
 document.addEventListener('click', (e) => {
-  if (!chipMenu.contains(e.target) && e.target.id !== 'model-chip' && e.target.id !== 'thinking-chip') closeMenu();
+  if (!chipMenu.contains(e.target) && e.target.id !== 'model-chip' && e.target.id !== 'thinking-chip' && e.target.id !== 'mode-chip') closeMenu();
 });
 function openMenu(items, onPick) {
   chipMenu.innerHTML = '';
@@ -1541,11 +1541,12 @@ async function refreshState() {
 async function paintStatusline() {
   const el = $('statusline');
   if (!el) return;
-  const mode = await cmd('risk_mode');
+  const mode = await cmd('mode_list');
   const parts = [];
   const model = $('model-chip')?.textContent?.trim();
   if (model) parts.push(model);
-  parts.push(mode.data?.mode === 'plan' ? '计划' : '执行');
+  const activeMode = mode.success ? mode.data?.active : 'normal';
+  parts.push(MODE_LABEL[activeMode] ?? activeMode);
   if (lastCtxUsage?.contextWindow) parts.push(`ctx ${Math.round(100 * (lastCtxUsage.tokens ?? 0) / lastCtxUsage.contextWindow)}%`);
   // Prefer the ledger total (session_stats.cost is a number in pi's
   // SessionStats) — incremental sessionCost drifts after compaction/reconnects.
@@ -1855,19 +1856,37 @@ async function refreshMacros() {
   if (r.success) MACROS = r.data?.macros ?? {};
 }
 
+const MODE_LABEL = { normal: '执行', plan: '计划' };
 async function refreshMode() {
-  const r = await cmd('risk_mode');
   const chip = $('mode-chip');
-  const plan = r.success && r.data?.mode === 'plan';
-  chip.textContent = plan ? '计划' : '执行';
-  chip.classList.toggle('plan', plan);
+  // mode_list carries preset overlays too; risk_mode is the legacy fallback
+  const r = await cmd('mode_list');
+  const active = r.success ? r.data?.active : (await cmd('risk_mode'))?.data?.mode;
+  const name = active ?? 'normal';
+  chip.textContent = MODE_LABEL[name] ?? name;
+  chip.classList.toggle('plan', name !== 'normal');
   paintStatusline();
 }
 $('mode-chip').onclick = async () => {
-  const r = await cmd('risk_mode');
-  const cur = r.success && r.data?.mode === 'plan' ? 'plan' : 'normal';
-  const r2 = await cmd('risk_mode_set', { mode: cur === 'plan' ? 'normal' : 'plan' });
-  if (r2.success) { refreshMode(); toast(r2.data.mode === 'plan' ? '计划模式：改动类调用会逐一询问' : '执行模式'); }
+  if (!chipMenu.classList.contains('hidden')) { closeMenu(); return; }
+  const r = await cmd('mode_list');
+  if (!r.success) { // body without preset support — keep the binary toggle
+    const cur = (await cmd('risk_mode'))?.data?.mode === 'plan' ? 'plan' : 'normal';
+    const r2 = await cmd('risk_mode_set', { mode: cur === 'plan' ? 'normal' : 'plan' });
+    if (r2.success) { refreshMode(); toast(r2.data.mode === 'plan' ? '计划模式：改动类调用会逐一询问' : '执行模式'); }
+    return;
+  }
+  const { modes, active } = r.data;
+  openMenu(modes.map((m) => ({
+    label: MODE_LABEL[m.name] ?? m.name,
+    sub: m.description || m.source,
+    current: m.name === active,
+    value: m.name,
+  })), async (it) => {
+    const r2 = await cmd('mode_set', { name: it.value });
+    if (r2.success) { refreshMode(); toast(`模式：${it.label}`); }
+    else toast(r2.error ?? '切换失败');
+  });
 };
 
 function slashFilter() {
