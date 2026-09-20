@@ -982,3 +982,93 @@
 | OS 沙箱 / marketplace / 多客户端 attach / headless 产品面 | 114/167/232/312/340/395、146/212/457/509、144/480、363/391/470 | 维持有意拒绝——与本仓"本地受治控面"边界冲突 |
 
 至此功能缺口清单消耗完毕：每个未做项都有显式裁定理由，无遗漏态行。后续方向=上表拍板或外部评审裁决驱动的第三轮。
+
+### 28.6 Update Delta Audit（2026-09-20，窗口 09-15→09-20）
+
+按外部评审建议对 A+/A 级 harness 做 changelog delta，B 级 title-level。每条增量落四态：**同构**（我方已有等价面）/ **变体**（已有但语义不同）/ **候选**（新 candidate gap）/ **边界**（有意拒绝）。
+
+**Claude Code 2.1.252→2.1.278**（~27 版，features 摘录）：
+
+| 增量 | 判定 |
+|---|---|
+| `/skill-doctor`——列出已加载但未使用的 skill 及其 context 开销 | **候选（薄）**：skill 成本可视面无 |
+| `blockReadsOutsideWorkingDirectories` + 首次越界读一次性提示 | **候选（薄，治理）**：pathAsk 管写；读越界无提示面 |
+| `bashEditDiffEnabled`——bash 命令造成的文件改动在工具结果回显 diff | **候选（薄）**：fileops 回执有改动记录但 bash 结果不回显 diff |
+| `claude plugin eval`（插件评测套件 JSON+HTML） | 边界（marketplace 族延伸；eval harness 本身是独立候选） |
+| subagent 结果加 header 标记防冒充 / prompt 隐形 unicode 剥离+展示 | 同构（untrusted 封套 / unicode 消毒） |
+| server-side auto-mode 分类器 | LLM 判官族（§28.5 决策项） |
+| send-now 键打断当前轮发全部排队 | 同构（steer+立即发送） |
+| `omitClaudeMd` agent frontmatter / `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` / `maxEffortLevel` 管理帽 | **候选（薄）**：subagent steering 隔离+管理帽三个旋钮各一句话成本 |
+| Containment Escape 规则（云元数据凭据/egress 逃逸进 auto 分类） | 同族 secret 扫描；云元数据面本地不适用 |
+| claude.ai skill/plugin 云同步、artifact publish/watch、remote-control fork、self-hosted runner、workflow 并发帽、per-command allowed_domains、`--permission-prompts none` | 边界（云同步/远程执行/OS 沙箱/无人值守 headless——均属 §28.5 决策族） |
+
+**Cursor**（Aug 19→Sep 10）：
+
+| 增量 | 判定 |
+|---|---|
+| **Projects**：常驻 coordinator + 千级 subagent 并行 + 跨机共享 context 文件 + recurring | 决策项（脚本化编排+远程执行族的旗舰形态；验证 GPT 预判的"事件唤醒→长期 coordinator→动态 worker pool"趋势） |
+| Self-hosted machines / Team pools 动态伸缩休眠 / 跑在 Lambda·Coder·Daytona·Modal 等 | 决策项（远程执行） |
+| `/goal` 长效目标（直到完成） | 同构（ContinuationGovernor 目标状态行+维持循环） |
+| Custom mode = 钉住 skill（"always-on skill"） | **变体（薄）**：mode 预设+microagent 常驻可近似；无"一键把 skill 变 mode"转换面 |
+| Subscriptions（Slack 频道/PR watch 事件唤醒） | 边界（外部事件源集成；heartbeat+schedule 已覆盖定时族） |
+| Origin repos / Vercel publish / 云预览端口转发 | 边界（云托管面） |
+
+**Kiro**（Sep 5→16）：
+
+| 增量 | 判定 |
+|---|---|
+| session 搜索范围开关（仅 prompts vs prompts+responses） | **候选（薄）**：session_search 范围固定，无 scope 参数 |
+| unattended auto-run 2h 墙钟帽（`orchestrator.max_plan_duration_seconds`） | **候选（薄，治理）**：预算帽只有 turns/token，无墙钟维度 |
+| IDE durable agent artifacts 侧栏审阅 | 同构（产物面板+/api/artifacts） |
+| Crew 按会话选 harness（Claude Code/Codex/KAS） | 同构（body_select 显式切换；remote crew 属边界） |
+| knowledge folder 需操作员确认才进库 | 同构（project trust 门——我们刚落） |
+| diff 默认折叠为 file chip / 会话列表 sort+filter+group 增强 | 变体（UI 细节族，方向三顺带） |
+
+**OpenHands v1.11→1.20**：
+
+| 增量 | 判定 |
+|---|---|
+| **agent profile 绑定 secrets 子集 + scope 到指定 MCP server**（v1.19/1.20） | **候选（中）**：delegate profile 有 toolDeny；凭据/连接范围细分无（我方无 MCP，映射为 env 暴露面） |
+| skills 显式 allow-list 替换 all-on catalog（v1.16） | **候选（薄）**：skill 加载白名单旋钮 |
+| automation 权限分 view/manage + creator escape + run identity | 边界（多用户协作面；单机单用户不适用） |
+| LLM profile 保存前 pre-flight 校验 | 同构（model_ping） |
+| conversation tags/归档、上下文用量表+手动压缩、per-run 成本日志、起步清单 | 同构（全有） |
+| 消息 hover 时间戳、图片点击全尺寸、文件路径可点进 Files | 变体（UI 细节族） |
+
+**OpenCode v1.18.13→31**：多为 provider 兼容修复。可记的：
+- PDF 附着按模型声明能力放行（Copilot vision 广告才开）→ **候选（薄）**：capability-gated 附着——models.json 能力声明已落，接上即可
+- resumable subagent 失败（task_id 续跑）/ run 中应答子代理权限请求 → 同构（durable task+批准卡）
+- `network_error` finish_reason 重试、unknown finish 续流 → 变体（provider 韧性细节）
+
+**Goose v1.50→1.51**：
+- **终端铃（turn 完成/待批准提醒，opt-in）** → **候选（薄）**：notify_user 只有视觉 toast，无声音/系统提醒面
+- auto-compact 100% 即禁用、recipe validated snapshot、scheduled run 内容过滤 → 同构族（调度+compact 已落）
+- CLI 移除 plan mode → 值得注意的反向信号：对方在简化，我方 plan 模式保留合理（审查族已差异化）
+
+**Cline**：Desktop/CLI/SDK 三轨迭代快但多为修复。可记的：
+- **图片附着到不支持视觉的模型时显示警告徽标+一键换模型**（v4.1.19）→ **候选（薄）**：能力不符静默降级目前只在结果层兜底，无 UI 前置警示
+- `RemoteEnvironmentService` SSH 远程执行 → 决策项（远程执行族第三家入场：Cursor/Cline/ZCode/KAOS）
+- **Windows planted-exe 防御**（`NoDefaultCurrentDirectoryInExePath`——workdir 里的 git.exe/rg.exe 不再顶掉真程序）→ **候选（薄，安全）**：我方 Windows bash 执行环境同样面此坑，需核实
+- provider-native web search 默认开、mid-stream 瞬态错误≤3 重试（已流出不重试）→ 变体（韧性细节）
+
+**Codex**：releases 全是 alpha tag 无说明（仅版本时钟）；app-server 协议面需专项对照（评审已提示）。
+
+**Roo Code**：**2026-05-15 关停、仓库 archive**——降级为历史设计样本，移出更新监控集；后续 Roomote 若研究按新对象准入。
+
+**本轮候选新缺口汇总**（全部薄/中，无边界冲突）：
+
+| # | 项 | 来源 |
+|---|---|---|
+| N1 | skill-doctor 类：已加载 skill 的使用率/context 开销审计面 | CC 2.1.261 |
+| N2 | 读越界一次性提示 + `blockReadsOutsideWorkingDirectories` 旋钮 | CC 2.1.257 |
+| N3 | bash 命令文件改动回显 diff（bashEditDiffEnabled） | CC 2.1.269 |
+| N4 | subagent 三旋钮：steering 隔离（omitClaudeMd 类）/强制模型/effort 帽 | CC 2.1.271/267/257 |
+| N5 | session_search scope 参数（prompts vs +responses） | Kiro 2.21.4 |
+| N6 | 任务/计划墙钟时长帽（max_plan_duration） | Kiro Crew 0.6 |
+| N7 | skill 加载白名单 | OpenHands 1.16 |
+| N8 | capability-gated 附着：PDF 按声明放行 + 图片不符警告徽标 | OpenCode 1.18.17 + Cline 4.1.19 |
+| N9 | 完成/待批准声音提醒（opt-in terminal bell） | Goose 1.51 |
+| N10 | Windows planted-exe 防御核实（NoDefaultCurrentDirectoryInExePath 等价物） | Cline 4.1.19 |
+| N11 | delegate profile 凭据/env 暴露面收窄（secret scope 本地映射） | OpenHands 1.19-20 |
+
+**机制族趋势确认**（供第三遍定向复扫）：事件唤醒→常驻 coordinator→动态 worker 池（Cursor Projects / Kiro Crew）证实为行业收敛方向，我方 mailbox+teammate+schedule 已是地基，编排面仍是 §28.5 决策项；远程执行目标在本窗口新增 Cursor self-hosted+Cline SSH 两票，累计四家了。
