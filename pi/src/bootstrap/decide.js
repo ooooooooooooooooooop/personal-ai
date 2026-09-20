@@ -15,8 +15,8 @@ const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null }) {
-  return async (ctx, signal) => {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null }) {
+  const inner = async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
     // signal rides on ctx so the kernel's ask path can abort a pending
     // operator question when the session is interrupted mid-decision
@@ -194,5 +194,16 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
       }
     }
     return undefined;
+  };
+  // G9: shadow-only LLM second opinion — observes the FINAL deterministic
+  // verdict for telemetry. Never awaited into the outcome, never feeds back:
+  // a deny here is structurally incapable of being downgraded.
+  if (!shadowJudge) return inner;
+  return async (ctx, signal) => {
+    const outcome = await inner(ctx, signal);
+    try {
+      shadowJudge.observe({ toolName: ctx.toolCall?.name ?? ctx.toolName, args: ctx.args, outcome });
+    } catch { /* a telemetry path must never break the decide chain */ }
+    return outcome;
   };
 }

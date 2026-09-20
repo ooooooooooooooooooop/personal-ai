@@ -15,6 +15,7 @@ import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
 import { HookRunner } from '../../../host/src/core/hooks.js';
+import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -253,6 +254,8 @@ export async function startHost({
         // stuck-loop scoring is session-scoped: a rebuilt session starts fresh
         loopwatch: new LoopDetector(),
         asks, // loop escalations reuse the operator-ask surface
+        // G9: env-configured shadow LLM — telemetry only, never authoritative
+        shadowJudge: shadowJudgeFromEnv({ audit: core.audit }),
       }),
       writeLease,
       loopGovernance: taskRequirements.length
