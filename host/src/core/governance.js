@@ -141,7 +141,7 @@ export class GovernanceKernel {
     }
 
     const args = ctx.args ?? {};
-    const rules = this.policy.toolPolicy?.[ctx.toolName] ?? {};
+    const rules = this.#toolRules(ctx.toolName);
 
     // 2. explicit tool rule
     if (rules.action === 'deny') {
@@ -244,13 +244,36 @@ export class GovernanceKernel {
     // deny/negative-capability/unparseable paths already returned above, and
     // the mode never softens an explicit policy rule.
     const mode = this.modeProvider?.() ?? 'normal';
-    if (mode === 'plan' && (this.mutatingTools.has(ctx.toolName) || cmdMutatingCapable)) {
+    // mcp__* tools are opaque external effects — they can mutate the world
+    // without touching the filesystem, so plan mode must gate them too.
+    const mcpOpaque = typeof ctx.toolName === 'string' && ctx.toolName.startsWith('mcp__');
+    if (mode === 'plan' && (this.mutatingTools.has(ctx.toolName) || cmdMutatingCapable || mcpOpaque)) {
       return this.#ask(ctx, 'plan_mode', {
         reason: `session is in plan mode — '${ctx.toolName}' can mutate state; approve once, for the session, or switch back to act mode`,
       });
     }
 
     return this.#allow(ctx, 'kernel');
+  }
+
+  /**
+   * Tool rule lookup: exact name first, then the longest `*` suffix prefix
+   * rule (e.g. 'mcp__*'). Prefix rules let canonical policy gate whole
+   * dynamic namespaces that cannot be enumerated at provisioning time.
+   */
+  #toolRules(toolName) {
+    const table = this.policy.toolPolicy ?? {};
+    const exact = table[toolName];
+    if (exact) return exact;
+    let best = null;
+    for (const key of Object.keys(table)) {
+      if (!key.endsWith('*')) continue;
+      const prefix = key.slice(0, -1);
+      if (typeof toolName === 'string' && toolName.startsWith(prefix)) {
+        if (!best || prefix.length > best.length) best = prefix;
+      }
+    }
+    return best ? table[`${best}*`] : {};
   }
 
   #scanProtectedRoots(value, depth = 0) {

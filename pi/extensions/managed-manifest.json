@@ -1,4 +1,10 @@
 {
   "version": 1,
-  "extensions": []
+  "extensions": [
+    {
+      "id": "mcp-client",
+      "path": "extensions/mcp/index.js",
+      "sha256": "1a4a866ef29bd460a432bc2dad44cd0b694ba6ce5abebcf11475b6c2f43b4748"
+    }
+  ]
 }

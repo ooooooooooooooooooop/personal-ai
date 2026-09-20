@@ -132,7 +132,9 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     // parse stays internal to its decision, and re-parsing is cheap and
     // deterministic).
     const commandForLease = ctx.args?.command;
-    let mutating = FILE_MUTATION_TOOLS.has(toolName);
+    // mcp__* tools are opaque external effects — they serialize against the
+    // workspace lease like local mutations even though they touch no files.
+    let mutating = FILE_MUTATION_TOOLS.has(toolName) || toolName?.startsWith('mcp__');
     if (!mutating && typeof commandForLease === 'string' && classifier) {
       try {
         const parsed = await classifier(commandForLease);
