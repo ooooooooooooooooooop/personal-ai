@@ -33,6 +33,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
         任务
       </button>
+      <button class="nav-item" data-view="changes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        变更
+      </button>
       <button class="nav-item" data-view="audit">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H8z"/><path d="M11 8h5M11 12h5M11 16h3"/></svg>
         审计
@@ -134,6 +138,16 @@
         <table id="jobs"><thead><tr><th>job</th><th>类型</th><th>状态</th><th>更新时间</th></tr></thead><tbody></tbody></table>
       </div>
       <div id="job-detail" class="hidden"></div>
+    </section>
+
+    <section id="view-changes" class="view hidden">
+      <div class="page-head">
+        <h1>变更与产物</h1>
+        <p class="page-sub">FileOpsGuard 回执流——每一次文件变更都留了可逆回执，可一键恢复到变更前状态。</p>
+      </div>
+      <div class="table-wrap">
+        <table id="changes"><thead><tr><th>操作</th><th>文件</th><th>时间</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
     </section>
 
     <section id="view-audit" class="view hidden">

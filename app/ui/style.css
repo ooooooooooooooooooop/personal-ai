@@ -865,3 +865,15 @@ tr.clickable:hover td { background: var(--field); }
   font-size: 11px; color: var(--text-4); padding: 2px 0 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* changes & artifacts view */
+.op-badge {
+  font-size: 11.5px; padding: 2px 9px; border-radius: 999px;
+  background: var(--field); color: var(--text-3); white-space: nowrap;
+}
+.op-badge.op-write { background: var(--green-tile); color: var(--green); }
+.op-badge.op-create { background: color-mix(in oklab, var(--accent, #6a8dff) 14%, transparent); color: var(--accent, #6a8dff); }
+.op-badge.op-delete { background: color-mix(in oklab, var(--red) 14%, transparent); color: var(--red); }
+.op-badge.op-backup { background: var(--field); color: var(--text-3); }
+.change-path { font-family: var(--mono); font-size: 12px; max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.sm { padding: 3px 10px; font-size: 12px; }

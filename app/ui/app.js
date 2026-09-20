@@ -679,6 +679,8 @@ function onAgentEvent(ev) {
     case 'tool_execution_end':
       endTool(ev);
       if (ev.toolName === 'update_todos' && !ev.isError) refreshTodos();
+      // file mutations land in the changes view's receipt stream
+      if (!ev.isError && ['write', 'edit', 'delete'].includes(ev.toolName) && currentView === 'changes') refreshChanges();
       break;
     case 'governance_ask':
       addAskCard(ev.ask);
@@ -1291,6 +1293,51 @@ async function refreshJobs() {
   }
 }
 
+/* ---------- changes & artifacts (fileops receipt stream) ---------- */
+const OP_LABEL = { write: '写入', create: '新建', delete: '删除', backup: '备份' };
+
+async function refreshChanges() {
+  const r = await cmd('fileops_list', { n: 200 });
+  const tbody = $('changes').querySelector('tbody');
+  tbody.innerHTML = '';
+  const ops = r.data ?? [];
+  if (!r.success) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-4);padding:28px">此身体不支持变更回执（fileops 不可用）</td></tr>';
+    return;
+  }
+  if (!ops.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-4);padding:28px">暂无文件变更</td></tr>';
+    return;
+  }
+  for (const op of ops) {
+    const tr = document.createElement('tr');
+    const artifact = op.op === 'create';
+    tr.innerHTML = `
+      <td><span class="op-badge op-${op.op}">${OP_LABEL[op.op] ?? op.op}${artifact ? ' · 产物' : ''}</span></td>
+      <td class="change-path"></td>
+      <td class="dim"></td>
+      <td></td>`;
+    tr.querySelector('.change-path').textContent = op.target ?? '';
+    tr.querySelector('.change-path').title = op.target ?? '';
+    tr.querySelector('td:nth-child(3)').textContent = op.at ? new Date(op.at).toLocaleString('zh-CN', { hour12: false }) : '';
+    const actCell = tr.querySelector('td:last-child');
+    if (op.undoable) {
+      const btn = document.createElement('button');
+      btn.className = 'btn ghost sm';
+      btn.textContent = op.op === 'create' ? '撤销新建' : '恢复';
+      btn.title = `回执 ${op.receiptId} — 恢复到变更前状态`;
+      btn.onclick = async () => {
+        btn.disabled = true;
+        const rr = await cmd('fileops_restore', { receiptId: op.receiptId });
+        if (rr.success) { toast(`已恢复：${rr.data?.restored ?? op.target}`); refreshChanges(); }
+        else { toast(`恢复失败：${rr.error ?? '未知'}`, 'err'); btn.disabled = false; }
+      };
+      actCell.appendChild(btn);
+    }
+    tbody.appendChild(tr);
+  }
+}
+
 async function openJobDetail(jobId) {
   const panel = $('job-detail');
   const r = await cmd('job_status', { job_id: jobId });
@@ -1437,7 +1484,7 @@ function setStatus(t, kind) {
 }
 
 /* ---------- views ---------- */
-const TITLES = { jobs: '任务', audit: '审计', bodies: '身体', settings: '设置' };
+const TITLES = { jobs: '任务', changes: '变更与产物', audit: '审计', bodies: '身体', settings: '设置' };
 let currentView = 'chat';
 function switchView(v) {
   currentView = v;
@@ -1446,6 +1493,7 @@ function switchView(v) {
   if (v === 'chat') $('view-title').textContent = sessionsCache.find((s) => s.path === currentSessionFile)?.name || '当前任务';
   else $('view-title').textContent = TITLES[v] ?? '';
   if (v === 'jobs') refreshJobs();
+  if (v === 'changes') refreshChanges();
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
   if (v === 'settings') { refreshSettings(); refreshModels(); }
@@ -1601,6 +1649,7 @@ const SLASH = [
   { cmd: '/sessions', label: '任务列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },
   { cmd: '/body', label: '身体面板', hint: '谁在驾驶', run: () => switchView('bodies') },
   { cmd: '/jobs', label: '持久任务', hint: '跨重启的任务', run: () => switchView('jobs') },
+  { cmd: '/changes', label: '变更与产物', hint: '文件变更回执，可恢复', run: () => switchView('changes') },
   { cmd: '/audit', label: '审计日志', hint: '治理事件流', run: () => switchView('audit') },
   { cmd: '/settings', label: '设置', hint: '模型与工作目录', run: () => switchView('settings') },
   {
