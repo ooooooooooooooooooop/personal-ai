@@ -678,47 +678,112 @@ async function refreshPending() {
 }
 
 /* ---------- history replay (session switch / restart) ---------- */
+/* ---------- history pagination (PI-Desktop long-session analogue) ----------
+   session_history returns the full fold; we render the newest page and keep
+   the rest in a backlog — "加载更早" mounts older chunks on demand so a
+   500-message session doesn't stamp 500 nodes at once. */
+const HISTORY_PAGE = 50;
+let historyBacklog = [];
+
+function renderHistoryMsg(m) {
+  if (m.role === 'user') { lastUserText = m.text ?? ''; addMsg('user', m.text ?? ''); }
+  else if (m.role === 'assistant') {
+    if (m.thinking) addThinking(m.thinking);
+    if (m.text) addMsg('assistant', m.text);
+    for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
+    if (m.error) addSys(`模型错误：${m.error}`, true);
+  } else if (m.role === 'toolResult' || m.role === 'tool_result') {
+    // Replayed tool results render as completed tool rows with output.
+    const kind = toolKind(m.toolName);
+    const div = document.createElement('div');
+    div.className = 'tool done';
+    div.innerHTML = `
+      <button class="tool-head">
+        <span class="t-caret">${CARET}</span>
+        <span class="t-icon">${kindIcon(kind.icon)}</span>
+        <span class="t-name"></span>
+        <span class="t-arg"></span>
+        <span class="t-state"><span class="t-state-dot"></span><span class="t-label">完成</span></span>
+      </button>
+      <div class="tool-body"><div class="tb-label">输出</div><pre></pre></div>`;
+    div.querySelector('.t-name').textContent = `${kind.verb} · ${m.toolName ?? 'tool'}`;
+    const out = (m.text ?? '');
+    div.querySelector('.tool-body pre').textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
+    div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
+    transcript.appendChild(div);
+    noteMessage();
+  }
+}
+
+function mountOlderButton() {
+  const btn = document.createElement('button');
+  btn.className = 'sys older-btn';
+  btn.id = 'older-btn';
+  const label = () => `加载更早的消息（还有 ${historyBacklog.length} 条）`;
+  btn.textContent = label();
+  btn.onclick = () => {
+    const chunk = historyBacklog.splice(-HISTORY_PAGE);
+    const before = transcript.children.length;
+    for (const m of chunk) renderHistoryMsg(m); // appends at bottom…
+    // …then move the freshly-rendered nodes up, right after the button.
+    // children[i] tracks correctly: each move shifts the next appended node
+    // into the following slot, so i++ walks exactly the new chunk.
+    const ref = btn.nextSibling;
+    const count = transcript.children.length - before;
+    for (let i = before; i < before + count; i++) transcript.insertBefore(transcript.children[i], ref);
+    if (historyBacklog.length) btn.textContent = label();
+    else btn.remove();
+  };
+  transcript.prepend(btn);
+}
+
 async function replayHistory() {
   clearTranscript();
   sessionCost = 0;
+  historyBacklog = [];
   const r = await cmd('session_history');
   const msgs = r.data ?? [];
-  for (const m of msgs) {
-    if (m.role === 'user') { lastUserText = m.text ?? ''; addMsg('user', m.text ?? ''); }
-    else if (m.role === 'assistant') {
-      if (m.thinking) addThinking(m.thinking);
-      if (m.text) addMsg('assistant', m.text);
-      for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
-      if (m.usage?.cost?.total) sessionCost += Number(m.usage.cost.total);
-      if (m.error) addSys(`模型错误：${m.error}`, true);
-    } else if (m.role === 'toolResult' || m.role === 'tool_result') {
-      // Replayed tool results render as completed tool rows with output.
-      const kind = toolKind(m.toolName);
-      const div = document.createElement('div');
-      div.className = 'tool done';
-      div.innerHTML = `
-        <button class="tool-head">
-          <span class="t-caret">${CARET}</span>
-          <span class="t-icon">${kindIcon(kind.icon)}</span>
-          <span class="t-name"></span>
-          <span class="t-arg"></span>
-          <span class="t-state"><span class="t-state-dot"></span><span class="t-label">完成</span></span>
-        </button>
-        <div class="tool-body"><div class="tb-label">输出</div><pre></pre></div>`;
-      div.querySelector('.t-name').textContent = `${kind.verb} · ${m.toolName ?? 'tool'}`;
-      const out = (m.text ?? '');
-      div.querySelector('.tool-body pre').textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
-      div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
-      transcript.appendChild(div);
-      noteMessage();
-    }
-  }
+  // cost accounting covers the WHOLE session, not just the rendered page
+  for (const m of msgs) if (m.usage?.cost?.total) sessionCost += Number(m.usage.cost.total);
+  historyBacklog = msgs.slice(0, Math.max(0, msgs.length - HISTORY_PAGE));
+  for (const m of msgs.slice(-HISTORY_PAGE)) renderHistoryMsg(m);
+  if (historyBacklog.length) mountOlderButton();
   if (!sawMessage && modelStatus?.current == null) $('setup-card')?.classList.remove('hidden');
 }
 
 /* ---------- agent events ---------- */
 let thinkEl = null; // live thinking row being streamed into
 let lastUserText = ''; // for regenerate
+
+/* notification drawer — bounded log behind the bell */
+const notifyLog = [];
+let unreadNotify = 0;
+function paintBell() {
+  const bell = $('bell');
+  if (!bell) return;
+  bell.classList.toggle('hidden', !notifyLog.length);
+  const c = $('bell-count');
+  c.classList.toggle('hidden', !unreadNotify);
+  c.textContent = unreadNotify > 9 ? '9+' : String(unreadNotify);
+}
+$('bell') && ($('bell').onclick = () => {
+  const d = $('bell-drawer');
+  if (d.classList.toggle('hidden')) return; // just closed — nothing to paint
+  unreadNotify = 0;
+  paintBell();
+  d.innerHTML = notifyLog.length
+    ? notifyLog.map((n) => `<div class="bell-row ${n.level === 'err' ? 'err' : ''}"><span class="bell-time"></span><span class="bell-msg"></span></div>`).join('')
+    : '<div class="dim" style="padding:12px">暂无通知</div>';
+  d.querySelectorAll('.bell-row').forEach((row, i) => {
+    const n = notifyLog[i];
+    row.querySelector('.bell-time').textContent = new Date(n.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    row.querySelector('.bell-msg').textContent = n.message;
+  });
+});
+document.addEventListener('click', (e) => {
+  const d = $('bell-drawer');
+  if (d && !d.classList.contains('hidden') && !d.contains(e.target) && e.target.id !== 'bell' && !$('bell').contains(e.target)) d.classList.add('hidden');
+});
 
 function onAgentEvent(ev) {
   switch (ev?.type) {
@@ -754,11 +819,18 @@ function onAgentEvent(ev) {
       }
       break;
     }
-    case 'notify':
+    case 'notify': {
       // notify_user: model→operator one-way notification (Kimi NotifyUser)
       toast(ev.message, ev.level === 'err' ? 'err' : 'info');
       addSys(`通知：${ev.message}`, ev.level === 'err');
+      // notification drawer (PI-Desktop notification center analogue):
+      // toasts are transient — this keeps the last 50 for recall
+      notifyLog.unshift({ message: ev.message, level: ev.level ?? 'info', at: Date.now() });
+      if (notifyLog.length > 50) notifyLog.pop();
+      unreadNotify += 1;
+      paintBell();
       break;
+    }
     case 'jobs_changed':
       if (currentView === 'jobs') refreshJobs();
       break;
@@ -2211,6 +2283,17 @@ const SLASH = [
       const f = files.find((x) => x === `.pai/plans/${name}.md`);
       if (!f) { addSys(`没有计划 '${name}'——可用：${files.map((x) => x.replace(/^\.pai\/plans\/|\.md$/g, '')).join('、')}`, true); return; }
       await pick(f);
+    },
+  },
+  {
+    cmd: '/review', label: '审查变更', hint: '切只读审查模式并审查当前变更（Codex /review 对等）',
+    run: async () => {
+      const r = await cmd('mode_set', { name: 'review' });
+      if (!r.success) { addSys(`切审查模式失败：${r.error ?? '未知'}`, true); return; }
+      refreshMode();
+      input.value = '审查当前工作区的未提交变更：用 fileops 回执/git diff 看每个改动，指出问题、风险与建议修复，按严重度排序。';
+      autogrow();
+      await send();
     },
   },
   {

@@ -849,7 +849,7 @@
 | U6 编辑重发 | **已有** | 消息操作栏"编辑"=rewind 到该 entry+原文回填输入框 |
 | U7 artifact 成果面板 | **已有** | 终裁批已落 |
 | U8 打断回注 | **已有** | 与 G1 合并落地 |
-| U9 命令白/黑名单+配额 ask | **部分** | mode overlay deny+预算帽已有；用户级命令前缀清单编辑面未做 |
+| U9 命令白/黑名单+配额 ask | **已有** | 分层所有权落地：`.pai/commands.json`（agent 可写，收紧-only denyPrefixes）+ `<instance>/command-allow.json`（操作员私有 allowPrefixes→ask 降 allow）；前缀匹配走 Roo 最长前缀语义；Settings→命令清单 双卡编辑；配额 ask 由预算帽+批准卡覆盖 |
 | U10 recipes | **已有** | `.pai/recipes/*.md`+`{{var}}` 参数+`/recipe` 展开 |
 | U11 LSP 工具组 | **已有** | 只读面（definition/references/hover/diagnostics） |
 | U12 fsmonitor/git 卫生 | **不适用-拒绝** | 运行态从不 shell-out git——Vibe 防的是恶意仓 hook 经 `git status` 触发；我方无此调用面，风险前提不存在 |
@@ -888,6 +888,8 @@
 | 配置检视面 | CodeArts `agent debug` | `/doctor` 姿态汇总卡（模式/政策指纹/记忆/目标/.pai 面/别名/上下文） |
 | 模型能力声明 | Codex models.json | `model_list` 透传注册表 vision/reasoning 能力→菜单徽章 |
 | notify_user | Kimi NotifyUser | 单向通知工具（toast+系统行，不挂起回合） |
-| 内置 review 模式 | Codex `/review` | 写族 deny+执行族 ask 的内置 overlay preset |
+| 内置 review 模式 | Codex `/review` | 写族 deny+执行族 ask 的内置 overlay preset + `/review` 一键切换并发送审查提示 |
+| 长会话分页 | Codex/OpenCode 虚拟滚动 | UI 侧虚拟分页：首渲染最近 50 条+"加载更早"按批上移，协议零改动 |
+| 通知历史抽屉 | PI-Desktop notification center | 顶部铃铛+计数徽章+最近 50 条抽屉（toast 转瞬即逝的补全） |
 
-**仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）、长会话分页/闪屏/通知历史（UI-BACKLOG 长尾）。
+**仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）、启动闪屏（UI-BACKLOG 长尾）。
