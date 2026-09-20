@@ -13,9 +13,9 @@ $venv = if ($env:W2A_VENV) { Join-Path $env:W2A_VENV "Scripts" } else { Join-Pat
 $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 $profile = Join-Path $env:USERPROFILE ".chatgpt-web2api\chrome-profile"
 
-# Expose destructive tools (delete_conversation / delete_memory / ...) to MCP
-# clients. Single-user local box — remove this line to hard-lock them again.
-$env:W2A_ENABLE_DESTRUCTIVE = "1"
+# Destructive tools (delete_conversation / delete_memory / ...) are HARD-LOCKED:
+# W2A_ENABLE_DESTRUCTIVE intentionally unset — agents get no delete path at all.
+# For a one-off authorized deletion, set the env var on a manual daemon launch.
 
 function Test-Cdp { try { (Invoke-WebRequest -Uri "http://127.0.0.1:9222/json/version" -TimeoutSec 2 -UseBasicParsing).StatusCode -eq 200 } catch { $false } }
 function Test-Port($p) { try { (Invoke-WebRequest -Uri "http://127.0.0.1:$p/" -TimeoutSec 2 -UseBasicParsing) | Out-Null; $true } catch { $_.Exception.Response -ne $null } }
