@@ -309,6 +309,17 @@ export async function startHost({
   const sessionDir = join(core.paths.root, 'sessions');
   const agentDir = join(core.paths.root, 'pi-agent');
 
+  // G5 operator gate: <instance>/hooks.json is outside the workdir — the
+  // agent cannot reach it, so its 'pre_tool' event is a real veto (Claude
+  // Code PreToolUse analogue), unlike the observational workdir hooks.
+  // Absent file → empty runner, zero per-call cost. Created before
+  // buildSession because the decide chain closes over it.
+  const preToolGate = new HookRunner(workdir, {
+    audit: core.audit,
+    configPath: join(core.paths.root, 'hooks.json'),
+    gate: true,
+  });
+
   // Session construction is a closure because session_new/session_switch
   // rebuild it in-process: same guard + envelopes + tools, new SessionManager.
   const buildSession = async (sessionManager) => {
@@ -361,6 +372,8 @@ export async function startHost({
         // workdir context exclusion — rebuilt per session so .paiignore edits
         // take effect on the next session build
         paiignore: new PaiIgnore(workdir),
+        // operator-private pre_tool veto hooks (gate HookRunner below)
+        preToolGate,
       })),
       writeLease,
       loopGovernance: taskRequirements.length

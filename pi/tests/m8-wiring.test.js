@@ -369,3 +369,36 @@ test('command denylist: .pai/commands.json denyPrefix blocks before kernel admit
   const ok = await decide({ toolCall: { name: 'bash', id: 'c2' }, args: { command: 'npm test' } });
   assert.equal(ok, undefined); // non-matching passes through to kernel admit
 });
+
+test('operator pre_tool gate vetoes an admitted call (fail-closed on error)', async () => {
+  const { dir, decide: base } = rig();
+  void base;
+  const audit = { events: [], write: (e) => audit.events.push(e) };
+  const fileOps2 = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } }; // kernel admits
+  const gate = {
+    calls: [],
+    async fireGate(event, payload) {
+      gate.calls.push({ event, tool: payload.tool });
+      return payload.tool === 'bash' ? { deny: 'operator policy: no shells today' } : null;
+    },
+  };
+  const decide = makeDecide({ core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir, preToolGate: gate });
+
+  const denied = await decide({ toolCall: { name: 'bash' }, args: { command: 'echo hi' } });
+  assert.equal(denied.block, true);
+  assert.equal(denied.rule, 'pre_tool_hook');
+  assert.match(denied.reason, /no shells today/);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_VETO'));
+
+  const ok = await decide({ toolCall: { name: 'read' }, args: { path: join(dir, 'x.txt') } });
+  assert.equal(ok, undefined); // gate allowed → admit stands
+  assert.deepEqual(gate.calls.map((c) => c.tool), ['bash', 'read']);
+
+  // broken gate fails closed
+  const broken = { async fireGate() { throw new Error('gate exploded'); } };
+  const decide2 = makeDecide({ core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir, preToolGate: broken });
+  const r = await decide2({ toolCall: { name: 'read' }, args: { path: join(dir, 'x.txt') } });
+  assert.equal(r.block, true);
+  assert.match(r.reason, /fail-closed/);
+});

@@ -828,11 +828,11 @@
 | G2 结构化提问 | ask_user 工具 + PendingAsks 面板 | **已有** | `pi/src/adapter/askuser.js` |
 | G3 定时/调度 | ScheduleStore cron + heartbeat 泵（实例级配置、空闲才发、走预算门） | **已有** | `host/src/core/scheduler.js`；pi bootstrap heartbeat |
 | G4 子代理 profile/拓扑 | AgentTask mailbox（持久 inbox/outbox/events+seq/ack）+ 任务中心 + 拓扑树 + scope 认领链；内置画像库/多对多任务池未做 | **部分** | `host/src/core/tasks.js`、`pi/src/adapter/tasktools.js`、UI tasks 树 |
-| G5 生命周期 hooks | 四事件白名单 hooks（session_start/prompt_submit/tool_end/session_end），**纯观察面——veto 刻意不做**（agent 可写配置不能做自己的门） | **部分** | `host/src/core/hooks.js` |
+| G5 生命周期 hooks | 双层：workdir `.pai/hooks.json` 四事件**观察面**（agent 可写→永不许 veto，pre_tool 载入即拒）+ 实例私有 `<instance>/hooks.json` **gate 面**（agent 够不到→`pre_tool` 真否决：exit≠0 或 `{"deny"}` JSON→block，`match` 工具前缀过滤，热读，fail-closed） | **已有** | `host/src/core/hooks.js` fireGate、`pi/src/bootstrap/decide.js` preToolGate |
 | G6 持久记忆 | SQLite+FTS5 检索+review 蒸馏+pinned 注入（不可信证据边界）+secret 拒写 | **已有** | `host/src/core/memory.js`、`pi/src/adapter/memtools.js` |
 | G7 OS 级沙箱 | WSL2 路线落地 | **已有** | `host/src/core/sandbox.js` |
-| G8 web/浏览器工具 | web_fetch/web_search 已有；browser 自动化面板未做 | **部分** | `pi/src/adapter/web.js` |
-| G9 LLM 权限分类器 | shadow judge（异步分类+agree/disagree 遥测，**结构性不可回改**；升级需 disagree 率数据） | **部分** | `host/src/core/shadowjudge.js` |
+| G8 web/浏览器工具 | web_fetch/web_search + 零依赖 CDP browser 六件套（navigate/read/click/type/eval/screenshot，专属 profile，域名黑名单，截图进 artifact 预览） | **已有** | `pi/src/adapter/web.js`、`pi/src/adapter/browser.js` |
+| G9 LLM 权限分类器 | shadow judge 已升级 `PAI_SHADOW_JUDGE_MODE=guard` deny-复核：执行前复审 admitted 调用（deny→block/ask→批准卡/不可达→放行+BYPASS 审计），单向棘轮永不降级 | **已有** | `host/src/core/shadowjudge.js`、`pi/src/bootstrap/decide.js` |
 | G10 MCP 客户端 | managed extension 装载 + stdio/http 传输 | **已有** | `pi/src/adapter/` mcp 面 |
 | G11 spec/SDD 流水线 | `.pai/specs` 三件套 + 相位门 | **已有** | spec 工具族 |
 | G12 远程执行 | 维持拒绝（本地单机边界） | **不适用-拒绝** | §27.3 |
@@ -843,9 +843,9 @@
 |---|---|---|
 | U1 DSH 身体投影 | **已有** | 会话通道/审批桥/审计 parity + `session/jobs` 帧进 `job_list` + `session/projection` 帧→goal-line/`get_state.projection`；job_cancel 保持 fail-closed（不伪装能杀 DSH 侧任务） |
 | U2 不可信内容封套 | **已有** | `host/src/core/envelopes.js` 不可信封套 + unicode 隐形字符消毒（strict 拒/free-text 剥） |
-| U3 rewind 强化 | **部分** | `/undo` 回合回执组回滚 + 聚合 `/diff` + `/btw` 只读分叉；Vibe 式"rewind 默认 fork"未做 |
+| U3 rewind 强化 | **已有** | `/undo` 回执组回滚+聚合 `/diff`+`/btw` 只读分叉+Vibe"rewind 默认 fork"等价达成且更强：pi `navigateTree` 是**树 rewind**——弃走分支整棵留在会话文件，`session_entries` 列全树用户消息（跨分支），`session_rewind` 可导航回弃走分支任一点；fork 要防的丢时间线问题结构性不存在 |
 | U4 写前 secret 扫描 | **已有** | `host/src/core/secrets.js`（写前问/失败关闭） |
-| U5 自定义 mode | **部分** | Policy Preset Overlay（只收紧）+mode chip+Settings 编辑；Roo 式 fileRegex×工具组粒度未做 |
+| U5 自定义 mode | **已有** | Policy Preset Overlay（只收紧）+mode chip+Settings→模式 校验编辑（`modes_read`/`modes_save`）+`pathAsk`/`pathDeny` path glob 规则——Roo fileRegex×工具组粒度的语义等价（按路径模式对工具组收紧） |
 | U6 编辑重发 | **已有** | 消息操作栏"编辑"=rewind 到该 entry+原文回填输入框 |
 | U7 artifact 成果面板 | **已有** | 终裁批已落 |
 | U8 打断回注 | **已有** | 与 G1 合并落地 |

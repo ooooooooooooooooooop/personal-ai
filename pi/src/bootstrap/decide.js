@@ -65,7 +65,7 @@ function commandDenyPrefixes(workdir) {
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null }) {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null, preToolGate = null }) {
   // Qwen MAX_TURNS analogue: hard cap on admitted tool calls per user turn.
   // The refusal reason is the steering channel — it tells the model to stop
   // and report, not to retry.
@@ -133,6 +133,35 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           block: true,
           rule: 'paiignore',
           reason: `'${p}' is excluded by .paiignore — context-excluded paths are invisible and untouchable`,
+        };
+      }
+    }
+    // Operator veto hooks (Claude Code PreToolUse analogue): <instance>/
+    // hooks.json is operator-private — the agent cannot reach it, so this is
+    // a real external gate. Runs after every cheap deterministic refuse so a
+    // hook process is never spawned for a call already dead. Fail-closed.
+    if (preToolGate) {
+      try {
+        const g = await preToolGate.fireGate('pre_tool', {
+          tool: toolName,
+          toolCallId: ctx.toolCall?.id ?? null,
+          args: ctx.args ?? {},
+        });
+        if (g?.deny) {
+          core.audit.write({ kind: 'HOOK_VETO', toolName, data: { toolCallId: ctx.toolCall?.id, reason: g.deny.slice(0, 300) } });
+          return {
+            block: true,
+            rule: 'pre_tool_hook',
+            reason: `operator pre_tool hook refused: ${g.deny}`,
+          };
+        }
+      } catch (err) {
+        // A broken gate must never silently pass — fail closed.
+        core.audit.write({ kind: 'HOOK_VETO', toolName, data: { toolCallId: ctx.toolCall?.id, error: String(err?.message ?? err).slice(0, 200) } });
+        return {
+          block: true,
+          rule: 'pre_tool_hook',
+          reason: `operator pre_tool hook error (fail-closed): ${String(err?.message ?? err).slice(0, 200)}`,
         };
       }
     }
