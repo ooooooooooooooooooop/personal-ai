@@ -41,11 +41,11 @@ from pathlib import Path
 from typing import Any
 
 from mcp import types as mcp_types
-from mcp.server import Server
+from mcp.server import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
 from pydantic import BaseModel, Field
 
-from . import conv_binding, conv_dom_read
+from . import __version__, conv_binding, conv_dom_read
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
 from .cdp_driver import (
     AuthExpiredError,
@@ -61,8 +61,11 @@ from .lock_resolver import (
     OwnedTabRequiredError,
     resolve_mutation_lock,
 )
+from .request_monitor import RequestMonitor, request_progress
 from .request_pace import ReadThrottledError
 from .resilience import retry_on_rate_limit
+from .send_recovery import run_with_send_recovery
+from .runtime_info import get_runtime_info
 from .tab_registry import TabRegistry
 
 logger = logging.getLogger(__name__)
@@ -88,6 +91,10 @@ class ChatCompletionInput(BaseModel):
     """Input schema for chat_completion tool."""
 
     message: str = Field(description="The user message to send to ChatGPT")
+    timeout_seconds: int = Field(
+        default=900, ge=1, le=1800,
+        description="Total request budget including queueing, navigation, send and reply verification. A timeout does not prove the message was unsent.",
+    )
     system_prompt: str | None = Field(
         default=None,
         description=(
@@ -128,14 +135,11 @@ class ChatCompletionInput(BaseModel):
     confirm: bool = Field(
         default=False,
         description=(
-            "Set true ONLY after the human user has explicitly approved "
-            "the conversation binding — never on your own initiative. The "
-            "first send to an existing conversation returns "
-            "status=confirmation_required naming the project, the "
-            "conversation, and any session currently using it — show "
-            "that to the user, WAIT for their approval, then resend with "
-            "confirm=true. A reconnect (new MCP session) must confirm "
-            "again."
+            "Set true when explicit user approval already covers this target "
+            "and action (including any occupied-session takeover). Otherwise "
+            "the first send returns confirmation_required naming the target; "
+            "obtain approval before retrying. Existing approval for the same "
+            "target and scope remains valid across MCP reconnects."
         ),
     )
 
@@ -178,6 +182,26 @@ class GetConversationInput(BaseModel):
         description="Max messages to return per call. Lower this (e.g. 15) if "
         "the conversation has very long messages and the result is being "
         "truncated before reaching you.",
+    )
+    tail: int | None = Field(
+        default=None,
+        ge=1,
+        le=500,
+        description=(
+            "Return only the final N messages. This is a single backend read "
+            "and is useful for checking whether a reply arrived; it avoids "
+            "a separate total read followed by an offset read. When set, "
+            "`offset` must remain 0."
+        ),
+    )
+    fresh: bool = Field(
+        default=False,
+        description=(
+            "Bypass the short-lived conversation read cache. Use this when "
+            "recovering after a send or when the cached tail may be stale. "
+            "An already-running fresh read is shared; a normal pre-send read "
+            "is not joined by this recovery read."
+        ),
     )
     out_file: str | None = Field(
         default=None,
@@ -223,10 +247,9 @@ class WaitReplyInput(BaseModel):
         ge=0,
         le=1800,
         description=(
-            "If the conversation tail stays your own user message this long, "
-            "return status='dead' early — the generation died mid-stream and "
-            "the reply will never persist (nudge with a follow-up instead of "
-            "waiting out the full timeout). 0 disables the early exit."
+            "Legacy hint only. A user tail by itself is never proof that a "
+            "generation died, so wait_reply no longer returns status='dead' "
+            "from this timer alone. 0 disables the legacy observation timer."
         ),
     )
 
@@ -359,11 +382,10 @@ class ChatWithGptInput(BaseModel):
     confirm: bool = Field(
         default=False,
         description=(
-            "Every chat_with_gpt call creates a NEW conversation, so every "
-            "call needs user confirmation: the first call returns "
-            "status=confirmation_required — show it to the user, WAIT for "
-            "explicit approval (never self-confirm), then resend with "
-            "confirm=true."
+            "Every chat_with_gpt call creates a NEW conversation. Set true "
+            "when explicit user approval covers this target and action. "
+            "Otherwise obtain approval after confirmation_required before "
+            "retrying. Existing approval survives reconnects."
         ),
     )
 
@@ -374,6 +396,7 @@ class ChatWithGptInput(BaseModel):
 
 
 class ToolName(str, Enum):
+    RUNTIME_INFO = "runtime_info"
     # Core chat
     CHAT_COMPLETION = "chat_completion"
     # Discovery
@@ -407,7 +430,19 @@ CHAT_COMPLETION_OUTPUT = {
     "type": "object",
     "properties": {
         "content": {"type": "string", "description": "The assistant response text"},
-        "model": {"type": "string", "description": "Model slug used for generation"},
+        "model": {"type": "string", "description": "Selected model slug, or auto when no explicit selection was requested; not an attestation of the backend's resolved model"},
+        "requested_model": {"type": "string"},
+        "model_selection_verified": {"type": "boolean"},
+        "delivery_receipt": {
+            "type": "object",
+            "description": "Submission evidence for this call; acknowledgement is not reply completion.",
+            "properties": {
+                "delivery_stage": {"type": "string"},
+                "conversation_id": {"type": ["string", "null"]},
+                "user_message_id": {"type": ["string", "null"]},
+                "reply_persisted": {"type": ["boolean", "null"]},
+            },
+        },
         "conversation_id": {
             "type": "string",
             "description": "UUID of the conversation for multi-turn follow-up",
@@ -416,10 +451,9 @@ CHAT_COMPLETION_OUTPUT = {
             "type": ["boolean", "null"],
             "description": (
                 "Post-send tail check: true = the assistant reply persisted "
-                "to the conversation; false = the last stored message is "
-                "still your own (the generation died mid-stream — resend a "
-                "short nudge like '继续' instead of polling); null = the "
-                "check was inconclusive."
+                "to the conversation; false/null = not verified. Missing "
+                "persistence is not proof of a dead generation or permission "
+                "to resend. Consume content already returned before reading again."
             ),
         },
     },
@@ -481,20 +515,29 @@ GET_CONVERSATION_OUTPUT = {
             },
         },
         "offset": {
-            "type": "integer",
-            "description": "Number of messages skipped from the start (echoed from the request).",
+            "type": ["integer", "null"],
+            "description": (
+                "Absolute page offset for a backend result. Null means the "
+                "result is a DOM tail and its absolute offset is unknown."
+            ),
         },
         "limit": {
             "type": "integer",
             "description": "Max messages requested per call (echoed from the request).",
         },
         "total": {
-            "type": "integer",
-            "description": "Total messages in the conversation (across all pages).",
+            "type": ["integer", "null"],
+            "description": (
+                "Total messages in the conversation for a backend result. "
+                "Null means a DOM fallback could only observe a rendered tail."
+            ),
         },
         "has_more": {
-            "type": "boolean",
-            "description": "True if more pages remain; page through by increasing offset by limit.",
+            "type": ["boolean", "null"],
+            "description": (
+                "Pagination flag for a backend result. Null means pagination "
+                "is unavailable for the partial DOM fallback."
+            ),
         },
         "reason": {
             "type": "string",
@@ -503,8 +546,31 @@ GET_CONVERSATION_OUTPUT = {
                 "returned; 'empty' = conversation reachable but no messages "
                 "visible (may be transient mid-generation); 'not_found' = "
                 "backend 404 (wrong/inaccessible conversation id); "
-                "'fetch_failed' = the backend fetch itself errored."
+                "'fetch_failed' = the backend fetch itself errored; "
+                "'partial' = a rendered DOM tail was returned without "
+                "absolute paging metadata; 'read_throttled' = the backend "
+                "read gate is cooling down."
             ),
+        },
+        "source": {
+            "type": "string",
+            "description": "'backend' for an authoritative page or 'dom' for a partial rendered tail.",
+        },
+        "partial": {
+            "type": "boolean",
+            "description": "True when only a rendered DOM tail was available.",
+        },
+        "paging_supported": {
+            "type": "boolean",
+            "description": "False when offset/total/has_more are intentionally unknown.",
+        },
+        "requested_offset": {
+            "type": "integer",
+            "description": "The requested offset when a partial DOM result cannot provide an absolute offset.",
+        },
+        "retry_after": {
+            "type": "number",
+            "description": "Seconds before retrying after a read throttle.",
         },
         "out_file": {
             "type": "string",
@@ -526,13 +592,22 @@ WAIT_REPLY_OUTPUT = {
             "type": "string",
             "description": (
                 "'replied' = an assistant reply FINISHED generating (terminal "
-                "backend status); 'timeout' = deadline hit first; 'dead' = "
-                "the tail stayed your own user message past "
-                "dead_after_seconds — generation died, nudge in the same "
-                "conversation instead of waiting."
+                "backend or DOM status); 'timeout' = deadline hit first; "
+                "'dead' = the backend explicitly reported a terminal failure; "
+                "'read_throttled' = the read gate rejected the probe. A user "
+                "tail alone never produces 'dead'; callers must treat an "
+                "unresolved timeout as unknown and inspect the web UI before "
+                "sending another message."
             ),
         },
-        "total": {"type": "integer", "description": "Message count observed on the last poll."},
+        "total": {
+            "type": ["integer", "null"],
+            "description": (
+                "Message count observed on the last poll; with source='dom' "
+                "this is a rendered lower bound, and null means no read "
+                "completed."
+            ),
+        },
         "last_role": {
             "type": ["string", "null"],
             "description": "Role of the last stored message on the final poll.",
@@ -546,6 +621,18 @@ WAIT_REPLY_OUTPUT = {
                 "no status). On 'timeout', 'in_progress' means the web side "
                 "is STILL generating — call wait_reply again, do NOT nudge."
             ),
+        },
+        "source": {
+            "type": "string",
+            "description": "'backend' or 'dom', whichever supplied the final observation.",
+        },
+        "total_kind": {
+            "type": "string",
+            "description": "'absolute' for backend totals or 'rendered_lower_bound' for DOM totals.",
+        },
+        "observation": {
+            "type": ["string", "null"],
+            "description": "Why a timeout is unresolved, when no terminal generation evidence was observed.",
         },
         "waited_s": {"type": "number", "description": "Seconds actually waited."},
     },
@@ -848,6 +935,10 @@ _MUTATING_TOOLS = frozenset(
         ToolName.DELETE_MEMORY.value,
     }
 )
+_CHAT_TOOL_NAMES = frozenset({
+    ToolName.CHAT_COMPLETION.value, ToolName.CHAT_WITH_GPT.value,
+    ToolName.CREATE_MEMORY.value,
+})
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -872,6 +963,13 @@ async def _notify(on_progress: ProgressCallback | None, message: str) -> None:
         logger.debug("progress notification dropped", exc_info=True)
 
 
+def _delivery_receipt(driver: CDPDriver) -> dict:
+    metadata = getattr(driver, "delivery_metadata", None)
+    if isinstance(metadata, dict):
+        return dict(metadata)
+    return {"delivery_stage": "unknown", "conversation_id": None, "user_message_id": None}
+
+
 async def do_chat_completion(
     driver: CDPDriver,
     args: dict,
@@ -881,6 +979,7 @@ async def do_chat_completion(
 ) -> dict:
     """Execute a chat completion through the CDP driver."""
     validated = ChatCompletionInput(**args)
+    await _notify(on_progress, "Resolving conversation target…")
     project_id = validated.project_id or (config.chatgpt.default_project_id if config else None)
     if project_id:
         # Name-or-id: resolve "REDACTED" → its gizmo id, or raise so a wrong
@@ -894,15 +993,6 @@ async def do_chat_completion(
         )
     else:
         full_text = validated.message
-
-    # Select model if specified (non-fatal on failure)
-    if validated.model and validated.model != "auto":
-        selected = await driver.select_model(validated.model)
-        if not selected:
-            logger.warning(
-                "Could not select model '%s', proceeding with active model",
-                validated.model,
-            )
 
     # Route to the send target. Shared with the REST path via
     # driver.route_chat_target: an explicit conversation_id ALWAYS continues
@@ -941,6 +1031,17 @@ async def do_chat_completion(
     if binding_gate is not None:
         return binding_gate
 
+    # Navigation can reset the picker. Select only on the final target, and
+    # never silently substitute an explicitly requested model.
+    model_selection_verified = False
+    if validated.model and validated.model != "auto":
+        from .cdp_driver import ModelSelectionError
+
+        await _notify(on_progress, "Selecting requested model…")
+        if await driver.select_model(validated.model) is not True:
+            raise ModelSelectionError(validated.model)
+        model_selection_verified = True
+
     # Send and collect response. Progress notifications reset the MCP client's
     # idle timer during long generations so the tool call isn't killed at
     # ~30s. on_progress is None when the client can't receive progress.
@@ -961,6 +1062,7 @@ async def do_chat_completion(
     )
     async for chunk in driver.send_and_stream(
         full_text, timeout=120, budgets=_budgets, model=validated.model,
+        on_progress=on_progress,
     ):
         if chunk.delta:
             full_response += chunk.delta
@@ -976,7 +1078,11 @@ async def do_chat_completion(
     # Dead-generation check: the streamed response can look complete locally
     # while the reply never persisted server-side (mid-stream death/retract).
     await _notify(on_progress, "Verifying reply persisted…")
-    persisted = await _verify_reply_persisted(driver, conv_id)
+    persisted = await _verify_reply_persisted(
+        driver,
+        conv_id,
+        sent_text=full_text,
+    )
 
     # Bind this session to the conversation it just sent into — covers new
     # conversations (no conv_id existed at gate-check time) and refreshes
@@ -987,6 +1093,9 @@ async def do_chat_completion(
     return {
         "content": full_response,
         "model": validated.model,
+        "requested_model": validated.model,
+        "model_selection_verified": model_selection_verified,
+        "delivery_receipt": _delivery_receipt(driver),
         "conversation_id": conv_id,
         "reply_persisted": persisted,
     }
@@ -1052,6 +1161,33 @@ def _conversation_chain(data: dict, *, with_meta: bool = False) -> list[dict]:
     return chain
 
 
+def _conversation_nodes(data: dict) -> list[dict]:
+    """Return the current mapping chain with backend node ids retained."""
+    mapping = data.get("mapping") or {}
+    node_id = data.get("current_node")
+    chain: list[dict] = []
+    visited = set()
+    while node_id and node_id not in visited:
+        visited.add(node_id)
+        node_data = mapping.get(node_id, {})
+        msg = node_data.get("message") or {}
+        content = msg.get("content") or {}
+        parts = content.get("parts", [])
+        text = " ".join(p for p in parts if isinstance(p, str))
+        role = (msg.get("author") or {}).get("role")
+        if text and role in ("user", "assistant"):
+            chain.append({
+                "node_id": node_id,
+                "role": role,
+                "content": text,
+                "status": msg.get("status"),
+                "end_turn": msg.get("end_turn"),
+            })
+        node_id = node_data.get("parent")
+    chain.reverse()
+    return chain
+
+
 def _tail_reply_finished(entry: dict) -> bool:
     """Did the tail assistant message FINISH generating?
 
@@ -1071,11 +1207,39 @@ def _tail_reply_finished(entry: dict) -> bool:
     return True
 
 
-# Post-send persistence-check timings — module-level so tests can
-# monkeypatch them to 0 instead of sleeping for real.
-_PERSIST_MAX_CHECKS = 3
-_PERSIST_TAIL_USER_DELAY_S = 6.0  # grace when tail is still our own message
-_PERSIST_EMPTY_DELAY_S = 4.0      # retry delay on inconclusive (empty/failed) fetch
+_GENERATION_FAILURE_STATUSES = frozenset({
+    "failed",
+    "error",
+    "errored",
+    "cancelled",
+    "canceled",
+    "aborted",
+    "rejected",
+})
+
+
+def _explicit_generation_failure(data: dict, tail: dict) -> bool:
+    """Return True only for a field that explicitly names a failed turn."""
+    candidates = [
+        tail.get("status"),
+        data.get("generation_status"),
+        data.get("turn_status"),
+        data.get("status") if data.get("status") != data.get("_fetch_status") else None,
+    ]
+    return any(
+        isinstance(value, str)
+        and value.strip().lower() in _GENERATION_FAILURE_STATUSES
+        for value in candidates
+    )
+
+
+# Post-send persistence-check timings. The stream/reconciliation path already
+# waits for the current turn; this check is a bounded diagnostic, not a second
+# polling loop. Keep the names patchable for offline tests/back-compat.
+_PERSIST_MAX_CHECKS = 1
+_PERSIST_TOTAL_TIMEOUT_S = 8.0
+_PERSIST_TAIL_USER_DELAY_S = 0.0
+_PERSIST_EMPTY_DELAY_S = 0.0
 
 # Conversation-read coalescing. Every get_conversation poll hits
 # /backend-api/conversation/{id} — the endpoint family behind ChatGPT's
@@ -1087,7 +1251,31 @@ _PERSIST_EMPTY_DELAY_S = 4.0      # retry delay on inconclusive (empty/failed) f
 # data anyway. Verification paths that require current truth (reply
 # persistence) bypass via _verify_reply_persisted's direct fetch.
 _CONV_READ_CACHE: dict[str, tuple[float, dict]] = {}
-_CONV_READ_INFLIGHT: dict[str, asyncio.Task] = {}
+_CONV_READ_INFLIGHT: dict[str, "_ConvReadFlight"] = {}
+
+# ``CDPDriver.get_conversation`` has its own 30s browser-evaluation timeout,
+# but the single-flight wrapper also waits for the per-slot lock and the shared
+# pace gate. Keep that whole operation bounded independently of any one
+# caller's deadline. A caller with a shorter deadline times out its own wait;
+# another subscriber may continue using the same bounded fetch.
+_CONV_READ_FETCH_TIMEOUT_S = 35.0
+
+
+class _ConvReadFlight:
+    """One shared conversation fetch and its active subscribers.
+
+    ``asyncio.shield`` keeps a cancelled waiter from cancelling a fetch that
+    another waiter still needs. The waiter count lets the last subscriber
+    cancel the task, so a forgotten/aborted MCP request cannot leave a lock or
+    browser evaluation running indefinitely.
+    """
+
+    __slots__ = ("task", "waiters", "fresh")
+
+    def __init__(self, task: asyncio.Task, *, fresh: bool = False) -> None:
+        self.task = task
+        self.waiters = 0
+        self.fresh = fresh
 
 
 def _conv_read_ttl(driver: CDPDriver) -> float:
@@ -1110,102 +1298,211 @@ def _conv_read_invalidate(conv_id: str) -> None:
 
 
 async def _conv_read_coalesced(
-    driver: CDPDriver, conv_id: str, lock_cm
+    driver: CDPDriver,
+    conv_id: str,
+    lock_cm,
+    *,
+    fresh: bool = False,
+    timeout: float | None = None,
 ) -> dict:
     """get_conversation with cross-slot dedup.
 
-    Cache hit → return immediately. Peer fetch already in flight → join it
-    via shield, WITHOUT touching lock_cm, so a waiter never holds the slot
-    lock while a leader sits in the shared pace queue. Only a cache-miss
-    leader takes lock_cm around the real fetch.
+    Cache hit → return immediately unless ``fresh`` is requested. A peer
+    fetch already in flight → join it via shield, WITHOUT touching lock_cm,
+    so a waiter never holds the slot lock while a leader sits in the shared
+    pace queue. Only a cache-miss leader takes lock_cm around the real fetch.
+
+    Each subscriber has its own timeout. The shared fetch has an independent
+    hard cap, and the last subscriber to cancel/timeout cancels that fetch.
     """
     hit = _CONV_READ_CACHE.get(conv_id)
-    if hit and hit[0] > time.monotonic():
+    if not fresh and hit and hit[0] > time.monotonic():
         return hit[1]
-    task = _CONV_READ_INFLIGHT.get(conv_id)
-    if task is None:
+
+    flight = _CONV_READ_INFLIGHT.get(conv_id)
+    if fresh and flight is not None and not flight.fresh:
+        # A fresh post-send check must not join a normal fetch that may have
+        # started before the send. Keep that older flight alive for its own
+        # subscribers, but install a separate fresh flight below; callbacks
+        # use identity checks so they cannot remove the replacement.
+        flight = None
+    if flight is not None and flight.task.done():
+        # Done callbacks normally remove completed flights, but a caller can
+        # arrive in the small callback scheduling window. Never join a stale
+        # completed task when a fresh fetch is requested.
+        if _CONV_READ_INFLIGHT.get(conv_id) is flight:
+            del _CONV_READ_INFLIGHT[conv_id]
+        flight = None
+
+    if flight is None:
         async def _lead():
             async with lock_cm:
                 return await driver.get_conversation(conv_id)
 
-        task = asyncio.ensure_future(_lead())
-        _CONV_READ_INFLIGHT[conv_id] = task
+        task = asyncio.ensure_future(
+            asyncio.wait_for(_lead(), _CONV_READ_FETCH_TIMEOUT_S)
+        )
+        flight = _ConvReadFlight(task, fresh=fresh)
+        _CONV_READ_INFLIGHT[conv_id] = flight
 
-        def _store(t: asyncio.Task, cid: str = conv_id) -> None:
-            if _CONV_READ_INFLIGHT.get(cid) is t:
-                del _CONV_READ_INFLIGHT[cid]
+        def _store(t: asyncio.Task, cid: str = conv_id, f: _ConvReadFlight = flight) -> None:
+            if _CONV_READ_INFLIGHT.get(cid) is not f:
+                # A fresh recovery read replaced this flight; an older
+                # response must not overwrite the fresh cache entry.
+                return
+            del _CONV_READ_INFLIGHT[cid]
             try:
                 _conv_read_store(driver, cid, t.result())
             except BaseException:
                 pass
 
         task.add_done_callback(_store)
-    return await asyncio.shield(task)
+
+    flight.waiters += 1
+    try:
+        if timeout is None:
+            return await asyncio.shield(flight.task)
+        remaining = max(0.0, float(timeout))
+        if remaining <= 0:
+            raise asyncio.TimeoutError
+        return await asyncio.wait_for(asyncio.shield(flight.task), remaining)
+    except (asyncio.CancelledError, asyncio.TimeoutError):
+        # A waiter timing out is not allowed to cancel a peer's fetch. Once
+        # the final subscriber leaves, cancel it so the lock/driver operation
+        # is released promptly.
+        raise
+    finally:
+        flight.waiters = max(0, flight.waiters - 1)
+        if (
+            flight.waiters == 0
+            and not flight.task.done()
+        ):
+            if _CONV_READ_INFLIGHT.get(conv_id) is flight:
+                del _CONV_READ_INFLIGHT[conv_id]
+            flight.task.cancel()
+
+
+async def _await_until(awaitable, deadline: float | None):
+    """Await one read/DOM operation without exceeding an absolute deadline."""
+    if deadline is None:
+        return await awaitable
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        # Close coroutine objects that were created before the deadline check;
+        # otherwise direct callers get a ``coroutine was never awaited``
+        # warning when a wait expires between polls.
+        close = getattr(awaitable, "close", None)
+        if close is not None:
+            close()
+        raise asyncio.TimeoutError
+    return await asyncio.wait_for(awaitable, remaining)
+
+
+async def _sleep_until(delay: float, deadline: float | None) -> None:
+    """Sleep for at most ``delay`` while respecting an absolute deadline."""
+    if deadline is None:
+        await asyncio.sleep(delay)
+        return
+    remaining = deadline - time.monotonic()
+    if remaining <= 0:
+        raise asyncio.TimeoutError
+    await asyncio.sleep(min(delay, remaining))
 
 
 async def _verify_reply_persisted(
-    driver: CDPDriver, conv_id: str | None
+    driver: CDPDriver,
+    conv_id: str | None,
+    *,
+    deadline: float | None = None,
+    sent_text: str | None = None,
+    user_message_id: str | None = None,
 ) -> bool | None:
     """Post-send tail check: did the assistant reply actually persist?
 
     The DOM stream can return a partial/corrupt response for a generation
     that dies mid-stream and is then retracted server-side — the reply never
-    lands in the conversation. Callers polling get_conversation for that
-    ghost reply burn minutes; this check turns it into one flag.
+    lands in the conversation. This is one bounded best-effort observation,
+    keyed to the current sent user node/text when available. It must never
+    treat an unrelated old assistant tail as proof for the current send.
 
-    Returns True (tail is assistant), False (tail is still our own user
-    message after a short grace — dead generation, nudge instead of poll),
-    None (undeterminable: no conv_id, or fetches kept failing).
+    Returns True only when the current turn's anchor is followed by a
+    persisted assistant, False only when that anchored turn explicitly reports
+    a terminal failure, and None when the anchor/read is unavailable.
     """
     if not conv_id:
         return None
+    metadata = getattr(driver, "delivery_metadata", None)
+    if isinstance(metadata, dict):
+        # The send path may already have completed an anchored reconciliation.
+        # Consume that receipt before opening another backend read; it is
+        # scoped to the current send and cannot be an old tail.
+        if metadata.get("reply_persisted") is True:
+            return True
+        if user_message_id is None:
+            user_message_id = metadata.get("user_message_id") or None
+    # A text-only match can collide with an earlier repeated prompt (for
+    # example, several turns containing "继续"). Without the current-turn
+    # identity captured by the send path, remain unknown and avoid a needless
+    # post-send read that could incorrectly certify an old assistant tail.
+    if not user_message_id:
+        return None
+
     # The send just mutated this conversation — a pre-send cache entry must
     # never satisfy this check, and each fresh result is the newest truth for
     # any coalesced waiter.
     _conv_read_invalidate(conv_id)
-    for attempt in range(_PERSIST_MAX_CHECKS):
-        try:
-            data = await driver.get_conversation(conv_id)
-            # Non-dict (mock/weird backend) = inconclusive, never crash the send.
-            chain = _conversation_chain(data) if isinstance(data, dict) else []
-            _conv_read_store(driver, conv_id, data)
-        except ReadThrottledError:
-            # Read gate in cooldown — try the free DOM tail read before
-            # giving up: a finished assistant tail rendered in the tab is
-            # strong persisted-evidence (dead generations get retracted
-            # server-side and vanish from the DOM). A user tail stays
-            # inconclusive — DOM render lag must not masquerade as a dead
-            # generation and trigger a nudge.
-            try:
-                tail = await conv_dom_read.conv_tail_state(
-                    getattr(driver, "port", 0) or 0, conv_id
-                )
-                if (
-                    tail
-                    and tail.get("last_role") == "assistant"
-                    and not tail.get("generating")
-                ):
-                    return True
-            except Exception:
-                pass
-            return None
-        except Exception:
-            # A weird/failed fetch must never break a successful send —
-            # inconclusive just means "retry or report unknown".
-            chain = []
-        if chain:
-            if chain[-1]["role"] == "assistant":
-                return True
-            if chain[-1]["role"] == "user":
-                if attempt < _PERSIST_MAX_CHECKS - 1:
-                    # Backend persistence can lag the DOM stream by a few
-                    # seconds — grace window before declaring it dead.
-                    await asyncio.sleep(_PERSIST_TAIL_USER_DELAY_S)
-                    continue
-                return False
-        # Empty chain = failed/404/in-flight fetch — inconclusive; brief retry.
-        if attempt < _PERSIST_MAX_CHECKS - 1:
-            await asyncio.sleep(_PERSIST_EMPTY_DELAY_S)
+    verify_deadline = time.monotonic() + _PERSIST_TOTAL_TIMEOUT_S
+    if deadline is not None:
+        verify_deadline = min(verify_deadline, deadline)
+    try:
+        data = await _conv_read_coalesced(
+            driver,
+            conv_id,
+            contextlib.nullcontext(),
+            fresh=True,
+            timeout=max(0.0, verify_deadline - time.monotonic()),
+        )
+    except asyncio.TimeoutError:
+        return None
+    except ReadThrottledError:
+        # The DOM has no stable backend node id. Even with a captured UUID,
+        # falling back to a same-text DOM match could select a repeated older
+        # prompt, so leave this receipt unknown while the backend is gated.
+        return None
+    except Exception:
+        # A failed/ambiguous check must never turn a successful send into an
+        # exception or a retry signal.
+        return None
+
+    if not isinstance(data, dict):
+        return None
+    _conv_read_store(driver, conv_id, data)
+    nodes = _conversation_nodes(data)
+    if not nodes:
+        return None
+
+    anchor_index = -1
+    if user_message_id:
+        anchor_index = next(
+            (
+                i for i, node in enumerate(nodes)
+                if node.get("node_id") == user_message_id
+            ),
+            -1,
+        )
+    if anchor_index < 0:
+        return None
+
+    tail = nodes[-1]
+    if tail.get("role") == "assistant" and anchor_index < len(nodes) - 1:
+        # A streaming assistant node is persisted but not a finished reply.
+        return True if _tail_reply_finished(tail) else None
+    if (
+        tail.get("role") == "user"
+        and anchor_index == len(nodes) - 1
+        and _explicit_generation_failure(data, tail)
+    ):
+        return False
     return None
 
 
@@ -1216,10 +1513,15 @@ async def do_get_conversation(
 ) -> dict:
     """Retrieve conversation history (paginated, oldest-first)."""
     validated = GetConversationInput(**args)
+    if validated.tail is not None and validated.offset:
+        raise ValueError("tail cannot be combined with a non-zero offset")
     fetch_lock = call_lock if call_lock is not None else contextlib.nullcontext()
     try:
         data = await _conv_read_coalesced(
-            driver, validated.conversation_id, fetch_lock
+            driver,
+            validated.conversation_id,
+            fetch_lock,
+            fresh=validated.fresh,
         )
     except ReadThrottledError as e:
         # DOM fallback: if a tab is showing this conversation, its rendered
@@ -1228,32 +1530,44 @@ async def do_get_conversation(
         msgs = await conv_dom_read.conv_messages(
             getattr(driver, "port", 0) or 0,
             validated.conversation_id,
-            limit=validated.limit,
+            limit=validated.tail or validated.limit,
         )
         if msgs is not None:
-            return {
+            # The DOM only exposes rendered nodes (often a virtualized tail),
+            # so it cannot truthfully answer absolute offset/total/has_more.
+            # Keep those fields null and carry the requested offset
+            # separately; callers must not page by repeatedly adding limit.
+            result = {
                 "id": validated.conversation_id,
                 "title": "",
-                "offset": 0,
-                "limit": validated.limit,
-                "total": len(msgs),
-                "has_more": True,
-                "reason": "ok",
+                "offset": None,
+                "limit": validated.tail or validated.limit,
+                "total": None,
+                "has_more": None,
+                "reason": "partial",
                 "source": "dom",
                 "partial": True,
-                "messages": msgs,
+                "paging_supported": False,
+                "requested_offset": validated.offset,
             }
-        return {
+            _write_messages_result(result, msgs, validated.out_file)
+            return result
+        result = {
             "id": validated.conversation_id,
             "title": "",
-            "offset": validated.offset,
+            "offset": None,
             "limit": validated.limit,
-            "total": 0,
-            "has_more": False,
+            "total": None,
+            "has_more": None,
             "reason": "read_throttled",
             "retry_after": round(e.retry_after, 1),
-            "messages": [],
+            "source": "backend",
+            "partial": False,
+            "paging_supported": False,
+            "requested_offset": validated.offset,
         }
+        _write_messages_result(result, [], validated.out_file)
+        return result
     chain = _conversation_chain(data)
 
     # Why the result looks the way it does — previously 404s, fetch errors
@@ -1270,30 +1584,47 @@ async def do_get_conversation(
         reason = "ok"
 
     total = len(chain)
-    page = chain[validated.offset : validated.offset + validated.limit]
+    if validated.tail is not None:
+        # Tail reads intentionally still report the authoritative total from
+        # the same backend response, but the returned page is described by its
+        # computed absolute offset. This replaces the common two-call
+        # ``total`` then ``offset=total-N`` pattern.
+        page = chain[-validated.tail :]
+        page_offset = max(0, total - len(page))
+        page_limit = validated.tail
+    else:
+        page = chain[validated.offset : validated.offset + validated.limit]
+        page_offset = validated.offset
+        page_limit = validated.limit
     result = {
         "id": data.get("id", validated.conversation_id),
         "title": data.get("title", ""),
-        "offset": validated.offset,
-        "limit": validated.limit,
+        "offset": page_offset,
+        "limit": page_limit,
         "total": total,
-        "has_more": validated.offset + len(page) < total,
+        "has_more": page_offset + len(page) < total,
         "reason": reason,
+        "source": "backend",
+        "partial": False,
+        "paging_supported": True,
     }
+    _write_messages_result(result, page, validated.out_file)
+    return result
 
-    if validated.out_file:
-        p = Path(validated.out_file)
+
+def _write_messages_result(result: dict, messages: list[dict], out_file: str | None) -> None:
+    """Attach messages inline or write them to the requested absolute path."""
+    if out_file:
+        p = Path(out_file)
         if not p.is_absolute():
             raise ValueError("out_file must be an absolute path")
         p.parent.mkdir(parents=True, exist_ok=True)
-        text = "".join(f"## {m['role']}\n\n{m['content']}\n\n" for m in page)
+        text = "".join(f"## {m['role']}\n\n{m['content']}\n\n" for m in messages)
         p.write_text(text, encoding="utf-8")
         result["out_file"] = str(p)
-        result["messages_written"] = len(page)
+        result["messages_written"] = len(messages)
     else:
-        result["messages"] = page
-
-    return result
+        result["messages"] = messages
 
 
 async def do_wait_reply(
@@ -1305,9 +1636,10 @@ async def do_wait_reply(
     """Block until an assistant reply persists (or the deadline hits).
 
     Replaces hand-rolled get_conversation+sleep polling: the failure mode it
-    prevents is waiting on a ghost — if the last stored message is still the
-    caller's own user message, the generation is dead, and the right move is
-    a nudge, not more polling. Status tells the two apart.
+    prevents is consuming a partial assistant node as a finished reply. A
+    user tail is only an observation: without an explicit terminal failure it
+    remains unresolved and eventually returns ``timeout``. This avoids turning
+    a slow/live generation into a duplicate nudge.
 
     ``call_lock`` (pool mode) is the leased slot's per-driver lock: it is held
     only around each fetch, never across the poll sleep, so a wait of up to
@@ -1316,27 +1648,83 @@ async def do_wait_reply(
     validated = WaitReplyInput(**args)
     deadline = time.monotonic() + validated.timeout_seconds
     start = time.monotonic()
-    total = 0
+    total: int | None = None
     last_role = None
     tail_status = None
     source = "backend"
+    total_kind = "absolute"
+    observation: str | None = None
     user_tail_since: float | None = None
     fetch_lock = call_lock if call_lock is not None else contextlib.nullcontext()
     # DOM-mode baseline: "replied" is judged against the tail state at wait
     # start, not absolute backend totals (rendered counts differ).
     baseline_tail_text: str | None = None
     baseline_rendered = 0
+    baseline_initialized = False
 
     while True:
-        # DOM-first: when a tab is showing this conversation, its rendered
-        # tail answers everything we need — zero backend-api calls, immune
-        # to read cooldowns, and live during streaming. The throwaway CDP
-        # session doesn't take the owning driver's slot or lock.
-        dom = await conv_dom_read.conv_tail_state(
-            getattr(driver, "port", 0) or 0, validated.conversation_id
-        )
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            status = "timeout"
+            if last_role == "user" and tail_status != "in_progress":
+                observation = (
+                    "user_tail_unresolved_"
+                    + ("generation_signal_unknown" if tail_status is None else tail_status)
+                )
+            observation = observation or "deadline_exceeded"
+            break
+
+        # ``since_total`` is an absolute backend count. Probe the backend
+        # first in that mode so a reply that completed before our first DOM
+        # baseline cannot be mistaken for an old tail and then wait forever.
+        # For ordinary waits, keep the cheap DOM-first path, falling back to
+        # the backend only when no conversation tab is available.
+        dom = None
+        data = None
+        backend_throttled: ReadThrottledError | None = None
+        backend_first = validated.since_total is not None
+        if backend_first:
+            try:
+                data = await _await_until(
+                    _conv_read_coalesced(
+                        driver,
+                        validated.conversation_id,
+                        fetch_lock,
+                    ),
+                    deadline,
+                )
+            except ReadThrottledError as e:
+                backend_throttled = e
+            except asyncio.TimeoutError:
+                status = "timeout"
+                observation = "backend_read_timeout"
+                break
+            except Exception:
+                data = {}
+                observation = "backend_read_failed"
+
+        if not backend_first or backend_throttled is not None:
+            # DOM-first for normal waits; for since_total this is a bounded
+            # fallback only when the absolute backend read is rate-limited.
+            # Its rendered count is never compared with ``since_total``.
+            try:
+                dom = await _await_until(
+                    conv_dom_read.conv_tail_state(
+                        getattr(driver, "port", 0) or 0,
+                        validated.conversation_id,
+                    ),
+                    deadline,
+                )
+            except asyncio.TimeoutError:
+                status = "timeout"
+                observation = "dom_read_timeout"
+                break
+            except Exception:
+                dom = None
+
         if dom is not None:
             source = "dom"
+            total_kind = "rendered_lower_bound"
             total = dom.get("rendered_total") or 0
             last_role = dom.get("last_role")
             generating = bool(dom.get("generating"))
@@ -1349,30 +1737,62 @@ async def do_wait_reply(
             if baseline_tail_text is None:
                 baseline_tail_text = tail_text
                 baseline_rendered = total
+                baseline_initialized = True
+            # ``since_total`` is a backend absolute count. Rendered DOM nodes
+            # are a virtualized lower bound and must never be compared to it.
+            # When a baseline is requested, use a same-tab message anchor
+            # instead; a mismatch can only cause a safe timeout, never a false
+            # replied result.
+            dom_anchor_changed = (
+                baseline_initialized
+                and (
+                    total > baseline_rendered
+                    or tail_text != baseline_tail_text
+                )
+            )
             replied = (
                 last_role == "assistant"
                 and not generating
                 and (
                     validated.since_total is None
-                    or total > validated.since_total
-                    or total > baseline_rendered
-                    or tail_text != baseline_tail_text
+                    or dom_anchor_changed
                 )
             )
             data = None  # no backend payload in DOM mode
+            if generating:
+                observation = "generation_in_progress"
+            elif last_role == "user":
+                observation = "user_tail_without_terminal_evidence"
+            else:
+                observation = None
         else:
-            try:
-                data = await _conv_read_coalesced(
-                    driver, validated.conversation_id, fetch_lock
-                )
-            except ReadThrottledError as e:
+            if not backend_first:
+                try:
+                    data = await _await_until(
+                        _conv_read_coalesced(
+                            driver,
+                            validated.conversation_id,
+                            fetch_lock,
+                        ),
+                        deadline,
+                    )
+                except ReadThrottledError as e:
+                    backend_throttled = e
+                except asyncio.TimeoutError:
+                    status = "timeout"
+                    observation = "backend_read_timeout"
+                    break
+                except Exception:
+                    data = {}
+                    observation = "backend_read_failed"
+            if backend_throttled is not None:
                 # The shared read gate is in cooldown AND no DOM tab was
                 # available — surface an actionable signal instead of
                 # burning the whole timeout on fetches that cannot run.
                 return {
                     "conversation_id": validated.conversation_id,
                     "status": "read_throttled",
-                    "retry_after": round(e.retry_after, 1),
+                    "retry_after": round(backend_throttled.retry_after, 1),
                     "send_hint": (
                         "a prior send is usually already DELIVERED — do "
                         "NOT resend before checking the conversation tail "
@@ -1381,10 +1801,11 @@ async def do_wait_reply(
                     "total": total,
                     "last_role": last_role,
                     "tail_status": tail_status,
+                    "source": source,
+                    "total_kind": total_kind,
+                    "observation": "read_throttled",
                     "waited_s": round(time.monotonic() - start, 1),
                 }
-            except Exception:
-                data = {}
             chain = (
                 _conversation_chain(data, with_meta=True)
                 if isinstance(data, dict)
@@ -1395,6 +1816,11 @@ async def do_wait_reply(
             last_role = tail.get("role")
             tail_status = (
                 tail.get("status") if last_role == "assistant" else None
+            )
+            explicit_failure = (
+                isinstance(data, dict)
+                and last_role == "user"
+                and _explicit_generation_failure(data, tail)
             )
             # 'replied' requires a TERMINAL tail: a persisted assistant node
             # can still be streaming (status='in_progress') — counting it was
@@ -1407,32 +1833,66 @@ async def do_wait_reply(
                     or total > validated.since_total
                 )
             )
+            if last_role == "assistant" and tail_status == "in_progress":
+                observation = "generation_in_progress"
+            elif last_role == "user":
+                observation = "user_tail_without_terminal_evidence"
+            elif replied:
+                observation = None
+            if explicit_failure:
+                status = "dead"
+                observation = "terminal_generation_failure"
+                break
         if replied:
             status = "replied"
             break
-        # Dead-generation detection: a persistent user tail means the
-        # assistant node never persisted (mid-stream death) — the empirical
-        # recovery is a nudge in the same conversation, not more waiting.
+
+        # A user tail used to become ``dead`` after a timer. That was unsafe:
+        # the DOM may explicitly report a live generation, and the backend
+        # payload does not identify a terminal failure for this turn. Keep the
+        # timer only as an observation marker for compatibility and wait until
+        # the caller's absolute deadline.
         if last_role == "user":
             user_tail_since = user_tail_since or time.monotonic()
             if (
                 validated.dead_after_seconds
                 and time.monotonic() - user_tail_since >= validated.dead_after_seconds
             ):
-                status = "dead"
-                break
+                observation = (
+                    "user_tail_unresolved_" +
+                    ("generation_signal_unknown" if tail_status is None else tail_status)
+                )
         else:
             user_tail_since = None
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             status = "timeout"
+            if last_role == "user" and tail_status != "in_progress":
+                observation = (
+                    "user_tail_unresolved_"
+                    + ("generation_signal_unknown" if tail_status is None else tail_status)
+                )
             break
-        await _notify(
-            on_progress,
-            f"Waiting for reply… total={total} last={last_role or 'none'}"
-            + (f" ({tail_status})" if tail_status else ""),
-        )
-        await asyncio.sleep(min(validated.poll_seconds, remaining))
+        try:
+            await _await_until(
+                _notify(
+                    on_progress,
+                    f"Waiting for reply… total={total if total is not None else 'unknown'} "
+                    f"last={last_role or 'none'}"
+                    + (f" ({tail_status})" if tail_status else ""),
+                ),
+                deadline,
+            )
+            await _sleep_until(validated.poll_seconds, deadline)
+        except asyncio.TimeoutError:
+            status = "timeout"
+            if last_role == "user" and tail_status != "in_progress":
+                observation = (
+                    "user_tail_unresolved_"
+                    + ("generation_signal_unknown" if tail_status is None else tail_status)
+                )
+            observation = observation or "deadline_exceeded"
+            break
 
     return {
         "conversation_id": validated.conversation_id,
@@ -1441,6 +1901,8 @@ async def do_wait_reply(
         "total": total,
         "last_role": last_role,
         "tail_status": tail_status,
+        "total_kind": total_kind,
+        "observation": observation,
         "waited_s": round(time.monotonic() - start, 1),
     }
 
@@ -1611,7 +2073,9 @@ async def do_chat_with_gpt(
     full_response = ""
     conv_id = ""
     chunk_count = 0
-    async for chunk in driver.send_and_stream(validated.message, timeout=120):
+    async for chunk in driver.send_and_stream(
+        validated.message, timeout=120, on_progress=on_progress,
+    ):
         if chunk.delta:
             full_response += chunk.delta
             chunk_count += 1
@@ -1631,6 +2095,7 @@ async def do_chat_with_gpt(
     return {
         "content": full_response,
         "model": "gpt",
+        "delivery_receipt": _delivery_receipt(driver),
         "conversation_id": conv_id,
         "gpt_id": validated.gpt_id,
         "reply_persisted": persisted,
@@ -1643,13 +2108,43 @@ async def do_chat_with_gpt(
 
 
 def _build_tools() -> list[mcp_types.Tool]:
-    """Build the FULL list of tool definitions (all 15), unfiltered.
+    """Build the full tool catalog, including browser-free diagnostics.
 
     Returns every tool regardless of access gates. Used by tests that
     assert the complete catalog. Runtime tool exposure goes through
     :func:`build_tools`, which applies the access gates.
     """
     return [
+        mcp_types.Tool(
+            name=ToolName.RUNTIME_INFO.value,
+            title="Bridge Runtime Info",
+            description=(
+                "Inspect this running bridge's startup time, source fingerprint, "
+                "contract version and whether disk code changed. Local only: "
+                "does not acquire a browser slot or contact ChatGPT. After an "
+                "upgrade, verify this live response instead of assuming a "
+                "long-running MCP process reloaded its code."
+            ),
+            inputSchema={"type": "object", "properties": {}},
+            outputSchema={
+                "type": "object",
+                "properties": {
+                    "package_version": {"type": "string"},
+                    "contract_version": {"type": "string"},
+                    "pid": {"type": "integer"},
+                    "started_at": {"type": "string"},
+                    "startup_source_fingerprint": {"type": ["string", "null"]},
+                    "disk_source_fingerprint": {"type": ["string", "null"]},
+                    "restart_required": {"type": ["boolean", "null"]},
+                    "capabilities": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["contract_version", "started_at", "restart_required"],
+            },
+            annotations=mcp_types.ToolAnnotations(
+                readOnlyHint=True, destructiveHint=False,
+                idempotentHint=True, openWorldHint=False,
+            ),
+        ),
         # ── Core: Chat ────────────────────────────────────────
         mcp_types.Tool(
             name=ToolName.CHAT_COMPLETION.value,
@@ -1751,6 +2246,10 @@ def _build_tools() -> list[mcp_types.Tool]:
                 "Retrieve the message history of a conversation as a chronological "
                 "list of user and assistant messages (oldest-first). "
                 "Useful for reviewing what was discussed before continuing a conversation.\n\n"
+                "For recovery, use tail=2 to fetch the latest messages in one call; "
+                "do not first fetch a count and then fetch the tail. fresh=true "
+                "bypasses the read cache when current evidence is necessary. "
+                "Consume an existing result or client overflow file before repeating a read.\n\n"
                 "Pagination: returns `limit` messages starting at `offset` (defaults: "
                 "offset=0, limit=50). To read the ENTIRE conversation (not just the "
                 "most recent page), page through by increasing offset by limit each "
@@ -1763,7 +2262,10 @@ def _build_tools() -> list[mcp_types.Tool]:
                 "Empty results are disambiguated by `reason`: 'not_found' = backend "
                 "404 (check the id against list_conversations), 'empty' = reachable "
                 "but nothing visible yet (often mid-generation), 'fetch_failed' = "
-                "the fetch itself errored."
+                "the fetch itself errored. DOM fallback returns reason='partial', "
+                "source='dom', paging_supported=false and unknown absolute "
+                "offset/total/has_more; it is a rendered tail, not a complete page. "
+                "out_file is honored for both backend and DOM results."
             ),
             inputSchema=GetConversationInput.model_json_schema(),
             outputSchema=GET_CONVERSATION_OUTPUT,
@@ -1790,13 +2292,12 @@ def _build_tools() -> list[mcp_types.Tool]:
                 "side is STILL generating (a bridge-side read timeout is not "
                 "a dead generation), so call wait_reply again rather than "
                 "nudging.\n\n"
-                "Pass `since_total` (a prior call's `total`) to wait for a NEW "
-                "reply past an existing tail. Status 'dead' fires early when "
-                "the tail stays your own user message past dead_after_seconds "
-                "(default 120) — the generation died mid-stream, so resend a "
-                "short nudge ('继续') in the same conversation instead of "
-                "waiting longer. Read-only; polls the backend at poll_seconds "
-                "intervals under the account pace gate."
+                "Pass `since_total` (a prior backend call's `total`) to wait for "
+                "a NEW reply past an existing tail. A user tail alone is not "
+                "a dead-generation proof; if the timeout is unresolved, inspect "
+                "the web UI or use a fresh tail read before sending anything. "
+                "Read-only; prefers the conversation tab's DOM and falls back "
+                "to bounded backend reads at poll_seconds intervals."
             ),
             inputSchema=WaitReplyInput.model_json_schema(),
             outputSchema=WAIT_REPLY_OUTPUT,
@@ -2107,6 +2608,65 @@ def _map_tool_exception(exc: Exception) -> object:
     type is not mapped (caller should re-raise).
     """
     # Lazy imports for circular-dependency avoidance.
+    from .cdp_driver import ModelSelectionError
+    from .backend_client import BackendReadError
+    from .cdp_transport import CDPTimeoutError
+
+    if isinstance(exc, PermissionError):
+        payload = {"error": "permission_denied", "retryable": False}
+        if hasattr(exc, "delivery_stage"):
+            payload.update(
+                delivery_stage=exc.delivery_stage,
+                conversation_id=getattr(exc, "conversation_id", None),
+                user_message_id=getattr(exc, "user_message_id", None),
+                retry_safe=False,
+            )
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
+        )
+
+    if isinstance(exc, CDPTimeoutError) and not hasattr(exc, "delivery_stage"):
+        payload = {
+            "error": "cdp_timeout", "phase": exc.phase,
+            "method": exc.method, "timeout_seconds": exc.timeout,
+        }
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
+        )
+
+    if isinstance(exc, BackendReadError):
+        payload = {
+            "error": "backend_read_failed", "phase": "backend_http_read",
+            "kind": exc.kind, "http_status": exc.status,
+            "retry_after": exc.retry_after,
+        }
+        # A model/preflight read can be part of a send. Preserve that send's
+        # delivery state without treating this HTTP failure as a CDP reconnect
+        # signal. Never expose the raw authenticated response body.
+        if hasattr(exc, "delivery_stage"):
+            payload.update(
+                delivery_stage=exc.delivery_stage,
+                conversation_id=getattr(exc, "conversation_id", None),
+                user_message_id=getattr(exc, "user_message_id", None),
+                retry_safe=exc.delivery_stage == "not_started",
+            )
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
+        )
+
+    if isinstance(exc, ModelSelectionError):
+        payload = {
+            "error": "model_selection_failed", "requested_model": exc.requested_model,
+            "delivery_stage": "not_started", "retry_safe": True, "retryable": False,
+            "message": "Requested model could not be selected; no message was submitted. Check available models rather than silently substituting.",
+        }
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
+        )
 
     if isinstance(exc, OwnedTabRequiredError):
         return mcp_types.CallToolResult(
@@ -2115,11 +2675,22 @@ def _map_tool_exception(exc: Exception) -> object:
             isError=True,
         )
     if isinstance(exc, RateLimitError):
+        safe = getattr(exc, "delivery_stage", "unknown") == "not_started"
+        payload = {
+            "error": "rate_limit_exceeded", "retry_after": exc.retry_after,
+            "delivery_stage": getattr(exc, "delivery_stage", "unknown"),
+            "retry_safe": safe,
+            "conversation_id": getattr(exc, "conversation_id", None),
+            "user_message_id": getattr(exc, "user_message_id", None),
+            "send_hint": (
+                "No submission occurred; retry after cooldown."
+                if safe else "Do not resend. Consume existing results, then check the conversation tail once; submission may have occurred."
+            ),
+        }
         return mcp_types.CallToolResult(
             content=[mcp_types.TextContent(type="text",
-                text=(f"ChatGPT rate limit reached. Retry in {exc.retry_after}s. "
-                      f"(rate_limit_exceeded, retry_after={exc.retry_after})"))],
-            isError=True,
+                text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
         )
     if isinstance(exc, CircuitOpenError):
         return mcp_types.CallToolResult(
@@ -2144,6 +2715,14 @@ def _map_tool_exception(exc: Exception) -> object:
             isError=True,
         )
     if isinstance(exc, GenerationStuckError):
+        details = {
+            "error": "generation_stuck", "phase": exc.phase,
+            "stalled_for_s": exc.stalled_for_s,
+            "delivery_stage": getattr(exc, "delivery_stage", "unknown"),
+            "conversation_id": getattr(exc, "conversation_id", None),
+            "user_message_id": getattr(exc, "user_message_id", None),
+            "retry_safe": False,
+        }
         return mcp_types.CallToolResult(
             content=[mcp_types.TextContent(type="text",
                 text=(f"Generation stalled — no DOM progress. Your message "
@@ -2151,7 +2730,7 @@ def _map_tool_exception(exc: Exception) -> object:
                       f"duplicate). Poll wait_reply to check whether it "
                       f"recovered. (generation_stuck, "
                       f"phase={exc.phase}, stalled_for={exc.stalled_for_s:.0f}s)"))],
-            isError=True,
+            structuredContent=details, isError=True,
         )
     if isinstance(exc, LockAcquisitionError):
         return mcp_types.CallToolResult(
@@ -2159,13 +2738,44 @@ def _map_tool_exception(exc: Exception) -> object:
                 text="Browser busy — another operation in progress. Retry later. (lock_timeout)")],
             isError=True,
         )
+    if hasattr(exc, "delivery_stage"):
+        details = {
+            "error": type(exc).__name__, "message": str(exc),
+            "delivery_stage": exc.delivery_stage,
+            "conversation_id": getattr(exc, "conversation_id", None),
+            "user_message_id": getattr(exc, "user_message_id", None),
+            "retry_safe": exc.delivery_stage == "not_started",
+            "recovery_attempts": getattr(exc, "recovery_attempts", 0),
+            "receipt_check": getattr(exc, "receipt_check", None),
+            "send_hint": "Consume any existing result before recovery; do not resend after a possible submission.",
+        }
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(details))],
+            structuredContent=details, isError=True,
+        )
     return None
+
+
+class _BridgeServer(Server):
+    """Expose process identity on every transport's standard MCP handshake."""
+
+    def get_capabilities(
+        self,
+        notification_options: NotificationOptions,
+        experimental_capabilities: dict[str, dict[str, Any]],
+    ) -> mcp_types.ServerCapabilities:
+        # Some hosts discard startup stderr and cannot call tools outside a
+        # model turn. The initialize response is tied to their actual child
+        # process, so it can attest activation without another test process.
+        experimental = dict(experimental_capabilities)
+        experimental["chatgpt-web2api/runtime"] = get_runtime_info()
+        return super().get_capabilities(notification_options, experimental)
 
 
 def create_server() -> Server:
     """Create and configure the MCP server with all capabilities."""
 
-    server = Server("chatgpt-web2api")
+    server = _BridgeServer("chatgpt-web2api", version=__version__)
 
     def _make_progress_callback() -> ProgressCallback | None:
         """Build a best-effort progress notifier from the in-flight MCP request.
@@ -2183,6 +2793,9 @@ def create_server() -> Server:
         scratch, while the numeric progress counter keeps climbing. This is
         expected — the text genuinely restarts; only the counter is stable.
         """
+        inherited = request_progress.get()
+        if inherited is not None:
+            return inherited
         try:
             ctx = server.request_context
         except LookupError:
@@ -2333,6 +2946,8 @@ def create_server() -> Server:
                         if getattr(driver, "_current_conv_id", None) != cid:
                             try:
                                 await driver.adopt_conversation_tab(cid)
+                            except PermissionError:
+                                raise
                             except Exception:
                                 logger.debug(
                                     "conv-tab adopt failed (handler navigates)",
@@ -2350,7 +2965,10 @@ def create_server() -> Server:
 
                     async def _run_pooled() -> dict:
                         if name in _CHAT_TOOLS:
-                            return await retry_on_rate_limit(driver, handler, on_progress=on_progress)
+                            return await run_with_send_recovery(
+                                driver, lambda: retry_on_rate_limit(driver, handler, on_progress=on_progress),
+                                on_progress,
+                            )
                         return await handler()
 
                     if is_mutation and _lock_cdp_port is not None:
@@ -2459,6 +3077,49 @@ def create_server() -> Server:
     async def call_tool(
         name: str, arguments: dict
     ) -> tuple[list[mcp_types.TextContent], dict] | list[mcp_types.TextContent] | dict:
+        if name == ToolName.RUNTIME_INFO.value:
+            return get_runtime_info()
+        # The deadline starts before acquiring any pool slot or mutation lock.
+        # It is independent of progress/heartbeat notifications.
+        if name == ToolName.CHAT_COMPLETION.value:
+            budget = ChatCompletionInput(**arguments).timeout_seconds
+        elif name == ToolName.WAIT_REPLY.value:
+            budget = WaitReplyInput(**arguments).timeout_seconds + 1
+        elif name in _CHAT_TOOL_NAMES:
+            budget = 900
+        else:
+            budget = 60
+        monitor = RequestMonitor(_make_progress_callback(), budget)
+        token = request_progress.set(monitor.update)
+        deadline = asyncio.timeout(budget)
+        try:
+            async with deadline:
+                async with monitor:
+                    return await _dispatch_tool(name, arguments)
+        except TimeoutError:
+            if not deadline.expired():
+                raise
+            payload = {
+                "error": "request_timeout", "phase": monitor.phase,
+                "elapsed_s": round(monitor.elapsed, 1), "timeout_seconds": budget,
+            }
+            if name in _CHAT_TOOL_NAMES:
+                payload.update(
+                    conversation_id=arguments.get("conversation_id"),
+                    delivery_stage="unknown",
+                    retry_safe=False,
+                    send_hint="Do not resend. Consume any returned result, then check this conversation's tail once; timeout only ended local observation.",
+                )
+            return mcp_types.CallToolResult(
+                content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+                structuredContent=payload, isError=True,
+            )
+        finally:
+            request_progress.reset(token)
+
+    async def _dispatch_tool(
+        name: str, arguments: dict
+    ) -> tuple[list[mcp_types.TextContent], dict] | list[mcp_types.TextContent] | dict:
         """Route tool calls to business logic functions."""
         # B1: in pool mode, acquire a session-affine driver lease.
         # In singleton mode, use the global _driver directly (unchanged).
@@ -2550,7 +3211,10 @@ def create_server() -> Server:
                 # passes into the business function; here it's also used by
                 # retry_on_rate_limit to signal the backoff pause. Same object
                 # by design — two injection points, one notifier.
-                return await retry_on_rate_limit(_driver, handler, on_progress=on_progress)
+                return await run_with_send_recovery(
+                    _driver, lambda: retry_on_rate_limit(_driver, handler, on_progress=on_progress),
+                    on_progress,
+                )
             return await handler()
 
         # Serialize mutating tools through the cross-process lock
@@ -3065,6 +3729,13 @@ def main() -> None:
         from .diagnostics import attach_daemon_log
 
         attach_daemon_log(f"mcp-sse-{args.port}")
+
+    # The owning host captures stderr. This receipt lets an operator match
+    # an actual host child PID to the loaded source without substituting a
+    # separately launched smoke-test process. No credentials or chat data.
+    from .runtime_info import get_runtime_info
+
+    logger.info("MCP runtime identity: %s", json.dumps(get_runtime_info(), sort_keys=True))
 
     config = Config.load(args.config)
     if args.cdp_port:

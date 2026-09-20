@@ -24,6 +24,7 @@ from .cdp_driver import (
     CDPDriver,
     GenerationInProgressError,
     GenerationStuckError,
+    ModelSelectionError,
     RateLimitError,
     is_rate_limited_text,
 )
@@ -32,6 +33,7 @@ from .cross_process_lock import LockAcquisitionError
 from .lock_resolver import MutationLock, OwnedTabRequiredError, resolve_mutation_lock
 from .request_pace import ReadThrottledError
 from .resilience import retry_on_rate_limit
+from .send_recovery import run_with_send_recovery
 
 logger = logging.getLogger(__name__)
 
@@ -381,87 +383,91 @@ class APIServer:
                 # already knowing the circuit is open.
                 await self._check_circuit_or_recover()
 
-                # Select model if specified (non-fatal on failure)
-                if model_slug and model_slug != "auto":
-                    selected = await self._driver.select_model(model_slug)
-                    if not selected:
-                        logger.warning(
-                            "Could not select model '%s', proceeding with active model",
-                            model_slug,
+                async def perform_chat():
+                    # Decide: continue existing conversation or start fresh?
+                    # Shared rule (driver.route_chat_target, same function the
+                    # MCP path calls): an explicit conversation_id ALWAYS
+                    # continues that conversation — project_id only scopes NEW
+                    # conversations and must never veto an explicit target.
+                    route = await self._driver.route_chat_target(
+                        conversation_id=conversation_id,
+                        project_id=project_id,
+                        # REST auto-continue heuristic: same conversation AND same
+                        # project context as the previous request, no system
+                        # prompt override. Reconciles against the live tab URL —
+                        # another process may have navigated a shared tab,
+                        # leaving _current_conv_id stale (fail-closed).
+                        auto_continue=bool(
+                            self._last_conv_id
+                            and self._driver._current_conv_id == self._last_conv_id
+                            and project_id == self._last_project_id
+                            and not system_parts
+                        ),
+                    )
+                    if route == "auto-continue":
+                        logger.info("Continuing conversation: %s", self._last_conv_id)
+                    elif route == "new":
+                        self._last_project_id = project_id
+
+                    # Conversation-binding gate (same contract as the MCP
+                    # chat_completion tool): the first send that binds this
+                    # client to an existing conversation needs explicit user
+                    # confirmation — resend the same body with "confirm": true.
+                    # Session identity comes from X-Session-Id; REST callers
+                    # without one share the "rest:default" identity.
+                    rest_session = request.headers.get("X-Session-Id")
+                    rest_session = f"rest:{rest_session}" if rest_session else "rest:default"
+                    target_conv = conversation_id or (
+                        self._driver._current_conv_id
+                        if route == "auto-continue"
+                        else None
+                    )
+                    binding_gate = await conv_binding.gate_check(
+                        self._driver,
+                        target_conv,
+                        rest_session,
+                        confirmed=bool(body.get("confirm")),
+                        project_label=project_id,
+                    )
+                    if binding_gate is not None:
+                        return web.json_response(
+                            {
+                                "error": {
+                                    "message": (
+                                        "First send to this conversation requires "
+                                        "user confirmation — show the binding "
+                                        "details to the user, then resend with "
+                                        "\"confirm\": true."
+                                    ),
+                                    "type": "invalid_request_error",
+                                    "param": "conversation_id",
+                                    "code": "confirmation_required",
+                                    "binding": binding_gate,
+                                }
+                            },
+                            status=409,
                         )
 
-                # Decide: continue existing conversation or start fresh?
-                # Shared rule (driver.route_chat_target, same function the
-                # MCP path calls): an explicit conversation_id ALWAYS
-                # continues that conversation — project_id only scopes NEW
-                # conversations and must never veto an explicit target.
-                route = await self._driver.route_chat_target(
-                    conversation_id=conversation_id,
-                    project_id=project_id,
-                    # REST auto-continue heuristic: same conversation AND same
-                    # project context as the previous request, no system
-                    # prompt override. Reconciles against the live tab URL —
-                    # another process may have navigated a shared tab,
-                    # leaving _current_conv_id stale (fail-closed).
-                    auto_continue=bool(
-                        self._last_conv_id
-                        and self._driver._current_conv_id == self._last_conv_id
-                        and project_id == self._last_project_id
-                        and not system_parts
-                    ),
-                )
-                if route == "auto-continue":
-                    logger.info("Continuing conversation: %s", self._last_conv_id)
-                elif route == "new":
-                    self._last_project_id = project_id
+                    # Route/navigation can replace the page's model picker state,
+                    # so model selection must happen after the target is final. A
+                    # requested model is an explicit contract: silently keeping
+                    # the previously active model would produce a misleading
+                    # response and can be much worse than a clean 400.
+                    if model_slug and model_slug != "auto":
+                        selected = await self._driver.select_model(model_slug)
+                        if not selected:
+                            raise ModelSelectionError(model_slug)
 
-                # Conversation-binding gate (same contract as the MCP
-                # chat_completion tool): the first send that binds this
-                # client to an existing conversation needs explicit user
-                # confirmation — resend the same body with "confirm": true.
-                # Session identity comes from X-Session-Id; REST callers
-                # without one share the "rest:default" identity.
-                rest_session = request.headers.get("X-Session-Id")
-                rest_session = f"rest:{rest_session}" if rest_session else "rest:default"
-                target_conv = conversation_id or (
-                    self._driver._current_conv_id
-                    if route == "auto-continue"
-                    else None
-                )
-                binding_gate = await conv_binding.gate_check(
-                    self._driver,
-                    target_conv,
-                    rest_session,
-                    confirmed=bool(body.get("confirm")),
-                    project_label=project_id,
-                )
-                if binding_gate is not None:
-                    return web.json_response(
-                        {
-                            "error": {
-                                "message": (
-                                    "First send to this conversation requires "
-                                    "user confirmation — show the binding "
-                                    "details to the user, then resend with "
-                                    "\"confirm\": true."
-                                ),
-                                "type": "invalid_request_error",
-                                "param": "conversation_id",
-                                "code": "confirmation_required",
-                                "binding": binding_gate,
-                            }
-                        },
-                        status=409,
-                    )
+                    if stream:
+                        return await self._stream_response(
+                            request, model_slug, full_text, timeout, session_key=rest_session
+                        )
+                    else:
+                        return await self._full_response(
+                            request, model_slug, full_text, timeout, session_key=rest_session
+                        )
 
-                if stream:
-                    return await self._stream_response(
-                        request, model_slug, full_text, timeout, session_key=rest_session
-                    )
-                else:
-                    return await self._full_response(
-                        request, model_slug, full_text, timeout, session_key=rest_session
-                    )
+                return await run_with_send_recovery(self._driver, perform_chat)
 
         except Exception as e:
             logger.error("Chat error: %s", e, exc_info=True)
@@ -510,17 +516,30 @@ class APIServer:
         """
         if isinstance(exc, (RateLimitError, ReadThrottledError)):
             retry_after = str(int(exc.retry_after))
+            error = {
+                "message": str(exc),
+                "type": "rate_limit_exceeded",
+                "param": None,
+                "code": "rate_limit_exceeded",
+            }
+            self._add_delivery_metadata(error, exc)
+            return web.json_response(
+                {"error": error},
+                status=429,
+                headers={"Retry-After": retry_after},
+            )
+        if isinstance(exc, ModelSelectionError):
             return web.json_response(
                 {
                     "error": {
                         "message": str(exc),
-                        "type": "rate_limit_exceeded",
-                        "param": None,
-                        "code": "rate_limit_exceeded",
+                        "type": "invalid_request_error",
+                        "param": "model",
+                        "code": "model_not_available",
+                        "requested_model": exc.requested_model,
                     }
                 },
-                status=429,
-                headers={"Retry-After": retry_after},
+                status=400,
             )
         if isinstance(exc, AuthExpiredError):
             return web.json_response(
@@ -538,28 +557,28 @@ class APIServer:
             # 409 Conflict: the conversation is mid-generation; a send would
             # interrupt the streaming reply. Retry-After carries the gate's
             # remaining window so clients can schedule a retry.
+            error = {
+                "message": str(exc),
+                "type": "invalid_request_error",
+                "param": "conversation_id",
+                "code": "generation_in_progress",
+            }
+            self._add_delivery_metadata(error, exc)
             return web.json_response(
-                {
-                    "error": {
-                        "message": str(exc),
-                        "type": "invalid_request_error",
-                        "param": "conversation_id",
-                        "code": "generation_in_progress",
-                    }
-                },
+                {"error": error},
                 status=409,
                 headers={"Retry-After": str(int(exc.retry_after))},
             )
         if isinstance(exc, GenerationStuckError):
+            error = {
+                "message": str(exc),
+                "type": "server_error",
+                "param": None,
+                "code": "generation_stuck",
+            }
+            self._add_delivery_metadata(error, exc)
             return web.json_response(
-                {
-                    "error": {
-                        "message": str(exc),
-                        "type": "server_error",
-                        "param": None,
-                        "code": "generation_stuck",
-                    }
-                },
+                {"error": error},
                 status=504,
             )
         if isinstance(exc, LockAcquisitionError):
@@ -600,10 +619,21 @@ class APIServer:
                 },
                 status=503,
             )
-        return web.json_response(
-            {"error": {"message": str(exc), "type": "server_error"}},
-            status=500,
-        )
+        error = {"message": str(exc), "type": "server_error"}
+        self._add_delivery_metadata(error, exc)
+        return web.json_response({"error": error}, status=500)
+
+    @staticmethod
+    def _add_delivery_metadata(error: dict, exc: Exception) -> None:
+        """Expose send delivery state/IDs when an error carries them."""
+
+        for key in ("delivery_stage", "conversation_id", "user_message_id", "recovery_attempts", "receipt_check"):
+            value = getattr(exc, key, None)
+            if value is not None:
+                # Str-enums and similar values should remain JSON-friendly.
+                error[key] = getattr(value, "value", value)
+        if hasattr(exc, "retryable"):
+            error["retryable"] = bool(exc.retryable)
 
     # ── Response formatters ───────────────────────────────────
 
@@ -786,6 +816,11 @@ class APIServer:
             # 200, so we can't upgrade to 429; surface as an inline error chunk
             # with a recognizable marker so clients can detect it.
             logger.warning("Mid-stream rate limit: %s", e)
+            error_fields = {
+                "message": str(e),
+                "retry_after": e.retry_after,
+            }
+            self._add_delivery_metadata(error_fields, e)
             await self._send_sse(
                 resp,
                 {
@@ -793,11 +828,18 @@ class APIServer:
                     "object": "chat.completion.chunk",
                     "created": created,
                     "model": model,
+                    "delivery_stage": error_fields.get("delivery_stage", "unknown"),
+                    "conversation_id": error_fields.get("conversation_id"),
+                    "user_message_id": error_fields.get("user_message_id"),
                     "choices": [
                         {
                             "index": 0,
                             "delta": {
-                                "content": f"\n\n[Error: rate_limit_exceeded — retry in {e.retry_after}s]"
+                                "content": (
+                                    "\n\n[Error: rate_limit_exceeded — "
+                                    f"retry in {e.retry_after}s; "
+                                    f"delivery_stage={error_fields.get('delivery_stage', 'unknown')}]"
+                                )
                             },
                             "finish_reason": "error",
                         }

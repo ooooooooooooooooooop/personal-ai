@@ -51,23 +51,40 @@ def _pid_alive(pid: int) -> bool:
 
     On Unix, ``os.kill(pid, 0)`` returns silently if alive, raises ProcessLookupError
     if not. On Windows, there's no signal 0, so we use OpenProcess via ctypes.
-    Returns True only on positive confirmation; any error → False (treat as
-    gone, so a crashed process's entry becomes reclaimable).
+    Access denied or an unexpected probe failure is treated as alive: uncertain
+    liveness must not authorize stealing another process's tab or binding.
     """
     if not pid or pid <= 0:
         return False
     if os.name == "nt":
         try:
             import ctypes
+            from ctypes import wintypes
+
             PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+            STILL_ACTIVE = 259
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            # HANDLE is pointer-sized; ctypes' default c_int truncates it on Win64.
+            kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+            kernel32.OpenProcess.restype = wintypes.HANDLE
+            kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+            kernel32.GetExitCodeProcess.restype = wintypes.BOOL
+            kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+            kernel32.CloseHandle.restype = wintypes.BOOL
             handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
             if not handle:
-                return False
-            kernel32.CloseHandle(handle)
-            return True
+                # ERROR_INVALID_PARAMETER means the PID does not exist. Other
+                # errors (especially access denied) do not prove it is dead.
+                return ctypes.get_last_error() != 87
+            try:
+                exit_code = wintypes.DWORD()
+                if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                    return True
+                return exit_code.value == STILL_ACTIVE
+            finally:
+                kernel32.CloseHandle(handle)
         except Exception:
-            return False
+            return True
     try:
         os.kill(pid, 0)
         return True
@@ -79,7 +96,7 @@ def _pid_alive(pid: int) -> bool:
         # steal a running process's tab.
         return True
     except OSError:
-        return False
+        return True
 
 
 def _load_registry(path: Path) -> dict[str, Any]:

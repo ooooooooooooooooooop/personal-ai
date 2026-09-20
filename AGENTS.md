@@ -33,6 +33,7 @@ python scripts/validate_repo.py --strict          # 结构 + 注册表 + 许可�
 python skills/skill-quality-gate/scripts/quality_report.py --root . --strict   # Skill 门禁
 python -m unittest discover -s tests -v           # 仓库回归
 python -m unittest discover -s mcp/agent-switchboard/tests -v           # MCP 回归
+python -m pytest -c mcp/chatgpt-web-bridge/pyproject.toml mcp/chatgpt-web-bridge/tests -m "not e2e"  # ChatGPT bridge 离线回归（先安装该包 .[dev]）
 npm --prefix host test                            # host 契约测试（零依赖防火墙）
 npm --prefix pi test                              # pi 侧边界测试
 npm --prefix dsh test                             # dsh 身体适配器 L4 契约 + L5/L6 切换演练

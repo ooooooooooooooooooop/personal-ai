@@ -8,9 +8,12 @@ the consumer layer (REST API → HTTP 429, MCP → structured result) can conver
 it into a standard, machine-readable pause signal.
 
 Design notes:
-  - Dismiss is best-effort: if ``dismiss_rate_limit`` fails (returns False),
-    we still back off and retry. The pop-up may have already cleared, or the
-    selector may have drifted; either way retrying is harmless and correct.
+  - Dismiss is best-effort for a *pre-send* throttle: if
+    ``dismiss_rate_limit`` fails (returns False), we still back off and retry.
+    The pop-up may have already cleared, or the selector may have drifted.
+  - A rate limit observed after a submission attempt is fail-closed. The
+    bridge returns it with delivery metadata and never re-runs the factory,
+    because the original message may already be in the conversation.
   - Backoff per attempt = ``min(retry_after, cap)`` with small jitter, so a
     reported "retry in 5s" is respected but a huge value is capped, and
     thundering-herd on many concurrent callers is avoided.
@@ -26,7 +29,11 @@ import random
 from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
-from .cdp_driver import RATE_LIMIT_DEFAULT_RETRY_AFTER, RateLimitError
+from .cdp_driver import (
+    RATE_LIMIT_DEFAULT_RETRY_AFTER,
+    DeliveryStage,
+    RateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +51,7 @@ async def retry_on_rate_limit(
     backoff: float = RATE_LIMIT_DEFAULT_RETRY_AFTER,
     cap: float = _DEFAULT_CAP,
     on_progress: Callable[[str], Awaitable[None]] | None = None,
+    can_retry: Callable[[RateLimitError], bool] | None = None,
 ) -> T:
     """Run ``factory()``, transparently retrying on RateLimitError.
 
@@ -63,6 +71,10 @@ async def retry_on_rate_limit(
             callback the factory's captured closure uses inside the business
             function — same object, two injection points. Best-effort: a
             failed notification is swallowed (we're already on an error path).
+        can_retry: optional policy override. By default a rate-limit error is
+            retried only when its delivery stage is ``not_started``. Errors
+            raised after a click (``submission_attempted``, ``acknowledged`` or
+            ``unknown``) are surfaced immediately to prevent duplicate sends.
 
     Returns:
         The result of ``factory()`` on the first non-throttled attempt.
@@ -85,9 +97,9 @@ async def retry_on_rate_limit(
             return await factory()
         except RateLimitError as e:
             last_error = e
-            # Record the throttle into the shared pace file so OTHER processes
-            # (REST daemon, MCP slots, scripts) honor the cooldown too — the
-            # account limit is global, not per-driver.
+            # Record every observed throttle, including one that arrived after
+            # a submission attempt. Other processes still need to honor the
+            # account-wide cooldown even though this operation cannot resend.
             try:
                 driver._pace.record_throttle(
                     e.retry_after,
@@ -96,6 +108,25 @@ async def retry_on_rate_limit(
                 )
             except Exception:
                 pass
+            # Delivery stage is the hard safety boundary. A caller may
+            # further restrict retries with ``can_retry``, but it must never
+            # opt a submitted/unknown send back into a whole-factory resend.
+            # This keeps future adapters fail-closed even if they provide an
+            # over-permissive policy callback.
+            stage_safe = (
+                getattr(e, "delivery_stage", DeliveryStage.UNKNOWN.value)
+                == DeliveryStage.NOT_STARTED.value
+            )
+            retry_allowed = stage_safe and (
+                can_retry(e) if can_retry is not None else True
+            )
+            if not retry_allowed:
+                logger.warning(
+                    "Rate limit arrived after send delivery became %s; "
+                    "refusing automatic resend",
+                    getattr(e, "delivery_stage", DeliveryStage.UNKNOWN.value),
+                )
+                raise
             if attempt >= max_attempts:
                 logger.warning(
                     "Rate limit persisted after %d attempt(s); giving up.", attempt

@@ -277,6 +277,155 @@ async def test_idle_closing_slot_counts_against_capacity_until_close():
     await pool.close_all()
 
 
+# ── Health probe + force-reap (2026-09-19 wedged-slot incident) ──────────
+
+
+class _WedgedDriver:
+    """A driver whose every evaluate fails — the poisoned-session signature."""
+
+    def __init__(self):
+        self.close_calls = 0
+
+    async def _js(self, expr, timeout=15):
+        raise TimeoutError("session wedged")
+
+    async def close(self):
+        self.close_calls += 1
+
+
+class _FlakyThenHealthyDriver:
+    """Fails its first probe, then answers — in-band recovery succeeded."""
+
+    def __init__(self):
+        self.probe_calls = 0
+        self.close_calls = 0
+
+    async def _js(self, expr, timeout=15):
+        self.probe_calls += 1
+        if self.probe_calls == 1:
+            raise TimeoutError("transient")
+        return "https://chatgpt.com/"
+
+    async def close(self):
+        self.close_calls += 1
+
+
+@pytest.mark.asyncio
+async def test_sweeper_force_reaps_wedged_slot_and_next_acquire_heals():
+    """A slot that fails its own sanity probe on two consecutive sweeps is
+    dead by definition — the sweeper force-reaps it (TTL exemption and
+    in_flight=0 freshness do not protect it), and the next acquire
+    materializes a fresh driver. This is the bounded in-band heal the
+    2026-09-19 incident lacked (only a process restart fixed it)."""
+    drivers = [_WedgedDriver(), _FlakyThenHealthyDriver()]
+
+    async def factory(cfg, transport, port, slot):
+        return drivers.pop(0)
+
+    pool = McpSessionDriverPool(
+        _make_config(pool_size=2, ttl=1800, acquire_timeout=2.0),
+        driver_factory=factory,
+    )
+    pool._sweep_interval = 0.02
+    await pool.start_sweeper()
+
+    async with pool.acquire("sess-1") as lease:
+        wedged = lease.driver
+
+    # Well under the TTL: only the health probe can reap this slot.
+    await asyncio.sleep(0.3)
+
+    assert wedged.close_calls == 1
+    assert "sess-1" not in pool._active_keys
+
+    # The next acquire materializes a FRESH driver — the heal.
+    async with pool.acquire("sess-1") as lease:
+        assert lease.driver is not wedged
+
+    await pool.close_all()
+
+
+@pytest.mark.asyncio
+async def test_sweeper_probe_recovery_resets_failure_count():
+    """One failed probe followed by a success (in-band reattachment healed
+    the session) must NOT reap the slot: the failure count resets."""
+    healthy = _FlakyThenHealthyDriver()
+
+    async def factory(cfg, transport, port, slot):
+        return healthy
+
+    pool = McpSessionDriverPool(
+        _make_config(pool_size=2, ttl=1800, acquire_timeout=2.0),
+        driver_factory=factory,
+    )
+    pool._sweep_interval = 0.02
+    await pool.start_sweeper()
+
+    async with pool.acquire("sess-1"):
+        pass
+    await asyncio.sleep(0.3)
+
+    assert healthy.probe_calls >= 2  # several probes ran
+    assert healthy.close_calls == 0  # never reaped
+    assert pool._slots["sess-1"].probe_failures == 0
+
+    await pool.close_all()
+
+
+@pytest.mark.asyncio
+async def test_sweeper_force_reaps_wedged_pinned_utility_slot():
+    """The TTL sweep exempts the pinned utility slot, but a WEDGED pinned
+    slot is dead weight that pin must not protect."""
+    wedged = _WedgedDriver()
+
+    async def factory(cfg, transport, port, slot):
+        return wedged
+
+    pool = McpSessionDriverPool(
+        _make_config(pool_size=2, ttl=1800, acquire_timeout=2.0),
+        driver_factory=factory,
+    )
+    pool._sweep_interval = 0.02
+    await pool.start_sweeper()
+
+    async with pool.acquire(UTILITY_SLOT_KEY):
+        pass
+    await asyncio.sleep(0.3)
+
+    assert wedged.close_calls == 1
+    assert UTILITY_SLOT_KEY not in pool._active_keys
+
+    await pool.close_all()
+
+
+@pytest.mark.asyncio
+async def test_sweeper_clamps_leaked_in_flight_and_reaps():
+    """A leaked in_flight reference (no live lease, idle past TTL) must not
+    make a slot unsweepable — the 2026-09-19 incident suspected exactly
+    this for the slot the TTL sweeper never reclaimed."""
+    pool = McpSessionDriverPool(
+        _make_config(pool_size=2, ttl=0.05, acquire_timeout=2.0),
+        driver_factory=_fake_driver_factory,
+    )
+    pool._sweep_interval = 0.02
+    await pool.start_sweeper()
+
+    async with pool.acquire("sess-1") as lease:
+        driver = lease.driver
+
+    # Simulate the leak: in_flight stuck at 1 with no live lease.
+    slot = pool._slots["sess-1"]
+    async with slot.meta_lock:
+        slot.in_flight = 1
+
+    await asyncio.sleep(0.3)
+
+    driver.close.assert_called_once()
+    assert "sess-1" not in pool._active_keys
+
+    await pool.close_all()
+
+
 # ── Shutdown ──────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio

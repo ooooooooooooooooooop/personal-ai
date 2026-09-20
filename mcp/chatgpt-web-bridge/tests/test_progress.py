@@ -28,7 +28,7 @@ def _streaming_driver(deltas):
     driver.navigate_gpt = AsyncMock()
     driver.route_chat_target = AsyncMock(return_value="auto-continue")
 
-    async def _stream(text, timeout=120, *, budgets=None, model=None):
+    async def _stream(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         for d in deltas:
             yield StreamChunk(delta=d)
         yield StreamChunk(delta="", finish_reason="stop")
@@ -69,12 +69,13 @@ async def test_chat_completion_progress_cadence():
     result = await mcp_server.do_chat_completion(
         driver, {"message": "hi"}, None, on_progress=_recording_callback(record),
     )
-    expected_calls = 1 + (25 // n) + 2  # first + every-Nth + terminal + verify
+    expected_calls = 2 + (25 // n) + 2  # route + first + every-Nth + terminal + verify
     assert len(record) == expected_calls, f"got {record}"
-    assert record[0] == "Assistant is responding…"
+    assert record[0] == "Resolving conversation target…"
+    assert record[1] == "Assistant is responding…"
     assert record[-2] == "Finalizing…"
     assert record[-1] == "Verifying reply persisted…"
-    assert "Streaming" in record[1]
+    assert "Streaming" in record[2]
     assert result["content"] == "".join(deltas)
 
 
@@ -171,7 +172,7 @@ async def test_backoff_notifies_before_sleep(monkeypatch):
     async def factory():
         call_count["n"] += 1
         if call_count["n"] == 1:
-            raise RateLimitError(retry_after=5)
+            raise RateLimitError(retry_after=5, delivery_stage="not_started")
         return "done"
 
     result = await resilience.retry_on_rate_limit(
@@ -198,7 +199,7 @@ async def test_backoff_no_callback_still_works(monkeypatch):
     async def factory():
         call_count["n"] += 1
         if call_count["n"] == 1:
-            raise RateLimitError(retry_after=0)  # minimal backoff
+            raise RateLimitError(retry_after=0, delivery_stage="not_started")
         return "ok"
 
     # Patch sleep to be instant. Use the monkeypatch fixture (not the bare
@@ -243,7 +244,7 @@ async def test_coalescing_no_per_delta_flood():
         driver, {"message": "hi"}, None, on_progress=_recording_callback(record),
     )
     # first(1) + every Nth (N, 2N, 3N = 3) + terminal(1) + verify(1) = 6
-    expected = 1 + (total_chunks // n) + 2
+    expected = 2 + (total_chunks // n) + 2
     assert len(record) == expected, f"expected {expected}, got {len(record)}: {record}"
 
 

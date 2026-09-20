@@ -8,8 +8,9 @@ list_conversations()            # 找标题/项目
 list_projects()                 # 按项目归类
 
 # 2. 拉取——不发送任何东西
-get_conversation(conversation_id="6a979e16-...", limit=50, offset=0)
-# has_more=true 就 offset+=limit 继续翻页
+r = get_conversation(conversation_id="6a979e16-...", tail=10, fresh=true)
+# 长历史只有 backend 且 paging_supported=true 时才按 offset/has_more 翻页；
+# partial DOM tail 的 total 是下界，不能 offset+=limit。
 
 # 3. 项目资料
 get_project_files(project_id="g-p-…")   # 或项目名

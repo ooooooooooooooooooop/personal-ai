@@ -218,9 +218,8 @@ class ChatGPTDom:
         The new composer is a contenteditable ProseMirror div; the legacy
         composer was a <textarea id="prompt-textarea">. We focus the new
         textbox first (COMPOSER_SELECTOR), falling back to the textarea
-        for older deployments. Once focused, ``Input.insertText`` routes
-        the text to whichever element holds focus, so the same insert
-        works for both layouts.
+        for older deployments. ProseMirror receives one synthetic paste
+        transaction; the legacy textarea keeps its execCommand fallback.
         """
         d = self._driver
         # Focus the composer. Try the ProseMirror textbox first, then the
@@ -242,6 +241,19 @@ class ChatGPTDom:
             from .cdp_driver import SendReadinessError
 
             raise SendReadinessError("No composer found")
+        if focus_result not in {"composer", "fallback"}:
+            # A soft evaluator can return an empty/unknown value after a
+            # transport or page-context failure.  Treating every value other
+            # than ``composer`` as the legacy textarea would write into a
+            # hidden or unrelated node and could falsely pass later checks.
+            await d._capture_selector_diagnostic("composer (focus result)")
+            if d._breakers:
+                d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
+            from .cdp_driver import SendReadinessError
+
+            raise SendReadinessError(
+                f"Composer focus returned an unknown result: {focus_result!r}"
+            )
         focused_target = focus_result  # 'composer' or 'fallback'
 
         # Clear existing text and insert. Prefer a platform-aware select-all
@@ -270,7 +282,20 @@ class ChatGPTDom:
             },
         )
         await asyncio.sleep(0.1)
-        await self._insert_text(text, focused_target)
+        mutation_dispatched = await self._insert_text(text, focused_target)
+        if not mutation_dispatched:
+            # A synthetic paste can be rejected without raising (for example,
+            # when the page replaced the composer between focus and insert).
+            # Do not use a stale, already-identical draft as proof that this
+            # invocation inserted anything.  The caller may reconnect once,
+            # but it must rebuild the input operation from a known boundary.
+            if d._breakers:
+                d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
+            from .cdp_driver import SendReadinessError
+
+            raise SendReadinessError(
+                "Composer insertion dispatch did not complete; refusing to verify or retry"
+            )
         await asyncio.sleep(0.5)
 
         # Verify the composer holds EXACTLY the intended input (canonicalized),
@@ -286,9 +311,26 @@ class ChatGPTDom:
             logger.warning(
                 "Composer text mismatch on first insert; retrying with execCommand clear"
             )
-            await self._clear_composer(verify_selector)
+            cleared = await self._clear_composer(verify_selector)
+            if not cleared:
+                if d._breakers:
+                    d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
+                from .cdp_driver import SendReadinessError
+
+                raise SendReadinessError(
+                    "Composer text mismatch and cleanup could not be verified; "
+                    "refusing to retry insertion"
+                )
             await asyncio.sleep(0.1)
-            await self._insert_text(text, focused_target)
+            mutation_dispatched = await self._insert_text(text, focused_target)
+            if not mutation_dispatched:
+                if d._breakers:
+                    d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
+                from .cdp_driver import SendReadinessError
+
+                raise SendReadinessError(
+                    "Composer retry insertion dispatch did not complete; refusing to send"
+                )
             await asyncio.sleep(0.5)
             if not await d._verify_composer_text(verify_selector, text):
                 if d._breakers:
@@ -300,27 +342,77 @@ class ChatGPTDom:
                 )
         logger.info("Typed: %s", text[:80])
 
-    async def _insert_text(self, text: str, focused_target: str) -> None:
-        """Insert ``text`` into the composer via execCommand.
+    async def _insert_text(self, text: str, focused_target: str) -> bool:
+        """Insert ``text`` into the composer via a synthetic paste event.
 
         ``Input.insertText`` truncates at the first ``\\n`` on the current
-        conversation-page composer (observed 2026-09-14: only the first
-        paragraph lands). ``document.execCommand('insertText')`` routes
-        through the editor's own text-insertion path and produces
-        block children the verifier can read back.
+        conversation-page composer (observed 2026-09-14), and
+        ``document.execCommand('insertText')`` fires ONE ProseMirror
+        transaction per line — cost scales with newline count, not bytes
+        (measured 2026-09-19: ~3KB/90 lines took ~31s and timed out,
+        leaving partial drafts that poisoned every follow-up attempt;
+        the paste path below did the same payload in ~0.02s).
+
+        A synthetic paste — ``ClipboardEvent`` carrying a ``DataTransfer``
+        dispatched on the composer — goes through ProseMirror's own paste
+        pipeline as a SINGLE transaction regardless of line count, so
+        insert cost is flat in payload size. ``dispatchEvent`` returns
+        False exactly when ProseMirror handles the paste (it calls
+        preventDefault), so the return value is meaningless here;
+        ``_verify_composer_text`` after the insert is the authoritative
+        check, and the retry/raise path stays fail-closed.
+
+        The legacy <textarea> fallback keeps execCommand: untrusted paste
+        events get no default action on plain form controls (nothing would
+        be inserted), and a textarea insert has no ProseMirror transaction
+        cost anyway.
         """
         d = self._driver
-        ins_sel = (
-            COMPOSER_SELECTOR if focused_target == "composer" else COMPOSER_FALLBACK_SELECTOR
-        )
-        await d._js_strict(
+        if focused_target == "composer":
+            raw = await d._js_strict(
+                "(function(){"
+                f"  var el = document.querySelector('{COMPOSER_SELECTOR}');"
+                "  if (!el) return false;"
+                "  el.focus();"
+                # Do not rely solely on the preceding CDP Ctrl/Cmd+A.  A
+                # Runtime.evaluate timeout may happen after the browser has
+                # already dispatched the paste, and a reconnect retry must
+                # replace that partial draft instead of appending to it.
+                "  var sel = window.getSelection();"
+                "  if (sel) {"
+                "    var range = document.createRange();"
+                "    range.selectNodeContents(el);"
+                "    sel.removeAllRanges();"
+                "    sel.addRange(range);"
+                "  }"
+                "  var dt = new DataTransfer();"
+                f"  dt.setData('text/plain', {json.dumps(text)});"
+                "  var ev;"
+                "  try {"
+                "    ev = new ClipboardEvent('paste', {clipboardData: dt, bubbles: true, cancelable: true});"
+                "    if (!ev.clipboardData) throw new Error('clipboardData not set');"
+                "  } catch (e) {"
+                "    if (e && /^(SecurityError|NotAllowedError|PermissionDeniedError)$/i.test(e.name || '')) {"
+                "      throw e;"
+                "    }"
+                "    ev = new Event('paste', {bubbles: true, cancelable: true});"
+                "    ev.clipboardData = dt;"
+                "  }"
+                "  el.dispatchEvent(ev);"
+                "  return true;"
+                "})()"
+            )
+            return raw is True or str(raw).strip().lower() == "true"
+        raw = await d._js_strict(
             "(function(){"
-            f"  var el = document.querySelector('{ins_sel}');"
+            f"  var el = document.querySelector('{COMPOSER_FALLBACK_SELECTOR}');"
             "  if (!el) return false;"
             "  el.focus();"
+            "  el.select();"
             f"  return document.execCommand('insertText', false, {json.dumps(text)});"
             "})()"
         )
+        return raw is True or str(raw).strip().lower() == "true"
 
     async def _clear_composer(self, selector: str | None = None) -> bool:
         """Best-effort composer clear — select-all + execCommand('delete').
@@ -335,8 +427,10 @@ class ChatGPTDom:
 
         ``selector`` pins the element when the caller already knows which
         composer variant was focused; None probes primary then fallback.
-        Never raises; returns True only when a composer was found and reads
-        empty afterwards.
+        Returns True only when a composer was found and reads empty
+        afterwards. Ordinary cleanup failures return False; a browser
+        permission denial is propagated so callers cannot mistake a denied
+        operation for a successful cleanup.
         """
         d = self._driver
         find_el = (
@@ -367,11 +461,34 @@ class ChatGPTDom:
                 "})()",
                 timeout=10,
             )
-        except BaseException:
-            # Cleanup must never mask the original send error — including
-            # CancelledError when the client aborted mid-send.
+        except PermissionError:
+            # Permission denial is an explicit browser boundary.  It must not
+            # be downgraded to a successful cleanup or trigger an alternate
+            # transport/retry path.
+            raise
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # An ordinary cleanup failure is best-effort; cancellation still
+            # ends the request and must not become a new send/readiness error.
             return False
-        return raw is True or str(raw).strip().lower() == "true"
+        if not (raw is True or str(raw).strip().lower() == "true"):
+            return False
+        # ``innerText.strip()`` is not an exact check: it can hide a residual
+        # whitespace/newline draft and it over-counts ProseMirror blocks.
+        # Reuse the canonical extractor so cleanup is proven empty (allowing
+        # only the editor's single synthetic trailing newline).
+        try:
+            return bool(await d._verify_composer_text(
+                selector or f"{COMPOSER_SELECTOR},{COMPOSER_FALLBACK_SELECTOR}",
+                "",
+            ))
+        except PermissionError:
+            raise
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            return False
 
     async def _detect_select_all_modifier(self) -> int:
         """Return the CDP modifiers value for select-all on the live platform.
@@ -507,6 +624,7 @@ class ChatGPTDom:
         # composer-reset window after a prior send — see
         # SEND_BUTTON_POLL_MAX_WAIT_S for rationale.
         deadline = time.monotonic() + SEND_BUTTON_POLL_MAX_WAIT_S
+        ready = False
         while time.monotonic() < deadline:
             has_btn = await d._js(
                 "(function() {"
@@ -517,9 +635,30 @@ class ChatGPTDom:
                 "})()"
             )
             if has_btn == "yes":
+                ready = True
                 break
             await asyncio.sleep(SEND_BUTTON_POLL_INTERVAL_S)
 
+        if not ready:
+            # Do not fall through to a second, mutating evaluate after a
+            # read-only readiness budget expires.  The old fall-through could
+            # submit a button that appeared during the race, while reporting
+            # the operation as a generic send failure; it also crossed the
+            # delivery boundary without a proven ready affordance.
+            await d._capture_selector_diagnostic("send-button (readiness timeout)")
+            if d._breakers:
+                d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
+            from .cdp_driver import SendReadinessError
+
+            raise SendReadinessError(
+                "Send failed: no send button or button disabled within the readiness budget"
+            )
+
+        # The first mutation that can submit a message. Mark before the CDP
+        # call, since a lost response says nothing about whether it ran.
+        from .cdp_driver import DeliveryStage
+
+        d._set_delivery_stage(DeliveryStage.SUBMISSION_ATTEMPTED)
         result = await d._js(
             "(function() {"
             f"  var btn = document.querySelector('{SEND_BUTTON_SELECTOR}')"
@@ -535,6 +674,12 @@ class ChatGPTDom:
             "})()"
         )
         if result != "sent":
+            # These two outcomes are proven pre-submit races: the click script
+            # returned before dispatching any event.  Keep the recovery path
+            # eligible, while every timeout/unknown result remains
+            # SUBMISSION_ATTEMPTED because the browser may have run the events.
+            if result in {"no send button", "button disabled"}:
+                d._set_delivery_stage(DeliveryStage.NOT_STARTED)
             await d._capture_selector_diagnostic("send-button (click_send)")
             if d._breakers:
                 d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
@@ -568,7 +713,13 @@ class ChatGPTDom:
                 timeout=5,
             )
             return raw == "yes"
-        except Exception:
+        except PermissionError:
+            raise
+        except Exception as exc:
+            from .send_recovery import is_recoverable_transport_error
+
+            if is_recoverable_transport_error(exc):
+                raise
             return False
 
     async def read_tail_state(self) -> dict | None:

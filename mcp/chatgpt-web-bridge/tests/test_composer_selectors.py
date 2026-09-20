@@ -127,7 +127,10 @@ async def test_type_message_focuses_new_composer_when_present(monkeypatch):
 
     async def _fake_strict(expr, timeout=15):
         calls["strict"].append(expr)
-        return "hello"  # verify succeeds
+        # Mutation evaluates to a real JS boolean; verification returns the
+        # editor text.  Keeping those values distinct catches a false-success
+        # implementation that ignores a rejected paste.
+        return True if "ClipboardEvent" in expr else "hello"
     d._js_strict = _fake_strict
     # Bypass the platform-probe so _js_strict calls stay focused on verify.
     d._detect_select_all_modifier = AsyncMock(return_value=2)
@@ -140,17 +143,51 @@ async def test_type_message_focuses_new_composer_when_present(monkeypatch):
 
     # Verify step reads the COMPOSER_SELECTOR (not the fallback), proving we
     # verified the element we actually focused. The insert also goes through
-    # _js_strict (execCommand('insertText')), so the verify is the LAST strict
+    # _js_strict (synthetic paste event), so the verify is the LAST strict
     # call, not the first.
     verify_expr = calls["strict"][-1]
     assert COMPOSER_SELECTOR in verify_expr
     assert COMPOSER_FALLBACK_SELECTOR not in verify_expr
 
-    # Insert dispatched via execCommand('insertText') JS — CDP
-    # Input.insertText truncates at the first \n on the current
-    # conversation-page composer (live regression 2026-09-14).
-    assert any("execCommand('insertText'" in e and '"hello"' in e
+    # Insert dispatched as a synthetic paste event carrying the text in a
+    # DataTransfer — a single ProseMirror transaction regardless of line
+    # count. execCommand('insertText') fires one transaction per line and
+    # wedged the composer on newline-heavy payloads (live incident
+    # 2026-09-19: ~3KB/90 lines took ~31s vs ~0.02s for paste).
+    assert any("ClipboardEvent" in e and "DataTransfer" in e and '"hello"' in e
                for e in calls["strict"])
+    assert not any("execCommand('insertText'" in e for e in calls["strict"])
+
+
+@pytest.mark.asyncio
+async def test_type_message_inserts_newline_heavy_payload_in_one_paste(monkeypatch):
+    """The 2026-09-19 wedge driver: execCommand('insertText') fired one
+    ProseMirror transaction per line, so a 90-line payload took ~31s,
+    timed out mid-insert, and the partial draft poisoned every retry. The
+    paste path must ship the WHOLE payload — newlines included — in a
+    single evaluate (one ProseMirror transaction)."""
+    d = _make_driver()
+    strict_calls = []
+
+    async def _fake_js(expr, timeout=15):
+        return "composer"
+    d._js = _fake_js
+    d._cdp = AsyncMock(return_value={})
+
+    payload = "line\n" * 89 + "end"
+
+    async def _fake_strict(expr, timeout=15):
+        strict_calls.append(expr)
+        return True if "ClipboardEvent" in expr else payload  # verify succeeds
+    d._js_strict = _fake_strict
+    d._detect_select_all_modifier = AsyncMock(return_value=2)
+    monkeypatch.setattr("chatgpt_web2api.cdp_driver.asyncio.sleep", AsyncMock())
+
+    await d.type_message(payload)
+
+    inserts = [e for e in strict_calls if "ClipboardEvent" in e]
+    assert len(inserts) == 1
+    assert json.dumps(payload) in inserts[0]
 
 
 @pytest.mark.asyncio
@@ -168,7 +205,7 @@ async def test_type_message_falls_back_to_legacy_textarea(monkeypatch):
 
     async def _fake_strict(expr, timeout=15):
         calls["strict"].append(expr)
-        return "hello"
+        return True if "execCommand('insertText'" in expr else "hello"
     d._js_strict = _fake_strict
     d._detect_select_all_modifier = AsyncMock(return_value=2)
 
@@ -184,6 +221,12 @@ async def test_type_message_falls_back_to_legacy_textarea(monkeypatch):
     verify_expr = calls["strict"][-1]
     assert COMPOSER_FALLBACK_SELECTOR in verify_expr
 
+    # The legacy textarea keeps execCommand('insertText') — untrusted paste
+    # events get no default action on plain form controls, so the paste
+    # path would insert nothing there.
+    assert any("execCommand('insertText'" in e for e in calls["strict"])
+    assert not any("ClipboardEvent" in e for e in calls["strict"])
+
 
 @pytest.mark.asyncio
 async def test_type_message_raises_when_verify_returns_empty(monkeypatch):
@@ -194,7 +237,14 @@ async def test_type_message_raises_when_verify_returns_empty(monkeypatch):
     d = _make_driver()
     d._js = AsyncMock(return_value="composer")
     d._cdp = AsyncMock(return_value={})
-    d._js_strict = AsyncMock(return_value="")  # empty → verify fails
+    async def _fake_strict(expr, timeout=15):
+        # The insert itself succeeded, but the editor remains empty.  This
+        # reaches the cleanup/verify boundary rather than failing earlier on
+        # an unacknowledged mutation.
+        if "ClipboardEvent" in expr or "execCommand('delete')" in expr:
+            return True
+        return ""
+    d._js_strict = _fake_strict
     d._detect_select_all_modifier = AsyncMock(return_value=2)
     # Collapse sleeps so the retry path runs instantly.
     monkeypatch.setattr("chatgpt_web2api.cdp_driver.asyncio.sleep", AsyncMock())
@@ -253,7 +303,7 @@ async def test_click_send_emits_new_selector_first(monkeypatch):
 async def test_click_send_sent_on_success(monkeypatch):
     """Happy path: button present + click dispatched → 'sent' logged, no raise."""
     d = _make_driver()
-    d._js = AsyncMock(return_value="sent")
+    d._js = AsyncMock(side_effect=["yes", "sent"])
     monkeypatch.setattr("chatgpt_web2api.cdp_driver.asyncio.sleep", AsyncMock())
 
     # Should not raise.
@@ -298,15 +348,18 @@ async def test_type_message_retries_on_stale_text_then_succeeds(monkeypatch):
     d._js = AsyncMock(return_value="composer")
     d._cdp = AsyncMock(return_value={})
     d._detect_select_all_modifier = AsyncMock(return_value=2)
-    # Insert calls go through _js_strict too (execCommand('insertText')),
+    # Insert calls go through _js_strict too (synthetic paste event),
     # so discriminate by expression: insert → True, execCommand-clear →
     # "true", verify → queued stale-then-correct reads.
-    verify_returns = ["old stale content", "correct input"]
+    # first verify = stale, cleanup verify = empty, final verify = exact
+    verify_returns = ["old stale content", "", "correct input"]
     async def _fake_strict(expr, timeout=15):
-        if "execCommand('insertText'" in expr:
+        if "ClipboardEvent" in expr:
             return True
-        if "selectNodeContents" in expr:
+        if "execCommand('delete')" in expr:
             return "true"  # execCommand clear
+        if "childNodes" in expr:
+            return verify_returns.pop(0) if verify_returns else ""
         return verify_returns.pop(0) if verify_returns else ""
     d._js_strict = _fake_strict
     monkeypatch.setattr("chatgpt_web2api.cdp_driver.asyncio.sleep", AsyncMock())

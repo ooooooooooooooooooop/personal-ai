@@ -65,6 +65,71 @@ class _Transient404(Exception):
 # re-exports it for back-compat.
 TOKEN_TTL_SECONDS = 3600
 
+# An isolated fallback is a fate-separation aid, not a second full request
+# budget. Keep it short and bounded even when the primary Runtime.evaluate
+# consumed its complete budget.
+_PROJECTION_FALLBACK_TIMEOUT_SECONDS = 3.0
+
+# Read-only backend fetches run inside a page Runtime.evaluate.  A native
+# ``fetch`` promise can otherwise outlive the CDP budget and leave a session
+# head-of-line blocked while a fresh tab still answers ``location.href``.
+# ``_read_js`` installs a lexical fetch wrapper with an in-page abort deadline
+# and returns these markers through a JSON envelope.  The markers are kept
+# private to this module so successful raw response shapes remain unchanged.
+_READ_FETCH_ERROR_KEY = "__cgw_read_error__"
+_READ_FETCH_HTTP_MARKER = "__cgw_read_http__"
+_READ_FETCH_NETWORK_MARKER = "__cgw_read_network__"
+_READ_FETCH_NON_GET_MARKER = "__cgw_read_non_get__"
+
+
+class BackendReadError(RuntimeError):
+    """A page-side backend read failed before a successful response shape."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        kind: str,
+        status: int | None = None,
+        retry_after: str | None = None,
+        body: str = "",
+    ) -> None:
+        self.kind = kind
+        self.status = status
+        self.retry_after = retry_after
+        self.body = body
+        super().__init__(message)
+
+
+class BackendReadTimeoutError(BackendReadError):
+    """The page-side fetch/body read hit its AbortController deadline."""
+
+
+class BackendReadNetworkError(BackendReadError):
+    """The page-side fetch failed before an HTTP response was available."""
+
+
+class BackendReadHTTPError(BackendReadError):
+    """The backend returned a non-2xx response to a read-only GET."""
+
+
+def _looks_like_permission_failure(exc: BaseException) -> bool:
+    """Recognise permission text from older/untyped CDP test doubles."""
+    if isinstance(exc, PermissionError):
+        return True
+    text = str(exc).lower()
+    return any(
+        marker in text
+        for marker in (
+            "permission denied",
+            "access denied",
+            "not allowed",
+            "forbidden",
+            "securityerror",
+            "notallowederror",
+        )
+    )
+
 
 def canonical_conversation_id_from_url(url: str) -> str:
     """Extract the canonical conversation id from a ``/c/`` URL.
@@ -96,6 +161,155 @@ class BackendClient:
 
     def __init__(self, driver) -> None:
         self._driver = driver
+
+    async def _read_js(
+        self,
+        expr_template: str,
+        data: dict,
+        *,
+        timeout: float = 15,
+        allow_status: frozenset[int] | set[int] | tuple[int, ...] = (),
+    ):
+        """Run one bounded, read-only page fetch and preserve success shapes.
+
+        The expression is evaluated in a lexical scope where ``fetch`` is
+        shadowed by a wrapper that injects one AbortController signal.  The
+        timer is scheduled before the transport watchdog, so a stalled
+        backend request/body read normally aborts inside the page; the outer
+        CDP budget remains the hard fallback. Non-2xx responses are tagged before the caller's
+        mapper can turn ``data.items || []`` into a false empty success.
+
+        ``allow_status`` is intentionally narrow and per-call.  The
+        conversation detail reader allows 404/429 so it can preserve its
+        existing ``_fetch_status`` and throttle contracts; 401/403 are never
+        allowed and never retried.
+        """
+        try:
+            budget = max(0.0, float(timeout))
+        except (TypeError, ValueError):
+            raise ValueError(f"invalid backend read timeout: {timeout!r}") from None
+        # Leave enough nominal margin for AbortError to unwind through page JS;
+        # the CDP transport watchdog remains the hard outer deadline if the
+        # browser delays timer delivery.
+        timer_ms = max(100, int(budget * 1000) - 350)
+        statuses = sorted({int(status) for status in allow_status})
+        statuses_json = json.dumps(statuses, separators=(",", ":"))
+        wrapper = (
+            "(async () => {"
+            "  const __cgw_controller = new AbortController();"
+            "  let __cgw_timed_out = false;"
+            f"  const __cgw_timer = setTimeout(() => {{ __cgw_timed_out = true; __cgw_controller.abort(); }}, {timer_ms});"
+            "  const __cgw_native_fetch = globalThis.fetch.bind(globalThis);"
+            f"  const __cgw_allowed_status = {statuses_json};"
+            "  const fetch = async function(input, init) {"
+            "    const __cgw_init = Object.assign({}, init || {}, {signal: __cgw_controller.signal});"
+            "    if (String(__cgw_init.method || 'GET').toUpperCase() !== 'GET') {"
+            f"      throw new TypeError('{_READ_FETCH_NON_GET_MARKER} read boundary only permits GET');"
+            "    }"
+            "    let response;"
+            "    try {"
+            "      response = await __cgw_native_fetch(input, __cgw_init);"
+            "    } catch (e) {"
+            "      const __cgw_fetch_error = String((e && e.message) || e || 'network failure').toLowerCase();"
+            "      const __cgw_fetch_name = String((e && e.name) || '').toLowerCase();"
+            "      if (__cgw_fetch_name === 'securityerror' || __cgw_fetch_name === 'notallowederror' || __cgw_fetch_error.indexOf('permission') >= 0 || __cgw_fetch_error.indexOf('not allowed') >= 0) {"
+            "        throw e;"
+            "      }"
+            f"      throw new Error('{_READ_FETCH_NETWORK_MARKER}' + String((e && e.message) || e || 'network failure'));"
+            "    }"
+            "    if (!response.ok && __cgw_allowed_status.indexOf(response.status) < 0) {"
+            f"      throw new Error('{_READ_FETCH_HTTP_MARKER}' + JSON.stringify({{status: response.status, retry_after: response.headers.get('retry-after')}}));"
+            "    }"
+            "    return response;"
+            "  };"
+            "  try {"
+            f"    return await ({expr_template});"
+            "  } catch (e) {"
+            "    const __cgw_message = String((e && e.message) || e || 'read failed');"
+            "    const __cgw_lower = __cgw_message.toLowerCase();"
+            "    const __cgw_name = String((e && e.name) || '').toLowerCase();"
+            "    if (__cgw_name === 'securityerror' || __cgw_name === 'notallowederror' || __cgw_lower.indexOf('permission') >= 0 || __cgw_lower.indexOf('not allowed') >= 0) { throw e; }"
+            "    let __cgw_detail;"
+            "    if (__cgw_timed_out || (e && e.name === 'AbortError')) {"
+            "      __cgw_detail = {kind: 'timeout', message: 'backend read aborted by deadline'};"
+            f"    }} else if (__cgw_message.indexOf('{_READ_FETCH_HTTP_MARKER}') === 0) {{"
+            "      try { __cgw_detail = JSON.parse(__cgw_message.slice(" + str(len(_READ_FETCH_HTTP_MARKER)) + ")); __cgw_detail.kind = 'http'; }"
+            "      catch (_) { __cgw_detail = {kind: 'http', message: __cgw_message}; }"
+            f"    }} else if (__cgw_message.indexOf('{_READ_FETCH_NETWORK_MARKER}') === 0) {{"
+            "      __cgw_detail = {kind: 'network', message: __cgw_message.slice(" + str(len(_READ_FETCH_NETWORK_MARKER)) + ")};"
+            "    } else {"
+            "      __cgw_detail = {kind: 'protocol', message: __cgw_message};"
+            "    }"
+            f"    return JSON.stringify({{{json.dumps(_READ_FETCH_ERROR_KEY)}: __cgw_detail}});"
+            "  } finally {"
+            "    clearTimeout(__cgw_timer);"
+            "  }"
+            "})()"
+        )
+        raw = await self._driver._js_with_data_strict(
+            wrapper, data, timeout=timeout
+        )
+        if not isinstance(raw, str):
+            return raw
+        try:
+            envelope = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return raw
+        if not isinstance(envelope, dict) or _READ_FETCH_ERROR_KEY not in envelope:
+            return raw
+        detail = envelope.get(_READ_FETCH_ERROR_KEY)
+        if not isinstance(detail, dict):
+            detail = {"kind": "protocol", "message": str(detail)}
+        kind = str(detail.get("kind") or "protocol")
+        status = detail.get("status")
+        try:
+            status = int(status) if status is not None else None
+        except (TypeError, ValueError):
+            status = None
+        retry_after = detail.get("retry_after")
+        body = str(detail.get("body") or "")
+        message = str(detail.get("message") or f"backend read failed ({kind})")
+        if kind == "http":
+            if status == 401:
+                from .cdp_driver import AuthExpiredError
+
+                if self._driver._breakers:
+                    self._driver._breakers.trip(
+                        BreakerKind.AUTH_EXPIRED,
+                        "HTTP 401 from backend-api read",
+                    )
+                raise AuthExpiredError("Session expired — backend read returned HTTP 401")
+            if status == 403:
+                raise PermissionError(
+                    "backend read permission denied (HTTP 403)"
+                )
+            if status == 429:
+                try:
+                    self._driver._pace.record_throttle(
+                        retry_after_seconds(retry_after),
+                        kind="read",
+                        source="backend read HTTP 429",
+                    )
+                except Exception:
+                    pass
+            raise BackendReadHTTPError(
+                f"backend read returned HTTP {status}",
+                kind=kind,
+                status=status,
+                retry_after=retry_after,
+                body=body,
+            )
+        if kind == "timeout":
+            raise BackendReadTimeoutError(
+                message, kind=kind, status=status, retry_after=retry_after, body=body
+            )
+        if kind == "network":
+            raise BackendReadNetworkError(
+                message, kind=kind, status=status, retry_after=retry_after, body=body
+            )
+        raise BackendReadError(
+            message, kind=kind, status=status, retry_after=retry_after, body=body
+        )
 
     # ── Token Management ──────────────────────────────────────
 
@@ -145,9 +359,8 @@ class BackendClient:
                     d._user_name = new_user
                     d._token_fetched_at = time.time()
                     logger.info(
-                        "Auth: %d chars, user: %s (attempt %d)",
+                        "Auth token refreshed: %d chars (attempt %d)",
                         len(d._access_token),
-                        d._user_name,
                         attempt,
                     )
                     return
@@ -155,6 +368,10 @@ class BackendClient:
             except Exception as e:
                 # JSON parse error, CDP blip, etc. — record and retry. Don't
                 # clobber a partial _access_token from a prior good fetch.
+                from .send_recovery import is_recoverable_transport_error
+
+                if isinstance(e, PermissionError) or is_recoverable_transport_error(e):
+                    raise
                 last_error = e
             if attempt < 3:
                 await asyncio.sleep(0.5)
@@ -202,6 +419,10 @@ class BackendClient:
             return True  # nothing to recover
         try:
             await d._refresh_token()
+        except PermissionError:
+            # A browser/CDP permission refusal is an infrastructure policy
+            # failure, not evidence that the account needs a fresh login.
+            raise
         except Exception as e:
             logger.info("Auth recovery probe failed: %s", e)
             return False
@@ -296,6 +517,7 @@ class BackendClient:
         """
         from .backend_projection import CONVERSATION_PROJECTION_JS, TURN_PROJECTION_LIMIT
         from .cdp_driver import AuthExpiredError, CDPJSError
+        from .cdp_transport import CDPTimeoutError
 
         d = self._driver
         await self._driver.ensure_token()
@@ -308,15 +530,60 @@ class BackendClient:
         # Account-level pace gate (cross-process): backend-api fetches count
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
-        raw = await d._js_with_data_strict(
-            CONVERSATION_PROJECTION_JS,
-            {
-                "conv_id": conversation_id,
-                "token": d._access_token,
-                "limit": TURN_PROJECTION_LIMIT,
-            },
-            timeout=15,
-        )
+        projection_data = {
+            "conv_id": conversation_id,
+            "token": d._access_token,
+            "limit": TURN_PROJECTION_LIMIT,
+        }
+        primary_started = time.monotonic()
+        try:
+            raw = await d._js_with_data_strict(
+                CONVERSATION_PROJECTION_JS,
+                projection_data,
+                timeout=15,
+            )
+        except PermissionError:
+            # A fresh websocket does not grant any additional browser
+            # permission. Never turn a denial on the owning session into a
+            # successful read through the fallback session.
+            raise
+        except (CDPJSError, CDPTimeoutError) as primary_error:
+            if _looks_like_permission_failure(primary_error):
+                raise
+            # Fate-separation fallback: completion detection polls on this
+            # path, and a wedged/recovering main session must not blind it —
+            # a false "fetch failed" streak is how a healthy generation gets
+            # misdeclared stuck. Retry once on a throwaway session to the same
+            # tab. The fallback has its own small cap; it must not multiply
+            # the primary 15-second budget into another 15-second wait.
+            from .conv_dom_read import conv_backend_eval
+
+            fallback_timeout = _PROJECTION_FALLBACK_TIMEOUT_SECONDS
+            # If the primary failed early, preserve the useful remaining
+            # portion of its budget; never enlarge the fixed cap.
+            elapsed = max(0.0, time.monotonic() - primary_started)
+            primary_remaining = max(0.0, 15.0 - elapsed)
+            if primary_remaining <= 0:
+                raise primary_error
+            fallback_timeout = min(fallback_timeout, primary_remaining)
+            try:
+                raw = await conv_backend_eval(
+                    d.port, conversation_id, CONVERSATION_PROJECTION_JS,
+                    projection_data, timeout=fallback_timeout,
+                )
+            except PermissionError:
+                raise
+            except Exception as fallback_error:
+                # Keep the primary typed error as the public contract while
+                # retaining the isolated failure as its cause. In particular,
+                # do not collapse protocol failures into an empty projection.
+                logger.warning(
+                    "isolated conversation projection failed for %s: %s",
+                    conversation_id, fallback_error,
+                )
+                raise primary_error from fallback_error
+            if raw is None or (isinstance(raw, str) and not raw):
+                raise primary_error
         if not raw:
             raise CDPJSError("projection returned empty")
         # Status-decode (the ``__status`` blob shape).
@@ -386,16 +653,17 @@ class BackendClient:
         """
         from .cdp_driver import AuthExpiredError, CDPJSError
         from .turn_anchor import TurnTextResult, select_text_for_turn
+        from .cdp_transport import CDPTimeoutError
 
         try:
             mapping = await self._fetch_recent_conversation_projection(conversation_id)
             return select_text_for_turn(mapping, anchor)
-        except AuthExpiredError:
+        except (AuthExpiredError, PermissionError):
             raise  # hard fail — never degrade on auth
         except _Transient404:
             # Transient race — mapping not yet propagated. Treat as not_ready.
             return TurnTextResult("not_ready", diagnostic={"reason": "transient_404"})
-        except (CDPJSError, RuntimeError) as e:
+        except (CDPJSError, CDPTimeoutError, RuntimeError) as e:
             # Transport/backend failure — caller keeps polling.
             return TurnTextResult("fetch_failed", diagnostic={"error": str(e)})
 
@@ -413,17 +681,18 @@ class BackendClient:
         """
         from .cdp_driver import AuthExpiredError, CDPJSError
         from .turn_anchor import TurnEndResult, select_end_turn_for_turn
+        from .cdp_transport import CDPTimeoutError
 
         try:
             mapping = await self._fetch_recent_conversation_projection(conversation_id)
             return select_end_turn_for_turn(
                 mapping, anchor, had_non_text_content=had_non_text_content
             )
-        except AuthExpiredError:
+        except (AuthExpiredError, PermissionError):
             raise  # hard fail — never degrade on auth
         except _Transient404:
             return TurnEndResult("not_ready", diagnostic={"reason": "transient_404"})
-        except (CDPJSError, RuntimeError) as e:
+        except (CDPJSError, CDPTimeoutError, RuntimeError) as e:
             return TurnEndResult("fetch_failed", diagnostic={"error": str(e)})
 
     # ── Backend API: Models & Projects ─────────────────────────
@@ -446,7 +715,7 @@ class BackendClient:
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
         try:
-            raw = await d._js_with_data_strict(
+            raw = await self._read_js(
                 "(async () => {"
                 "  var r = await fetch('/backend-api/models?iim=false&is_gizmo=false', {"
                 "    headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
@@ -459,12 +728,15 @@ class BackendClient:
             data = json.loads(raw)
         except (CDPJSError, json.JSONDecodeError, TypeError) as e:
             logger.warning("get_models failed: %s", e)
-            return []
+            raise
         if isinstance(data, dict):
-            return data.get("models", [])
+            models = data.get("models")
+            if isinstance(models, list):
+                return models
+            raise RuntimeError("get_models returned no models list")
         if isinstance(data, list):
             return data
-        return []
+        raise RuntimeError("get_models returned an unexpected JSON shape")
 
     async def get_projects(self) -> list[dict]:
         d = self._driver
@@ -475,13 +747,14 @@ class BackendClient:
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
         try:
-            raw = await d._js_with_data_strict(
+            raw = await self._read_js(
                 "(async () => {"
                 "  var r = await fetch('/backend-api/gizmos/snorlax/sidebar?owned_only=true&conversations_per_gizmo=5&limit=50', {"
                 "    headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
                 "  });"
                 "  var data = await r.json();"
-                "  return JSON.stringify((data.items || []).map(function(i) {"
+                "  if (!data || !Array.isArray(data.items)) throw new Error('projects response missing items array');"
+                "  return JSON.stringify(data.items.map(function(i) {"
                 "    var g = (i.gizmo || {}).gizmo || {};"
                 "    return {id: g.id, name: (g.display || {}).name || '', memory_scope: g.memory_scope || '', short_url: g.short_url || ''};"
                 "  }));"
@@ -489,10 +762,13 @@ class BackendClient:
                 {"token": d._access_token},
             )
             self._check_auth_in_raw(raw)
-            return json.loads(raw)
+            data = json.loads(raw)
+            if not isinstance(data, list):
+                raise RuntimeError("get_projects returned an unexpected JSON shape")
+            return data
         except (CDPJSError, json.JSONDecodeError) as e:
             logger.warning("get_projects failed: %s", e)
-            return []
+            raise
 
     # ── Conversation Management ──────────────────────────────
 
@@ -511,13 +787,14 @@ class BackendClient:
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
         try:
-            raw = await d._js_with_data_strict(
+            raw = await self._read_js(
                 "(async () => {"
                 "  var r = await fetch('/backend-api/conversations?offset=' + __D.offset + '&limit=' + __D.limit + '&order=' + __D.order, {"
                 "    headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
                 "  });"
                 "  var data = await r.json();"
-                "  return JSON.stringify((data.items || []).map(function(c) {"
+                "  if (!data || !Array.isArray(data.items)) throw new Error('conversations response missing items array');"
+                "  return JSON.stringify(data.items.map(function(c) {"
                 "    return {id: c.id, title: c.title || 'Untitled', "
                 "      update_time: c.update_time, create_time: c.create_time,"
                 "      is_archived: !!c.is_archived, gizmo_id: c.gizmo_id || null};"
@@ -531,10 +808,13 @@ class BackendClient:
                 },
             )
             self._check_auth_in_raw(raw)
-            return json.loads(raw)
+            data = json.loads(raw)
+            if not isinstance(data, list):
+                raise RuntimeError("get_conversations returned an unexpected JSON shape")
+            return data
         except (CDPJSError, json.JSONDecodeError) as e:
             logger.warning("get_conversations failed: %s", e)
-            return []
+            raise
 
     async def get_conversation(self, conversation_id: str) -> dict:
         """Get full conversation detail with message mapping."""
@@ -552,7 +832,7 @@ class BackendClient:
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
         try:
-            raw = await d._js_with_data_strict(
+            raw = await self._read_js(
                 "(async () => {"
                 "  var r = await fetch('/backend-api/conversation/' + __D.conv_id, {"
                 "    headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
@@ -562,6 +842,7 @@ class BackendClient:
                 "})()",
                 {"conv_id": conversation_id, "token": d._access_token},
                 timeout=30,
+                allow_status={404, 429},
             )
             self._check_auth_in_raw(raw)
             envelope = json.loads(raw)
@@ -816,9 +1097,12 @@ class BackendClient:
         )
         try:
             self._check_auth_in_raw(raw)
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            return {}
+            data = json.loads(raw)
+            if not isinstance(data, dict):
+                raise RuntimeError("get_project_detail returned an unexpected JSON shape")
+            return data
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("get_project_detail returned invalid JSON") from exc
 
     # ── Archive Conversation ────────────────────────────────
 
@@ -868,16 +1152,13 @@ class BackendClient:
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
         try:
-            raw = await d._js_with_data_strict(
+            raw = await self._read_js(
                 "(async () => {"
-                "  try {"
-                "    var r = await fetch('/backend-api/memories', {"
-                "      headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
-                "    });"
-                "    if (!r.ok) return JSON.stringify({error: 'HTTP ' + r.status});"
-                "    var data = await r.json();"
-                "    return JSON.stringify(data);"
-                "  } catch(e) { return JSON.stringify({error: e.message}); }"
+                "  var r = await fetch('/backend-api/memories', {"
+                "    headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
+                "  });"
+                "  var data = await r.json();"
+                "  return JSON.stringify(data);"
                 "})()",
                 {"token": d._access_token},
                 timeout=15,
@@ -885,17 +1166,17 @@ class BackendClient:
             self._check_auth_in_raw(raw)
             data = json.loads(raw)
             if isinstance(data, dict) and "error" in data:
-                logger.error("Get memories failed: %s", data["error"])
-                return []
+                raise RuntimeError(f"get_memories failed: {data['error']}")
             if isinstance(data, list):
                 return data
-            for key in ("memories", "items", "data"):
-                if key in data and isinstance(data[key], list):
-                    return data[key]
-            return []
+            if isinstance(data, dict):
+                for key in ("memories", "items", "data"):
+                    if key in data and isinstance(data[key], list):
+                        return data[key]
+            raise RuntimeError("get_memories returned an unexpected JSON shape")
         except (CDPJSError, json.JSONDecodeError) as e:
             logger.warning("get_memories failed: %s", e)
-            return []
+            raise
 
     async def create_memory(self, content: str) -> dict:
         """Create a memory by sending a chat message asking ChatGPT to remember.
@@ -1055,10 +1336,13 @@ class BackendClient:
                 timeout=20,
             )
             self._check_auth_in_raw(raw)
-            return json.loads(raw)
+            data = json.loads(raw)
+            if not isinstance(data, list):
+                raise RuntimeError("list_gpts returned an unexpected JSON shape")
+            return data
         except (CDPJSError, json.JSONDecodeError) as e:
             logger.warning("list_gpts failed: %s", e)
-            return []
+            raise
 
     # ── Project Files ─────────────────────────────────────────
 
@@ -1072,27 +1356,30 @@ class BackendClient:
         # toward ChatGPT's per-account throttle ("限制访问对话记录").
         await self._driver._pace.pace("read")
         try:
-            raw = await d._js_with_data_strict(
+            raw = await self._read_js(
                 "(async () => {"
-                "  try {"
-                "    var r = await fetch('/backend-api/gizmos/' + __D.project_id, {"
-                "      headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
-                "    });"
-                "    if (!r.ok) return '[]';"
-                "    var data = await r.json();"
-                "    var gizmo = data.gizmo || data;"
-                "    var files = gizmo.files || [];"
-                "    return JSON.stringify(files.map(function(f) {"
-                "      return {id: f.id || '', name: f.file_name || f.name || '', "
-                "        size: f.size || 0, mime_type: f.mime_type || ''};"
-                "    }));"
-                "  } catch(e) { return '[]'; }"
+                "  var r = await fetch('/backend-api/gizmos/' + __D.project_id, {"
+                "    headers: {'Authorization': 'Bearer ' + __D.token, 'oai-device-id': (document.cookie.match(/oai-did=([^;]+)/) || [])[1] || '', 'oai-language': navigator.language}"
+                "  });"
+                "  var data = await r.json();"
+                "  var gizmo = data.gizmo || data;"
+                "  if (!gizmo || !Array.isArray(gizmo.files)) throw new Error('project response missing files array');"
+                "  var files = gizmo.files;"
+                "  return JSON.stringify(files.map(function(f) {"
+                "    return {id: f.id || '', name: f.file_name || f.name || '', "
+                "      size: f.size || 0, mime_type: f.mime_type || ''};"
+                "  }));"
                 "})()",
                 {"token": d._access_token, "project_id": project_id},
                 timeout=15,
             )
             self._check_auth_in_raw(raw)
-            return json.loads(raw)
+            data = json.loads(raw)
+            if isinstance(data, dict) and "__error" in data:
+                raise RuntimeError(f"get_project_files failed: {data['__error']}")
+            if not isinstance(data, list):
+                raise RuntimeError("get_project_files returned an unexpected JSON shape")
+            return data
         except (CDPJSError, json.JSONDecodeError) as e:
             logger.warning("get_project_files failed: %s", e)
-            return []
+            raise

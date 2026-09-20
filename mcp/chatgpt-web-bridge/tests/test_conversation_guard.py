@@ -330,7 +330,7 @@ async def test_mcp_auto_continue_invokes_ensure_current():
     driver.navigate_conversation = AsyncMock()
     driver.route_chat_target = AsyncMock(return_value="auto-continue")
 
-    async def _boom(text, timeout=120, *, budgets=None, model=None):
+    async def _boom(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         raise AssertionError("reached past the guard")
         yield  # pragma: no cover (generator signature)
     driver.send_and_stream = _boom
@@ -486,14 +486,12 @@ async def test_connect_survives_send_readiness_failure(monkeypatch):
     d._ensure_send_ready.assert_awaited_once()
 
 
-# ── 8. CDP auto-reconnect on dead socket ──────────────────────────────
+# ── 8. CDP allow-listed read-only reconnect on dead socket ─────────────
 #
 # Found while restoring a bricked live bridge this session: reconnect() exists
-# (cdp_driver.py:491) but had ZERO callers — it was dead code. So a single
-# mid-session WebSocket drop (the "no close frame" case) permanently bricked a
-# long-running bridge: every subsequent _cdp call re-raised the dead-socket
-# error forever, nothing triggered recovery. _cdp() now reconnects-once on a
-# dead socket and retries the call (guarded against recursion by _retry).
+# ``_cdp()`` may reconnect once for an explicit read-only method. Mutating
+# Runtime.evaluate/Input calls must be recovered by the driver only after it
+# reconciles delivery, so they are never replayed by this wire layer.
 
 def test_should_reconnect_recognizes_dead_socket_errors():
     """_should_reconnect returns True ONLY for socket-death signatures, never
@@ -512,9 +510,7 @@ def test_should_reconnect_recognizes_dead_socket_errors():
 
 @pytest.mark.asyncio
 async def test_cdp_reconnects_and_retries_on_dead_socket():
-    """When the WebSocket dies mid-call, _cdp must reconnect once and retry,
-    succeeding on the second attempt. This is the exact path that bricked the
-    live bridge before the fix (reconnect() existed but was never called)."""
+    """A read-only CDP call reconnects once and succeeds on the retry."""
     d = CDPDriver(cdp_port=9222)
     dead_ws = MagicMock()
     # First send raises the dead-socket signature; the retry (post-reconnect)
@@ -548,7 +544,7 @@ async def test_cdp_reconnects_and_retries_on_dead_socket():
 
     d.reconnect = fake_reconnect
 
-    result = await d._cdp("Runtime.evaluate", {"expression": "1+1"})
+    result = await d._cdp("Browser.getVersion", {})
     assert reconnect_calls["n"] == 1, "must reconnect exactly once"
     assert result == {"result": {"ok": True}}, "must return the retried result"
     assert call_count["send"] == 2, "must have sent twice (first died, retry ok)"
@@ -575,9 +571,8 @@ async def test_cdp_does_not_reconnect_on_non_socket_errors():
 
 @pytest.mark.asyncio
 async def test_cdp_does_not_loop_if_reconnect_also_fails():
-    """If reconnect succeeds but the retry STILL hits a dead socket, the call
-    must propagate — not reconnect again (infinite loop). The _retry=False
-    guard on the recursive call enforces one-and-done."""
+    """If the single read-only retry still hits a dead socket, the call
+    propagates without reconnecting a second time."""
     d = CDPDriver(cdp_port=9222)
     d._ws = MagicMock()
     reconnect_calls = {"n": 0}
@@ -594,7 +589,7 @@ async def test_cdp_does_not_loop_if_reconnect_also_fails():
     d.reconnect = fake_reconnect
 
     with pytest.raises(Exception, match="no close frame"):
-        await d._cdp("Runtime.evaluate")
+        await d._cdp("Browser.getVersion")
 
     assert reconnect_calls["n"] == 1, "must reconnect at most ONCE, never loop"
 

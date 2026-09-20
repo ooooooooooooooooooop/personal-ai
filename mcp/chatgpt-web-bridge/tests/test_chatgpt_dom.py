@@ -33,7 +33,10 @@ def _make_dom():
     driver._breakers = None
     driver._current_conv_id = None
     driver._js = AsyncMock(return_value="")
-    driver._js_strict = AsyncMock(return_value="")
+    # Mutation evaluators return a JS boolean; individual tests override the
+    # verifier seam separately.  This keeps type_message wiring tests from
+    # accidentally modeling an unacknowledged paste.
+    driver._js_strict = AsyncMock(return_value=True)
     driver._cdp = AsyncMock(return_value={})
     driver.navigate_new_chat = AsyncMock()
     driver._capture_selector_diagnostic = AsyncMock()
@@ -173,7 +176,7 @@ async def test_click_send_records_success_through_driver_breaker():
     dom, driver = _make_dom()
     reg = BreakerRegistry()
     driver._breakers = reg
-    driver._js = AsyncMock(return_value="sent")
+    driver._js = AsyncMock(side_effect=["yes", "sent"])
 
     await dom.click_send()
     # Not open after a success record (record_success clears failures).

@@ -7,6 +7,7 @@ surfaces occupant warnings when another session owns the binding.
 from __future__ import annotations
 
 import os
+import json
 import time
 from unittest.mock import AsyncMock, MagicMock
 
@@ -493,3 +494,29 @@ def test_conv_ws_url_finds_conv_tab(monkeypatch):
     )
     # exercised indirectly below via conv_tail_state monkeypatch-free path:
     assert conv_dom_read._conv_ws_url(9222, "abc-123") == "ws://x"
+
+
+def test_conv_ws_url_requires_chatgpt_origin_and_exact_route(monkeypatch):
+    from chatgpt_web2api import conv_dom_read
+
+    targets = [
+        {"type": "page", "url": "https://evil-chatgpt.com/c/abc-123",
+         "webSocketDebuggerUrl": "ws://wrong-host"},
+        {"type": "page", "url": "https://chatgpt.com/c/abc-123-extra",
+         "webSocketDebuggerUrl": "ws://wrong-prefix"},
+        {"type": "page", "url": "https://chatgpt.com/g/gizmo/c/abc-123?model=auto",
+         "webSocketDebuggerUrl": "ws://right"},
+    ]
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return json.dumps(targets).encode()
+
+    monkeypatch.setattr(conv_dom_read.urllib.request, "urlopen", lambda *_a, **_kw: _Response())
+    assert conv_dom_read._conv_ws_url(9222, "abc-123") == "ws://right"

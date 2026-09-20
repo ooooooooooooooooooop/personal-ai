@@ -17,9 +17,10 @@ Contract (per the operator's requirements):
   Confirmation CAN take over an occupied conversation (sessions drift;
   hard-refusing would wedge a conv behind a dead session), but it still
   cannot interrupt a live generation — the generation gate decides that.
-- Reconnect = re-confirm. Session keys (``sse:``, ``http:``, ``stdio-``)
-  die with the connection, so a reconnecting client gets a new key and
-  must confirm again. ``owner_pid`` records which daemon process served
+- Reconnect creates a new binding. Session keys (``sse:``, ``http:``, ``stdio-``)
+  die with the connection. A client may pass ``confirm=true`` using still-valid
+  explicit user approval for the same target; reconnect alone does not revoke
+  that approval. ``owner_pid`` records which daemon process served
   the claim; a dead owner's binding is reclaimable, so a daemon restart
   cannot leave permanent "occupied" ghosts.
 - Reads (get_conversation / wait_reply / lists) never touch this
@@ -37,8 +38,8 @@ import logging
 import os
 import time
 
-from .tab_registry import REGISTRY_DIR
 from . import generation_gate
+from .tab_registry import REGISTRY_DIR, _pid_alive
 
 logger = logging.getLogger(__name__)
 
@@ -127,14 +128,6 @@ def release(conv_id: str, session_key: str) -> None:
         _write_all(state)
 
 
-def _pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError, PermissionError):
-        return False
-
-
 async def gate_check(
     driver,
     conv_id: str | None,
@@ -166,10 +159,10 @@ async def gate_check(
         action = (
             "This send will CREATE a new conversation"
             + (f" under project {project_label}" if project_label else "")
-            + ". STOP: show this to the user and WAIT for their explicit "
-            "approval — do not retry, rephrase, or set confirm=true on "
-            "your own. Only after the user approves, resend the SAME "
-            "request with confirm=true."
+            + ". If the user already explicitly authorized this target and action, "
+            "retry the same request with confirm=true. Otherwise show this target "
+            "to the user and obtain approval before setting confirm=true. "
+            "A reconnect does not invalidate existing approval."
         )
         return {
             # content/model/conversation_id satisfy the tool output schema.
@@ -215,11 +208,11 @@ async def gate_check(
             generating = False
 
     action = (
-        "This session has not sent to this conversation yet. STOP: show "
-        "the project and conversation (and the occupied_by warning, if "
-        "set) to the user and WAIT for their explicit approval — do not "
-        "retry, rephrase, or set confirm=true on your own. Only after "
-        "the user approves, resend the SAME request with confirm=true."
+        "This session has not bound this conversation yet. If existing explicit "
+        "user approval covers this target and any occupied_by takeover, retry "
+        "the same request with confirm=true. Otherwise show the project, "
+        "conversation and occupied_by warning to the user and obtain approval. "
+        "A reconnect does not invalidate existing approval."
     )
     payload = {
         # content/model/conversation_id satisfy the tool output schema.

@@ -16,6 +16,7 @@ chat_completion(conversation_id=conv, message=(
 ))
 
 # R1+ 逐条交锋（信封格式见 SKILL.md）
+# 先消费 R0 的完整回文；若仍 in_progress，wait_reply 只读等待。
 chat_completion(conversation_id=conv, message=(
   "[PEER R1] 规则v4\n"
   "我的立场: 11:30冻结应含未涨停主动层\n"
@@ -26,6 +27,7 @@ chat_completion(conversation_id=conv, message=(
   "待裁决: 无"
 ))
 
+# 每一轮都要消费返回结果/收据；timeout/cancel 不证明未送达，不自动重发。
 # 封顶到点或僵持 → 分歧报告给用户，不伪造共识
 ```
 
