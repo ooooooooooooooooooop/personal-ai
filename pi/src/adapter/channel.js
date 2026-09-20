@@ -5,8 +5,8 @@
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment } from '../../../host/src/core/attachments.js';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
 
@@ -107,6 +107,15 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     prompt: (message, options) => {
       admitSpend();
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
+      // Auto-name (Goose/OpenClaw): an unnamed session takes its first user
+      // prompt as display name. Only fills the null slot — an operator
+      // rename or a previous auto-name is never overwritten.
+      try {
+        if (!box.s.sessionName && typeof message === 'string' && message.trim()) {
+          const t = message.trim().replace(/\s+/g, ' ');
+          box.s.setSessionName?.(t.length > 40 ? `${t.slice(0, 40)}…` : t);
+        }
+      } catch { /* naming is best-effort */ }
       // U5: generalized attachments normalize at the channel boundary, then
       // split by body capability — pi carries images natively; other media
       // degrades to a truthful descriptor block (never a fake modality).
@@ -186,9 +195,20 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       };
     },
     stats: async () => box.s.getSessionStats?.() ?? null,
-    export: async () => {
+    export: async (opts = {}) => {
+      // trajectory export (Hermes): raw JSONL is the replayable/training
+      // form; HTML stays the human-readable default.
+      if (opts.format === 'jsonl') {
+        const src = box.s.sessionFile;
+        if (!src) return { file: null, format: 'jsonl' };
+        const dir = join(dirname(src), 'exports');
+        mkdirSync(dir, { recursive: true });
+        const out = join(dir, `trajectory-${Date.now()}.jsonl`);
+        copyFileSync(src, out);
+        return { file: out, format: 'jsonl' };
+      }
       const html = await box.s.exportToHtml?.();
-      return { file: html ?? null };
+      return { file: html ?? null, format: 'html' };
     },
     subscribe: (listener) => {
       uiListeners.add(listener);

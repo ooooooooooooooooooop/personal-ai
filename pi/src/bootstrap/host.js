@@ -1,5 +1,5 @@
 import { join, resolve } from 'node:path';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -556,6 +556,72 @@ export async function startHost({
         if (forkFile) { try { sessionManagers.remove(forkFile, sessionDir); } catch { /* leftover fork file is cosmetic */ } }
         core.audit.write({ kind: 'BTW_DONE', runId });
       }
+    },
+    // /chat save (Gemini): named snapshot of the live transcript — the file
+    // is copied under sessions/saved/ so the live session keeps moving while
+    // the checkpoint stays resumable via session_switch on its path.
+    save: async (name) => {
+      const n = String(name ?? '').trim();
+      if (!/^[\w-][\w -]{0,39}$/.test(n)) throw new Error('save name: 1-40 chars — letters/digits/space/-/_');
+      const src = currentSession?.sessionManager?.getSessionFile?.();
+      if (!src) throw new Error('no live session file to snapshot');
+      const dir = join(sessionDir, 'saved');
+      mkdirSync(dir, { recursive: true });
+      const dst = join(dir, `${n}.jsonl`);
+      copyFileSync(src, dst);
+      core.audit.write({ kind: 'SESSION_SAVED', runId, data: { name: n, path: dst } });
+      return { name: n, path: dst };
+    },
+    savedList: async () => {
+      const dir = join(sessionDir, 'saved');
+      let files;
+      try { files = readdirSync(dir).filter((f) => f.endsWith('.jsonl')); }
+      catch { return []; }
+      return files.map((f) => {
+        const p = join(dir, f);
+        return { name: f.replace(/\.jsonl$/, ''), path: p, modified: statSync(p).mtime.toISOString() };
+      }).sort((a, b) => b.modified.localeCompare(a.modified));
+    },
+    // AgentStats (Vibe): aggregate usage across persisted session files —
+    // bounded scan of the newest N files; cost/token truth comes from
+    // per-entry usage, not estimates.
+    agentStats: async () => {
+      let files;
+      try {
+        files = readdirSync(sessionDir).filter((f) => f.endsWith('.jsonl'))
+          .map((f) => join(sessionDir, f))
+          .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
+          .slice(0, 200);
+      } catch { return { sessions: 0, messages: 0, tokens: 0, cost: 0 }; }
+      const agg = { sessions: files.length, messages: 0, userMessages: 0, tokens: 0, cost: 0 };
+      let first = null, last = null;
+      for (const p of files) {
+        const mt = statSync(p).mtime;
+        if (!last || mt > last) last = mt;
+        if (!first || mt < first) first = mt;
+        try {
+          for (const line of readFileSync(p, 'utf-8').split('\n')) {
+            if (!line) continue;
+            let e; try { e = JSON.parse(line); } catch { continue; }
+            const role = e?.message?.role ?? e?.role;
+            if (role === 'user') { agg.messages++; agg.userMessages++; }
+            else if (role === 'assistant') {
+              agg.messages++;
+              const u = e?.message?.usage ?? e?.usage;
+              if (u) {
+                agg.tokens += Number(u.totalTokens ?? u.input ?? 0) + Number(u.output ?? 0);
+                agg.cost += Number(u.cost?.total ?? 0);
+              }
+            }
+          }
+        } catch { continue; }
+      }
+      return {
+        ...agg,
+        cost: Number(agg.cost.toFixed(4)),
+        firstSession: first?.toISOString?.() ?? null,
+        lastSession: last?.toISOString?.() ?? null,
+      };
     },
   };
 

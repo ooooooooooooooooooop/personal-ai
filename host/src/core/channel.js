@@ -316,7 +316,21 @@ export class HostChannel {
         }
         case 'session_export': {
           if (!this.session?.export) return reply(false, undefined, 'export unavailable');
-          return reply(true, await this.session.export());
+          return reply(true, await this.session.export({ format: cmd.format === 'jsonl' ? 'jsonl' : 'html' }));
+        }
+        case 'session_save': {
+          // Gemini /chat save: named snapshot of the live transcript the
+          // operator can resume later — a copy, not a rename of the live file.
+          if (!this.sessions?.save) return reply(false, undefined, 'session save unavailable');
+          return reply(true, await this.sessions.save(String(cmd.name ?? '')));
+        }
+        case 'session_saved_list': {
+          if (!this.sessions?.savedList) return reply(false, undefined, 'saved list unavailable');
+          return reply(true, await this.sessions.savedList());
+        }
+        case 'agent_stats': {
+          if (!this.sessions?.agentStats) return reply(false, undefined, 'agent stats unavailable');
+          return reply(true, await this.sessions.agentStats());
         }
         case 'fileops_list': {
           if (!this.fileops?.list) return reply(false, undefined, 'fileops facade unavailable');

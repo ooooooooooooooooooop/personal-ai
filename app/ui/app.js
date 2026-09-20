@@ -775,6 +775,7 @@ function onAgentEvent(ev) {
     case 'session_changed':
       currentSessionFile = ev.session?.file ?? null;
       sessionCost = 0;
+      loadDraft();
       replayHistory();
       refreshSessions();
       refreshPending();
@@ -1749,11 +1750,53 @@ const SLASH = [
     },
   },
   {
-    cmd: '/export', label: '导出会话', hint: '导出为 HTML 文件',
-    run: async () => {
-      const r = await cmd('session_export');
+    cmd: '/export', label: '导出会话', hint: '导出为 HTML（/export jsonl 导原始轨迹）',
+    run: async (arg) => {
+      const format = String(arg ?? '').trim().toLowerCase() === 'jsonl' ? 'jsonl' : 'html';
+      const r = await cmd('session_export', { format });
       if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
       else addSys(`导出失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/chat', label: '存档会话', hint: '/chat save 名字 存快照；/chat load 打开已存',
+    run: async (arg) => {
+      const [sub, ...rest] = String(arg ?? '').trim().split(/\s+/).filter(Boolean);
+      if (sub === 'save') {
+        const name = rest.join(' ');
+        if (!name) { addSys('用法：/chat save 名字', true); return; }
+        const r = await cmd('session_save', { name });
+        if (r.success) toast(`已存档：${r.data?.name ?? name}`);
+        else addSys(`存档失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      if (sub === 'load' || !sub) {
+        const r = await cmd('session_saved_list');
+        const items = r.data ?? [];
+        if (!items.length) { addSys('没有已存会话——/chat save 名字 先存一个', true); return; }
+        openMenu(items.map((s) => ({
+          label: s.name, sub: new Date(s.modified).toLocaleString(), value: s,
+        })), async (it) => {
+          // Fork, not switch — the snapshot file stays pristine; the copy
+          // becomes the live session (Gemini resume semantics).
+          const r2 = await cmd('session_fork', { path: it.value.path });
+          if (!r2.success) { addSys(`打开失败：${r2.error ?? '未知'}`, true); return; }
+          await replayHistory(); refreshSessions(); refreshState();
+          toast(`已恢复存档「${it.value.name}」——快照原件不动`);
+        });
+        return;
+      }
+      addSys('用法：/chat save 名字 | /chat load', true);
+    },
+  },
+  {
+    cmd: '/stats', label: '用量总览', hint: '跨会话聚合：会话数/消息/token/成本',
+    run: async () => {
+      const r = await cmd('agent_stats');
+      if (!r.success) { addSys(`统计失败：${r.error ?? '未知'}`, true); return; }
+      const s = r.data ?? {};
+      addSys(`累计 ${s.sessions ?? 0} 个会话 · ${s.messages ?? 0} 条消息（你发了 ${s.userMessages ?? 0} 条）· ${(s.tokens ?? 0).toLocaleString()} tok · $${s.cost ?? 0}`
+        + (s.firstSession ? `——自 ${new Date(s.firstSession).toLocaleDateString()} 起` : ''));
     },
   },
   {
@@ -2119,7 +2162,14 @@ async function execSlash(s) {
   await s.run(arg);
 }
 
-input.addEventListener('input', () => { autogrow(); slashFilter(); });
+/* Per-session composer drafts (PI reference): text survives session
+ * switches — keyed by session file, cleared on send. */
+const draftKey = () => `pai.draft.${currentSessionFile ?? 'new'}`;
+function loadDraft() {
+  input.value = localStorage.getItem(draftKey()) ?? '';
+  autogrow();
+}
+input.addEventListener('input', () => { autogrow(); slashFilter(); localStorage.setItem(draftKey(), input.value); });
 input.addEventListener('keydown', (e) => {
   if (!slashMenu.classList.contains('hidden')) {
     if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = (slashIdx + 1) % slashItems.length; paintSlashSel(); return; }
@@ -2283,6 +2333,7 @@ async function send() {
   if (!text && !pendingAttach.length) return;
   closeSlash();
   input.value = ''; autogrow();
+  localStorage.removeItem(draftKey());
   // Fold pending attachments into the outgoing prompt: text → labeled block,
   // images → PromptOptions.images (pi prompt accepts {images: ImageContent[]}).
   let message = text;
@@ -2307,6 +2358,7 @@ async function steer() {
   if (!text) return;
   closeSlash();
   input.value = ''; autogrow();
+  localStorage.removeItem(draftKey());
   const r = await cmd('steer', { message: text });
   if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
 }

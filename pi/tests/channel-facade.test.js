@@ -189,3 +189,69 @@ test('model alias commands manage <instance>/model-aliases.json; prompt/steer re
   assert.equal(resets, 2);
   dispose();
 });
+
+test('session_save/saved_list/agent_stats dispatch; auto-name fills only the null slot', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-sess-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const calls = [];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    sessions: {
+      save: async (n) => (calls.push(['save', n]), { name: n, path: `/saved/${n}.jsonl` }),
+      savedList: async () => [{ name: 'cp1', path: '/saved/cp1.jsonl', modified: '2026-01-01' }],
+      agentStats: async () => ({ sessions: 3, messages: 9, userMessages: 4, tokens: 1200, cost: 0.5 }),
+    },
+  });
+  const s = await ch.handle({ type: 'session_save', name: 'cp1' });
+  assert.equal(s.success, true);
+  assert.equal(s.data.path, '/saved/cp1.jsonl');
+  assert.deepEqual(calls, [['save', 'cp1']]);
+  assert.equal((await ch.handle({ type: 'session_saved_list' })).data[0].name, 'cp1');
+  const st = await ch.handle({ type: 'agent_stats' });
+  assert.equal(st.data.sessions, 3);
+  assert.equal(st.data.cost, 0.5);
+  // auto-name: first real prompt names an unnamed session
+  let named = null;
+  fakeSessionRef.sessionName = undefined;
+  fakeSessionRef.setSessionName = (n) => { named = n; };
+  await ch.handle({ type: 'prompt', message: '  修复   登录页的   样式 ' });
+  assert.equal(named, '修复 登录页的 样式');
+  // named sessions are never overwritten
+  fakeSessionRef.sessionName = '手工命名';
+  named = null;
+  await ch.handle({ type: 'prompt', message: '另一条消息' });
+  assert.equal(named, null);
+  // fail closed without the facade
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  assert.equal((await bare.channel.handle({ type: 'session_save', name: 'x' })).success, false);
+  assert.equal((await bare.channel.handle({ type: 'agent_stats' })).success, false);
+  bare.dispose();
+  dispose();
+});
+
+test('session_export format=jsonl copies the raw session file to exports/', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-exp-'));
+  const auditDir = join(dir, 'audit');
+  const sessDir = join(dir, 'sessions');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(sessDir, { recursive: true });
+  const src = join(sessDir, 's1.jsonl');
+  writeFileSync(src, '{"role":"user"}\n{"role":"assistant"}\n');
+  fakeSessionRef.sessionFile = src;
+  fakeSessionRef.exportToHtml = async () => '/tmp/out.html';
+  const core = { paths: { auditDir } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const j = await ch.handle({ type: 'session_export', format: 'jsonl' });
+  assert.equal(j.success, true);
+  assert.equal(j.data.format, 'jsonl');
+  const { readFileSync } = await import('node:fs');
+  assert.equal(readFileSync(j.data.file, 'utf-8'), '{"role":"user"}\n{"role":"assistant"}\n');
+  const h = await ch.handle({ type: 'session_export' });
+  assert.equal(h.data.file, '/tmp/out.html');
+  assert.equal(h.data.format, 'html');
+  dispose();
+});
