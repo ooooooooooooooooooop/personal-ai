@@ -965,3 +965,20 @@
 | 旧会话拉进上下文 | Trae `#Past Chats` / Devin `#`历史链接（228/193） | `session_read` 模型工具——配合 `session_search` 先搜后读；会话目录禁锢（仅 .jsonl）、尾部限界（≤60 条/条≤2000 字符）、`<past_session trust="untrusted">` 封套 |
 
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto（与现有入口/压缩面设计冲突，维持有意不做；project-trust 已按微agent注入面窄化落地见上）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。
+
+### 28.5 第二轮逐行复扫收尾（2026-09）
+
+对全部 26 家快照行逐行过第二遍后，残余 ❌/🟡 全部归两类——**陈旧行**（实现已落，快照锚定 1d75cd0 未动：doom_loop/mistake_limit/cron/microagent/hooks 事件族/MCP/LSP/自定义 modes/命令清单/recipe_run/ask_user/MAX_TURNS/browser 六件/长命令后台化/project-trust/artifact 面板等均有 §28.1–28.4 终态）与**有意边界**。
+
+**最终待拍板项**（每条偏大或触边界，列为决策非缺口）：
+
+| 项 | 参考行 | 卡点 |
+|---|---|---|
+| 远程执行目标（SSH/WSL/Docker） | ZCode 211、KAOS 506、serve daemon 528 | 执行环境抽象层+信任边界改写 |
+| 脚本化编排（Dynamic Workflows / spec DAG 波 / Kanban swarm） | Devin 174、Kiro 258/261、Hermes 616 | 需真实多任务编排需求驱动；mailbox/task 树已备地基 |
+| Repo Wiki 全文生成 | ZCode 207 | repo_map 已给骨架；全文 wiki 是生成型产物，可做薄 recipe 但价值存疑 |
+| 双模型编队（main+lite / Fusion / architect→editor） | Devin 179、ZCode 213、Aider 292 | 第二路模型常驻开销；既往裁定推迟 |
+| LLM 判官变体（SmartApprove/AUTO 两段式） | Goose 420、Qwen 527、Vibe 557 | D4 guard 已落确定性版；LLM 段是增强非缺口 |
+| OS 沙箱 / marketplace / 多客户端 attach / headless 产品面 | 114/167/232/312/340/395、146/212/457/509、144/480、363/391/470 | 维持有意拒绝——与本仓"本地受治控面"边界冲突 |
+
+至此功能缺口清单消耗完毕：每个未做项都有显式裁定理由，无遗漏态行。后续方向=上表拍板或外部评审裁决驱动的第三轮。
