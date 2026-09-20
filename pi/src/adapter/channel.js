@@ -24,7 +24,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -72,12 +72,27 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     }
   };
   let pump = null;
+  let autoCompacted = false; // per-session latch — rebind resets it
   const rebind = (newSession) => {
     pump?.();
+    autoCompacted = false;
     box.s = newSession;
     pump = newSession.subscribe((ev) => {
       if (ev?.type === 'message_end' && ev.message?.role === 'assistant' && ev.message?.usage) {
         bill(ev.message.usage, 'turn');
+        // H-family auto-compact (Codex-style): at ≥90% of the context
+        // window the body compacts itself once per threshold crossing —
+        // announced via event + audit, never silently rewriting context.
+        try {
+          const u = box.s.getContextUsage?.();
+          if (u?.contextWindow && u.tokens != null && !autoCompacted
+              && u.tokens / u.contextWindow >= 0.9 && !box.s.isStreaming) {
+            autoCompacted = true;
+            emit({ type: 'auto_compact', tokens: u.tokens, contextWindow: u.contextWindow });
+            core.audit?.write({ kind: 'AUTO_COMPACT', data: { tokens: u.tokens, contextWindow: u.contextWindow } });
+            box.s.compact?.().catch(() => {});
+          }
+        } catch { /* auto-compact is best-effort */ }
       } else if (ev?.type === 'compaction_end' && ev.result?.usage) {
         bill(ev.result.usage, 'compaction');
       } else if (ev?.type === 'tool_execution_end' && writeLease) {
@@ -121,6 +136,15 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // degrades to a truthful descriptor block (never a fake modality).
       let msg = message;
       let opts = options;
+      // H-family microagents: prompt text matching a trigger injects that
+      // knowledge block for this turn — topic-scoped, not always-on.
+      try {
+        const kb = knowledge?.match?.(msg);
+        if (kb?.text) {
+          msg = `${kb.text}\n\n${msg ?? ''}`;
+          core.audit?.write({ kind: 'KNOWLEDGE_INJECTED', data: { agents: kb.agents } });
+        }
+      } catch { /* knowledge match is best-effort — never blocks a prompt */ }
       if (options?.attachments?.length) {
         const { attachments, rejected } = normalizeAttachments(options.attachments);
         const { native, degraded } = partitionByCapability(attachments, { images: true });

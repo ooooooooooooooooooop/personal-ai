@@ -30,6 +30,7 @@ function numEnv(name) {
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
+import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
@@ -682,6 +683,14 @@ export async function startHost({
       interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt'),
     },
     memory: memoryStore,
+    // H-family microagents — .pai/microagents/*.md frontmatter triggers
+    // inject topic-scoped knowledge into the matching prompt, this turn only
+    knowledge: {
+      match: (text) => {
+        const hits = matchMicroagents(loadMicroagents(workdir), text);
+        return hits.length ? { text: renderKnowledge(hits), agents: hits.map((h) => h.name) } : null;
+      },
+    },
     asks,
     fileops: {
       list: (n) => fileOps.list(n),
@@ -725,7 +734,36 @@ export async function startHost({
   });
   const channel = channelHandle.channel;
 
+  // H-family heartbeat (OpenClaw reference): an OPERATOR-owned config —
+  // <instance>/heartbeat.json, never the agent-writable workdir — wakes the
+  // session with a prompt when it is idle. Disabled by default; every beat
+  // still travels the normal prompt path (budget admission, audit, events).
+  const heartbeat = (() => {
+    try {
+      const cfg = JSON.parse(readFileSync(join(core.paths.root, 'heartbeat.json'), 'utf-8'));
+      if (!cfg?.enabled || !(Number(cfg.everyMin) > 0) || !String(cfg.prompt ?? '').trim()) return null;
+      return { everyMin: Number(cfg.everyMin), prompt: String(cfg.prompt) };
+    } catch { return null; }
+  })();
+  let heartbeatTimer = null;
+  if (heartbeat) {
+    heartbeatTimer = setInterval(() => {
+      try {
+        const s = channelHandle ? currentSession : null;
+        if (!s || s.isStreaming) return; // idle-only — never interrupt a run
+        core.audit.write({ kind: 'HEARTBEAT_FIRED', runId, data: { everyMin: heartbeat.everyMin } });
+        // channel prompt path: admitSpend gates it — a configured budget
+        // still bounds autonomous spend; the beat is visible in the UI.
+        channelHandle.channel.handle({ type: 'prompt', message: heartbeat.prompt, meta: { heartbeat: true } })
+          .catch(() => { /* a refused beat is recorded by the spend gate */ });
+      } catch { /* heartbeat is best-effort */ }
+    }, heartbeat.everyMin * 60_000);
+    heartbeatTimer.unref?.();
+    core.audit.write({ kind: 'HEARTBEAT_ARMED', runId, data: { everyMin: heartbeat.everyMin } });
+  }
+
   const dispose = () => {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     ungateFetch();
     schedulerPump.dispose();
     releaseWriter();

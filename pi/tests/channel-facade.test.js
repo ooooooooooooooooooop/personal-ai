@@ -276,6 +276,48 @@ test('task_* commands dispatch to the mailbox facade; interrupt maps to job canc
   dispose();
 });
 
+test('microagent knowledge injects on trigger match; auto-compact fires once at 90%', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-kb-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const audit = { events: [], write(e) { this.events.push(e); } };
+  const core = { paths: { auditDir }, audit };
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    knowledge: {
+      match: (text) => /deploy/.test(text)
+        ? { text: '<knowledge name="deploy">migrations first</knowledge>', agents: ['deploy'] }
+        : null,
+    },
+  });
+  const calls = [];
+  fakeSessionRef.prompt = async (m) => calls.push(m);
+  await ch.handle({ type: 'prompt', message: 'deploy the service' });
+  assert.match(calls[0], /<knowledge name="deploy">/);
+  assert.ok(audit.events.some((e) => e.kind === 'KNOWLEDGE_INJECTED'));
+  await ch.handle({ type: 'prompt', message: 'unrelated question' });
+  assert.equal(calls[1], 'unrelated question');
+
+  // auto-compact: assistant message_end at ≥90% context → compact once
+  let compacts = 0;
+  fakeSessionRef.isStreaming = false;
+  fakeSessionRef.getContextUsage = () => ({ tokens: 950, contextWindow: 1000 });
+  fakeSessionRef.compact = async () => { compacts++; };
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+  for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant', usage: { input: 1, output: 1 } } });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(compacts, 1);
+  assert.ok(events.some((m) => m.event?.type === 'auto_compact'));
+  assert.ok(audit.events.some((e) => e.kind === 'AUTO_COMPACT'));
+  // latch: second threshold message does NOT compact again this session
+  for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant', usage: { input: 1, output: 1 } } });
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(compacts, 1);
+  dispose();
+});
+
 test('session_export format=jsonl copies the raw session file to exports/', async () => {
   fakeSessionRef = fakeSession(); listeners.clear();
   const dir = mkdtempSync(join(tmpdir(), 'pai-chan-exp-'));
