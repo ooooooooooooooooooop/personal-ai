@@ -81,6 +81,17 @@
             <button class="starter" data-q="检查工作目录里的测试能不能跑通，失败了先读错误再修">跑一遍测试并修失败</button>
             <button class="starter" data-q="先列个计划给我确认，别急着改">帮我规划下一步改动</button>
           </div>
+          <div id="tour-card" class="hidden">
+            <div class="tour-title">五个入口，足够走通一遍</div>
+            <ul class="tour-list">
+              <li><code>/</code> 打开命令菜单——会话、任务、记忆、导出都在里面</li>
+              <li><code>@</code> 提及文件或目录，把它带进上下文</li>
+              <li>顶栏「模式」切审批预设，「模型」随时换</li>
+              <li>左侧「任务」页看委派进度和子任务信箱</li>
+              <li>设置里管记忆、换主题、配工作目录</li>
+            </ul>
+            <button id="tour-dismiss" class="btn">知道了，开始</button>
+          </div>
         </div>
         <div id="setup-card" class="hidden">
           <div class="setup-title">先接一个模型</div>
@@ -97,6 +108,7 @@
         </div>
       </div>
 
+      <div id="minimap" class="hidden" title="会话缩略图——点击跳转"></div>
       <button id="jump-latest" class="jump-latest" title="回到底部">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         最新

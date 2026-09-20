@@ -38,6 +38,10 @@ const target = tIdx !== -1 ? argv[tIdx + 1] : 'unknown';
 const tdIdx = argv.indexOf('--task-dir');
 const taskDir = tdIdx !== -1 ? argv[tdIdx + 1] : null;
 if (taskDir) mkdirSync(taskDir, { recursive: true });
+// the child may claim its own mailbox: PAI_TASK_DIR lets a pai body write
+// its run scope back into task.json — that is what makes nested delegation
+// render as a real tree instead of a flat list
+
 const streamAppend = (stream, row) => {
   const p = join(taskDir, `${stream}.jsonl`);
   const seq = existsSync(p) ? readFileSync(p, 'utf-8').split('\n').filter(Boolean).length + 1 : 1;
@@ -60,6 +64,7 @@ for (const [flag, envName] of Object.entries(budgetEnv)) {
   const v = flagVal(flag);
   if (v != null) childEnv[envName] = String(v);
 }
+if (taskDir) childEnv.PAI_TASK_DIR = taskDir;
 // re-quote args that lost their shell quoting through argv — whitespace must
 // survive the shell:true respawn as one token
 const command = argv.slice(sep + 1)

@@ -1,5 +1,5 @@
 import { join, resolve } from 'node:path';
-import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -342,6 +342,31 @@ export async function startHost({
   );
   let currentSession = session;
 
+  // F-family topology: a delegated child claims its mailbox by writing its
+  // run scope back into task.json (PAI_TASK_DIR is bridge-exported). Task
+  // lists can then resolve parent_task_id (a spawning scope) → this task,
+  // so nested delegation renders as a real tree. Called on (re)build because
+  // the scope is the session id — a rebuilt session re-claims.
+  const claimTaskScope = () => {
+    const dir = process.env.PAI_TASK_DIR;
+    const scope = currentSession?.sessionId;
+    if (!dir || !scope) return;
+    try {
+      const metaPath = join(dir, 'task.json');
+      const meta = JSON.parse(readFileSync(metaPath, 'utf-8'));
+      if (meta.run_scope === scope) return;
+      meta.run_scope = scope;
+      writeFileSync(metaPath, JSON.stringify(meta, null, 2));
+      const evPath = join(dir, 'events.jsonl');
+      const seq = existsSync(evPath)
+        ? readFileSync(evPath, 'utf-8').split('\n').filter(Boolean).length + 1
+        : 1;
+      appendFileSync(evPath,
+        `${JSON.stringify({ seq, ts: new Date().toISOString(), kind: 'scope_claimed', data: { run_scope: scope } })}\n`);
+    } catch { /* foreign/unreadable task dir — best effort */ }
+  };
+  claimTaskScope();
+
   // Authoritative budget admission sits at the provider-request layer, not
   // just the channel entry — auto-retry, compaction summarizer, and provider
   // retries all end in an HTTP call through this fetch. Denial is a synthetic
@@ -454,6 +479,7 @@ export async function startHost({
     modeOverlay = null; // preset overlays die with the session as well
     const built = await buildSession(sessionManager);
     currentSession = built.session;
+    claimTaskScope();
     channelHandle.rebind(built.session);
     channelHandle.channel.emitEvent({
       type: 'session_changed',

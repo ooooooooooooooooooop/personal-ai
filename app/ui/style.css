@@ -250,6 +250,34 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; background:
 .jump-latest:hover { background: var(--g700); color: var(--text); }
 .jump-latest svg { width: 13px; height: 13px; }
 
+/* minimap — transcript position glyphs, right edge of the chat view */
+#minimap {
+  position: absolute; right: 2px; top: 8px; bottom: 140px;
+  width: 10px; z-index: 15; cursor: pointer;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--g800) 40%, transparent);
+}
+#minimap .mm-tick {
+  position: absolute; left: 2px; right: 2px;
+  border-radius: 1px; background: var(--text-4); opacity: .55;
+}
+#minimap .mm-tick.user { background: var(--text); opacity: .75; }
+#minimap .mm-thumb {
+  position: absolute; left: 0; right: 0; min-height: 10px;
+  border-radius: 4px; background: color-mix(in srgb, var(--text-3) 30%, transparent);
+  border: 1px solid var(--line);
+}
+
+/* first-run tour card */
+#tour-card {
+  margin-top: 22px; padding: 16px 18px; text-align: left;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--bg-elev-opaque); max-width: 420px;
+}
+.tour-title { font-size: 13px; font-weight: 600; color: var(--text-2); margin-bottom: 8px; }
+.tour-list { margin: 0 0 12px; padding-left: 18px; font-size: 12.5px; color: var(--text-3); line-height: 1.8; }
+.tour-list code { background: var(--g800); border-radius: 4px; padding: 0 5px; font-size: 11.5px; }
+
 #empty-state {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; min-height: 55vh; text-align: center;

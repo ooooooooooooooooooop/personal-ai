@@ -47,6 +47,45 @@ function isNearBottom() {
 transcript.addEventListener('scroll', () => {
   nearBottom = isNearBottom();
   $('jump-latest').classList.toggle('show', !nearBottom && sawMessage);
+  paintMinimapThumb();
+});
+
+/* ---------- minimap: 每条消息一个刻度，点击跳转 ---------- */
+const minimap = $('minimap');
+let mmQueued = false;
+function paintMinimapThumb() {
+  const th = minimap?.querySelector('.mm-thumb');
+  if (!th || minimap.classList.contains('hidden')) return;
+  const H = transcript.scrollHeight, h = minimap.clientHeight;
+  th.style.top = `${(transcript.scrollTop / H) * h}px`;
+  th.style.height = `${Math.max(10, (transcript.clientHeight / H) * h)}px`;
+}
+function renderMinimap() {
+  const H = transcript.scrollHeight;
+  if (!minimap || !sawMessage || H <= transcript.clientHeight * 1.2) {
+    minimap?.classList.add('hidden'); return;
+  }
+  minimap.classList.remove('hidden');
+  const h = minimap.clientHeight;
+  minimap.innerHTML = '<div class="mm-thumb"></div>';
+  for (const m of transcript.querySelectorAll('.msg')) {
+    const t = document.createElement('div');
+    t.className = `mm-tick${m.classList.contains('user') ? ' user' : ''}`;
+    t.style.top = `${(m.offsetTop / H) * h}px`;
+    t.style.height = `${Math.max(2, (m.offsetHeight / H) * h)}px`;
+    minimap.appendChild(t);
+  }
+  paintMinimapThumb();
+}
+function queueMinimap() {
+  if (mmQueued) return;
+  mmQueued = true;
+  requestAnimationFrame(() => { mmQueued = false; renderMinimap(); });
+}
+new MutationObserver(queueMinimap).observe(transcript, { childList: true });
+minimap?.addEventListener('pointerdown', (e) => {
+  const r = minimap.getBoundingClientRect();
+  transcript.scrollTop = ((e.clientY - r.top) / r.height) * transcript.scrollHeight - transcript.clientHeight / 2;
 });
 function scrollTail() {
   if (!nearBottom) { $('jump-latest').classList.add('show'); return; }
@@ -1235,6 +1274,9 @@ async function refreshModels() {
   // Gate: no current model → setup card takes over the empty state
   const noModel = modelStatus?.current == null;
   $('setup-card')?.classList.toggle('hidden', sawMessage || !noModel);
+  // first-run tour: model configured + never dismissed + no messages yet
+  $('tour-card')?.classList.toggle('hidden',
+    sawMessage || noModel || localStorage.getItem('pai.onboarded') === '1');
   if (!sawMessage && noModel) $('empty-state')?.classList.add('hidden');
   else $('empty-state')?.classList.remove('hidden');
   updateChips();
@@ -1276,6 +1318,10 @@ async function saveKey(providerSel, keyInput, msgEl) {
   await refreshModels();
 }
 $('setup-save-key').onclick = () => saveKey('setup-provider', 'setup-key', 'setup-msg');
+$('tour-dismiss').onclick = () => {
+  localStorage.setItem('pai.onboarded', '1');
+  $('tour-card')?.classList.add('hidden');
+};
 $('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
 $('set-clear-key').onclick = async () => {
   const provider = $('set-provider').value;
@@ -1492,11 +1538,31 @@ async function refreshTasks() {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-4);padding:20px">暂无协作任务——delegate_task 委派自动建档</td></tr>';
     return;
   }
+  // 委派拓扑：parent_task_id 指向可见任务时按父子树缩进，孤儿/根并列
+  const byId = new Map(tasks.map((t) => [t.task_id, t]));
+  const kids = new Map();
+  const roots = [];
   for (const t of tasks) {
+    const p = t.parent_task_id;
+    if (p && byId.has(p)) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(t); }
+    else roots.push(t);
+  }
+  const ordered = [];
+  const walk = (t, depth) => {
+    ordered.push({ t, depth });
+    for (const c of kids.get(t.task_id) ?? []) walk(c, depth + 1);
+  };
+  for (const r of roots) walk(r, 0);
+  for (const { t, depth } of ordered) {
     const tr = document.createElement('tr');
     const cells = [t.task_id?.slice(0, 16) ?? '', t.label ?? '', t.state ?? '', (t.job_id ?? '').slice(0, 12), `收${t.inbox_count ?? 0}/发${t.outbox_count ?? 0}`];
     tr.innerHTML = cells.map(() => '<td></td>').join('');
     tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
+    if (depth) {
+      const td = tr.querySelectorAll('td')[1];
+      td.style.paddingLeft = `${8 + depth * 16}px`;
+      td.textContent = `└ ${td.textContent}`;
+    }
     tr.classList.add('clickable');
     tr.onclick = () => openTask(t.task_id);
     tbody.appendChild(tr);

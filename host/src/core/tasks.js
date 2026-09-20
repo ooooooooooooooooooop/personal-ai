@@ -67,8 +67,18 @@ export class TaskStore {
   list() {
     let ids;
     try { ids = readdirSync(this.dir); } catch { return []; }
-    return ids.map((id) => this.get(id)).filter(Boolean)
+    const rows = ids.map((id) => this.get(id)).filter(Boolean)
       .sort((a, b) => b.created.localeCompare(a.created));
+    // resolve parent scope → task_id: a delegated child records its spawning
+    // session scope in `parent_task_id`, then claims the mailbox by writing
+    // its own run_scope into task.json (PAI_TASK_DIR). Where both records
+    // live in this store, the raw scope resolves to the real parent task.
+    const byScope = new Map(rows.filter((t) => t.run_scope).map((t) => [t.run_scope, t.task_id]));
+    for (const t of rows) {
+      const raw = t.parent_task_id;
+      if (raw && byScope.has(raw)) { t.parent_scope = raw; t.parent_task_id = byScope.get(raw); }
+    }
+    return rows;
   }
 
   /** Append a row to a stream; returns the assigned seq (line number). */

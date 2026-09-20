@@ -1,7 +1,7 @@
 /**
  * AgentTask mailbox (F-family) — seq/ack streams, state machine, wait.
  */
-import { mkdtempSync, existsSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -76,4 +76,23 @@ test('missing task reads empty, never throws', () => {
   assert.equal(s.get('task-nope'), null);
   assert.deepEqual(s.read('task-nope', 'inbox'), []);
   assert.equal(s.postInbox('task-nope', { body: 'x' }), null);
+});
+
+test('list resolves parent scope → task_id once the child claims its mailbox', () => {
+  const { store: s, root } = mk();
+  const parent = s.create({ label: 'outer' });
+  const child = s.create({ label: 'inner', parent: 'sess-child-42' });
+  // unclaimed: parent field stays the raw scope — no false nesting
+  let list = s.list();
+  assert.equal(list.find((t) => t.task_id === child.task_id).parent_task_id, 'sess-child-42');
+  // the child claims: writes run_scope into its own task.json
+  const meta = JSON.parse(readFileSync(join(s.dir, child.task_id, 'task.json'), 'utf-8'));
+  meta.run_scope = 'sess-child-42';
+  writeFileSync(join(s.dir, child.task_id, 'task.json'), JSON.stringify(meta, null, 2));
+  // now a grandchild spawned BY that child resolves to it as a real task
+  const grand = s.create({ label: 'leaf', parent: 'sess-child-42' });
+  list = s.list();
+  const g = list.find((t) => t.task_id === grand.task_id);
+  assert.equal(g.parent_task_id, child.task_id);
+  assert.equal(g.parent_scope, 'sess-child-42'); // raw scope preserved
 });
