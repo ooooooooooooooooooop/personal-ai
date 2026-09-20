@@ -903,5 +903,7 @@
 | G5 veto 钩 | Claude Code PreToolUse | `<instance>/hooks.json` gate（操作员私有）——exit≠0/`{"deny"}`→block，match 前缀过滤，fail-closed |
 | 三 scope rewind+分叉点 | ZCode EscEsc（chat/files/both）+fork 自任一消息 | `session_rewind {scope:'chat'|'files'|'both'}`（files 不动对话头；restoreFiles 为 both 的旧拼写）+`session_fork {entryId}` 分叉到任一 entry；`/rewind` 两级菜单 |
 | 规则应用模式 | Trae/Kiro frontmatter globs+apply | steering frontmatter：`apply: manual`→不注入只进 `<manual-rules>` 索引；`globs:`→注入带 scope 声明属性（按触碰路径真条件注入=v2） |
+| restore 不覆盖外部改动 | ZCode 安全 checkpoint 计划 | `FileOpsGuard.restore` 覆盖前先把当前字节回收进 recycle——restore 自身可逆，外部编辑不被销毁 |
+| 钉文件进上下文 | CodeArts `/context add` | `.pai/pins.json`+`/pin` `/unpin`——pin 的 path 每轮**活读**进 `<pinned-files>` 段；workdir 内校验+.paiignore 双向赢（add 拒+render 跳） |
 
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

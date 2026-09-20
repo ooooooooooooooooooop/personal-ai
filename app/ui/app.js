@@ -2139,6 +2139,34 @@ const SLASH = [
     },
   },
   {
+    cmd: '/pin', label: '钉文件进上下文', hint: '/pin <路径> 每轮注入该文件最新内容；/pin 列出现有钉',
+    run: async (arg) => {
+      const p = String(arg ?? '').trim();
+      if (!p) {
+        const r = await cmd('pins_list');
+        const paths = r.data?.paths ?? [];
+        addSys(paths.length ? `已钉文件：\n${paths.map((x) => `  · ${x}`).join('\n')}` : '没有钉住的文件——/pin <路径> 钉一个');
+        return;
+      }
+      const r = await cmd('pins_add', { path: p });
+      if (r.success) toast(`已钉：${p}（每轮注入最新内容）`);
+      else addSys(`钉失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/unpin', label: '取消钉文件', hint: '从上下文钉列表移除',
+    run: async () => {
+      const r = await cmd('pins_list');
+      const paths = r.data?.paths ?? [];
+      if (!paths.length) { addSys('没有钉住的文件', true); return; }
+      openMenu(paths.map((x) => ({ label: x, value: x })), async (it) => {
+        const r2 = await cmd('pins_remove', { path: it.value });
+        if (r2.success) toast(`已移除：${it.value}`);
+        else addSys(`移除失败：${r2.error ?? '未知'}`, true);
+      });
+    },
+  },
+  {
     cmd: '/chat', label: '存档会话', hint: '/chat save 名字 存快照；/chat load 打开已存',
     run: async (arg) => {
       const [sub, ...rest] = String(arg ?? '').trim().split(/\s+/).filter(Boolean);

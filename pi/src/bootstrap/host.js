@@ -20,6 +20,7 @@ import { LoopDetector } from '../../../host/src/core/loopwatch.js';
 import { HookRunner } from '../../../host/src/core/hooks.js';
 import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
 import { loadSteering } from '../../../host/src/core/steering.js';
+import { loadPins, editPins } from '../../../host/src/core/pins.js';
 import { PaiIgnore } from '../../../host/src/core/paiignore.js';
 import { ModePresets, validateModesDoc } from '../../../host/src/core/modes.js';
 
@@ -336,6 +337,9 @@ export async function startHost({
         // pinned memory rides the context envelope as untrusted evidence —
         // recalled claims, never an authority channel
         memoryDigest: memoryStore.injection(),
+        // /context add analogue — .pai/pins.json paths re-read live each
+        // turn; .paiignore still wins over pinning (context exclusion holds)
+        pins: loadPins(workdir, { isIgnored: (p) => new PaiIgnore(workdir).isIgnored(p) }),
         // moim-style turn budget hint: consumed/limits visible every turn so
         // the model paces itself instead of learning at the hard gate.
         budget: (() => {
@@ -850,6 +854,21 @@ export async function startHost({
       listAll: () => fileOps.listAll(),
       restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
       diff: (n, receiptId) => fileOps.diff(n, receiptId),
+    },
+    // /context add analogue — pinned files re-read live into the envelope
+    // every turn. .paiignore wins over pinning both at add time and render.
+    pins: {
+      list: () => editPins(workdir, 'list'),
+      add: (p) => {
+        const r = editPins(workdir, 'add', p, { isIgnored: (x) => new PaiIgnore(workdir).isIgnored(x) });
+        if (!r.error && !r.unchanged) core.audit.write({ kind: 'PIN_ADDED', data: { path: String(p).slice(0, 200) } });
+        return r;
+      },
+      remove: (p) => {
+        const r = editPins(workdir, 'remove', p);
+        if (!r.error) core.audit.write({ kind: 'PIN_REMOVED', data: { path: String(p).slice(0, 200) } });
+        return r;
+      },
     },
     budget,
     writeLease,

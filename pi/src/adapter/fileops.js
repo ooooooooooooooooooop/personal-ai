@@ -113,6 +113,15 @@ export class FileOpsGuard {
       return op.target;
     }
     if (!existsSync(source)) throw new Error(`receipt ${receiptId} has no recoverable artifact`);
+    // ZCode safety-checkpoint semantics: never clobber the current file —
+    // if bytes exist at the target now (agent edits or external changes),
+    // they are recycled before the overwrite, so a restore is itself
+    // recoverable instead of destroying un-receipted work.
+    if (existsSync(op.target)) {
+      const dest = join(this.recycleDir, `${Date.now()}-${basename(op.target)}`);
+      renameSync(op.target, dest);
+      this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore-displace', target: op.target, removedTo: dest });
+    }
     copyFileSync(source, op.target);
     this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore', target: op.target, from: source });
     return op.target;

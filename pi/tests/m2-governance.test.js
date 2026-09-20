@@ -2,7 +2,7 @@
  * M2 pi-side governance pieces — real tree-sitter parsing, real pi-ai
  * revalidation, deny-memory persistence, file backup/recycle semantics.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -189,4 +189,21 @@ test('FileOpsGuard.diff: backup→current unified diff per receipt, artifacts go
   const d2 = guard.diff(1);
   assert.equal(d2.diffs[0].op, 'delete');
   assert.match(d2.diffs[0].diff, /-line1/);
+});
+
+test('FileOpsGuard: restore never clobbers — current bytes are recycled first', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fg2-'));
+  const guard = new FileOpsGuard(dir);
+  const target = join(dir, 'f.txt');
+  writeFileSync(target, 'v1');
+  const { receiptId } = await guard.backup(target);
+  writeFileSync(target, 'v2 agent edit');
+  // external edit after our mutation — restore must not destroy it
+  writeFileSync(target, 'v3 external');
+  guard.restore(receiptId);
+  assert.equal(readFileSync(target, 'utf-8'), 'v1'); // backup restored
+  // the displaced v3 sits in the recycle dir — recoverable, not destroyed
+  const displaced = readdirSync(join(dir, 'recycle')).find((f) => f.endsWith('-f.txt'));
+  assert.ok(displaced);
+  assert.equal(readFileSync(join(dir, 'recycle', displaced), 'utf-8'), 'v3 external');
 });
