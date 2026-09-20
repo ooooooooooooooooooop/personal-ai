@@ -1083,3 +1083,12 @@ tr.clickable:hover td { background: var(--field); }
 #splash.done { opacity: 0; pointer-events: none; }
 .splash-mark { font-size: 22px; font-weight: 650; letter-spacing: .04em; color: var(--text); }
 .splash-sub { font-size: 12.5px; color: var(--text-4); }
+
+/* chat column width drag handle (Codex resize analogue) */
+#view-chat { position: relative; }
+#chatw-handle {
+  position: absolute; top: 0; bottom: 0; width: 10px; z-index: 30;
+  left: calc(50% + var(--chat-w) / 2); margin-left: -5px;
+  cursor: ew-resize;
+}
+#chatw-handle:hover, #chatw-handle.drag { background: linear-gradient(to right, transparent, var(--line) 45%, var(--line) 55%, transparent); }

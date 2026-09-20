@@ -327,7 +327,7 @@ export class HostChannel {
         }
         case 'session_export': {
           if (!this.session?.export) return reply(false, undefined, 'export unavailable');
-          return reply(true, await this.session.export({ format: cmd.format === 'jsonl' ? 'jsonl' : 'html' }));
+          return reply(true, await this.session.export({ format: ['jsonl', 'debug'].includes(cmd.format) ? cmd.format : 'html' }));
         }
         case 'session_save': {
           // Gemini /chat save: named snapshot of the live transcript the

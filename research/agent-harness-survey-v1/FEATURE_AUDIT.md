@@ -892,4 +892,14 @@
 | 长会话分页 | Codex/OpenCode 虚拟滚动 | UI 侧虚拟分页：首渲染最近 50 条+"加载更早"按批上移，协议零改动 |
 | 通知历史抽屉 | PI-Desktop notification center | 顶部铃铛+计数徽章+最近 50 条抽屉（toast 转瞬即逝的补全） |
 
+**第二轮复扫**（逐家 ❌/🟡 行对现状重判）追加落地：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| 粘贴超长文本转附件 | Codex composer | paste 事件 text/plain >1500 字符→自动转 text attachment chip（不淹输入框） |
+| 对话宽度拖拽 | Codex resize handle | `#chatw-handle` 拖 `--chat-w`（480–1400px 夹取，localStorage 持久） |
+| 多路径规则兼容装载 | Devin `.devin/`+`.claude`/`.cursor` 兼容 | `loadSteering` 增读 `.claude/rules`、`.cursor/rules`(.md/.mdc)、`.windsurf/rules`、`.devin/rules`——迁移团队规则零拷贝生效 |
+| `/export debug` 调试包 | Devin `/debug` 含 subagent 链 trajectory | 原始轨迹+本会话 spawn 的任务子树（run_scope/parent 链闭包）+事件流+jobs 打包 JSON |
+| G5 veto 钩 | Claude Code PreToolUse | `<instance>/hooks.json` gate（操作员私有）——exit≠0/`{"deny"}`→block，match 前缀过滤，fail-closed |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

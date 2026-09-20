@@ -2106,9 +2106,10 @@ const SLASH = [
     },
   },
   {
-    cmd: '/export', label: '导出会话', hint: '导出为 HTML（/export jsonl 导原始轨迹）',
+    cmd: '/export', label: '导出会话', hint: '导出为 HTML（/export jsonl 导原始轨迹，/export debug 导含子任务链的调试包）',
     run: async (arg) => {
-      const format = String(arg ?? '').trim().toLowerCase() === 'jsonl' ? 'jsonl' : 'html';
+      const a = String(arg ?? '').trim().toLowerCase();
+      const format = ['jsonl', 'debug'].includes(a) ? a : 'html';
       const r = await cmd('session_export', { format });
       if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
       else addSys(`导出失败：${r.error ?? '未知'}`, true);
@@ -2775,7 +2776,16 @@ async function attachFiles(fileList) {
   renderAttach();
 }
 input.addEventListener('paste', (e) => {
-  if (e.clipboardData?.files?.length) { e.preventDefault(); attachFiles(e.clipboardData.files); }
+  if (e.clipboardData?.files?.length) { e.preventDefault(); attachFiles(e.clipboardData.files); return; }
+  // Codex long-paste analogue: a wall of pasted text becomes an attachment
+  // chip instead of flooding the composer — same 'text' kind as file drops,
+  // sent as an inline labeled block.
+  const t = e.clipboardData?.getData?.('text/plain') ?? '';
+  if (t.length > 1500) {
+    e.preventDefault();
+    pendingAttach.push({ name: `粘贴文本-${new Date().toTimeString().slice(0, 8).replaceAll(':', '')}.txt`, kind: 'text', text: t, bytes: t.length });
+    renderAttach();
+  }
 });
 const composerEl = $('composer');
 composerEl.addEventListener('dragover', (e) => { e.preventDefault(); composerEl.classList.add('drop'); });
@@ -2882,6 +2892,32 @@ es.onopen = () => {
     setTimeout(() => sp.remove(), 450);
   }
 };
+
+/* chat column width drag — Codex resize handle analogue; --chat-w is the
+   single var every centered row already keys off */
+{
+  const h = $('chatw-handle');
+  const savedW = Number(localStorage.getItem('pai.chatW'));
+  if (savedW >= 480 && savedW <= 1400) document.documentElement.style.setProperty('--chat-w', `${savedW}px`);
+  h?.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    h.classList.add('drag');
+    h.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      const center = $('view-chat').getBoundingClientRect().left + $('view-chat').offsetWidth / 2;
+      const w = Math.min(1400, Math.max(480, Math.round((ev.clientX - center) * 2)));
+      document.documentElement.style.setProperty('--chat-w', `${w}px`);
+    };
+    const up = () => {
+      h.classList.remove('drag');
+      h.removeEventListener('pointermove', move);
+      h.removeEventListener('pointerup', up);
+      localStorage.setItem('pai.chatW', getComputedStyle(document.documentElement).getPropertyValue('--chat-w').replace('px', ''));
+    };
+    h.addEventListener('pointermove', move);
+    h.addEventListener('pointerup', up);
+  });
+}
 
 autogrow();
 (async () => {

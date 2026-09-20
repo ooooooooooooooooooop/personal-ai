@@ -239,6 +239,48 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         copyFileSync(src, out);
         return { file: out, format: 'jsonl' };
       }
+      // /debug bundle (Devin trajectory-with-subagents analogue): the raw
+      // session file PLUS the AgentTask subtree this session spawned and the
+      // job rows — one JSON the operator can hand to support or replay.
+      if (opts.format === 'debug') {
+        const src = box.s.sessionFile;
+        if (!src) return { file: null, format: 'debug' };
+        const scope = box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? null;
+        const dir = join(dirname(src), 'exports');
+        mkdirSync(dir, { recursive: true });
+        const out = join(dir, `debug-${Date.now()}.json`);
+        const allTasks = tasks?.list?.() ?? [];
+        // bind: tasks whose run_scope is this session (spawned children) or
+        // whose parent chain leads into this session's tree
+        const mine = new Set(
+          allTasks.filter((t) => t.run_scope === scope || t.parent_scope === scope).map((t) => t.task_id));
+        // pull grandchildren — a spawned child may itself have spawned tasks
+        let grew = true;
+        while (grew) {
+          grew = false;
+          for (const t of allTasks) {
+            if (!mine.has(t.task_id) && t.parent_task_id && mine.has(t.parent_task_id)) {
+              mine.add(t.task_id); grew = true;
+            }
+          }
+        }
+        const bundle = {
+          exportedAt: new Date().toISOString(),
+          sessionId: scope,
+          sessionFile: src,
+          trajectory: readFileSync(src, 'utf-8').trim().split('\n').filter(Boolean)
+            .map((l) => { try { return JSON.parse(l); } catch { return { raw: l.slice(0, 400) }; } }),
+          tasks: allTasks.filter((t) => mine.has(t.task_id)).map((t) => ({
+            task_id: t.task_id, label: t.label, state: t.state, kind: t.kind, name: t.name,
+            job_id: t.job_id, parent_task_id: t.parent_task_id, run_scope: t.run_scope,
+            created: t.created,
+            events: tasks?.read ? (tasks.read(t.task_id, 'events') ?? []) : [],
+          })),
+          jobs: (jobs?.list?.() ?? []).filter((j) => j.session_scope === scope || j.sessionId === scope),
+        };
+        writeFileSync(out, JSON.stringify(bundle, null, 2));
+        return { file: out, format: 'debug', tasks: bundle.tasks.length };
+      }
       const html = await box.s.exportToHtml?.();
       return { file: html ?? null, format: 'html' };
     },

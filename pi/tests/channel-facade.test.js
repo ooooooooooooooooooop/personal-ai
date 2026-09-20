@@ -2,7 +2,7 @@
  * M6 pi channel facade — real AgentSession subscribe + real audit file tail.
  * Asserts the facade translates Pi state into plain-data snapshots.
  */
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -456,5 +456,37 @@ test('commands_read/save dispatch; project file refuses allowPrefixes (layered o
   const nr = await bare.channel.handle({ type: 'commands_read' });
   assert.equal(nr.success, false);
   bare.dispose();
+  dispose();
+});
+
+test('session_export format=debug bundles trajectory + spawned task chain', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-debug-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const sessDir = join(dir, 'sessions'); mkdirSync(sessDir, { recursive: true });
+  const sessFile = join(sessDir, 's1.jsonl');
+  writeFileSync(sessFile, '{"type":"message","role":"user"}\n{"type":"message","role":"assistant"}\n');
+  fakeSessionRef.sessionFile = sessFile;
+  fakeSessionRef.sessionId = 'sess-42';
+  const core = { paths: { auditDir } };
+  const taskRows = [
+    { task_id: 't1', label: 'child', state: 'open', run_scope: 'sess-42', job_id: 'j1', parent_task_id: null },
+    { task_id: 't2', label: 'grandchild', state: 'open', run_scope: 'sess-child', parent_task_id: 't1' },
+    { task_id: 't3', label: 'other session', state: 'open', run_scope: 'sess-99' },
+  ];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    tasks: { list: () => taskRows, read: () => [{ seq: 1, kind: 'note' }] },
+    jobs: { list: () => [{ job_id: 'j1', session_scope: 'sess-42' }, { job_id: 'j9', session_scope: 'sess-99' }] },
+  });
+  const r = await ch.handle({ type: 'session_export', format: 'debug' });
+  assert.equal(r.success, true);
+  const bundle = JSON.parse(readFileSync(r.data.file, 'utf-8'));
+  assert.equal(bundle.sessionId, 'sess-42');
+  assert.equal(bundle.trajectory.length, 2);
+  // t1 bound directly (run_scope), t2 via parent chain, t3 excluded
+  assert.deepEqual(bundle.tasks.map((t) => t.task_id).sort(), ['t1', 't2']);
+  assert.equal(bundle.tasks[0].events[0].seq, 1);
+  assert.deepEqual(bundle.jobs.map((j) => j.job_id), ['j1']);
   dispose();
 });

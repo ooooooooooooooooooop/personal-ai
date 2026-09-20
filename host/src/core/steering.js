@@ -4,6 +4,11 @@
  * context envelope every turn, so they survive compaction like the rest
  * of the world-model projection.
  *
+ * Compat paths (Devin multi-source loading analogue): `.claude/rules/*.md`,
+ * `.cursor/rules/*.md`, `.cursor/rules/*.mdc`, `.windsurf/rules/*.md`,
+ * `.devin/rules/*.md` are read as additional steering files — teams migrating
+ * off other harnesses keep their rule docs working without copying.
+ *
  * Steering is project guidance — context-channel content, NOT instruction
  * channel: it rides the same untrusted-ish envelope the rest of the
  * briefing does and cannot weaken policy. Bounded per file and in total —
@@ -15,6 +20,8 @@ import { join } from 'node:path';
 const PER_FILE_MAX = 16 * 1024;
 const TOTAL_MAX = 32 * 1024;
 const NAMED = ['product.md', 'structure.md', 'tech.md'];
+// Rule directories other harnesses planted — read as compat steering sources.
+const COMPAT_DIRS = ['.claude/rules', '.cursor/rules', '.windsurf/rules', '.devin/rules'];
 
 /**
  * @param {string} workdir
@@ -31,6 +38,15 @@ export function loadSteering(workdir) {
   for (const f of NAMED) {
     const p = join(workdir, '.pai', f);
     if (existsSync(p)) files.push({ name: f, path: p });
+  }
+  // Compat rule dirs from other harnesses — same context-channel semantics,
+  // files stay read-only guidance, never authority.
+  for (const d of COMPAT_DIRS) {
+    const dir = join(workdir, d);
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir).filter((x) => /\.(md|mdc)$/i.test(x)).sort()) {
+      files.push({ name: `${d}/${f}`, path: join(dir, f) });
+    }
   }
   if (!files.length) return null;
 
