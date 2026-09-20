@@ -33,6 +33,7 @@ import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
+import { notifyUserTool } from '../adapter/notify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
@@ -223,6 +224,9 @@ export async function startHost({
     // structured operator questions — kind:'question' asks bypass session
     // auto-allow by design (a question can never answer itself)
     askUserTool(() => asks),
+    // one-way operator notification — the emit target is the channel handle
+    // built below (late-bound); unlike ask_user this never suspends the turn
+    notifyUserTool(() => (ev) => channelHandle?.channel.emitEvent(ev)),
     // network tools — web_fetch always on (policy maps it to ask); web_search
     // only when the operator configures an endpoint (never advertised empty)
     webFetchTool(),
@@ -740,6 +744,7 @@ export async function startHost({
       list: () => [
         { name: 'normal', description: 'full posture', source: 'builtin' },
         { name: 'plan', description: 'read-only planning — mutations escalate to operator asks', source: 'builtin' },
+        { name: 'review', description: 'read-only review posture — mutation tools denied, execution asks', source: 'builtin' },
         ...loadModePresets().list(),
       ],
       active: () => modeOverlay?.name ?? riskMode,
@@ -750,6 +755,24 @@ export async function startHost({
           toolSurface?.setModeDenied([]);
           core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: null } });
           return { mode: name };
+        }
+        if (name === 'review') {
+          // builtin review posture (Codex /review analogue): same overlay
+          // shape a project preset compiles to — denies mutation tools,
+          // escalates execution; can never widen anything canonical denies
+          modeOverlay = {
+            name: 'review',
+            toolActions: { write: 'deny', edit: 'deny', delete: 'deny', bash: 'ask', delegate_task: 'ask' },
+            allowSet: new Set(),
+            pathRules: [],
+            defaultAction: 'allow',
+            hideTools: [],
+            hash: 'builtin-review',
+          };
+          riskMode = 'normal';
+          toolSurface?.setModeDenied([]);
+          core.audit.write({ kind: 'MODE_SET', data: { mode: 'review', overlay: true, policy_hash: 'builtin-review' } });
+          return { mode: 'review', overlay: { hideTools: [], defaultAction: 'allow' } };
         }
         const overlay = loadModePresets().compile(name); // null = unknown → fail closed
         if (!overlay) return null;

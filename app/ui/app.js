@@ -736,6 +736,11 @@ function onAgentEvent(ev) {
       }
       break;
     }
+    case 'notify':
+      // notify_user: model→operator one-way notification (Kimi NotifyUser)
+      toast(ev.message, ev.level === 'err' ? 'err' : 'info');
+      addSys(`通知：${ev.message}`, ev.level === 'err');
+      break;
     case 'tool_execution_start':
       addTool(ev);
       break;
