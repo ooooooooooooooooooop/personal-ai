@@ -25,6 +25,7 @@ import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
+import { specTools } from '../adapter/specs.js';
 import { ScheduleStore } from '../../../host/src/core/scheduler.js';
 import { loadAgentProfiles } from '../adapter/agentprofiles.js';
 import { createChannelHost } from '../adapter/channel.js';
@@ -200,6 +201,9 @@ export async function startHost({
       ? [webSearchTool({ endpoint: process.env.PAI_WEB_SEARCH_URL, apiKey: process.env.PAI_WEB_SEARCH_KEY ?? null })]
       : []),
     scheduleTool(scheduleStore),
+    // G11 thin SDD: spec artifacts under .pai/specs/ — the model writes
+    // docs via governed write/edit; these tools only scaffold + report
+    ...specTools({ getWorkdir: () => workdir }),
   ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
     commandFor: delegationCommand,
