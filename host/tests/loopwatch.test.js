@@ -104,3 +104,34 @@ test('argument key order does not change the signature', () => {
   const s2 = d.signature('write', { content: 'c', path: 'a' });
   assert.equal(s1, s2);
 });
+
+test('mistake_limit: consecutive errors escalate at the configured limit', () => {
+  const d = new LoopDetector({ errorLimit: 3 });
+  assert.equal(d.observeResult(true).level, 'ok');
+  assert.equal(d.observeResult(true).level, 'ok');
+  const v = d.observeResult(true);
+  assert.equal(v.level, 'escalate');
+  assert.equal(v.kind, 'mistake');
+  assert.equal(v.count, 3);
+  // still escalating while errors continue — each further error re-asks
+  assert.equal(d.observeResult(true).level, 'escalate');
+});
+
+test('mistake_limit: a success resets the streak', () => {
+  const d = new LoopDetector({ errorLimit: 2 });
+  assert.equal(d.observeResult(true).level, 'ok');
+  assert.equal(d.observeResult(false).level, 'ok');
+  assert.equal(d.observeResult(true).level, 'ok'); // streak 1 — below limit
+  assert.equal(d.observeResult(true).level, 'escalate'); // streak 2
+});
+
+test('mistake_limit: stopRun latches until reset', () => {
+  const d = new LoopDetector();
+  assert.equal(d.stopped, false);
+  d.observeResult(true); d.observeResult(true); d.observeResult(true);
+  d.stopRun();
+  assert.equal(d.stopped, true);
+  d.reset();
+  assert.equal(d.stopped, false);
+  assert.equal(d.errorStreak, 0);
+});

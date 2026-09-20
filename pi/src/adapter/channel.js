@@ -26,7 +26,7 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  */
 const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -111,6 +111,37 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // .pai/verify.json command (armed only if policy allows its class)
       if (ev?.type === 'tool_execution_end' && !ev.isError && VERIFY_WRITE_TOOLS.has(ev.toolName)) {
         verify?.afterWrite().catch(() => {});
+      }
+      // Roo mistake_limit: consecutive tool errors escalate to the operator;
+      // 'deny' sets loopwatch.stopped → the decide chain refuses further calls.
+      // Detached (no await): the tool_execution_end event must reach the UI
+      // immediately — the error IS what the operator needs to see on the card.
+      if (ev?.type === 'tool_execution_end') {
+        const lw = getLoopwatch?.();
+        if (lw) {
+          const v = lw.observeResult(Boolean(ev.isError));
+          if (v.level === 'escalate') {
+            core.audit?.write({ kind: 'MISTAKE_LIMIT', data: { count: v.count, toolName: ev.toolName } });
+            const answered = asks?.ask
+              ? asks.ask({
+                  toolName: ev.toolName ?? 'tool',
+                  toolCallId: ev.toolCallId,
+                  rule: 'mistake_limit',
+                  summary: `连续 ${v.count} 次工具错误`,
+                  detail: `${v.reason} —— 允许=继续本轮，拒绝=停止本轮全部工具调用`,
+                  args: { streak: v.count, lastTool: ev.toolName },
+                  argsTruncated: false,
+                  argsTotalChars: null,
+                })
+              : Promise.resolve('deny'); // no operator channel → stop (fail-closed)
+            answered.then((a) => {
+              if (a !== 'allow' && a !== 'allow_session') {
+                lw.stopRun();
+                emit({ type: 'notify', message: '已停止本轮——连续工具错误过多', level: 'err' });
+              }
+            }).catch(() => {});
+          }
+        }
       }
       emit(ev);
     });

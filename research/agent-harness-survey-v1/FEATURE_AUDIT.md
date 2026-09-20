@@ -906,4 +906,13 @@
 | restore 不覆盖外部改动 | ZCode 安全 checkpoint 计划 | `FileOpsGuard.restore` 覆盖前先把当前字节回收进 recycle——restore 自身可逆，外部编辑不被销毁 |
 | 钉文件进上下文 | CodeArts `/context add` | `.pai/pins.json`+`/pin` `/unpin`——pin 的 path 每轮**活读**进 `<pinned-files>` 段；workdir 内校验+.paiignore 双向赢（add 拒+render 跳） |
 
+**复扫第三批**：
+
+| 项 | 参考 | 落地 |
+|---|---|---|
+| mistake-limit 错误连击升级 | Roo `mistake_limit` 连续错误计数 | `LoopDetector.observeResult`——连续工具错误 ≥3（`errorLimit`）→ escalate 操作员卡（允许=继续，拒绝=本轮停）;`stopped` 后 decide 链拒绝一切调用直到新 turn 复位；无 asks 通道 fail-closed 停；错误事件先渲染不卡在卡后 |
+| 根级兼容指令文件 | Crush 兼容装载（CLAUDE/GEMINI/cursorrules/copilot） | `loadSteering` 增读 `AGENTS.md`、`CLAUDE.md`、`GEMINI.md`、`.cursorrules`、`.windsurfrules`、`.github/copilot-instructions.md`——同 context-channel 语义，永远只是项目文档不是政策 |
+| knowledge 注入审计 | Crush `skills.Tracker` 命中可观测 | `KNOWLEDGE_INJECTED` 审计事件（agents 名单载荷）——已存在并有测试断言 |
+| 委派 spawn 深度帽 | Codex thread-tree 深度控制 | `PAI_SPAWN_DEPTH` env 经桥注入子进程，`PAI_MAX_SPAWN_DEPTH`（默认 3）封顶——到顶拒绝返回工具结果（模型可读、可绕行），teammate spawnSpec 记 depth |
+
 **仍剩**（递减收益/需真实需求驱动）：Claude Code worktree 隔离（与 writeLease+回执体系重叠，等真实并行需求）、Gemini per-model fallback 链与 trust-gated 高权模式（政策敏感面）、Hermes auxiliary 模型分工（第二路模型开销）、OpenHands 多策略 condenser、Qwen microcompaction、Pi custom-entry/compact-veto/project-trust（veto 钩子与观察面设计冲突，维持有意不做）、OpenCode tree-sitter 命令解析（新增依赖 vs 现有解析器已覆盖 pipe/subshell/单位提取）。启动闪屏已落（`#splash` 只盖真实连接等待，无假进度）。

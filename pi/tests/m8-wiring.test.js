@@ -402,3 +402,23 @@ test('operator pre_tool gate vetoes an admitted call (fail-closed on error)', as
   assert.equal(r.block, true);
   assert.match(r.reason, /fail-closed/);
 });
+
+test('mistake-limit stop: loopwatch.stopped refuses calls until a fresh turn resets', async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-stop-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const lw = new LoopDetector({ errorLimit: 2 });
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: lw });
+  // operator pressed stop after the escalation
+  lw.observeResult(true); lw.observeResult(true);
+  lw.stopRun();
+  const refused = await decide({ toolCall: { name: 'read_file' }, args: { path: 'x' } });
+  assert.equal(refused?.block, true);
+  assert.match(refused.reason, /operator stopped/);
+  // a fresh user turn releases the stop — the run-scoped latch clears
+  decide.resetTurn();
+  assert.equal(await decide({ toolCall: { name: 'read_file' }, args: { path: 'x' } }), undefined);
+});

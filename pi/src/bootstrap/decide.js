@@ -122,6 +122,15 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         };
       }
     }
+    // Mistake-limit stop: the operator answered 'stop' to a consecutive-
+    // error escalation — no further tool calls this turn regardless of shape.
+    if (loopwatch?.stopped) {
+      return {
+        block: true,
+        rule: 'mistake_limit',
+        reason: 'operator stopped this run after consecutive tool errors — report status and wait for a new instruction',
+      };
+    }
     // .paiignore context exclusion — refused for read AND write families.
     // Patterns can only restrict, never grant, so an agent-writable ignore
     // file cannot loosen the boundary.
@@ -354,7 +363,12 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     } catch { /* a telemetry/guard path must never break the decide chain */ }
     return outcome;
   };
-  // A new user message (prompt/steer) starts a fresh turn budget.
-  decideFn.resetTurn = () => { turnCalls = 0; };
+  // A new user message (prompt/steer) starts a fresh turn budget and clears
+  // the mistake-limit stop — the operator's 'stop' scoped to that run, not
+  // the session.
+  decideFn.resetTurn = () => {
+    turnCalls = 0;
+    if (loopwatch) { loopwatch.stopped = false; loopwatch.errorStreak = 0; }
+  };
   return decideFn;
 }

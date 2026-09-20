@@ -65,6 +65,10 @@ for (const [flag, envName] of Object.entries(budgetEnv)) {
   if (v != null) childEnv[envName] = String(v);
 }
 if (taskDir) childEnv.PAI_TASK_DIR = taskDir;
+// Thread-tree depth (Codex): the parent stamps the child's nesting level so
+// a nested delegate_task call sees its own depth and hits the cap honestly.
+const taskDepth = flagVal('--task-depth');
+if (taskDepth != null) childEnv.PAI_SPAWN_DEPTH = String(taskDepth);
 // re-quote args that lost their shell quoting through argv — whitespace must
 // survive the shell:true respawn as one token
 const command = argv.slice(sep + 1)

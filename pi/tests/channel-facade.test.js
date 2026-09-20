@@ -490,3 +490,49 @@ test('session_export format=debug bundles trajectory + spawned task chain', asyn
   assert.deepEqual(bundle.jobs.map((j) => j.job_id), ['j1']);
   dispose();
 });
+
+test('mistake_limit: consecutive tool errors ask the operator; deny stops the run', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-ml-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const lw = new LoopDetector({ errorLimit: 2 });
+  const asked = [];
+  const asks = { ask: async (d) => { asked.push(d); return 'deny'; } };
+  const core = { paths: { auditDir }, audit: { write: () => {} } };
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core, asks, getLoopwatch: () => lw,
+  });
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+  // the error events themselves must stream through — not held behind the ask
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'c1', toolName: 'bash', isError: true });
+  assert.ok(events.some((m) => m.event?.type === 'tool_execution_end'), 'error event emitted before ask resolves');
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'c2', toolName: 'write', isError: true });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].rule, 'mistake_limit');
+  assert.equal(lw.stopped, true);
+  assert.ok(events.some((m) => m.event?.type === 'notify'), 'stop notice emitted');
+  dispose();
+});
+
+test('mistake_limit: operator allow leaves the run unstopped', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-ml2-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const lw = new LoopDetector({ errorLimit: 2 });
+  const asks = { ask: async () => 'allow' };
+  const core = { paths: { auditDir }, audit: { write: () => {} } };
+  const { dispose } = createChannelHost({
+    session: fakeSessionRef, core, asks, getLoopwatch: () => lw,
+  });
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'c1', toolName: 'bash', isError: true });
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'c2', toolName: 'bash', isError: true });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(lw.stopped, false);
+  dispose();
+});

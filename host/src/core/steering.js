@@ -22,6 +22,14 @@ const TOTAL_MAX = 32 * 1024;
 const NAMED = ['product.md', 'structure.md', 'tech.md'];
 // Rule directories other harnesses planted — read as compat steering sources.
 const COMPAT_DIRS = ['.claude/rules', '.cursor/rules', '.windsurf/rules', '.devin/rules'];
+// Root-level instruction files other harnesses planted (Crush compat list):
+// a repo migrating off Claude Code / Gemini CLI / Cursor / Copilot keeps its
+// guidance working without renaming. Same context-channel semantics — these
+// are project docs the agent reads, never policy it obeys above governance.
+const COMPAT_FILES = [
+  'AGENTS.md', 'CLAUDE.md', 'GEMINI.md', '.cursorrules', '.windsurfrules',
+  '.github/copilot-instructions.md',
+];
 
 /**
  * @param {string} workdir
@@ -47,6 +55,11 @@ export function loadSteering(workdir) {
     for (const f of readdirSync(dir).filter((x) => /\.(md|mdc)$/i.test(x)).sort()) {
       files.push({ name: `${d}/${f}`, path: join(dir, f) });
     }
+  }
+  // Compat root files — appended last so native .pai steering reads first.
+  for (const f of COMPAT_FILES) {
+    const p = join(workdir, f);
+    if (existsSync(p)) files.push({ name: f, path: p });
   }
   if (!files.length) return null;
 

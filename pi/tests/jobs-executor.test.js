@@ -496,3 +496,47 @@ test('mailbox bridge: inbox→stdin steer + child markers→outbox/events', asyn
   assert.ok(!out.includes('PAI_TASK_POST'));
   assert.match(out, /PAI_USAGE/);
 });
+
+test('spawn depth cap: a process at the cap cannot delegate further', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-depth-'));
+  const { store, executor } = rig(dir);
+  const prevDepth = process.env.PAI_SPAWN_DEPTH;
+  const prevMax = process.env.PAI_MAX_SPAWN_DEPTH;
+  process.env.PAI_SPAWN_DEPTH = '3';
+  process.env.PAI_MAX_SPAWN_DEPTH = '3';
+  try {
+    const tool = delegateTool(executor, {
+      commandFor: (target, task) => `echo "${target}: ${task}"`,
+      workdir: tmpdir(),
+    });
+    const res = await tool.execute('tc9', { target: 'codex', task: 'deeper' });
+    assert.equal(res.details.refused, true);
+    assert.equal(res.details.reason, 'spawn_depth_cap');
+    assert.match(res.content[0].text, /spawn depth 3 is at the cap/);
+  } finally {
+    if (prevDepth == null) delete process.env.PAI_SPAWN_DEPTH; else process.env.PAI_SPAWN_DEPTH = prevDepth;
+    if (prevMax == null) delete process.env.PAI_MAX_SPAWN_DEPTH; else process.env.PAI_MAX_SPAWN_DEPTH = prevMax;
+    store.close();
+  }
+});
+
+test('spawn depth propagates: child env stamp is parent depth + 1', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-depth2-'));
+  const { store } = rig(dir);
+  let captured = '';
+  const stub = { spawnCommandJob: async ({ command }) => { captured = command; return { job_id: 'job-d', attempt_id: 'a1' }; } };
+  const prevDepth = process.env.PAI_SPAWN_DEPTH;
+  process.env.PAI_SPAWN_DEPTH = '1';
+  try {
+    const tool = delegateTool(stub, {
+      commandFor: (target, task) => `echo "${target}: ${task}"`,
+      workdir: tmpdir(),
+    });
+    const res = await tool.execute('tc10', { target: 'codex', task: 'one level down' });
+    assert.match(res.content[0].text, /durable job job-d/);
+    assert.match(captured, /--task-depth 2 /);
+  } finally {
+    if (prevDepth == null) delete process.env.PAI_SPAWN_DEPTH; else process.env.PAI_SPAWN_DEPTH = prevDepth;
+    store.close();
+  }
+});

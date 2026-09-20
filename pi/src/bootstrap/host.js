@@ -305,6 +305,7 @@ export async function startHost({
   let toolSurface = null; // assigned once the session exists — decide runs later
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
   let currentGovernor = null; // evidence contract governor — goals status source
+  let currentLoopwatch = null; // per-session detector — pump feeds results into it
 
   // Sessions persist under the instance root — the app lists/resumes them.
   const sessionDir = join(core.paths.root, 'sessions');
@@ -369,7 +370,7 @@ export async function startHost({
         classifier: parseShellCommand,
         getSessionScope: () => currentSession?.sessionId ?? null,
         // stuck-loop scoring is session-scoped: a rebuilt session starts fresh
-        loopwatch: new LoopDetector(),
+        loopwatch: (currentLoopwatch = new LoopDetector()),
         asks, // loop escalations reuse the operator-ask surface
         // G9: env-configured shadow LLM — telemetry only, never authoritative
         shadowJudge: shadowJudgeFromEnv({ audit: core.audit }),
@@ -874,6 +875,7 @@ export async function startHost({
     writeLease,
     hooks,
     turns: { reset: () => currentDecide?.resetTurn?.() },
+    getLoopwatch: () => currentLoopwatch,
     exec: {
       // `!cmd` operator direct-exec (Claude Code bang-mode analogue): the
       // command runs through the SAME decide chain as a model call — ask

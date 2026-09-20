@@ -49,3 +49,26 @@ test('frontmatter apply modes: manual indexed not injected, globs declare scope'
   assert.doesNotMatch(out, /read me on demand/);       // manual body not injected
   assert.match(out, /<manual-rules>.*manual\.md/);      // but indexed by name
 });
+
+test('root-level compat files from other harnesses are loaded (Crush list)', () => {
+  const w = dir();
+  writeFileSync(join(w, 'CLAUDE.md'), 'claude legacy rules');
+  writeFileSync(join(w, 'GEMINI.md'), 'gemini legacy rules');
+  writeFileSync(join(w, '.cursorrules'), 'cursor legacy rules');
+  writeFileSync(join(w, 'AGENTS.md'), 'agents guidance');
+  mkdirSync(join(w, '.github'), { recursive: true });
+  writeFileSync(join(w, '.github', 'copilot-instructions.md'), 'copilot hints');
+  const out = loadSteering(w);
+  for (const re of [/claude legacy rules/, /gemini legacy rules/, /cursor legacy rules/, /agents guidance/, /copilot hints/]) {
+    assert.match(out, re);
+  }
+});
+
+test('native .pai steering precedes compat files in render order', () => {
+  const w = dir();
+  mkdirSync(join(w, '.pai', 'steering'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'steering', 'native.md'), 'NATIVE_BODY');
+  writeFileSync(join(w, 'CLAUDE.md'), 'COMPAT_BODY');
+  const out = loadSteering(w);
+  assert.ok(out.indexOf('NATIVE_BODY') < out.indexOf('COMPAT_BODY'));
+});

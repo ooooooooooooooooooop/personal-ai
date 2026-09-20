@@ -91,6 +91,19 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       }
       const inner = commandFor(target, task);
       const scope = getScope?.() ?? null;
+      // Codex thread-tree depth cap: PAI_SPAWN_DEPTH counts how many nested
+      // delegations produced this process (0 = operator's session). A child
+      // at the cap cannot delegate further — fail-closed, and the refusal is
+      // a tool result the model can route around (shallower sibling, do it
+      // inline) rather than a crashed job.
+      const depth = Number(process.env.PAI_SPAWN_DEPTH || 0);
+      const maxDepth = Number(process.env.PAI_MAX_SPAWN_DEPTH || 3);
+      if (depth >= maxDepth) {
+        return {
+          content: [{ type: 'text', text: `delegation refused: spawn depth ${depth} is at the cap (${maxDepth}) — nested delegation would hide work the operator cannot see; do this step inline or return it to the parent` }],
+          details: { refused: true, reason: 'spawn_depth_cap', depth, maxDepth, rule: 'spawn_depth' },
+        };
+      }
       let budgetFlags = '';
       let committedSlice = null;
       if (budget?.configured && scope) {
@@ -155,10 +168,12 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
             parent: scope,
             kind: tname ? 'teammate' : 'delegation',
             name: tname,
-            spawnSpec: tname ? { target, profile: params.profile ?? null, task } : null,
+            spawnSpec: tname ? { target, profile: params.profile ?? null, task, depth: depth + 1 } : null,
           })
         : null;
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} -- ${inner}`;
+      // depth propagates through the bridge into the child's env so a nested
+      // delegate_task sees its own depth, not the parent's
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,
