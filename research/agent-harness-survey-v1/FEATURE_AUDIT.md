@@ -813,3 +813,59 @@
 - **待用户裁定的产品边界**: MCP 客户端（G10——接生态 vs 治理边界）、向量索引是否解锁（CodeArts/Roo 反例）。
 
 **总判定**: 治理层（lattice/fencing/审计/托管装载）对标甚至超过多数 harness；**缺面集中在"agent 自主性周边"**——循环自愈、结构化提问、定时任务、子代理拓扑、web 工具——这五项是 26 家里最一致的标配，也是"功能都不全"判定的实体内容。
+
+---
+
+## 28. 实施回写（缺口逐项处置复核，锚 `e6a2c30`）
+
+> §1–§26 是审计基线快照（锚 `1d75cd0`），不改动；本节记录缺口清单逐项处置结果。判定口径不变：已有/部分/缺失/不适用-拒绝。证据锚指向我方实现位置。
+
+### 28.1 系统性缺口处置（G1–G12）
+
+| # | 处置内容 | 状态 | 证据锚 |
+|---|---|---|---|
+| G1 循环/卡死检测 | LoopDetector 连发/乒乓/升级操作员裁决 + 打断回注（U8 并入） | **已有** | `host/src/core/loopwatch.js`；abort 作为消息回注上下文 |
+| G2 结构化提问 | ask_user 工具 + PendingAsks 面板 | **已有** | `pi/src/adapter/askuser.js` |
+| G3 定时/调度 | ScheduleStore cron + heartbeat 泵（实例级配置、空闲才发、走预算门） | **已有** | `host/src/core/scheduler.js`；pi bootstrap heartbeat |
+| G4 子代理 profile/拓扑 | AgentTask mailbox（持久 inbox/outbox/events+seq/ack）+ 任务中心 + 拓扑树 + scope 认领链；内置画像库/多对多任务池未做 | **部分** | `host/src/core/tasks.js`、`pi/src/adapter/tasktools.js`、UI tasks 树 |
+| G5 生命周期 hooks | 四事件白名单 hooks（session_start/prompt_submit/tool_end/session_end），**纯观察面——veto 刻意不做**（agent 可写配置不能做自己的门） | **部分** | `host/src/core/hooks.js` |
+| G6 持久记忆 | SQLite+FTS5 检索+review 蒸馏+pinned 注入（不可信证据边界）+secret 拒写 | **已有** | `host/src/core/memory.js`、`pi/src/adapter/memtools.js` |
+| G7 OS 级沙箱 | WSL2 路线落地 | **已有** | `host/src/core/sandbox.js` |
+| G8 web/浏览器工具 | web_fetch/web_search 已有；browser 自动化面板未做 | **部分** | `pi/src/adapter/web.js` |
+| G9 LLM 权限分类器 | shadow judge（异步分类+agree/disagree 遥测，**结构性不可回改**；升级需 disagree 率数据） | **部分** | `host/src/core/shadowjudge.js` |
+| G10 MCP 客户端 | managed extension 装载 + stdio/http 传输 | **已有** | `pi/src/adapter/` mcp 面 |
+| G11 spec/SDD 流水线 | `.pai/specs` 三件套 + 相位门 | **已有** | spec 工具族 |
+| G12 远程执行 | 维持拒绝（本地单机边界） | **不适用-拒绝** | §27.3 |
+
+### 28.2 特有/近端缺口处置（U1–U15）
+
+| # | 状态 | 处置/残余 |
+|---|---|---|
+| U1 DSH 身体投影 | **部分** | 会话通道/审批桥/审计 parity 已落；goal 面板、DSH jobs 接入 job 面板未做 |
+| U2 不可信内容封套 | **已有** | `host/src/core/envelopes.js` 不可信封套 + unicode 隐形字符消毒（strict 拒/free-text 剥） |
+| U3 rewind 强化 | **部分** | `/undo` 回合回执组回滚 + 聚合 `/diff` + `/btw` 只读分叉；Vibe 式"rewind 默认 fork"未做 |
+| U4 写前 secret 扫描 | **已有** | `host/src/core/secrets.js`（写前问/失败关闭） |
+| U5 自定义 mode | **部分** | Policy Preset Overlay（只收紧）+mode chip+Settings 编辑；Roo 式 fileRegex×工具组粒度未做 |
+| U6 编辑重发 | **已有** | 消息操作栏"编辑"=rewind 到该 entry+原文回填输入框 |
+| U7 artifact 成果面板 | **已有** | 终裁批已落 |
+| U8 打断回注 | **已有** | 与 G1 合并落地 |
+| U9 命令白/黑名单+配额 ask | **部分** | mode overlay deny+预算帽已有；用户级命令前缀清单编辑面未做 |
+| U10 recipes | **已有** | `.pai/recipes/*.md`+`{{var}}` 参数+`/recipe` 展开 |
+| U11 LSP 工具组 | **已有** | 只读面（definition/references/hover/diagnostics） |
+| U12 fsmonitor/git 卫生 | **缺失** | 小件未排（做 git 上下文时一并） |
+| U13 自动会话命名 | **已有** | 首条用户消息自动命名+`/chat` 命名存档+JSONL trajectory 导出 |
+| U14 UX 工艺面 | **已有** | 置顶/归档、dark/light 主题、ctx 分解条、minimap、onboarding 向导、委派拓扑树全落 |
+| U15 子目录 hint/文件族 | **部分** | steering 文件族+`.paiignore` 语境排除已落；SubdirectoryHintTracker 渐进 hint 未做 |
+
+### 28.3 待用户裁定的残余决策项
+
+| # | 项 | 正反方 |
+|---|---|---|
+| D1 | 向量 codebase 索引 | §27.3 留待裁未锁死；CodeArts 托管索引/Roo Qdrant 是反例，Cursor 退役方向是正例 |
+| D2 | browser 自动化面 | web_fetch 之上：浏览器预览面板/浏览器工具（Trae/ZCode/Hermes 有）——新供给面 |
+| D3 | agent teams 常驻 teammate | mailbox v1 父子已落；多对多常驻池是 v2 架构决策（Cline teams/码道 Agent Team） |
+| D4 | Guardian 独立复审生效 | shadow judge 升级 real——终裁要求先积 disagree 率数据再升 |
+| D5 | mode 粒度加深 | Roo fileRegex×工具组、命令前缀白/黑名单用户编辑面 |
+| D6 | 逐改动 revert 面板+AI review 弹回 | Trae 参考；FileOpsGuard 回执已具备数据面，差 UI 编排 |
+
+**维持不适用-拒绝**：G12 远程执行、插件市场、code-mode、企业面、多渠道形态、headless 产品面、MCP sampling（v1 外）、向量索引默认开（待 D1 裁定）。
