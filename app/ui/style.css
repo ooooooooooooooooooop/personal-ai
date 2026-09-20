@@ -98,6 +98,17 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 }
 #task-send-input:focus { outline: none; border-color: var(--line-strong); background: var(--field-focus); }
 .ghost-btn.warn { color: var(--red); }
+
+/* ---------- memory list ---------- */
+.mem-list { max-height: 260px; overflow-y: auto; }
+.mem-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line-sub); font-size: 13px; }
+.mem-row:last-child { border-bottom: none; }
+.mem-pin { flex: none; width: 20px; text-align: center; cursor: pointer; color: var(--text-4); }
+.mem-pin.on { color: var(--text); }
+.mem-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mem-kind { flex: none; font-size: 11px; font-family: var(--mono); }
+.mem-forget { flex: none; color: var(--text-4); padding: 0 4px; border-radius: 4px; }
+.mem-forget:hover { color: var(--red); background: var(--bg-hover); }
 .spacer { flex: 1; }
 .drag { -webkit-app-region: drag; }
 .no-drag { -webkit-app-region: no-drag; }

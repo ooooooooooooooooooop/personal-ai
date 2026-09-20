@@ -8,6 +8,7 @@ import { ContinuationGovernor } from '../../../host/src/core/continuation.js';
 import { selectBody } from '../../../host/src/core/eligibility.js';
 import { JobStore } from '../../../host/src/core/jobs.js';
 import { TaskStore } from '../../../host/src/core/tasks.js';
+import { MemoryStore, memoryDbPath } from '../../../host/src/core/memory.js';
 import { PendingAsks } from '../../../host/src/core/asks.js';
 import { JobExecutor } from '../adapter/jobs.js';
 import { SandboxProvider } from '../../../host/src/core/sandbox.js';
@@ -28,6 +29,7 @@ function numEnv(name) {
 }
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { taskTools } from '../adapter/tasktools.js';
+import { memoryTools } from '../adapter/memtools.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
@@ -204,9 +206,13 @@ export async function startHost({
   // F-family AgentTask mailbox — durable task records binding delegation
   // jobs to two-way inbox/outbox/event streams (v1: parent↔child only).
   const taskStore = new TaskStore(core.paths.root);
+  // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
+  // into every context envelope as untrusted evidence.
+  const memoryStore = new MemoryStore(memoryDbPath(core.paths.root));
   const customTools = [
     jobStatusTool(jobStore),
     ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
+    ...memoryTools(memoryStore),
     updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null),
     // structured operator questions — kind:'question' asks bypass session
     // auto-allow by design (a question can never answer itself)
@@ -264,6 +270,9 @@ export async function startHost({
       contextEnvelope: () => ({
         ...core.contextProvider(),
         steering: loadSteering(workdir),
+        // pinned memory rides the context envelope as untrusted evidence —
+        // recalled claims, never an authority channel
+        memoryDigest: memoryStore.injection(),
         // moim-style turn budget hint: consumed/limits visible every turn so
         // the model paces itself instead of learning at the hard gate.
         budget: (() => {
@@ -458,6 +467,14 @@ export async function startHost({
     core.audit.write({
       kind: 'SESSION_SWITCHED', runId,
       data: { reason, sessionId: built.session.sessionId ?? null },
+    });
+    // review-triggered hygiene: a session boundary is the natural review
+    // moment — distill merges/decays/archived memory deterministically.
+    setImmediate(() => {
+      try {
+        const d = memoryStore.distill();
+        if (d.demoted || d.archived) core.audit.write({ kind: 'MEMORY_DISTILLED', runId, data: d });
+      } catch { /* hygiene is best-effort */ }
     });
     return built.session;
   };
@@ -664,6 +681,7 @@ export async function startHost({
       setState: (id, s) => taskStore.setState(id, s),
       interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt'),
     },
+    memory: memoryStore,
     asks,
     fileops: {
       list: (n) => fileOps.list(n),

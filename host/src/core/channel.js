@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.jobs = jobs;
@@ -86,6 +86,7 @@ export class HostChannel {
     this.turns = turns;
     this.todos = todos;
     this.tasks = tasks;
+    this.memory = memory;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -373,6 +374,37 @@ export class HostChannel {
           const r = await this.tasks.interrupt(t.job_id);
           this.tasks.postEvent(t.task_id, 'interrupted', { job_id: t.job_id, ok: r?.ok !== false });
           return reply(r?.ok !== false, r ?? {});
+        }
+        // G-family memory — operator oversight over the canonical store:
+        // the model saves/recalls; the operator reviews, pins, forgets.
+        case 'memory_list': {
+          if (!this.memory) return reply(false, undefined, 'memory store unavailable');
+          const q = String(cmd.query ?? '').trim();
+          return reply(true, q ? this.memory.recall(q, { limit: 50 }) : this.memory.all(50));
+        }
+        case 'memory_save': {
+          if (!this.memory) return reply(false, undefined, 'memory store unavailable');
+          const r = this.memory.remember(String(cmd.text ?? ''), { kind: cmd.kind ?? 'fact', source: 'operator' });
+          if (r.refused) return reply(false, undefined, r.refused);
+          return reply(true, r);
+        }
+        case 'memory_pin': {
+          if (!this.memory) return reply(false, undefined, 'memory store unavailable');
+          if (!cmd.id) return reply(false, undefined, 'memory_pin requires {id}');
+          return reply(this.memory.pin(String(cmd.id), cmd.pinned !== false), {});
+        }
+        case 'memory_forget': {
+          if (!this.memory) return reply(false, undefined, 'memory store unavailable');
+          if (!cmd.id) return reply(false, undefined, 'memory_forget requires {id}');
+          return reply(this.memory.forget(String(cmd.id)), {});
+        }
+        case 'memory_stats': {
+          if (!this.memory?.stats) return reply(false, undefined, 'memory store unavailable');
+          return reply(true, this.memory.stats());
+        }
+        case 'memory_distill': {
+          if (!this.memory?.distill) return reply(false, undefined, 'memory store unavailable');
+          return reply(true, this.memory.distill());
         }
         case 'fileops_list': {
           if (!this.fileops?.list) return reply(false, undefined, 'fileops facade unavailable');

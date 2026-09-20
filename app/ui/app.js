@@ -1771,7 +1771,7 @@ function switchView(v) {
   if (v === 'changes') refreshChanges();
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
-  if (v === 'settings') { refreshSettings(); refreshModels(); }
+  if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
 $('body-chip').onclick = () => switchView('bodies');
@@ -2138,6 +2138,47 @@ async function refreshMacros() {
   const r = await cmd('macro_list');
   if (r.success) MACROS = r.data?.macros ?? {};
 }
+
+/* ---------- memory (G-family): operator review surface ---------- */
+async function refreshMemory() {
+  const box = $('mem-list');
+  if (!box) return;
+  const q = $('mem-query')?.value.trim() ?? '';
+  const r = await cmd('memory_list', q ? { query: q } : {});
+  if (!r.success) { box.innerHTML = `<div class="dim" style="padding:8px">${escHtml(r.error ?? '此身体不支持记忆面')}</div>`; return; }
+  const rows = r.data ?? [];
+  box.innerHTML = '';
+  if (!rows.length) { box.innerHTML = '<div class="dim" style="padding:8px">暂无记忆——模型经 memory_save 沉淀，或点上方添加</div>'; return; }
+  for (const m of rows) {
+    const div = document.createElement('div');
+    div.className = 'mem-row';
+    div.innerHTML = `<span class="mem-pin" title="置顶注入"></span><span class="mem-text selectable"></span><span class="mem-kind dim"></span><button class="mem-forget" title="遗忘">×</button>`;
+    const pin = div.querySelector('.mem-pin');
+    pin.textContent = m.pinned ? '📌' : '·';
+    pin.classList.toggle('on', !!m.pinned);
+    pin.onclick = async () => { await cmd('memory_pin', { id: m.id, pinned: !m.pinned }); refreshMemory(); };
+    div.querySelector('.mem-text').textContent = m.text;
+    div.querySelector('.mem-text').title = `${m.id} · ${m.source} · 置信 ${m.confidence} · ${m.updated}`;
+    div.querySelector('.mem-kind').textContent = m.kind;
+    div.querySelector('.mem-forget').onclick = async () => {
+      if (!confirm(`遗忘这条记忆？\n${m.text.slice(0, 120)}`)) return;
+      await cmd('memory_forget', { id: m.id });
+      refreshMemory();
+    };
+    box.appendChild(div);
+  }
+}
+$('mem-add-btn').onclick = async () => {
+  const text = prompt('记住什么？（一句话事实/偏好/决定）');
+  if (!text?.trim()) return;
+  const r = await cmd('memory_save', { text: text.trim() });
+  if (r.success) { toast('已记住'); refreshMemory(); }
+  else toast(`写入被拒：${r.error ?? '未知'}`, 'err');
+};
+$('mem-query')?.addEventListener('input', () => {
+  clearTimeout($('mem-query')._t);
+  $('mem-query')._t = setTimeout(refreshMemory, 300);
+});
 
 const MODE_LABEL = { normal: '执行', plan: '计划' };
 async function refreshMode() {
