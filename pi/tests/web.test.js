@@ -186,3 +186,27 @@ test('M66: DNS resolution is validated — IPv6 literals normalized, forbidden a
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /refused/);
 });
+
+test('M66 checkResolvedHost: reviewer sentinels — allowlist/local/private ordering', async () => {
+  const { checkResolvedHost } = await import('../src/adapter/web.js');
+  // allowlisted name trusts its own resolution — resolved IPs are NOT
+  // re-matched against the name allowlist (regression: docs.example.com→8.8.8.8
+  // used to be refused because the IP didn't match the domain entry)
+  assert.equal(checkResolvedHost('docs.example.com', [{ address: '8.8.8.8' }], ['docs.example.com']).ok, true);
+  // non-allowlisted name under an allowlist policy is refused at the name level
+  assert.equal(checkResolvedHost('other.example', [{ address: '8.8.8.8' }], ['docs.example.com']).ok, false);
+  // private pivot without allowlist
+  assert.equal(checkResolvedHost('evil.example', [{ address: '127.0.0.1' }], null).ok, false);
+  assert.equal(checkResolvedHost('evil.example', [{ address: '10.0.0.1' }], null).ok, false);
+  // localhost intent passes resolved checks (regression: ::1 was refused
+  // by the per-address baseline before the local-intent branch ran)
+  assert.equal(checkResolvedHost('localhost', [{ address: '::1' }], null).ok, true);
+  assert.equal(checkResolvedHost('x.localhost', [{ address: '127.0.0.1' }], null).ok, true);
+  // public name → public IP passes
+  assert.equal(checkResolvedHost('ok.example', [{ address: '8.8.8.8' }], null).ok, true);
+  // allowlisted name resolving to private space is operator-trusted
+  assert.equal(checkResolvedHost('internal.example', [{ address: '10.0.0.1' }], ['internal.example']).ok, true);
+  // literal IP path unchanged
+  assert.equal(checkResolvedHost('169.254.169.254', [], null).ok, false);
+  assert.equal(checkResolvedHost('8.8.8.8', [], null).ok, true);
+});

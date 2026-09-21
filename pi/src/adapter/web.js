@@ -141,11 +141,38 @@ export function domainAllowed(host, allowlist) {
  * Residual: a hostile DNS server could theoretically rebind between check
  * and connect — full pinning needs a custom dispatcher; documented boundary.
  */
-export async function resolveChecked(host, allowlist) {
-  // URL.hostname keeps the brackets on IPv6 literals — strip them before
-  // isIP() or every legit public v6 literal would fall into a failing lookup.
+/**
+ * Pure decision: given a hostname and its resolved addresses, may we egress?
+ *   - literal IP     → domainAllowed (allowlist match, else forbidden baseline)
+ *   - allowlisted    → operator trust: name match suffices, resolved addrs pass
+ *   - local intent   → localhost / *.localhost names pass resolved checks
+ *   - otherwise      → every resolved address must be outside private/forbidden
+ */
+export function checkResolvedHost(host, resolvedAddresses, allowlist) {
   const h = normalizeHostLiteral(host);
-  if (isIP(h)) return { ok: domainAllowed(h, allowlist) };
+  if (isIP(h)) {
+    return domainAllowed(h, allowlist)
+      ? { ok: true }
+      : { ok: false, reason: `'${host}' is a forbidden address` };
+  }
+  if (allowlist?.length) {
+    return domainAllowed(h, allowlist)
+      ? { ok: true }
+      : { ok: false, reason: `'${host}' is not on the operator egress allowlist` };
+  }
+  const localIntent = h === 'localhost' || h.endsWith('.localhost');
+  if (localIntent) return { ok: true };
+  for (const a of resolvedAddresses) {
+    if (isPrivateResolved(normalizeHostLiteral(a.address ?? a))) {
+      return { ok: false, reason: `'${host}' resolves to private/loopback address ${a.address ?? a}` };
+    }
+  }
+  return { ok: true };
+}
+
+export async function resolveChecked(host, allowlist) {
+  const h = normalizeHostLiteral(host);
+  if (isIP(h)) return checkResolvedHost(h, [], allowlist);
   let addrs;
   try {
     addrs = await dnsLookup(h, { all: true });
@@ -153,16 +180,7 @@ export async function resolveChecked(host, allowlist) {
     return { ok: false, reason: `DNS resolution failed: ${e.code ?? e.message}` };
   }
   if (!addrs.length) return { ok: false, reason: 'DNS returned no addresses' };
-  const bad = addrs.find((a) => !domainAllowed(normalizeHostLiteral(a.address), null));
-  if (bad) return { ok: false, reason: `'${host}' resolves to forbidden address ${bad.address}` };
-  // public name → private/loopback pivot: refused unless the operator either
-  // allowlisted the name or typed explicit localhost intent.
-  const localIntent = h === 'localhost' || h.endsWith('.localhost') || (allowlist?.length > 0);
-  if (!localIntent) {
-    const priv = addrs.find((a) => isPrivateResolved(a.address));
-    if (priv) return { ok: false, reason: `'${host}' resolves to private/loopback address ${priv.address}` };
-  }
-  return { ok: true };
+  return checkResolvedHost(h, addrs, allowlist);
 }
 
 /**
