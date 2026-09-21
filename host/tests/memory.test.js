@@ -26,7 +26,7 @@ test('remember/recall: FTS5 finds the fact; LIKE fallback survives odd input', (
 
 test('secret-looking text is refused; exact duplicates merge in place', () => {
   const s = mk();
-  const bad = s.remember('my key is sk-abcdefghijklmnopqrstuvwxyz1234');
+  const bad = s.remember(`my key is sk-${'x'.repeat(30)}`);
   assert.match(bad.refused, /secret/);
   const a = s.remember('same fact', { confidence: 0.6 });
   const b = s.remember('same fact', { confidence: 0.9 });
