@@ -369,6 +369,17 @@ export class HostChannel {
           if (!this.profiles?.remove) return reply(false, undefined, 'profiles unavailable');
           return reply(true, this.profiles.remove({ name: cmd.name }));
         }
+        case 'profile_export': {
+          if (!this.profiles?.export) return reply(false, undefined, 'profiles unavailable');
+          const r = this.profiles.export({ path: cmd.path ?? null });
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
+        }
+        case 'profile_import': {
+          if (!this.profiles?.import) return reply(false, undefined, 'profiles unavailable');
+          if (!cmd.path) return reply(false, undefined, 'profile_import requires {path}');
+          const r = this.profiles.import({ path: cmd.path });
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
+        }
         // M64 purge-preview substrate: cross-category artifact inventory of
         // the instance root. Read-only — nothing here deletes.
         case 'instance_inventory': {

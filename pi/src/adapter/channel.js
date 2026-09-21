@@ -7,7 +7,7 @@ import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
 
@@ -822,6 +822,34 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           const had = delete doc[String(name ?? '')];
           if (had) write(doc);
           return { removed: had };
+        },
+        // Portability: profiles are instance-local presets — export/import
+        // carries them between instances (same confinement as allowlists).
+        export: ({ path } = {}) => {
+          const target = resolve(core.paths.root, String(path ?? 'profiles-export.json'));
+          if (!target.startsWith(core.paths.root) || !target.endsWith('.json')) {
+            return { ok: false, error: 'export target must be a .json path inside the instance directory' };
+          }
+          writeFileSync(target, JSON.stringify({ profiles: read() }, null, 2) + '\n');
+          core.audit?.write({ kind: 'PROFILE_EXPORT', data: { file: target, count: Object.keys(read()).length } });
+          return { ok: true, path: target };
+        },
+        import: ({ path } = {}) => {
+          const source = resolve(core.paths.root, String(path ?? ''));
+          if (!source.startsWith(core.paths.root) || !source.endsWith('.json')) {
+            return { ok: false, error: 'import source must be a .json path inside the instance directory' };
+          }
+          let doc;
+          try { doc = JSON.parse(readFileSync(source, 'utf-8')); }
+          catch (e) { return { ok: false, error: `invalid import file: ${e.message}` }; }
+          const entries = Object.entries(doc?.profiles ?? {});
+          if (!entries.length || entries.some(([n, p]) => !n || n.length > 40 || typeof p !== 'object' || p === null)) {
+            return { ok: false, error: 'import file must contain a non-empty profiles object (names ≤40 chars)' };
+          }
+          const merged = { ...read(), ...doc.profiles };
+          write(merged);
+          core.audit?.write({ kind: 'PROFILE_IMPORT', data: { file: source, count: entries.length } });
+          return { ok: true, imported: entries.length };
         },
       };
     })(),

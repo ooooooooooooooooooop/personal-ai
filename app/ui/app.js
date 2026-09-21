@@ -2889,7 +2889,7 @@ const SLASH = [
   },
   {
     // M81 named profiles: snapshot {model, thinking, mode} as a switchable pack
-    cmd: '/profile', label: '配置档案', hint: '/profile save 名字 · /profile apply 名字 · /profile list · /profile del 名字', run: async (arg) => {
+    cmd: '/profile', label: '配置档案', hint: '/profile save 名字 · /profile apply 名字 · /profile list · /profile del 名字 · /profile export|import 文件.json', run: async (arg) => {
       const [sub, ...rest] = arg.trim().split(/\s+/);
       const name = rest.join(' ');
       if (sub === 'save' && name) {
@@ -2906,6 +2906,12 @@ const SLASH = [
       if (sub === 'del' && name) {
         await cmd('profile_delete', { name });
         toast(`档案「${name}」已删除`);
+        return;
+      }
+      if (sub === 'export' || sub === 'import') {
+        const r = await cmd(sub === 'export' ? 'profile_export' : 'profile_import', name ? { path: name } : {});
+        if (r.success) toast(sub === 'export' ? `已导出 ${r.data?.path ?? ''}` : `已导入 ${r.data?.imported ?? 0} 个档案`);
+        else addSys(`${sub} 失败：${r.error ?? '未知'}`, true);
         return;
       }
       const r = await cmd('profile_list');

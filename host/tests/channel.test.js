@@ -454,3 +454,24 @@ test('M81: profile_save/apply/list/delete route to the profiles facade', async (
   const bare = new HostChannel({ session: fakeSession() });
   assert.equal((await bare.handle({ type: 'profile_list' })).success, false);
 });
+
+test('M81: profile_export/import route with path confinement enforced in facade', async () => {
+  const calls = [];
+  const profiles = {
+    export: ({ path }) => { calls.push(['export', path]); return { ok: true, path: '/i/profiles-export.json' }; },
+    import: ({ path }) => { calls.push(['import', path]); return { ok: true, imported: 2 }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), profiles });
+  const ex = await ch.handle({ type: 'profile_export' });
+  assert.equal(ex.success, true);
+  assert.deepEqual(calls[0], ['export', null]);
+  const im = await ch.handle({ type: 'profile_import', path: 'profiles-export.json' });
+  assert.equal(im.data.imported, 2);
+  // import without path refuses; facade error propagates honestly
+  assert.equal((await ch.handle({ type: 'profile_import' })).success, false);
+  const bad = new HostChannel({ session: fakeSession(), profiles: { ...profiles, export: () => ({ ok: false, error: 'nope' }) } });
+  assert.equal((await bad.handle({ type: 'profile_export' })).success, false);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'profile_export' })).success, false);
+  assert.equal((await bare.handle({ type: 'profile_import', path: 'x.json' })).success, false);
+});
