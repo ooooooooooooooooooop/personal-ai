@@ -1563,3 +1563,17 @@
 **仍待**：M64 实际删除、M71 免持久会话、M76 per-agent disallowedTools、M77 实况窗格、M80 sandbox.excluded、M81 多 profile、M82 MCP prompts、M86 ambient context、M90/M92/M99 UI 页、M94 per-agent 预算、M135 动态调速、M73 向量记忆（重依赖）。
 
 测试基线：host 233 / pi 186+1skip / app 18+1skip 全绿。
+
+### 28.15 中档批次 2（2026-09-21，commit 5953271）
+
+| 项 | 终态 |
+|---|---|
+| M76 per-agent disallowedTools | **落地**——可信 profile（operator-private 或受信 workdir）的 tools_deny 注入 delegate 桥 spawn env；不可信仓库 profile 在加载时被剥离，不能塑造执行面 |
+| M94 per-agent 上下文预算 | **落地**——profile budget_* 维度与桥 flag 按维合并（取小者）；不可执行预算的目标在 spawn 前拒绝；拒绝时父级已承诺切片退还，不双计 |
+| M80 sandbox.excluded | **落地**——ambient sandbox 按命令前缀豁免；显式 per-job sandbox 覆盖豁免；false 哨兵区分「明确不沙箱」与「未配置」，杜绝 ?? 回退复活 ambient provider |
+| M86 ambient context | **落地**——context envelope 增 ambient 块（时间/cwd/平台/git 状态），每轮现取、独立于 steering/budget/memory 渲染；纯信息位，不作策略权威 |
+| M135 动态调速 | **落地**——min_seconds/max_seconds 声明自适应区间；quiet tick（fingerprint 未变）指数退避至 max（2^streak×base，cap 6 级），真实 fire/恢复重置回 base；部分边界与越界三元组在 add 时拒绝；static 条目不受影响 |
+
+测试基线：host 236 / pi 189+1skip / app 18+1skip 全绿。
+
+**仍待**：M64 实际删除动作、M71 免持久会话、M77 子 agent 实况窗格、M81 多 profile、M82 MCP prompts、M90 workflow 生命周期页、M92 后台会话页、M99 workers 页、M73 向量记忆（重依赖决策）、上游残余（stale agent_end、MCP 顺序）。
