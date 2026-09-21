@@ -163,11 +163,13 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
             details: { refused: true, reason: 'unenforceable_child_budget', rule: 'budget' },
           };
         }
-        // 2. atomic bounded subdivision — charge the child's WHOLE slice to
-        //    the parent ledger now (commit-on-issue, never refunded on use):
+        // 2. atomic bounded subdivision — charge the child's EFFECTIVE slice
+        //    (min per-dim of parent-remaining and the profile cap) to the
+        //    parent ledger now (commit-on-issue, never refunded on use):
         //    without this, concurrent delegates and the parent itself could
-        //    each spend the same remaining headroom. A cross-process race is
-        //    caught by tryCommit's post-append breach check + refund rollback.
+        //    each spend the same remaining headroom. Charging the whole
+        //    remaining budget regardless of the profile cap would starve
+        //    later delegates — reserve only what the child may spend.
         const rem = (parentRem = budget.remaining(scope));
         // any configured dimension already at zero leaves the child no
         // headroom at all — refuse rather than spawn a dead-on-arrival worker
@@ -178,7 +180,12 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
             details: { refused: true, reason: 'budget exhausted: parent scope has no remaining headroom', rule: 'budget' },
           };
         }
-        const slice = { total: rem.tokens ?? 0, cost: rem.costUsd ?? 0, calls: rem.calls ?? 0 };
+        const effCap = (parent, prof) => (parent != null && prof != null ? Math.min(parent, prof) : parent ?? prof);
+        const slice = {
+          total: rem.tokens != null ? (effCap(rem.tokens, profileBudget?.tokens) ?? 0) : 0,
+          cost: rem.costUsd != null ? (effCap(rem.costUsd, profileBudget?.costUsd) ?? 0) : 0,
+          calls: rem.calls != null ? (effCap(rem.calls, profileBudget?.calls) ?? 0) : 0,
+        };
         const commit = budget.tryCommit(scope, slice, `delegate_commit:${target}`);
         if (!commit.ok) {
           return {

@@ -118,3 +118,37 @@ test('M94: profile budget stamps --budget-* flags; unenforceable target refused'
   assert.equal(r2.details.reason, 'unenforceable_profile_budget');
   assert.equal(spawned.length, 1); // refused before spawn
 });
+
+test('M94 regression: delegation reserves only the EFFECTIVE child slice, not all parent headroom', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const { BudgetGovernor } = await import('../../host/src/core/budget.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-prof6-'));
+  const spawned = [];
+  const executor = { spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j1', attempt_id: 'a1' }; } };
+  const budget = new BudgetGovernor({
+    ledgerPath: join(dir, 'budget-ledger.jsonl'),
+    limits: { maxTokensPerSession: 100_000 },
+  });
+  const profiles = new Map([
+    ['bounded', { name: 'bounded', target: 'pai', preamble: '', budget: { tokens: 50000 } }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: () => 'node pai-channel.js --serve',
+    workdir: dir,
+    profiles,
+    budget,
+    getScope: () => 'sess-parent',
+  });
+  const r = await tool.execute('c1', { profile: 'bounded', task: 'do thing' });
+  assert.ok(!r.isError, JSON.stringify(r));
+  assert.match(spawned[0], /--budget-tokens 50000/);
+  // the ledger charge must be the 50k effective slice — the parent still has
+  // 50k headroom for a second delegate or its own turn, not 0.
+  const rem = budget.remaining('sess-parent');
+  assert.equal(rem.tokens, 50_000);
+  // a second identical delegate consumes the rest; a third must refuse
+  await tool.execute('c2', { profile: 'bounded', task: 'again' });
+  const r3 = await tool.execute('c3', { profile: 'bounded', task: 'too much' });
+  assert.equal(r3.details.refused, true);
+  assert.match(String(r3.details.reason), /budget|headroom/i);
+});

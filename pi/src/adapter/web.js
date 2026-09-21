@@ -17,6 +17,10 @@
 const DEFAULT_TIMEOUT_MS = 20_000;
 const DEFAULT_MAX_CHARS = 24_000;
 const MAX_BODY_BYTES = 512 * 1024;
+const MAX_REDIRECT_HOPS = 5;
+
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 
 function htmlToText(html) {
   return html
@@ -64,6 +68,44 @@ export function domainAllowed(host, allowlist) {
   return true;
 }
 
+/**
+ * SSRF boundary (M66): the allowlist check sees the hostname string; DNS can
+ * still resolve an allowed-looking name to a link-local/metadata address.
+ * Resolve the host BEFORE connecting and refuse if ANY A/AAAA answer lands
+ * in a forbidden range. Literal IPs skip the lookup (already checked).
+ * Residual: a hostile DNS server could theoretically rebind between check
+ * and connect — full pinning needs a custom dispatcher; documented boundary.
+ */
+async function resolveChecked(host, allowlist) {
+  if (isIP(host)) return { ok: domainAllowed(host, allowlist) };
+  let addrs;
+  try {
+    addrs = await dnsLookup(host, { all: true });
+  } catch (e) {
+    return { ok: false, reason: `DNS resolution failed: ${e.code ?? e.message}` };
+  }
+  if (!addrs.length) return { ok: false, reason: 'DNS returned no addresses' };
+  const bad = addrs.find((a) => !domainAllowed(a.address, null));
+  if (bad) return { ok: false, reason: `'${host}' resolves to forbidden address ${bad.address}` };
+  return { ok: true };
+}
+
+/**
+ * Egress check for one request hop (M63): literal-host allowlist plus DNS
+ * resolution — both must pass BEFORE any bytes leave.
+ */
+async function egressCheck(url, egressAllow) {
+  const host = url.hostname;
+  if (!domainAllowed(host, egressAllow?.())) {
+    return `web_fetch refused: '${host}' is not on the operator egress allowlist`;
+  }
+  const r = await resolveChecked(host, egressAllow?.());
+  if (!r.ok) {
+    return `web_fetch refused: ${r.reason ?? `'${host}' failed the DNS boundary check`}`;
+  }
+  return null;
+}
+
 export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAULT_MAX_CHARS, egressAllow = null } = {}) {
   return {
     name: 'web_fetch',
@@ -90,22 +132,35 @@ export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAUL
       if (url.protocol !== 'http:' && url.protocol !== 'https:') {
         return errResult(`web_fetch only fetches http/https (got ${url.protocol})`);
       }
-      if (!domainAllowed(url.hostname, egressAllow?.())) {
-        return errResult(`web_fetch refused: '${url.hostname}' is not on the operator egress allowlist`);
-      }
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
-        const res = await fetch(url, {
-          signal: ctrl.signal,
-          redirect: 'follow',
-          headers: { 'user-agent': 'personal-ai/web_fetch (+local agent)', accept: 'text/*,application/json,application/xml;q=0.9,*/*;q=0.5' },
-        });
-        // redirect-hop escape: 'follow' may land on a different host — the
-        // final URL must pass the same allowlist as the requested one.
-        const finalHost = res.url ? new URL(res.url).hostname : url.hostname;
-        if (!domainAllowed(finalHost, egressAllow?.())) {
-          return errResult(`web_fetch refused: redirect landed on '${finalHost}', not on the operator egress allowlist`);
+        // M63: manual redirect following — EVERY hop's host+DNS must pass the
+        // egress check before the request is sent. 'follow' would issue the
+        // forbidden-hop request first and only tell us the landing afterwards.
+        let res = null;
+        let hopUrl = url;
+        for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+          const refused = await egressCheck(hopUrl, egressAllow);
+          if (refused) return errResult(refused);
+          res = await fetch(hopUrl, {
+            signal: ctrl.signal,
+            redirect: 'manual',
+            headers: { 'user-agent': 'personal-ai/web_fetch (+local agent)', accept: 'text/*,application/json,application/xml;q=0.9,*/*;q=0.5' },
+          });
+          if (![301, 302, 303, 307, 308].includes(res.status)) break;
+          const loc = res.headers.get('location');
+          if (!loc) break;
+          let next;
+          try { next = new URL(loc, hopUrl); }
+          catch { return errResult('web_fetch refused: redirect target is not a valid URL'); }
+          if (next.protocol !== 'http:' && next.protocol !== 'https:') {
+            return errResult(`web_fetch refused: redirect to ${next.protocol} is not fetchable`);
+          }
+          hopUrl = next;
+          if (hop === MAX_REDIRECT_HOPS) {
+            return errResult(`web_fetch refused: more than ${MAX_REDIRECT_HOPS} redirects`);
+          }
         }
         const buf = Buffer.from(await res.arrayBuffer());
         if (buf.length > MAX_BODY_BYTES) {

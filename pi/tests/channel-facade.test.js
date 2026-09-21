@@ -76,6 +76,35 @@ test('budget gate: over-limit prompt is refused and billed events emit budget_ex
   dispose();
 });
 
+test('M71: ephemeral session refuses session_export in every format', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  // in-memory session: no file, but exportToHtml WOULD still write one —
+  // the guard must refuse before it ever runs.
+  fakeSessionRef.ephemeral = true;
+  let htmlCalled = false;
+  fakeSessionRef.exportToHtml = async () => { htmlCalled = true; return 'x'; };
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-eph-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  for (const format of ['html', 'jsonl', 'debug']) {
+    const r = await ch.handle({ type: 'session_export', format });
+    assert.equal(r.success, true);
+    assert.equal(r.data.refused, true, format);
+    assert.equal(r.data.file, null, format);
+  }
+  assert.equal(htmlCalled, false);
+  // a persistent session still exports normally (guard doesn't over-fire)
+  fakeSessionRef.ephemeral = false;
+  fakeSessionRef.sessionFile = join(dir, 'live.jsonl');
+  writeFileSync(fakeSessionRef.sessionFile, '{"a":1}\n');
+  const ok = await ch.handle({ type: 'session_export', format: 'jsonl' });
+  assert.equal(ok.success, true);
+  assert.ok(ok.data.file, 'persistent export produces a file');
+  dispose();
+});
+
 test('U5 attachments: images ride options.images, media degrade to descriptors', async () => {
   const calls = [];
   fakeSessionRef = fakeSession(); listeners.clear();

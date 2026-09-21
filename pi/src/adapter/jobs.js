@@ -204,9 +204,27 @@ export class JobExecutor {
       // M80 command-level exclusion: an operator-listed prefix (e.g. a VCS
       // binary that needs the real filesystem) runs unsandboxed — audited so
       // the bypass is visible, and an explicit per-job sandbox still wins.
+      // Compound-command guard: exclusion applies only to a SINGLE simple
+      // command unit — `git status && rm -rf x` must not escape the sandbox
+      // just because it starts with an excluded prefix (the exact bypass the
+      // upstream excludedCommands feature was bitten by).
       const prefixes = this.sandboxExcludes() ?? [];
-      const head = command.trim().split(/\s+/)[0] ?? '';
-      if (head && prefixes.some((p) => head === p || command.trim().startsWith(`${p} `))) {
+      let simple = null;
+      let clean = false;
+      if (this.classifier) {
+        try {
+          const parsed = await this.classifier(command);
+          // exclusion only when the WHOLE string is one verifiable unit:
+          // no parse errors, no redirects/write-targets, no danger-env
+          // prefixes — `git status > out` must stay sandboxed.
+          clean = parsed && !parsed.parseError && !parsed.writeTargets?.length && !parsed.dangerEnv?.length;
+          if (clean && parsed.units?.length === 1) simple = parsed.units[0];
+        } catch { simple = null; clean = false; }
+      }
+      const allowed =
+        clean && simple && simple.context === 'top' && !simple.hasExpansion &&
+        prefixes.some((p) => simple.rawName === p || simple.raw.trim() === p || simple.raw.trim().startsWith(`${p} `));
+      if (allowed) {
         sandboxProvider = false; // explicit-bypass sentinel — executeAttempt must not fall back to ambient
         this.audit?.write({ kind: 'SANDBOX_EXCLUDED', data: { command: command.slice(0, 200), parent_run_id: this.runId } });
       }

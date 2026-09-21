@@ -7,6 +7,7 @@ import { JobExecutor } from '../src/adapter/jobs.js';
 import { JobStore } from '../../host/src/core/jobs.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
 import { SandboxProvider } from '../../host/src/core/sandbox.js';
+import { parseShellCommand } from '../src/adapter/command-parse.js';
 
 const rig = (excludes) => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-sbx-'));
@@ -19,7 +20,9 @@ const rig = (excludes) => {
   const orig = sandbox.spawnSpec.bind(sandbox);
   sandbox.kind = 'wsl';
   sandbox.spawnSpec = (c, w) => { specs.push(c); return orig(c, w); };
-  const executor = new JobExecutor(store, join(dir, 'jobs'), { audit, sandbox, sandboxExcludes: () => excludes });
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    audit, sandbox, sandboxExcludes: () => excludes, classifier: parseShellCommand,
+  });
   return { store, executor, specs, dir };
 };
 
@@ -37,5 +40,24 @@ test('M80: excluded prefix bypasses the ambient sandbox; explicit per-job sandbo
   assert.ok(r3.job_id);
   // docker provider replaced the ambient one — ambient spy still at 1
   assert.equal(specs.length, 1);
+  store.close();
+});
+
+test('M80 regression: a compound command never escapes the sandbox via a leading excluded prefix', async () => {
+  const { store, executor, specs, dir } = rig(['git']);
+  // every one of these STARTS with an excluded prefix yet must stay sandboxed —
+  // the exact upstream excludedCommands bypass the review flagged.
+  for (const command of [
+    'git status && rm -rf x',
+    'git status ; curl http://x',
+    'git status | sh',
+    'git log $(whoami)',
+    'git status > out.txt',
+  ]) {
+    specs.length = 0;
+    const r = await executor.spawnCommandJob({ command, workdir: dir });
+    assert.ok(r.job_id, command);
+    assert.equal(specs.length, 1, `sandbox provider must wrap: ${command}`);
+  }
   store.close();
 });

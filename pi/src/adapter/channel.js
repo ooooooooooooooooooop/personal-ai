@@ -8,6 +8,7 @@ import { normalizeAttachments, partitionByCapability, describeAttachment, extrac
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
+import { pathInsideRoot, pathInsideRootReal } from './paths.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
 
@@ -338,6 +339,11 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     },
     stats: async () => box.s.getSessionStats?.() ?? null,
     export: async (opts = {}) => {
+      // M71: an ephemeral session's transcript must not leave the process —
+      // export (any format) would write it to disk, defeating the contract.
+      if (box.s.ephemeral === true) {
+        return { file: null, format: opts.format ?? 'html', refused: true, reason: 'ephemeral session is not exportable' };
+      }
       // trajectory export (Hermes): raw JSONL is the replayable/training
       // form; HTML stays the human-readable default.
       if (opts.format === 'jsonl') {
@@ -828,7 +834,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         // carries them between instances (same confinement as allowlists).
         export: ({ path } = {}) => {
           const target = resolve(core.paths.root, String(path ?? 'profiles-export.json'));
-          if (!target.startsWith(core.paths.root) || !target.endsWith('.json')) {
+          if (!pathInsideRoot(core.paths.root, target) || !target.endsWith('.json')) {
             return { ok: false, error: 'export target must be a .json path inside the instance directory' };
           }
           writeFileSync(target, JSON.stringify({ profiles: read() }, null, 2) + '\n');
@@ -837,7 +843,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         },
         import: ({ path } = {}) => {
           const source = resolve(core.paths.root, String(path ?? ''));
-          if (!source.startsWith(core.paths.root) || !source.endsWith('.json')) {
+          if (!pathInsideRootReal(core.paths.root, source) || !source.endsWith('.json')) {
             return { ok: false, error: 'import source must be a .json path inside the instance directory' };
           }
           let doc;
