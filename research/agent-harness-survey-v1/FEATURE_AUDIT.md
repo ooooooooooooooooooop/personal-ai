@@ -1550,3 +1550,16 @@
 | M138 字节嗅探+BMP | **落地**——magic 重分类 + BI_RGB BMP→PNG 零依赖转码 |
 
 **仍待中重型的**：M64 实际删除动作（预览底子在）、M71 免持久会话、M76 per-agent disallowedTools、M77 子 agent 实况窗格、M80 sandbox.excluded、M81 多 profile、M82 MCP prompts、M83 惰性工具目录、M86 ambient context、M90 workflow 生命周期页、M92 后台会话页、M94 per-agent 上下文预算、M99 workers 页、M100 provider fallback 链、M105 工具级 checkpoint、M38 占位回取、M135 动态调速、M73 向量记忆。
+
+### 28.14 中档批次（2026-09-21，commit 3a200bd）
+
+| 项 | 终态 |
+|---|---|
+| M105 工具级 checkpoint→rewind | **落地**——fileops 回执携带 toolCallId；`undoCall` 精确撤单调用全部文件变更、`undoFrom` 回退锚点及之后全部变更；UI 变更面板「撤调用」「回退到此」 |
+| M100 provider fallback 链 | **落地**——`<instance>/model-fallbacks.json` {chain:[{provider,model}]}；agent_end 检出 stopReason=error 时沿链切换会话模型+steer 重试；每任务链长上限、abort 永不触发、MODEL_FALLBACK 全审计；`model_fallbacks`/`model_fallback_set` 通道命令实时改链 |
+| M38 大输出占位符回取 | **落地**——OutputSpool（<instance>/spool，FIFO 50 文件帽）+ tool_result 接缝把 >64KB 文本换成带 handle 的占位符；`output_read(id,offset,limit)` 模型工具分页回取 |
+| M83 工具惰性加载 | **落地**——`<instance>/defer-tools.json` {defer:[names]}；ToolSurface.defer 隐藏但不 deny（不落 deny-memory、非治理拒绝）；`tool_search`/`tool_activate` 模型工具；decide 对直猜名字的 deferred 调用拦 `tool_deferred` |
+
+**仍待**：M64 实际删除、M71 免持久会话、M76 per-agent disallowedTools、M77 实况窗格、M80 sandbox.excluded、M81 多 profile、M82 MCP prompts、M86 ambient context、M90/M92/M99 UI 页、M94 per-agent 预算、M135 动态调速、M73 向量记忆（重依赖）。
+
+测试基线：host 233 / pi 186+1skip / app 18+1skip 全绿。
