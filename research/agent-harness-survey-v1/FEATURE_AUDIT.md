@@ -1594,3 +1594,17 @@
 测试基线：host 240 / pi 192+1skip（其中 mcp-ext 7/7、channel 22/22、jobs 7/7 全绿）/ app 18+1skip。
 
 **真剩余**：M73 向量记忆（sqlite-vec 依赖决策，host 零依赖约束下只能挂 pi）、M81 命名 profile 包、上游残余（stale agent_end、MCP 工具顺序）。
+
+### 28.17 中档批次 4（2026-09-21，commit 6254fa0）
+
+| 项 | 终态 |
+|---|---|
+| M81 命名 profile | **落地**——`<instance>/profiles.json`：profile_save 快照 {model,thinking,mode}，profile_apply 走同一治理 setter 回灌；名称长度上限、缺失 profile/非法 mode 诚实拒绝；PROFILE_* 审计；UI /profile save\|apply\|list\|del |
+| M91 结构化参数表单 | **落地**——recipe_run 缺必填参数时经 PendingAsks question 卡逐参数问 operator（Automation Blueprints 形态）；deny/timeout/abort 拒绝展开；无 asks 通道保持原 missing-params 拒绝 |
+| stale agent_end 残余 | **落地（防御层）**——agent_end 闩锁化：agent_start 重新武装；无 start 的重复/迟到 agent_end 丢弃+审计 STALE_AGENT_END，不再双触发 continuation/fallback |
+| M78 调度绑 live session | **核查已有**——prompt 类调度经 promptSink 进当前会话（PAI 单会话/body 形态下即目标语义） |
+| MCP 工具顺序 | **上游残余**——pi 上游 prompt 顺序，PAI 不重排 |
+
+**M54–M147 全部裁定完毕。**唯一未裁项：M73 向量记忆——需 sqlite-vec/embedding 依赖决策（host 零依赖约束下只能挂 pi 侧）。
+
+测试基线：host 240 / pi 193+1skip / app 18+1skip 全绿。
