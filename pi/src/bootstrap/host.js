@@ -406,6 +406,11 @@ export async function startHost({
         return Array.isArray(doc?.exclude) ? doc.exclude.map(String) : [];
       } catch { return []; }
     },
+    // M90-R2: restart replays a persisted command — re-run today's hard
+    // policy on it (freshness, tool deny, protected roots, parse, risk
+    // deny/terminate). Ask-level outcomes are covered by the restart click.
+    preflightCommand: (command) =>
+      core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args: { command } }),
     // M14: scheduled-job completions surface to the UI as an event — a job
     // nobody is watching must still deliver its result somewhere visible.
     onJobFinished: (d) => channelHandle?.channel.emitEvent({ type: 'scheduled_job_done', ...d }),

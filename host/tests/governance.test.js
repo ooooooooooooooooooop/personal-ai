@@ -177,6 +177,44 @@ test('prediction binding: open prediction admits + records binding', async () =>
   assert.equal(closed.rule, 'prediction_binding_failed');
 });
 
+test('M90-R2: hardPolicyGate — non-turn preflight re-runs the refuse slice on persisted commands', async () => {
+  const { audit, policy, predictions, canonicalDir } = fixture({
+    tools: { job_spawn: { action: 'ask' } }, // ask-level: the restart click IS the approval
+  });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { job_spawn: 'command' },
+    commandClassifier: async (source) => source.includes('rm -rf')
+      ? { units: [{ raw: source }], parseError: null, risk: 'destructive' }
+      : source.includes('???')
+        ? { units: [], parseError: 'ERROR nodes', risk: 'unknown' }
+        : { units: [{ raw: source }], parseError: null, risk: 'benign' },
+  });
+  const gateCtx = (command) => ({ toolName: 'job_spawn', toolCallId: 'job_restart', args: { command } });
+  // benign persisted command → passes (undefined), no ask card raised
+  assert.equal(await kernel.hardPolicyGate(gateCtx('echo ok')), undefined);
+  // risk deny under CURRENT policy → refused
+  const denied = await kernel.hardPolicyGate(gateCtx('rm -rf x'));
+  assert.equal(denied.block, true);
+  assert.equal(denied.rule, 'risk_destructive');
+  // unparseable → refused
+  const bad = await kernel.hardPolicyGate(gateCtx('???'));
+  assert.equal(bad.block, true);
+  assert.equal(bad.rule, 'command_unparseable');
+  // explicit tool deny → refused even though the original run predated it
+  const { audit: a2, policy: p2, predictions: pr2 } = fixture({ tools: { job_spawn: { action: 'deny' } } });
+  const k2 = new GovernanceKernel({ audit: a2, policy: p2, predictions: pr2 });
+  const td = await k2.hardPolicyGate(gateCtx('echo ok'));
+  assert.equal(td.block, true);
+  assert.equal(td.rule, 'tool_denied');
+  // policy drift → fail-closed terminate
+  writeFileSync(join(canonicalDir, 'policy.json'), JSON.stringify({ version: 2 }));
+  const drift = await kernel.hardPolicyGate(gateCtx('echo ok'));
+  assert.equal(drift.block, true);
+  assert.equal(drift.terminate, true);
+  assert.equal(drift.rule, 'policy_drift');
+});
+
 test("policy 'ask' risk action suspends for the operator; allow admits, deny blocks", async () => {
   const { audit, policy, predictions } = fixture({
     riskActions: { destructive: 'ask', privilege: 'deny' },

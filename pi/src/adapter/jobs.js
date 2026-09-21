@@ -65,7 +65,7 @@ export class JobExecutor {
    *        covers the durable-job surface only — foreground tool calls execute
    *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null, preflightCommand = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -78,6 +78,9 @@ export class JobExecutor {
     // M80 sandbox exclusions — () => string[] of command prefixes that bypass
     // the AMBIENT sandbox only (an explicit per-job sandbox request stands).
     this.sandboxExcludes = sandboxExcludes;
+    // M90-R2: restart re-runs CURRENT hard policy on the persisted command —
+    // (command) => Promise<decision|undefined>; a decision with .block refuses.
+    this.preflightCommand = preflightCommand;
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
   }
@@ -162,6 +165,15 @@ export class JobExecutor {
       // reservation. The operator must delegate again.
       return { refused: true, reason: `job '${jobId}' ran on a committed budget slice — restart cannot re-admit it; delegate again` };
     }
+    // M90-R2: restart replays a PERSISTED command — it must clear today's
+    // hard policy, not the policy that admitted the original run (policy may
+    // have tightened since). The operator's restart click is the ask-level
+    // approval; deny/terminate/drift/unparseable refuse outright.
+    const gate = await this.preflightCommand?.(spec.command);
+    if (gate?.block) {
+      this.audit?.write({ kind: 'JOB_RESTART_REFUSED', data: { job_id: jobId, rule: gate.rule, reason: gate.reason, parent_run_id: this.runId } });
+      return { refused: true, reason: `restart refused by current policy (${gate.rule}): ${gate.reason}` };
+    }
     const r = await this.spawnCommandJob({
       command: spec.command,
       workdir: spec.workdir,          // base dir — a fresh worktree is built when spec.worktree
@@ -213,10 +225,13 @@ export class JobExecutor {
     let sandboxProvider = this.sandbox;
     if (sandbox != null && sandbox !== false && sandbox !== 'none') {
       const kind = typeof sandbox === 'object' ? (sandbox.kind ?? 'none') : String(sandbox);
-      if (!['wsl', 'docker', 'ssh'].includes(kind)) {
-        return { refused: true, reason: `unknown sandbox backend '${kind}' — expected wsl|docker|ssh` };
+      if (!['none', 'wsl', 'docker', 'ssh'].includes(kind)) {
+        return { refused: true, reason: `unknown sandbox backend '${kind}' — expected none|wsl|docker|ssh` };
       }
-      sandboxProvider = new SandboxProvider(kind, typeof sandbox === 'object' ? sandbox : {});
+      // 'none' object = restart replaying an explicitly-unsandboxed contract —
+      // `false` sentinel so executeAttempt does NOT fall back to a possibly-
+      // changed ambient PAI_SANDBOX.
+      sandboxProvider = kind === 'none' ? false : new SandboxProvider(kind, typeof sandbox === 'object' ? sandbox : {});
     } else if (sandboxProvider?.kind && sandboxProvider.kind !== 'none' && this.sandboxExcludes) {
       // M80 command-level exclusion: an operator-listed prefix (e.g. a VCS
       // binary that needs the real filesystem) runs unsandboxed — audited so
@@ -302,7 +317,18 @@ export class JobExecutor {
       workerIdentity: {}, // filled after spawn with real pid
       workspaceRef: workdir,
     });
-    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom, sandboxProvider, jobType, sandboxSpec: sandbox, authorizedRoot: origAuthorizedRoot });
+    // M90-R1: persist the EFFECTIVE sandbox contract — a null call arg plus
+    // ambient PAI_SANDBOX=docker used to record `null`, so a later restart
+    // under a changed ambient config silently drifted. `false` is the
+    // exclusion-bypass sentinel: record it as an explicit unsandboxed replay.
+    const effectiveSandbox = sandboxProvider === false
+      ? (typeof sandbox === 'object' && sandbox?.kind === 'none'
+        ? { kind: 'none' }                    // explicit unsandboxed contract (restart replay)
+        : { kind: 'none', bypassed_by: 'sandbox_excludes' })
+      : sandboxProvider
+        ? { kind: sandboxProvider.kind, distro: sandboxProvider.distro ?? null, image: sandboxProvider.image ?? null, target: sandboxProvider.target ?? null, dir: sandboxProvider.dir ?? null, key: sandboxProvider.key ?? null }
+        : { kind: 'none' };
+    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom, sandboxProvider, jobType, sandboxSpec: effectiveSandbox, authorizedRoot: origAuthorizedRoot });
     return { job_id: job.job_id, attempt_id };
   }
 

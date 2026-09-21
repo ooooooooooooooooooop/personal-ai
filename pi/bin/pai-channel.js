@@ -47,12 +47,18 @@ const host = await startHost({
   workdir,
   delegationCommand: delegateCmd
     // {model}/{effort} slots let an operator template consume profile hints
-    // (e.g. `--model {model}`) — empty string when the profile declares none
-    ? (target, task, opts = {}) => delegateCmd
-      .replaceAll('{target}', target)
-      .replaceAll('{task}', task.replaceAll('"', '\\"'))
-      .replaceAll('{model}', opts.model ?? '')
-      .replaceAll('{effort}', opts.effort ?? '')
+    // (e.g. `--model {model}`) — empty string when the profile declares none.
+    // `enforceable` is asserted against the OPERATOR-CONTROLLED template —
+    // never against the interpolated command, whose {task} slot carries
+    // model-controlled text that could smuggle the 'pai-channel.js' token.
+    ? (target, task, opts = {}) => ({
+      command: delegateCmd
+        .replaceAll('{target}', target)
+        .replaceAll('{task}', task.replaceAll('"', '\\"'))
+        .replaceAll('{model}', opts.model ?? '')
+        .replaceAll('{effort}', opts.effort ?? ''),
+      enforceable: /pai-channel\.js/.test(delegateCmd),
+    })
     : null,
 });
 

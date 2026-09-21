@@ -18,9 +18,9 @@ import { WorkspaceWriteLease } from '../src/adapter/writelease.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-const rig = (dir) => {
+const rig = (dir, deps = {}) => {
   const store = new JobStore(join(dir, 'durable_jobs.db'));
-  const executor = new JobExecutor(store, join(dir, 'jobs'));
+  const executor = new JobExecutor(store, join(dir, 'jobs'), deps);
   return { store, executor };
 };
 
@@ -256,7 +256,7 @@ test('delegate admission: enforceable child gets parent-remaining budget via env
   const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
   const tool = delegateTool(executor, {
     // commandFor yields a REAL pai-channel child (fixture prints its env)
-    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
     workdir: tmpdir(),
     getScope: () => 'sess-p',
     budget,
@@ -287,7 +287,7 @@ test('delegate admission: committed slice cannot be double-spent by a second del
 
   const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
   const tool = delegateTool(executor, {
-    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
     workdir: tmpdir(),
     getScope: () => 'sess-d',
     budget,
@@ -312,7 +312,7 @@ test('delegate admission: committed child usage does NOT double-bill the parent'
   const budget = mkBudget(dir, { maxTokensPerSession: 100000 });
   const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
   const tool = delegateTool(executor, {
-    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
     workdir: tmpdir(),
     getScope: () => 'sess-c',
     budget,
@@ -350,7 +350,7 @@ test('delegate admission: exhausted parent scope refuses before spawn', async ()
   const budget = mkBudget(dir, { maxTokensPerSession: 100 });
   budget.record({ scope: 'sess-x', source: 'turn', usage: { input: 150 }, countCall: false });
   const tool = delegateTool(executor, {
-    commandFor: () => `"${process.execPath}" "${join(here, 'fixtures', 'pai-channel.js')}"`,
+    commandFor: () => ({ command: `"${process.execPath}" "${join(here, 'fixtures', 'pai-channel.js')}"`, enforceable: true }),
     workdir: tmpdir(),
     getScope: () => 'sess-x',
     budget,
@@ -756,6 +756,83 @@ test('M90: restart refuses non-terminal jobs', async () => {
   store.close();
 });
 
+// ─── M90-R2: restart must clear TODAY's hard policy ────────────────────────
+
+test('M90-R2: restart refuses when current policy denies the persisted command', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-pol-'));
+  // preflight wired to the kernel's hard-policy gate — a command that was
+  // admissible at original spawn but is denied NOW must not re-spawn.
+  const { store, executor } = rig(dir, {
+    preflightCommand: async () => ({ block: true, rule: 'risk_dangerous', reason: "risk class 'dangerous' denied by policy" }),
+  });
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo OLD_OK', workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal(store.getJob(job_id).job_state, 'COMPLETED');
+  const r = await executor.restart(job_id);
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /current policy \(risk_dangerous\)/);
+  assert.equal(store.listRecent(50).length, 1, 'no new job spawned');
+  store.close();
+});
+
+test('M90-R2: restart proceeds when the hard-policy gate passes', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-polok-'));
+  let calls = 0;
+  const { store, executor } = rig(dir, {
+    preflightCommand: async (cmd) => { calls++; assert.equal(cmd, 'echo STILL_OK'); return undefined; },
+  });
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo STILL_OK', workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 1500));
+  const r = await executor.restart(job_id);
+  assert.equal(r.refused, undefined, `restart refused: ${r.reason}`);
+  assert.equal(calls, 1, 'gate consulted exactly once before re-spawn');
+  await new Promise((res) => setTimeout(res, 1200));
+  assert.equal(store.getJob(r.job_id).job_state, 'COMPLETED');
+  store.close();
+});
+
+// ─── M90-R1: restart_spec records the EFFECTIVE sandbox ────────────────────
+
+test('M90-R1: restart_spec persists the resolved sandbox, not the null call arg', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-sbx-'));
+  // ambient provider in place; the spawn call passes NO sandbox arg — the
+  // recorded contract must still say 'wsl', not null.
+  const fakeProvider = {
+    kind: 'wsl', distro: 'Ubuntu', image: null, target: null, dir: null, key: null,
+    spawnSpec: (command, cwd) => ({ file: command, args: [], shell: true, cwd }),
+  };
+  const { store, executor } = rig(dir, { sandbox: fakeProvider });
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo SBX', workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 1200));
+  const attempt = store.getAttempts(job_id)[0];
+  const spec = readCheckpoint(attempt.checkpoint_ref).restart_spec;
+  assert.equal(spec.sandbox?.kind, 'wsl');
+  assert.equal(spec.sandbox?.distro, 'Ubuntu');
+  store.close();
+});
+
+test('M90-R1: an explicitly-unsandboxed contract replays unsandboxed even under a changed ambient', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-sbx2-'));
+  const { store, executor } = rig(dir); // no ambient sandbox
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo NO_SBX', workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 1200));
+  assert.equal(store.getJob(job_id).job_state, 'COMPLETED');
+  const spec = readCheckpoint(store.getAttempts(job_id)[0].checkpoint_ref).restart_spec;
+  assert.equal(spec.sandbox?.kind, 'none');
+  // ambient sandbox NOW appears — restart must replay the recorded 'none',
+  // not the drifted ambient. Give the executor an ambient provider and replay.
+  executor.sandbox = {
+    kind: 'wsl', distro: null, image: null, target: null, dir: null, key: null,
+    spawnSpec: (command, cwd) => ({ file: `wsl-wrapped:${command}`, args: [], shell: true, cwd }),
+  };
+  const r = await executor.restart(job_id);
+  assert.equal(r.refused, undefined, `restart refused: ${r.reason}`);
+  await new Promise((res) => setTimeout(res, 1200));
+  const replay = readCheckpoint(store.getAttempts(r.job_id)[0].checkpoint_ref).restart_spec;
+  assert.equal(replay.sandbox?.kind, 'none', 'replayed contract stays unsandboxed — ambient drift cannot upgrade it');
+  store.close();
+});
+
 // ─── M76: tools_deny on an unenforceable target refuses pre-spawn ──────────
 
 test('M76: profile tools_deny + non-pai-channel target → refused, never spawned', async () => {
@@ -785,7 +862,7 @@ test('M76: tools_deny on an enforceable pai-channel target still delegates', asy
   ]);
   const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
   const tool = delegateTool(executor, {
-    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
     workdir: tmpdir(),
     profiles,
   });
@@ -794,5 +871,48 @@ test('M76: tools_deny on an enforceable pai-channel target still delegates', asy
   assert.match(res.content[0].text, /--tools-deny|delegated to/, 'deny flag rides the bridge command');
   // wait for the job, then clean up
   await new Promise((r) => setTimeout(r, 3000));
+  store.close();
+});
+
+// ─── M76/M94-R2: task-text cannot spoof enforceability ─────────────────────
+// The old `/pai-channel\.js/.test(inner)` sniffed the INTERPOLATED command —
+// `inner` carries model-controlled task text, so `task="inspect pai-channel.js"`
+// on a foreign target made an unenforceable child look enforceable. Capability
+// must come from the builder's structured assertion, not the shell string.
+
+test('M76-R2: task text carrying "pai-channel.js" does NOT make a foreign target enforceable (tools_deny)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-spoof-td-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['strict', { target: 'codex', toolsDeny: ['shell'] }],
+  ]);
+  const tool = delegateTool(executor, {
+    // builder returns a plain string → asserts nothing → unenforceable even
+    // though the interpolated command text will contain 'pai-channel.js'
+    commandFor: (t, task) => `echo "${t}: ${task}"`,
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'strict', task: 'inspect pai-channel.js internals' });
+  assert.equal(res.details.refused, true);
+  assert.equal(res.details.reason, 'unenforceable_tools_deny');
+  assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn — no job record');
+  store.close();
+});
+
+test('M94-R2: task text carrying "pai-channel.js" does NOT make a foreign target enforceable (budget)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-spoof-b-'));
+  const { store, executor } = rig(dir);
+  const budget = mkBudget(dir, { maxTokensPerSession: 2000 });
+  const tool = delegateTool(executor, {
+    commandFor: (t, task) => `echo "${t}: ${task}"`,
+    workdir: tmpdir(),
+    getScope: () => 'sess-spoof',
+    budget,
+  });
+  const res = await tool.execute('tc1', { target: 'codex', task: 'inspect pai-channel.js internals' });
+  assert.equal(res.details.refused, true);
+  assert.equal(res.details.reason, 'unenforceable_child_budget');
+  assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn — no job record');
   store.close();
 });

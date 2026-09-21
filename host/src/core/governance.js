@@ -445,7 +445,7 @@ export class GovernanceKernel {
     const badPath = this.#scanProtectedRoots(args);
     if (badPath) {
       return this.#deny(ctx, 'negative_capability', {
-        reason: `edited argument targets protected runtime path: ${badPath}`,
+        reason: `argument targets protected runtime path: ${badPath}`,
         actual: badPath,
         repair: 'write inside the task worktree, never into instance internals',
       });
@@ -455,7 +455,7 @@ export class GovernanceKernel {
       const parsed = await this.commandClassifier(args[cmdArg]);
       if (parsed.parseError) {
         return this.#deny(ctx, 'command_unparseable', {
-          reason: `edited command could not be parsed (${parsed.parseError}); unparseable commands are unverifiable`,
+          reason: `command could not be parsed (${parsed.parseError}); unparseable commands are unverifiable`,
           repair: 'split the command into simpler units',
         });
       }
@@ -465,18 +465,47 @@ export class GovernanceKernel {
       if (actions.includes('terminate')) {
         return this.#deny(ctx, `risk_${parsed.risk}`, {
           terminate: true,
-          reason: `edited command risk class '${parsed.risk}' halts the batch by policy`,
+          reason: `command risk class '${parsed.risk}' halts the batch by policy`,
         });
       }
       if (actions.includes('deny')) {
         return this.#deny(ctx, `risk_${parsed.risk}`, {
-          reason: `edited command risk class '${parsed.risk}' denied by policy`,
+          reason: `command risk class '${parsed.risk}' denied by policy`,
           actual: parsed.units.map((u) => u.raw).join(' | '),
           repair: 'remove the denied unit or request elevation through the operator',
         });
       }
     }
     return undefined;
+  }
+
+  /**
+   * M90-R2: hard-policy gate for NON-TURN callers (job restart replays a
+   * persisted command — today's policy must still gate it). Runs the
+   * refuse-producing deterministic slice: policy freshness, explicit tool
+   * deny, protected roots, command parse validity, risk deny/terminate.
+   * Ask-level outcomes (risk ask, instruction_file, env_injection) are NOT
+   * raised — the operator's restart click IS the approval of that payload.
+   * @returns {Promise<ToolCallDecision|undefined>} deny decision, or undefined
+   */
+  async hardPolicyGate(ctx) {
+    try {
+      this.policy.assertFresh();
+    } catch (err) {
+      return this.#deny(ctx, 'policy_drift', {
+        terminate: true,
+        reason: `policy drift (fail-closed): ${err.message}`,
+        repair: 're-attest canonical policy and restart the session',
+      });
+    }
+    const rules = this.#toolRules(ctx.toolName);
+    if (rules.action === 'deny') {
+      return this.#deny(ctx, 'tool_denied', {
+        reason: `tool '${ctx.toolName}' denied by policy`,
+        repair: rules.repair ?? 'choose an allowed tool',
+      });
+    }
+    return this.#recheckEditedArgs(ctx);
   }
 
   /** Strictest applicable overlay action for this call. */

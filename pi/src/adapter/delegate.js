@@ -108,11 +108,19 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           isError: true,
         };
       }
-      const inner = commandFor(target, task, { model: profileModel, effort: profileEffort });
+      const innerSpec = commandFor(target, task, { model: profileModel, effort: profileEffort });
+      const inner = typeof innerSpec === 'string' ? innerSpec : String(innerSpec?.command ?? '');
+      // M76/M94-R2: enforceability is ASSERTED by the command builder, never
+      // sniffed from the final shell string — `inner` interpolates the
+      // model-controlled task text, so `task="inspect pai-channel.js"` would
+      // spoof capability on a foreign target. A builder returning a plain
+      // string asserts nothing → the child is unenforceable (fail-closed);
+      // an object return must explicitly set `enforceable: true`.
+      const childEnforceable = typeof innerSpec === 'object' && innerSpec !== null && innerSpec.enforceable === true;
       // M94: a profile-declared budget is only meaningful when the child can
       // actually enforce it — pai-channel bodies gate provider requests on
       // PAI_BUDGET_MAX_*; any other target makes the declared cap a lie.
-      if (profileBudget && !/pai-channel\.js/.test(inner)) {
+      if (profileBudget && !childEnforceable) {
         return {
           content: [{
             type: 'text',
@@ -126,7 +134,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // PAI_TOOLS_DENY at bootstrap and prunes its tool surface; any other
       // target silently ignores the constraint, so the declared deny would be
       // a lie. Refuse pre-spawn instead of shipping an unenforced hint.
-      if (toolsDeny && !/pai-channel\.js/.test(inner)) {
+      if (toolsDeny && !childEnforceable) {
         return {
           content: [{
             type: 'text',
@@ -167,7 +175,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         //    bootstrap and gates every provider request. Any other target is
         //    post-hoc accounting only — refused before spawn under a finite
         //    budget (bounded-autonomy requirement, not a courtesy).
-        if (!/pai-channel\.js/.test(inner)) {
+        if (!childEnforceable) {
           return {
             content: [{
               type: 'text',

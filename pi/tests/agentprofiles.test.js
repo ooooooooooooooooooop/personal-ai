@@ -103,7 +103,9 @@ test('M94: profile budget stamps --budget-* flags; unenforceable target refused'
     ['free', { name: 'free', target: 'codex', preamble: '', budget: { tokens: 1 } }],
   ]);
   const tool = delegateTool(executor, {
-    commandFor: (t) => (t === 'pai' ? 'node pai-channel.js --serve' : 'codex run'),
+    commandFor: (t) => (t === 'pai'
+      ? { command: 'node pai-channel.js --serve', enforceable: true }
+      : 'codex run'),
     workdir: dir,
     profiles,
   });
@@ -133,7 +135,7 @@ test('M94 regression: delegation reserves only the EFFECTIVE child slice, not al
     ['bounded', { name: 'bounded', target: 'pai', preamble: '', budget: { tokens: 50000 } }],
   ]);
   const tool = delegateTool(executor, {
-    commandFor: () => 'node pai-channel.js --serve',
+    commandFor: () => ({ command: 'node pai-channel.js --serve', enforceable: true }),
     workdir: dir,
     profiles,
     budget,
