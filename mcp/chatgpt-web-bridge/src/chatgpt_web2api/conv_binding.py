@@ -28,8 +28,10 @@ Contract (per the operator's requirements):
 
 Records live in ``conv_bindings.json`` next to the other shared runtime
 state: ``conv_id → {session_key, owner_pid, claimed_at, last_seen}``.
-``last_seen`` is refreshed on every gated send; an entry idle past
-``BIND_TTL`` is treated as free (abandoned session, clean handoff).
+``last_seen`` is refreshed on every gated send. After ``BIND_TTL``, an
+entry is free to other sessions, but the same session in the same daemon
+keeps its confirmation until release or takeover. CDP driver reclamation
+and the listener's send sequence do not define authorization lifetime.
 """
 from __future__ import annotations
 
@@ -45,9 +47,8 @@ logger = logging.getLogger(__name__)
 
 BIND_PATH = REGISTRY_DIR / "conv_bindings.json"
 
-# How long a binding survives without a heartbeat (a gated send refreshes
-# last_seen). Long enough to cover a working session between messages,
-# short enough that a crashed/abandoned session releases the conv.
+# Occupancy warning lifetime for OTHER sessions, not an approval timeout
+# for the original session. A gated send refreshes last_seen.
 BIND_TTL = 1800.0
 
 
@@ -68,8 +69,10 @@ def _write_all(state: dict) -> None:
         logger.debug("conv_binding: state write failed", exc_info=True)
 
 
-def binding_for(conv_id: str, *, now: float | None = None) -> dict | None:
-    """The live binding for ``conv_id``, or None if free/expired/dead."""
+def binding_for(
+    conv_id: str, *, now: float | None = None, session_key: str | None = None,
+) -> dict | None:
+    """Live occupancy, or an idle approval still owned by this daemon/session."""
     if not isinstance(conv_id, str) or not conv_id:
         return None
     entry = _read_all().get(conv_id)
@@ -77,9 +80,20 @@ def binding_for(conv_id: str, *, now: float | None = None) -> dict | None:
         return None
     now = time.time() if now is None else now
     last_seen = entry.get("last_seen")
-    if not isinstance(last_seen, (int, float)) or now - last_seen > BIND_TTL:
+    if not isinstance(last_seen, (int, float)):
         return None
     owner = entry.get("owner_pid")
+    same_owner = bool(
+        session_key and entry.get("session_key") == session_key
+        and owner == os.getpid()
+    )
+    if now - last_seen > BIND_TTL:
+        if not same_owner:
+            return None
+        logger.info(
+            "binding_reused_after_idle: conv=%s session=%s idle_s=%d",
+            conv_id, session_key, int(now - last_seen),
+        )
     if isinstance(owner, int) and owner != os.getpid() and not _pid_alive(owner):
         return None
     return entry
@@ -179,8 +193,9 @@ async def gate_check(
             "action": action,
         }
 
-    rec = binding_for(conv_id)
-    if rec and rec.get("session_key") == session_key:
+    rec = binding_for(conv_id, session_key=session_key)
+    if (rec and rec.get("session_key") == session_key
+            and rec.get("owner_pid") == os.getpid()):
         heartbeat(conv_id, session_key)
         return None
     if confirmed:
@@ -207,6 +222,10 @@ async def gate_check(
         except Exception:
             generating = False
 
+    logger.info(
+        "binding_confirmation_required: conv=%s session=%s occupied=%s",
+        conv_id, session_key, rec is not None,
+    )
     action = (
         "This session has not bound this conversation yet. If existing explicit "
         "user approval covers this target and any occupied_by takeover, retry "

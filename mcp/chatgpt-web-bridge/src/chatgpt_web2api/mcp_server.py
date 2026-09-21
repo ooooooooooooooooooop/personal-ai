@@ -30,10 +30,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import hashlib
 import json
 import logging
 import os
 import sys
+import tempfile
 import time
 from collections.abc import Awaitable, Callable
 from enum import Enum
@@ -45,7 +47,7 @@ from mcp.server import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
 from pydantic import BaseModel, Field
 
-from . import __version__, conv_binding, conv_dom_read
+from . import __version__, conv_binding, conv_dom_read, send_receipts
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
 from .cdp_driver import (
     AuthExpiredError,
@@ -69,6 +71,10 @@ from .runtime_info import get_runtime_info
 from .tab_registry import TabRegistry
 
 logger = logging.getLogger(__name__)
+
+# Keep even an ASCII-escaped client preview below the observed 10 KB cap.
+_MAX_INLINE_CONVERSATION_BYTES = 8000
+_CONVERSATION_EXPORT_DIR = Path.home() / ".chatgpt-web2api" / "exports"
 
 # How many streamed chunks between coalesced progress notifications. The
 # underlying DOM poll yields roughly one delta per ~0.5s, so notifying every
@@ -94,6 +100,10 @@ class ChatCompletionInput(BaseModel):
     timeout_seconds: int = Field(
         default=900, ge=1, le=1800,
         description="Total request budget including queueing, navigation, send and reply verification. A timeout does not prove the message was unsent.",
+    )
+    operation_id: str | None = Field(
+        default=None, max_length=128,
+        description="Stable ID for this logical send. Reuse after timeout/cancel/reconnect; never change the payload under the same ID. Query get_send_status before retrying.",
     )
     system_prompt: str | None = Field(
         default=None,
@@ -148,6 +158,12 @@ class ListModelsInput(BaseModel):
     """No inputs needed — empty schema."""
 
     pass
+
+
+class GetSendStatusInput(BaseModel):
+    operation_id: str | None = Field(default=None, max_length=128)
+    refresh: bool = Field(default=False, description="Read the recorded conversation to verify persistence; never sends a message.")
+    limit: int = Field(default=10, ge=1, le=20)
 
 
 class ListProjectsInput(BaseModel):
@@ -211,6 +227,16 @@ class GetConversationInput(BaseModel):
             "returned inline — the tool result stays tiny no matter how long "
             "the messages are, and you read the file instead. Use this for "
             "long replies instead of fighting tool-result truncation."
+        ),
+    )
+
+    max_inline_bytes: int = Field(
+        default=_MAX_INLINE_CONVERSATION_BYTES,
+        ge=0,
+        description=(
+            "Large pages automatically export complete UTF-8 text and return out_file "
+            "instead of a truncated preview. Budget counts ASCII-escaped JSON bytes. "
+            "Set 0 only when the client explicitly needs unlimited inline messages."
         ),
     )
 
@@ -379,6 +405,7 @@ class ChatWithGptInput(BaseModel):
         ),
     )
     message: str = Field(description="The message to send to the GPT")
+    operation_id: str | None = Field(default=None, max_length=128)
     confirm: bool = Field(
         default=False,
         description=(
@@ -399,6 +426,7 @@ class ToolName(str, Enum):
     RUNTIME_INFO = "runtime_info"
     # Core chat
     CHAT_COMPLETION = "chat_completion"
+    GET_SEND_STATUS = "get_send_status"
     # Discovery
     LIST_MODELS = "list_models"
     LIST_PROJECTS = "list_projects"
@@ -574,12 +602,18 @@ GET_CONVERSATION_OUTPUT = {
         },
         "out_file": {
             "type": "string",
-            "description": "Absolute path the page was written to (only when requested).",
+            "description": "Absolute path containing the complete page, requested or automatically exported.",
         },
         "messages_written": {
             "type": "integer",
             "description": "How many messages were written to out_file.",
         },
+        "exported_automatically": {"type": "boolean"},
+        "file_bytes": {"type": "integer"},
+        "file_sha256": {"type": "string"},
+        "read_hint": {"type": "string"},
+        "source": {"type": "string"},
+        "partial": {"type": "boolean"},
     },
     "required": ["id", "total", "has_more"],
 }
@@ -977,6 +1011,37 @@ async def do_chat_completion(
     on_progress: ProgressCallback | None = None,
     session_key: str | None = None,
 ) -> dict:
+    validated = ChatCompletionInput(**args)
+    request = validated.model_dump(exclude={"confirm", "operation_id"})
+    request["project_id"] = validated.project_id or (config.chatgpt.default_project_id if config else None)
+    request["tool"] = "chat_completion"
+    return await send_receipts.run(
+        request, validated.operation_id,
+        lambda: _do_chat_completion(driver, args, config, on_progress, session_key),
+    )
+
+
+async def do_get_send_status(driver, args: dict) -> dict:
+    validated = GetSendStatusInput(**args)
+    if not validated.operation_id:
+        return {"receipts": send_receipts.recent(validated.limit)}
+    record = send_receipts.get(validated.operation_id)
+    if record is None:
+        return {"operation_id": validated.operation_id, "state": "not_found", "can_retry_send": False}
+    refresh_error = None
+    if validated.refresh and record.get("conversation_id") and driver is not None:
+        try:
+            data = await driver.get_conversation(record["conversation_id"])
+            record = send_receipts.reconcile(validated.operation_id, data)
+        except Exception as exc:
+            refresh_error = type(exc).__name__
+    result = send_receipts.public_record(record)
+    if refresh_error:
+        result["refresh_error"] = refresh_error
+    return result
+
+
+async def _do_chat_completion(driver, args, config, on_progress=None, session_key=None) -> dict:
     """Execute a chat completion through the CDP driver."""
     validated = ChatCompletionInput(**args)
     await _notify(on_progress, "Resolving conversation target…")
@@ -1045,9 +1110,8 @@ async def do_chat_completion(
     # Send and collect response. Progress notifications reset the MCP client's
     # idle timer during long generations so the tool call isn't killed at
     # ~30s. on_progress is None when the client can't receive progress.
-    # NOTE: across a rate-limit retry ChatGPT re-types and re-streams the
-    # response from scratch, so the message may visually "reset" even though
-    # the numeric progress counter keeps climbing — see _make_progress_callback.
+    # Retries are allowed only before submission. Once clicking starts,
+    # callers recover via the durable receipt instead of repeating the send.
     full_response = ""
     conv_id = ""
     chunk_count = 0
@@ -1506,6 +1570,51 @@ async def _verify_reply_persisted(
     return None
 
 
+def _conversation_page_output(result: dict, validated: GetConversationInput) -> dict:
+    """Export before a client truncates long JSON lines; preserve partial-read flags."""
+    automatic = not validated.out_file and bool(validated.max_inline_bytes) and (
+        len(json.dumps(result, ensure_ascii=True, indent=2).encode("utf-8"))
+        > validated.max_inline_bytes
+    )
+    if not validated.out_file and not automatic:
+        return result
+
+    page = result["messages"]
+    payload = "".join(f"## {m['role']}\n\n{m['content']}\n\n" for m in page).encode("utf-8")
+    if validated.out_file:
+        path = Path(validated.out_file)
+        if not path.is_absolute():
+            raise ValueError("out_file must be an absolute path")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+    else:
+        _CONVERSATION_EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            mode="wb", prefix="conversation-", suffix=".md",
+            dir=_CONVERSATION_EXPORT_DIR, delete=False,
+        ) as output:
+            path = Path(output.name)
+            try:
+                output.write(payload)
+            except BaseException:
+                output.close()
+                path.unlink(missing_ok=True)
+                raise
+
+    result.pop("messages")
+    result.update(
+        out_file=str(path),
+        messages_written=len(page),
+        exported_automatically=automatic,
+        file_bytes=len(payload),
+        file_sha256=hashlib.sha256(payload).hexdigest(),
+        read_hint="Read UTF-8 out_file in bounded line ranges or character slices until EOF.",
+    )
+    if result.get("partial"):
+        result["read_hint"] += " This is a partial DOM view, not complete conversation history."
+    return result
+
+
 async def do_get_conversation(
     driver: CDPDriver,
     args: dict,
@@ -1549,9 +1658,9 @@ async def do_get_conversation(
                 "partial": True,
                 "paging_supported": False,
                 "requested_offset": validated.offset,
+                "messages": msgs,
             }
-            _write_messages_result(result, msgs, validated.out_file)
-            return result
+            return _conversation_page_output(result, validated)
         result = {
             "id": validated.conversation_id,
             "title": "",
@@ -1566,8 +1675,8 @@ async def do_get_conversation(
             "paging_supported": False,
             "requested_offset": validated.offset,
         }
-        _write_messages_result(result, [], validated.out_file)
-        return result
+        result["messages"] = []
+        return _conversation_page_output(result, validated)
     chain = _conversation_chain(data)
 
     # Why the result looks the way it does — previously 404s, fetch errors
@@ -1608,23 +1717,10 @@ async def do_get_conversation(
         "partial": False,
         "paging_supported": True,
     }
-    _write_messages_result(result, page, validated.out_file)
-    return result
+    result["messages"] = page
+    return _conversation_page_output(result, validated)
 
 
-def _write_messages_result(result: dict, messages: list[dict], out_file: str | None) -> None:
-    """Attach messages inline or write them to the requested absolute path."""
-    if out_file:
-        p = Path(out_file)
-        if not p.is_absolute():
-            raise ValueError("out_file must be an absolute path")
-        p.parent.mkdir(parents=True, exist_ok=True)
-        text = "".join(f"## {m['role']}\n\n{m['content']}\n\n" for m in messages)
-        p.write_text(text, encoding="utf-8")
-        result["out_file"] = str(p)
-        result["messages_written"] = len(messages)
-    else:
-        result["messages"] = messages
 
 
 async def do_wait_reply(
@@ -2055,6 +2151,15 @@ async def do_chat_with_gpt(
     on_progress: ProgressCallback | None = None,
     session_key: str | None = None,
 ) -> dict:
+    validated = ChatWithGptInput(**args)
+    request = validated.model_dump(exclude={"operation_id", "confirm"}) | {"tool": "chat_with_gpt"}
+    return await send_receipts.run(
+        request, validated.operation_id,
+        lambda: _do_chat_with_gpt(driver, args, on_progress, session_key),
+    )
+
+
+async def _do_chat_with_gpt(driver, args, on_progress=None, session_key=None) -> dict:
     """Chat with a specific Custom GPT."""
     validated = ChatWithGptInput(**args)
     # Every GPT chat creates a new conversation — first call must be
@@ -2143,6 +2248,22 @@ def _build_tools() -> list[mcp_types.Tool]:
             annotations=mcp_types.ToolAnnotations(
                 readOnlyHint=True, destructiveHint=False,
                 idempotentHint=True, openWorldHint=False,
+            ),
+        ),
+        mcp_types.Tool(
+            name=ToolName.GET_SEND_STATUS.value,
+            title="Send receipt",
+            description="Query durable send receipts after cancellation, timeout or reconnect. Works without Chrome when refresh=false. Omit operation_id to list recent receipts. Never resends; unknown delivery remains unknown.",
+            inputSchema=GetSendStatusInput.model_json_schema(),
+            outputSchema={"type": "object", "properties": {
+                "operation_id": {"type": "string"},
+                "state": {"type": "string"},
+                "can_retry_send": {"type": "boolean"},
+                "next_action": {"type": "string"},
+                "receipts": {"type": "array", "items": {"type": "object"}},
+            }},
+            annotations=mcp_types.ToolAnnotations(
+                readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False,
             ),
         ),
         # ── Core: Chat ────────────────────────────────────────
@@ -2255,8 +2376,10 @@ def _build_tools() -> list[mcp_types.Tool]:
                 "most recent page), page through by increasing offset by limit each "
                 "call until has_more is false: "
                 "get_conversation(id, offset=0, limit=50), then offset=50, offset=100, … . "
-                "If a single page's result is truncated before reaching you, either "
-                "lower limit (e.g. 15) and retry, or pass `out_file` (absolute path) "
+                "Long pages automatically return out_file, file_bytes and file_sha256 "
+                "instead of inline messages. Read that UTF-8 file in bounded chunks; "
+                "the complete text is preserved. max_inline_bytes=0 opts into unlimited "
+                "inline output for clients that can consume it. You can also pass `out_file` (absolute path) "
                 "to write the page to disk and read the file — the tool result then "
                 "stays tiny no matter how long the messages are.\n\n"
                 "Empty results are disambiguated by `reason`: 'not_found' = backend "
@@ -2602,12 +2725,51 @@ def _format_tool_result(name: str, result) -> object:
 
 
 def _map_tool_exception(exc: Exception) -> object:
+    """Preserve the error contract and attach the durable receipt when present."""
+    result = _map_tool_exception_core(exc)
+    receipt = getattr(exc, "receipt", None) or getattr(exc, "send_receipt", None)
+    if receipt is None:
+        return result
+    payload = dict(result.structuredContent or {}) if result is not None else {}
+    payload.setdefault("error", type(exc).__name__)
+    payload.setdefault("message", str(exc))
+    payload["send_receipt"] = receipt
+    for error_type, code in (
+        (RateLimitError, "rate_limit_exceeded"), (CircuitOpenError, "circuit_open"),
+        (AuthExpiredError, "auth_expired"), (GenerationInProgressError, "generation_in_progress"),
+        (GenerationStuckError, "generation_stuck"), (LockAcquisitionError, "lock_timeout"),
+    ):
+        if isinstance(exc, error_type):
+            payload["code"] = code
+            break
+    if isinstance(exc, (RateLimitError, GenerationInProgressError)):
+        payload["retry_after"] = exc.retry_after
+    if isinstance(exc, CircuitOpenError):
+        payload["kind"] = exc.kind.value
+    return mcp_types.CallToolResult(
+        content=[mcp_types.TextContent(type="text", text=json.dumps(payload, ensure_ascii=False))],
+        structuredContent=payload, isError=True,
+    )
+
+
+def _map_tool_exception_core(exc: Exception) -> object:
     """Map a tool-execution exception to an isError CallToolResult.
 
     Shared between singleton and pooled paths. Returns None if the exception
     type is not mapped (caller should re-raise).
     """
     # Lazy imports for circular-dependency avoidance.
+    from .navigation import NavigationError
+    if isinstance(exc, NavigationError):
+        payload = {"error": "navigation_failed", "reason": exc.reason, "stage": exc.stage, "evidence": exc.evidence}
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=json.dumps(payload))],
+            structuredContent=payload, isError=True,
+        )
+    if isinstance(exc, send_receipts.SendConflictError):
+        return mcp_types.CallToolResult(
+            content=[mcp_types.TextContent(type="text", text=str(exc))], isError=True,
+        )
     from .cdp_driver import ModelSelectionError
     from .backend_client import BackendReadError
     from .cdp_transport import CDPTimeoutError
@@ -3121,6 +3283,33 @@ def create_server() -> Server:
         name: str, arguments: dict
     ) -> tuple[list[mcp_types.TextContent], dict] | list[mcp_types.TextContent] | dict:
         """Route tool calls to business logic functions."""
+        if name == ToolName.GET_SEND_STATUS.value:
+            validated = GetSendStatusInput(**arguments)
+            if validated.refresh and validated.operation_id:
+                try:
+                    if _driver_pool is not None:
+                        async with _driver_pool.acquire("send-status") as lease:
+                            async with lease.call_lock:
+                                return await do_get_send_status(lease.driver, arguments)
+                    return await do_get_send_status(_driver, arguments)
+                except Exception as exc:
+                    result = await do_get_send_status(None, arguments)
+                    result["refresh_error"] = type(exc).__name__
+                    return result
+            return await do_get_send_status(None, arguments)
+        if name in {ToolName.CHAT_COMPLETION.value, ToolName.CHAT_WITH_GPT.value}:
+            try:
+                model = ChatCompletionInput if name == ToolName.CHAT_COMPLETION.value else ChatWithGptInput
+                validated = model(**arguments)
+                logical = validated.model_dump(exclude={"confirm", "operation_id"}) | {"tool": name}
+                if name == ToolName.CHAT_COMPLETION.value:
+                    logical["project_id"] = validated.project_id or (_config.chatgpt.default_project_id if _config else None)
+                send_receipts.reject_recorded(logical, validated.operation_id)
+            except (ValueError, send_receipts.SendAlreadyRecorded) as exc:
+                mapped = _map_tool_exception(exc)
+                if mapped is not None:
+                    return mapped
+                raise
         # B1: in pool mode, acquire a session-affine driver lease.
         # In singleton mode, use the global _driver directly (unchanged).
         if _driver_pool is not None:

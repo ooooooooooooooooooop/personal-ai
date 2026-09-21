@@ -92,3 +92,22 @@ SSE daemon 共享 Chrome、限流器和会话池。用 `start.ps1` 或 `chatgpt-
 相关运行时文档：[guide.md](./src/chatgpt_web2api/guide.md)。
 
 License: MIT（见 [LICENSE](./LICENSE)）。
+
+## 本次恢复与读取补充
+
+长页默认自动导出完整 UTF-8 Markdown，返回 `out_file`、`file_bytes`、`file_sha256`。
+按行或字符切片读文件至末尾；`max_inline_bytes=0` 保留程序化完整 JSON。
+DOM 部分结果继续保留 `partial` 和不可分页标记。SSE 读取不依赖 REST 是否运行。
+
+发送使用稳定 `operation_id`（REST 也接受 `Idempotency-Key`）。中断后先查
+`get_send_status`，仅 `not_sent` 允许原 ID 重试；未知或已提交状态不重发。
+记录持久化到运行目录的 SQLite，不存消息正文。只读回执查询不要求 Chrome 在线。
+
+同一 daemon、session、目标且未被接管/释放时，空闲和 CDP driver 回收不撤销绑定确认；
+30 分钟仅用于其他发送方的占用提示。`send_seq=0` 和 `WinError 10054` 不能证明身份变化，
+应核对前后 `session_key`。新连接仍需重新绑定；已有明确、有效且覆盖同一目标的用户授权可继续使用。
+
+Windows daemon 通过原生 WMI 进程代理隐藏启动，脱离调用任务及其 Job；环境变量通过 stdin
+传递给启动助手。创建失败明确报错，不退回任务所属进程。恢复只停止可执行文件、命令行、
+创建时间和监听归属均核验的故障进程；venv launcher 与子进程同名属正常。
+新页导航在 URL、文档、应用、输入框就绪后才继续；权限拒绝和限流不通过反复刷新规避。

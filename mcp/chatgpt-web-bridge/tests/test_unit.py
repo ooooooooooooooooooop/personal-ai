@@ -11,7 +11,7 @@ def test_tool_count():
     """18 tools defined."""
     from chatgpt_web2api.mcp_server import _build_tools
     tools = _build_tools()
-    assert len(tools) == 18
+    assert len(tools) == 19
 
 
 def test_tool_names_match_enum():

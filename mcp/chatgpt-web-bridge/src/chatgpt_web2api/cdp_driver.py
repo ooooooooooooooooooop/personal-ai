@@ -1911,63 +1911,10 @@ class CDPDriver:
     # ── Navigation ────────────────────────────────────────────
 
     async def navigate_new_chat(self, gizmo_id: str = None) -> None:
-        """Navigate to a fresh chat. Optionally scope to a project gizmo."""
-        # Conv-affinity: never navigate a conv-bound tab away from its
-        # conversation — switch to a scratch/home tab first.
-        if self._conv_target:
-            await self.ensure_scratch_tab()
-        if self._conv_target:
-            # ensure_scratch_tab could not detach us — navigating now would
-            # drive a shared conversation tab away from its conversation.
-            # Fail closed: better a failed call than a hijacked tab.
-            raise RuntimeError(
-                "refusing to navigate a conv-bound tab to a new chat"
-            )
-        if gizmo_id:
-            url = f"https://chatgpt.com/g/{gizmo_id}/project"
-        else:
-            # The bare ``chatgpt.com/`` home shell renders only the hidden
-            # fallback textarea (``name=prompt-textarea``, no id, not visible),
-            # so neither COMPOSER_SELECTOR nor COMPOSER_FALLBACK_SELECTOR matches
-            # and type_message fails with "No composer found". The
-            # ``?model=auto`` query triggers the SPA to render the real
-            # ProseMirror composer reliably. Verified live: bare home → no
-            # composer after 20s; ``?model=auto`` → composer present.
-            url = "https://chatgpt.com/?model=auto"
-        logger.info("Navigate: %s", url)
-        await self._cdp("Page.navigate", {"url": url})
-        await asyncio.sleep(2)
+        """Navigate only after preserving drafts/generation; report the failed stage."""
+        from .navigation import navigate_new_chat
 
-        # Wait for the composer. The new composer is a contenteditable
-        # ProseMirror div (#prompt-textarea is now a hidden fallback);
-        # COMPOSER_SELECTOR matches the real textbox, with the legacy
-        # textarea as a last resort for older deployments.
-        for _ in range(30):
-            result = await self._js(
-                "(function() {"
-                "  return JSON.stringify({"
-                f"    ready: !!document.querySelector('{COMPOSER_SELECTOR}') || !!document.querySelector('{COMPOSER_FALLBACK_SELECTOR}'),"
-                "    url: location.href"
-                "  });"
-                "})()"
-            )
-            try:
-                state = json.loads(result)
-                if state.get("ready"):
-                    actual_url = state.get("url", "")
-                    # #14: verify we actually landed on chatgpt.com, not an
-                    # error/recovery page that happens to have a textarea.
-                    if "chatgpt.com" not in actual_url:
-                        raise RuntimeError(f"Navigation landed on unexpected URL: {actual_url}")
-                    logger.info("Page ready: %s", actual_url)
-                    break
-            except (json.JSONDecodeError, TypeError):
-                pass
-            await asyncio.sleep(0.5)
-
-        # Settle time for sentinel init
-        await asyncio.sleep(2)
-        self._current_conv_id = None
+        await navigate_new_chat(self, gizmo_id)
 
     async def _has_composer(self) -> bool:
         """Is a send-capable composer present on the live tab?
@@ -2631,7 +2578,7 @@ class CDPDriver:
         9. ALWAYS: scope.close() in finally (clears capture state on every
            terminal path — success, timeout, exception, cancellation).
         """
-        from . import generation_gate
+        from . import generation_gate, send_receipts
         from .identity_listener import hash_sent_text
         from .turn_anchor import TurnReconciliationError
 
@@ -2678,6 +2625,13 @@ class CDPDriver:
                 conversation_id=self._current_conv_id,
                 target_id=self._target_id,
             )
+            receipt = send_receipts.current()
+            if receipt is not None:
+                # The CDP reader has its own context. Capture the receipt here
+                # so the POST identity survives cancellation of this waiter.
+                capture_scope.on_capture = lambda result: receipt.mark(
+                    state="dispatched", message_id=result.uuid,
+                )
 
         try:
             # Account-level pace gate: sleep until the shared minimum send
@@ -2698,6 +2652,11 @@ class CDPDriver:
                 # click_send marks the boundary immediately BEFORE dispatch.
                 # Its read-only button-readiness probe can still recover.
                 await self._notify_send_progress(on_progress, "click")
+                # Commit BEFORE click: a crash/cancel after this point leaves
+                # delivery uncertain, never permission to submit again.
+                send_receipts.mark(
+                    state="delivery_unknown", conversation_id=self._current_conv_id,
+                )
                 await self.click_send()
 
                 # A2 Step 6: wait for the IdentityListener to capture the UUID.
@@ -2923,6 +2882,7 @@ class CDPDriver:
             if gen_gate_conv:
                 generation_gate.clear_generating(gen_gate_conv)
 
+        send_receipts.mark(state="reply_received", conversation_id=self._current_conv_id)
         yield StreamChunk(delta="", finish_reason="stop")
 
     async def _fetch_text_for_turn(self, conversation_id: str, anchor):

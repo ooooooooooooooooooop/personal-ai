@@ -3,7 +3,7 @@
 The old /health returned ``"waiting"`` when CDP was disconnected —
 indistinguishable from "freshly started," so a zombie process (HTTP
 listener up, CDP never connected) looked healthy. These tests pin the
-four-state status logic: starting / healthy / degraded / broken.
+readiness status logic: healthy / degraded / broken, with separate usage_state.
 
 A zombie (Chrome alive, driver dead) MUST report ``"degraded"``, never
 ``"ok"`` or ``"waiting"``.
@@ -64,11 +64,15 @@ async def test_health_healthy_when_chrome_and_driver_connected():
 
 
 @pytest.mark.asyncio
-async def test_health_starting_when_connected_but_never_served():
-    """Chrome alive + driver connected + no requests yet = "starting"."""
+async def test_health_ready_when_connected_but_never_served():
+    """An unused but connected service is ready; lack of traffic is not a fault."""
     server = _make_server(driver_connected=True)
     body = await _health_body(server, chrome_running=True)
-    assert body["status"] == "starting"
+    assert body["status"] == "healthy"
+    assert body["ready"] is True
+    assert body["usage_state"] == "unused"
+    assert body["readiness_scope"] == "transport"
+    assert len(body["build"]) == 16
     assert body["chrome_running"] is True
     assert body["driver_connected"] is True
 

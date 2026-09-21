@@ -741,7 +741,7 @@ async def test_navigate_new_chat_refuses_when_still_conv_bound():
     d.ensure_scratch_tab = AsyncMock()  # detaches nothing (still conv-bound)
     d._cdp = AsyncMock()
 
-    with pytest.raises(RuntimeError, match="conv-bound"):
+    with pytest.raises(RuntimeError, match="target_busy"):
         await d.navigate_new_chat()
 
     d._cdp.assert_not_called()  # Page.navigate never fired

@@ -29,6 +29,14 @@ def e2e_enabled() -> bool:
 
 
 @pytest.fixture(autouse=True)
+def _isolated_send_receipts(monkeypatch, tmp_path):
+    from chatgpt_web2api import mcp_server, send_receipts
+
+    monkeypatch.setattr(send_receipts, "DB_PATH", tmp_path / "send_receipts.sqlite3")
+    monkeypatch.setattr(mcp_server, "_CONVERSATION_EXPORT_DIR", tmp_path / "exports")
+
+
+@pytest.fixture(autouse=True)
 def _fast_persist_check(monkeypatch):
     """Zero the reply-persistence retry delays in mcp_server so mocked-driver
     tests don't sleep real seconds (the check retries on 'tail still user')."""
@@ -134,6 +142,8 @@ def _isolate_shared_state_files(tmp_path, monkeypatch, request):
         # Offline driver tests must neither wait on nor modify the live
         # account's cooldown. Real E2E tests keep account-wide pacing.
         monkeypatch.setattr(request_pace, "PACE_PATH", tmp_path / "request_pace.json")
+        monkeypatch.setenv("W2A_PACE_READ_S", "0")
+        monkeypatch.setenv("W2A_PACE_SEND_S", "0")
     yield
 
 

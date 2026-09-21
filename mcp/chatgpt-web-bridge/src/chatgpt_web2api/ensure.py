@@ -302,18 +302,52 @@ def _build_sse_cmd(
     return cmd
 
 
-def _launch_detached(cmd: list[str]) -> subprocess.Popen:
-    """Launch a detached subprocess that survives this process's exit."""
-    kwargs: dict = {
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-        "stdin": subprocess.DEVNULL,
-    }
+def _launch_detached(cmd: list[str]) -> int:
+    """Start a daemon independently of the harness; return its launcher PID."""
     if sys.platform == "win32":
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW | subprocess.DETACHED_PROCESS
-    else:
-        kwargs["start_new_session"] = True
-    return subprocess.Popen(cmd, **kwargs)
+        # Even CREATE_BREAKAWAY_FROM_JOB can leave a process in an outer
+        # harness job. WMI creates it from the Windows provider instead.
+        # Send command/environment as stdin data, never through shell
+        # interpolation or command-line arguments that expose credentials.
+        shell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / (
+            "System32/WindowsPowerShell/v1.0/powershell.exe"
+        )
+        script = (
+            "$ErrorActionPreference='Stop'; "
+            "$p=[Console]::In.ReadToEnd() | ConvertFrom-Json; "
+            "$s=New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly "
+            "-Property @{ShowWindow=[uint16]0; CreateFlags=[uint32]16777232; "
+            "EnvironmentVariables=[string[]]$p.environment}; "
+            "Invoke-CimMethod -ClassName Win32_Process -MethodName Create "
+            "-Arguments @{CommandLine=$p.command; CurrentDirectory=$p.cwd; "
+            "ProcessStartupInformation=$s} -OperationTimeoutSec 10 | "
+            "Select-Object ReturnValue,ProcessId | ConvertTo-Json -Compress"
+        )
+        result = subprocess.run(
+            [str(shell), "-NoProfile", "-NonInteractive", "-Command", script],
+            input=json.dumps({
+                "command": subprocess.list2cmdline(cmd),
+                "cwd": str(Path.cwd()),
+                "environment": [f"{key}={value}" for key, value in os.environ.items()],
+            }),
+            capture_output=True, text=True, encoding="utf-8", timeout=20,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+        try:
+            response = json.loads(result.stdout)
+            pid = int(response["ProcessId"])
+            if result.returncode or response["ReturnValue"] != 0 or pid <= 0:
+                raise ValueError("broker refused creation")
+        except (ValueError, TypeError, KeyError) as exc:
+            raise RuntimeError(
+                "Cannot start a persistent bridge daemon through Windows WMI; "
+                "no task-owned fallback was launched."
+            ) from exc
+        return pid
+    return subprocess.Popen(
+        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdin=subprocess.DEVNULL, start_new_session=True,
+    ).pid
 
 
 def _find_listener_pid(port: int) -> int | None:
@@ -406,30 +440,8 @@ def _find_listener_pid_fuser(port: int) -> int | None:
     return None
 
 
-def _terminate_pid(pid: int) -> None:
-    """Terminate a process by PID. Force-kill if it doesn't exit gracefully."""
-    try:
-        if sys.platform == "win32":
-            subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(pid)], capture_output=True, timeout=10
-            )
-        else:
-            import signal as _sig
-
-            os.kill(pid, _sig.SIGTERM)
-            time.sleep(2)
-            # Check if still alive; SIGKILL if so
-            try:
-                os.kill(pid, 0)
-                os.kill(pid, _sig.SIGKILL)
-            except ProcessLookupError:
-                pass
-    except Exception as e:
-        logger.debug("terminate pid %s failed: %s", pid, e)
-
-
 async def _stop_listener(port: int, label: str) -> bool:
-    """Stop whatever process is listening on the given port, then wait for the
+    """Stop only the verified bridge listener on the given port, then wait for the
     port to free. A bare ``_launch_detached`` on an occupied port fails to bind
     (stderr is discarded), so a restart must stop the existing listener first.
 
@@ -452,8 +464,28 @@ async def _stop_listener(port: int, label: str) -> bool:
             return False
         return True  # port is genuinely free
 
-    logger.info("Stopping existing %s listener (pid %s) on :%d", label, pid, port)
-    await asyncio.to_thread(_terminate_pid, pid)
+    from .process_identity import inspect_process, matches_service, terminate_verified
+
+    identity = await asyncio.to_thread(inspect_process, pid)
+    if not matches_service(identity, label, port):
+        logger.error("Refusing to stop :%d: listener identity is not a verified %s service", port, label)
+        return False
+    from .send_receipts import active_for_pid
+
+    try:
+        if active_for_pid(pid):
+            logger.error("Service has an active send/observation; refusing to interrupt it")
+            return False
+    except Exception:
+        logger.error("Cannot verify active sends; leaving the service untouched")
+        return False
+    if _find_listener_pid(port) != pid:
+        logger.error("Listener changed during identity verification; leaving it untouched")
+        return False
+    logger.info("Stopping verified %s listener (pid %s, parent %s) on :%d", label, pid, identity["parent_pid"], port)
+    if not await asyncio.to_thread(terminate_verified, identity):
+        logger.error("Process identity changed or termination denied; refusing unverified fallback")
+        return False
     # Wait for the port to free (bind would fail if still occupied)
     for _ in range(20):
         if not _port_accepts(port):
@@ -513,6 +545,9 @@ async def _reconcile_rest(
     NOT be reconciled; a human re-auth is required (``run_ensure`` returns 2)."""
     h = _rest_health(rest_port)
     if h is None:
+        if _port_accepts(rest_port):
+            logger.error("REST health unavailable but port is occupied; refusing duplicate launch")
+            return RestReconcileResult(ok=False)
         logger.info("REST missing — starting")
         _launch_detached(_build_rest_cmd(rest_port, cdp_port, config_path, log_level))
         ok = await _wait_rest_ready(rest_port, _REST_HEALTHY_TIMEOUT)
