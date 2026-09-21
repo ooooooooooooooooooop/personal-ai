@@ -1400,3 +1400,71 @@
 **SSH v1 诚实边界**（已写进提交）：无 workspace 同步（远端目录需自含所需）、仅 BatchMode 认证、远程孤儿只能审计不能强杀。
 
 **测试基线**：host 220 / pi 171+1skip / app 18+1skip 全绿。
+
+### 28.10 C 阶段全量评分扫描终表（2026-09-21）
+
+**执行口径**：全量 80,369 条 → 规则评分器逐条打分（动词×能力名词，零遗漏）→ 高分带全量人眼 + 低分带分层抽样。
+
+| 层 | 量 | 覆盖方式 | 产出 |
+|---|---|---|---|
+| score≥10 | 2,107 条 | **全量人眼过完**（15 域逐批） | M54–M100 候选族 |
+| score 8–9 | 2,344 条 | **全量人眼过完** | M101–M147 + 20 项坑核查 |
+| score 4–7 | 19,036 条 | 分层抽样 360 条 | 新信号产率 ~1.4%，以坑验证为主 |
+| score 0–3 | ~55,000 条 | 词法判定为噪声带（版本号/依赖/CI/样式），抽样确认 | — |
+
+**累计功能缺口候选 M54–M147（94 项）**，按证据强度分档：
+
+**A 档（≥3 源复发或强竞品收敛）**：
+- M55 结构化提问 request_user_input/AskUserQuestion/elicitation（codex+Devin SDK+ACP 三源，含 10min 超时+单waiter 路由）
+- M56 per-feature 模型路由（zed×2+--weak-model+标题生成映射，共 5+ 源）
+- M57 外部密源 Bitwarden/1Password SecretSource/外部 secrets workflow（4 源，含"填密不见密"）
+- M63 网络出口域级 allowlist+检查器（CodeBuddy 域哈希+Zed per-host 代理+egress logging 三源）
+- M83 工具惰性加载 ToolSearch/Defer()（4 源）
+- M84 审批卡内联编辑命令+自然语言改写 wand（2 源强信号）
+- M87 事件驱动唤醒 Monitor（crush+Cursor+自动化蓝本，3 源）
+- M89 会话导入 Claude Code/Codex/opencode/ChatGPT（4 源，带 provenance+首turn摘要）
+- M93 活跃 turn 排队消息+Esc暂停/Ctrl+C弃尾（4 源）
+- M100 provider fallback 链+retry+模型目录（全家族最多源）
+- M105 工具级 checkpoint→rewind（checkpoint 行指示器+hover 恢复，3 源）
+- M38 大输出外置落盘+占位符回取（3 源，已在薄缺口批做 output_tail 但"占位符回取"未做）
+- M70 会话树/fork 关系/编辑即分支（5 源）
+- M135+ cron 动态调速+错过跳过+心跳唤醒策略（调度族最密复发）
+
+**B 档（双源或强单源）**：
+- M54 Ctrl+R 模糊反向搜输入历史（3 源）
+- M58 glob 路径穿越保护；M59 /recap 返回摘要；M60 /insights；M61 占位凭证拒绝启动
+- M62 运行时提权 request_permissions/request_scope（2 源）
+- M64 全量 purge 预览；M65 记忆 project/user scope；M67 全局级 allowlist
+- M68 掩码凭证请求流；M69 OS 级通知策略 never/smart/always+声音
+- M73 语义向量记忆；M74 记忆原子批量；M75 指标页
+- M76 per-agent disallowedTools/permission-mode；M77 子代理实况窗格
+- M78 调度绑 live session；M79 missed-job 策略；M80 sandbox.excluded 命令出沙（注意复合命令绕过教训）
+- M85 workspace trust 分层（目录/父/递归）+沙箱可写挂载+移除吊销
+- M86 ambient context；M88 /add-dir+/undo-add-dir；M90 workflow pause/resume/restart/delete
+- M91 结构化表单（Automation Blueprints）；M92 后台会话页；M94 上下文注入预算
+- M95 本地模型自动发现（Ollama/DNS-SD）；M96 allowlist 导入导出；M97 已发消息编辑→分支
+- M98 bare /loop 自主模式；M99 workers/daemons 页；M101-M147 其余见 findings
+
+**坑核查清单**（代码级 verify 项，优先级高于新功能——全是各家真踩过的雷）：
+1. bash 重定向写保护路径是否绕过 M1（命令文本检查 vs 沙箱级路径防护）
+2. deny write_file 是否覆盖 apply_patch/edit_file 等价面
+3. compaction 是否丢在途 subagent/delegate 结果
+4. nohup/& 后台子进程继承 stdio 是否致超时挂起
+5. grep/find 参数以 `-` 开头是否被当 flag
+6. checkpoint 在大 untracked 目录每 turn 全量 hash 是否卡顿
+7. secret redaction 是否误伤合法内容+错误堆栈/metadata 字段是否漏脱敏
+8. 调度 delay >2^31-1ms 是否 clamp
+9. $HOME/fs-root 是否触发全量索引
+10. clipboard bmp/GIF 格式是否归一/保真
+11. stale agent_end 跨 turn 复用污染
+12. 审批卡 Enter 键在连续卡间串键误批
+13. 命令列表非确定性顺序破 prompt cache
+14. sign-out 后凭证是否被重导入复活
+15. 配置写是否基于过期快照（并发丢字段）
+16. CRLF 是否破坏 frontmatter 解析
+17. AbortSignal 是否传到工具 execute 层
+18. 图片附件字节嗅探是否覆盖声明 MIME（zip 标 image）
+19. 审批卡渲染中 Enter 是否可批未加载完的内容
+20. apiKeyHelper 类配置是否在信任门之前执行
+
+**扫描方法论诚实边界**：0-3 带（~55k 条）按词法判噪声未逐条人眼；4-7 带 19k 条抽样 360（产率 ~1.4%）外推全量预期还有 ~260 条候选未捞——多为已知族变体。若需真全量，可对 4-7 带再跑一轮聚类后抽簇心。
