@@ -1645,6 +1645,23 @@ async function saveKey(providerSel, keyInput, msgEl) {
   await refreshModels();
 }
 $('setup-save-key').onclick = () => saveKey('setup-provider', 'setup-key', 'setup-msg');
+// C12 provisioning: verify connectivity BEFORE first prompt — model_ping hits
+// the provider's /models with the resolved credential; honest reachability.
+$('setup-ping') && ($('setup-ping').onclick = async () => {
+  const provider = $('setup-provider').value;
+  const msg = $('setup-msg');
+  if (!provider) return;
+  msg.textContent = `正在测试 ${provider}…`; msg.className = 'setup-msg';
+  const r = await cmd('model_ping', { provider });
+  const d = r.data ?? {};
+  if (r.success && d.ok) {
+    msg.textContent = `${provider} 可达 · HTTP ${d.httpStatus} · ${d.ms}ms${d.configured === false ? '（未存密钥，仅探活）' : ''}`;
+    msg.className = 'setup-msg ok';
+  } else {
+    msg.textContent = `连接失败：${d.error ?? r.error ?? `HTTP ${d.httpStatus ?? '?'}`}${d.configured === false ? '——先保存密钥' : ''}`;
+    msg.className = 'setup-msg err';
+  }
+});
 $('tour-dismiss').onclick = () => {
   localStorage.setItem('pai.onboarded', '1');
   $('tour-card')?.classList.add('hidden');
