@@ -125,6 +125,11 @@ class RepositoryContractTests(unittest.TestCase):
             path = ROOT / rel
             if not path.is_file():
                 continue
+            # Foreign-corpus exemption: the harness-survey changelog dumps are
+            # third-party release text we quote verbatim as audit evidence —
+            # paths inside them describe THEIR projects, not this machine.
+            if rel.startswith("research/agent-harness-survey-v1/changelogs/"):
+                continue
             data = path.read_bytes()
             if len(data) > 4 * 1024 * 1024 or b"\x00" in data[:8192]:
                 continue

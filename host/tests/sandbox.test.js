@@ -44,7 +44,7 @@ test('fromEnv: PAI_SANDBOX selects backend, unset defaults none', () => {
 
 test('ssh backend: target required + spec shape — b64 transport, batch mode, remote dir', () => {
   const p = new SandboxProvider('ssh', { target: 'alice@example.com:2222', dir: '/srv/work', key: '/k/id' });
-  const spec = p.spawnSpec('rm -rf /tmp/x && echo done', 'C:\w');
+  const spec = p.spawnSpec('rm -rf /tmp/x && echo done', 'C:\work');
   if (!spec) return; // ssh binary absent — probe fails closed instead
   assert.equal(spec.file, 'ssh');
   assert.equal(spec.shell, false);
@@ -68,12 +68,12 @@ test('ssh backend refuses bad/missing targets before any process', () => {
 test('docker backend: spec mounts workdir at /work, names the container', () => {
   const p = new SandboxProvider('docker', { image: 'alpine:3' });
   try {
-    const spec = p.spawnSpec('echo hi', 'C:\w');
+    const spec = p.spawnSpec('echo hi', 'C:\work');
     assert.equal(spec.file, 'docker');
     assert.equal(spec.shell, false);
     assert.match(spec.containerName, /^pai-job-[0-9a-f]{12}$/);
     assert.deepEqual(spec.args.slice(0, 4), ['run', '--rm', '--name', spec.containerName]);
-    assert.ok(spec.args.includes('-v') && spec.args.includes('C:\w:/work'));
+    assert.ok(spec.args.includes('-v') && spec.args.includes('C:\work:/work'));
     assert.ok(spec.args.includes('-w') && spec.args.includes('/work'));
     assert.equal(spec.args.at(-4), 'alpine:3');
   } catch (e) {
