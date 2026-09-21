@@ -51,6 +51,40 @@ test('tool_activate / tool_search model surface', async () => {
   assert.deepEqual(session.getActiveToolNames(), ['read', 'lsp_hover']);
 });
 
+test('M83: denied / mode-denied lazy tools are not activatable or searchable', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-lazy4-'));
+  const session = fakeSession(['read', 'deploy', 'shell_admin']);
+  const surface = new ToolSurface({ session, denyMemoryPath: join(dir, 'd.json') });
+  surface.defer(['deploy', 'shell_admin']);
+  surface.deny('deploy');            // durable operator denial
+  surface.setModeDenied(['shell_admin']); // session-scoped mode hide
+  // activate must NOT revive either — they stay in lazy AND off the surface
+  const got = surface.activate(['deploy', 'shell_admin']);
+  assert.deepEqual(got, []);
+  assert.deepEqual(session.getActiveToolNames(), ['read']);
+  assert.equal(surface.isLazy('deploy'), true);   // still deferred, not silently dropped
+  assert.equal(surface.isLazy('shell_admin'), true);
+  // tool_activate tool reports them as not activated
+  const act = toolActivateTool({ getSurface: () => surface });
+  const a = await act.execute('t', { names: ['deploy', 'shell_admin'] });
+  assert.match(a.content[0].text, /nothing activated/);
+  // tool_search must not advertise them
+  const search = toolSearchTool({
+    getSurface: () => surface,
+    getCatalog: () => [
+      { name: 'deploy', description: 'ship to prod' },
+      { name: 'shell_admin', description: 'privileged shell' },
+    ],
+  });
+  const s = await search.execute('t', { query: '' });
+  assert.doesNotMatch(s.content[0].text, /deploy|shell_admin/);
+  // a clean lazy tool in the same surface still activates fine
+  session.setActiveToolsByName(['read', 'fmt']);
+  surface.defer(['deploy', 'shell_admin', 'fmt']);
+  const a2 = await act.execute('t', { names: ['fmt'] });
+  assert.match(a2.content[0].text, /activated: fmt/);
+});
+
 test('decide blocks a deferred tool call with an activation hint', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-lazy3-'));
   mkdirSync(join(dir, 'audit'), { recursive: true });

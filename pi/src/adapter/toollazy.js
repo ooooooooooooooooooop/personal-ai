@@ -66,7 +66,10 @@ export function toolSearchTool({ getSurface, getCatalog }) {
       if (!lazy.size) return txt('no deferred tools — everything configured is already visible');
       const q = String(params.query ?? '').toLowerCase().trim();
       const terms = q.split(/\s+/).filter(Boolean);
-      const catalog = (getCatalog?.() ?? []).filter((t) => lazy.has(t.name));
+      // M83: don't advertise tools the model could never activate anyway
+      // (denied or mode-hidden entries stay in lazy — activation skips them).
+      const activatable = (n) => (surface.activatable ? surface.activatable(n) : lazy.has(n));
+      const catalog = (getCatalog?.() ?? []).filter((t) => lazy.has(t.name) && activatable(t.name));
       const hits = catalog
         .filter((t) => !terms.length || terms.every((w) => `${t.name} ${t.description ?? ''}`.toLowerCase().includes(w)))
         .slice(0, 20);

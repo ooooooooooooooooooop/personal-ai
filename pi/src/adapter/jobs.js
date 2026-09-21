@@ -92,11 +92,13 @@ export class JobExecutor {
     const attempts = this.store.getAttempts(jobId);
     const cur = attempts.find((a) => a.attempt_id === job.current_attempt_id) ?? attempts.at(-1) ?? null;
     let command = null; let outputTail = null; let exitCode = cur?.exit_code ?? null; let signal = null;
+    let restartSpec = null;
     const cpPath = cur?.checkpoint_ref ?? job.checkpoint_ref;
     if (cpPath && existsSync(cpPath)) {
       try {
         const cp = JSON.parse(readFileSync(cpPath, 'utf-8'));
         if (typeof cp.input_identity === 'string') command = cp.input_identity.replace(/^sha256:/, '');
+        restartSpec = cp.restart_spec ?? null;
       } catch { /* unreadable checkpoint → leave null */ }
     }
     const resPath = cur?.result_envelope_ref;
@@ -111,6 +113,7 @@ export class JobExecutor {
     return {
       job, attempts: attempts.length, lease: this.store.getLease(jobId),
       command, output_tail: outputTail, exit_code: exitCode, signal,
+      restart_spec: restartSpec,
       running: this.running.has(jobId),
       events: this.store.getEvents(jobId).slice(-10),
     };
@@ -149,14 +152,28 @@ export class JobExecutor {
     if (!['COMPLETED', 'FAILED', 'CANCELLED'].includes(state)) {
       return { refused: true, reason: `job '${jobId}' is ${state} — only terminal jobs restart` };
     }
-    if (!detail.command) {
-      return { refused: true, reason: `job '${jobId}' has no recoverable command (missing checkpoint)` };
+    if (!detail.restart_spec) {
+      return { refused: true, reason: `job '${jobId}' has no restart spec — its execution contract (worktree/sandbox/timeout/budget) cannot be faithfully rebuilt; spawn a fresh job instead` };
     }
-    const workdir = detail.job.authorized_root;
-    if (!workdir) return { refused: true, reason: `job '${jobId}' has no recorded workdir` };
-    const r = await this.spawnCommandJob({ command: detail.command, workdir, jobType: detail.job.job_type });
+    const spec = detail.restart_spec;
+    if (spec.budget_committed) {
+      // a pre-charged delegation slice cannot be re-admitted by restart —
+      // re-running it would reuse the old child cap without a fresh parent
+      // reservation. The operator must delegate again.
+      return { refused: true, reason: `job '${jobId}' ran on a committed budget slice — restart cannot re-admit it; delegate again` };
+    }
+    const r = await this.spawnCommandJob({
+      command: spec.command,
+      workdir: spec.workdir,          // base dir — a fresh worktree is built when spec.worktree
+      jobType: spec.job_type ?? detail.job.job_type,
+      authorizedRoot: spec.authorized_root ?? spec.workdir,
+      timeoutMs: spec.timeout_ms ?? null,
+      worktree: spec.worktree === true,
+      sandbox: spec.sandbox ?? null,
+      budgetScope: spec.budget_scope ?? null,
+    });
     if (!r.refused) {
-      this.audit?.write({ kind: 'JOB_RESTARTED', data: { from_job: jobId, to_job: r.job_id, command: detail.command.slice(0, 200), parent_run_id: this.runId } });
+      this.audit?.write({ kind: 'JOB_RESTARTED', data: { from_job: jobId, to_job: r.job_id, command: spec.command.slice(0, 200), parent_run_id: this.runId } });
     }
     return r;
   }
@@ -244,6 +261,7 @@ export class JobExecutor {
     // is recorded in the result envelope + audit for the operator to merge.
     let worktreePath = null;
     let worktreeFrom = null;
+    const origAuthorizedRoot = authorizedRoot ?? null; // pre-worktree root — the restart contract replays THIS
     if (worktree) {
       worktreeFrom = workdir;
       worktreePath = join(this.jobsDir, 'worktrees', `wt-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`);
@@ -284,12 +302,12 @@ export class JobExecutor {
       workerIdentity: {}, // filled after spawn with real pid
       workspaceRef: workdir,
     });
-    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom, sandboxProvider });
+    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom, sandboxProvider, jobType, sandboxSpec: sandbox, authorizedRoot: origAuthorizedRoot });
     return { job_id: job.job_id, attempt_id };
   }
 
   /** Run one attempt: spawn → checkpoint → heartbeat → exit → result envelope. */
-  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktreePath = null, worktreeFrom = null, sandboxProvider = null }) {
+  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktreePath = null, worktreeFrom = null, sandboxProvider = null, jobType = null, sandboxSpec = null, restartSpecCarry = null, authorizedRoot = null }) {
     const checkpointPath = join(this.jobsDir, `${attemptId}.checkpoint.json`);
     const leaseHolder = `job:${jobId}`;
     const resultPath = join(this.jobsDir, `${attemptId}.result.json`);
@@ -340,6 +358,23 @@ export class JobExecutor {
       mutating, // recovery needs to know whether this attempt held the write lease
       budget_scope: budgetScope, // child usage bills to the spawning scope
       budget_committed: budgetCommitted, // true = slice pre-charged to parent at admission; exit must not double-bill
+      // M90: the faithful re-spawn contract. restart() replays THIS, not the
+      // post-worktree authorized_root — so a worktree job rebuilds a fresh
+      // detached checkout off the ORIGINAL base dir, and delegated jobs carry
+      // their budget provenance (budget_committed refuses restart outright).
+      // Resumed attempts carry the ORIGINAL spec forward, not the resumed
+      // context (workdir is already the worktree path here).
+      restart_spec: restartSpecCarry ?? {
+        command,
+        workdir: worktreeFrom ?? workdir,
+        authorized_root: authorizedRoot,
+        job_type: jobType ?? job?.job_type ?? 'shell_command',
+        timeout_ms: timeoutMs,
+        worktree: Boolean(worktreePath),
+        sandbox: sandboxSpec,
+        budget_scope: budgetScope,
+        budget_committed: budgetCommitted,
+      },
     }, null, 2));
     this.store.recordCheckpoint(jobId, attemptId, checkpointPath);
 
@@ -518,6 +553,7 @@ export class JobExecutor {
           mutating: true,
           budgetScope: checkpoint?.budget_scope ?? null,
           budgetCommitted: checkpoint?.budget_committed === true,
+          restartSpecCarry: checkpoint?.restart_spec ?? null,
         });
         this.audit?.write({
           kind: 'JOB_RECOVERED',

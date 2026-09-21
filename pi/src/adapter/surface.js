@@ -96,7 +96,7 @@ export class ToolSurface {
     const want = new Set((names ?? []).map(String));
     const activated = [];
     for (const n of want) {
-      if (!this.lazy.has(n)) continue;
+      if (!this.activatable(n)) continue;
       this.lazy.delete(n);
       activated.push(n);
     }
@@ -112,6 +112,12 @@ export class ToolSurface {
 
   isLazy(toolName) {
     return this.lazy.has(toolName);
+  }
+
+  /** M83: lazy AND not denied AND not mode-hidden — the only tools the model
+   * may discover or claim via tool_search/tool_activate. */
+  activatable(toolName) {
+    return this.lazy.has(toolName) && !this.denied.has(toolName) && !this.modeDenied.has(toolName);
   }
 
   lazyList() {

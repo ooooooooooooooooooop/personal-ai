@@ -20,8 +20,10 @@
  * standing untrusted-content rule applies — MCP output is data, never
  * instructions.
  *
- * A server that fails to connect or list tools registers nothing — broken
- * capability is never advertised (deny→hide consistent).
+ * A server that fails to connect or handshake registers nothing — broken
+ * capability is never advertised (deny→hide consistent). Per-capability
+ * failures are NOT fatal: tools/list and prompts/list discover independently
+ * so prompt-only and tools-only servers both expose what they have.
  *
  * The client below is zero-dependency. stdio framing is newline-delimited
  * JSON-RPC 2.0; Streamable HTTP is one POST per request answered as JSON or
@@ -393,37 +395,41 @@ export default function mcpExtension(pi) {
       if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) continue;
       try {
         const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS });
-        const tools = await client.listTools();
+        const entry = { client, tools: [], spec, prompts: [] };
+        // M82: capability families discover independently — a prompt-only
+        // server answers Method-not-found on tools/list and that must NOT
+        // kill prompts/list (and vice versa). A connect/handshake failure is
+        // still fatal; a per-family failure is not.
         const names = [];
-        for (const t of tools) {
-          const toolName = `mcp__${name}__${t.name}`;
-          pi.registerTool({
-            name: toolName,
-            label: `MCP ${name}: ${t.name}`,
-            description: `[mcp:${name}] ${t.description ?? t.name}`,
-            // MCP inputSchema is JSON Schema — the same shape pi-ai validates
-            // for our other custom tools.
-            parameters: t.inputSchema && typeof t.inputSchema === 'object'
-              ? t.inputSchema
-              : { type: 'object', properties: {} },
-            async execute(toolCallId, params, signal) {
-              try {
-                const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
-                return wrapUntrusted(name, t.name, res);
-              } catch (err) {
-                return {
-                  content: [{ type: 'text', text: `mcp call failed (${name}/${t.name}): ${err?.message ?? err}` }],
-                  isError: true,
-                };
-              }
-            },
-          });
-          names.push(toolName);
-        }
-        const entry = { client, tools: names, spec, prompts: [] };
-        // M82: prompts/list — a server that only exposes prompts still shows
-        // up on /mcp. A server advertising no prompts capability errors here;
-        // that is not a connection failure.
+        try {
+          const tools = await client.listTools();
+          for (const t of tools) {
+            const toolName = `mcp__${name}__${t.name}`;
+            pi.registerTool({
+              name: toolName,
+              label: `MCP ${name}: ${t.name}`,
+              description: `[mcp:${name}] ${t.description ?? t.name}`,
+              // MCP inputSchema is JSON Schema — the same shape pi-ai validates
+              // for our other custom tools.
+              parameters: t.inputSchema && typeof t.inputSchema === 'object'
+                ? t.inputSchema
+                : { type: 'object', properties: {} },
+              async execute(toolCallId, params, signal) {
+                try {
+                  const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
+                  return wrapUntrusted(name, t.name, res);
+                } catch (err) {
+                  return {
+                    content: [{ type: 'text', text: `mcp call failed (${name}/${t.name}): ${err?.message ?? err}` }],
+                    isError: true,
+                  };
+                }
+              },
+            });
+            names.push(toolName);
+          }
+          entry.tools = names;
+        } catch { /* no tools capability */ }
         try {
           const prompts = await client.listPrompts();
           for (const p of prompts) {

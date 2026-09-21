@@ -2069,6 +2069,7 @@ async function openTask(taskId) {
   const box = $('task-detail');
   box.classList.remove('hidden');
   await paintTask();
+  startTaskPoll();
 }
 
 async function paintTask() {
@@ -2095,6 +2096,8 @@ async function paintTask() {
   const st = r.data.task?.state;
   $('task-send-input').disabled = st === 'closed';
   $('task-send-btn').disabled = st === 'closed';
+  // a closed task's mailbox is immutable — stop polling, keep the stream readable
+  if (st === 'closed') stopTaskPoll();
 }
 
 $('task-send-btn').onclick = async () => {
@@ -2122,9 +2125,15 @@ $('task-close-btn').onclick = async () => {
   await paintTask(); refreshTasks();
 };
 let taskTimer = null;
-function refreshTaskSoon() {
-  clearTimeout(taskTimer);
-  if (activeTask) taskTimer = setTimeout(paintTask, 1500);
+// M77: the detail view's 1.5s refresh is a real lifecycle — starts when a
+// task is opened, stops when the task closes or the operator leaves the view.
+function startTaskPoll() {
+  stopTaskPoll();
+  taskTimer = setInterval(() => { if (activeTask) paintTask(); }, 1500);
+}
+function stopTaskPoll() {
+  clearInterval(taskTimer);
+  taskTimer = null;
 }
 
 /* ---------- changes & artifacts (fileops receipt stream) ---------- */
@@ -2467,7 +2476,8 @@ function switchView(v) {
   for (const sec of document.querySelectorAll('.view')) sec.classList.toggle('hidden', sec.id !== `view-${v}`);
   if (v === 'chat') $('view-title').textContent = sessionsCache.find((s) => s.path === currentSessionFile)?.name || '当前任务';
   else $('view-title').textContent = TITLES[v] ?? '';
-  if (v === 'jobs') refreshJobs();
+  if (v === 'jobs') { refreshJobs(); if (activeTask) startTaskPoll(); }
+  else stopTaskPoll();
   if (v === 'changes') { refreshChanges(); refreshArtifacts(); }
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();

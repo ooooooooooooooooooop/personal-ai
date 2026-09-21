@@ -1586,9 +1586,9 @@
 | M64 实际删除动作 | **落地**——instance_purge：exports/spool/sessions（除活动会话文件）三类可清；audit/jobs/memory/receipts/schedules/allowlists 为治理证据拒绝；默认 dry_run，删除须显式 dry_run:false，INSTANCE_PURGE 审计 |
 | M71 免持久会话 | **落地**——session_new {ephemeral:true} → SessionManager.inMemory；不写 sessionDir、不出现在列表、不可恢复/导出；UI /eph 命令 |
 | M90 workflow 生命周期 | **落地**——job_restart（终态任务的恢复命令以新 job_id 重跑，血缘记审计）+ job_delete（仅终态，删 DB 行+attempt 产物文件）+ 详情面板重启/删除按钮；活动任务两者皆拒 |
-| M92 后台会话页 | **落地**——同批 job 生命周期 + 已有 task 树/mailbox 中心覆盖后台派遣会话 |
-| M77 子agent 实况窗格 | **核查已有**——task-detail 面板：inbox/outbox/events 合并时间线 + 1.5s 轮询 + 中断/关闭/发消息 |
-| M99 workers 页 | **核查已有**——jobs 页四区（jobs/goals/schedules/tasks）即 workers 面 |
+| M92 后台会话页 | **部分 / VARIANT**（外部审查下调）——task 树+mailbox 中心覆盖「后台派遣会话的协调面」，但普通子输出不是完整实况会话时间线；与 Cursor agents 后台会话页是功能变体不是等价物 |
+| M77 子agent 实况窗格 | **落地**——task-detail 面板：inbox/outbox/events 合并时间线 + 1.5s 轮询生命周期（openTask 启动 / 任务 closed 或离开 jobs 视图停止，原仅动作后单次刷新未接线，已修）+ 中断/关闭/发消息 |
+| M99 workers 页 | **部分 / FUNCTIONAL VARIANT**（外部审查下调）——jobs 页四区（jobs/goals/schedules/tasks）覆盖任务面，但不是 worker/daemon 清单+生命周期管理页（无常驻进程清单、无启停控制） |
 | M81 多 profile 实例 | **部分**——instance root + body_select 已给隔离与切换；「同实例内命名 profile（模型/凭证/权限预设包）+ export/import」未做 |
 
 测试基线：host 240 / pi 192+1skip（其中 mcp-ext 7/7、channel 22/22、jobs 7/7 全绿）/ app 18+1skip。

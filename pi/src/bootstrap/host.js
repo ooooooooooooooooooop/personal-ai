@@ -968,10 +968,21 @@ export async function startHost({
     importSession: async (srcPath) => {
       const abs = resolve(String(srcPath ?? ''));
       if (!existsSync(abs)) throw new Error(`session file not found: ${abs}`);
-      const mgr = sessionManagers.forkFrom(abs, workdir, sessionDir);
-      const srcName = mgr.getSessionName?.() ?? basename(abs);
-      mgr.appendSessionInfo?.(`[导入] ${srcName}`);
-      return { file: mgr.getSessionFile?.() ?? null, name: `[导入] ${srcName}`, importedFrom: abs };
+      // M89: upstream loadEntriesFromFile() APPENDS a newline to a source file
+      // missing one — an import must never mutate its input. Fork from a
+      // scratch copy inside the instance instead.
+      const scratchDir = join(sessionDir, '.import-scratch');
+      mkdirSync(scratchDir, { recursive: true });
+      const scratch = join(scratchDir, `import-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}.jsonl`);
+      copyFileSync(abs, scratch);
+      try {
+        const mgr = sessionManagers.forkFrom(scratch, workdir, sessionDir);
+        const srcName = mgr.getSessionName?.() ?? basename(abs);
+        mgr.appendSessionInfo?.(`[导入] ${srcName}`);
+        return { file: mgr.getSessionFile?.() ?? null, name: `[导入] ${srcName}`, importedFrom: abs };
+      } finally {
+        try { unlinkSync(scratch); } catch { /* leftover scratch is cosmetic */ }
+      }
     },
     // /btw — a side question on an EPHEMERAL fork: same context, answer never
     // lands in the live transcript. The fork is a real governed session

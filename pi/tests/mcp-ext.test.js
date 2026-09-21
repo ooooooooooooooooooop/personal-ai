@@ -267,3 +267,112 @@ test('decide: mcp__ tool holds the workspace write lease', async () => {
   assert.equal(r?.block, true);
   assert.equal(r?.rule, 'workspace_lease');
 });
+
+const PROMPT_ONLY_SERVER_JS = `
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'promptonly', version: '0' }, capabilities: { prompts: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      // prompt-only server: Method not found — must NOT kill prompts/list
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'Method not found' } }) + '\\n');
+    } else if (msg.method === 'prompts/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { prompts: [{ name: 'brief', description: 'briefing prompt', arguments: [] }] } }) + '\\n');
+    } else if (msg.method === 'prompts/get') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { description: 'brief', messages: [{ role: 'user', content: { type: 'text', text: 'Brief me' } }] } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+const TOOLS_ONLY_SERVER_JS = `
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'toolsonly', version: '0' }, capabilities: { tools: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [{ name: 'ping', description: 'ping', inputSchema: { type: 'object', properties: {} } }] } }) + '\\n');
+    } else if (msg.method === 'prompts/list') {
+      // tools-only server: Method not found — must NOT kill tool registration
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'Method not found' } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('M82: prompt-only server connects — tools/list Method-not-found does not block prompts', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-po-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, PROMPT_ONLY_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { po: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    try {
+      const pi = fakePi();
+      const notices = [];
+      const ctx = { sendUserMessage: () => {}, ui: { notify: (m, l) => notices.push([l, m]) } };
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.commands.has('mcp-po-brief') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(pi.commands.has('mcp-po-brief'), 'prompt command registered despite tools/list failure');
+      assert.equal([...pi.tools.keys()].filter((t) => t.startsWith('mcp__po__')).length, 0, 'no tools for a prompt-only server');
+      // /mcp reports connected (not failed) with 0 tools / 1 prompt
+      await pi.commands.get('mcp').handler(ctx);
+      const report = notices.at(-1)?.[1] ?? '';
+      assert.match(report, /po: connected — 0 tools, 1 prompts/);
+      await pi.handlers.get('session_shutdown')?.();
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('M82: tools-only server connects — prompts/list failure does not block tools', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-to-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, TOOLS_ONLY_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { to: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    try {
+      const pi = fakePi();
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__to__ping') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(pi.tools.has('mcp__to__ping'), 'tool registered despite prompts/list failure');
+      await pi.handlers.get('session_shutdown')?.();
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

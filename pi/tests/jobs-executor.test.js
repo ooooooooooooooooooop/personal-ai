@@ -12,7 +12,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JobStore } from '../../host/src/core/jobs.js';
 import { BudgetGovernor } from '../../host/src/core/budget.js';
-import { JobExecutor, isLongRunningCommand, isWorkerAlive, validateCheckpoint } from '../src/adapter/jobs.js';
+import { JobExecutor, isLongRunningCommand, isWorkerAlive, validateCheckpoint, readCheckpoint } from '../src/adapter/jobs.js';
 import { delegateTool, jobStatusTool } from '../src/adapter/delegate.js';
 import { WorkspaceWriteLease } from '../src/adapter/writelease.js';
 
@@ -655,5 +655,144 @@ test('P1 job_spawn: durable job surface + sandbox selection semantics', { timeou
   assert.equal(sshJob.job_state, 'FAILED');
   const events = store.getEvents(ssh.job_id).map((e) => JSON.stringify(e));
   assert.ok(events.some((e) => /ssh backend requires a target/.test(e)));
+  store.close();
+});
+
+// ─── M90: restart must replay the ORIGINAL execution contract ─────────────
+
+test('M90: restart replays the recorded spec — command/workdir/timeout/jobType survive', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-'));
+  const { store, executor } = rig(dir);
+  const workdir = tmpdir();
+  const { job_id } = await executor.spawnCommandJob({
+    command: 'echo RESTART_SRC',
+    workdir,
+    jobType: 'shell_command',
+    timeoutMs: 60_000,
+    budgetScope: 'sess-r',
+  });
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal(store.getJob(job_id).job_state, 'COMPLETED');
+
+  // the spec is durable — it lives in the checkpoint, not process memory
+  const attempt = store.getAttempts(job_id)[0];
+  const spec = readCheckpoint(attempt.checkpoint_ref).restart_spec;
+  assert.equal(spec.command, 'echo RESTART_SRC');
+  assert.equal(spec.workdir, workdir);
+  assert.equal(spec.timeout_ms, 60_000);
+  assert.equal(spec.budget_scope, 'sess-r');
+  assert.equal(spec.budget_committed, false);
+
+  const r = await executor.restart(job_id);
+  assert.equal(r.refused, undefined, `restart refused: ${r.reason}`);
+  assert.notEqual(r.job_id, job_id, 'restart is a NEW job — lineage stays honest');
+  await new Promise((res) => setTimeout(res, 1500));
+  const replay = readCheckpoint(store.getAttempts(r.job_id)[0].checkpoint_ref).restart_spec;
+  assert.equal(replay.command, 'echo RESTART_SRC');
+  assert.equal(replay.timeout_ms, 60_000);
+  assert.equal(replay.budget_scope, 'sess-r');
+  store.close();
+});
+
+test('M90: restart refuses jobs without a restart spec — no guessing', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-legacy-'));
+  const { store, executor } = rig(dir);
+  // a legacy/pre-M90 terminal job: checkpoint exists but carries no spec
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: tmpdir() });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'w', workerType: 'child_process', workerIdentity: {},
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, JSON.stringify({
+    checkpoint_version: 1, job_id: job.job_id, attempt_id,
+    input_identity: 'sha256:echo legacy', authorized_root: tmpdir(),
+    algorithm_version: '1.0.0', next_operation: 'await_exit',
+    created_at: new Date().toISOString(),
+  }));
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  store.failJob(job.job_id, 'simulated legacy failure');
+
+  const r = await executor.restart(job.job_id);
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /no restart spec/);
+  store.close();
+});
+
+test('M90: restart refuses budget-committed delegation jobs — cannot re-admit a charged slice', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-committed-'));
+  const { store, executor } = rig(dir);
+  const job = store.createJob({ jobType: 'delegation', authorizedRoot: tmpdir() });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'w', workerType: 'child_process', workerIdentity: {},
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, JSON.stringify({
+    checkpoint_version: 1, job_id: job.job_id, attempt_id,
+    input_identity: 'sha256:echo delegated', authorized_root: tmpdir(),
+    algorithm_version: '1.0.0', next_operation: 'await_exit',
+    created_at: new Date().toISOString(),
+    budget_scope: 'sess-p', budget_committed: true,
+    restart_spec: {
+      command: 'echo delegated', workdir: tmpdir(), job_type: 'delegation',
+      timeout_ms: null, worktree: false, sandbox: null,
+      budget_scope: 'sess-p', budget_committed: true,
+    },
+  }));
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  store.failJob(job.job_id, 'done');
+  const r = await executor.restart(job.job_id);
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /committed budget slice/);
+  store.close();
+});
+
+test('M90: restart refuses non-terminal jobs', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-live-'));
+  const { store, executor } = rig(dir);
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: tmpdir() });
+  const r = await executor.restart(job.job_id);
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /only terminal jobs restart/);
+  store.close();
+});
+
+// ─── M76: tools_deny on an unenforceable target refuses pre-spawn ──────────
+
+test('M76: profile tools_deny + non-pai-channel target → refused, never spawned', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-td-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['strict', { target: 'codex', toolsDeny: ['shell', 'write'] }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: (t, task) => `echo "ext ${t}: ${task}"`, // not a pai-channel body — cannot honor PAI_TOOLS_DENY
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'strict', task: 'x' });
+  assert.equal(res.details.refused, true);
+  assert.equal(res.details.reason, 'unenforceable_tools_deny');
+  assert.match(res.content[0].text, /cannot enforce/);
+  assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn — no job record');
+  store.close();
+});
+
+test('M76: tools_deny on an enforceable pai-channel target still delegates', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-tdok-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['strict', { target: 'pi', toolsDeny: ['shell'] }],
+  ]);
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => `"${process.execPath}" "${fixtureChannel}"`,
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'strict', task: 'x' });
+  assert.equal(res.details.refused, undefined, `not refused: ${res.content[0].text}`);
+  assert.match(res.content[0].text, /--tools-deny|delegated to/, 'deny flag rides the bridge command');
+  // wait for the job, then clean up
+  await new Promise((r) => setTimeout(r, 3000));
   store.close();
 });

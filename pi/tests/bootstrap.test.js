@@ -126,3 +126,29 @@ test('M8: ToolSurface + FileOpsGuard are wired into the real session', async () 
 
   host.leases.close();
 });
+
+test('M89: session_import never mutates the source file', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-import-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  // a foreign pi session file WITHOUT a trailing newline — upstream
+  // loadEntriesFromFile() appends '\n' to repair that; importing must not
+  // let that write reach the source (it is someone else's file)
+  const src = join(dir, 'foreign.jsonl');
+  const srcContent =
+    JSON.stringify({ type: 'session', version: 3, id: 'src-1', timestamp: new Date().toISOString(), cwd: dir }) + '\n' +
+    JSON.stringify({ type: 'message', id: 'm1', timestamp: new Date().toISOString(), message: { role: 'user', content: 'hi' } });
+  writeFileSync(src, srcContent); // deliberately no trailing newline
+  const before = readFileSync(src);
+  const r = await host.channel.handle({ type: 'session_import', path: src });
+  assert.equal(r.success, true, `import failed: ${JSON.stringify(r)}`);
+  assert.deepEqual(readFileSync(src), before, 'source bytes must be identical after import');
+  host.leases.close();
+});

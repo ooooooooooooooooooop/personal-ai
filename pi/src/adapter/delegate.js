@@ -122,6 +122,20 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           details: { refused: true, reason: 'unenforceable_profile_budget', rule: 'budget' },
         };
       }
+      // M76: same fail-closed rule for tools_deny — a pai-channel body reads
+      // PAI_TOOLS_DENY at bootstrap and prunes its tool surface; any other
+      // target silently ignores the constraint, so the declared deny would be
+      // a lie. Refuse pre-spawn instead of shipping an unenforced hint.
+      if (toolsDeny && !/pai-channel\.js/.test(inner)) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: profile '${params.profile}' declares tools_deny, but target '${target}' cannot enforce ` +
+              'a child tool surface — remove tools_deny or point the profile at a pai-channel body',
+          }],
+          details: { refused: true, reason: 'unenforceable_tools_deny', rule: 'tools_deny' },
+        };
+      }
       const scope = getScope?.() ?? null;
       // Codex thread-tree depth cap: PAI_SPAWN_DEPTH counts how many nested
       // delegations produced this process (0 = operator's session). A child
