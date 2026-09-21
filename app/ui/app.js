@@ -865,6 +865,20 @@ function onAgentEvent(ev) {
       }
       break;
     }
+    case 'scheduled_job_done': {
+      // M14: a scheduled job's completion delivered to the operator surface —
+      // toast + notification drawer + a transcript line with the output tail.
+      const ok = ev.exit_code === 0;
+      const msg = `定时任务 ${ev.job_id} ${ok ? '完成' : `失败(exit ${ev.exit_code})`}`;
+      toast(msg, ok ? 'info' : 'err');
+      notifyLog.unshift({ message: msg, level: ok ? 'info' : 'err', at: Date.now() });
+      if (notifyLog.length > 50) notifyLog.pop();
+      paintBell?.();
+      addSys(`${msg}${ev.output_tail ? `\n${ev.output_tail.slice(-800)}` : ''}`, !ok);
+      refreshSchedules?.();
+      refreshJobs?.();
+      break;
+    }
     case 'notify': {
       // notify_user: model→operator one-way notification (Kimi NotifyUser)
       toast(ev.message, ev.level === 'err' ? 'err' : 'info');
@@ -1886,9 +1900,16 @@ async function refreshSchedules() {
       s.lastFiredAt ? new Date(s.lastFiredAt).toLocaleString() : '从未',
       (s.label ?? s.command ?? '').slice(0, 60),
     ];
-    tr.innerHTML = cells.map(() => '<td></td>').join('') + '<td><button class="ghost-btn warn">取消</button></td>';
+    tr.innerHTML = cells.map(() => '<td></td>').join('')
+      + '<td><button class="ghost-btn"></button> <button class="ghost-btn warn">取消</button></td>';
     tr.querySelectorAll('td').forEach((td, i) => { if (i < cells.length) td.textContent = cells[i]; });
-    tr.querySelector('button').onclick = async () => { await cmd('schedule_cancel', { id: s.id }); refreshSchedules(); };
+    const [toggleBtn, cancelBtn] = tr.querySelectorAll('button');
+    toggleBtn.textContent = s.enabled === false ? '恢复' : '暂停';
+    toggleBtn.onclick = async () => {
+      await cmd('schedule_set', { id: s.id, enabled: s.enabled === false });
+      refreshSchedules();
+    };
+    cancelBtn.onclick = async () => { await cmd('schedule_cancel', { id: s.id }); refreshSchedules(); };
     tbody.appendChild(tr);
   }
 }

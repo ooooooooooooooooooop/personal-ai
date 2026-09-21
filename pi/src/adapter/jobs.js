@@ -10,7 +10,7 @@
  * tool call is blocked with an actionable reason naming the spawned job id,
  * and the job continues across process restarts via recoveryTick.
  */
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
@@ -64,7 +64,7 @@ export class JobExecutor {
    *        covers the durable-job surface only — foreground tool calls execute
    *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -73,6 +73,7 @@ export class JobExecutor {
     this.classifier = classifier;
     this.budget = budget;
     this.sandbox = sandbox;
+    this.onJobFinished = onJobFinished; // M14: scheduled-job completion delivery
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
   }
@@ -139,7 +140,28 @@ export class JobExecutor {
    * write lease (another mutating job is running). Fail-closed on classify
    * errors: an unparseable mutating-capable command is treated as mutating.
    */
-  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null }) {
+  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false }) {
+    // M13 (Codex/Cline worktree-parallel analogue, opt-in): run the attempt in
+    // a detached `git worktree` so parallel mutating jobs can't collide on the
+    // real checkout. Clean worktrees are removed at exit; dirty ones are LEFT
+    // in place (removing would silently delete the job's work) and the path
+    // is recorded in the result envelope + audit for the operator to merge.
+    let worktreePath = null;
+    let worktreeFrom = null;
+    if (worktree) {
+      worktreeFrom = workdir;
+      worktreePath = join(this.jobsDir, 'worktrees', `wt-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`);
+      const r = spawnSync('git', ['worktree', 'add', '--detach', worktreePath, 'HEAD'],
+        { cwd: workdir, windowsHide: true, timeout: 30_000, encoding: 'utf-8' });
+      if (r.status !== 0) {
+        const reason = `git worktree add failed: ${(r.stderr || r.error?.message || 'unknown').trim().slice(0, 300)}`;
+        this.audit?.write({ kind: 'JOB_WORKTREE_REFUSED', data: { reason, workdir, parent_run_id: this.runId } });
+        return { refused: true, reason };
+      }
+      this.audit?.write({ kind: 'JOB_WORKTREE', data: { path: worktreePath, from: workdir, parent_run_id: this.runId } });
+      workdir = worktreePath;
+      authorizedRoot = worktreePath;
+    }
     let mutating = false;
     if (this.classifier) {
       try {
@@ -166,12 +188,12 @@ export class JobExecutor {
       workerIdentity: {}, // filled after spawn with real pid
       workspaceRef: workdir,
     });
-    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs });
+    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom });
     return { job_id: job.job_id, attempt_id };
   }
 
   /** Run one attempt: spawn → checkpoint → heartbeat → exit → result envelope. */
-  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null }) {
+  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktreePath = null, worktreeFrom = null }) {
     const checkpointPath = join(this.jobsDir, `${attemptId}.checkpoint.json`);
     const leaseHolder = `job:${jobId}`;
     const resultPath = join(this.jobsDir, `${attemptId}.result.json`);
@@ -278,6 +300,21 @@ export class JobExecutor {
             this.budget.record({ scope: budgetScope ?? `job:${jobId}`, source: `job:${jobId}`, usage });
           } catch { /* ledger failure must not corrupt job bookkeeping */ }
         }
+        // Worktree teardown (M13): clean worktrees are removed; dirty ones
+        // stay on disk — their path goes into the result + audit so the
+        // operator can merge or discard explicitly.
+        let worktreeKept = null;
+        if (worktreePath) {
+          try {
+            const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: worktreePath, windowsHide: true, timeout: 15_000, encoding: 'utf-8' });
+            if (dirty.status === 0 && !dirty.stdout.trim()) {
+              spawnSync('git', ['worktree', 'remove', worktreePath], { cwd: worktreeFrom ?? this.jobsDir, windowsHide: true, timeout: 15_000 });
+            } else worktreeKept = worktreePath;
+          } catch { worktreeKept = worktreePath; }
+          if (worktreeKept) {
+            this.audit?.write({ kind: 'JOB_WORKTREE_KEPT', data: { job_id: jobId, attempt_id: attemptId, path: worktreeKept, parent_run_id: this.runId } });
+          }
+        }
         writeFileSync(resultPath, JSON.stringify({
           attempt_id: attemptId, job_id: jobId,
           exit_code: code, signal,
@@ -285,6 +322,7 @@ export class JobExecutor {
           // credentials; the artifact must not become a secret store.
           output_tail: redactSecrets(out),
           usage,
+          ...(worktreePath ? { worktree: { path: worktreePath, kept: Boolean(worktreeKept) } } : {}),
           parent_run_id: this.runId, // usage attribution: child work bills to parent
           finished_at: new Date().toISOString(),
         }, null, 2));
@@ -305,6 +343,14 @@ export class JobExecutor {
           kind: 'JOB_FINISHED',
           data: { job_id: jobId, attempt_id: attemptId, exit_code: code, usage, parent_run_id: this.runId },
         });
+        // M14 (Hermes/CodeBuddy delivery analogue): scheduled jobs have no
+        // operator watching — surface their completion as a UI event instead
+        // of letting the output die inside the job detail view.
+        if (cur?.job_type === 'scheduled' && this.onJobFinished) {
+          try {
+            this.onJobFinished({ job_id: jobId, job_type: cur.job_type, exit_code: code, output_tail: redactSecrets(out.slice(-2000)) });
+          } catch { /* delivery is best-effort — the job record is truth */ }
+        }
       } catch (e) {
         if (!/not open|closed/i.test(e.message)) throw e;
       }

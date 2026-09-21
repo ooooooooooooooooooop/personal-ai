@@ -335,3 +335,27 @@ test('instruction-file gate: operator deny blocks the write', async () => {
   const d = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: '.cursor/rules/x.md' } }));
   assert.equal(d.block, true);
 });
+
+test('rejection memory: operator deny auto-denies the identical call signature', async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { destructive: 'ask', privilege: 'deny' },
+  });
+  let asks = 0;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write'],
+    ask: async () => { asks++; return 'deny'; },
+  });
+  const call = ctx({ toolName: 'write', args: { path: '.pai/plan.md', content: 'x' } });
+  const d1 = await kernel.decideToolCall(call);
+  assert.equal(d1.block, true);
+  assert.equal(asks, 1);
+  // identical call (different toolCallId, same signature) — no second card
+  const d2 = await kernel.decideToolCall(ctx({ toolName: 'write', toolCallId: 'tc-2', args: { content: 'x', path: '.pai/plan.md' } }));
+  assert.equal(d2.block, true);
+  assert.match(d2.reason, /already denied/);
+  assert.equal(asks, 1, 'rejection memory suppresses the repeat ask');
+  // changed args → new signature → asks again
+  await kernel.decideToolCall(ctx({ toolName: 'write', toolCallId: 'tc-3', args: { path: '.pai/plan.md', content: 'y' } }));
+  assert.equal(asks, 2);
+});

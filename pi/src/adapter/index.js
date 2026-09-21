@@ -82,8 +82,13 @@ export function contextEnvelopeExtension(contextEnvelope) {
     factory: (pi) => {
       pi.on('context', (event) => {
         // a provider fn re-reads live state each turn (post-compaction too);
-        // a plain envelope object renders as a fixed snapshot.
-        const env = typeof contextEnvelope === 'function' ? contextEnvelope() : contextEnvelope;
+        // a plain envelope object renders as a fixed snapshot. The latest
+        // user text is handed over as a relevance hint (typed-memory
+        // per-turn injection analogue) — providers may ignore it.
+        const lastUser = [...(event.messages ?? [])].reverse().find((m) => m?.role === 'user');
+        const hint = (lastUser?.content ?? [])
+          .map((c) => (typeof c === 'string' ? c : c?.text ?? '')).join(' ').slice(0, 400);
+        const env = typeof contextEnvelope === 'function' ? contextEnvelope(hint) : contextEnvelope;
         const briefing = renderContext(env);
         if (!briefing) return undefined;
         return {

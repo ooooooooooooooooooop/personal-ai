@@ -81,3 +81,36 @@ test('prompt-target schedules: validation, goal_id, once/interval timing', () =>
   s.markFired(rec.id, null);
   assert.equal(s.due().length, 0); // interval advanced past now
 });
+
+test('pause/resume: paused entries never go due; resume re-arms intervals', () => {
+  let now = 1_000_000;
+  const s = new ScheduleStore(rig(), () => now);
+  const rec = s.add({ command: 'echo hi', every_seconds: 60 });
+  assert.equal(s.setEnabled(rec.id, false).ok, true);
+  now += 120_000;
+  assert.equal(s.due().length, 0, 'paused schedule is not due');
+  assert.equal(s.setEnabled('nope', true).ok, false);
+  assert.equal(s.setEnabled(rec.id, true).ok, true);
+  assert.equal(s.due().length, 0, 'resume re-anchors from now, no storm-fire');
+  now += 61_000;
+  assert.deepEqual(s.due().map((x) => x.id), [rec.id]);
+});
+
+test('edit: patches command/interval/run_at with validation, identity preserved', () => {
+  let now = 1_000_000;
+  const s = new ScheduleStore(rig(), () => now);
+  const rec = s.add({ command: 'echo hi', every_seconds: 60 });
+  assert.match(s.edit(rec.id, { every_seconds: 5 }).error, /60/);
+  assert.equal(s.edit('nope', { command: 'x' }).ok, false);
+  assert.equal(s.edit(rec.id, { command: 'echo bye', label: 'renamed' }).ok, true);
+  const after = s.list().find((x) => x.id === rec.id);
+  assert.equal(after.command, 'echo bye');
+  assert.equal(after.label, 'renamed');
+  assert.equal(after.kind, 'interval');
+  // interval→once conversion
+  assert.equal(s.edit(rec.id, { run_at: now + 5000 }).ok, true);
+  const once = s.list().find((x) => x.id === rec.id);
+  assert.equal(once.kind, 'once');
+  now += 6000;
+  assert.deepEqual(s.due().map((x) => x.id), [rec.id]);
+});

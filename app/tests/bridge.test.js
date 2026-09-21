@@ -92,3 +92,31 @@ test('bridge: /api/artifacts lists exports; /api/artifact confined to it', async
     await bridge.close();
   }
 });
+
+test('M9: cross-origin POST /cmd refused; same-origin and non-browser pass', async () => {
+  const sup = stubSupervisor();
+  const bridge = createHttpBridge({ supervisor: sup });
+  const port = await bridge.listen(0);
+  const base = `http://127.0.0.1:${port}`;
+  const post = (headers) => fetch(`${base}/cmd`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify({ id: 'x', type: 'get_state' }),
+  });
+  try {
+    // evil web page origin — refused before the body is read
+    const evil = await post({ Origin: 'https://evil.example' });
+    assert.equal(evil.status, 403);
+    // browser fetch metadata marking cross-site — refused even without Origin
+    const sfs = await post({ 'Sec-Fetch-Site': 'cross-site' });
+    assert.equal(sfs.status, 403);
+    // same-site is allowed (e.g. another local tool on the same host)
+    const same = await post({ 'Sec-Fetch-Site': 'same-origin' });
+    assert.equal(same.status, 200);
+    // loopback Origin (the real UI) — allowed
+    const local = await post({ Origin: `http://127.0.0.1:${port}` });
+    assert.equal(local.status, 200);
+    // curl-style non-browser POST with no origin headers — allowed
+    const bare = await post({});
+    assert.equal(bare.status, 200);
+  } finally { await bridge.close(); }
+});

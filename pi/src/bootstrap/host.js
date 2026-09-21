@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
-import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, openSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -39,20 +39,42 @@ function numEnv(name) {
 }
 
 /** Bounded shell for `!cmd` operator direct-exec — 200KB cap, 120s kill. */
-function runShell(command, cwd) {
+function runShell(command, cwd, { detachedDir = null } = {}) {
   return new Promise((resolveP) => {
     const child = spawn(command, { shell: true, cwd, windowsHide: true });
     const cap = 200 * 1024;
     let out = '';
-    let killed = false;
-    const timer = setTimeout(() => { killed = true; child.kill('SIGTERM'); }, 120_000);
+    let detached = null;
+    // M12 (CodeBuddy auto-backgrounding analogue): a foreground command that
+    // overruns is NOT killed — it detaches to a log file and keeps running.
+    const timer = setTimeout(() => {
+      try {
+        const dir = detachedDir ?? cwd;
+        mkdirSync(dir, { recursive: true });
+        detached = join(dir, `detached-${child.pid}.log`);
+        const fd = openSync(detached, 'a');
+        writeSync(fd, out);
+        const eat2 = (d) => { try { writeSync(fd, d); } catch { /* closed */ } };
+        child.stdout.removeAllListeners('data');
+        child.stderr.removeAllListeners('data');
+        child.stdout.on('data', eat2);
+        child.stderr.on('data', eat2);
+        child.on('close', () => { try { closeSync(fd); } catch { /* */ } });
+        child.unref?.();
+      } catch { detached = null; /* no dir — fall back to plain timeout note */ }
+      resolveP({
+        ok: false, code: -9,
+        output: out + `\n[转后台运行 — pid ${child.pid}${detached ? ` → ${detached}` : ''}（前台 120s 超时，进程未杀死）]`,
+        detached: detached ? { pid: child.pid, log: detached } : null,
+      });
+    }, 120_000);
     const eat = (d) => { if (out.length < cap) out += d.toString('utf-8'); };
     child.stdout.on('data', eat);
     child.stderr.on('data', eat);
     child.on('error', (e) => { clearTimeout(timer); resolveP({ ok: false, code: -1, output: String(e.message) }); });
     child.on('close', (code) => {
       clearTimeout(timer);
-      resolveP({ ok: code === 0, code: killed ? -9 : (code ?? -1), output: out + (killed ? '\n[killed: 120s timeout]' : '') });
+      resolveP({ ok: code === 0, code: code ?? -1, output: out });
     });
   });
 }
@@ -287,6 +309,9 @@ export async function startHost({
     classifier: parseShellCommand,
     budget, // child PAI_USAGE bills into the spawning session's scope
     sandbox: SandboxProvider.fromEnv(), // PAI_SANDBOX=none|wsl — durable-job surface only
+    // M14: scheduled-job completions surface to the UI as an event — a job
+    // nobody is watching must still deliver its result somewhere visible.
+    onJobFinished: (d) => channelHandle?.channel.emitEvent({ type: 'scheduled_job_done', ...d }),
   });
   // cold-start sweep: dead workers from a previous process get recovered or
   // parked for review — never silently abandoned
@@ -424,15 +449,15 @@ export async function startHost({
       instructionEnvelope: core.instructionEnvelope,
       // live provider — not a snapshot; steering files are workdir-scoped
       // context composed at this boundary (host core stays workdir-blind)
-      contextEnvelope: () => ({
+      contextEnvelope: (hint) => ({
         ...core.contextProvider(),
         // Steering isolation (CC omitClaudeMd analogue): a delegated child
         // spawned with --steering-off carries PAI_STEERING_OFF — workdir
         // steering files (AGENTS.md et al.) never reach its context.
         steering: process.env.PAI_STEERING_OFF ? null : loadSteering(workdir),
-        // pinned memory rides the context envelope as untrusted evidence —
-        // recalled claims, never an authority channel
-        memoryDigest: memoryStore.injection(),
+        // pinned + relevance-recalled memory rides the context envelope as
+        // untrusted evidence — recalled claims, never an authority channel
+        memoryDigest: memoryStore.injection(12, hint),
         // /context add analogue — .pai/pins.json paths re-read live each
         // turn; .paiignore still wins over pinning (context exclusion holds)
         pins: loadPins(workdir, { isIgnored: (p) => new PaiIgnore(workdir).isIgnored(p) }),
@@ -915,6 +940,7 @@ export async function startHost({
     schedules: {
       list: () => scheduleStore.list(),
       cancel: (id) => scheduleStore.remove(id),
+      setEnabled: (id, enabled) => scheduleStore.setEnabled(id, enabled),
     },
     // coordinator surface — operator reads goal truth + sets state
     goalStore: {
@@ -1077,9 +1103,12 @@ export async function startHost({
           core.audit.write({ kind: 'OPERATOR_BASH_BLOCK', data: { command: command.slice(0, 200), rule: d.rule ?? 'deny' } });
           return { ok: false, blocked: true, reason: d.reason ?? 'blocked' };
         }
-        const r = await runShell(command, workdir);
+        const r = await runShell(command, workdir, { detachedDir: join(core.paths.root, 'jobs') });
         emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'bash', result: r.output.slice(0, 8000), isError: r.code !== 0 });
         core.audit.write({ kind: 'OPERATOR_BASH', data: { command: command.slice(0, 200), code: r.code } });
+        if (r.detached) {
+          core.audit.write({ kind: 'SHELL_DETACHED', data: { command: command.slice(0, 200), pid: r.detached.pid, log: r.detached.log } });
+        }
         return r;
       },
     },

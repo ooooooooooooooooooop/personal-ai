@@ -25,6 +25,23 @@ const MIME = {
 };
 
 export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null }) {
+  // M9 (CodeBuddy same-origin fix analogue): binding 127.0.0.1 does NOT stop
+  // a malicious web page from POSTing /cmd cross-origin — CORS only gates
+  // reads, writes still land. Reject browser cross-site POSTs: an Origin
+  // header that isn't this bridge, or a Sec-Fetch-Site marking cross-site.
+  const badOrigin = (req) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      try {
+        const h = new URL(origin).hostname;
+        if (h !== '127.0.0.1' && h !== 'localhost' && h !== '[::1]') return true;
+      } catch { return true; }
+    }
+    const sfs = req.headers['sec-fetch-site'];
+    if (sfs && sfs !== 'same-origin' && sfs !== 'same-site' && sfs !== 'none') return true;
+    return false;
+  };
+  const refuse = (res) => { res.writeHead(403); res.end('cross-origin POST refused'); };
   const sseClients = new Set();
   const unsub = supervisor.subscribe((msg) => {
     const frame = `data: ${JSON.stringify(msg)}\n\n`;
@@ -48,6 +65,7 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         return;
       }
       if (req.method === 'POST' && url.pathname === '/cmd') {
+        if (badOrigin(req)) { refuse(res); return; }
         let body = '';
         for await (const chunk of req) body += chunk;
         const cmd = JSON.parse(body || '{}');
@@ -60,6 +78,7 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         return;
       }
       if (req.method === 'POST' && url.pathname === '/api/pick-dir') {
+        if (badOrigin(req)) { refuse(res); return; }
         if (!pickDir) {
           res.writeHead(501, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'directory picker unavailable' }));

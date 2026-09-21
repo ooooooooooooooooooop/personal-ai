@@ -562,3 +562,67 @@ test('profile knobs: model/effort fill commandFor opts; isolate_steering stamps 
   assert.match(captured, / --steering-off /);
   store.close();
 });
+
+test('M14: onJobFinished fires for scheduled jobs only, with redacted tail', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m14-'));
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const seen = [];
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    onJobFinished: (d) => seen.push(d),
+  });
+  const echoCmd = process.platform === 'win32' ? 'echo hello-sched' : 'echo hello-sched';
+  const r = await executor.spawnCommandJob({ command: echoCmd, workdir: dir, jobType: 'scheduled' });
+  assert.ok(r.job_id);
+  // plain shell_command must NOT notify
+  const r2 = await executor.spawnCommandJob({ command: echoCmd, workdir: dir, jobType: 'shell_command' });
+  await new Promise((res) => setTimeout(res, 4000));
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].job_id, r.job_id);
+  assert.equal(seen[0].job_type, 'scheduled');
+  assert.equal(seen[0].exit_code, 0);
+  assert.match(seen[0].output_tail, /hello-sched/);
+  store.close();
+});
+
+test('M13: worktree job runs in a detached checkout; dirty worktree kept + audited', { timeout: 30_000 }, async (t) => {
+  const { spawnSync } = await import('node:child_process');
+  // a real git repo with one commit — worktree add needs HEAD
+  const repo = mkdtempSync(join(tmpdir(), 'pai-wt-repo-'));
+  for (const args of [
+    ['init', '-q'], ['config', 'user.email', 't@t'], ['config', 'user.name', 't'],
+  ]) spawnSync('git', args, { cwd: repo });
+  writeFileSync(join(repo, 'f.txt'), 'base');
+  spawnSync('git', ['add', '.'], { cwd: repo });
+  spawnSync('git', ['commit', '-qm', 'init'], { cwd: repo });
+
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wt-'));
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const audits = [];
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    audit: { write: (e) => audits.push(e) },
+  });
+  // dirty job: writes a file inside the worktree → worktree must be KEPT
+  const dirtyCmd = process.platform === 'win32' ? 'echo changed>newfile.txt' : 'echo changed > newfile.txt';
+  const r = await executor.spawnCommandJob({ command: dirtyCmd, workdir: repo, worktree: true });
+  assert.ok(r.job_id, 'worktree job spawned');
+  await new Promise((res) => setTimeout(res, 5000));
+  const result = JSON.parse(readFileSync(join(dir, 'jobs', `${r.attempt_id}.result.json`), 'utf-8'));
+  assert.ok(result.worktree, 'result carries worktree record');
+  assert.equal(result.worktree.kept, true, 'dirty worktree preserved for operator merge');
+  assert.ok(existsSync(join(result.worktree.path, 'newfile.txt')), 'job output lives in the worktree');
+  assert.ok(!existsSync(join(repo, 'newfile.txt')), 'real checkout untouched');
+  assert.ok(audits.some((e) => e.kind === 'JOB_WORKTREE_KEPT'));
+
+  // clean job: reads only → worktree removed
+  const r2 = await executor.spawnCommandJob({ command: 'git status --porcelain', workdir: repo, worktree: true });
+  await new Promise((res) => setTimeout(res, 5000));
+  const result2 = JSON.parse(readFileSync(join(dir, 'jobs', `${r2.attempt_id}.result.json`), 'utf-8'));
+  assert.equal(result2.worktree.kept, false);
+  assert.ok(!existsSync(result2.worktree.path), 'clean worktree removed');
+
+  // non-git dir → honest refusal, not a spawned job in the wrong place
+  const r3 = await executor.spawnCommandJob({ command: 'echo x', workdir: dir, worktree: true });
+  assert.equal(r3.refused, true);
+  assert.match(r3.reason, /worktree/);
+  store.close();
+});

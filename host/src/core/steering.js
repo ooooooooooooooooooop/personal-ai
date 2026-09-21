@@ -31,6 +31,13 @@ const COMPAT_FILES = [
   '.github/copilot-instructions.md',
   '.goosehints', '.clinerules', 'CONVENTIONS.md', // Goose / Cline / Aider
 ];
+// Personal-local variants (CodeBuddy CODEBUDDY.local.md analogue): operator
+// instructions that never enter VCS — loaded after the shared files so a
+// local override reads last, and they are exactly the names .gitignore-able.
+const COMPAT_LOCAL_FILES = [
+  'AGENTS.local.md', 'CLAUDE.local.md', 'GEMINI.local.md',
+  'CONVENTIONS.local.md', '.clinerules.local',
+];
 
 /**
  * @param {string} workdir
@@ -62,6 +69,11 @@ export function loadSteering(workdir) {
     const p = join(workdir, f);
     if (existsSync(p)) files.push({ name: f, path: p });
   }
+  // Personal-local files — never committed, read last so they override.
+  for (const f of COMPAT_LOCAL_FILES) {
+    const p = join(workdir, f);
+    if (existsSync(p)) files.push({ name: f, path: p, local: true });
+  }
   // Codex/OpenCode ancestor merge: root instruction files in PARENT dirs of
   // the workdir still apply (a repo's AGENTS.md governs workdirs below it).
   // Ancestor files render behind workdir files and carry a dir= marker.
@@ -91,7 +103,8 @@ export function loadSteering(workdir) {
     if (fm.apply === 'manual') { manual.push(f.name); continue; }
     const scope = fm.globs?.length ? ` scope="${fm.globs.join(', ')}"` : '';
     const anc = f.ancestor ? ` dir="${f.ancestor}"` : '';
-    out += `\n<steering-file name="${f.name}"${scope}${anc}>\n${fm.body}\n</steering-file>\n`;
+    const loc = f.local ? ' local="personal"' : '';
+    out += `\n<steering-file name="${f.name}"${scope}${anc}${loc}>\n${fm.body}\n</steering-file>\n`;
   }
   if (manual.length) {
     out += `\n<manual-rules>${manual.join(', ')}</manual-rules>\n`;

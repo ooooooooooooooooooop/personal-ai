@@ -350,3 +350,18 @@ test('goal_list/goal_set route to the goalStore facade; absent fails politely', 
   const bare = new HostChannel({ session: fakeSession() });
   assert.equal((await bare.handle({ type: 'goal_list' })).success, false);
 });
+
+test('auth_set_key strips invisible characters; never echoes key material', async () => {
+  let got = null;
+  const models = { setApiKey: async ({ provider, key }) => { got = { provider, key }; return { ok: true }; } };
+  const ch = new HostChannel({ session: fakeSession(), models });
+  const dirty = `﻿ sk-abc​‎123﻿  `;
+  const r = await ch.handle({ type: 'auth_set_key', provider: 'openai', key: dirty });
+  assert.equal(r.success, true);
+  assert.equal(got.key, 'sk-abc123');
+  // a key that is ONLY invisible chars is refused, not stored
+  const r2 = await ch.handle({ type: 'auth_set_key', provider: 'openai', key: '﻿ ​‎' });
+  assert.match(r2.error, /invisible/);
+  // response surface must not contain the key
+  assert.ok(!JSON.stringify(r).includes('sk-abc123'));
+});

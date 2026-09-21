@@ -102,6 +102,47 @@ export class ScheduleStore {
     return { ok: true };
   }
 
+  /** Goose pause/unpause: enabled flag flips without losing the schedule. */
+  setEnabled(id, enabled) {
+    const schedules = this.#load();
+    const rec = schedules.find((s) => s.id === id);
+    if (!rec) return { ok: false, error: `no schedule '${id}'` };
+    rec.enabled = enabled !== false;
+    // re-armed intervals re-anchor from now — stale slots don't storm-fire
+    if (rec.enabled && rec.kind === 'interval') rec.nextRunAt = this.now() + rec.every_seconds * 1000;
+    this.#save(schedules);
+    return { ok: true, rec };
+  }
+
+  /** Goose edit: patch command/prompt/every_seconds/run_at of a live entry. */
+  edit(id, { command, prompt, every_seconds, run_at, label } = {}) {
+    const schedules = this.#load();
+    const rec = schedules.find((s) => s.id === id);
+    if (!rec) return { ok: false, error: `no schedule '${id}'` };
+    if (command != null) { rec.command = String(command).trim() || null; rec.target = rec.command ? 'command' : rec.target; }
+    if (prompt != null) { rec.prompt = String(prompt).trim() || null; rec.target = rec.command ? rec.target : 'prompt'; }
+    if (label !== undefined) rec.label = label != null ? String(label).slice(0, 200) : null;
+    const interval = every_seconds != null ? Math.floor(Number(every_seconds)) : null;
+    if (every_seconds != null) {
+      if (!Number.isFinite(interval) || interval < MIN_INTERVAL_SECONDS) {
+        return { ok: false, error: `every_seconds must be ≥ ${MIN_INTERVAL_SECONDS}` };
+      }
+      rec.every_seconds = interval;
+      rec.kind = 'interval';
+      rec.nextRunAt = this.now() + interval * 1000;
+    } else if (run_at != null) {
+      const t = typeof run_at === 'number' ? run_at : Date.parse(String(run_at));
+      if (!Number.isFinite(t)) return { ok: false, error: 'run_at must be an epoch ms or ISO timestamp' };
+      rec.every_seconds = null;
+      rec.kind = 'once';
+      rec.nextRunAt = t;
+    }
+    if (rec.target === 'command' && !rec.command) return { ok: false, error: 'command schedule requires a command' };
+    if (rec.target === 'prompt' && !rec.prompt) return { ok: false, error: 'prompt schedule requires a prompt' };
+    this.#save(schedules);
+    return { ok: true, rec };
+  }
+
   /** Entries due at or before now (enabled only). Oldest first. */
   due() {
     const t = this.now();

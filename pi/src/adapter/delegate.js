@@ -59,6 +59,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         task: { type: 'string', description: 'task description for the delegate' },
         name: { type: 'string', description: 'optional teammate name — makes the task a named, persistent member of the teammate pool (addressable via teammate_msg)' },
         max_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes — the job is killed at the deadline and reported as timed out' },
+        worktree: { type: 'boolean', description: 'run inside a detached git worktree — parallel delegates cannot collide on the real checkout; dirty worktrees are kept and reported' },
       },
       required: ['task'],
     },
@@ -205,6 +206,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         // envelope must NOT bill the parent again at exit (double-count)
         budgetCommitted: committedSlice != null,
         timeoutMs: maxMin != null ? Math.round(maxMin * 60_000) : null,
+        worktree: params.worktree === true,
       });
       if (r.refused) {
         // spawn never happened — roll the committed slice back out

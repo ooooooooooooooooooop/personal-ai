@@ -84,3 +84,19 @@ test('channel contract: memory_* commands dispatch and fail closed', async () =>
   assert.equal((await bare.handle({ type: 'memory_list' })).success, false);
   s.close();
 });
+
+test('injection: pinned rows plus per-turn relevance hits, deduped and capped', () => {
+  const s = mk();
+  s.remember('deploy pipeline uses GitHub Actions', { kind: 'fact' });
+  s.remember('database is postgres 16', { kind: 'fact' });
+  const pinnedId = s.remember('user prefers Chinese replies', { kind: 'preference' }).id;
+  s.pin(pinnedId, true);
+  // no hint → pinned only
+  assert.deepEqual(s.injection(12).map((m) => m.id), [pinnedId]);
+  // hint pulls the relevant unpinned row; pinned stays first, no dupes
+  const withHint = s.injection(12, 'how does the GitHub Actions deploy work?');
+  assert.equal(withHint[0].id, pinnedId);
+  assert.ok(withHint.some((m) => /GitHub Actions/.test(m.text)));
+  assert.ok(!withHint.some((m) => /postgres/.test(m.text)));
+  s.close();
+});

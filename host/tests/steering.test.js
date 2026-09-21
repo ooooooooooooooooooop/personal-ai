@@ -93,3 +93,15 @@ test('new compat files: .goosehints/.clinerules/CONVENTIONS.md load', () => {
   const out = loadSteering(w);
   for (const re of [/goose hints/, /cline rules/, /house conventions/]) assert.match(out, re);
 });
+
+test('personal-local files: *.local.md load last with local marker', () => {
+  const w = dir();
+  writeFileSync(join(w, 'AGENTS.md'), 'shared rules');
+  writeFileSync(join(w, 'AGENTS.local.md'), 'personal overrides');
+  const out = loadSteering(w);
+  assert.match(out, /shared rules/);
+  assert.match(out, /personal overrides/);
+  assert.match(out, /local="personal"/);
+  // local reads AFTER the shared file (override ordering)
+  assert.ok(out.indexOf('personal overrides') > out.indexOf('shared rules'));
+});

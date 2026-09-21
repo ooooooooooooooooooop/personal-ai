@@ -4,7 +4,7 @@
  * shapes get translated into plain-data snapshots a UI can consume.
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
-import { normalizeAttachments, partitionByCapability, describeAttachment } from '../../../host/src/core/attachments.js';
+import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname } from 'node:path';
@@ -255,7 +255,12 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           opts = { ...options, images: [...(options.images ?? []), ...native.map((a) => ({ type: 'image', data: a.source.data, mimeType: a.mime }))] };
         }
         if (degraded.length) {
-          msg = `${msg ?? ''}\n\n${degraded.map(describeAttachment).join('\n')}`;
+          // Extractable formats (text/code/ipynb) inline their CONTENT so the
+          // model reads them; opaque binaries stay honest descriptors.
+          msg = `${msg ?? ''}\n\n${degraded.map((a) => {
+            const text = extractAttachmentText(a);
+            return text ? `<attachment kind="${a.kind}" name="${a.name}" mime="${a.mime}">\n${text}\n</attachment>` : describeAttachment(a);
+          }).join('\n')}`;
         }
         if (rejected.length) {
           core.audit?.write({ kind: 'ATTACHMENT_REJECTED', data: { rejected } });

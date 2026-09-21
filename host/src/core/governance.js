@@ -16,6 +16,7 @@
  * Denials are structured: {rule, expected, actual, repair} — adapters render
  * them into repair-oriented reason text (Kimi-style guidance).
  */
+import { hashOf } from './audit.js';
 
 /**
  * Agent standing-order files — a mutating file call aimed at any of these
@@ -44,6 +45,11 @@ const INSTRUCTION_PATH_RES = [
 ];
 
 export class GovernanceKernel {
+  /** Rejection-memory signature set — per kernel instance = per session
+   * (CodeBuddy analogue): an identical call the operator already denied
+   * auto-denies on retry instead of re-asking the same card. */
+  #rejections = new Set();
+
   /**
    * @param {object} deps
    * @param {import('./audit.js').AuditWriter} deps.audit
@@ -133,6 +139,21 @@ export class GovernanceKernel {
       });
       return this.#allow(ctx, 'operator:command_allowlist');
     }
+    // Rejection memory: identical signature already denied → auto-deny.
+    // (After the allowlist — an operator standing order outranks a prior
+    // one-off denial.)
+    const sig = `${ctx.toolName}:${hashOf(stableJson(ctx.args ?? {}))}`;
+    if (this.#rejections.has(sig)) {
+      this.audit.write({
+        kind: 'REJECTION_MEMORY_HIT', toolName: ctx.toolName,
+        data: { toolCallId: ctx.toolCallId, rule, summary },
+      });
+      return this.#deny(ctx, 'rejection_memory', {
+        reason: `identical call already denied this session — ${detail.reason}`,
+        actual: summary,
+        repair: 'do not retry the same call; change the action or wait for a new session',
+      });
+    }
     // WYSIWYG contract: the operator must know whether the card shows the
     // complete payload or a clipped prefix — truncated args carry an explicit
     // flag + original size so the UI can say "you are approving N chars shown
@@ -151,6 +172,7 @@ export class GovernanceKernel {
     if (answer === 'allow' || answer === 'allow_session' || answer === 'always') {
       return this.#allow(ctx, `operator:${answer}`);
     }
+    if (answer === 'deny') this.#rejections.add(sig); // rejection memory
     const reasons = {
       deny: 'operator denied the call',
       timeout: 'operator did not answer before the ask expired',
@@ -432,6 +454,14 @@ function summarizeArgs(args) {
 }
 
 const clip = (s, n = 240) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
+/** Canonical args digest for rejection memory — key order must not change
+ * the signature (same recipe as loopwatch's repeat-signature). */
+const stableJson = (v) => JSON.stringify(v, (_k, x) => (
+  x && typeof x === 'object' && !Array.isArray(x)
+    ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : x
+));
 
 /**
  * Args carried onto the operator ask card — the operator approves what they

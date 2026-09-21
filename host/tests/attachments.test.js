@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { kindOfMime, normalizeAttachment, normalizeAttachments, partitionByCapability, describeAttachment } from '../src/core/attachments.js';
+import { kindOfMime, normalizeAttachment, normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../src/core/attachments.js';
 
 test('kindOfMime classifies media prefixes, rest is file', () => {
   assert.equal(kindOfMime('image/png'), 'image');
@@ -47,4 +47,25 @@ test('partitionByCapability: images native for pi, audio/video degrade', () => {
   assert.equal(native[0].kind, 'image');
   assert.deepEqual(degraded.map((a) => a.kind), ['audio', 'file']);
   assert.match(describeAttachment(degraded[0]), /kind="audio".*name="s.mp3"/);
+});
+
+test('extractAttachmentText: ipynb renders cells; text inlines; pdf stays null', () => {
+  const nb = JSON.stringify({
+    cells: [
+      { cell_type: 'markdown', source: ['# title'] },
+      { cell_type: 'code', source: ['x = 1\nprint(x)'], outputs: [{ text: '1\n' }] },
+    ],
+  });
+  const { attachments } = normalizeAttachments([
+    { name: 'n.ipynb', mime: 'application/x-ipynb+json', data: Buffer.from(nb).toString('base64') },
+    { name: 's.py', mime: 'text/x-python', data: Buffer.from('print(1)').toString('base64') },
+    { name: 'd.pdf', mime: 'application/pdf', data: 'aGk=' },
+  ]);
+  const ipynb = extractAttachmentText(attachments[0]);
+  assert.match(ipynb, /cell 0 \[markdown\]/);
+  assert.match(ipynb, /cell 1 \[code\]/);
+  assert.match(ipynb, /out: 1/);
+  assert.equal(extractAttachmentText(attachments[1]), 'print(1)');
+  assert.equal(extractAttachmentText(attachments[2]), null, 'pdf needs a real parser — descriptor stays honest');
+  assert.equal(extractAttachmentText({ kind: 'image', source: { type: 'inline', data: 'x' } }), null);
 });

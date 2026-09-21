@@ -146,9 +146,30 @@ export class MemoryStore {
     return { demoted, archived };
   }
 
-  /** Context envelope payload — pinned rows + (optionally) recall hits. */
-  injection(limit = 12) {
-    return this.pinned(limit).map((m) => ({
+  /**
+   * Context envelope payload — pinned rows first, then per-turn relevance
+   * hits (KAOS `memory search --format inject` analogue): keywords from the
+   * current user text pull related unpinned rows into the same untrusted
+   * <memory> evidence block. Deduped by id, capped at `limit` total.
+   */
+  injection(limit = 12, hint = '') {
+    const out = new Map();
+    for (const m of this.pinned(limit)) out.set(m.id, m);
+    const tokens = String(hint ?? '')
+      .match(/[\p{L}\p{N}_]{2,}/gu)?.slice(0, 12) ?? [];
+    if (tokens.length) {
+      try {
+        const q = tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(' OR ');
+        const rows = this.db.prepare(
+          `SELECT m.id, m.kind, m.text, m.source, m.confidence, m.pinned, m.updated
+           FROM memory_fts f JOIN memory m ON m.rowid = f.rowid
+           WHERE memory_fts MATCH ? AND m.archived = 0
+           ORDER BY rank LIMIT ?`,
+        ).all(q, limit);
+        for (const m of rows) { if (!out.has(m.id) && out.size < limit) out.set(m.id, m); }
+      } catch { /* relevance pull is best-effort — pinned rows still inject */ }
+    }
+    return [...out.values()].map((m) => ({
       kind: m.kind, text: m.text, confidence: m.confidence, id: m.id,
     }));
   }

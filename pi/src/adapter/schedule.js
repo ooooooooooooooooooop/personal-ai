@@ -131,16 +131,17 @@ export function scheduleTool(store) {
     description:
       'Schedule a shell command as a durable job — once at a time (run_at ISO ' +
       'timestamp) or repeatedly (every_seconds, min 60). Scheduled jobs survive ' +
-      'restarts; a missed run fires once at next boot. Actions: create | list | cancel.',
+      'restarts; a missed run fires once at next boot. Actions: create | list | cancel | pause | resume | edit.',
     parameters: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['create', 'list', 'cancel'] },
-        command: { type: 'string', description: 'shell command (create)' },
-        run_at: { type: 'string', description: 'ISO timestamp for a one-shot run (create)' },
-        every_seconds: { type: 'number', description: 'repeat interval ≥ 60s (create)' },
-        label: { type: 'string', description: 'optional human label (create)' },
-        id: { type: 'string', description: 'schedule id (cancel)' },
+        action: { type: 'string', enum: ['create', 'list', 'cancel', 'pause', 'resume', 'edit'] },
+        command: { type: 'string', description: 'shell command (create/edit)' },
+        prompt: { type: 'string', description: 'prompt text (edit on a prompt-target entry)' },
+        run_at: { type: 'string', description: 'ISO timestamp for a one-shot run (create/edit)' },
+        every_seconds: { type: 'number', description: 'repeat interval ≥ 60s (create/edit)' },
+        label: { type: 'string', description: 'optional human label (create/edit)' },
+        id: { type: 'string', description: 'schedule id (cancel/pause/resume/edit)' },
       },
       required: ['action'],
     },
@@ -173,6 +174,23 @@ export function scheduleTool(store) {
           case 'cancel': {
             const r = store.remove(String(params.id ?? ''));
             return r.ok ? text(`cancelled ${params.id}`) : { content: [{ type: 'text', text: r.error }], isError: true };
+          }
+          case 'pause':
+          case 'resume': {
+            const r = store.setEnabled(String(params.id ?? ''), params.action === 'resume');
+            return r.ok
+              ? text(`${params.action === 'resume' ? 'resumed' : 'paused'} ${params.id}`)
+              : { content: [{ type: 'text', text: r.error }], isError: true };
+          }
+          case 'edit': {
+            const r = store.edit(String(params.id ?? ''), {
+              command: params.command, prompt: params.prompt,
+              every_seconds: params.every_seconds, run_at: params.run_at,
+              label: params.label,
+            });
+            return r.ok
+              ? text(`edited ${params.id} — next fire ${new Date(r.rec.nextRunAt).toISOString()}`, r.rec)
+              : { content: [{ type: 'text', text: r.error }], isError: true };
           }
           default:
             return { content: [{ type: 'text', text: `unknown action '${params.action}' (create|list|cancel)` }], isError: true };

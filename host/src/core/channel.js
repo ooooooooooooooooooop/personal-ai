@@ -248,7 +248,14 @@ export class HostChannel {
           if (!cmd.provider || !cmd.key) return reply(false, undefined, 'auth_set_key requires {provider, key}');
           // The key travels in the command envelope only — never into responses,
           // events, or audit. Facades must not return key material.
-          return reply(true, await this.models.setApiKey({ provider: String(cmd.provider), key: String(cmd.key) }));
+          // Cline credential pitfall: pasted keys carry invisible characters
+          // (BOM, zero-width, non-breaking space, directional marks, stray
+          // whitespace) that produce indistinguishable 401s — strip them at
+          // the boundary so what is stored is what the provider sees.
+          const key = String(cmd.key)
+            .replace(/[\ufeff\u200b-\u200f\u00a0\u202a-\u202e\u2060\u180e\s]/g, '');
+          if (!key) return reply(false, undefined, 'key contained only invisible characters');
+          return reply(true, await this.models.setApiKey({ provider: String(cmd.provider), key }));
         }
         case 'auth_clear': {
           if (!this.models?.clearApiKey) return reply(false, undefined, 'models facade unavailable');
@@ -587,6 +594,11 @@ export class HostChannel {
           const g = this.goalStore.setState(String(cmd.id ?? ''), String(cmd.state ?? ''));
           if (!g || g.error) return reply(false, undefined, g?.error ?? `no goal '${cmd.id}'`);
           return reply(true, g);
+        }
+        case 'schedule_set': {
+          if (!this.schedules?.setEnabled) return reply(false, undefined, 'schedules facade unavailable');
+          const r = this.schedules.setEnabled(String(cmd.id ?? ''), cmd.enabled !== false);
+          return r.ok ? reply(true, r.rec) : reply(false, undefined, r.error);
         }
         case 'schedule_cancel': {
           if (!this.schedules?.cancel) return reply(false, undefined, 'schedules facade unavailable');

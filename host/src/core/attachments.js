@@ -13,6 +13,8 @@
  *     name: string, mime: string, bytes: number,
  *     source: { type: 'inline', data: <base64> } | { type: 'path', path } | { type: 'url', url } }
  */
+import { readFileSync } from 'node:fs';
+
 const KIND_PREFIX = {
   image: 'image/',
   audio: 'audio/',
@@ -91,4 +93,55 @@ export function partitionByCapability(attachments, caps = {}) {
 /** Truthful text reference for a degraded attachment — the model sees what it is, not a fake. */
 export function describeAttachment(a) {
   return `<attachment kind="${a.kind}" name="${a.name}" mime="${a.mime}" bytes="${a.bytes}"/>`;
+}
+
+const TEXT_EXTRACT_MAX = 24 * 1024;
+const TEXT_MIME = /^(text\/|application\/(json|xml|javascript|typescript|x-yaml|toml))/i;
+
+/**
+ * Best-effort text extraction for file-kind attachments (ZCode PDF/ipynb
+ * analogue — the zero-dependency slice): formats we can read honestly are
+ * inlined so the model gets CONTENT, not just a reference tag. Formats that
+ * need a real parser (pdf/docx/xlsx) return null and stay descriptors — a
+ * descriptor is honest, a half-parse is not.
+ * @returns {string|null} extracted text, or null when not extractable
+ */
+export function extractAttachmentText(a) {
+  if (a.kind !== 'file') return null;
+  const raw = readSource(a);
+  if (raw == null) return null;
+  if (/\.ipynb$/i.test(a.name) || a.mime === 'application/x-ipynb+json') {
+    return extractIpynb(raw);
+  }
+  if (TEXT_MIME.test(a.mime) || /\.(md|markdown|txt|py|js|ts|jsx|tsx|json|ya?ml|toml|xml|html?|css|csv|rs|go|java|c|h|cpp|rb|sh|sql|log)$/i.test(a.name)) {
+    return raw.slice(0, TEXT_EXTRACT_MAX);
+  }
+  return null;
+}
+
+function readSource(a) {
+  try {
+    if (a.source.type === 'inline') return Buffer.from(a.source.data, 'base64').toString('utf-8');
+    if (a.source.type === 'path') return readFileSync(a.source.path, 'utf-8');
+  } catch { /* unreadable source → no extraction */ }
+  return null;
+}
+
+/** Render notebook cells as readable text — code/markdown + truncated outputs. */
+function extractIpynb(raw) {
+  try {
+    const nb = JSON.parse(raw);
+    if (!Array.isArray(nb.cells)) return null;
+    let out = '';
+    for (const [i, c] of nb.cells.entries()) {
+      const src = Array.isArray(c.source) ? c.source.join('') : (c.source ?? '');
+      out += `\n### cell ${i} [${c.cell_type ?? '?'}]\n${src}\n`;
+      for (const o of c.outputs ?? []) {
+        const t = Array.isArray(o.text) ? o.text.join('') : (o.text ?? o.data?.['text/plain']);
+        if (t) out += `  out: ${String(Array.isArray(t) ? t.join('') : t).slice(0, 500)}\n`;
+      }
+      if (out.length >= TEXT_EXTRACT_MAX) return out.slice(0, TEXT_EXTRACT_MAX);
+    }
+    return out.slice(0, TEXT_EXTRACT_MAX) || null;
+  } catch { return null; }
 }
