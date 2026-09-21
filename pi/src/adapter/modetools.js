@@ -55,3 +55,53 @@ export function modeRequestTool({ catalogModes, applyMode, asks }) {
     },
   };
 }
+
+/**
+ * request_permission — model asks the operator to unblock a tool for the
+ * rest of the session (Codex request_permissions analogue). The model can
+ * never elevate itself: the card goes to the operator; only on approval is
+ * the named tool added to the session allow set. The grant is session-
+ * scoped — a fresh conversation asks again.
+ */
+export function requestPermissionTool({ asks }) {
+  return {
+    name: 'request_permission',
+    label: 'Request Permission',
+    description:
+      'Ask the operator to allow a tool for the rest of this session without ' +
+      'an approval card each call (e.g. repeated shell commands you need for ' +
+      'this task). The operator decides — you cannot grant it yourself.',
+    parameters: {
+      type: 'object',
+      properties: {
+        tool: { type: 'string', description: 'tool name to unblock for this session' },
+        reason: { type: 'string', description: 'why this tool is needed (shown to the operator)' },
+      },
+      required: ['tool'],
+    },
+    async execute(id, p) {
+      const tool = String(p?.tool ?? '').trim();
+      if (!tool) {
+        return { content: [{ type: 'text', text: 'request_permission requires {tool}' }], isError: true };
+      }
+      if (!asks?.ask || !asks?.grantSession) {
+        return { content: [{ type: 'text', text: 'request_permission unavailable: no operator channel' }], isError: true };
+      }
+      const answer = await asks.ask({
+        toolName: 'request_permission',
+        toolCallId: id,
+        rule: 'permission_request',
+        summary: `agent 请求本会话内免卡使用 '${tool}'`,
+        detail: String(p?.reason ?? '').slice(0, 500) || null,
+        args: { tool },
+        argsTruncated: false,
+        argsTotalChars: null,
+      });
+      if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+        return { content: [{ type: 'text', text: `request_permission '${tool}' refused (${answer})` }], isError: true };
+      }
+      asks.grantSession(tool);
+      return { content: [{ type: 'text', text: `'${tool}' allowed for this session — operator granted` }] };
+    },
+  };
+}

@@ -88,6 +88,18 @@ export class PendingAsks {
   }
 
   /**
+   * Session-scoped grant for a tool, issued by the operator through the
+   * request_permission card (not by the model — the tool only routes the
+   * ask). Same trust lifetime as an 'allow_session' answer.
+   */
+  grantSession(toolName) {
+    if (typeof toolName === 'string' && toolName) {
+      this.#sessionAllows.add(toolName);
+      this.audit?.write?.({ kind: 'ASK_SESSION_GRANT', toolName });
+    }
+  }
+
+  /**
    * Suspend until the operator answers, the ask expires, or the call aborts.
    * @param {object} descriptor {toolName, toolCallId, rule, summary, detail,
    *        kind?, options?}

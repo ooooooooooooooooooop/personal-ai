@@ -90,7 +90,7 @@ import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
-import { modeRequestTool } from '../adapter/modetools.js';
+import { modeRequestTool, requestPermissionTool } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
@@ -470,6 +470,10 @@ export async function startHost({
       applyMode,
       asks,
     }),
+    // Codex request_permissions analogue: the model may ask the operator to
+    // unblock a tool session-wide; the grant is issued by the operator on
+    // the card, never self-applied.
+    requestPermissionTool({ asks }),
     ...browserToolset,
   ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
@@ -1143,6 +1147,38 @@ export async function startHost({
         writeFileSync(f, JSON.stringify({ allowPrefixes: doc.allowPrefixes ?? [] }, null, 2) + '\n');
         core.audit.write({ kind: 'COMMAND_ALLOW_SAVED', data: { file: 'command-allow.json', allowPrefixes: (doc.allowPrefixes ?? []).length } });
         return { ok: true, path: f };
+      },
+      // Roo allowlist export/import: one portable file carrying BOTH lists
+      // (operator allow + project deny). Paths confine to the instance root —
+      // a UI path arg must not become an arbitrary-file write primitive.
+      exportLists: (targetPath) => {
+        const target = resolve(instanceRoot, String(targetPath ?? 'command-allow-export.json'));
+        if (!target.startsWith(instanceRoot) || !target.endsWith('.json')) {
+          return { error: 'export target must be a .json path inside the instance directory' };
+        }
+        const project = (() => { try { return JSON.parse(readFileSync(join(workdir, '.pai', 'commands.json'), 'utf-8')); } catch { return { denyPrefixes: [] }; } })();
+        const allow = (() => { try { return JSON.parse(readFileSync(join(instanceRoot, 'command-allow.json'), 'utf-8')); } catch { return { allowPrefixes: [] }; } })();
+        writeFileSync(target, JSON.stringify({ allowPrefixes: allow.allowPrefixes ?? [], denyPrefixes: project.denyPrefixes ?? [] }, null, 2) + '\n');
+        core.audit.write({ kind: 'COMMAND_ALLOW_EXPORT', data: { file: target } });
+        return { ok: true, path: target };
+      },
+      importLists: (sourcePath) => {
+        const source = resolve(instanceRoot, String(sourcePath ?? ''));
+        if (!source.startsWith(instanceRoot) || !source.endsWith('.json')) {
+          return { error: 'import source must be a .json path inside the instance directory' };
+        }
+        let doc;
+        try { doc = JSON.parse(readFileSync(source, 'utf-8')); }
+        catch (e) { return { error: `invalid import file: ${e.message}` }; }
+        const ok = (v) => Array.isArray(v) && v.every((p) => typeof p === 'string' && p.trim());
+        if (!ok(doc?.allowPrefixes ?? []) || !ok(doc?.denyPrefixes ?? [])) {
+          return { error: 'import file must contain allowPrefixes/denyPrefixes string arrays' };
+        }
+        writeFileSync(join(instanceRoot, 'command-allow.json'), JSON.stringify({ allowPrefixes: doc.allowPrefixes }, null, 2) + '\n');
+        mkdirSync(join(workdir, '.pai'), { recursive: true });
+        writeFileSync(join(workdir, '.pai', 'commands.json'), JSON.stringify({ denyPrefixes: doc.denyPrefixes }, null, 2) + '\n');
+        core.audit.write({ kind: 'COMMAND_ALLOW_IMPORT', data: { file: source, allow: doc.allowPrefixes.length, deny: doc.denyPrefixes.length } });
+        return { ok: true, allow: doc.allowPrefixes.length, deny: doc.denyPrefixes.length };
       },
     },
     fileops: {

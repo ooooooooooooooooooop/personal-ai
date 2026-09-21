@@ -543,6 +543,13 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // is never persisted, and resolution failures are reported, never
       // silently stored as a literal key.
       let resolved = key;
+      // placeholder keys must not install (competitor pit: `sk-xxx` stored,
+      // every call 401s, the failure reads like a provider outage). Real
+      // prefixes (sk-ant-, sk-proj-, ghp_…) pass — only obvious templates
+      // and toy values are refused.
+      if (/^(sk-[x*]{2,}|sk-your|your[-_]|[x*]{4,}|changeme|test[-_]?key|placeholder|api[-_]?key[-_]?(here|goes)|<|insert|paste)/i.test(key) || key.length < 8) {
+        return { provider, hasAuth: false, error: 'key looks like a placeholder — paste the real credential' };
+      }
       if (/^op:\/\//.test(key) || /^bw:\/\//.test(key)) {
         const { execFileSync } = await import('node:child_process');
         try {

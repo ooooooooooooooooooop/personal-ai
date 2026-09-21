@@ -572,6 +572,21 @@ export class HostChannel {
           if (out?.error) return reply(false, undefined, out.error);
           return reply(true, out);
         }
+        // Roo allowlist portability: export/import BOTH lists as one file.
+        // The facade owns path confinement (instance root, .json only).
+        case 'command_allow_export': {
+          if (!this.commands?.exportLists) return reply(false, undefined, 'commands facade unavailable');
+          const out = this.commands.exportLists(cmd.path ?? null);
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
+        case 'command_allow_import': {
+          if (!this.commands?.importLists) return reply(false, undefined, 'commands facade unavailable');
+          if (!cmd.path) return reply(false, undefined, 'command_allow_import requires {path}');
+          const out = this.commands.importLists(String(cmd.path));
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
         case 'pins_list': {
           if (!this.pins?.list) return reply(false, undefined, 'pins facade unavailable');
           return reply(true, this.pins.list());

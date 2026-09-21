@@ -85,7 +85,12 @@ const ALL_ARG_WRITES = new Set(['tee']);
 const REDIRECT_WRITE_RE = /^\d*(?:>>?|&>>?|<>|>\|)/;
 
 /** Depth-first collect every `command` node with its nesting context. */
-function collectCommands(node, units, redirects, context) {
+// inline env assignments that can inject loader/agent flags into the spawned
+// process (competitor blocklist basis — zed/Q sweep). `MAVEN_OPTS=... mvn test`
+// is an `echo`-shaped command unit carrying a JVM agent flag.
+const DANGER_ENV_RE = /^(LD_PRELOAD|LD_LIBRARY_PATH|DYLD_INSERT_LIBRARIES|DYLD_FALLBACK_LIBRARY_PATH|DYLD_PRINT_|NODE_OPTIONS|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|JDK_JAVA_OPTIONS|MAVEN_OPTS|SBT_OPTS|GRADLE_OPTS|ANT_OPTS|PERL5OPT|PERL5LIB|RUBYLIB|RUBYOPT|PYTHONSTARTUP|PYTHONINSPECT|BASH_ENV|ENV|SHELLOPTS|GCONV_PATH|GLIBC_TUNABLES|DOTNET_STARTUP_HOOKS|DOTNET_ADDITIONAL_DEPS|PS1|IFS)$/i;
+
+function collectCommands(node, units, redirects, dangerEnv, context) {
   const type = node.type;
   if (type === 'command') {
     const nameNode = node.childForFieldName('name');
@@ -94,7 +99,12 @@ function collectCommands(node, units, redirects, context) {
     let hasExpansion = false;
     for (let i = 0; i < node.namedChildCount; i++) {
       const c = node.namedChild(i);
-      if (c === nameNode || c.type === 'variable_assignment' || c.type === 'file_redirect') continue;
+      if (c === nameNode || c.type === 'file_redirect') continue;
+      if (c.type === 'variable_assignment') {
+        const v = (c.childForFieldName('name') ?? c.firstNamedChild)?.text?.trim();
+        if (v && DANGER_ENV_RE.test(v)) dangerEnv.push(v);
+        continue;
+      }
       if (/expansion|substitution|heredoc/.test(c.type)) hasExpansion = true;
       args.push(c.text);
     }
@@ -122,7 +132,7 @@ function collectCommands(node, units, redirects, context) {
     context = 'substitution';
   }
   for (let i = 0; i < node.namedChildCount; i++) {
-    collectCommands(node.namedChild(i), units, redirects, context);
+    collectCommands(node.namedChild(i), units, redirects, dangerEnv, context);
   }
 }
 
@@ -153,7 +163,8 @@ export async function parseShellCommand(source) {
   const tree = parser.parse(source);
   const units = [];
   const redirects = [];
-  collectCommands(tree.rootNode, units, redirects, 'top');
+  const dangerEnv = [];
+  collectCommands(tree.rootNode, units, redirects, dangerEnv, 'top');
   const parseError = tree.rootNode.hasError ? 'parse produced ERROR nodes' : null;
   let hasUnknown = false;
   const risk = units.reduce((worst, u) => {
@@ -166,7 +177,7 @@ export async function parseShellCommand(source) {
   // (echo > AGENTS.md) plus write-target args (tee/cp/mv/sed -i/dd of=).
   const writeTargets = [...redirects];
   for (const u of units) writeTargets.push(...writeTargetArgs(u));
-  return { units, parseError, risk, hasUnknown, writeTargets };
+  return { units, parseError, risk, hasUnknown, writeTargets, dangerEnv };
 }
 
 const ORDER = [

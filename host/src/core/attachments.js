@@ -35,14 +35,45 @@ export function kindOfMime(mime = '') {
  * @param {object} a {name?, mime?, mimeType?, data?, path?, url?, bytes?}
  * @returns {{ok:true, attachment:object}|{ok:false, error:string}}
  */
+/**
+ * Magic-byte sniffing for inline payloads: the declared `mime` is client
+ * input, the bytes are ground truth (competitor pit — a clipboard PNG marked
+ * image/png carrying MZ/%PDF bytes must not reach the vision surface as an
+ * "image"). Only reclassifies when the magic bytes are confidently known;
+ * unknown bytes keep the declared mime.
+ */
+const MAGIC = [
+  [Buffer.from([0x89, 0x50, 0x4e, 0x47]), 'image/png'],
+  [Buffer.from([0xff, 0xd8, 0xff]), 'image/jpeg'],
+  [Buffer.from('GIF8', 'latin1'), 'image/gif'],
+  [Buffer.from('%PDF', 'latin1'), 'application/pdf'],
+  [Buffer.from([0x50, 0x4b, 0x03, 0x04]), 'application/zip'],
+  [Buffer.from('MZ', 'latin1'), 'application/x-msdownload'],
+];
+export function sniffMime(buf) {
+  if (!buf || buf.length < 4) return null;
+  for (const [magic, mime] of MAGIC) {
+    if (buf.length >= magic.length && buf.subarray(0, magic.length).equals(magic)) return mime;
+  }
+  return null;
+}
+
 export function normalizeAttachment(a) {
   if (!a || typeof a !== 'object') return { ok: false, error: 'attachment must be an object' };
-  const mime = a.mime ?? a.mimeType ?? 'application/octet-stream';
+  let mime = a.mime ?? a.mimeType ?? 'application/octet-stream';
   let source = null;
   if (typeof a.data === 'string' && a.data.length) source = { type: 'inline', data: a.data };
   else if (typeof a.path === 'string' && a.path.length) source = { type: 'path', path: a.path };
   else if (typeof a.url === 'string' && a.url.length) source = { type: 'url', url: a.url };
   if (!source) return { ok: false, error: 'attachment needs data, path, or url' };
+  if (source.type === 'inline') {
+    // bytes win over the declared mime — a mislabeled clipboard drop must not
+    // ride the vision surface under a fake image kind.
+    let head = null;
+    try { head = Buffer.from(a.data.slice(0, 64), 'base64'); } catch { head = null; }
+    const sniffed = head && sniffMime(head);
+    if (sniffed && kindOfMime(sniffed) !== kindOfMime(mime)) mime = sniffed;
+  }
   const bytes = a.bytes ?? (source.type === 'inline' ? Buffer.byteLength(source.data, 'base64') : 0);
   if (bytes > MAX_ATTACHMENT_BYTES) {
     return { ok: false, error: `attachment '${a.name ?? '?'}' exceeds ${MAX_ATTACHMENT_BYTES / 1024 / 1024}MB` };

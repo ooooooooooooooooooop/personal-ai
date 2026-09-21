@@ -431,3 +431,23 @@ test('in-card edited command: operator edit lands on ctx.args before admission',
   assert.equal(r, undefined, 'edited allow admits');
   assert.equal(c.args.command, 'rm -rf ./build/out', 'edited text replaced the executed arg');
 });
+
+test('env injection: inline dangerous env assignment escalates an otherwise-allowed command', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: {} }); // everything allow by default
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: src }],
+      parseError: null,
+      risk: 'benign',
+      dangerEnv: /LD_PRELOAD|NODE_OPTIONS/.test(src) ? ['LD_PRELOAD'] : [],
+      writeTargets: [],
+    }),
+    ask: async (d) => { asked.push(d.rule); return 'deny'; },
+  });
+  const r = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'LD_PRELOAD=/tmp/x.so ls' } }));
+  assert.equal(r.block, true);
+  assert.deepEqual(asked, ['env_injection']);
+});

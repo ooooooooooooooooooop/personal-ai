@@ -1381,7 +1381,26 @@ async function switchSession(path) {
   if (path === currentSessionFile) { switchView('chat'); return; }
   const r = await cmd('session_switch', { path });
   if (!r.success) addSys(`切换会话失败：${r.error ?? '未知'}`, true);
+  else await showRecap();
   switchView('chat');
+}
+/* /recap analogue — on returning to a session, an extractive one-liner of
+ * where it left off (first prompt + last user prompt + size). Local and
+ * extractive by design: no model call, no invented summary. */
+async function showRecap() {
+  const r = await cmd('session_entries');
+  const meta = sessionsCache.find((s) => s.path === currentSessionFile) ?? null;
+  const entries = r.success ? (r.data ?? []) : [];
+  const lastUser = entries.length ? String(entries[entries.length - 1].text ?? '').trim() : '';
+  const first = String(meta?.firstMessage ?? '').trim();
+  if (!lastUser && !first) return;
+  const clip = (s) => (s.length > 120 ? `${s.slice(0, 120)}…` : s);
+  const parts = [];
+  if (lastUser) parts.push(`上次你说：「${clip(lastUser)}」`);
+  if (first && first !== lastUser) parts.push(`起始于：「${clip(first)}」`);
+  if (meta?.messageCount) parts.push(`${meta.messageCount} 条消息`);
+  if (meta?.modified) parts.push(`更新于 ${meta.modified.slice(0, 16).replace('T', ' ')}`);
+  addSys(`会话回顾 — ${parts.join(' · ')}`);
 }
 async function refreshSessions() {
   const r = await cmd('session_list');
@@ -3011,6 +3030,61 @@ function paintSlashSel() {
   [...slashMenu.children].forEach((el, i) => el.classList.toggle('sel', i === slashIdx));
 }
 function closeSlash() { slashMenu.classList.add('hidden'); slashItems = []; slashIdx = 0; atToken = null; }
+
+/* Ctrl+R — fuzzy reverse-search over prompt history (readline analogue).
+ * The composer doubles as the query box; matches render newest-first in the
+ * slash-menu overlay; Enter recalls, Esc restores the draft. */
+let histSearch = null; // {draft}
+function histMatches(q) {
+  const needle = q.toLowerCase();
+  const seen = new Set();
+  const out = [];
+  for (let i = promptHist.length - 1; i >= 0 && out.length < 12; i--) {
+    const h = promptHist[i];
+    if (seen.has(h)) continue;
+    if (!needle || h.toLowerCase().includes(needle)) { seen.add(h); out.push(h); }
+  }
+  return out;
+}
+function openHistSearch() {
+  histSearch = { draft: input.value };
+  slashFilterHist();
+}
+function slashFilterHist() {
+  if (!histSearch) return;
+  slashItems = histMatches(input.value.trim());
+  slashIdx = 0;
+  slashMenu.innerHTML = '';
+  if (!slashItems.length) {
+    const b = document.createElement('button');
+    b.className = 'slash-item';
+    b.innerHTML = '<span class="sl-label"></span>';
+    b.querySelector('.sl-label').textContent = '（无匹配历史）';
+    slashMenu.appendChild(b);
+    slashMenu.classList.remove('hidden');
+    return;
+  }
+  slashItems.forEach((h, i) => {
+    const b = document.createElement('button');
+    b.className = `slash-item${i === slashIdx ? ' sel' : ''}`;
+    b.innerHTML = '<span class="sl-cmd"></span><span class="sl-label"></span>';
+    b.querySelector('.sl-cmd').textContent = '⏪';
+    b.querySelector('.sl-label').textContent = h.length > 80 ? `${h.slice(0, 80)}…` : h;
+    b.onmouseenter = () => { slashIdx = i; paintSlashSel(); };
+    b.onclick = () => pickHist(h);
+    slashMenu.appendChild(b);
+  });
+  slashMenu.classList.remove('hidden');
+}
+function pickHist(h) {
+  input.value = h; histSearch = null; closeSlash(); autogrow();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+function cancelHistSearch() {
+  input.value = histSearch?.draft ?? '';
+  histSearch = null; closeSlash(); autogrow();
+}
 async function execSlash(s) {
   // file-ref / macro entries edit the draft, not execute a command
   if (s.file && atToken) {
@@ -3038,8 +3112,24 @@ function loadDraft() {
   input.value = localStorage.getItem(draftKey()) ?? '';
   autogrow();
 }
-input.addEventListener('input', () => { autogrow(); slashFilter(); localStorage.setItem(draftKey(), input.value); });
+input.addEventListener('input', () => { autogrow(); if (histSearch) slashFilterHist(); else slashFilter(); localStorage.setItem(draftKey(), input.value); });
 input.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
+    e.preventDefault();
+    if (histSearch) { cancelHistSearch(); } else { openHistSearch(); }
+    return;
+  }
+  if (histSearch) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = Math.min(slashIdx + 1, slashItems.length - 1); paintSlashSel(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = Math.max(slashIdx - 1, 0); paintSlashSel(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); cancelHistSearch(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (slashItems.length) pickHist(slashItems[slashIdx]);
+      else cancelHistSearch();
+      return;
+    }
+  }
   if (!slashMenu.classList.contains('hidden')) {
     if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = (slashIdx + 1) % slashItems.length; paintSlashSel(); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = (slashIdx - 1 + slashItems.length) % slashItems.length; paintSlashSel(); return; }

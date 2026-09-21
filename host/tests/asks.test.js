@@ -235,3 +235,21 @@ test('edited approval refused on truncated payloads', async () => {
   asks.resolve(pend.id, 'deny');
   await p;
 });
+
+test('grantSession: operator-issued session grant unblocks later asks (request_permission)', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  asks.grantSession('bash');
+  assert.deepEqual(asks.sessionAllows(), ['bash']);
+  // granted tool passes without a card; ungranted still suspends
+  assert.equal(await asks.ask({ toolName: 'bash', args: { command: 'ls' } }), 'allow');
+  const p = asks.ask(desc({ toolName: 'write_file' }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p;
+  // grant does not survive a session rebuild
+  asks.resetSession();
+  const p2 = asks.ask({ toolName: 'bash', args: { command: 'ls' } });
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+});

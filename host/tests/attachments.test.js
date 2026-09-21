@@ -128,3 +128,21 @@ test('extractAttachmentText: pdf pulls text-show ops from FlateDecode streams', 
   assert.match(text, /Hello \(PDF\)/);
   assert.match(text, /second line/);
 });
+
+test('magic-byte sniffing: mislabeled inline payloads reclassify to truth', () => {
+  // PNG bytes declared as a PDF → image kind wins; model sees image, not fake doc
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString('base64');
+  const { attachments: a1 } = normalizeAttachments([{ name: 'x.pdf', mime: 'application/pdf', data: png }]);
+  assert.equal(a1[0].mime, 'image/png');
+  assert.equal(a1[0].kind, 'image');
+
+  // EXE bytes declared as image → downgraded off the vision surface
+  const exe = Buffer.concat([Buffer.from('MZ'), Buffer.alloc(64)]).toString('base64');
+  const { attachments: a2 } = normalizeAttachments([{ name: 'pic.png', mime: 'image/png', data: exe }]);
+  assert.equal(a2[0].kind, 'file');
+
+  // unknown bytes keep the declared mime (sniffing reclassifies only on certainty)
+  const blob = Buffer.from('plain text data').toString('base64');
+  const { attachments: a3 } = normalizeAttachments([{ name: 'f.bin', mime: 'text/plain', data: blob }]);
+  assert.equal(a3[0].mime, 'text/plain');
+});

@@ -278,6 +278,9 @@ export class GovernanceKernel {
       // standing orders just because the command itself is allowed.
       const instrWrite = (parsed.writeTargets ?? []).find((t) =>
         INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
+      // inline env injection (`LD_PRELOAD=x cmd`, `MAVEN_OPTS=... mvn test`):
+      // loader/agent flags ride an otherwise-benign unit — always escalate.
+      const envInjection = (parsed.dangerEnv ?? [])[0] ?? null;
       const riskActions = this.policy.doc?.riskActions ?? {};
       // strictest applicable action: known worst risk AND unknown-unit policy
       const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
@@ -290,6 +293,13 @@ export class GovernanceKernel {
       if (instrWrite && (action === 'allow' || action === 'ask')) {
         return this.#ask(ctx, 'instruction_file', {
           reason: `command writes agent instruction file '${instrWrite}' — standing orders always need operator approval`,
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
+        });
+      }
+      if (envInjection && (action === 'allow' || action === 'ask')) {
+        return this.#ask(ctx, 'env_injection', {
+          reason: `command sets '${envInjection}' inline — loader/agent flags can inject code into the spawned process`,
           risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
           parsed,
         });
