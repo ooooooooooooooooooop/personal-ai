@@ -271,3 +271,183 @@ test('kernel ask descriptor carries truncation flags for oversized args (B1)', a
   assert.ok(pending.argsTotalChars > 60000);
   assert.ok(pending.args.command.length < pending.argsTotalChars);
 });
+
+test("command allowlist skips the ask card but never a deny (Roo whitelist analogue)", async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { destructive: 'ask', privilege: 'deny' },
+  });
+  const calls = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: src }], parseError: null,
+      risk: src.startsWith('sudo') ? 'privilege' : 'destructive',
+    }),
+    commandAllowlist: (ctx) => String(ctx.args?.command ?? '').startsWith('rm -rf build'),
+    ask: async (pending) => { calls.push(pending); return 'deny'; },
+  });
+  // allowlisted prefix → admitted without consulting the operator
+  const ok = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 't1', args: { command: 'rm -rf build/out' } }));
+  assert.equal(ok, undefined);
+  assert.equal(calls.length, 0);
+  // non-matching prefix → still asks (operator denies → blocked)
+  const no = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 't2', args: { command: 'rm -rf src' } }));
+  assert.equal(no.block, true);
+  assert.equal(calls.length, 1);
+  // deny-class commands are unreachable for the allowlist (deny ran first)
+  const deny = await kernel.decideToolCall(ctx({ toolName: 'shell', toolCallId: 't3', args: { command: 'sudo rm -rf build/x' } }));
+  assert.equal(deny.block, true);
+  assert.equal(deny.rule, 'risk_privilege');
+  assert.equal(calls.length, 1); // no new ask
+});
+
+test('instruction-file gate: mutating calls to standing-order files ask in every mode', async () => {
+  const { audit, policy, predictions } = fixture();
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write', 'edit', 'delete'],
+    ask: async (pending) => { asked.push(pending.rule); return 'allow'; },
+  });
+  // no modeProvider → default normal mode; gate must still fire
+  const r1 = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: '.pai/steering/rules.md' } }));
+  assert.equal(r1, undefined); // operator allowed → admit
+  const r2 = await kernel.decideToolCall(ctx({ toolName: 'edit', args: { path: 'AGENTS.md' } }));
+  assert.equal(r2, undefined);
+  const r3 = await kernel.decideToolCall(ctx({ toolName: 'delete', args: { path: '.clinerules' } }));
+  assert.equal(r3, undefined);
+  assert.deepEqual(asked, ['instruction_file', 'instruction_file', 'instruction_file']);
+  // ordinary source files are untouched by the gate
+  await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: 'src/main.js' } }));
+  // non-mutating tools can still read instruction files freely
+  await kernel.decideToolCall(ctx({ toolName: 'read', args: { path: 'AGENTS.md' } }));
+  assert.equal(asked.length, 3, 'read + normal file did not escalate');
+});
+
+test('instruction-file gate: operator deny blocks the write', async () => {
+  const { audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write'],
+    ask: async () => 'deny',
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: '.cursor/rules/x.md' } }));
+  assert.equal(d.block, true);
+});
+
+test('rejection memory: operator deny auto-denies the identical call signature', async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { destructive: 'ask', privilege: 'deny' },
+  });
+  let asks = 0;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write'],
+    ask: async () => { asks++; return 'deny'; },
+  });
+  const call = ctx({ toolName: 'write', args: { path: '.pai/plan.md', content: 'x' } });
+  const d1 = await kernel.decideToolCall(call);
+  assert.equal(d1.block, true);
+  assert.equal(asks, 1);
+  // identical call (different toolCallId, same signature) — no second card
+  const d2 = await kernel.decideToolCall(ctx({ toolName: 'write', toolCallId: 'tc-2', args: { content: 'x', path: '.pai/plan.md' } }));
+  assert.equal(d2.block, true);
+  assert.match(d2.reason, /already denied/);
+  assert.equal(asks, 1, 'rejection memory suppresses the repeat ask');
+  // changed args → new signature → asks again
+  await kernel.decideToolCall(ctx({ toolName: 'write', toolCallId: 'tc-3', args: { path: '.pai/plan.md', content: 'y' } }));
+  assert.equal(asks, 2);
+});
+
+test('shell redirect into an instruction file escalates a benign command to ask', async () => {
+  const { audit, policy, predictions } = fixture();
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: 'echo pwned' }], parseError: null,
+      risk: 'benign',
+      writeTargets: /AGENTS\.md/.test(src) ? ['AGENTS.md'] : ['out.txt'],
+    }),
+    ask: async (pending) => { asked.push(pending.rule); return 'deny'; },
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo pwned > AGENTS.md' } }));
+  assert.equal(d.block, true);
+  assert.deepEqual(asked, ['instruction_file']);
+  // ordinary redirect stays on the benign path — no card
+  const ok = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo hi > out.txt' } }));
+  assert.equal(ok, undefined);
+  assert.equal(asked.length, 1);
+});
+
+test('command allowlist gets rule+parsed: instruction-file asks are never prefix-softened', async () => {
+  const { audit, policy, predictions } = fixture();
+  const seen = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({
+      units: [{ raw: 'echo x' }], parseError: null,
+      risk: 'benign', writeTargets: ['CLAUDE.md'],
+    }),
+    // adapter-side policy: refuse softening for instruction_file rule
+    commandAllowlist: (ctx, meta) => meta?.rule !== 'instruction_file' && String(ctx.args?.command ?? '').startsWith('echo'),
+    ask: async () => 'deny',
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo x > CLAUDE.md' } }));
+  assert.equal(d.block, true, 'instruction-file write must reach the operator even when echo is allowlisted');
+});
+
+test('command allowlist receives parsed units for per-unit matching', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: { mutating: 'ask' } });
+  let metaSeen = null;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({
+      units: [{ raw: 'cp a b' }, { raw: 'rm -rf x' }], parseError: null,
+      risk: 'mutating', hasUnknown: false,
+    }),
+    commandAllowlist: (ctx, meta) => { metaSeen = meta; return false; },
+    ask: async () => 'deny',
+  });
+  await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'cp a b && rm -rf x' } }));
+  assert.equal(metaSeen.rule, 'risk_mutating');
+  assert.equal(metaSeen.parsed.units.length, 2);
+});
+
+test('in-card edited command: operator edit lands on ctx.args before admission', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: { destructive: 'ask' } });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({ units: [{ raw: 'rm -rf a' }], parseError: null, risk: 'destructive' }),
+    ask: async () => ({ answer: 'allow', edited: { command: 'rm -rf ./build/out' } }),
+  });
+  const c = ctx({ toolName: 'shell', args: { command: 'rm -rf a' } });
+  const r = await kernel.decideToolCall(c);
+  assert.equal(r, undefined, 'edited allow admits');
+  assert.equal(c.args.command, 'rm -rf ./build/out', 'edited text replaced the executed arg');
+});
+
+test('env injection: inline dangerous env assignment escalates an otherwise-allowed command', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: {} }); // everything allow by default
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: src }],
+      parseError: null,
+      risk: 'benign',
+      dangerEnv: /LD_PRELOAD|NODE_OPTIONS/.test(src) ? ['LD_PRELOAD'] : [],
+      writeTargets: [],
+    }),
+    ask: async (d) => { asked.push(d.rule); return 'deny'; },
+  });
+  const r = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'LD_PRELOAD=/tmp/x.so ls' } }));
+  assert.equal(r.block, true);
+  assert.deepEqual(asked, ['env_injection']);
+});

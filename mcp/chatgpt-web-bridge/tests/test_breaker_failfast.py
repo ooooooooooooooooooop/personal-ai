@@ -234,6 +234,7 @@ async def test_rest_post_lock_check_catches_race(monkeypatch):
     monkeypatch.setattr(mod, "MutationLock", _RacingLock)
 
     request = MagicMock()
+    request.headers = {}
     request.json = AsyncMock(
         return_value={
             "messages": [{"role": "user", "content": "hello"}],
@@ -323,6 +324,7 @@ async def test_rest_auth_recovery_probes_then_proceeds(monkeypatch):
     monkeypatch.setattr(mod, "MutationLock", _NullLock)
 
     request = MagicMock()
+    request.headers = {}
     request.json = AsyncMock(
         return_value={
             "messages": [{"role": "user", "content": "hello"}],
@@ -371,6 +373,7 @@ async def test_rest_auth_recovery_fails_still_fail_fasts():
     server._driver = driver
 
     request = MagicMock()
+    request.headers = {}
     request.json = AsyncMock(
         return_value={
             "messages": [{"role": "user", "content": "hello"}],

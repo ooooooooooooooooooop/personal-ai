@@ -38,7 +38,7 @@ export class LoopDetector {
    * @param {string[]} [opts.ignoreTools]      designated polling surfaces
    *        (job_status) are exempt — repeated polling is their contract
    */
-  constructor({ windowSize = 24, warnAt = 3, blockAt = 5, pingpongWarn = 6, pingpongBlock = 8, escalateAfter = 2, ignoreTools = ['job_status'] } = {}) {
+  constructor({ windowSize = 24, warnAt = 3, blockAt = 5, pingpongWarn = 6, pingpongBlock = 8, escalateAfter = 2, ignoreTools = ['job_status'], errorLimit = 3 } = {}) {
     this.windowSize = windowSize;
     this.warnAt = warnAt;
     this.blockAt = blockAt;
@@ -46,13 +46,35 @@ export class LoopDetector {
     this.pingpongBlock = pingpongBlock;
     this.escalateAfter = escalateAfter;
     this.ignoreTools = new Set(ignoreTools);
+    this.errorLimit = errorLimit; // Roo mistake_limit — consecutive errors
     this.reset();
   }
 
   reset() {
     this.window = [];
     this.blocked = new Map(); // signature → times a block was issued
+    this.errorStreak = 0;       // consecutive errored tool results
+    this.stopped = false;       // operator said stop after a mistake-limit ask
   }
+
+  /**
+   * Roo mistake_limit analogue — feed every tool RESULT here. A run of
+   * consecutive errors (any tools — the point is flailing, not repetition)
+   * hits 'escalate' so the caller can ask the operator whether to keep going.
+   * Operator denial sets `stopped`; the decide chain then refuses all further
+   * tool calls until a fresh user turn resets it.
+   */
+  observeResult(isError) {
+    this.errorStreak = isError ? this.errorStreak + 1 : 0;
+    if (isError && this.errorStreak >= this.errorLimit) {
+      return { level: 'escalate', kind: 'mistake', count: this.errorStreak,
+        reason: `${this.errorStreak} consecutive tool errors — the agent is flailing; continue or stop?` };
+    }
+    return { level: 'ok' };
+  }
+
+  /** Operator answered 'stop' to a mistake-limit escalation. */
+  stopRun() { this.stopped = true; }
 
   signature(toolName, args) {
     return `${toolName}:${hashOf(stableJson(args ?? {}))}`;

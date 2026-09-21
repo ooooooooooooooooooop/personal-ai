@@ -306,3 +306,73 @@ test('workspace registry: add/list/remove, set_workdir auto-registers, active pr
     assert.equal(bad.success, false);
   } finally { await sup.dispose(); }
 });
+
+test('session meta: pin/archive persists and decorates session_list', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const path = `${dir}/sessions/s1.jsonl`;
+    // undecorated at first
+    let r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].pinned, undefined);
+    // pin + archive
+    r = await sup.handle({ type: 'session_pin', path });
+    assert.equal(r.success, true);
+    assert.equal(r.data.meta.pinned, true);
+    r = await sup.handle({ type: 'session_archive', path });
+    assert.equal(r.data.meta.archived, true);
+    // list is decorated
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].pinned, true);
+    assert.equal(r.data[0].archived, true);
+    // persisted to instance session-meta.json (survives supervisor restart)
+    const meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[path].pinned, true);
+    // unpin
+    r = await sup.handle({ type: 'session_pin', path, pinned: false });
+    assert.equal(r.data.meta.pinned, false);
+    // missing path refused
+    r = await sup.handle({ type: 'session_pin' });
+    assert.equal(r.success, false);
+  } finally { await sup.dispose(); }
+});
+
+test('session sweep: archives idle unpinned sessions; pinned survive', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const path = `${dir}/sessions/s1.jsonl`;
+    // fixture session is modified 2026-01-01 — far older than 14d
+    let r = await sup.handle({ type: 'session_sweep', days: 14 });
+    assert.equal(r.success, true);
+    assert.equal(r.data.swept, 1);
+    assert.deepEqual(r.data.paths, [path]);
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].archived, true);
+    // pinned sessions are never swept — unarchive then pin, sweep again
+    await sup.handle({ type: 'session_archive', path, archived: false });
+    await sup.handle({ type: 'session_pin', path });
+    r = await sup.handle({ type: 'session_sweep', days: 14 });
+    assert.equal(r.data.swept, 0);
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data[0].archived, false);
+  } finally { await sup.dispose(); }
+});
+
+test('session purge: deletes archived unpinned sessions; pinned and live survive', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const path = `${dir}/sessions/s1.jsonl`;
+    // live session → nothing to purge
+    let r = await sup.handle({ type: 'session_purge' });
+    assert.equal(r.success, true);
+    assert.equal(r.data.purged, 0);
+    // archive → purge deletes it and clears its meta
+    await sup.handle({ type: 'session_archive', path });
+    r = await sup.handle({ type: 'session_purge' });
+    assert.equal(r.data.purged, 1);
+    assert.deepEqual(r.data.paths, [path]);
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data.length, 0, 'deleted session gone from list');
+    const meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[path], undefined, 'meta entry cleared');
+  } finally { await sup.dispose(); }
+});

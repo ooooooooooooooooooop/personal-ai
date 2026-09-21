@@ -92,3 +92,31 @@ test('web_search rejects empty queries and surfaces endpoint failures', async ()
   assert.equal(r.isError, true);
   assert.match(r.content[0].text, /failed/);
 });
+
+test('egress allowlist: exact/suffix match, redirect host also gated', async () => {
+  const { domainAllowed } = await import('../src/adapter/web.js');
+  const allow = ['docs.example.com', '.corp.internal'];
+  assert.equal(domainAllowed('docs.example.com', allow), true);
+  assert.equal(domainAllowed('api.corp.internal', allow), true); // suffix
+  assert.equal(domainAllowed('corp.internal', allow), true);    // suffix covers apex
+  assert.equal(domainAllowed('evil.com', allow), false);
+  assert.equal(domainAllowed('docs.example.com.evil.com', allow), false); // no suffix spoof
+  assert.equal(domainAllowed('anything.test', null), true);     // no list = open
+  assert.equal(domainAllowed('anything.test', []), true);
+});
+
+test('SSRF: link-local/metadata hosts refused even with no allowlist; explicit entry overrides', async () => {
+  const { domainAllowed } = await import('../src/adapter/web.js');
+  // cloud metadata + link-local always blocked on the unrestricted baseline
+  assert.equal(domainAllowed('169.254.169.254', null), false);
+  assert.equal(domainAllowed('169.254.1.1', null), false);
+  assert.equal(domainAllowed('[fe80::1]', null), false);
+  assert.equal(domainAllowed('[::ffff:169.254.169.254]', null), false); // v4-mapped dodge
+  assert.equal(domainAllowed('::1', null), false);
+  // loopback + RFC1918 stay reachable — local dev servers are a real use
+  assert.equal(domainAllowed('localhost', null), true);
+  assert.equal(domainAllowed('127.0.0.1', null), true);
+  assert.equal(domainAllowed('192.168.1.10', null), true);
+  // explicit allowlist still wins for a declared link-local host
+  assert.equal(domainAllowed('169.254.169.254', ['169.254.169.254']), true);
+});

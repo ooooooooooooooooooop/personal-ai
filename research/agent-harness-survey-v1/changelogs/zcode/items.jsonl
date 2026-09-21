@@ -1,0 +1,174 @@
+{"file":"zcode.z.ai_en_changelog.html","version":null,"date":null,"section":null,"item":"ZCode Releases & Updates | GLM-5.3 Coding Agent"}
+{"file":"zcode.z.ai_en_changelog.html","version":null,"date":null,"section":"Releases & Updates","item":"Release notes and desktop downloads for every ZCode version."}
+{"file":"zcode.z.ai_en_changelog.html","version":null,"date":null,"section":"Releases & Updates","item":"3.14.1Released Sep 21, 2026"}
+{"file":"zcode.z.ai_en_changelog.html","version":null,"date":null,"section":"Releases & Updates","item":"Download"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.1","date":null,"section":"Bug Fixes","item":"Draft references are now inserted correctly after selecting a plugin."}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.1","date":null,"section":"Bug Fixes","item":"Draft content and thinking text are no longer lost when collapsing a plan or minimizing the input box."}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.1","date":null,"section":"Bug Fixes","item":"Unnamed providers no longer lose their identity information when selecting a service provider."}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.1","date":null,"section":"Bug Fixes","item":"The onboarding guide no longer pops up automatically for existing users, and will not reappear after a restart once dismissed."}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where Computer Control might fail to start."}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.1","date":null,"section":"Bug Fixes","item":"3.14.0Released Sep 19, 2026"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Added dynamic workflows that use a single script to orchestrate multiple sub-agents collaborating on complex tasks"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Quickly start a workflow from the plus menu in the input box or via the /workflow command"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Added switching between Office and Coding modes"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"New keyboard shortcut settings: record custom key combinations that take effect instantly"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Added a three-step onboarding guide that recommends tasks and plugins based on your role"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Archived tasks now support batch deletion"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Improved the phone remote control service"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Added About and Check for Updates entries to the Help menu"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"The approval dialog now supports directly granting full access"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Start Plan can now be used independently"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Added an invitation rewards center"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"New Features","item":"Improved the way CUA is invoked"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue with abnormal uploads in the repository wiki"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed occasional login failures"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue where tabs in the remote built-in browser couldn't be closed"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"On Windows, locating files no longer opens multiple duplicate windows"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Idle-time tasks now show a friendly message when the run limit is exceeded"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue where the plugin update badge was not fully displayed"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue where the model selection menu width didn't fit properly"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"When a tool call fails, the error is now displayed correctly, and incomplete cards no longer remain"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Sessions with running background workflows no longer disappear from the task list"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"When canceling or resuming a workflow is rejected, the specific reason is now explained"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed inaccurate display of Start Plan benefits and balance"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue where the UI occasionally went black after upgrading"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue where custom model configuration failed to load on Windows"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"Fixed an issue where the input box position jumped after switching interface modes"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.14.0","date":null,"section":"Bug Fixes","item":"3.12.3Released Sep 17, 2026"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Improved interaction between Plan Mode and queued messages"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Added OpenCode Go provider template and site mapping"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Improved display of provider template names, icons, and plan banners"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Improved database initialization and upgrade process"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Support uploading, reading, and previewing PDF files in conversations"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Support previewing images, videos, and other media files in conversations"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Plugins can now be installed per workspace"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Shows a reminder when a plugin update is available, with direct updating"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Displays the specific reason when an operation is blocked, making it easier to handle"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Sidebar tabs support closing with middle-click and remember display state for each session"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Draft tasks can now also be viewed in the sidebar"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"The built-in browser now remembers its last window size"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Local file links in the built-in browser can now be opened in the system default browser"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"New Features","item":"Improved Weekend/Global Plan claim reminders, with clearer status and expiration info"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed Provider config reading blocking"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Added a re-login option when plan retrieval fails, and fixed Key forced refresh not being triggered after login"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Improved untracked file counting performance"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed retry after interrupted streaming responses"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed provider config reading errors"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed OpenRouter compatibility issues and improved connection testing"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed sub-agents appearing in the task list after resuming"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed missing Plan Mode menu descriptions"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Adjusted tool usage limits for idle-time tasks"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Improved session startup speed"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed model switching and context loss during active conversations"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Improved context usage display, with tap-to-view support on touch devices"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed model config sync issues after remote reconnection"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Improved connection and deployment stability in remote workspaces and WSL environments"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed occasional hangs during SSH connection or sending"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed login issues such as expired sessions and authorization callback failures"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed official MCP connection issues and improved failure messages"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed official plugin errors affecting session recovery"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed plugin menu display issues and uninstall hangs"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed occasional unresponsiveness of computer operations and tasks being incorrectly restarted on Windows"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed pending confirmation actions not showing in remote workspaces"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed content search errors during conversation generation"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Improved display performance for long command outputs"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed incorrect file path and reference display and broken navigation"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed incorrect scroll position when opening a session"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Adjusted the display width of user messages"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed display of empty thinking content"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Improved browser window isolation between tasks"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Reduced file watcher resource usage for large workspaces on Linux"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed new Linux installations being obscured by old shortcuts"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed Linux auto-update issues"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"Fixed inaccurate deletion result messages for scheduled tasks"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.12.3","date":null,"section":"Bug Fixes","item":"3.11.2Released Sep 4, 2026"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Support for uploading, reading, and previewing PDF files in conversations"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Support for previewing media files such as images and videos in conversations"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Plugins can now be installed per workspace"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"A notification appears when a plugin update is available, with an option to update directly"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"When an action is blocked, the specific reason is shown to make resolution easier"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Sidebar tabs can now be closed with the middle mouse button, and their visibility is remembered per session"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Draft tasks can now also be viewed from the sidebar"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"The built-in browser remembers the window size from the last time it was opened"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Local file links in the built-in browser can now be opened in the system default browser"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"New Features","item":"Improved Weekend/Global Plan claim reminders, with clearer display of status and expiration details"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Conversations no longer switch models midway or lose context"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Context usage display is more accurate, and can now be tapped to view on touch devices"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where model configuration synced incorrectly after a remote reconnection"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Improved connection and deployment stability for remote workspaces and WSL environments"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where SSH would occasionally hang when connecting or sending"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed login issues such as expired sessions and authorization callback failures"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed official MCP connection issues, with clearer failure messages"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Official plugin loading timeouts or data errors no longer affect session recovery"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed garbled plugin menu display, and uninstalling no longer gets stuck"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed an issue on Windows where computer operations occasionally became unresponsive and tasks were incorrectly restarted"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where actions pending confirmation were not shown in remote workspaces"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Searching now works properly while a conversation is generating"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Command output is automatically truncated when too long, preventing UI lag"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed issues with incorrect file path and reference display and broken navigation"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where the scroll position was incorrect when opening a session"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Adjusted the display width of user messages for better readability of long content"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Empty thinking content is no longer displayed"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Browser windows for different tasks are now independent and do not interfere with each other"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Reduced file-watching resource usage for large workspaces on Linux"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed an issue on Linux where the app was obscured by old shortcuts after installation"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"Fixed inaccurate result messages when deleting scheduled tasks"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.11.2","date":null,"section":"Bug Fixes","item":"3.10.2Released Aug 31, 2026"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"Added free early claiming of the Weekend Plan, and you can invite friends to claim it together"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"Plugins referenced in prompt templates now support one-click installation, with clearer progress indicators"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"Added a skills shortcut entry to the input box menu"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"Thinking traces now support content search, with more complete records that are expanded by default"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"MCP servers now support configuring the protocol version, with guidance prompts when negotiation fails"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"Edited messages can now be sent immediately without waiting in the queue"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"When a conversation turn ends, you can view an execution summary and duration"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"New Features","item":"The \"Browser\" menu in Settings has been renamed to \"Browser Control\""}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Improved the login authorization flow and fixed an issue where callbacks occasionally failed"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an intermittent mcp oauth failure"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Model responses that are occasionally interrupted or blank will now automatically retry"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where queued messages were lost and interrupted task statuses displayed incorrectly after an error"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Unified tool execution status wording; thinking process labels are now more concise and clearer"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed issues where task action hints were clipped and task information was scrambled on touchscreens"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Unread markers are now cleared immediately after opening the task timeline"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Raised the threshold for converting pasted long text into attachments, reducing false conversions"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where a single tilde was incorrectly rendered as strikethrough"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"The input box no longer loses focus when switching sidebars"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Input box reference and command menus are now displayed more clearly, and search no longer retries repeatedly"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where multiple skill directories in a workspace could not be listed together"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed issues where some plugin skills were not recognized or their names displayed inconsistently"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Usage statistics now show the last seven days by default, with clearer charts and value labels"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an issue on Windows where background processes remained after exiting"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed several issues with Computer Use on macOS and in remote workspaces"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Improved browser control session stability; page scripts now execute as expected"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where the menu in the mobile remote interface extended beyond the screen"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an issue where model status displayed incorrectly after a plan expired"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"Fixed an error that occurred when modifying model configuration while a task was running"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.2","date":null,"section":"Bug Fixes","item":"3.10.1Released Aug 28, 2026"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"Added free early claiming of Weekend Plan — invite friends to claim it together"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"Plugins referenced in prompt templates now support one-click installation, with clearer progress indicators"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"Added a skills shortcut to the input box menu"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"Thinking traces now support content search, with more complete records and expanded by default"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"MCP servers now support configuring the protocol version, with guidance prompts when negotiation fails"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"Edited messages can now be sent immediately without waiting in the queue"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"View an execution summary and duration when a conversation turn ends"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"New Features","item":"The \"Browser\" menu in Settings has been renamed to \"Browser Control\""}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Improved the login authorization flow and fixed occasional callback failures"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an intermittent mcp oauth failure"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Model responses that occasionally cut off or come back blank now retry automatically"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where queued messages were lost after an error and interrupted task statuses were displayed incorrectly"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Unified tool execution status wording; thinking process labels are now more concise and clearer"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed issues where task action hints were clipped and task information was jumbled on touchscreens"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Unread markers are now cleared immediately after opening the task timeline"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Raised the threshold for converting pasted long text into attachments, reducing unintended conversions"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where a single tilde was incorrectly displayed as strikethrough"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"The input box no longer loses focus when switching sidebars"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Input box references and command menus are displayed more clearly, and search no longer retries repeatedly"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where multiple skill directories in a workspace could not be listed at the same time"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed issues where some plugin skills were not recognized and their names displayed inconsistently"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Usage statistics now show the last seven days by default, with clearer charts and value labels"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where background processes remained after exiting on Windows"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed several issues with Computer Use on macOS and in remote workspaces"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Improved browser control session stability; page script execution now behaves as expected"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where the remote interface menu overflowed the screen on mobile"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an issue where model status displayed incorrectly after a plan expired"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"Fixed an error when modifying model configuration while a task is running"}
+{"file":"zcode.z.ai_en_changelog.html","version":"v3.10.1","date":null,"section":"Bug Fixes","item":"You've reached the end of the release history."}

@@ -1,0 +1,288 @@
+{"tag":"v2.4.6","date":"2026-07-23","section":null,"item":"fix(agents): count billed calls that fail to parse against cost_limit"}
+{"tag":"v2.4.6","date":"2026-07-23","section":null,"item":"EnesYilmazcode"}
+{"tag":"v2.4.5","date":"2026-07-06","section":null,"item":"fix(config): read config files as UTF-8 regardless of locale"}
+{"tag":"v2.4.5","date":"2026-07-06","section":null,"item":"fix(models): don't mask malformed tool-call errors as truncation"}
+{"tag":"v2.4.5","date":"2026-07-06","section":null,"item":"klieret and EnesYilmazcode"}
+{"tag":"v2.4.4","date":"2026-07-02","section":null,"item":"fix: remove startup-banner emoji that crashes import on non-UTF stdout"}
+{"tag":"v2.4.4","date":"2026-07-02","section":null,"item":"fix(benchmarks): don't mutate shared config across worker threads in get_sb_environment"}
+{"tag":"v2.4.4","date":"2026-07-02","section":null,"item":"1 person reacted"}
+{"tag":"v2.4.3","date":"2026-06-29","section":null,"item":"fix(run): pass the startup_command as a dict to env.execute() function."}
+{"tag":"v2.4.3","date":"2026-06-29","section":null,"item":"Enhancements"}
+{"tag":"v2.4.3","date":"2026-06-29","section":null,"item":"Reject empty config override keys"}
+{"tag":"v2.4.3","date":"2026-06-29","section":null,"item":"Ethan-Kuang-6666 and CodingFeng101"}
+{"tag":"v2.4.2","date":"2026-06-18","section":null,"item":"Small release to bump image versions in programbench runner."}
+{"tag":"v2.4.2","date":"2026-06-18","section":null,"item":"Update: programbench uses v6 images"}
+{"tag":"v2.4.1","date":"2026-06-11","section":null,"item":"fix: kill local process group on timeout"}
+{"tag":"v2.4.1","date":"2026-06-11","section":null,"item":"maaz139 for reporting the timeout bug"}
+{"tag":"v2.4.0","date":"2026-06-10","section":null,"item":"Change(swe-bench configs): Drop T=0 default in swe-bench"}
+{"tag":"v2.4.0","date":"2026-06-10","section":null,"item":"Enh: Expose finish_reason to format_error_template"}
+{"tag":"v2.4.0","date":"2026-06-10","section":null,"item":"feat(inspector): display reasoning_content with toggle and hot-reload"}
+{"tag":"v2.4.0","date":"2026-06-10","section":null,"item":"Enh: Cap consecutive format errors"}
+{"tag":"v2.4.0","date":"2026-06-10","section":null,"item":"klieret and AlexanderDefuria"}
+{"tag":"v2.3.1","date":"2026-06-09","section":null,"item":"Fix(swebench): source ~/.bashrc via BASH_ENV to activate testbed env"}
+{"tag":"v2.3.1","date":"2026-06-09","section":null,"item":"fix: persist full model response in extra dict on FormatError"}
+{"tag":"v2.3.1","date":"2026-06-09","section":null,"item":"Entrpi, seek-far, and VittoriaLanzo"}
+{"tag":"v2.3.0","date":"2026-05-21","section":null,"item":"The main feature is compatibility with ProgramBench, a new and ultra-challenging software benchmark."}
+{"tag":"v2.3.0","date":"2026-05-21","section":null,"item":"fix: add exist_ok=True to mkdir in BubblewrapEnvironment"}
+{"tag":"v2.3.0","date":"2026-05-21","section":null,"item":"Fix/cost limit zero"}
+{"tag":"v2.3.0","date":"2026-05-21","section":null,"item":"fix: add wall-clock time limit to properly kill agents"}
+{"tag":"v2.3.0","date":"2026-05-21","section":null,"item":"klieret and hobostay"}
+{"tag":"v2.2.8","date":"2026-03-24","section":null,"item":"The dependency litellm in versions 1.82.7 and 1.82.8 was compromised. If you updated/installed litellm in the last few overs"}
+{"tag":"v2.2.8","date":"2026-03-24","section":null,"item":"SSH and API keys might have been compromised."}
+{"tag":"v2.2.8","date":"2026-03-24","section":null,"item":"The compromised versions should have been removed from pypi, but the PR below also excludes them in the dependencies."}
+{"tag":"v2.2.8","date":"2026-03-24","section":null,"item":"security: exclude compromised litellm versions 1.82.7 and 1.82.8"}
+{"tag":"v2.2.8","date":"2026-03-24","section":null,"item":"michalcichon"}
+{"tag":"v2.2.7","date":"2026-03-12","section":null,"item":"Mostly fixes to ContreeEnvironment:"}
+{"tag":"v2.2.7","date":"2026-03-12","section":null,"item":"Fixed ContreeEnvironment for new contree-sdk version"}
+{"tag":"v2.2.7","date":"2026-03-12","section":"pr","item":"ContreeEnvironment Fixed double command execution + tests + docs fixes","kind":"pr"}
+{"tag":"v2.2.7","date":"2026-03-12","section":null,"item":"Enh: Generalize content string representation"}
+{"tag":"v2.2.7","date":"2026-03-12","section":null,"item":"delphikettle, klieret, and hobostay"}
+{"tag":"v2.2.6","date":"2026-03-02","section":null,"item":"fix(modal): Add missing exception_info to SwerexModalEnvironment output"}
+{"tag":"v2.2.6","date":"2026-03-02","section":null,"item":"AlienKevin"}
+{"tag":"v2.2.5","date":"2026-02-27","section":null,"item":"Bugfix release fixing issues with FormatErrors especially for weaker/smaller models that make toolcalling mistakes, and a rare issue in the inspector that could hang if encountering ANSI-sequences in trajectories."}
+{"tag":"v2.2.5","date":"2026-02-27","section":null,"item":"Fix: check if args is a dict to avoid exceptions fro…"}
+{"tag":"v2.2.5","date":"2026-02-27","section":null,"item":"fix(inspector): Handle ANSI escape sequences and null bytes in content"}
+{"tag":"v2.2.5","date":"2026-02-27","section":null,"item":"RobinChiu and klieret"}
+{"tag":"v2.2.4","date":"2026-02-23","section":null,"item":"Fix a bug that caused an exception about missing default model name if setup is invoked in the first mini invocation right after installation."}
+{"tag":"v2.2.4","date":"2026-02-23","section":null,"item":"Fix: Reload config after setup"}
+{"tag":"v2.2.3","date":"2026-02-20","section":null,"item":"Minor bug fix."}
+{"tag":"v2.2.3","date":"2026-02-20","section":null,"item":"Fixed a bug inside ContreeEnvironmentConfig.get_tag_by_image_url"}
+{"tag":"v2.2.3","date":"2026-02-20","section":null,"item":"delphikettle"}
+{"tag":"v2.2.2","date":"2026-02-19","section":null,"item":"Enh: Make 'actions' available in all format error templates"}
+{"tag":"v2.2.2","date":"2026-02-19","section":null,"item":"Enh: Improve startup time of mini"}
+{"tag":"v2.2.1","date":"2026-02-19","section":null,"item":"Small patch fixing SwerexModalEnvironment. Thanks to @arbipher!"}
+{"tag":"v2.2.1","date":"2026-02-19","section":null,"item":"Fix: Update SwerexModalEnvironment for v2 Environment protocol"}
+{"tag":"v2.2.1","date":"2026-02-19","section":null,"item":"arbipher"}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"Main feature is the new ContreeEnvironment develoepd by Nebius. Thanks @delphikettle for implementing it!"}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"You should now also be able to run on swe re-bench with the main swebench.py script."}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"small typo in SWE-bench prompt"}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"Added ContreeEnvironment"}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"We've also finally updated the official SWE-bench leaderboard with the results from mini-swe-agent v2:"}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"You can find more information in this tweet."}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"Welcome ❤️"}
+{"tag":"v2.2.0","date":"2026-02-18","section":null,"item":"delphikettle and a-scarlett"}
+{"tag":"v2.1.0","date":"2026-02-12","section":null,"item":"This minor release improves the UX of the interactive agent (i.e., what is called when you run mini). We no longer prompt with the multiline prompt at the end of the agent run. You can still submit a multiline new task by entering /m first."}
+{"tag":"v2.1.0","date":"2026-02-12","section":null,"item":"Enh(interactive): Better behavior on exit"}
+{"tag":"v2.1.0","date":"2026-02-12","section":null,"item":"Fix: Count of actions to confirm"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"This is the first full release of mini-swe-agent v2. This includes lots of breaking changes."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"This is the largest new release since the launch, focusing on supporting more diverse models and switching to toolcalls by default (as opposed to manual parsing of actions)."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"What's new?"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Tool calls: Native tool calling API is now the support, text-based action parsing is still available"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Multimodal input: Support for images and other content types"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"More flexible model support in general"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"What do I need to change?"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"I only use the mini CLI with default configs"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"No changes needed."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"I use custom configs"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"You might need to move some config keys. See Config changes."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"I parse/analyze trajectories"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Some metadata fields moved to extra. See Trajectory format."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"I use the python bindings or built custom subclasses"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"You will need to refactor. An agent can refactor your code based on the instructions below."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Full migration guide"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Read the full migration guide."}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Changes compared to v2.0.0a3:"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Enable parallel tool calls and use plain text observation template"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Enh: Only ask for task if unset"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"Changelog compared to last v1"}
+{"tag":"v2.0.0","date":"2026-02-11","section":null,"item":"aorwall and klieret"}
+{"tag":"v2.0.0a3","date":"2026-02-06","section":null,"item":"Feat(agent): Override agent/env class from config/cli"}
+{"tag":"v2.0.0a3","date":"2026-02-06","section":null,"item":"Fixes #710: Apptainer fakeroot fix"}
+{"tag":"v2.0.0a3","date":"2026-02-06","section":null,"item":"Fix(agent): task argument and env argument handling"}
+{"tag":"v2.0.0a3","date":"2026-02-06","section":null,"item":"Fix(models): FormatError error text should be part of template by @RobinChiu and @klieret"}
+{"tag":"v2.0.0a3","date":"2026-02-06","section":null,"item":"RobinChiu, klieret, and hubstrauss"}
+{"tag":"v2.0.0a2","date":"2026-02-04","section":null,"item":"Fix(swebench): Do not use docker login flags on swebench"}
+{"tag":"v2.0.0a2","date":"2026-02-04","section":null,"item":"Fix swebench-single output path"}
+{"tag":"v2.0.0a2","date":"2026-02-04","section":null,"item":"klieret and SailorJoe6"}
+{"tag":"v2.0.0a1","date":"2026-02-02","section":null,"item":"v2.0 pre-release"}
+{"tag":"v2.0.0a1","date":"2026-02-02","section":null,"item":"This is the prerelease of the mini-swe-agent v2. This includes lots of breaking changes."}
+{"tag":"v2.0.0a1","date":"2026-02-02","section":null,"item":"This is a pre-release, there might still be a few changes."}
+{"tag":"v2.0.0a1","date":"2026-02-02","section":null,"item":"To install from pypi, you need to specify the version explicitly:"}
+{"tag":"v2.0.0a1","date":"2026-02-02","section":null,"item":"pip install --pre mini-swe-agent"}
+{"tag":"v2.0.0a1","date":"2026-02-02","section":null,"item":"Read the full migration guide"}
+{"tag":"v1.17.5","date":"2026-01-30","section":null,"item":"v2 coming on Monday! More flexibility & performance, but backwards breaking changes. Pin your dependency to v1 to avoid interruption and then check the migration guide."}
+{"tag":"v1.17.5","date":"2026-01-30","section":null,"item":"This small patch release fixes a clash in the -c options for the swebench runner."}
+{"tag":"v1.17.5","date":"2026-01-30","section":null,"item":"v1.x releases are now based on the v1 branch. The v2 branch will soon become the main branch."}
+{"tag":"v1.17.4","date":"2026-01-12","section":null,"item":"v2 coming soon! More flexibility & performance, but backwards breaking changes. Pin your dependency to v1 to avoid interruption."}
+{"tag":"v1.17.4","date":"2026-01-12","section":null,"item":"This is (hopefully) one of the last mini v1 releases, mostly fixing two bugs:"}
+{"tag":"v1.17.4","date":"2026-01-12","section":null,"item":"Failed submission commands in swebench still submit (#691), thanks to @aorwall"}
+{"tag":"v1.17.4","date":"2026-01-12","section":null,"item":"mini executable ignored environment config in custom config files (#700), thanks to @IKACE for the report"}
+{"tag":"v1.17.4","date":"2026-01-12","section":null,"item":"aorwall and IKACE"}
+{"tag":"v1.17.3","date":"2025-12-15","section":null,"item":"This release adds important fixes."}
+{"tag":"v1.17.3","date":"2025-12-15","section":null,"item":"fix: Reraise original exception when retries are exhausted"}
+{"tag":"v1.17.3","date":"2025-12-15","section":null,"item":"fix: add truncation to timeout_template to prevent context overflow"}
+{"tag":"v1.17.3","date":"2025-12-15","section":null,"item":"Fix: Remove timestamp field from OpenAI Response API requests"}
+{"tag":"v1.17.2","date":"2025-12-11","section":null,"item":"Improved"}
+{"tag":"v1.17.2","date":"2025-12-11","section":null,"item":"Enh: Keep batch progress main bar always on top"}
+{"tag":"v1.17.2","date":"2025-12-11","section":null,"item":"Fix: Avoid passing extra message information to model"}
+{"tag":"v1.17.1","date":"2025-12-02","section":null,"item":"Minor fixes."}
+{"tag":"v1.17.1","date":"2025-12-02","section":null,"item":"Fix: Make test_whitelist_actions_bypass_confirmation more robust"}
+{"tag":"v1.17.1","date":"2025-12-02","section":null,"item":"Fix(roulette config): Undefined variable"}
+{"tag":"v1.17.1","date":"2025-12-02","section":null,"item":"Fix: Explicitly setting model name for litellm cost calc"}
+{"tag":"v1.17.1","date":"2025-12-02","section":null,"item":"klieret and Chesars"}
+{"tag":"v1.17.0","date":"2025-11-25","section":null,"item":"Enh: Include timestamps & parsed actions in traj output"}
+{"tag":"v1.16.0","date":"2025-11-24","section":null,"item":"This release adds more options to support models, in particular to use the responses API from OpenAI that is necessary to use Codex models, among others."}
+{"tag":"v1.16.0","date":"2025-11-24","section":null,"item":"feat: make action parsing regex configurable"}
+{"tag":"v1.16.0","date":"2025-11-24","section":null,"item":"feat: add Requesty model provider support"}
+{"tag":"v1.16.0","date":"2025-11-24","section":null,"item":"feat: responses api"}
+{"tag":"v1.16.0","date":"2025-11-24","section":null,"item":"Feat(models): Add portkey responses API"}
+{"tag":"v1.16.0","date":"2025-11-24","section":null,"item":"Welcome on board! ❤️"}
+{"tag":"v1.15.0","date":"2025-11-17","section":null,"item":"This version introduces a switch to ignore errors about cost tracking: Set cost_tracking: \"ignore_errors\" in your agent config or export MSWEA_COST_TRACKING=\"ignore_errors\" globally to ignore errors about missing cost information for local or free models. This is an easier alternative to setting up custom model registries etc. Thank you to @Chesars for initial work on this."}
+{"tag":"v1.15.0","date":"2025-11-17","section":null,"item":"See #593, #594, #596"}
+{"tag":"v1.14.4","date":"2025-10-21","section":null,"item":"Fix: Type error with portkey cost tracking workaround"}
+{"tag":"v1.14.3","date":"2025-10-18","section":null,"item":"Small release containing fix for mini --cost-limit 0 bug spotted by @Chesars (thank you for your continued contributions)"}
+{"tag":"v1.14.3","date":"2025-10-18","section":null,"item":"Enh: Configure number of retries for model"}
+{"tag":"v1.14.3","date":"2025-10-18","section":null,"item":"Fix: --cost-limit flag doesn't work with 0 value due to Python falsy check"}
+{"tag":"v1.14.2","date":"2025-10-11","section":null,"item":"Portkey returns inconsistent token counts for anthropic models as soon as tokens are cached that can even lead to negative calculated costs. This is a workaround. This only affected you if you were using --model-class portkey or similar."}
+{"tag":"v1.14.2","date":"2025-10-11","section":null,"item":"Fix: Portkey anthropic cost calculation bug workaround"}
+{"tag":"v1.14.1","date":"2025-10-11","section":null,"item":"Quick but important fixup to previous release (the set_cache_control method had been accidentally overwritten with a nonsensical implementation)."}
+{"tag":"v1.14.1","date":"2025-10-11","section":null,"item":"Fix: Broken set_cache_control not clearing cache points"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"This release introduces changes to how we handle Anthropic models, in particular with respect to caching."}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"These are mostly internal changes, it is unlikely that you need to change anything on your end."}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"The advantage is that you can now use Anthropic models also with other \"backends\" like portkey rather than having to use the litellm class."}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"Here's the breakdown of the changes:"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"Simpler cache breakpoint setting: We only apply one cache breakpoint at the end"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"If no model class is specified Anthropic models are also handled by litellm"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"All model classes apply the cache breakpoints automatically if the model name suggest an Anthropic model, unless the set_cache_control option is explicitly set to None"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"Anthropic key rotation is deprecated (as are some minor internal methods)"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"Change: Anthropic caching applied at end; deprecate cache-related options"}
+{"tag":"v1.14.0","date":"2025-10-11","section":null,"item":"Change: Use litellm class for anthropic; cache control support"}
+{"tag":"v1.13.4","date":"2025-10-08","section":null,"item":"This patch release mostly fixes a bug in the command palette in visual (textual) mode reported & fixed by @Chesars"}
+{"tag":"v1.13.4","date":"2025-10-08","section":null,"item":"Update default model to claude-sonnet-4-5-20250929"}
+{"tag":"v1.13.4","date":"2025-10-08","section":null,"item":"Fix: Ensure we use anthropic/ prefix for litellm"}
+{"tag":"v1.13.4","date":"2025-10-08","section":null,"item":"Fix: Command palette crashes with TypeError in visual mode"}
+{"tag":"v1.13.3","date":"2025-09-29","section":null,"item":"This fixes a bug reported by @lamanchy affecting Windows/WSL where a system property (processor type) referenced in the default prompt template isn't present."}
+{"tag":"v1.13.3","date":"2025-09-29","section":null,"item":"Fix: Remove 'processor' in template, might be undefined"}
+{"tag":"v1.13.3","date":"2025-09-29","section":null,"item":"lamanchy and klieret"}
+{"tag":"v1.13.2","date":"2025-09-25","section":null,"item":"Fix un-incremented version of last release."}
+{"tag":"v1.13.1","date":"2025-09-25","section":null,"item":"Very minor improvement for portkey support."}
+{"tag":"v1.13.1","date":"2025-09-25","section":null,"item":"Enh: Allow to override litellm model name in portkey models"}
+{"tag":"v1.13.0","date":"2025-09-20","section":null,"item":"Adding portkey support."}
+{"tag":"v1.13.0","date":"2025-09-20","section":null,"item":"Feat: Add portkey support"}
+{"tag":"v1.13.0","date":"2025-09-20","section":null,"item":"Enh: Print agent config location in run scripts"}
+{"tag":"v1.12.0","date":"2025-09-16","section":null,"item":"The new regular expression tolerates whitespace before the linebreak."}
+{"tag":"v1.12.0","date":"2025-09-16","section":null,"item":"Handle whitespaces in bash command line"}
+{"tag":"v1.12.0","date":"2025-09-16","section":null,"item":"Enh: Add a timeout argument as an override for env.execute"}
+{"tag":"v1.12.0","date":"2025-09-16","section":null,"item":"riazarbi and SumanthRH"}
+{"tag":"v1.11.1","date":"2025-09-10","section":null,"item":"Fix for serialization errors introduced in v1.11.0"}
+{"tag":"v1.11.1","date":"2025-09-10","section":null,"item":"Fix: Response serialization error"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Feat: Support for SWE-bench startup command"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Add openrouter model"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Feat: Support different model classes from mini run script"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Enhanced"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Make docker pull timeout configurable"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Enh(litellm): Include full litellm response"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Enh: Raise error on undefined var"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"User docker.io as image prefix for swebench images"}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"Also thanks to @ai-jz for detailed experiments on running mini with the OpenAI responses API, see here."}
+{"tag":"v1.11.0","date":"2025-09-09","section":null,"item":"pcmoritz, klieret, and ai-jz"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Biggest addition is the bubblewrap environment (lightweight sandboxing) contributed by @pcmoritz, and the code for our blog post on using random models."}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Other than that, the biggest fix is avoiding an error when saving with mini -v."}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Breaking changes"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Change: Remove docker containers by default with --rm"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Feat: Add roulette model class & config"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Add bubblewrap environment"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Enh: Save config with trajectory"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Enh: Allow to set logger for env classes"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Enh: Link to model registry docs if issue with costs"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Fix: setdefault instead of get"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Fix(swebench config): hardcode {{working_dir}} by @klieret in #479 . Thanks for the report @ThomasShiyu"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"[apptainer / singularity] Retry building the sandbox if it fails"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Fix: get_model with deterministic model"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"Fix: mini -v attribute error upon save"}
+{"tag":"v1.10.0","date":"2025-08-29","section":null,"item":"pcmoritz, klieret, and ThomasShiyu"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: InteractiveAgent and TextualAgent missing **kwargs support"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: config file model_name preference over env var"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: Use rich logger to avoid interference with progress bar"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: Remove logging in del methods"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: Double logging messages & simplify logging"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: Workaround litellm/openai incompatibility"}
+{"tag":"v1.9.1","date":"2025-08-19","section":null,"item":"Fix: Set exit status and output in case of exceptions"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"Small improvements & fixes, mostly related to template variables."}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"change swe-rex env usage to set merge_output_streams True"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"Enh: Allow to use model cost in templates"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"Enh: Persist task vars for template formatting"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"Feat: Add minimal logging to environments & batch runs"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"Enh: Output option for swebench-single"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"Fix: Getting local environment variables as template variables even though we're running in docker"}
+{"tag":"v1.9.0","date":"2025-08-15","section":null,"item":"closji and klieret"}
+{"tag":"v1.8.1","date":"2025-08-13","section":null,"item":"Thanks for @pcmoritz for spotting this"}
+{"tag":"v1.8.1","date":"2025-08-13","section":null,"item":"Fix(swebench): Config values override default values"}
+{"tag":"v1.8.1","date":"2025-08-13","section":null,"item":"pcmoritz and klieret"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Make it possible to run swebench in the singularity environment by @pcmoritz in #387 (note that there's a few follow-up refactorings)"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Enh: Allow to set default executables for docker/singularity"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Enh: Add --exit-immediately to sb-single"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Enh: Allow to add extra formatting kwargs in Agent.run()"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Main change is in the python bindings of the agent with textual interface. TextualAgent is ow invoked exactly identically to DefaultAgent and IntaractiveAgent"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Change/Ref: TextualAgent(App)"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Deps: Lower bound litellm"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"The fix by @ai-jz is important: Previously, we were incorrectly stripping away trailing newlines in the final output of the agent."}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Fix: Preserve newlines in agent output to prevent patch errors"}
+{"tag":"v1.8.0","date":"2025-08-13","section":null,"item":"Fix(swebench-single): instance_spec default value"}
+{"tag":"v1.7.0","date":"2025-08-08","section":null,"item":"Breaking changes!"}
+{"tag":"v1.7.0","date":"2025-08-08","section":null,"item":"The agent now finishes its run and submits output by running echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT (previously we used MINI_SWE_AGENT_FINAL_OUTPUT)."}
+{"tag":"v1.7.0","date":"2025-08-08","section":null,"item":"This change was made because some models got confused by the directive."}
+{"tag":"v1.7.0","date":"2025-08-08","section":null,"item":"This version also introduces slight changes to the swebench.yaml config that is used for the SWE-bench (bash-only) leaderboard"}
+{"tag":"v1.7.0","date":"2025-08-08","section":null,"item":"Reference PR: Change: exit sequence; SWE-bench prompts in https://github.com/SWE-agent/mini-swe-agent/pull/"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"This release makes mini play nice with gpt-5 and friends. Check out our guide here."}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"The most important changes in this version are some tweaks to the default config files."}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Change(config): Add OS help to default.yaml"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Change(config): Do not read Claude.md etc. by default"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Change(config): Encourage model to go step-by-step"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Feat(config): Add mini_no_temp.yaml config"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Enh(swebench): Progress bar eta"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Enh: Allow to load model registry from fixed path"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Enh: Specify config files without the .yaml"}
+{"tag":"v1.6.0","date":"2025-08-07","section":null,"item":"Fix: Add missing init files"}
+{"tag":"v1.5.1","date":"2025-08-06","section":null,"item":"Fix MSWEA_VISUAL_MODE_DEFAULT behavior"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Change(textual): Quit app at end"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Fix: config set with positional args"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Enh: Print save location"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Enh(textual): Show actions in palette"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Enh: Allow to set visual mode default"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Enh(textual): help shortcut, ^y for yolo"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Enh: Support extra blocks for claude thinking"}
+{"tag":"v1.5.0","date":"2025-08-06","section":null,"item":"Enh: Save mini version in output files"}
+{"tag":"v1.4.2","date":"2025-08-04","section":null,"item":"Fix: Show shortcut for submitting multi-line input"}
+{"tag":"v1.4.2","date":"2025-08-04","section":null,"item":"Enh: style keystrokes"}
+{"tag":"v1.4.1","date":"2025-08-02","section":null,"item":"Fix: loading custom model registry by @carlosejimenez"}
+{"tag":"v1.4.1","date":"2025-08-02","section":null,"item":"Fix(interactive): Need to add human messages to history"}
+{"tag":"v1.4.1","date":"2025-08-02","section":null,"item":"Enh enable system prompt templating"}
+{"tag":"v1.4.1","date":"2025-08-02","section":null,"item":"closji, klieret, and ex9-fyi"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Announcements"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Our leaderboard is live at https://www.swebench.com/: SWE-bench (bash only) benchmarks LMs against how well they do with mini on SWE-bench Verified."}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"New features"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Human mode for mini -v (enter commands manually like in a shell)"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Exit confirmation for mini -v (allow to give agent a new task when it wants to finish)"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Enhancement"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Add container timeout to docker environment"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Enh: Add trajectory format version to trajectories"}
+{"tag":"v1.4.0","date":"2025-08-01","section":null,"item":"Enh: Always save last trajectory"}
+{"tag":"v1.3.0","date":"2025-07-28","section":null,"item":"Better support for local models with custom litellm registry"}
+{"tag":"v1.3.0","date":"2025-07-28","section":null,"item":"Enh: Tell mini to look at copilot-instructions.md"}
+{"tag":"v1.3.0","date":"2025-07-28","section":null,"item":"Enh: Handle ```bash in output"}
+{"tag":"v1.3.0","date":"2025-07-28","section":null,"item":"Guide on local models"}
+{"tag":"v1.2.0","date":"2025-07-26","section":null,"item":"Feat: Add --exit-immediately flag to mini"}
+{"tag":"v1.2.0","date":"2025-07-26","section":null,"item":"Enh(config): Ask model to look at claude.md & friends"}
+{"tag":"v1.2.0","date":"2025-07-26","section":null,"item":"callmephilip and klieret"}
+{"tag":"v1.1.2","date":"2025-07-24","section":null,"item":"Fix: output file for run_textual"}
+{"tag":"v1.1.2","date":"2025-07-24","section":null,"item":"Compatibility with py3.10"}
+{"tag":"v1.1.2","date":"2025-07-24","section":null,"item":"Enh(setup): No need to setup key name if in env"}
+{"tag":"v1.1.1","date":"2025-07-23","section":null,"item":"Rename to mini-swe-agent"}
+{"tag":"v1.1.1","date":"2025-07-23","section":null,"item":"Rename: local.yaml -> mini.yaml and env vars"}
+{"tag":"v1.1.1","date":"2025-07-23","section":null,"item":"Change: Rename env vars for consistency"}
+{"tag":"v1.1.1","date":"2025-07-23","section":null,"item":"Change(sb): Step limit of 250"}
+{"tag":"v1.1.1","date":"2025-07-23","section":null,"item":"Fix: Make sure content is string"}
+{"tag":"v1.0.2","date":"2025-07-22","section":null,"item":"Fix: Reraise keyboardinterrupt"}
+{"tag":"v1.0.1","date":"2025-07-22","section":null,"item":"fix extra invokation"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Change: Only accept ```bash blocks"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Fix(default): Show action in timeout message"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Change(sb config): Timeout 60s"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Enh: Add note about sed on darwin"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"add responsive task prompt for micro command"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Fix: suggest config set instead of set-key"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Change: Set temperature to 0 by default"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Enh: Print global cost limit if set"}
+{"tag":"v1.0.0.rc1","date":"2025-07-22","section":null,"item":"Fix: Invokation of CLI from py path"}
+{"tag":"v1.0.0","date":"2025-07-22","section":null,"item":"Doc: Update links to rendered documentation"}
+{"tag":"v1.0.0.dev4","date":"2025-07-21","section":null,"item":"Testing pypi release."}

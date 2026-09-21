@@ -10,9 +10,11 @@
  * tool call is blocked with an actionable reason naming the spawned job id,
  * and the job continues across process restarts via recoveryTick.
  */
-import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { redactSecrets } from '../../../host/src/core/secrets.js';
+import { SandboxProvider, SandboxUnavailableError } from '../../../host/src/core/sandbox.js';
 
 /** PID liveness probe — the injected worker-alive check for recoveryTick. */
 export function isWorkerAlive(identity) {
@@ -63,7 +65,7 @@ export class JobExecutor {
    *        covers the durable-job surface only — foreground tool calls execute
    *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -72,6 +74,10 @@ export class JobExecutor {
     this.classifier = classifier;
     this.budget = budget;
     this.sandbox = sandbox;
+    this.onJobFinished = onJobFinished; // M14: scheduled-job completion delivery
+    // M80 sandbox exclusions — () => string[] of command prefixes that bypass
+    // the AMBIENT sandbox only (an explicit per-job sandbox request stands).
+    this.sandboxExcludes = sandboxExcludes;
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
   }
@@ -132,13 +138,100 @@ export class JobExecutor {
   }
 
   /**
+   * M90/M92 restart: re-spawn a TERMINAL job's command as a fresh job. The
+   * new attempt is a new job_id (lineage is in audit, not state reuse) —
+   * resurrecting a terminal row would falsify its history.
+   */
+  async restart(jobId) {
+    const detail = this.describe(jobId);
+    if (!detail) return { refused: true, reason: `job '${jobId}' not found` };
+    const state = detail.job.job_state;
+    if (!['COMPLETED', 'FAILED', 'CANCELLED'].includes(state)) {
+      return { refused: true, reason: `job '${jobId}' is ${state} — only terminal jobs restart` };
+    }
+    if (!detail.command) {
+      return { refused: true, reason: `job '${jobId}' has no recoverable command (missing checkpoint)` };
+    }
+    const workdir = detail.job.authorized_root;
+    if (!workdir) return { refused: true, reason: `job '${jobId}' has no recorded workdir` };
+    const r = await this.spawnCommandJob({ command: detail.command, workdir, jobType: detail.job.job_type });
+    if (!r.refused) {
+      this.audit?.write({ kind: 'JOB_RESTARTED', data: { from_job: jobId, to_job: r.job_id, command: detail.command.slice(0, 200), parent_run_id: this.runId } });
+    }
+    return r;
+  }
+
+  /** M90/M92 delete: terminal jobs only; removes the DB rows + artifacts. */
+  remove(jobId) {
+    const detail = this.describe(jobId);
+    if (!detail) return { ok: false, error: `job '${jobId}' not found` };
+    const r = this.store.deleteJob(jobId);
+    if (!r.ok) return r;
+    // artifacts (checkpoint/result envelopes) live in jobsDir under the
+    // attempt prefix — sweep them so delete is real, not a dangling file set
+    const removedFiles = [];
+    try {
+      for (const f of readdirSync(this.jobsDir)) {
+        if (f.startsWith(`${jobId}_att_`) || f.startsWith(`${jobId}.`)) {
+          try { rmSync(join(this.jobsDir, f), { force: true }); removedFiles.push(f); } catch { /* locked — record anyway */ }
+        }
+      }
+    } catch { /* jobsDir unreadable */ }
+    this.audit?.write({ kind: 'JOB_DELETED', data: { job_id: jobId, artifacts: removedFiles.length, parent_run_id: this.runId } });
+    return { ok: true, job_id: jobId, artifacts_removed: removedFiles.length };
+  }
+
+  /**
    * Convert a long-running shell command into a durable job and spawn it.
    * Returns {job_id, attempt_id} — caller blocks the sync call with this info —
    * or {refused:true, reason} when a mutating job can't take the workspace
    * write lease (another mutating job is running). Fail-closed on classify
    * errors: an unparseable mutating-capable command is treated as mutating.
    */
-  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false }) {
+  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false, sandbox = null }) {
+    // Remote execution (P1, web-review GO): a per-job sandbox selector
+    // overrides the global PAI_SANDBOX backend — 'wsl'/'docker'/'ssh' run the
+    // command off the host shell entirely. Unknown kinds refuse BEFORE the
+    // job record exists; an unavailable backend fails the attempt honestly.
+    let sandboxProvider = this.sandbox;
+    if (sandbox != null && sandbox !== false && sandbox !== 'none') {
+      const kind = typeof sandbox === 'object' ? (sandbox.kind ?? 'none') : String(sandbox);
+      if (!['wsl', 'docker', 'ssh'].includes(kind)) {
+        return { refused: true, reason: `unknown sandbox backend '${kind}' — expected wsl|docker|ssh` };
+      }
+      sandboxProvider = new SandboxProvider(kind, typeof sandbox === 'object' ? sandbox : {});
+    } else if (sandboxProvider?.kind && sandboxProvider.kind !== 'none' && this.sandboxExcludes) {
+      // M80 command-level exclusion: an operator-listed prefix (e.g. a VCS
+      // binary that needs the real filesystem) runs unsandboxed — audited so
+      // the bypass is visible, and an explicit per-job sandbox still wins.
+      const prefixes = this.sandboxExcludes() ?? [];
+      const head = command.trim().split(/\s+/)[0] ?? '';
+      if (head && prefixes.some((p) => head === p || command.trim().startsWith(`${p} `))) {
+        sandboxProvider = false; // explicit-bypass sentinel — executeAttempt must not fall back to ambient
+        this.audit?.write({ kind: 'SANDBOX_EXCLUDED', data: { command: command.slice(0, 200), parent_run_id: this.runId } });
+      }
+    }
+    // M13 (Codex/Cline worktree-parallel analogue, opt-in): run the attempt in
+    // a detached `git worktree` so parallel mutating jobs can't collide on the
+    // real checkout. Clean worktrees are removed at exit; dirty ones are LEFT
+    // in place (removing would silently delete the job's work) and the path
+    // is recorded in the result envelope + audit for the operator to merge.
+    let worktreePath = null;
+    let worktreeFrom = null;
+    if (worktree) {
+      worktreeFrom = workdir;
+      worktreePath = join(this.jobsDir, 'worktrees', `wt-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`);
+      const r = spawnSync('git', ['worktree', 'add', '--detach', worktreePath, 'HEAD'],
+        { cwd: workdir, windowsHide: true, timeout: 30_000, encoding: 'utf-8' });
+      if (r.status !== 0) {
+        const reason = `git worktree add failed: ${(r.stderr || r.error?.message || 'unknown').trim().slice(0, 300)}`;
+        this.audit?.write({ kind: 'JOB_WORKTREE_REFUSED', data: { reason, workdir, parent_run_id: this.runId } });
+        return { refused: true, reason };
+      }
+      this.audit?.write({ kind: 'JOB_WORKTREE', data: { path: worktreePath, from: workdir, parent_run_id: this.runId } });
+      workdir = worktreePath;
+      authorizedRoot = worktreePath;
+    }
     let mutating = false;
     if (this.classifier) {
       try {
@@ -165,12 +258,12 @@ export class JobExecutor {
       workerIdentity: {}, // filled after spawn with real pid
       workspaceRef: workdir,
     });
-    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted });
+    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom, sandboxProvider });
     return { job_id: job.job_id, attempt_id };
   }
 
   /** Run one attempt: spawn → checkpoint → heartbeat → exit → result envelope. */
-  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false }) {
+  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktreePath = null, worktreeFrom = null, sandboxProvider = null }) {
     const checkpointPath = join(this.jobsDir, `${attemptId}.checkpoint.json`);
     const leaseHolder = `job:${jobId}`;
     const resultPath = join(this.jobsDir, `${attemptId}.result.json`);
@@ -178,13 +271,25 @@ export class JobExecutor {
     // sandbox provider decides the real spawn shape — 'none' preserves the
     // historical shell:true path; 'wsl' spawns wsl.exe argv-style (no cmd.exe
     // quoting of the user command). Unavailable backend = fail-closed throw.
-    const spec = (this.sandbox ?? { spawnSpec: (c, w) => ({ file: c, args: [], shell: true, cwd: w }) })
-      .spawnSpec(command, workdir);
+    const provider = sandboxProvider === false ? null : (sandboxProvider ?? this.sandbox);
+    let spec;
+    try {
+      spec = (provider ?? { spawnSpec: (c, w) => ({ file: c, args: [], shell: true, cwd: w }) })
+        .spawnSpec(command, workdir);
+    } catch (e) {
+      // Unavailable backend (no docker daemon, no ssh binary, bad target) —
+      // the job fails honestly BEFORE any process exists.
+      const reason = e instanceof SandboxUnavailableError ? e.message : `sandbox spec failed: ${e.message}`;
+      try { this.store.updateWorkerState(attemptId, 'EXITED_ERROR', -1); } catch { /* store closed */ }
+      this.store.failJob(jobId, reason);
+      this.audit?.write({ kind: 'JOB_SANDBOX_REFUSED', data: { job_id: jobId, attempt_id: attemptId, reason, parent_run_id: this.runId } });
+      return null;
+    }
     const child = spec.shell
       ? spawn(spec.file, { cwd: spec.cwd, windowsHide: true, shell: true })
       : spawn(spec.file, spec.args, { cwd: spec.cwd, windowsHide: true });
-    if (this.sandbox?.kind && this.sandbox.kind !== 'none') {
-      this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: this.sandbox.kind } });
+    if (provider?.kind && provider.kind !== 'none') {
+      this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: provider.kind, container: spec.containerName ?? null } });
     }
     this.running.set(jobId, child);
 
@@ -230,9 +335,46 @@ export class JobExecutor {
     child.stdout?.on('data', (d) => { out += d; if (out.length > 8192) out = out.slice(-8192); });
     child.stderr?.on('data', (d) => { out += d; if (out.length > 8192) out = out.slice(-8192); });
 
+    // Kiro max_plan_duration analogue — a wall-clock ceiling on the attempt.
+    // The exit handler records 'timeout' as the failure reason so audits
+    // distinguish a deadline kill from a genuine nonzero exit.
+    let timedOut = false;
+    let timeoutTimer = null;
+    if (timeoutMs > 0) {
+      timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        if (spec.containerName) {
+          // named disposable container — force-remove kills the whole tree
+          // inside it, which taskkill on the client pid cannot reach
+          try { spawnSync('docker', ['rm', '-f', spec.containerName], { windowsHide: true, timeout: 10_000 }); } catch { /* best-effort */ }
+        }
+        if (process.platform === 'win32') {
+          try { spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); }
+          catch { child.kill(); }
+        } else child.kill('SIGTERM');
+        if (spec.remote) {
+          // honest limit: killing the local ssh client does NOT kill the
+          // remote process — the orphan is recorded, not hidden
+          this.audit?.write({ kind: 'JOB_REMOTE_ORPHAN', data: { job_id: jobId, attempt_id: attemptId, target: provider?.target ?? null } });
+        }
+      }, timeoutMs);
+      timeoutTimer.unref();
+    }
+
     child.on('exit', (code, signal) => {
+      clearTimeout(timeoutTimer);
       this.running.delete(jobId);
       clearInterval(heartbeat);
+      // backgrounded grandchildren (nohup/&) inherit our stdio pipes — the
+      // shell exit is the job boundary. Give the final flush a beat, then
+      // drop our ends instead of holding FDs open until some detached
+      // process decides to die.
+      child.stdin?.destroy();
+      const release = setTimeout(() => {
+        child.stdout?.destroy();
+        child.stderr?.destroy();
+      }, 250);
+      release.unref();
       if (mutating) this.writeLease?.release(leaseHolder);
       // If the store is closed (host shutting down) the exit is recorded by
       // the NEXT boot's recoveryTick — durable semantics, not a swallowed error.
@@ -260,11 +402,30 @@ export class JobExecutor {
             this.budget.record({ scope: budgetScope ?? `job:${jobId}`, source: `job:${jobId}`, usage });
           } catch { /* ledger failure must not corrupt job bookkeeping */ }
         }
+        // Worktree teardown (M13): clean worktrees are removed; dirty ones
+        // stay on disk — their path goes into the result + audit so the
+        // operator can merge or discard explicitly.
+        let worktreeKept = null;
+        if (worktreePath) {
+          try {
+            const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: worktreePath, windowsHide: true, timeout: 15_000, encoding: 'utf-8' });
+            if (dirty.status === 0 && !dirty.stdout.trim()) {
+              spawnSync('git', ['worktree', 'remove', worktreePath], { cwd: worktreeFrom ?? this.jobsDir, windowsHide: true, timeout: 15_000 });
+            } else worktreeKept = worktreePath;
+          } catch { worktreeKept = worktreePath; }
+          if (worktreeKept) {
+            this.audit?.write({ kind: 'JOB_WORKTREE_KEPT', data: { job_id: jobId, attempt_id: attemptId, path: worktreeKept, parent_run_id: this.runId } });
+          }
+        }
         writeFileSync(resultPath, JSON.stringify({
           attempt_id: attemptId, job_id: jobId,
           exit_code: code, signal,
-          output_tail: out,
+          // scrub before persist (M5): child stdout/stderr may echo
+          // credentials; the artifact must not become a secret store.
+          output_tail: redactSecrets(out),
           usage,
+          ...(worktreePath ? { worktree: { path: worktreePath, kept: Boolean(worktreeKept) } } : {}),
+          ...(provider?.kind && provider.kind !== 'none' ? { sandbox: provider.kind } : {}),
           parent_run_id: this.runId, // usage attribution: child work bills to parent
           finished_at: new Date().toISOString(),
         }, null, 2));
@@ -280,11 +441,19 @@ export class JobExecutor {
             data: { job_id: jobId, attempt_id: attemptId, exit_code: code, parent_run_id: this.runId },
           });
         } else if (code === 0) this.store.completeJob(jobId);
-        else this.store.failJob(jobId, `exit ${code ?? signal}`);
+        else this.store.failJob(jobId, timedOut ? `wall-clock timeout exceeded (${timeoutMs}ms)` : `exit ${code ?? signal}`);
         this.audit?.write({
           kind: 'JOB_FINISHED',
           data: { job_id: jobId, attempt_id: attemptId, exit_code: code, usage, parent_run_id: this.runId },
         });
+        // M14 (Hermes/CodeBuddy delivery analogue): scheduled jobs have no
+        // operator watching — surface their completion as a UI event instead
+        // of letting the output die inside the job detail view.
+        if (cur?.job_type === 'scheduled' && this.onJobFinished) {
+          try {
+            this.onJobFinished({ job_id: jobId, job_type: cur.job_type, exit_code: code, output_tail: redactSecrets(out.slice(-2000)) });
+          } catch { /* delivery is best-effort — the job record is truth */ }
+        }
       } catch (e) {
         if (!/not open|closed/i.test(e.message)) throw e;
       }
@@ -380,4 +549,75 @@ export class JobExecutor {
       },
     });
   }
+}
+
+const jobText = (t, extra = {}) => ({ content: [{ type: 'text', text: t }], ...extra });
+
+/**
+ * job_spawn — the model's durable-command surface (remote execution analogue):
+ * an arbitrary shell command runs as a durable job that survives restarts,
+ * optionally inside a WSL distro, a disposable Docker container, or on a
+ * remote host over SSH. The command string is governance-classified exactly
+ * like a bash call (same commandArgs wiring) — spawning it elsewhere is not
+ * a policy bypass, it is a different execution boundary for the same rules.
+ */
+export function jobSpawnTool(executor, { workdir, getScope = null } = {}) {
+  return {
+    name: 'job_spawn', label: 'Job Spawn',
+    description:
+      'Run a shell command as a durable background job — survives host restarts, ' +
+      'poll with job_status. Optional `sandbox` selects the execution boundary: ' +
+      '"wsl" (Windows WSL distro, sandbox_distro optional), "docker" (disposable ' +
+      'container with the workdir mounted at /work, sandbox_image optional), or ' +
+      '"ssh" (remote host — needs sandbox_target user@host[:port], remote_dir ' +
+      'required, sandbox_key optional; NO workspace sync — the remote dir must ' +
+      'already contain what the command needs). The command is classified by the ' +
+      'same governance rules as bash — a denied command is denied everywhere.',
+    parameters: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'shell command to run durably' },
+        timeout_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes' },
+        sandbox: { type: 'string', enum: ['wsl', 'docker', 'ssh'], description: 'execution boundary — omit for the host shell' },
+        sandbox_distro: { type: 'string', description: 'WSL distribution name (default distro when omitted)' },
+        sandbox_image: { type: 'string', description: 'docker image (default debian:bookworm-slim)' },
+        sandbox_target: { type: 'string', description: 'ssh target user@host[:port]' },
+        remote_dir: { type: 'string', description: 'remote working directory for ssh (default ~)' },
+        sandbox_key: { type: 'string', description: 'ssh identity file path' },
+        worktree: { type: 'boolean', description: 'run inside a detached git worktree (local jobs only)' },
+      },
+      required: ['command'],
+    },
+    promptSnippet: 'job_spawn(command, [sandbox]): run a command as a durable job — wsl/docker/ssh execution boundary optional',
+    async execute(_toolCallId, params) {
+      const command = String(params.command ?? '').trim();
+      if (!command) return jobText('job_spawn requires a command', { isError: true });
+      const timeoutMin = Number(params.timeout_minutes);
+      const r = await executor.spawnCommandJob({
+        command,
+        workdir: workdir ?? process.cwd(),
+        jobType: 'shell_command',
+        budgetScope: getScope?.() ?? null,
+        timeoutMs: Number.isFinite(timeoutMin) && timeoutMin > 0 ? Math.round(Math.min(timeoutMin, 24 * 60) * 60_000) : null,
+        worktree: params.worktree === true,
+        sandbox: params.sandbox
+          ? {
+              kind: String(params.sandbox),
+              image: params.sandbox_image ?? null,
+              target: params.sandbox_target ?? null,
+              dir: params.remote_dir ?? null,
+              key: params.sandbox_key ?? null,
+              distro: params.sandbox_distro ?? null,
+            }
+          : null,
+      });
+      if (r.refused) return jobText(`job_spawn refused: ${r.reason}`, { isError: true });
+      return jobText(
+        `job ${r.job_id} spawned (attempt ${r.attempt_id})` +
+        `${params.sandbox ? ` under ${params.sandbox}` : ''} — ` +
+        `survives restarts; poll job_status ${r.job_id} for output`,
+        { job_id: r.job_id, attempt_id: r.attempt_id },
+      );
+    },
+  };
 }

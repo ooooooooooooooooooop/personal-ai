@@ -1,0 +1,183 @@
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"v1.1.0: 10s of thousands of training trajectories"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"We're very excited to announce our new project SWE-smith, generating 10s of thousands of training trajectories for SWE agents."}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Using this training data, our LM SWE-agent-LM-32b achieves open-weights SotA on SWE-bench verified with SWE-agent!"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Apart from that, v1.1.0 is mostly a fix release with minor improvements, in particular adding compatibility with SWE-bench multilingual/multimodal, and SWE-smith. However, please pay attention to the breaking changes below."}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Breaking changes"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Changes to trajectory data format. The messages field is replaced by query"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Renamed many tool bundles that used \"windowed\" file viewer (defaults and more)"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Removed review_on_submit tool bundle (replaced by review_on_submit_m)"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Change in windowed tools (formerly default): Don't append \\n to new file"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"New dataset support:"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Feat: Support multilingual evaluation"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Feat: SWE-smith & multimodal base support"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"New utilities:"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Feat: Add quick-stats tool"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Enhanced"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Feat: Config/override max_output_tokens"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Enh: [#1042] fix(run_batch): handle JSON parsing errors in trajectory check"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Enh: Allow to override tools dirs etc."}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Enh: Allow to override path to swe-bench dataset"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Enh: Allow to disable python-standalone for batch"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Enh: More information on skipped exit status"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Setting max_input_tokens to 0"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Explicitly set log file encoding"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Ensure pydantic-settings env prefix set"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: run batch processing with modal"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Catch exit forfeit"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Use 'latest' image tag for SWE-Bench images"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Show tenacity retry reasons"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Compatibility with textual 2.0"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Use default trajectories dir according to ENV"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: fix Windows path error, replace Path with PurePosixPath or string"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Ensure tools PATH takes precedence"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Ensure state exists"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix spelling of 'agent' in hello world"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Inspector needs to handle new message format"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: SWEBenchInstances with path and no subset initiated as other instance type"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Token limit exceeded for PR body issue"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Work around litellm claude 3.7 tokens to 128k"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix(repo): Ensure absolute path for copy repo"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix execution time timeouts"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Hierarchical merge of multiple configs"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"fix message type missing"}
+{"tag":"v1.1.0","date":"2025-05-22","section":null,"item":"Fix: Conditional for warning about empty template"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"SWE-agent 1.0.1"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"News: After our announcements for SOTA on SWE-Bench Lite and Verified, we now can claim SOTA on the full  set of 2k GitHub issues of SWE-Bench full:"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Interestingly, the improvement on the issues that are not also in the Lite/Verified subsets is much higher than the gain for the Lite/Verified subsets. Evaluating only on Lite/Verified doesn’t tell the whole story! -"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"This fixup release brings fixes mostly to the compatibility with local models. We have also significantly expanded the documentation in that aspect (models & keys documentation)."}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Change: Make anthropic_filemap the new default config"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Enh: Set timeout for post_startup_commands"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Enh: Allow to override max_input_tokens for local models"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Handling local models cost lookup issues"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Requires-python >= 3.11"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"traj inspector viewport reset"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Reset viewport when next/prev step/traj"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Disable highlighting of model outputs"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Create PRs"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Add init,py to agent/hooks"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Pin textual to version 1.0.0"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: OpenAI API: Don't pass None tool_calls to the OpenAI API"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Forces platform to be linux/amd64 for swe-bench batch runs"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix \"TypeError: Cannot read properties of null (reading 'replace')\" in Trajectory viewer"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: No retries if costs cannot be calculated"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Race condition/size change during iteration"}
+{"tag":"v1.0.1","date":"2025-02-28","section":null,"item":"Fix: Handle total cost limit exceeded"}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"SWE-agent 1.0"}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"So much new stuff! Here's a quick rundown of the cool new things you can do:"}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ Fast, massively parallel code execution with SWE-ReX."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ Run SWE-agent locally but execute code in the cloud (using modal, AWS, or anything else that runs SWE-ReX)."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ Configurable retry mechanisms: Try multiple agent configurations, models, parameters, etc., then choose the best one."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ Flexible tool definitions with tool bundles."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ All language models supported using litellm (see models)."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ Override any configuration option from the command line (see command line basics)."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ New command line trajectory inspector to scroll few hundreds of trajectories with ease."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ New command line interface with subcommands for running over single issues, batches, and various utility commands."}
+{"tag":"v1.0.0","date":"2025-02-13","section":null,"item":"✨ Greatly simplified and cleaned up codebase. In particular, the Agent class is now much easier to modify."}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"SWE-agent is SOTA on offensive cybersecurity"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"SWE-agent EnIGMA (Enhanced Interactive Generative Model Agent) is SOTA on offensive cybersecurity challenges, with a 3.3x improvement over previous agents on the NYU CTF challenge dataset. The EnIGMA project introduces multiple novelties that are available to all use cases of SWE-agent, such as Interactive Agent Tools and a Summarizer to handle long outputs."}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Major additions"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Capability to run over CTF challenges"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Interactive Agent Tools, including gdb"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Summarizers to handle long outputs"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Smaller additions"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Add filemap command in the spirit of repomap"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Create config to run human eval style challenges"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Add claude 3.5 sonnet to models"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Enh: Warn if scrolling >= 3 times"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"feat: support deepseek-coder LLM"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Enh: Make timeout for agent commands configurable"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Add support for new gpt-4o-mini model"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Groq Models Integration"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Make log level configurable; add TRACE level"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Compatibility with SWE-bench 2.0"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"ensure variables work in special command docstring"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Important fix: Catch CostLimitExceeded in retry because of format/block"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Handle empty traj in should_skip"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix for end-marker communicate: Exit status always 0/invalid"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Insufficient quoting of git commit message"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix nonsensical trajectory formatting for PRs"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: sweunexpected keyword 'python_version'"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Use LONG_TIMEOUT for pre_install commands"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: UnboundLocalError when catching decoding issue"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Also create empty patch files for completeness"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Raise ContextWindowExceeded instead of exit_cost"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Deal with non-utf8 encoded bytes in comm"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Handle spaces in repo names"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Ensure utils is part of package"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Submitting ' ' in human mode crashes container"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: Block su as command"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"Fix: SWE_AGENT_MODEL_MAX_RETRIES needs casting"}
+{"tag":"v0.7.0","date":"2024-09-25","section":null,"item":"🎉 @talorabr, @udiboy1209, @haoranxi, @NickNameInvalid, @rollingcoconut joined the team to build EnIGMA 🎉"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"This is (mostly) a patch release, in particular fixing several issues that had been introduced by the speed improvements of v0.7.0."}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"We also solve a bug where existing linter errors in a file left SWE-agent unable to edit (because of our lint-retry-loop)."}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Change: sparse clone method is now correctly called \"shallow\""}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Improved"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Enh: Show commands when encountering timeout error"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Enh: Configuration option to show time in log"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Enh: Allow to configure LONG_TIMEOUT for SWEEnv"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Enh: Always write log to traj directory"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"fix docker.errors.NotFound"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Fix: Revert to full clone method when needed"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Fix: Refresh container_obj before querying status"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Fixed #571 - show message that model arg is ignored in case of using Azure OpenAI"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Fix: Linting blocks for existing lint errors"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"Fix: Process done marker not found in read with timeout"}
+{"tag":"v0.6.1","date":"2024-06-20","section":null,"item":"jank and klieret"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"We sped up SWE-agent by 2x (timed with GPT4o). This is mostly due to faster communication with the running processes inside of the Docker container and other container setup & installation related improvements. Here are a few relevant PRs:"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Switch to fast communicate and shallow clone by default"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Change: Only wait 1s for docker to start"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Feat: experimental shallow cloning"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Enh: Start from clone of python conda environment for speedup"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Enh: Use uv for editable install by default"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Web UI: Remove -n option to wait"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Web UI: Kill the Flask server on exit."}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Web UI: Avoid proxy errors on MacOS"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Ensure container_name is reset for non-persistent containers"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Fix: Do not allow persistent container with cache task imgs"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Improve scrolling behavior in web UI"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Web UI: Render Markdown in agent feed messages."}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Enh: Remove redundant 'saved traj to X' messages"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Allow to disable config dump to log"}
+{"tag":"v0.6.0","date":"2024-06-05","section":null,"item":"Resolve relative paths to demonstrations and commands"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"✨ The big news is our brand new documentation ✨"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Secondly, @ollmer added a new flag --cache_task_images that will significantly speed up SWE-agent when running on the same environment/repository multiple times (no more waiting for cloning and installation!)"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"We have reformatted our codebase. If you create a PR based on a previous commit, make sure you install our pre-commit hook to avoid merge-conflicts because of formatting. See our docs for more information."}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Remove direct imports in __init__.py (you can no longer from sweagent import Agent"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Running the web UI is now supported when running swe-agent completely in docker"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Speed up evaluation by caching task environments as docker images"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Add gpt-4o model"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Web: Allow to specify commit hash"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Add default environment_setup config"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Enh: Suppress openai logging; improve formatting of stats"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Remove signal dependency"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Do not use select if running on Windows"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Use custom Config class to support env and keys.cfg (this allows passing keys as environment variables)"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Web: Fix script_path input"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Fix: Don't print patch msg for exit_cost patch"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Fix: Do not request job control in bash"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Fix: --base_commit not used for gh urls"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Fix: Separate data path/traj dir cause exception"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Add docker-py lower bound"}
+{"tag":"v0.5.0","date":"2024-05-28","section":null,"item":"Fix: IndexError when replaying incomplete trajectories"}
+{"tag":"v0.4.0","date":"2024-05-09","section":null,"item":"We’re excited to launch the SWE-agent web UI! Specify a bug, press start and watch SWE-agent do the magic ✨"}
+{"tag":"v0.4.0","date":"2024-05-09","section":null,"item":"vilkinsons, RainRat, and tamdogood"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"✨ Features"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Run SWE-agent in the cloud using GitHub Codespaces"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Add GPT4-turbo model"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"feat: Amazon Bedrock support (Claude models)"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"🐛 Fixes"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Better error handling for --open_pr"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Fixed a potential error"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"fix: TARGETARCH not set on some OS/docker setups"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Pass Python version to get_environment_yml"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Fix Together model validation error"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"Doc: Avoid invalid github token"}
+{"tag":"v0.3.0","date":"2024-05-02","section":null,"item":"❤️ New Contributors"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Allow to run on local repos (new flag: --repo_path)"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Patch files are now saved separately to a patch directory"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Allow to supply custom installation commands when running on gh issues or locally (--environment_setup)"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Allow to specify openapi base url in keys.cfgby @bvandorf"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Improve error handling of docker issues"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Make github token fully optional"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Fix opening PR from fork"}
+{"tag":"v0.2.0","date":"2024-04-15","section":null,"item":"Fix: Choosing TogetherAI models"}

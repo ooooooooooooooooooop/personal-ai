@@ -29,6 +29,7 @@ import { PredictionStore } from '../../host/src/core/prediction.js';
 import { loadPolicy } from '../../host/src/core/policy.js';
 import { eligible } from '../../host/src/core/eligibility.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
+import { PaiIgnore } from '../../host/src/core/paiignore.js';
 import { REQUIRED_BODY_CAPABILITIES } from '../../pi/src/bootstrap/facts.js';
 
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
@@ -74,6 +75,29 @@ export class BodySupervisor {
   }
 
   #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
+
+  /* Session pin/archive (product metadata, body-agnostic): keyed by session
+   * file path so it works for pi AND dsh sessions. Decorated onto
+   * session_list results — the body never sees it. */
+  #sessMetaPath() { return join(this.instanceRoot, 'session-meta.json'); }
+
+  #sessMeta() {
+    try { return JSON.parse(readFileSync(this.#sessMetaPath(), 'utf-8')); }
+    catch { return {}; }
+  }
+
+  #saveSessMeta(meta) {
+    try { writeFileSync(this.#sessMetaPath(), JSON.stringify(meta, null, 2)); } catch { /* best-effort */ }
+  }
+
+  #setSessMeta(path, patch) {
+    if (!path) return null;
+    const meta = this.#sessMeta();
+    meta[path] = { ...(meta[path] ?? {}), ...patch };
+    this.#saveSessMeta(meta);
+    this.audit.write({ kind: 'SESSION_META', data: { path, ...patch } });
+    return meta[path];
+  }
 
   /* Workspace registry (U9) — remembered project roots the operator can
    * switch between. Switching still goes through set_workdir's respawn
@@ -489,6 +513,8 @@ export class BodySupervisor {
         }
         case 'files_list': {
           // @-reference picker: bounded recursive walk of the workdir.
+          // .paiignore entries are pruned — excluded names never reach the picker.
+          const ignore = new PaiIgnore(this.workdir);
           const prefix = String(cmd.prefix ?? '').toLowerCase();
           const out = [];
           const skip = new Set(['.git', 'node_modules', '.venv', 'venv', 'dist', '.taskflow']);
@@ -500,6 +526,7 @@ export class BodySupervisor {
               if (out.length >= 500) return;
               if (e.name.startsWith('.') && e.name !== '.') continue;
               const r = rel ? `${rel}/${e.name}` : e.name;
+              if (ignore.isIgnored(join(this.workdir, r))) continue;
               if (e.isDirectory()) { if (!skip.has(e.name)) walk(join(dir, e.name), r); }
               else out.push(r);
             }
@@ -522,10 +549,67 @@ export class BodySupervisor {
             ? realAbs.toLowerCase().startsWith(wd.toLowerCase() + sep)
             : realAbs.startsWith(wd + sep);
           if (!inside) return reply(false, undefined, 'path escapes workdir');
+          if (new PaiIgnore(this.workdir).isIgnored(abs)) {
+            return reply(false, undefined, `'${rel}' is excluded by .paiignore`);
+          }
           const st = statSync(abs);
           if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
           if (st.size > 512 * 1024) return reply(false, undefined, `file too large for inline attach (>512KB): ${rel}`);
           return reply(true, { path: rel, content: readFileSync(abs, 'utf-8'), bytes: st.size });
+        }
+        case 'session_pin': {
+          const m = this.#setSessMeta(String(cmd.path ?? ''), { pinned: cmd.pinned !== false });
+          return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_pin requires {path}');
+        }
+        case 'session_archive': {
+          const m = this.#setSessMeta(String(cmd.path ?? ''), { archived: cmd.archived !== false });
+          return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_archive requires {path}');
+        }
+        // ZCode auto-archive candidates, one-click form: archive every
+        // unpinned, unarchived session idle longer than {days} (default 14).
+        // Reversible via unarchive — sweep never deletes.
+        case 'session_sweep': {
+          const days = Number(cmd.days) > 0 ? Number(cmd.days) : 14;
+          const cutoff = Date.now() - days * 86400_000;
+          const r = await this.sendToBody({ type: 'session_list' });
+          if (!r.success || !Array.isArray(r.data)) return r;
+          const meta = this.#sessMeta();
+          const swept = [];
+          for (const s of r.data) {
+            if (meta[s.path]?.pinned || meta[s.path]?.archived) continue;
+            const idle = Date.parse(s.modified ?? s.created ?? '');
+            if (Number.isFinite(idle) && idle < cutoff) {
+              this.#setSessMeta(s.path, { archived: true });
+              swept.push(s.path);
+            }
+          }
+          return reply(true, { swept: swept.length, paths: swept, days });
+        }
+        // ZCode archived-bulk-delete analogue: permanently delete every
+        // archived, unpinned session. Irreversible — the caller (UI) confirms.
+        case 'session_purge': {
+          const r = await this.sendToBody({ type: 'session_list' });
+          if (!r.success || !Array.isArray(r.data)) return r;
+          const meta = this.#sessMeta();
+          const purged = [];
+          const failed = [];
+          for (const s of r.data) {
+            const m = meta[s.path];
+            if (!m?.archived || m?.pinned) continue;
+            const d = await this.sendToBody({ type: 'session_delete', path: s.path });
+            if (d.success) { purged.push(s.path); delete meta[s.path]; }
+            else failed.push(s.path);
+          }
+          if (purged.length) this.#saveSessMeta(meta);
+          return reply(true, { purged: purged.length, paths: purged, failed });
+        }
+        case 'session_list': {
+          const r = await this.sendToBody(cmd);
+          if (r.success && Array.isArray(r.data)) {
+            const meta = this.#sessMeta();
+            r.data = r.data.map((s) => ({ ...s, ...(meta[s.path] ?? {}) }));
+          }
+          return r;
         }
         case 'macro_list':
           return reply(true, { macros: this.#macros() });

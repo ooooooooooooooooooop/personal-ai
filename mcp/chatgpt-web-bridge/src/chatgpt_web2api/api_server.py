@@ -18,7 +18,7 @@ import uuid
 from aiohttp import web
 
 from .breakers import BreakerKind, BreakerRegistry, CircuitOpenError
-from . import conv_binding
+from . import conv_binding, send_receipts
 from .cdp_driver import (
     AuthExpiredError,
     CDPDriver,
@@ -88,6 +88,7 @@ class APIServer:
         self.app.router.add_post("/chat/completions", self._handle_chat)
         self.app.router.add_get("/v1/models", self._handle_models)
         self.app.router.add_get("/v1/projects", self._handle_projects)
+        self.app.router.add_get("/v1/send-status", self._handle_send_status)
         self.app.router.add_get("/health", self._handle_health)
         self.app.router.add_get("/", self._handle_health)
 
@@ -118,9 +119,7 @@ class APIServer:
         The old version returned ``"waiting"`` when CDP was disconnected, which
         is indistinguishable from "freshly started, connecting now" — a zombie
         process (HTTP listener up, CDP never connected) reported the same
-        status as a healthy one. This version distinguishes four states:
-
-        - ``starting``: listener up, driver not yet connected, never served
+        status as a healthy one. Readiness is independent of request history:
         - ``healthy``: Chrome alive AND driver connected
         - ``degraded``: Chrome alive but driver disconnected (zombie/recovering)
         - ``broken``: Chrome itself unreachable
@@ -160,18 +159,16 @@ class APIServer:
             status = "broken"
         elif not driver_connected:
             status = "degraded"
-        elif self._last_successful_send_at is None and self._request_count == 0:
-            status = "starting"
         else:
             status = "healthy"
 
-        # An open breaker can only DOWNGRADE starting|healthy -> degraded. It
+        # An open breaker can only DOWNGRADE healthy -> degraded. It
         # must never override "broken" (Chrome down is a harder failure than a
         # tripped circuit) and never force "broken" — auth_required is serious,
         # but "broken" invites a destructive supervisor restart, while
         # "degraded" correctly signals "up but refusing some/all traffic". A
         # disconnect-degraded stays degraded (not worse).
-        if status in ("starting", "healthy") and self._breakers.first_open() is not None:
+        if status == "healthy" and self._breakers.first_open() is not None:
             status = "degraded"
 
         # Current-state summary, distinct from the historical/latching last_error.
@@ -180,6 +177,10 @@ class APIServer:
         return web.json_response(
             {
                 "status": status,
+                "ready": status == "healthy",
+                "usage_state": "unused" if self._request_count == 0 else "used",
+                "build": send_receipts.BUILD_ID,
+                "readiness_scope": "transport",
                 "chrome_running": chrome_running,
                 "cdp_connected": driver_connected,
                 "driver_connected": driver_connected,
@@ -236,6 +237,55 @@ class APIServer:
         return web.json_response({"object": "list", "data": projects})
 
     async def _handle_chat(self, request: web.Request) -> web.Response:
+        if err := self._check_auth(request):
+            return err
+        try:
+            body = await request.json()
+        except (ValueError, TypeError):
+            return await self._handle_chat_impl(request)
+        if not isinstance(body, dict):
+            return web.json_response({"error": {"message": "Expected a JSON object"}}, status=400)
+        operation_id = request.headers.get("Idempotency-Key") or body.get("operation_id")
+        logical = {k: v for k, v in body.items() if k not in {"confirm", "operation_id", "stream"}}
+        logical["tool"] = "rest_chat_completion"
+        logical.setdefault("model", self._config.chatgpt.default_model)
+        logical["project_id"] = (body.get("project_id") or body.get("gizmo_id")
+                                 or (body.get("metadata") or {}).get("project_id")
+                                 or self._config.chatgpt.default_project_id)
+
+        async def action():
+            response = await self._handle_chat_impl(request)
+            receipt = send_receipts.current()
+            if isinstance(response, web.Response) and receipt is not None and not response.prepared:
+                record = send_receipts.get(receipt.operation_id)
+                if record["state"] == "preparing":
+                    record = receipt.mark(state="not_sent")
+                if response.content_type == "application/json":
+                    data = json.loads(response.body)
+                    data["operation_id"] = receipt.operation_id
+                    data["send_receipt"] = send_receipts.public_record(record)
+                    response.body = json.dumps(data, ensure_ascii=False).encode()
+                response.headers["X-Operation-ID"] = receipt.operation_id
+            return response
+
+        try:
+            return await send_receipts.run(logical, operation_id, action)
+        except send_receipts.SendAlreadyRecorded as exc:
+            return web.json_response({"error": str(exc), "send_receipt": exc.receipt}, status=409)
+        except (send_receipts.SendConflictError, ValueError) as exc:
+            return web.json_response({"error": str(exc)}, status=409)
+
+    async def _handle_send_status(self, request):
+        if err := self._check_auth(request):
+            return err
+        from .mcp_server import do_get_send_status
+
+        return web.json_response(await do_get_send_status(self._driver, {
+            "operation_id": request.query.get("operation_id"),
+            "refresh": request.query.get("refresh", "false").lower() == "true",
+        }))
+
+    async def _handle_chat_impl(self, request: web.Request) -> web.Response:
         if err := self._check_auth(request):
             return err
 
@@ -514,6 +564,13 @@ class APIServer:
         - Everything else stays a 500 ``server_error`` (a real failure, not
           retriable).
         """
+        from .navigation import NavigationError
+
+        if isinstance(exc, NavigationError):
+            return web.json_response({"error": {
+                "message": str(exc), "type": "navigation_failed", "code": exc.reason,
+                "stage": exc.stage, "evidence": exc.evidence,
+            }}, status=503)
         if isinstance(exc, (RateLimitError, ReadThrottledError)):
             retry_after = str(int(exc.retry_after))
             error = {
@@ -747,6 +804,8 @@ class APIServer:
         resp.content_type = "text/event-stream"
         resp.headers["Cache-Control"] = "no-cache"
         resp.headers["Connection"] = "keep-alive"
+        if receipt := send_receipts.current():
+            resp.headers["X-Operation-ID"] = receipt.operation_id
         await resp.prepare(request)
 
         cid = f"chatcmpl-{uuid.uuid4().hex[:29]}"

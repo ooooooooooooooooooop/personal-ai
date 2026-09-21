@@ -17,9 +17,14 @@
  *   approvals + questions (mux answerable frames) → PendingAsks → UI cards →
  *   /api/respond — the same operator surface governs both bodies.
  *
- * Not in D1 (fail closed, not faked): session_compact/entries/rewind/stats/
- * export, fileops, handoff, jobs. HostChannel reports them 'unavailable'
- * rather than pretending DSH speaks host durability yet.
+ * U1 projection: session/jobs + session/projection frames are captured and
+ * surfaced read-only through job_list/get_state — the body's own durable
+ * jobs and goal tree become visible in the task center. Cancel/lease stay
+ * unimplemented (fail closed).
+ *
+ * Still not projected (fail closed, not faked): session_compact/entries/
+ * rewind/stats/export, fileops, handoff. HostChannel reports them
+ * 'unavailable' rather than pretending DSH speaks host durability yet.
  */
 import { HostChannel } from '../../host/src/core/channel.js';
 import { PendingAsks } from '../../host/src/core/asks.js';
@@ -103,6 +108,8 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
     pendingThink: new Map(),
     todos: [],
     model: null, // last observed selection (session.models refresh)
+    jobs: [], // last session/jobs frame, normalized to job_list rows
+    projection: null, // last session/projection frame (goal/subagent tree)
   };
 
   const asks = new PendingAsks({});
@@ -289,8 +296,25 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
         const p = frame.payload;
         if (p?.type === 'session/event') onSessionEvent(p.sessionId, p.event, p.view);
         else if (p?.type === 'approval/requested' || p?.type === 'question/requested') onAnswerableFrame(frame);
-        else if (p?.type === 'session/queue' || p?.type === 'session/jobs' || p?.type === 'session/projection' || p?.type === 'session/subscribed') {
-          // projection/queue/job frames are D2+ surfaces — ignore for D1
+        else if (p?.type === 'session/jobs') {
+          // U1: project the body's own durable jobs into job_list rows.
+          const items = Array.isArray(p.jobs) ? p.jobs : Array.isArray(p.items) ? p.items : [];
+          state.jobs = items
+            .map((j) => ({
+              job_id: String(j.job_id ?? j.id ?? ''),
+              job_type: j.job_type ?? j.type ?? j.kind ?? 'dsh',
+              job_state: j.job_state ?? j.state ?? j.status ?? '',
+              updated_at: j.updated_at ?? j.updatedAt ?? null,
+              command: j.command ?? j.label ?? null,
+            }))
+            .filter((j) => j.job_id);
+          emit({ type: 'jobs_changed' });
+        } else if (p?.type === 'session/projection') {
+          // U1: goal/subagent tree — exposed via get_state + projection event.
+          state.projection = p.projection ?? p;
+          emit({ type: 'projection', projection: state.projection });
+        } else if (p?.type === 'session/queue' || p?.type === 'session/subscribed') {
+          // queue/subscribe bookkeeping — no UI surface
         }
       },
       onClose: () => {
@@ -330,6 +354,7 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
       thinkingLevel: null,
       session: { id: state.sessionId, name: null, file: null },
       contextUsage: null,
+      projection: state.projection,
     }),
     subscribe: (listener) => {
       uiListeners.add(listener);
@@ -440,12 +465,26 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
 
   const todosFacade = { list: async () => state.todos };
 
+  // Read-only projection of the body's own durable jobs (session/jobs frames).
+  // cancel/attempts/lease stay unimplemented — job_cancel fails closed rather
+  // than pretending we can kill DSH-side work.
+  const jobsFacade = {
+    listRecent: (n) =>
+      [...state.jobs]
+        .sort((a, b) => String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? '')))
+        .slice(0, n ?? 20),
+    getJob: (id) => state.jobs.find((j) => j.job_id === id) ?? null,
+    getAttempts: () => [],
+    getLease: () => null,
+  };
+
   const channel = new HostChannel({
     session: sessionFacade,
     sessions: sessionsFacade,
     models: modelsFacade,
     bodies: bodiesFacade,
     todos: todosFacade,
+    jobs: jobsFacade,
     asks,
   });
 

@@ -2,6 +2,9 @@
  * PendingAsks — the operator-in-the-loop surface behind policy 'ask' rules.
  * Every unresolved path must resolve to a refusal; nothing may stay suspended.
  */
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PendingAsks } from '../src/core/asks.js';
@@ -160,6 +163,111 @@ test('abortPending refuses open asks but keeps listeners (session rebuild)', asy
   // listeners survive — a new ask still emits
   const p2 = asks.ask(desc());
   assert.equal(events.filter((e) => e.type === 'governance_ask').length, 2);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+});
+
+test("'always' persists {tool,command} to alwaysPath and auto-allows across restart", async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  const p = asks.ask(desc({ args: { command: 'git status' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  assert.equal(await p, 'always');
+  // exact command auto-allows; different command still asks
+  assert.equal(await asks.ask(desc({ args: { command: 'git status' } })), 'allow');
+  const p2 = asks.ask(desc({ toolCallId: 'tc-3', args: { command: 'git push' } }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+  // restart: persisted entries survive
+  const asks2 = new PendingAsks({ timeoutMs: 5000 }, path);
+  assert.equal(await asks2.ask(desc({ args: { command: 'git status' } })), 'allow');
+});
+
+test("'always' refused on truncated payload; deny cascades same tool:arg for the session", async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask(desc({ args: { command: 'x' }, argsTruncated: true }));
+  const r = asks.resolve(asks.list()[0].id, 'always');
+  assert.equal(r.ok, false);
+  assert.match(r.error, /truncated/);
+  asks.resolve(asks.list()[0].id, 'allow');
+
+  // deny cascade: deny once → same tool:command refused without re-asking
+  const d1 = asks.ask(desc({ args: { command: 'rm -rf build' } }));
+  asks.resolve(asks.list()[0].id, 'deny');
+  assert.equal(await d1, 'deny');
+  assert.equal(await asks.ask(desc({ toolCallId: 'tc-9', args: { command: 'rm -rf build' } })), 'deny');
+  assert.equal(asks.list().length, 0); // never even opened a card
+  // different args still get their own card
+  const d2 = asks.ask(desc({ toolCallId: 'tc-10', args: { command: 'rm -rf other' } }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await d2;
+});
+
+test('ASK_RESOLVED audit row lands per resolution (stats outcome trail)', async () => {
+  const { AuditWriter } = await import('../src/core/audit.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-askres-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const asks = new PendingAsks({ audit, timeoutMs: 50 });
+  const p = asks.ask({ toolName: 'bash', args: { command: 'ls' } });
+  const pend = asks.list()[0];
+  asks.resolve(pend.id, 'deny');
+  const ans = await p;
+  assert.equal(ans, 'deny');
+  const rows = readFileSync(readdirSync(join(dir, 'audit')).map((f) => join(dir, 'audit', f))[0], 'utf-8')
+    .split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const r = rows.find((e) => e.kind === 'ASK_RESOLVED');
+  assert.equal(r.toolName, 'bash');
+  assert.equal(r.data.answer, 'deny');
+  assert.equal(r.data.kind, 'approval');
+});
+
+test('edited approval: object answer carries edited args, deny cannot edit', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask({ toolName: 'bash', args: { command: 'rm -rf a' } });
+  const pend = asks.list()[0];
+  // deny + edit is meaningless → refused
+  const bad = asks.resolve(pend.id, { answer: 'deny', edited: { command: 'rm -rf b' } });
+  assert.equal(bad.ok, false);
+  // editing a key not present in the card args → refused (no arg injection)
+  const bad2 = asks.resolve(pend.id, { answer: 'allow', edited: { url: 'x' } });
+  assert.equal(bad2.ok, false);
+  // allow + edited command → resolves the object
+  const ok = asks.resolve(pend.id, { answer: 'allow', edited: { command: 'rm -rf a' } });
+  assert.equal(ok.ok, true);
+  const ans = await p;
+  assert.deepEqual(ans, { answer: 'allow', edited: { command: 'rm -rf a' } });
+});
+
+test('edited approval refused on truncated payloads', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask({ toolName: 'bash', args: { command: 'x'.repeat(50) }, argsTruncated: true });
+  const pend = asks.list()[0];
+  const r = asks.resolve(pend.id, { answer: 'allow', edited: { command: 'ls' } });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /truncated/);
+  // still pending — resolve normally so the ask doesn't linger
+  asks.resolve(pend.id, 'deny');
+  await p;
+});
+
+test('grantSession: operator-issued session grant unblocks later asks (request_permission)', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  asks.grantSession('bash');
+  assert.deepEqual(asks.sessionAllows(), ['bash']);
+  // granted tool passes without a card; ungranted still suspends
+  assert.equal(await asks.ask({ toolName: 'bash', args: { command: 'ls' } }), 'allow');
+  const p = asks.ask(desc({ toolName: 'write_file' }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p;
+  // grant does not survive a session rebuild
+  asks.resetSession();
+  const p2 = asks.ask({ toolName: 'bash', args: { command: 'ls' } });
+  assert.equal(asks.list().length, 1);
   asks.resolve(asks.list()[0].id, 'deny');
   await p2;
 });

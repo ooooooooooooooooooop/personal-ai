@@ -1,0 +1,191 @@
+[
+  {
+    "slug": "codex-cli",
+    "repo": "openai/codex",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 400,
+    "changelogFile": null,
+    "truncated": true
+  },
+  {
+    "slug": "gemini-cli",
+    "repo": "google-gemini/gemini-cli",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 400,
+    "changelogFile": null,
+    "truncated": true
+  },
+  {
+    "slug": "opencode",
+    "repo": "anomalyco/opencode",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 400,
+    "changelogFile": null,
+    "truncated": true
+  },
+  {
+    "slug": "mistral-vibe",
+    "repo": "mistralai/mistral-vibe",
+    "kind": "gh-html",
+    "pages": 9,
+    "approxReleaseRefs": 89,
+    "changelogFile": "main/CHANGELOG.md 78378B",
+    "truncated": false
+  },
+  {
+    "slug": "pi",
+    "repo": "earendil-works/pi",
+    "kind": "gh-html",
+    "pages": 27,
+    "approxReleaseRefs": 261,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "openclaw",
+    "repo": "openclaw/openclaw",
+    "kind": "gh-html",
+    "pages": 25,
+    "approxReleaseRefs": 245,
+    "changelogFile": "main/CHANGELOG.md 16092B",
+    "truncated": false
+  },
+  {
+    "slug": "hermes",
+    "repo": "NousResearch/hermes-agent",
+    "kind": "gh-html",
+    "pages": 4,
+    "approxReleaseRefs": 34,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "aider",
+    "repo": "Aider-AI/aider",
+    "kind": "gh-html",
+    "pages": 10,
+    "approxReleaseRefs": 93,
+    "changelogFile": "main/HISTORY.md 77025B",
+    "truncated": false
+  },
+  {
+    "slug": "openhands",
+    "repo": "All-Hands-AI/OpenHands",
+    "kind": "gh-html",
+    "pages": 14,
+    "approxReleaseRefs": 140,
+    "changelogFile": "main/CHANGELOG.md 1093B",
+    "truncated": false
+  },
+  {
+    "slug": "mini-swe-agent",
+    "repo": "SWE-agent/mini-swe-agent",
+    "kind": "gh-html",
+    "pages": 7,
+    "approxReleaseRefs": 65,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "goose",
+    "repo": "block/goose",
+    "kind": "gh-html",
+    "pages": 16,
+    "approxReleaseRefs": 152,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "cline",
+    "repo": "cline/cline",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 400,
+    "changelogFile": "main/CHANGELOG.md 133085B",
+    "truncated": true
+  },
+  {
+    "slug": "roo-code",
+    "repo": "RooCodeInc/Roo-Code",
+    "kind": "gh-html",
+    "pages": 29,
+    "approxReleaseRefs": 281,
+    "changelogFile": "main/CHANGELOG.md 196053B",
+    "truncated": false
+  },
+  {
+    "slug": "kimi-code",
+    "repo": "MoonshotAI/kimi-code",
+    "kind": "gh-html",
+    "pages": 8,
+    "approxReleaseRefs": 79,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "qwen-code",
+    "repo": "QwenLM/qwen-code",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 402,
+    "changelogFile": "main/CHANGELOG.md 855054B",
+    "truncated": true
+  },
+  {
+    "slug": "crush",
+    "repo": "charmbracelet/crush",
+    "kind": "gh-html",
+    "pages": 19,
+    "approxReleaseRefs": 196,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "kaos",
+    "repo": "canivel/kaos",
+    "kind": "gh-html",
+    "pages": 1,
+    "approxReleaseRefs": 4,
+    "changelogFile": "main/CHANGELOG.md 57531B",
+    "truncated": false
+  },
+  {
+    "slug": "continue",
+    "repo": "continuedev/continue",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 400,
+    "changelogFile": null,
+    "truncated": true
+  },
+  {
+    "slug": "swe-agent",
+    "repo": "SWE-agent/SWE-agent",
+    "kind": "gh-html",
+    "pages": 1,
+    "approxReleaseRefs": 10,
+    "changelogFile": null,
+    "truncated": false
+  },
+  {
+    "slug": "zed",
+    "repo": "zed-industries/zed",
+    "kind": "gh-html",
+    "pages": 40,
+    "approxReleaseRefs": 402,
+    "changelogFile": null,
+    "truncated": true
+  },
+  {
+    "slug": "gptme",
+    "repo": "gptme/gptme",
+    "kind": "gh-html",
+    "pages": 13,
+    "approxReleaseRefs": 127,
+    "changelogFile": null,
+    "truncated": false
+  }
+]

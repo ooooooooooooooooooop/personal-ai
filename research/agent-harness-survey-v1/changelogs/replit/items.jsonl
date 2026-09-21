@@ -1,0 +1,18 @@
+{"file":"changelog.html","version":null,"date":null,"section":null,"item":"September 18, 2026 - Replit"}
+{"file":"changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fetch the complete documentation index at: /llms.txt"}
+{"file":"changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Use this file to discover all available pages before exploring further."}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"What’s new"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Connect custom APIs to Agent"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Investigate with expanded audit logs"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Platform"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Connect custom APIs to Agent"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Pro and Enterprise teams can now use custom connectors in beta to connect Agent to APIs outside Replit’s integration library. Add an API endpoint and authentication, describe how Agent should use it, and start building with the services your team already relies on."}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Add a custom connector from the Integrations page."}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Learn more about custom connectors."}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Enterprise"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Investigate with expanded audit logs"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Audit logs now cover more than 65 additional events across projects, workspaces, deployments, account security, SSO and SCIM, connectors, secrets, and Agent activity. Enterprise account admins can use the broader event history for compliance, security investigations, and operational troubleshooting through the audit log portal and configured SIEM destinations."}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Learn more about audit logs."}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"YesNo"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Assistant"}
+{"file":"changelog.html","version":null,"date":null,"section":"​","item":"Responses are generated using AI and may contain mistakes."}

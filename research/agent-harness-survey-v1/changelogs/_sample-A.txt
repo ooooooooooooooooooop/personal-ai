@@ -1,0 +1,308 @@
+000|other|v0.74.0|d9acf86: feat(server): broadcast config changes to all connected clients (@meowgorithm)
+001|other|v3.12.0|Improve diff editing animation for large files
+002|other|%40continuedev%2Fopenai-adapters%401.14.0|formatting (ae9f874)
+003|other|?|CodeBuddy Code v2.37.18 Release | Tencent Cloud Code Assistant CodeBuddy – AI Code Editor
+004|other|?|●&nbsp;智能体能力分类分级管理，按需精细管控
+005|other|v0.208.4|Windows when? Windows now.
+006|other|rust-v0.58.0|#6466 — feat: add workdir to unified_exec (f01f2ec9e)
+007|other|v1.0.13|feat: add mode completion
+008|other|v1.25.0|Assistant messages with tool_calls now always include content field [#7076]
+009|other|%40continuedev%2Fopenai-adapters%401.16.0|add Mercury Apply endpoint support to Inception LLM (#7827) (d78fc99)
+010|other|v0.203.0-pre|Added support for the \c and \C query pattern items to control case-sensitivity in buffer search (#34762; thanks dinocosta)
+011|other|v0.1.10|chore(deps): bump gaxios from 6.7.1 to 7.1.1
+012|other|v0.2.0|feat(core): Cleanup after migrating tools.
+013|other|?|v0.3.241
+014|other|v1.12.0|Unreliable pricing tests removal #5207
+015|other|?|Do NOT touch any Kotlin code
+016|other|v1.18.0|Improved the tabular data preview by moving its settings into a popover, freeing more vertical space for the table. (#62812; thanks HalavicH)
+017|other|?|v2.130.0
+018|other|v0.24.0|? Misc (8)
+019|other|v0.35.0|// Before (hook)
+020|other|%40continuedev%2Fconfig-yaml%401.9.0|empty assistant message (5e773f5)
+021|other|v3.31.0|Testing platform coverage
+022|other|0.8.2|chore(deps-dev): bump typescript from 5.5.3 to 5.5.4 in /docs
+023|other|?|Download 1.12.36
+024|other|v1.1.28|Remove close delay on hover cards to prevent overlapping
+025|other|%40continuedev%2Fconfig-yaml%401.9.0|broekn tests (86d3c08)
+026|other|?|修复了若干和通知功能相关的问题。
+027|other|v0.147.2|Updated tree-sitter parsers for core languages (#4565).
+028|other|v2.0.0|Full migration guide
+029|other|?|Ctrl+R fuzzy search for inserting previous prompts into the input box.
+030|other|v2.0.0-beta5|Talk mode: continuous speech conversations (macOS/iOS/Android) with ElevenLabs TTS, reply directives, and optional interrupt-on-speech.
+031|other|v1.18.0|Documentation
+032|other|v0.211.4|Added support for colspan and rowspan for HTML tables. (#39898; thanks RemcoSmitsDev)
+033|other|v0.23.0|Workspace runtime ownership is now established as the daemon lifecycle boundary, ensuring runtime activity persists through workspace removal and shutdown. (#10
+034|other|v1.1.2|Increase default timeout to 30 seconds based on user feedback
+035|other|?|Download 1.12.25
+036|other|rust-v0.118.0|#15898 chore: move bwrap config helpers into dedicated module @viyatb-oai
+037|other|v3.17.0|Add custom highlight and hotkey suggestion when the assistant prompts to switch to Act mode
+038|other|v0.19.4|feat(loop): add autonomous mode for a bare /loop
+039|other|v2.3.0|System prompts rewritten for improved model behavior (3-phase Orient/Plan/Execute workflow, brevity rules)
+040|other|?|v0.3.171
+041|other|v0.7.8|Secure Database Delete Operations
+042|other|dsw-eas-manual-smoke-20260820-r2|Case trajectories: swe-bench-verified-dsw-eas-manual-smoke-20260820-r2-trajectories.tar.gz (1 cases)
+043|other|v2.0.0|What's new?
+044|other|v0.169.2|Typescript: Improved typescript-language-server completion details rendering
+045|other|v0.67.0|The server stores only aggregate per-version counters such as { "0.66.1": 3 }.
+046|other|v0.31.0|const allModels = modelRegistry.getAll();
+047|other|dsw-eas-full-20260813-r1|Case trajectories: swe-bench-verified-dsw-eas-full-20260813-r1-trajectories.tar.gz (0 cases)
+048|other|v1.1.53|feat(desktop): Stop Showing SessionSkeleton on New Workspace
+049|other|v1.1.69-vscode|chore: add unit tests for file click on codeblock
+050|other|%40continuedev%2Fllm-info%401.2.0|markdown rules and top level agents (1c43796)
+051|other|v3.10.3|Make partial file reads backwards-compatible with custom system prompts and give users more control over the chunk size
+052|other|v0.181.3-pre|Agent Beta: Added support for configuring a specific model for each AI-powered feature.
+053|other|v1.2.15-vscode|feat: resubmit overloaded errors
+054|other|v0.225.12|linux: Reduce crashes in the face of transient GPU errors
+055|other|?|v0.3.200
+056|other|?|修复 Windows 启动时因残留进程锁住数据库文件导致无法启动的问题
+057|other|rust-v0.99.0|#10762 nit: add DB version in discrepancy recording @jif-oai
+058|other|v0.3.7|Add support for job-control suspend (ctrl+z/SIGSTP).
+059|other|v0.3.0|Change the type of ToolResult.responseParts
+060|other|v0.31.1.dev20260406|v0.31.1.dev20260406
+061|other|?|下载 (388.5 MB)
+062|other|v0.9.5|docs: add link to action, IDE words
+063|other|?|● 华为云码道代码智能体企业级管理控制台上线，集中管控更省心
+064|other|v1.0.41-jetbrains|feat: prevent unsafe file reads
+065|other|%40continuedev%2Fopenai-adapters%401.12.0|improve org switching experience (ed52c87)
+066|other|v0.212.3|Improved monorepo virtual environment detection with Debugpy.
+067|other|?|● 码道VS Code/Jetbrain插件支持MacOS系统。
+068|other|v2026.5.12-beta.7|Config: serialize and retry semantic config mutations centrally, so concurrent commands can rebase safe changes instead of clobbering or hand-rolling command-lo
+069|other|v0.187.4|"diagnostics": {"button": false}
+070|other|rust-v0.121.0|#17709 [codex] Initialize ICU data for code mode V8 @pakrym-oai
+071|other|v1.2.7|Migrate read tool from Bun.file() to Filesystem module
+072|other|?|TRAE CN v3.3.19 版本正式发布。以下是变更细节：
+073|other|?|配额管理：支持设置企业Token总上限、单人Token上限、模型配额和团队配额，管控可细化到个人，帮助你控制成本、防止资源滥用。
+074|other|v3.22.0|Allowed commands import/export (thanks @catrielmuller!)
+075|other|v1.17.12|feat(app): new timeline header
+076|other|?|v2026.4.1-3April 8, 2026
+077|other|?|修复专家团任务未完成时异常终止且无法继续的问题
+078|other|v1.2.4-vscode|Display security warnings for potentially dangerous commands
+079|other|v0.5.0|lots else that wasn't done as PRs
+080|other|rust-v0.106.0|#12735 Enable request_user_input in Default mode @charley-oai
+081|other|?|Deutsch
+082|other|v1.2.7-vscode|feat: Add posthog continuous ai guide
+083|other|v0.10.0|refactor(core): Centralize 'write_todos_list' tool name
+084|other|v0.9.9|chore: housekeeping
+085|other|v0.46.0|New /ask <question> command to ask about your code, without making any edits.
+086|other|v0.74.0|Yes/No prompts now accept All/Skip as alias for Y/N even when not processing a group of
+087|other|rust-v0.118.0|#16141 codex-tools: extract collaboration tool specs @bolinfest
+088|other|v2026.2.17|Telegram: surface user message reactions as system events, with configurable channels.telegram.reactionNotifications scope. (#10075) Thanks @Glucksberg.
+089|other|v0.140.0-pre|Added gu/gU/g~ for changing case. (#12565).
+090|other|v1.16.0|docs: document OpenHands repository boundaries
+091|other|v0.8.20-vscode|8.20 - 2024-03-18
+092|other|rust-v0.58.0|#6580 — remove porcupine model slug (b1979b70a)
+093|other|v0.32.2.dev20260817|These are the release notes for gptme version v0.32.2.dev20260817.
+094|other|rust-v0.104.0|#12061 Chore: remove response model check and rely on header model for downgrade @shijie-oai
+095|other|%40continuedev%2Fopenai-adapters%401.25.0|better agent errors in settings agent section (#8198) (fbaec42)
+096|other|rust-v0.124.0|#18583 [3/4] Add executor-backed RMCP HTTP client @aibrahim-oai
+097|other|v1.30.0|Mesh binary management — download fresh binary on every start; kill mesh when Goose exits
+098|other|rust-v0.58.0|#6585 — copy for model migration nudge (305fe73d8)
+099|other|v1.0.46|Added rate limiting to zen functionality
+100|other|v0.34.0|feat(service-init): add optional local health probe (#3665) (2ccf2ff02)
+101|other|v0.19.12|feat(core): overhaul web_fetch — content fidelity, binary handling, security, and resilience (#7146) by @tanzhenxin
+102|other|v0.8.0|Disable tools
+103|other|v0.34.0|? Features (61)
+104|other|v0.7.0|This is a solid lil’ release that makes Crush on Windows way better and really matures how we're handling about the .crush dir. Read on!
+105|other|rust-v0.73.0|#8066 Update config.md
+106|other|v3.57.0|Codex-5.3 through ChatGPT subscription
+107|other|v0.119.3-pre|Restored call control styles to a similar look to Zed 1.
+108|other|%40continuedev%2Fopenai-adapters%401.24.0|add MentionFileInChatAction (7fb5935)
+109|other|v0.9.242-vscode|History will now show the current chat
+110|other|v0.31.0|Aider is now also AI pair programming in your browser! Use the --browser switch to launch an experimental browser based version of aider.
+111|other|v0.176.1|Improved Go syntax highlighting. (#25327; thanks chbk)
+112|other|?|提升 PPT 和表格生成稳定性，修复部分设备无法生成、公式重算结果不准确等问题
+113|other|v0.21.14-nightly.20260822.7a4566cb3b|chore(deps): Clear high-severity CVE baseline and harden the security gate
+114|other|?|扩充了 AI 可自主调用的工具集，减少了编程过程中的人工干预，使得编程体验更流畅、更高效。
+115|other|rust-v0.64.0|chore: proper client extraction
+116|other|v1.26.0|Apps token limit #7474
+117|other|rust-v0.137.0|#25603 [codex] Inherit raw events for spawned child listeners @vivi
+118|other|v0.204.1-pre|We are sorry for the mistake.
+119|other|v0.1.133|do not print error on ctrl+c during prompts
+120|bugfix|v1.18.16|fix(i18n): use 词元 instead of 令牌 for token in zh locale
+121|bugfix|v0.31.1.dev20260319|fix(tools): graceful degradation for unavailable tools in server context (#1680) (d4da97051)
+122|bugfix|v0.21.0-nightly.20260727.c003e1718|fix(core): fall back to system rg when bundled ripgrep cannot run
+123|bugfix|v0.18.5|fix(extensions): fetch http marketplaces with http client
+124|bugfix|v0.199.4-pre|Fixed an issue where the Follow Agent could unexpectedly stop following during edits.
+125|bugfix|v1.3.5|Fixed a bug where Zed incorrectly kept a removed pane as the active pane.
+126|bugfix|v0.32.2.dev20260727|fix(logmanager): enforce call_id atomicity in limit_log for Responses API (#3359) (6b91235d3)
+127|bugfix|v0.118.0|Fixed a bug where certain files excluded from worktrees were causing panics when being opened.
+128|bugfix|rust-v0.54.0|?? WARNING: Attempting to pin musl 1.2.5 for DNS fixes in #6189 turned out to be the wrong fix. We reverted it in #6222 and published 0.55.0.
+129|bugfix|v0.25.0-nightly.20260112.15891721a|Fix settings command fallback
+130|bugfix|v1.0.18-vscode|fix: show assistant loading after login
+131|bugfix|v0.21.8|Fixed an issue where slash command names were truncated in narrow terminals, ensuring full command names like 'review' and 'doctor' remain visible in completion
+132|bugfix|v0.184.8|Fixed a rare panic in the editor.
+133|bugfix|0.7.1|test: fix the failed unit tests.
+134|bugfix|v0.15.0|fix: display ">100%" when context usage exceeds limit
+135|bugfix|v0.88.0|a45ab25: fix(shellconfig): bound crushrc execution with context and timeout (@taciturnaxolotl)
+136|bugfix|v0.208.4|Vim: Fixed an edge case with the % motion, where the cursor could end up in a closing HTML tag instead of the matching bracket.
+137|bugfix|v0.28.3|fix: prevent premature code block closure during streaming with nested blocks (#657) (55fedb76)
+138|bugfix|v0.218.7|Fixes crash due to markdown parsing via bumping pulldown-cmark
+139|bugfix|v0.27.0|fix: prompt to prefer absolute paths (ba11552a)
+140|bugfix|v0.34.0|fix(cli): implement --all flag for extensions uninstall
+141|bugfix|v0.119.8-pre|Fixed an error where Zed would not save credentials to the keychain after signing in (#2382).
+142|bugfix|rust-v0.90.0|#9565 Fix execpolicy parsing for multiline quoted args @jdsalasca
+143|bugfix|v0.33.1.dev20260831|fix(convert): register gptme-convert console script and fix error message (#3658) (1ad650ae3)
+144|bugfix|rust-v0.118.0|#16071 fix: clean up remaining Windows argument-comment-lint violations @bolinfest
+145|bugfix|v0.21.13|Other Fixes & Improvements
+146|bugfix|?|Skipping some questions in an ask_user_question will no longer block progress.
+147|bugfix|v1.1.0|Fix: Inspector needs to handle new message format
+148|bugfix|v0.27.0|fix: refactor only-once warning of unknown model metadata (5d5f0e95)
+149|bugfix|v0.174.3-pre|Fixed a bug that prevented renames for some languages.
+150|bugfix|v0.16.2|fix(build): clean stale outputs before tsc --build to prevent TS5055
+151|bugfix|v1.17.14|Fixed dropdown search behavior. (@arvsrn)
+152|bugfix|v1.0.24-vscode|fix: case when reranker returns invalid scores array
+153|bugfix|v0.177.7|Fixed an issue where the buffer search options would not be reset when using buffer: deploy search after using Vim search (* & #) which enable all search option
+154|bugfix|rust-v0.119.0|#16566 fix: races in end of turn @jif-oai
+155|bugfix|v1.0.13-jetbrains|fix: set DEFAULT_CONTEXT_LENGTH to 8192
+156|bugfix|rust-v0.124.0|#18915 fix: windows snapshot for external_agent_config_migration::tests::prompt_snapshot did not match windows output @bolinfest
+157|bugfix|v0.75.0|Bug fixin'
+158|bugfix|v0.225.8-pre|Fixed a (rare) panic in inlay hints
+159|bugfix|v1.4.2|Fixed markdown preview content being clipped past the pane edge when the buffer search bar is open. (#55009; thanks tkilaker)
+160|bugfix|v1.10.0|chore: fix all warnings in test compilation
+161|bugfix|v0.13.0-nightly.20251105.da3da198|fix(auth): Return empty map if token file does not exits, and refacto…
+162|bugfix|v0.31.1.dev20260604|? Fixes (19)
+163|bugfix|v0.18.4|fix(cli): avoid agent composer unmount reset
+164|bugfix|rust-v0.121.0|#17915 fix: cargo deny @jif-oai
+165|bugfix|v0.3.102|fix: load global jsonc
+166|bugfix|v2026.3.23|Fix: /stop command crash + UnboundLocalError in streaming media delivery
+167|bugfix|v2026.5.14-beta.2|Agents/config: support per-agent bootstrap profile overrides for contextInjection, bootstrapMaxChars, and bootstrapTotalMaxChars, inheriting from agents.default
+168|bugfix|v0.161.1|Fixed python toolchain detection when worktree local path is set (#20229; thanks WeetHet).
+169|bugfix|v0.21.3-nightly.20260803.e1e5b42ce|fix(review): hold a Critical the base tree already fails
+170|bugfix|v0.74.1|a4181d6: fix(scrollbar): fix track position calculation (@andreynering)
+171|bugfix|v0.83.0|Fixed an issue where read-only status of files might not be preserved correctly by some commands (e.g. /drop after adding a read-only file).
+172|bugfix|v1.0.22|docs: fix cli arrow command
+173|bugfix|?|Stop Hook false trigger continuation: Fixed prompt-type Stop hook incorrectly triggering agent continuation when conditions are not met; the agent now correctly
+174|bugfix|v0.6.5|fix: default to last used model
+175|bugfix|rust-v0.100.0|#11522 fix: add --test_verbose_timeout_warnings to bazel.yml @bolinfest
+176|bugfix|v0.21.5|Introduces detailed execution-specific outcome tracking for tool calls to distinguish between invocation success, failure, and cancellation.
+177|bugfix|v0.30.0-nightly.20260218.ce84b3cb5|docs: fix inconsistent commandRegex example in policy engine
+178|bugfix|v0.31.1.dev20260525|fix(cli): remove browser backend noise from utility output (#2500) (a5b383286)
+179|bugfix|v0.197.3|Fixed an issue where the cursor doesn't move up and down on arrow keys when no completions are shown.
+180|models-routing|v2026.4.15|Agents/replay recovery: classify the provider wording 401 input item ID does not belong to this connection as replay-invalid, so users get the existing /new ses
+181|models-routing|v1.38.0|Classify Bedrock ValidationException as ExecutionError #9735
+182|models-routing|v0.21.14-preview.0|feat(core): add a live-session registry and qwen sessions ps
+183|models-routing|v2026.3.17|Prevent closed OpenAI client reuse across retries
+184|models-routing|v1.3.35-vscode|fix(gemini): merge consecutive same-role messages to fix ordering errors
+185|models-routing|?|specific variants, like reasoning effort and speed.
+186|models-routing|v3.34.0|Pin Roo provider to the top of the provider list for better discoverability (PR #9485 by @mrubens)
+187|models-routing|v1.14.17|Fix GitHub Copilot Anthropic Haiku requests by disabling unsupported tool streaming.
+188|models-routing|sdk-typescript-v0.1.5-preview.2|feat: Improve QWEN. md file loading by filtering system files and limiting scope
+189|models-routing|v2.25.0|Discovery of Mistral's built-in web-search connector
+190|models-routing|v1.0.26|feat: add claude 4 to vertex dropdown
+191|models-routing|v2026.3.28|Nous Portal now supports 400+ models — The Nous Research inference portal has expanded dramatically, giving Hermes Agent users access to over 400 models through
+192|models-routing|v2026.5.4|Models/auth: add openclaw models auth list [--provider <id>] [--json] so users can inspect saved per-agent auth profiles without dumping secrets or hitting the
+193|models-routing|0.7.0|chore(deps-dev): bump llama-index-embeddings-azure-openai from 0.1.9 to 0.1.10
+194|models-routing|?|Models marked “Devin Local only” (including every GPT-5.6 variant) now appear disabled in Cascade’s model picker with a tooltip pointing you to Devin Local, rat
+195|models-routing|v3.39.2|Feature: Improve error messaging for stream termination errors from provider (PR #10548 by @daniel-lxs)
+196|models-routing|v3.17.7|Fix diff editing reliability for Claude 4 family models by adding constraints to prevent errors with large replacements
+197|models-routing|v0.80.2|Fixed inherited Anthropic-compatible custom models to use explicit compatibility metadata instead of provider-name heuristics for session-affinity headers and u
+198|models-routing|rust-v0.98.0|Introducing GPT-5.3-Codex. Learn More
+199|models-routing|v2026.7.1-beta.6|Local inference and chat controls: auto-discover Ollama inference nodes, add Control UI session-first navigation, reasoning controls, and command picking, and k
+200|models-routing|v2026.3.28|First-class Hugging Face Inference API integration with auth, setup wizard, and model picker
+201|models-routing|v1.2.7|Add Kilo as a native provider (@Nomadcxx)
+202|models-routing|v3.31.0|Update SAP AI Core Provider Anthropic input token calculation
+203|models-routing|v0.142.4|Fixed an issue where provider settings were lost when switching between Ollama models (#13399).
+204|models-routing|v0.32.2.dev20260727|feat(providers): add grok-subscription provider for SuperGrok subscribers (#3289) (e0cd34093)
+205|models-routing|v0.75.1|Fixed Azure OpenAI Responses and OpenAI Responses error formatting to prefix HTTP status codes onto errorMessage, so transient 5xx and 429 errors are correctly
+206|models-routing|v0.20.0|Update error codes when process exiting the gemini cli
+207|models-routing|v3.23.12|Update the max-token calculation in model-params to better support Kimi K2 and others
+208|models-routing|v1.5.0-pre|Fixed speed: Extra inputs are not permitted errors for Opus 4.6 and 4.7 in the Anthropic API provider.
+209|models-routing|rust-v0.136.0|#24716 Fix fs/watch debounce batching @etraut-openai
+210|git-pr-ci|v3.41.1|Feat: Aggregate subtask costs in parent task (#5376 by @hannesrudolph, PR #10757 by @taltas)
+211|git-pr-ci|v0.159.5|Vim: Fixed a bug where the o and O commands did not respect the extend_comment_on_newline setting (#19766).
+212|git-pr-ci|v3.28.0|feat: Add click-to-edit, ESC-to-cancel, and fix padding consistency for chat messages (#7788 by @hannesrudolph, PR by @app/roomote)
+213|git-pr-ci|v1.17.0|docs: correct OH_*_GIT_REF defaults and merge duplicated bullet in DEVELOPMENT.md
+214|git-pr-ci|v2.25.5|Vibe no longer runs a project-local Git executable during automatic repository inspection.
+215|git-pr-ci|v2026.9.1-beta.1|PR #128337
+216|git-pr-ci|v0.213.3|?Improved timestamp handling in various Git UI components for enhanced user experience. (#41005; thanks virajbhartiya)
+217|git-pr-ci|v0.211.4|Go: Added comment injections for go.mod and go.work. (#40842; thanks thedadams)
+218|git-pr-ci|v0.211.4|Agent: Fixed an issue where the agent panel's buffer and UI font size wouldn't scale proportionally.
+219|git-pr-ci|v1.2.3|Fixed the mouse cursor not switching to a pointer when hovering commit rows in the git graph. (#55247; thanks jakenorris1124)
+220|git-pr-ci|v0.223.0-pre|Fixed an issue where opening a link to a settings item that involved a sub page would not open the sub page. ([#48212](https://github.com/zed-indus...
+221|git-pr-ci|v0.212.3|*Added git: worktree creation action and git worktree picker to open a git worktree in a new window or replace the current one. (#38719; thanks AlvaroParker)
+222|git-pr-ci|v0.10.1|-signature 'https://github.com/charmbracelet/crush/releases/download/v0.10.1/checksums.txt.sig' \
+223|git-pr-ci|v0.227.1|Collab: Fixed unable to rejoin project bug ("already subscribed to entity").
+224|git-pr-ci|rust-v0.58.0|#6534 — feat: only wait for mutating tools for ghost commit (e00eb50db)
+225|git-pr-ci|v1.0.11-vscode|chore: ??? update the commit message for cla signing
+226|git-pr-ci|v3.20.5|v3.20.5 Release Notes by @github-actions[bot]
+227|git-pr-ci|v0.18.2|wget 'https://github.com/charmbracelet/crush/releases/download/v0.18.2/checksums.txt'
+228|git-pr-ci|v0.49.0|New --attribute-commit-message-author to prefix commit messages with 'aider: ' if aider authored the changes, replaces --attribute-commit-message.
+229|git-pr-ci|v2026.5.31-beta.4|PR #88137 fix ci mainline checks. Thanks @RomneyDa.
+230|git-pr-ci|v0.32.0|fix(github): resolve actionlint and yamllint regressions from #19443
+231|git-pr-ci|v0.233.5|Agent: Improved and simplified the UX of creating threads in Git worktrees.
+232|git-pr-ci|v0.220.2|Git: Fixed a bug where binary files would be displayed as garbled text when viewing an old commit.
+233|git-pr-ci|v0.148.0|Linux: Fixed visual glitches when rendering icons (#12352; thanks apricotbucket28).
+234|git-pr-ci|v1.9.0|docs: github copilot config workarounds
+235|git-pr-ci|v3.33.0|Fix: Pass tool protocol parameter to lineCountTruncationError (PR #9358 by @daniel-lxs)
+236|git-pr-ci|v0.14.0|Docs: Added newest changelog: v0.12.0
+237|git-pr-ci|v2026.7.2-beta.1|PR #88082 Thanks @lit26.
+238|git-pr-ci|v0.20.0|chore(ci): mark GitHub release as pre-release if not on "latest" npm channel
+239|git-pr-ci|v1.19.0|test: cover cloud git service
+240|ui-ux|?|File Path Completion: The Web UI input box now supports @-triggered file path completion, automatically adding a space after selection.
+241|ui-ux|v0.25.0|Always enable bracketed paste
+242|ui-ux|v3.41.0|fix(ui): close WhatsNewModal when selecting model options
+243|ui-ux|v1.1.37|Add transition to command palette
+244|ui-ux|v1.1.26|Tweak share button to prevent layout shift in desktop (@itsrainingmani)
+245|ui-ux|0.32.0|User-friendly UI for a content policy violation error
+246|ui-ux|v0.35.0|ctx.ui.confirm() / select() / input() - User prompts
+247|ui-ux|v1.1.26|New layout improvements for app
+248|ui-ux|v1.9.0|Improved the macOS CLI installation failure notification with a link to manual setup instructions.
+249|ui-ux|v0.18.0|feat(vscode): surface ACP background notifications
+250|ui-ux|v1.3.2-pre|Fixed pressing "New Thread" (or Cmd-N) doing nothing when the Agent Panel's Settings view was open
+251|ui-ux|v0.127.3|Fixed a bug where the project panel icon was bouncing when renaming.
+252|ui-ux|?|Added the /workflows panel, which allows you to view active and historical workflow runs, save custom scripts, and supports pausing, resuming, and restarting ru
+253|ui-ux|v1.14.49|Fix keymap fallback priority and make TUI config errors clearer.
+254|ui-ux|v1.29.0|Ability to manage sub recipes in desktop UI #6360
+255|ui-ux|v2026.1.9|TUI: agent picker + agents list RPC; improved status line.
+256|ui-ux|v0.56.0|Fixed TUI width handling for regional indicator symbols to prevent wrap drift and stale characters during streaming (#1783).
+257|ui-ux|v0.86.0|When focused on the chat view: l or right arrow focuses on the sidebar
+258|ui-ux|v0.21.2-nightly.20260801.bc382c3ff|fix(triage): render the verify report as sanitized markdown, not an escaped pre dump
+259|ui-ux|rust-v0.121.0|Added TUI prompt history improvements, including Ctrl+R reverse search and local recall for accepted slash commands (#17550, #17336).
+260|ui-ux|v1.21.0|UI: Use Intl.NumberFormat for token formatting in SessionsInsights (#6466) (@aharvard)
+261|ui-ux|v0.119.6-pre|Fixed editor::Hover action (and g h command in Vim mode) not working (#2304, #2394).
+262|ui-ux|v3.19.6|Disable recording webview click events
+263|ui-ux|v0.27.0-nightly.20260127.00f60ef53|feat(ui): add solid background color option for input prompt
+264|ui-ux|v0.32.2.dev20260727|feat(tui): tab-completion candidate overlay (#3311) (#3316) (48143206c)
+265|ui-ux|v0.229.0|"tab": "editor::AcceptEditPrediction"
+266|ui-ux|v0.1.113|feat(tui): theme switcher with preview
+267|ui-ux|rust-v0.121.0|#17550 feat(tui): add reverse history search to composer @fcoury-oai
+268|ui-ux|v1.3.5|Improved sidebar search placeholder text to read "Search threads…" instead of "Search…".
+269|ui-ux|v0.109.1|Fixed the titlebar upgrade UI to restart zed when an update is available.
+270|cli-flags|v0.191.2-pre|Added --nocapture as a default argument when debugging Rust tests.
+271|cli-flags|v1.1.5|Added line_ending setting to control how line endings are handled for new files and normalized on save. (#54356; thanks melocene)
+272|cli-flags|v0.196.5|Linux / Windows: Added show_menus setting to always show menu bar.
+273|cli-flags|v0.152.3|Specific language servers that allow looking up the language server binary in the environments $PATH (such as gopls, zls, rust-analyzer if configured, ...) will
+274|cli-flags|cli-v0.0.49|19f3ad6339b2e5d1c00a11cf6552e28de9a2610bb8cfa46b9fd8ce8cb65f8a3e  roo-cli-darwin-arm64.tar.gz
+275|cli-flags|rust-v0.129.0|#20300 [codex-analytics] centralize thread analytics state @rhan-oai
+276|cli-flags|sdk-typescript-v0.1.6-preview.0|This SDK release bundles CLI version: 0.13.0
+277|cli-flags|v1.0.22-vscode|add alpha warning to cli docs
+278|cli-flags|v0.41.0|This is another small but nice Quality of Life? improvement. Before, you could only edit API keys by manually editing your crush.json config file. Voilà!
+279|cli-flags|v0.36.0-nightly.20260407.1c22c5b37|feat(telemetry): add browser agent clearcut metrics
+280|cli-flags|v2026.1.16-2|Verbose: wrap tool summaries/output in markdown only for markdown-capable channels.
+281|cli-flags|cli-v0.1.1|5c23ecde7a0e3926d9ad0cd8096028c39fe4f0b8b2243954e9c4929bdfba2f06  roo-cli-darwin-arm64.tar.gz
+282|cli-flags|rust-v0.140.0|#27063 [codex-analytics] add extensible feature thread sources @marksteinbrick-oai
+283|cli-flags|rust-v0.69.0|command popup no longer triggers on invalid input; experimental tui2 frontend behind a flag (#7836, #7784, #7550, #7363,
+284|cli-flags|v2026.1.11|CLI/Update: preserve base environment when passing overrides to update subprocesses. (#713) — thanks @danielz1z.
+285|cli-flags|?|Add PAC (Proxy Auto-Configuration) support on Windows and macOS. The CLI now respects system-level PAC settings and WPAD auto-detection, routing traffic through
+286|cli-flags|v0.151.1|Added new settings to control split direction for horizontal and vertical splits. Users can now configure whether new splits open to the right/left or top/botto
+287|cli-flags|v1.6.0|Enh: Specify config files without the .yaml
+288|cli-flags|v1.0.58-jetbrains|Add Puppeteer executable path environment variable to runloop blueprint
+289|cli-flags|v0.139.3|Added completions for tsconfig.json config file.
+290|sessions-history|v0.15.0|feat(cli): add session recap with /recap and auto-show on return
+291|perf|?|When there are only one or two tool calls, tool cards are displayed directly without an additional collapsible group.
+292|memory-context|v0.81.1|Fixed compaction and branch summarization to retry transient provider failures using the configured retry policy, with retry lifecycle events exposed to interac
+293|shell-tools|desktop-v0.1.0|fix(web-shell): preserve pasted text in composer
+294|file-edit|v0.46.0|fix(patch): cherry-pick f08b4af to release/v0.46.0-preview.2-pr-27749 to patch version v0.46.0-preview.2 and create version 0.46.0-preview.3
+295|i18n-l10n|v0.141.2-pre|SenseiDeElite, nakrovati, and datlechin reacted with laugh emoji
+296|mcp-tools|?|Added inference tool name metadata to ACP tool call events so ACP clients can make per-tool presentation decisions (for example, hiding the arguments panel for
+297|remote-cloud|rust-v0.140.0|#27403 skills: cache remote catalog failures per thread @jif-oai
+298|search-index|v3.33.0|packaging ripgrep cli
+299|approval-gate|?|Reverse invocation stability: Reverse tool calls from the same session / server are queued for sequential execution, preventing concurrent overload from blockin
+300|sandbox-exec|rust-v0.133.0|#23764 Remove Windows sandbox resource stamping @iceweasel-oai
+301|attachments|?|Web UI Attachment Echo: After sending an image or file, the message now displays only one bubble and no longer duplicates the body text.
+302|integrations|?|Notion
+303|api-sdk|v0.15.10|Added ACP (Agent Client Protocol) support for agent communication
+304|skills-plugins|?|优化技能广场搜索，支持搜索企业自建 Skill
+305|orchestration|v0.15.7|Add background agent resume and continuation
+306|scheduling|?|Fixed execRg Timer Leak: Ensures timeout timers are properly cleaned up on all exit paths
+307|security-secrets|v0.31.1.dev20260227|fix(prompts): add path traversal protection for glob patterns

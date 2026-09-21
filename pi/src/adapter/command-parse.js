@@ -71,8 +71,26 @@ function baseName(word) {
   return word.replace(/^['"]|['"]$/g, '').split(/[\\/]/).pop().replace(/\.(exe|bat|cmd|ps1)$/i, '').toLowerCase();
 }
 
+/**
+ * Commands whose positional args are write targets (file overwrite/mutation
+ * surfaces that are NOT shell redirections). Last positional arg is the
+ * destination for cp/mv/install/ln/rsync/patch; tee writes every arg.
+ * sed -i / perl -i edit their file args in place. dd writes of=<path>.
+ * Only instruction-path hits are escalated — reads stay reads.
+ */
+const LAST_ARG_WRITES = new Set(['cp', 'mv', 'install', 'ln', 'rsync', 'patch']);
+const INPLACE_EDITS = new Set(['sed', 'perl', 'gsed']);
+const ALL_ARG_WRITES = new Set(['tee']);
+
+const REDIRECT_WRITE_RE = /^\d*(?:>>?|&>>?|<>|>\|)/;
+
 /** Depth-first collect every `command` node with its nesting context. */
-function collectCommands(node, units, context) {
+// inline env assignments that can inject loader/agent flags into the spawned
+// process (competitor blocklist basis — zed/Q sweep). `MAVEN_OPTS=... mvn test`
+// is an `echo`-shaped command unit carrying a JVM agent flag.
+const DANGER_ENV_RE = /^(LD_PRELOAD|LD_LIBRARY_PATH|DYLD_INSERT_LIBRARIES|DYLD_FALLBACK_LIBRARY_PATH|DYLD_PRINT_|NODE_OPTIONS|JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|JDK_JAVA_OPTIONS|MAVEN_OPTS|SBT_OPTS|GRADLE_OPTS|ANT_OPTS|PERL5OPT|PERL5LIB|RUBYLIB|RUBYOPT|PYTHONSTARTUP|PYTHONINSPECT|BASH_ENV|ENV|SHELLOPTS|GCONV_PATH|GLIBC_TUNABLES|DOTNET_STARTUP_HOOKS|DOTNET_ADDITIONAL_DEPS|PS1|IFS)$/i;
+
+function collectCommands(node, units, redirects, dangerEnv, context) {
   const type = node.type;
   if (type === 'command') {
     const nameNode = node.childForFieldName('name');
@@ -81,7 +99,12 @@ function collectCommands(node, units, context) {
     let hasExpansion = false;
     for (let i = 0; i < node.namedChildCount; i++) {
       const c = node.namedChild(i);
-      if (c === nameNode || c.type === 'variable_assignment' || c.type === 'file_redirect') continue;
+      if (c === nameNode || c.type === 'file_redirect') continue;
+      if (c.type === 'variable_assignment') {
+        const v = (c.childForFieldName('name') ?? c.firstNamedChild)?.text?.trim();
+        if (v && DANGER_ENV_RE.test(v)) dangerEnv.push(v);
+        continue;
+      }
       if (/expansion|substitution|heredoc/.test(c.type)) hasExpansion = true;
       args.push(c.text);
     }
@@ -95,14 +118,39 @@ function collectCommands(node, units, context) {
     });
     // a command's own substitution/expansion children still contain commands
     context = context === 'top' ? 'substitution' : context;
+  } else if (type === 'file_redirect') {
+    // redirects sit beside the command inside redirected_statement — the
+    // destination is the `destination` field (or the last word child).
+    const dest = node.childForFieldName('destination') ?? node.lastNamedChild;
+    const op = node.text.slice(0, node.text.length - (dest ? dest.text.length : 0));
+    if (dest && REDIRECT_WRITE_RE.test(op.trim()) && !/^&\d/.test(dest.text.trim())) {
+      redirects.push(dest.text.trim());
+    }
   } else if (type === 'subshell') {
     context = 'subshell';
   } else if (type === 'command_substitution') {
     context = 'substitution';
   }
   for (let i = 0; i < node.namedChildCount; i++) {
-    collectCommands(node.namedChild(i), units, context);
+    collectCommands(node.namedChild(i), units, redirects, dangerEnv, context);
   }
+}
+
+/** Positional args that are file write targets for a command unit. */
+function writeTargetArgs(unit) {
+  const name = unit.name;
+  if (ALL_ARG_WRITES.has(name)) return unit.args.filter((a) => !a.startsWith('-'));
+  if (LAST_ARG_WRITES.has(name)) {
+    const pos = unit.args.filter((a) => !a.startsWith('-'));
+    return pos.length ? [pos[pos.length - 1]] : [];
+  }
+  if (INPLACE_EDITS.has(name) && unit.args.some((a) => /^-[a-zA-Z]*i/.test(a))) {
+    return unit.args.filter((a) => !a.startsWith('-'));
+  }
+  if (name === 'dd') {
+    return unit.args.filter((a) => a.startsWith('of=')).map((a) => a.slice(3));
+  }
+  return [];
 }
 
 /**
@@ -114,7 +162,9 @@ export async function parseShellCommand(source) {
   const parser = await getParser();
   const tree = parser.parse(source);
   const units = [];
-  collectCommands(tree.rootNode, units, 'top');
+  const redirects = [];
+  const dangerEnv = [];
+  collectCommands(tree.rootNode, units, redirects, dangerEnv, 'top');
   const parseError = tree.rootNode.hasError ? 'parse produced ERROR nodes' : null;
   let hasUnknown = false;
   const risk = units.reduce((worst, u) => {
@@ -123,7 +173,11 @@ export async function parseShellCommand(source) {
     // an unknown sibling must not mask a KNOWN destructive unit
     return r !== COMMAND_RISK.UNKNOWN && rank(r) > rank(worst) ? r : worst;
   }, COMMAND_RISK.BENIGN);
-  return { units, parseError, risk, hasUnknown };
+  // every filesystem write surface in this command: redirect destinations
+  // (echo > AGENTS.md) plus write-target args (tee/cp/mv/sed -i/dd of=).
+  const writeTargets = [...redirects];
+  for (const u of units) writeTargets.push(...writeTargetArgs(u));
+  return { units, parseError, risk, hasUnknown, writeTargets, dangerEnv };
 }
 
 const ORDER = [

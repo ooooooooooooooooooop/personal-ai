@@ -9,8 +9,8 @@
  * Localhost-only by construction — the listener binds 127.0.0.1.
  */
 import { createServer } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
-import { join, normalize, extname } from 'node:path';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join, normalize, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const UI_DIR = fileURLToPath(new URL('../ui/', import.meta.url));
@@ -25,6 +25,23 @@ const MIME = {
 };
 
 export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null }) {
+  // M9 (CodeBuddy same-origin fix analogue): binding 127.0.0.1 does NOT stop
+  // a malicious web page from POSTing /cmd cross-origin — CORS only gates
+  // reads, writes still land. Reject browser cross-site POSTs: an Origin
+  // header that isn't this bridge, or a Sec-Fetch-Site marking cross-site.
+  const badOrigin = (req) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      try {
+        const h = new URL(origin).hostname;
+        if (h !== '127.0.0.1' && h !== 'localhost' && h !== '[::1]') return true;
+      } catch { return true; }
+    }
+    const sfs = req.headers['sec-fetch-site'];
+    if (sfs && sfs !== 'same-origin' && sfs !== 'same-site' && sfs !== 'none') return true;
+    return false;
+  };
+  const refuse = (res) => { res.writeHead(403); res.end('cross-origin POST refused'); };
   const sseClients = new Set();
   const unsub = supervisor.subscribe((msg) => {
     const frame = `data: ${JSON.stringify(msg)}\n\n`;
@@ -48,6 +65,7 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         return;
       }
       if (req.method === 'POST' && url.pathname === '/cmd') {
+        if (badOrigin(req)) { refuse(res); return; }
         let body = '';
         for await (const chunk of req) body += chunk;
         const cmd = JSON.parse(body || '{}');
@@ -60,6 +78,7 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         return;
       }
       if (req.method === 'POST' && url.pathname === '/api/pick-dir') {
+        if (badOrigin(req)) { refuse(res); return; }
         if (!pickDir) {
           res.writeHead(501, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'directory picker unavailable' }));
@@ -70,6 +89,45 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         res.end(JSON.stringify({ dir: dir ?? null }));
         return;
       }
+      if (req.method === 'GET' && url.pathname === '/api/artifact') {
+        // Confined download surface: only files under <instance>/exports/** are
+        // servable — browser screenshots/exports render in the UI, nothing else.
+        const p = url.searchParams.get('path') ?? '';
+        const root = normalize(join(supervisor.instanceRoot ?? '', 'exports'));
+        const file = normalize(p);
+        if (!file.startsWith(root + sep) || !existsSync(file)) {
+          res.writeHead(404); res.end('not found'); return;
+        }
+        res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
+        res.end(readFileSync(file));
+        return;
+      }
+      // Artifact listing (CodeBuddy 成果面板 analogue): everything the body
+      // exported — screenshots, debug bundles, exports — browsable + openable.
+      if (req.method === 'GET' && url.pathname === '/api/artifacts') {
+        const root = normalize(join(supervisor.instanceRoot ?? '', 'exports'));
+        const rows = [];
+        const walk = (d, depth) => {
+          if (depth > 4 || rows.length >= 200) return;
+          let ents = [];
+          try { ents = readdirSync(d, { withFileTypes: true }); } catch { return; }
+          for (const e of ents) {
+            const p = join(d, e.name);
+            if (e.isDirectory()) walk(p, depth + 1);
+            else {
+              try {
+                const st = statSync(p);
+                rows.push({ path: p, bytes: st.size, mtime: st.mtime.toISOString() });
+              } catch { /* transient */ }
+            }
+          }
+        };
+        walk(root, 0);
+        rows.sort((a, b) => String(b.mtime).localeCompare(String(a.mtime)));
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ artifacts: rows }));
+        return;
+      }
       if (req.method === 'GET' && url.pathname === '/api/state') {
         const [current, bodies] = await Promise.all([
           supervisor.handle({ type: 'body_current' }),
@@ -77,6 +135,30 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         ]);
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ current: current.data ?? null, bodies: bodies.data ?? [] }));
+        return;
+      }
+      // /api/v1/metrics analogue (M75): honest process telemetry for the
+      // bridge + the live body. RSS/heap/uptime — no invented gauges.
+      if (req.method === 'GET' && url.pathname === '/api/metrics') {
+        const mu = process.memoryUsage();
+        const body = supervisor.active ?? null;
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          bridge: {
+            pid: process.pid,
+            uptime_s: Math.round(process.uptime()),
+            rss_bytes: mu.rss,
+            heap_used_bytes: mu.heapUsed,
+            heap_total_bytes: mu.heapTotal,
+          },
+          body: body ? {
+            id: body.bodyId,
+            pid: body.child?.pid ?? null,
+            alive: !body.dead,
+            pending_calls: body.pending?.size ?? 0,
+          } : null,
+          workdir: supervisor.workdir ?? null,
+        }));
         return;
       }
       if (req.method === 'GET') {

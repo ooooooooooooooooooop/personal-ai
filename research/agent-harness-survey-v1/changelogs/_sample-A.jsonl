@@ -1,0 +1,308 @@
+{"tag": "v0.74.0", "date": "2026-05-28", "section": null, "item": "d9acf86: feat(server): broadcast config changes to all connected clients (@meowgorithm)", "dom": "other", "kind": "other"}
+{"tag": "v3.12.0", "date": "2025-04-12", "section": null, "item": "Improve diff editing animation for large files", "dom": "other", "kind": "other"}
+{"tag": "%40continuedev%2Fopenai-adapters%401.14.0", "date": "2025-09-16", "section": null, "item": "formatting (ae9f874)", "dom": "other", "kind": "other"}
+{"file": "v2.37.18.html", "version": "v2.37.18.", "date": null, "section": null, "item": "CodeBuddy Code v2.37.18 Release | Tencent Cloud Code Assistant CodeBuddy – AI Code Editor", "dom": "other", "kind": "other"}
+{"file": "changelog.html", "version": null, "date": "2026/09/17", "section": null, "item": "●&nbsp;智能体能力分类分级管理，按需精细管控", "dom": "other", "kind": "other"}
+{"tag": "v0.208.4", "date": "2025-10-15", "section": null, "item": "Windows when? Windows now.", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.58.0", "date": "2025-11-13", "section": null, "item": "#6466 — feat: add workdir to unified_exec (f01f2ec9e)", "dom": "other", "kind": "feat"}
+{"tag": "v1.0.13", "date": "2025-03-12", "section": null, "item": "feat: add mode completion", "dom": "other", "kind": "feat"}
+{"tag": "v1.25.0", "date": "2026-02-18", "section": null, "item": "Assistant messages with tool_calls now always include content field [#7076]", "dom": "other", "kind": "other"}
+{"tag": "%40continuedev%2Fopenai-adapters%401.16.0", "date": "2025-09-19", "section": null, "item": "add Mercury Apply endpoint support to Inception LLM (#7827) (d78fc99)", "dom": "other", "kind": "feat"}
+{"tag": "v0.203.0-pre", "date": "2025-09-03", "section": null, "item": "Added support for the \\c and \\C query pattern items to control case-sensitivity in buffer search (#34762; thanks dinocosta)", "dom": "other", "kind": "feat"}
+{"tag": "v0.1.10", "date": "2025-07-11", "section": null, "item": "chore(deps): bump gaxios from 6.7.1 to 7.1.1", "dom": "other", "kind": "other"}
+{"tag": "v0.2.0", "date": "2025-08-27", "section": null, "item": "feat(core): Cleanup after migrating tools.", "dom": "other", "kind": "other"}
+{"file": "v2.135.0.html", "version": "v2.135.0", "date": null, "section": "Version Information ?", "item": "v0.3.241", "dom": "other", "kind": "other"}
+{"tag": "v1.12.0", "date": "2025-10-24", "section": null, "item": "Unreliable pricing tests removal #5207", "dom": "other", "kind": "other"}
+{"file": "docs.devin.ai_release-notes_2024.html", "version": null, "date": null, "section": "Forbidden Actions", "item": "Do NOT touch any Kotlin code", "dom": "other", "kind": "other"}
+{"tag": "v1.18.0", "date": "2026-09-02", "section": null, "item": "Improved the tabular data preview by moving its settings into a popover, freeing more vertical space for the table. (#62812; thanks HalavicH)", "dom": "other", "kind": "other"}
+{"file": "v2.130.0.html", "version": "v2.130.0", "date": null, "section": "Version Information ?", "item": "v2.130.0", "dom": "other", "kind": "other"}
+{"tag": "v0.24.0", "date": "2024-11-22", "section": null, "item": "? Misc (8)", "dom": "other", "kind": "other"}
+{"tag": "v0.35.0", "date": "2026-01-05", "section": "Before", "item": "// Before (hook)", "dom": "other", "kind": "other"}
+{"tag": "%40continuedev%2Fconfig-yaml%401.9.0", "date": "2025-08-22", "section": null, "item": "empty assistant message (5e773f5)", "dom": "other", "kind": "other"}
+{"tag": "v3.31.0", "date": "2025-09-25", "section": null, "item": "Testing platform coverage", "dom": "other", "kind": "other"}
+{"tag": "0.8.2", "date": "2024-07-27", "section": "2994", "item": "chore(deps-dev): bump typescript from 5.5.3 to 5.5.4 in /docs", "dom": "other", "kind": "other"}
+{"file": "windsurf.com_changelog.html", "version": null, "date": "2026.5.26", "section": "?", "item": "Download 1.12.36", "dom": "other", "kind": "other"}
+{"tag": "v1.1.28", "date": "2026-01-20", "section": null, "item": "Remove close delay on hover cards to prevent overlapping", "dom": "other", "kind": "fix"}
+{"tag": "%40continuedev%2Fconfig-yaml%401.9.0", "date": "2025-08-22", "section": null, "item": "broekn tests (86d3c08)", "dom": "other", "kind": "other"}
+{"file": "docs.trae.cn_ide_changelog.html", "version": null, "date": null, "section": "2025 年 03 月 27 日", "item": "修复了若干和通知功能相关的问题。", "dom": "other", "kind": "other"}
+{"tag": "v0.147.2", "date": "2024-08-07", "section": null, "item": "Updated tree-sitter parsers for core languages (#4565).", "dom": "other", "kind": "other"}
+{"tag": "v2.0.0", "date": "2026-02-11", "section": null, "item": "Full migration guide", "dom": "other", "kind": "other"}
+{"file": "docs.devin.ai_cli_changelog_stable.html", "version": null, "date": "2026.8.18", "section": "Added", "item": "Ctrl+R fuzzy search for inserting previous prompts into the input box.", "dom": "other", "kind": "other"}
+{"tag": "v2.0.0-beta5", "date": "2026-01-03", "section": null, "item": "Talk mode: continuous speech conversations (macOS/iOS/Android) with ElevenLabs TTS, reply directives, and optional interrupt-on-speech.", "dom": "other", "kind": "other"}
+{"tag": "v1.18.0", "date": "2026-09-11", "section": null, "item": "Documentation", "dom": "other", "kind": "other"}
+{"tag": "v0.211.4", "date": "2025-11-05", "section": null, "item": "Added support for colspan and rowspan for HTML tables. (#39898; thanks RemcoSmitsDev)", "dom": "other", "kind": "feat"}
+{"tag": "v0.23.0", "date": "2026-09-03", "section": null, "item": "Workspace runtime ownership is now established as the daemon lifecycle boundary, ensuring runtime activity persists through workspace removal and shutdown. (#10593) by @ytahdn", "dom": "other", "kind": "other"}
+{"tag": "v1.1.2", "date": "2026-01-05", "section": null, "item": "Increase default timeout to 30 seconds based on user feedback", "dom": "other", "kind": "other"}
+{"file": "windsurf.com_changelog.html", "version": null, "date": "2026.5.26", "section": "?", "item": "Download 1.12.25", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.118.0", "date": "2026-03-31", "section": null, "item": "#15898 chore: move bwrap config helpers into dedicated module @viyatb-oai", "dom": "other", "kind": "other"}
+{"tag": "v3.17.0", "date": "2025-05-22", "section": null, "item": "Add custom highlight and hotkey suggestion when the assistant prompts to switch to Act mode", "dom": "other", "kind": "feat"}
+{"tag": "v0.19.4", "date": "2026-07-01", "section": null, "item": "feat(loop): add autonomous mode for a bare /loop", "dom": "other", "kind": "feat"}
+{"tag": "v2.3.0", "date": "2026-02-27", "section": null, "item": "System prompts rewritten for improved model behavior (3-phase Orient/Plan/Execute workflow, brevity rules)", "dom": "other", "kind": "other"}
+{"file": "v2.105.0.html", "version": "v2.105.0", "date": null, "section": "Version Information ?", "item": "v0.3.171", "dom": "other", "kind": "other"}
+{"tag": "v0.7.8", "date": "2025-09-09", "section": null, "item": "Secure Database Delete Operations", "dom": "other", "kind": "other"}
+{"tag": "dsw-eas-manual-smoke-20260820-r2", "date": "2026-08-20", "section": null, "item": "Case trajectories: swe-bench-verified-dsw-eas-manual-smoke-20260820-r2-trajectories.tar.gz (1 cases)", "dom": "other", "kind": "other"}
+{"tag": "v2.0.0", "date": "2026-02-11", "section": null, "item": "What's new?", "dom": "other", "kind": "feat"}
+{"tag": "v0.169.2", "date": "2025-01-15", "section": null, "item": "Typescript: Improved typescript-language-server completion details rendering", "dom": "other", "kind": "other"}
+{"tag": "v0.67.0", "date": "2026-04-13", "section": null, "item": "The server stores only aggregate per-version counters such as { \"0.66.1\": 3 }.", "dom": "other", "kind": "other"}
+{"tag": "v0.31.0", "date": "2026-01-02", "section": null, "item": "const allModels = modelRegistry.getAll();", "dom": "other", "kind": "other"}
+{"tag": "dsw-eas-full-20260813-r1", "date": "2026-08-13", "section": null, "item": "Case trajectories: swe-bench-verified-dsw-eas-full-20260813-r1-trajectories.tar.gz (0 cases)", "dom": "other", "kind": "other"}
+{"tag": "v1.1.53", "date": "2026-02-05", "section": null, "item": "feat(desktop): Stop Showing SessionSkeleton on New Workspace", "dom": "other", "kind": "feat"}
+{"tag": "v1.1.69-vscode", "date": "2025-07-28", "section": null, "item": "chore: add unit tests for file click on codeblock", "dom": "other", "kind": "feat"}
+{"tag": "%40continuedev%2Fllm-info%401.2.0", "date": "2025-10-15", "section": null, "item": "markdown rules and top level agents (1c43796)", "dom": "other", "kind": "other"}
+{"tag": "v3.10.3", "date": "2025-03-24", "section": null, "item": "Make partial file reads backwards-compatible with custom system prompts and give users more control over the chunk size", "dom": "other", "kind": "other"}
+{"tag": "v0.181.3-pre", "date": "2025-04-04", "section": null, "item": "Agent Beta: Added support for configuring a specific model for each AI-powered feature.", "dom": "other", "kind": "feat"}
+{"tag": "v1.2.15-vscode", "date": "2026-02-04", "section": null, "item": "feat: resubmit overloaded errors", "dom": "other", "kind": "other"}
+{"tag": "v0.225.12", "date": "2026-03-03", "section": null, "item": "linux: Reduce crashes in the face of transient GPU errors", "dom": "other", "kind": "fix"}
+{"file": "v2.116.0.html", "version": "v2.116.0", "date": null, "section": "Version Information ?", "item": "v0.3.200", "dom": "other", "kind": "other"}
+{"file": "workbuddy-changelog.html", "version": "5.1.1", "date": "2026-06-14", "section": "WorkBuddy 更新日志 ?", "item": "修复 Windows 启动时因残留进程锁住数据库文件导致无法启动的问题", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.99.0", "date": "2026-02-11", "section": null, "item": "#10762 nit: add DB version in discrepancy recording @jif-oai", "dom": "other", "kind": "feat"}
+{"tag": "v0.3.7", "date": "2025-07-15", "section": null, "item": "Add support for job-control suspend (ctrl+z/SIGSTP).", "dom": "other", "kind": "feat"}
+{"tag": "v0.3.0", "date": "2025-09-04", "section": null, "item": "Change the type of ToolResult.responseParts", "dom": "other", "kind": "other"}
+{"tag": "v0.31.1.dev20260406", "date": "2026-04-06", "section": null, "item": "v0.31.1.dev20260406", "dom": "other", "kind": "other"}
+{"file": "workbuddy-download-history.html", "version": "5.0.x", "date": "2026-06-17", "section": "历史版本下载 ?", "item": "下载 (388.5 MB)", "dom": "other", "kind": "other"}
+{"tag": "v0.9.5", "date": "2024-10-15", "section": null, "item": "docs: add link to action, IDE words", "dom": "other", "kind": "feat"}
+{"file": "changelog.html", "version": null, "date": "2026/09/17", "section": null, "item": "● 华为云码道代码智能体企业级管理控制台上线，集中管控更省心", "dom": "other", "kind": "other"}
+{"tag": "v1.0.41-jetbrains", "date": "2025-09-09", "section": null, "item": "feat: prevent unsafe file reads", "dom": "other", "kind": "fix"}
+{"tag": "%40continuedev%2Fopenai-adapters%401.12.0", "date": "2025-09-01", "section": null, "item": "improve org switching experience (ed52c87)", "dom": "other", "kind": "other"}
+{"tag": "v0.212.3", "date": "2025-11-12", "section": null, "item": "Improved monorepo virtual environment detection with Debugpy.", "dom": "other", "kind": "fix"}
+{"file": "changelog.html", "version": null, "date": "2026/09/17", "section": null, "item": "● 码道VS Code/Jetbrain插件支持MacOS系统。", "dom": "other", "kind": "other"}
+{"tag": "v2026.5.12-beta.7", "date": "2026-05-14", "section": null, "item": "Config: serialize and retry semantic config mutations centrally, so concurrent commands can rebase safe changes instead of clobbering or hand-rolling command-local retry loops.", "dom": "other", "kind": "other"}
+{"tag": "v0.187.4", "date": "2025-05-21", "section": null, "item": "\"diagnostics\": {\"button\": false}", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.121.0", "date": "2026-04-15", "section": null, "item": "#17709 [codex] Initialize ICU data for code mode V8 @pakrym-oai", "dom": "other", "kind": "other"}
+{"tag": "v1.2.7", "date": "2026-02-19", "section": null, "item": "Migrate read tool from Bun.file() to Filesystem module", "dom": "other", "kind": "other"}
+{"file": "docs.trae.cn_ide_changelog.html", "version": null, "date": null, "section": "2026 年 01 月 13 日（Hotfix）", "item": "TRAE CN v3.3.19 版本正式发布。以下是变更细节：", "dom": "other", "kind": "other"}
+{"file": "changelog.html", "version": null, "date": "2026/09/17", "section": null, "item": "配额管理：支持设置企业Token总上限、单人Token上限、模型配额和团队配额，管控可细化到个人，帮助你控制成本、防止资源滥用。", "dom": "other", "kind": "other"}
+{"tag": "v3.22.0", "date": "2025-06-26", "section": null, "item": "Allowed commands import/export (thanks @catrielmuller!)", "dom": "other", "kind": "other"}
+{"tag": "v1.17.12", "date": "2026-06-30", "section": null, "item": "feat(app): new timeline header", "dom": "other", "kind": "feat"}
+{"file": "docs.devin.ai_cli_changelog_stable.html", "version": null, "date": "2026.8.18", "section": "Removed", "item": "v2026.4.1-3April 8, 2026", "dom": "other", "kind": "other"}
+{"file": "workbuddy-changelog.html", "version": "5.1.2", "date": "2026-06-17", "section": "WorkBuddy 更新日志 ?", "item": "修复专家团任务未完成时异常终止且无法继续的问题", "dom": "other", "kind": "other"}
+{"tag": "v1.2.4-vscode", "date": "2025-09-18", "section": null, "item": "Display security warnings for potentially dangerous commands", "dom": "other", "kind": "other"}
+{"tag": "v0.5.0", "date": "2023-10-02", "section": null, "item": "lots else that wasn't done as PRs", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.106.0", "date": "2026-02-26", "section": null, "item": "#12735 Enable request_user_input in Default mode @charley-oai", "dom": "other", "kind": "other"}
+{"file": "changelog.html", "version": null, "date": null, "section": null, "item": "Deutsch", "dom": "other", "kind": "other"}
+{"tag": "v1.2.7-vscode", "date": "2025-10-01", "section": null, "item": "feat: Add posthog continuous ai guide", "dom": "other", "kind": "feat"}
+{"tag": "v0.10.0", "date": "2025-10-22", "section": null, "item": "refactor(core): Centralize 'write_todos_list' tool name", "dom": "other", "kind": "other"}
+{"tag": "v0.9.9", "date": "2024-11-05", "section": null, "item": "chore: housekeeping", "dom": "other", "kind": "other"}
+{"tag": "v0.46.0", "date": "2024-07-29", "section": null, "item": "New /ask <question> command to ask about your code, without making any edits.", "dom": "other", "kind": "feat"}
+{"tag": "v0.74.0", "date": "2025-02-06", "section": null, "item": "Yes/No prompts now accept All/Skip as alias for Y/N even when not processing a group of", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.118.0", "date": "2026-03-31", "section": null, "item": "#16141 codex-tools: extract collaboration tool specs @bolinfest", "dom": "other", "kind": "other"}
+{"tag": "v2026.2.17", "date": "2026-02-18", "section": null, "item": "Telegram: surface user message reactions as system events, with configurable channels.telegram.reactionNotifications scope. (#10075) Thanks @Glucksberg.", "dom": "other", "kind": "other"}
+{"tag": "v0.140.0-pre", "date": "2024-06-12", "section": null, "item": "Added gu/gU/g~ for changing case. (#12565).", "dom": "other", "kind": "feat"}
+{"tag": "v1.16.0", "date": "2026-08-27", "section": null, "item": "docs: document OpenHands repository boundaries", "dom": "other", "kind": "other"}
+{"tag": "v0.8.20-vscode", "date": "2024-03-18", "section": null, "item": "8.20 - 2024-03-18", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.58.0", "date": "2025-11-13", "section": null, "item": "#6580 — remove porcupine model slug (b1979b70a)", "dom": "other", "kind": "other"}
+{"tag": "v0.32.2.dev20260817", "date": "2026-08-17", "section": null, "item": "These are the release notes for gptme version v0.32.2.dev20260817.", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.104.0", "date": "2026-02-18", "section": null, "item": "#12061 Chore: remove response model check and rely on header model for downgrade @shijie-oai", "dom": "other", "kind": "other"}
+{"tag": "%40continuedev%2Fopenai-adapters%401.25.0", "date": "2025-10-15", "section": null, "item": "better agent errors in settings agent section (#8198) (fbaec42)", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.124.0", "date": "2026-04-23", "section": null, "item": "#18583 [3/4] Add executor-backed RMCP HTTP client @aibrahim-oai", "dom": "other", "kind": "feat"}
+{"tag": "v1.30.0", "date": "2026-04-08", "section": null, "item": "Mesh binary management — download fresh binary on every start; kill mesh when Goose exits", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.58.0", "date": "2025-11-13", "section": null, "item": "#6585 — copy for model migration nudge (305fe73d8)", "dom": "other", "kind": "other"}
+{"tag": "v1.0.46", "date": "2025-11-08", "section": null, "item": "Added rate limiting to zen functionality", "dom": "other", "kind": "feat"}
+{"tag": "v0.34.0", "date": "2026-09-18", "section": null, "item": "feat(service-init): add optional local health probe (#3665) (2ccf2ff02)", "dom": "other", "kind": "feat"}
+{"tag": "v0.19.12", "date": "2026-07-18", "section": null, "item": "feat(core): overhaul web_fetch — content fidelity, binary handling, security, and resilience (#7146) by @tanzhenxin", "dom": "other", "kind": "other"}
+{"tag": "v0.8.0", "date": "2025-09-12", "section": null, "item": "Disable tools", "dom": "other", "kind": "other"}
+{"tag": "v0.34.0", "date": "2026-09-18", "section": null, "item": "? Features (61)", "dom": "other", "kind": "feat"}
+{"tag": "v0.7.0", "date": "2025-08-20", "section": null, "item": "This is a solid lil’ release that makes Crush on Windows way better and really matures how we're handling about the .crush dir. Read on!", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.73.0", "date": "2025-12-15", "section": "7914)", "item": "#8066 Update config.md", "dom": "other", "kind": "other"}
+{"tag": "v3.57.0", "date": "2026-02-05", "section": null, "item": "Codex-5.3 through ChatGPT subscription", "dom": "other", "kind": "other"}
+{"tag": "v0.119.3-pre", "date": "2024-01-05", "section": null, "item": "Restored call control styles to a similar look to Zed 1.", "dom": "other", "kind": "other"}
+{"tag": "%40continuedev%2Fopenai-adapters%401.24.0", "date": "2025-10-12", "section": null, "item": "add MentionFileInChatAction (7fb5935)", "dom": "other", "kind": "feat"}
+{"tag": "v0.9.242-vscode", "date": "2024-12-10", "section": null, "item": "History will now show the current chat", "dom": "other", "kind": "other"}
+{"tag": "v0.31.0", "date": "2024-05-02", "section": null, "item": "Aider is now also AI pair programming in your browser! Use the --browser switch to launch an experimental browser based version of aider.", "dom": "other", "kind": "other"}
+{"tag": "v0.176.1", "date": "2025-03-03", "section": null, "item": "Improved Go syntax highlighting. (#25327; thanks chbk)", "dom": "other", "kind": "other"}
+{"file": "workbuddy-changelog.html", "version": "5.4.4", "date": "2026-08-28", "section": "WorkBuddy 更新日志 ?", "item": "提升 PPT 和表格生成稳定性，修复部分设备无法生成、公式重算结果不准确等问题", "dom": "other", "kind": "other"}
+{"tag": "v0.21.14-nightly.20260822.7a4566cb3b", "date": "2026-08-22", "section": null, "item": "chore(deps): Clear high-severity CVE baseline and harden the security gate", "dom": "other", "kind": "other"}
+{"file": "docs.trae.cn_ide_changelog.html", "version": null, "date": null, "section": "2025 年 05 月 27 日", "item": "扩充了 AI 可自主调用的工具集，减少了编程过程中的人工干预，使得编程体验更流畅、更高效。", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.64.0", "date": "2025-12-02", "section": null, "item": "chore: proper client extraction", "dom": "other", "kind": "other"}
+{"tag": "v1.26.0", "date": "2026-02-26", "section": null, "item": "Apps token limit #7474", "dom": "other", "kind": "other"}
+{"tag": "rust-v0.137.0", "date": "2026-06-04", "section": null, "item": "#25603 [codex] Inherit raw events for spawned child listeners @vivi", "dom": "other", "kind": "other"}
+{"tag": "v0.204.1-pre", "date": "2025-09-12", "section": null, "item": "We are sorry for the mistake.", "dom": "other", "kind": "other"}
+{"tag": "v0.1.133", "date": "2025-06-25", "section": null, "item": "do not print error on ctrl+c during prompts", "dom": "other", "kind": "other"}
+{"tag": "v1.18.16", "date": "2026-08-10", "section": null, "item": "fix(i18n): use 词元 instead of 令牌 for token in zh locale", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.31.1.dev20260319", "date": "2026-03-19", "section": null, "item": "fix(tools): graceful degradation for unavailable tools in server context (#1680) (d4da97051)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.21.0-nightly.20260727.c003e1718", "date": "2026-07-27", "section": null, "item": "fix(core): fall back to system rg when bundled ripgrep cannot run", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.18.5", "date": "2026-06-21", "section": null, "item": "fix(extensions): fetch http marketplaces with http client", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.199.4-pre", "date": "2025-08-12", "section": null, "item": "Fixed an issue where the Follow Agent could unexpectedly stop following during edits.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.3.5", "date": "2026-05-20", "section": null, "item": "Fixed a bug where Zed incorrectly kept a removed pane as the active pane.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.32.2.dev20260727", "date": "2026-07-27", "section": null, "item": "fix(logmanager): enforce call_id atomicity in limit_log for Responses API (#3359) (6b91235d3)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.118.0", "date": "2024-01-03", "section": null, "item": "Fixed a bug where certain files excluded from worktrees were causing panics when being opened.", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.54.0", "date": "2025-11-04", "section": null, "item": "?? WARNING: Attempting to pin musl 1.2.5 for DNS fixes in #6189 turned out to be the wrong fix. We reverted it in #6222 and published 0.55.0.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.25.0-nightly.20260112.15891721a", "date": "2026-01-12", "section": null, "item": "Fix settings command fallback", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.0.18-vscode", "date": "2025-07-13", "section": null, "item": "fix: show assistant loading after login", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.21.8", "date": "2026-08-08", "section": null, "item": "Fixed an issue where slash command names were truncated in narrow terminals, ensuring full command names like 'review' and 'doctor' remain visible in completion menus. (#8657) by @carffuca", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.184.8", "date": "2025-04-30", "section": null, "item": "Fixed a rare panic in the editor.", "dom": "bugfix", "kind": "fix"}
+{"tag": "0.7.1", "date": "2024-07-05", "section": null, "item": "test: fix the failed unit tests.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.15.0", "date": "2026-04-22", "section": null, "item": "fix: display \">100%\" when context usage exceeds limit", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.88.0", "date": "2026-07-31", "section": "Change config based on the machine you're on.", "item": "a45ab25: fix(shellconfig): bound crushrc execution with context and timeout (@taciturnaxolotl)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.208.4", "date": "2025-10-15", "section": null, "item": "Vim: Fixed an edge case with the % motion, where the cursor could end up in a closing HTML tag instead of the matching bracket.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.28.3", "date": "2025-10-02", "section": null, "item": "fix: prevent premature code block closure during streaming with nested blocks (#657) (55fedb76)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.218.7", "date": "2026-01-12", "section": null, "item": "Fixes crash due to markdown parsing via bumping pulldown-cmark", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.27.0", "date": "2025-03-11", "section": null, "item": "fix: prompt to prefer absolute paths (ba11552a)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.34.0", "date": "2026-03-17", "section": null, "item": "fix(cli): implement --all flag for extensions uninstall", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.119.8-pre", "date": "2024-01-12", "section": null, "item": "Fixed an error where Zed would not save credentials to the keychain after signing in (#2382).", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.90.0", "date": "2026-01-25", "section": null, "item": "#9565 Fix execpolicy parsing for multiline quoted args @jdsalasca", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.33.1.dev20260831", "date": "2026-08-31", "section": null, "item": "fix(convert): register gptme-convert console script and fix error message (#3658) (1ad650ae3)", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.118.0", "date": "2026-03-31", "section": null, "item": "#16071 fix: clean up remaining Windows argument-comment-lint violations @bolinfest", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.21.13", "date": "2026-08-17", "section": null, "item": "Other Fixes & Improvements", "dom": "bugfix", "kind": "fix"}
+{"file": "docs.devin.ai_cli_changelog_stable.html", "version": null, "date": null, "section": "Fixed", "item": "Skipping some questions in an ask_user_question will no longer block progress.", "dom": "bugfix", "kind": "other"}
+{"tag": "v1.1.0", "date": "2025-05-22", "section": null, "item": "Fix: Inspector needs to handle new message format", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.27.0", "date": "2025-03-11", "section": null, "item": "fix: refactor only-once warning of unknown model metadata (5d5f0e95)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.174.3-pre", "date": "2025-02-18", "section": null, "item": "Fixed a bug that prevented renames for some languages.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.16.2", "date": "2026-05-27", "section": null, "item": "fix(build): clean stale outputs before tsc --build to prevent TS5055", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.17.14", "date": "2026-07-06", "section": null, "item": "Fixed dropdown search behavior. (@arvsrn)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.0.24-vscode", "date": "2025-08-20", "section": null, "item": "fix: case when reranker returns invalid scores array", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.177.7", "date": "2025-03-12", "section": null, "item": "Fixed an issue where the buffer search options would not be reset when using buffer: deploy search after using Vim search (* & #) which enable all search options.", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.119.0", "date": "2026-04-10", "section": null, "item": "#16566 fix: races in end of turn @jif-oai", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.0.13-jetbrains", "date": "2025-04-19", "section": null, "item": "fix: set DEFAULT_CONTEXT_LENGTH to 8192", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.124.0", "date": "2026-04-23", "section": null, "item": "#18915 fix: windows snapshot for external_agent_config_migration::tests::prompt_snapshot did not match windows output @bolinfest", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.75.0", "date": "2026-06-02", "section": null, "item": "Bug fixin'", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.225.8-pre", "date": "2026-02-24", "section": null, "item": "Fixed a (rare) panic in inlay hints", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.4.2", "date": "2026-05-27", "section": null, "item": "Fixed markdown preview content being clipped past the pane edge when the buffer search bar is open. (#55009; thanks tkilaker)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.10.0", "date": "2025-10-14", "section": null, "item": "chore: fix all warnings in test compilation", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.13.0-nightly.20251105.da3da198", "date": "2025-11-05", "section": null, "item": "fix(auth): Return empty map if token file does not exits, and refacto…", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.31.1.dev20260604", "date": "2026-06-04", "section": null, "item": "? Fixes (19)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.18.4", "date": "2026-06-20", "section": null, "item": "fix(cli): avoid agent composer unmount reset", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.121.0", "date": "2026-04-15", "section": null, "item": "#17915 fix: cargo deny @jif-oai", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.3.102", "date": "2025-07-31", "section": null, "item": "fix: load global jsonc", "dom": "bugfix", "kind": "fix"}
+{"tag": "v2026.3.23", "date": "2026-03-24", "section": null, "item": "Fix: /stop command crash + UnboundLocalError in streaming media delivery", "dom": "bugfix", "kind": "fix"}
+{"tag": "v2026.5.14-beta.2", "date": "2026-05-15", "section": null, "item": "Agents/config: support per-agent bootstrap profile overrides for contextInjection, bootstrapMaxChars, and bootstrapTotalMaxChars, inheriting from agents.defaults when omitted. Fixes #69966. Thanks @BunsDev.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.161.1", "date": "2024-11-13", "section": null, "item": "Fixed python toolchain detection when worktree local path is set (#20229; thanks WeetHet).", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.21.3-nightly.20260803.e1e5b42ce", "date": "2026-08-03", "section": null, "item": "fix(review): hold a Critical the base tree already fails", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.74.1", "date": "2026-05-29", "section": null, "item": "a4181d6: fix(scrollbar): fix track position calculation (@andreynering)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.83.0", "date": "2025-05-09", "section": null, "item": "Fixed an issue where read-only status of files might not be preserved correctly by some commands (e.g. /drop after adding a read-only file).", "dom": "bugfix", "kind": "fix"}
+{"tag": "v1.0.22", "date": "2025-05-06", "section": null, "item": "docs: fix cli arrow command", "dom": "bugfix", "kind": "fix"}
+{"file": "v2.109.2.html", "version": "v2.109.2", "date": null, "section": "Bug Fixes ?", "item": "Stop Hook false trigger continuation: Fixed prompt-type Stop hook incorrectly triggering agent continuation when conditions are not met; the agent now correctly stops as expected", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.6.5", "date": "2025-09-07", "section": null, "item": "fix: default to last used model", "dom": "bugfix", "kind": "fix"}
+{"tag": "rust-v0.100.0", "date": "2026-02-12", "section": null, "item": "#11522 fix: add --test_verbose_timeout_warnings to bazel.yml @bolinfest", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.21.5", "date": "2026-08-04", "section": null, "item": "Introduces detailed execution-specific outcome tracking for tool calls to distinguish between invocation success, failure, and cancellation.", "dom": "bugfix", "kind": "feat"}
+{"tag": "v0.30.0-nightly.20260218.ce84b3cb5", "date": "2026-02-18", "section": null, "item": "docs: fix inconsistent commandRegex example in policy engine", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.31.1.dev20260525", "date": "2026-05-25", "section": null, "item": "fix(cli): remove browser backend noise from utility output (#2500) (a5b383286)", "dom": "bugfix", "kind": "fix"}
+{"tag": "v0.197.3", "date": "2025-07-30", "section": null, "item": "Fixed an issue where the cursor doesn't move up and down on arrow keys when no completions are shown.", "dom": "bugfix", "kind": "fix"}
+{"tag": "v2026.4.15", "date": "2026-04-16", "section": null, "item": "Agents/replay recovery: classify the provider wording 401 input item ID does not belong to this connection as replay-invalid, so users get the existing /new session reset guidance instead of a raw 401-style failure. (#66475) Thanks @dallylee.", "dom": "models-routing", "kind": "feat"}
+{"tag": "v1.38.0", "date": "2026-06-17", "section": null, "item": "Classify Bedrock ValidationException as ExecutionError #9735", "dom": "models-routing", "kind": "other"}
+{"tag": "v0.21.14-preview.0", "date": "2026-08-19", "section": null, "item": "feat(core): add a live-session registry and qwen sessions ps", "dom": "models-routing", "kind": "feat"}
+{"tag": "v2026.3.17", "date": "2026-03-17", "section": null, "item": "Prevent closed OpenAI client reuse across retries", "dom": "models-routing", "kind": "fix"}
+{"tag": "v1.3.35-vscode", "date": "2026-03-26", "section": null, "item": "fix(gemini): merge consecutive same-role messages to fix ordering errors", "dom": "models-routing", "kind": "fix"}
+{"file": "windsurf.com_changelog.html", "version": null, "date": "2026.5.26", "section": "New Model Picker", "item": "specific variants, like reasoning effort and speed.", "dom": "models-routing", "kind": "perf"}
+{"tag": "v3.34.0", "date": "2025-11-22", "section": null, "item": "Pin Roo provider to the top of the provider list for better discoverability (PR #9485 by @mrubens)", "dom": "models-routing", "kind": "other"}
+{"tag": "v1.14.17", "date": "2026-04-19", "section": null, "item": "Fix GitHub Copilot Anthropic Haiku requests by disabling unsupported tool streaming.", "dom": "models-routing", "kind": "fix"}
+{"tag": "sdk-typescript-v0.1.5-preview.2", "date": "2026-02-18", "section": null, "item": "feat: Improve QWEN. md file loading by filtering system files and limiting scope", "dom": "models-routing", "kind": "other"}
+{"tag": "v2.25.0", "date": "2026-09-04", "section": null, "item": "Discovery of Mistral's built-in web-search connector", "dom": "models-routing", "kind": "other"}
+{"tag": "v1.0.26", "date": "2025-06-09", "section": null, "item": "feat: add claude 4 to vertex dropdown", "dom": "models-routing", "kind": "feat"}
+{"tag": "v2026.3.28", "date": "2026-03-28", "section": null, "item": "Nous Portal now supports 400+ models — The Nous Research inference portal has expanded dramatically, giving Hermes Agent users access to over 400 models through a single provider endpoint", "dom": "models-routing", "kind": "feat"}
+{"tag": "v2026.5.4", "date": "2026-05-05", "section": null, "item": "Models/auth: add openclaw models auth list [--provider <id>] [--json] so users can inspect saved per-agent auth profiles without dumping secrets or hitting the old “too many arguments” path. Thanks @vincentkoc.", "dom": "models-routing", "kind": "feat"}
+{"tag": "0.7.0", "date": "2024-06-29", "section": null, "item": "chore(deps-dev): bump llama-index-embeddings-azure-openai from 0.1.9 to 0.1.10", "dom": "models-routing", "kind": "other"}
+{"file": "windsurf.com_changelog.html", "version": null, "date": null, "section": "Fixed", "item": "Models marked “Devin Local only” (including every GPT-5.6 variant) now appear disabled in Cascade’s model picker with a tooltip pointing you to Devin Local, rather than running degraded in Cascade.", "dom": "models-routing", "kind": "other"}
+{"tag": "v3.39.2", "date": "2026-01-10", "section": null, "item": "Feature: Improve error messaging for stream termination errors from provider (PR #10548 by @daniel-lxs)", "dom": "models-routing", "kind": "feat"}
+{"tag": "v3.17.7", "date": "2025-05-28", "section": null, "item": "Fix diff editing reliability for Claude 4 family models by adding constraints to prevent errors with large replacements", "dom": "models-routing", "kind": "fix"}
+{"tag": "v0.80.2", "date": "2026-06-23", "section": null, "item": "Fixed inherited Anthropic-compatible custom models to use explicit compatibility metadata instead of provider-name heuristics for session-affinity headers and unsupported tool-field omissions.", "dom": "models-routing", "kind": "fix"}
+{"tag": "rust-v0.98.0", "date": "2026-02-05", "section": null, "item": "Introducing GPT-5.3-Codex. Learn More", "dom": "models-routing", "kind": "feat"}
+{"tag": "v2026.7.1-beta.6", "date": "2026-07-13", "section": null, "item": "Local inference and chat controls: auto-discover Ollama inference nodes, add Control UI session-first navigation, reasoning controls, and command picking, and keep OpenClaw control tools available when deferred tool search selects the wrong tool family. (#99234, #99289, #99426, #99838, #99561) Thanks @100yenadmin, @joshavant, @VicZhang6, @Solvely-Colin, and @vincentkoc.", "dom": "models-routing", "kind": "feat"}
+{"tag": "v2026.3.28", "date": "2026-03-28", "section": null, "item": "First-class Hugging Face Inference API integration with auth, setup wizard, and model picker", "dom": "models-routing", "kind": "other"}
+{"tag": "v1.2.7", "date": "2026-02-19", "section": null, "item": "Add Kilo as a native provider (@Nomadcxx)", "dom": "models-routing", "kind": "feat"}
+{"tag": "v3.31.0", "date": "2025-09-25", "section": null, "item": "Update SAP AI Core Provider Anthropic input token calculation", "dom": "models-routing", "kind": "other"}
+{"tag": "v0.142.4", "date": "2024-07-03", "section": null, "item": "Fixed an issue where provider settings were lost when switching between Ollama models (#13399).", "dom": "models-routing", "kind": "fix"}
+{"tag": "v0.32.2.dev20260727", "date": "2026-07-27", "section": null, "item": "feat(providers): add grok-subscription provider for SuperGrok subscribers (#3289) (e0cd34093)", "dom": "models-routing", "kind": "feat"}
+{"tag": "v0.75.1", "date": "2026-05-18", "section": null, "item": "Fixed Azure OpenAI Responses and OpenAI Responses error formatting to prefix HTTP status codes onto errorMessage, so transient 5xx and 429 errors are correctly matched by the agent-level auto-retry classifier inherited from @earendil-works/pi-ai (#4232).", "dom": "models-routing", "kind": "fix"}
+{"tag": "v0.20.0", "date": "2025-12-09", "section": null, "item": "Update error codes when process exiting the gemini cli", "dom": "models-routing", "kind": "other"}
+{"tag": "v3.23.12", "date": "2025-07-15", "section": null, "item": "Update the max-token calculation in model-params to better support Kimi K2 and others", "dom": "models-routing", "kind": "feat"}
+{"tag": "v1.5.0-pre", "date": "2026-05-27", "section": null, "item": "Fixed speed: Extra inputs are not permitted errors for Opus 4.6 and 4.7 in the Anthropic API provider.", "dom": "models-routing", "kind": "fix"}
+{"tag": "rust-v0.136.0", "date": "2026-06-01", "section": null, "item": "#24716 Fix fs/watch debounce batching @etraut-openai", "dom": "models-routing", "kind": "fix"}
+{"tag": "v3.41.1", "date": "2026-01-16", "section": null, "item": "Feat: Aggregate subtask costs in parent task (#5376 by @hannesrudolph, PR #10757 by @taltas)", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.159.5", "date": "2024-10-30", "section": "pr", "item": "Vim: Fixed a bug where the o and O commands did not respect the extend_comment_on_newline setting (#19766).", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "v3.28.0", "date": "2025-09-10", "section": null, "item": "feat: Add click-to-edit, ESC-to-cancel, and fix padding consistency for chat messages (#7788 by @hannesrudolph, PR by @app/roomote)", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v1.17.0", "date": "2026-09-09", "section": null, "item": "docs: correct OH_*_GIT_REF defaults and merge duplicated bullet in DEVELOPMENT.md", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v2.25.5", "date": "2026-09-18", "section": null, "item": "Vibe no longer runs a project-local Git executable during automatic repository inspection.", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v2026.9.1-beta.1", "date": "2026-08-28", "section": null, "item": "PR #128337", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.213.3", "date": "2025-11-19", "section": null, "item": "?Improved timestamp handling in various Git UI components for enhanced user experience. (#41005; thanks virajbhartiya)", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.211.4", "date": "2025-11-05", "section": "pr", "item": "Go: Added comment injections for go.mod and go.work. (#40842; thanks thedadams)", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "v0.211.4", "date": "2025-11-05", "section": "pr", "item": "Agent: Fixed an issue where the agent panel's buffer and UI font size wouldn't scale proportionally.", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "v1.2.3", "date": "2026-05-13", "section": null, "item": "Fixed the mouse cursor not switching to a pointer when hovering commit rows in the git graph. (#55247; thanks jakenorris1124)", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v0.223.0-pre", "date": "2026-02-04", "section": null, "item": "Fixed an issue where opening a link to a settings item that involved a sub page would not open the sub page. ([#48212](https://github.com/zed-indus...", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v0.212.3", "date": "2025-11-12", "section": null, "item": "*Added git: worktree creation action and git worktree picker to open a git worktree in a new window or replace the current one. (#38719; thanks AlvaroParker)", "dom": "git-pr-ci", "kind": "feat"}
+{"tag": "v0.10.1", "date": "2025-09-29", "section": null, "item": "-signature 'https://github.com/charmbracelet/crush/releases/download/v0.10.1/checksums.txt.sig' \\", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.227.1", "date": "2026-03-11", "section": "pr", "item": "Collab: Fixed unable to rejoin project bug (\"already subscribed to entity\").", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "rust-v0.58.0", "date": "2025-11-13", "section": null, "item": "#6534 — feat: only wait for mutating tools for ghost commit (e00eb50db)", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v1.0.11-vscode", "date": "2025-05-31", "section": null, "item": "chore: ??? update the commit message for cla signing", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v3.20.5", "date": "2025-08-02", "section": null, "item": "v3.20.5 Release Notes by @github-actions[bot]", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.18.2", "date": "2025-11-17", "section": null, "item": "wget 'https://github.com/charmbracelet/crush/releases/download/v0.18.2/checksums.txt'", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.49.0", "date": "2024-08-10", "section": null, "item": "New --attribute-commit-message-author to prefix commit messages with 'aider: ' if aider authored the changes, replaces --attribute-commit-message.", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v2026.5.31-beta.4", "date": "2026-06-01", "section": null, "item": "PR #88137 fix ci mainline checks. Thanks @RomneyDa.", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v0.32.0", "date": "2026-03-03", "section": null, "item": "fix(github): resolve actionlint and yamllint regressions from #19443", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v0.233.5", "date": "2026-04-22", "section": null, "item": "Agent: Improved and simplified the UX of creating threads in Git worktrees.", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.220.2", "date": "2026-01-21", "section": "pr", "item": "Git: Fixed a bug where binary files would be displayed as garbled text when viewing an old commit.", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "v0.148.0", "date": "2024-08-14", "section": "pr", "item": "Linux: Fixed visual glitches when rendering icons (#12352; thanks apricotbucket28).", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "v1.9.0", "date": "2025-09-24", "section": null, "item": "docs: github copilot config workarounds", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v3.33.0", "date": "2025-11-18", "section": null, "item": "Fix: Pass tool protocol parameter to lineCountTruncationError (PR #9358 by @daniel-lxs)", "dom": "git-pr-ci", "kind": "fix"}
+{"tag": "v0.14.0", "date": "2025-11-12", "section": "pr", "item": "Docs: Added newest changelog: v0.12.0", "kind": "pr", "dom": "git-pr-ci"}
+{"tag": "v2026.7.2-beta.1", "date": "2026-07-15", "section": null, "item": "PR #88082 Thanks @lit26.", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v0.20.0", "date": "2025-12-09", "section": null, "item": "chore(ci): mark GitHub release as pre-release if not on \"latest\" npm channel", "dom": "git-pr-ci", "kind": "other"}
+{"tag": "v1.19.0", "date": "2026-09-16", "section": null, "item": "test: cover cloud git service", "dom": "git-pr-ci", "kind": "other"}
+{"file": "v2.61.0.html", "version": "v2.61.0", "date": null, "section": "Improvements ?", "item": "File Path Completion: The Web UI input box now supports @-triggered file path completion, automatically adding a space after selection.", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v0.25.0", "date": "2026-01-21", "section": null, "item": "Always enable bracketed paste", "dom": "ui-ux", "kind": "other"}
+{"tag": "v3.41.0", "date": "2025-12-11", "section": null, "item": "fix(ui): close WhatsNewModal when selecting model options", "dom": "ui-ux", "kind": "fix"}
+{"tag": "v1.1.37", "date": "2026-01-28", "section": null, "item": "Add transition to command palette", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v1.1.26", "date": "2026-01-19", "section": null, "item": "Tweak share button to prevent layout shift in desktop (@itsrainingmani)", "dom": "ui-ux", "kind": "fix"}
+{"tag": "0.32.0", "date": "2025-04-10", "section": null, "item": "User-friendly UI for a content policy violation error", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.35.0", "date": "2026-01-05", "section": "Before", "item": "ctx.ui.confirm() / select() / input() - User prompts", "dom": "ui-ux", "kind": "other"}
+{"tag": "v1.1.26", "date": "2026-01-19", "section": null, "item": "New layout improvements for app", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v1.9.0", "date": "2026-07-01", "section": null, "item": "Improved the macOS CLI installation failure notification with a link to manual setup instructions.", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.18.0", "date": "2026-06-12", "section": null, "item": "feat(vscode): surface ACP background notifications", "dom": "ui-ux", "kind": "other"}
+{"tag": "v1.3.2-pre", "date": "2026-05-15", "section": null, "item": "Fixed pressing \"New Thread\" (or Cmd-N) doing nothing when the Agent Panel's Settings view was open", "dom": "ui-ux", "kind": "fix"}
+{"tag": "v0.127.3", "date": "2024-03-20", "section": null, "item": "Fixed a bug where the project panel icon was bouncing when renaming.", "dom": "ui-ux", "kind": "fix"}
+{"file": "v2.105.0.html", "version": "v2.105.0", "date": null, "section": "Workflows Console ?", "item": "Added the /workflows panel, which allows you to view active and historical workflow runs, save custom scripts, and supports pausing, resuming, and restarting running workflows.", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v1.14.49", "date": "2026-05-13", "section": null, "item": "Fix keymap fallback priority and make TUI config errors clearer.", "dom": "ui-ux", "kind": "fix"}
+{"tag": "v1.29.0", "date": "2026-03-31", "section": null, "item": "Ability to manage sub recipes in desktop UI #6360", "dom": "ui-ux", "kind": "other"}
+{"tag": "v2026.1.9", "date": "2026-01-10", "section": null, "item": "TUI: agent picker + agents list RPC; improved status line.", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.56.0", "date": "2026-03-04", "section": null, "item": "Fixed TUI width handling for regional indicator symbols to prevent wrap drift and stale characters during streaming (#1783).", "dom": "ui-ux", "kind": "fix"}
+{"tag": "v0.86.0", "date": "2026-07-20", "section": null, "item": "When focused on the chat view: l or right arrow focuses on the sidebar", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.21.2-nightly.20260801.bc382c3ff", "date": "2026-08-01", "section": null, "item": "fix(triage): render the verify report as sanitized markdown, not an escaped pre dump", "dom": "ui-ux", "kind": "fix"}
+{"tag": "rust-v0.121.0", "date": "2026-04-15", "section": null, "item": "Added TUI prompt history improvements, including Ctrl+R reverse search and local recall for accepted slash commands (#17550, #17336).", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v1.21.0", "date": "2026-01-22", "section": null, "item": "UI: Use Intl.NumberFormat for token formatting in SessionsInsights (#6466) (@aharvard)", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.119.6-pre", "date": "2024-01-11", "section": null, "item": "Fixed editor::Hover action (and g h command in Vim mode) not working (#2304, #2394).", "dom": "ui-ux", "kind": "fix"}
+{"tag": "v3.19.6", "date": "2025-07-17", "section": null, "item": "Disable recording webview click events", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.27.0-nightly.20260127.00f60ef53", "date": "2026-01-27", "section": null, "item": "feat(ui): add solid background color option for input prompt", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v0.32.2.dev20260727", "date": "2026-07-27", "section": null, "item": "feat(tui): tab-completion candidate overlay (#3311) (#3316) (48143206c)", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.229.0", "date": "2026-03-25", "section": null, "item": "\"tab\": \"editor::AcceptEditPrediction\"", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.1.113", "date": "2025-06-20", "section": null, "item": "feat(tui): theme switcher with preview", "dom": "ui-ux", "kind": "other"}
+{"tag": "rust-v0.121.0", "date": "2026-04-15", "section": null, "item": "#17550 feat(tui): add reverse history search to composer @fcoury-oai", "dom": "ui-ux", "kind": "feat"}
+{"tag": "v1.3.5", "date": "2026-05-20", "section": null, "item": "Improved sidebar search placeholder text to read \"Search threads…\" instead of \"Search…\".", "dom": "ui-ux", "kind": "other"}
+{"tag": "v0.109.1", "date": "2023-10-25", "section": null, "item": "Fixed the titlebar upgrade UI to restart zed when an update is available.", "dom": "ui-ux", "kind": "fix"}
+{"tag": "v0.191.2-pre", "date": "2025-06-13", "section": null, "item": "Added --nocapture as a default argument when debugging Rust tests.", "dom": "cli-flags", "kind": "fix"}
+{"tag": "v1.1.5", "date": "2026-05-06", "section": null, "item": "Added line_ending setting to control how line endings are handled for new files and normalized on save. (#54356; thanks melocene)", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v0.196.5", "date": "2025-07-23", "section": null, "item": "Linux / Windows: Added show_menus setting to always show menu bar.", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v0.152.3", "date": "2024-09-10", "section": null, "item": "Specific language servers that allow looking up the language server binary in the environments $PATH (such as gopls, zls, rust-analyzer if configured, ...) will look up the language server binary in the CLI environment too and use that environment when starting the process.", "dom": "cli-flags", "kind": "other"}
+{"tag": "cli-v0.0.49", "date": "2026-02-03", "section": "See all options", "item": "19f3ad6339b2e5d1c00a11cf6552e28de9a2610bb8cfa46b9fd8ce8cb65f8a3e  roo-cli-darwin-arm64.tar.gz", "dom": "cli-flags", "kind": "other"}
+{"tag": "rust-v0.129.0", "date": "2026-05-07", "section": null, "item": "#20300 [codex-analytics] centralize thread analytics state @rhan-oai", "dom": "cli-flags", "kind": "other"}
+{"tag": "sdk-typescript-v0.1.6-preview.0", "date": "2026-03-18", "section": null, "item": "This SDK release bundles CLI version: 0.13.0", "dom": "cli-flags", "kind": "other"}
+{"tag": "v1.0.22-vscode", "date": "2025-08-14", "section": null, "item": "add alpha warning to cli docs", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v0.41.0", "date": "2026-02-09", "section": null, "item": "This is another small but nice Quality of Life? improvement. Before, you could only edit API keys by manually editing your crush.json config file. Voilà!", "dom": "cli-flags", "kind": "other"}
+{"tag": "v0.36.0-nightly.20260407.1c22c5b37", "date": "2026-04-07", "section": null, "item": "feat(telemetry): add browser agent clearcut metrics", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v2026.1.16-2", "date": "2026-01-17", "section": null, "item": "Verbose: wrap tool summaries/output in markdown only for markdown-capable channels.", "dom": "cli-flags", "kind": "other"}
+{"tag": "cli-v0.1.1", "date": "2026-02-24", "section": "See all options", "item": "5c23ecde7a0e3926d9ad0cd8096028c39fe4f0b8b2243954e9c4929bdfba2f06  roo-cli-darwin-arm64.tar.gz", "dom": "cli-flags", "kind": "other"}
+{"tag": "rust-v0.140.0", "date": "2026-06-15", "section": null, "item": "#27063 [codex-analytics] add extensible feature thread sources @marksteinbrick-oai", "dom": "cli-flags", "kind": "feat"}
+{"tag": "rust-v0.69.0", "date": "2025-12-10", "section": "7789, #7769).", "item": "command popup no longer triggers on invalid input; experimental tui2 frontend behind a flag (#7836, #7784, #7550, #7363,", "dom": "cli-flags", "kind": "other"}
+{"tag": "v2026.1.11", "date": "2026-01-12", "section": null, "item": "CLI/Update: preserve base environment when passing overrides to update subprocesses. (#713) — thanks @danielz1z.", "dom": "cli-flags", "kind": "other"}
+{"file": "docs.devin.ai_cli_changelog_stable.html", "version": null, "date": "2026.8.18", "section": "Added", "item": "Add PAC (Proxy Auto-Configuration) support on Windows and macOS. The CLI now respects system-level PAC settings and WPAD auto-detection, routing traffic through the correct proxy without requiring manual environment variable configuration.", "dom": "cli-flags", "kind": "fix"}
+{"tag": "v0.151.1", "date": "2024-09-04", "section": null, "item": "Added new settings to control split direction for horizontal and vertical splits. Users can now configure whether new splits open to the right/left or top/bottom, similar to Vim's splitright option (#16345; thanks jvanbaarsen).", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v1.6.0", "date": "2025-08-07", "section": null, "item": "Enh: Specify config files without the .yaml", "dom": "cli-flags", "kind": "other"}
+{"tag": "v1.0.58-jetbrains", "date": "2026-01-14", "section": null, "item": "Add Puppeteer executable path environment variable to runloop blueprint", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v0.139.3", "date": "2024-06-12", "section": null, "item": "Added completions for tsconfig.json config file.", "dom": "cli-flags", "kind": "feat"}
+{"tag": "v0.15.0", "date": "2026-04-22", "section": null, "item": "feat(cli): add session recap with /recap and auto-show on return", "dom": "sessions-history", "kind": "feat"}
+{"file": "v2.142.0.html", "version": "v2.142.0", "date": null, "section": "Agent Startup and Recovery Experience ?", "item": "When there are only one or two tool calls, tool cards are displayed directly without an additional collapsible group.", "dom": "perf", "kind": "other"}
+{"tag": "v0.81.1", "date": "2026-07-21", "section": null, "item": "Fixed compaction and branch summarization to retry transient provider failures using the configured retry policy, with retry lifecycle events exposed to interactive, JSON, RPC, and SDK consumers (#6901 by @davidbrai).", "dom": "memory-context", "kind": "fix"}
+{"tag": "desktop-v0.1.0", "date": "2026-08-05", "section": null, "item": "fix(web-shell): preserve pasted text in composer", "dom": "shell-tools", "kind": "fix"}
+{"tag": "v0.46.0", "date": "2026-06-10", "section": null, "item": "fix(patch): cherry-pick f08b4af to release/v0.46.0-preview.2-pr-27749 to patch version v0.46.0-preview.2 and create version 0.46.0-preview.3", "dom": "file-edit", "kind": "fix"}
+{"tag": "v0.141.2-pre", "date": "2024-06-23", "section": null, "item": "SenseiDeElite, nakrovati, and datlechin reacted with laugh emoji", "dom": "i18n-l10n", "kind": "other"}
+{"file": "docs.devin.ai_cli_changelog_stable.html", "version": null, "date": "2026.8.18", "section": "Added", "item": "Added inference tool name metadata to ACP tool call events so ACP clients can make per-tool presentation decisions (for example, hiding the arguments panel for internal tools).", "dom": "mcp-tools", "kind": "feat"}
+{"tag": "rust-v0.140.0", "date": "2026-06-15", "section": null, "item": "#27403 skills: cache remote catalog failures per thread @jif-oai", "dom": "remote-cloud", "kind": "perf"}
+{"tag": "v3.33.0", "date": "2025-10-16", "section": null, "item": "packaging ripgrep cli", "dom": "search-index", "kind": "other"}
+{"file": "v2.106.0.html", "version": "v2.106.0", "date": null, "section": "Improvements ?", "item": "Reverse invocation stability: Reverse tool calls from the same session / server are queued for sequential execution, preventing concurrent overload from blocking the approval flow", "dom": "approval-gate", "kind": "fix"}
+{"tag": "rust-v0.133.0", "date": "2026-05-21", "section": null, "item": "#23764 Remove Windows sandbox resource stamping @iceweasel-oai", "dom": "sandbox-exec", "kind": "other"}
+{"file": "v2.150.0.html", "version": "v2.150.0", "date": null, "section": "Bug Fixes ?", "item": "Web UI Attachment Echo: After sending an image or file, the message now displays only one bubble and no longer duplicates the body text.", "dom": "attachments", "kind": "other"}
+{"file": "docs.cursor.com_changelog.html", "version": null, "date": null, "section": "Integrations", "item": "Notion", "dom": "integrations", "kind": "other"}
+{"tag": "v0.15.10", "date": "2025-10-20", "section": null, "item": "Added ACP (Agent Client Protocol) support for agent communication", "dom": "api-sdk", "kind": "feat"}
+{"file": "workbuddy-changelog.html", "version": "5.2.1", "date": "2026-07-02", "section": "WorkBuddy 更新日志 ?", "item": "优化技能广场搜索，支持搜索企业自建 Skill", "dom": "skills-plugins", "kind": "other"}
+{"tag": "v0.15.7", "date": "2026-05-07", "section": null, "item": "Add background agent resume and continuation", "dom": "orchestration", "kind": "feat"}
+{"file": "v2.23.0.html", "version": "v2.23.0", "date": "2025-12-22", "section": "Bug Fixes ?", "item": "Fixed execRg Timer Leak: Ensures timeout timers are properly cleaned up on all exit paths", "dom": "scheduling", "kind": "fix"}
+{"tag": "v0.31.1.dev20260227", "date": "2026-02-27", "section": null, "item": "fix(prompts): add path traversal protection for glob patterns", "dom": "security-secrets", "kind": "fix"}

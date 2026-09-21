@@ -229,3 +229,260 @@ test('session_rewind restoreFiles uses uncapped scan, undoes tombstones, reports
   assert.equal(r.data.partial, true);
   assert.equal(r.data.failedFiles[0].receiptId, 'boom');
 });
+
+test('session_rewind scope=files restores without moving the chat head', async () => {
+  const session = fakeSession();
+  session.entries = async () => [
+    { entryId: 'e-a', text: 'x', ts: '2026-01-01T00:00:00.000Z' },
+  ];
+  let rewindCalls = 0;
+  session.rewind = async () => { rewindCalls += 1; return { cancelled: false }; };
+  const restoredCalls = [];
+  const fileops = {
+    listAll: async () => [
+      { receiptId: 'r1', op: 'write', at: Date.parse('2026-01-02T00:00:00Z'), recoverable: true },
+    ],
+    restore: async (id) => { restoredCalls.push(id); return { restored: 'x' }; },
+  };
+  const ch = new HostChannel({ session, fileops });
+  const r = await ch.handle({ type: 'session_rewind', entryId: 'e-a', scope: 'files' });
+  assert.equal(r.success, true);
+  assert.equal(rewindCalls, 0);                       // conversation head unmoved
+  assert.deepEqual(restoredCalls, ['r1']);            // files still restored
+  assert.equal(r.data.filesOnly, true);
+  // unknown anchor on a file-scoped request fails loudly, not silent no-op
+  const bad = await ch.handle({ type: 'session_rewind', entryId: 'ghost', scope: 'files' });
+  assert.equal(bad.success, false);
+});
+
+test('session_fork forwards entryId for fork-at-point', async () => {
+  const calls = [];
+  const ch = new HostChannel({
+    session: fakeSession(),
+    sessions: { fork: async (path, opts) => { calls.push([path, opts?.entryId]); return { id: 's2' }; } },
+  });
+  const r = await ch.handle({ type: 'session_fork', path: 'sessions/a.jsonl', entryId: 'e-mid' });
+  assert.equal(r.success, true);
+  assert.deepEqual(calls, [['sessions/a.jsonl', 'e-mid']]);
+});
+
+test('task_list flags open tasks whose bound job is terminal as stale', async () => {
+  const { TaskStore } = await import('../src/core/tasks.js');
+  const { mkdtempSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-task-'));
+  const tasks = new TaskStore(dir);
+  const open = tasks.create({ label: 'running child', kind: 'delegation' });
+  const done = tasks.create({ label: 'finished child', kind: 'delegation' });
+  tasks.bindJob(done.task_id, 'job-terminal');
+  const jobs = {
+    getJob: (id) => id === 'job-terminal' ? { job_state: 'COMPLETED' } : null,
+  };
+  const ch = new HostChannel({ session: fakeSession(), tasks, jobs });
+  const r = await ch.handle({ type: 'task_list' });
+  const staleRow = r.data.find((t) => t.task_id === done.task_id);
+  const liveRow = r.data.find((t) => t.task_id === open.task_id);
+  assert.equal(staleRow.stale, true);
+  assert.equal(liveRow.stale, undefined);
+});
+
+test('verify_run/verify_status dispatch to the verify facade; absent facade fails closed', async () => {
+  const calls = [];
+  const verify = {
+    status: () => ({ armed: true, command: 'npm test' }),
+    runNow: async () => { calls.push('run'); return { ran: true, ok: true, code: 0 }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), verify });
+  const s = await ch.handle({ type: 'verify_status' });
+  assert.equal(s.data.armed, true);
+  const r = await ch.handle({ type: 'verify_run' });
+  assert.equal(r.data.ran, true);
+  assert.equal(calls.length, 1);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'verify_run' })).success, false);
+});
+
+test('stop_all aborts the turn and cancels every non-terminal job', async () => {
+  const session = fakeSession();
+  const cancelled = [];
+  const jobs = {
+    listRecent: () => [
+      { job_id: 'j1', job_state: 'RUNNING' },
+      { job_id: 'j2', job_state: 'COMPLETED' },
+      { job_id: 'j3', job_state: 'QUEUED' },
+    ],
+    cancelJob: (id) => cancelled.push(id),
+  };
+  const events = [];
+  const audit = { write: (e) => events.push(e) };
+  const ch = new HostChannel({ session, jobs, audit });
+  const r = await ch.handle({ type: 'stop_all' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.aborted, true);
+  assert.deepEqual(r.data.cancelled.sort(), ['j1', 'j3']);
+  assert.deepEqual(session.calls, [['abort']]);
+  assert.equal(events.at(-1).kind, 'STOP_ALL');
+});
+
+test('stop_all with no jobs facade still aborts the live turn', async () => {
+  const session = fakeSession();
+  const ch = new HostChannel({ session });
+  const r = await ch.handle({ type: 'stop_all' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.aborted, true);
+  assert.deepEqual(r.data.cancelled, []);
+});
+
+test('goal_list/goal_set route to the goalStore facade; absent fails politely', async () => {
+  const goalStore = {
+    list: () => [{ goal_id: 'goal-1', state: 'open', task_ids: ['t1'], statement: 'x' }],
+    setState: (id, state) => id === 'goal-1' ? { goal_id: id, state } : null,
+  };
+  const ch = new HostChannel({ session: fakeSession(), goalStore });
+  const r = await ch.handle({ type: 'goal_list' });
+  assert.equal(r.success, true);
+  assert.equal(r.data[0].goal_id, 'goal-1');
+  const set = await ch.handle({ type: 'goal_set', id: 'goal-1', state: 'paused' });
+  assert.equal(set.data.state, 'paused');
+  const missing = await ch.handle({ type: 'goal_set', id: 'goal-nope', state: 'done' });
+  assert.equal(missing.success, false);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'goal_list' })).success, false);
+});
+
+test('auth_set_key strips invisible characters; never echoes key material', async () => {
+  let got = null;
+  const models = { setApiKey: async ({ provider, key }) => { got = { provider, key }; return { ok: true }; } };
+  const ch = new HostChannel({ session: fakeSession(), models });
+  const dirty = `﻿ sk-abc​‎123﻿  `;
+  const r = await ch.handle({ type: 'auth_set_key', provider: 'openai', key: dirty });
+  assert.equal(r.success, true);
+  assert.equal(got.key, 'sk-abc123');
+  // a key that is ONLY invisible chars is refused, not stored
+  const r2 = await ch.handle({ type: 'auth_set_key', provider: 'openai', key: '﻿ ​‎' });
+  assert.match(r2.error, /invisible/);
+  // response surface must not contain the key
+  assert.ok(!JSON.stringify(r).includes('sk-abc123'));
+});
+
+test('M64: instance_purge defaults to dry-run; explicit dry_run:false deletes; evidence classes refused', async () => {
+  const calls = [];
+  const instance = {
+    inventory: () => ({ root: '/r', categories: { exports: { files: 2, bytes: 10 } } }),
+    purge: (opts) => {
+      calls.push(opts);
+      if (opts.category === 'audit') return { ok: false, error: 'not purgeable' };
+      return { ok: true, dry_run: opts.dry_run !== false, category: opts.category, files: 2, bytes: 10 };
+    },
+  };
+  const ch = new HostChannel({ session: fakeSession(), instance });
+  // default → preview only
+  const pre = await ch.handle({ type: 'instance_purge', category: 'exports' });
+  assert.equal(pre.success, true);
+  assert.equal(pre.data.dry_run, true);
+  assert.equal(calls[0].dry_run, undefined, 'absent dry_run forwarded as absent — the facade defaults to preview');
+  // explicit false → real delete
+  const real = await ch.handle({ type: 'instance_purge', category: 'exports', dry_run: false });
+  assert.equal(real.data.dry_run, false);
+  // enforcement evidence refused at the facade
+  const bad = await ch.handle({ type: 'instance_purge', category: 'audit', dry_run: false });
+  assert.equal(bad.success, false);
+  assert.match(bad.error, /not purgeable/);
+  // absent facade fails closed
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'instance_purge', category: 'exports' })).success, false);
+});
+
+test('M71: session_new ephemeral routes to createEphemeral; absent fails closed', async () => {
+  const calls = [];
+  const sessions = {
+    create: async () => { calls.push('persisted'); return { id: 's1', file: '/s/1.jsonl' }; },
+    createEphemeral: async () => { calls.push('ephemeral'); return { id: 's2', file: null, ephemeral: true }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), sessions });
+  const eph = await ch.handle({ type: 'session_new', ephemeral: true });
+  assert.equal(eph.success, true);
+  assert.equal(eph.data.ephemeral, true);
+  assert.equal(eph.data.file, null);
+  const normal = await ch.handle({ type: 'session_new' });
+  assert.equal(normal.data.file, '/s/1.jsonl');
+  assert.deepEqual(calls, ['ephemeral', 'persisted']);
+  const bare = new HostChannel({ session: fakeSession(), sessions: { create: sessions.create } });
+  assert.equal((await bare.handle({ type: 'session_new', ephemeral: true })).success, false);
+});
+
+test('M90/M92: job_restart re-spawns terminal command; job_delete removes terminal only', async () => {
+  const calls = [];
+  const jobDetail = {
+    restart: async (id) => { calls.push(['restart', id]); return { job_id: 'job-new', attempt_id: 'a1' }; },
+    remove: (id) => { calls.push(['remove', id]); return { ok: true, job_id: id }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), jobDetail });
+  const rr = await ch.handle({ type: 'job_restart', job_id: 'job-1' });
+  assert.equal(rr.success, true);
+  assert.equal(rr.data.job_id, 'job-new');
+  const dr = await ch.handle({ type: 'job_delete', job_id: 'job-1' });
+  assert.equal(dr.success, true);
+  // refusal surfaces honestly
+  const refusing = { restart: async () => ({ refused: true, reason: 'job is RUNNING' }), remove: () => ({ ok: false, error: 'job is RUNNING — cancel first' }) };
+  const ch2 = new HostChannel({ session: fakeSession(), jobDetail: refusing });
+  assert.equal((await ch2.handle({ type: 'job_restart', job_id: 'j' })).success, false);
+  assert.equal((await ch2.handle({ type: 'job_delete', job_id: 'j' })).success, false);
+  // absent facade fails closed
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'job_restart', job_id: 'j' })).success, false);
+  assert.equal((await bare.handle({ type: 'job_delete', job_id: 'j' })).success, false);
+});
+
+test('M81: profile_save/apply/list/delete route to the profiles facade', async () => {
+  const store = new Map();
+  const profiles = {
+    save: ({ name }) => { store.set(name, { model: { provider: 'p', id: 'm' }, mode: 'fast' }); return { name, saved: true }; },
+    apply: async ({ name }) => store.has(name) ? { ok: true, name, applied: { model: 'm', mode: 'fast' } } : { ok: false, error: `no profile '${name}'` },
+    list: () => [...store.keys()].map((name) => ({ name, ...store.get(name) })),
+    remove: ({ name }) => ({ removed: store.delete(name) }),
+  };
+  const ch = new HostChannel({ session: fakeSession(), profiles });
+  await ch.handle({ type: 'profile_save', name: 'work' });
+  assert.equal((await ch.handle({ type: 'profile_list' })).data.length, 1);
+  const ap = await ch.handle({ type: 'profile_apply', name: 'work' });
+  assert.equal(ap.data.applied.mode, 'fast');
+  assert.equal((await ch.handle({ type: 'profile_apply', name: 'nope' })).success, false);
+  await ch.handle({ type: 'profile_delete', name: 'work' });
+  assert.equal((await ch.handle({ type: 'profile_list' })).data.length, 0);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'profile_list' })).success, false);
+});
+
+test('M81: profile_export/import route with path confinement enforced in facade', async () => {
+  const calls = [];
+  const profiles = {
+    export: ({ path }) => { calls.push(['export', path]); return { ok: true, path: '/i/profiles-export.json' }; },
+    import: ({ path }) => { calls.push(['import', path]); return { ok: true, imported: 2 }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), profiles });
+  const ex = await ch.handle({ type: 'profile_export' });
+  assert.equal(ex.success, true);
+  assert.deepEqual(calls[0], ['export', null]);
+  const im = await ch.handle({ type: 'profile_import', path: 'profiles-export.json' });
+  assert.equal(im.data.imported, 2);
+  // import without path refuses; facade error propagates honestly
+  assert.equal((await ch.handle({ type: 'profile_import' })).success, false);
+  const bad = new HostChannel({ session: fakeSession(), profiles: { ...profiles, export: () => ({ ok: false, error: 'nope' }) } });
+  assert.equal((await bad.handle({ type: 'profile_export' })).success, false);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'profile_export' })).success, false);
+  assert.equal((await bare.handle({ type: 'profile_import', path: 'x.json' })).success, false);
+});
+
+test('D7: lease_status reports writer + workspace-write holders; absent fails closed', async () => {
+  const leases = { status: () => ({ writer: { owner: 'pi:r1', generation: 3 }, workspaceWrite: { holder: 'job:j9' } }) };
+  const ch = new HostChannel({ session: fakeSession(), leases });
+  const r = await ch.handle({ type: 'lease_status' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.writer.owner, 'pi:r1');
+  assert.equal(r.data.workspaceWrite.holder, 'job:j9');
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'lease_status' })).success, false);
+});

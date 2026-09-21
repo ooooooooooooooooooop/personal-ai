@@ -2,7 +2,7 @@
  * M2 pi-side governance pieces — real tree-sitter parsing, real pi-ai
  * revalidation, deny-memory persistence, file backup/recycle semantics.
  */
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -162,4 +162,68 @@ test('update_todos persists a session-scoped checklist readable via readTodos', 
   // bad status coerced to pending
   await tool.execute('tc2', { todos: [{ content: 'x', status: 'bogus' }] });
   assert.equal(readTodos(dir, 'sess-B')[0].status, 'pending');
+});
+
+test('FileOpsGuard.diff: backup→current unified diff per receipt, artifacts gone → skipped', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fodiff-'));
+  const guard = new FileOpsGuard(dir);
+  const target = join(dir, 'f.txt');
+  writeFileSync(target, 'line1\nline2');
+  await guard.write(target, 'line1\nLINE2\nline3');
+  const created = join(dir, 'new.txt');
+  await guard.write(created, 'fresh');
+
+  const { diffs, skipped } = guard.diff(10);
+  assert.equal(diffs.length, 2);
+  // chronological order: oldest receipt first
+  assert.equal(diffs[0].op, 'write');
+  assert.match(diffs[0].diff, /-line2/);
+  assert.match(diffs[0].diff, /\+LINE2/);
+  assert.match(diffs[0].diff, /\+line3/);
+  assert.equal(diffs[1].op, 'write');
+  assert.match(diffs[1].diff, /\+fresh/);
+  assert.equal(skipped.length, 0);
+
+  // delete → recycled content vs empty
+  await guard.delete(target);
+  const d2 = guard.diff(1);
+  assert.equal(d2.diffs[0].op, 'delete');
+  assert.match(d2.diffs[0].diff, /-line1/);
+});
+
+test('FileOpsGuard: restore never clobbers — current bytes are recycled first', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fg2-'));
+  const guard = new FileOpsGuard(dir);
+  const target = join(dir, 'f.txt');
+  writeFileSync(target, 'v1');
+  const { receiptId } = await guard.backup(target);
+  writeFileSync(target, 'v2 agent edit');
+  // external edit after our mutation — restore must not destroy it
+  writeFileSync(target, 'v3 external');
+  guard.restore(receiptId);
+  assert.equal(readFileSync(target, 'utf-8'), 'v1'); // backup restored
+  // the displaced v3 sits in the recycle dir — recoverable, not destroyed
+  const displaced = readdirSync(join(dir, 'recycle')).find((f) => f.endsWith('-f.txt'));
+  assert.ok(displaced);
+  assert.equal(readFileSync(join(dir, 'recycle', displaced), 'utf-8'), 'v3 external');
+});
+
+test('command allowlist: compound bypass and instruction-file exemption (real parser)', async () => {
+  const { commandAllowlistMatch } = await import('../src/adapter/command-allow.js');
+  const { parseShellCommand } = await import('../src/adapter/command-parse.js');
+  const prefixes = ['echo', 'git status'];
+  const meta = async (c, rule = 'risk_mutating') => ({ rule, parsed: await parseShellCommand(c) });
+
+  // every unit matches → soften
+  assert.equal(commandAllowlistMatch('echo a && echo b', await meta('echo a && echo b'), prefixes), true);
+  // `echo` prefix must NOT carry `rm -rf`
+  assert.equal(commandAllowlistMatch('echo hi && rm -rf x', await meta('echo hi && rm -rf x'), prefixes), false);
+  // expansion units are unverifiable — never softened
+  assert.equal(commandAllowlistMatch('echo $(whoami)', await meta('echo $(whoami)'), prefixes), false);
+  // instruction_file rule exempt regardless of prefix match
+  assert.equal(commandAllowlistMatch('echo x > AGENTS.md', await meta('echo x > AGENTS.md', 'instruction_file'), prefixes), false);
+  // same redirect under a risk rule: per-unit match still applies
+  assert.equal(commandAllowlistMatch('echo x > log.txt', await meta('echo x > log.txt'), prefixes), true);
+  // unclassified literal commands are still matchable
+  assert.equal(commandAllowlistMatch('cargo build --release', await meta('cargo build --release'), ['cargo']), true);
 });

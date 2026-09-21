@@ -1,0 +1,959 @@
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Added support for all GPT-5 models."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Added support for Grok-4 via xai/grok-4 and openrouter/x-ai/grok-4 model names."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Added support for gemini/gemini-2.5-flash-lite-preview-06-17 model, by Tamir Zahavi-Brunner."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"/clear now prints “All chat history cleared.” so you know it worked, by Zexin Yuan."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"/undo output now shows only the first line of each commit message, making it easier to read."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Added support for openrouter/moonshotai/kimi-k2 model, by Jack Harrington."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Display model announcements with no-arg /model command."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Fixed an issue where new settings for an existing model didn't replace the old ones, by Andrew Grigorev."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Fixed analytics to support the latest PostHog SDK event-capture API."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Bumped dependencies to pick up latest litellm==1.75.0."}
+{"tag":"v0.86.0","date":"2025-08-09","section":null,"item":"Aider wrote 88% of the code in this release."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"New Models"}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added support for new Gemini models including gemini-2.5-pro, gemini-2.5-flash, and gemini-2.5-pro-preview-06-05 with thinking tokens support."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Updated model aliases: flash now points to gemini-2.5-flash and gemini now points to gemini-2.5-pro."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Support for Responses API models like o1-pro, o3-pro."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added support for OpenAI o3-pro model across multiple providers."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Enhanced thinking tokens support: can now be disabled by setting to 0, and improved help text with examples."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Increased max tokens for Deepseek models to 65536 for better performance."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Updated pricing for o3."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"New Features & Enhancements"}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added --add-gitignore-files flag to enable adding files listed in .gitignore to Aider's editing scope, by omarcinkonis."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Enhanced commit message generation to use system prompt prefixes, by Luke Reeves."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added --commit-language option to specify the language for commit messages, by Kyosuke Takayama."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Skip expensive file tracking operations when --skip-sanity-check-repo is enabled for better performance, by Makar Ivashko."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Optimized chat history summarization performance, by jayeshthk."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added custom PostHog analytics configuration options with --analytics-posthog-host and --analytics-posthog-project-api-key flags, by Vasil Markoukin."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Repository Map"}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added MATLAB language support for repository maps, by Matthew Tofano."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Added Clojure language support for repository maps, by Garrett Hopper."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Improved kebab-case identifier recognition in repository maps for better code analysis."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Fixes & Small Improvements"}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Improved GitHub Copilot token handling with better validation and error messages, by Vincent Taverna and Sebastian Estrella."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Improved inline code rendering in Rich markdown output, by Vamsi Talupula."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Fixed Vertex AI model name prefixes in settings, by Wietse Venema."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Improved /read-only command to resolve literal paths correctly, by Matteo Landi."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Fixed encoding issues in git diff output and LLM history logging."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Fixed search block regex to accept optional closing tags when working with HTML content, by Mathis Beer."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Auto-create parent directories for chat history files to prevent startup errors, by contributor."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Ensure pip is available before package installation."}
+{"tag":"v0.85.0","date":"2025-06-27","section":null,"item":"Aider wrote 21% of the code in this release."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Model support & provider updates"}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Added support for new Claude models including the Sonnet 4 and Opus 4 series (e.g., claude-sonnet-4-20250514,"}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"claude-opus-4-20250514) across various providers. The default sonnet and opus aliases were updated to these newer"}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"versions."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Added support for the vertex_ai/gemini-2.5-flash-preview-05-20 model."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Updated default OpenRouter models during onboarding to deepseek/deepseek-r1:free for the free tier and"}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"anthropic/claude-sonnet-4 for paid tiers."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Automatically refresh GitHub Copilot tokens when used as OpenAI API keys, by Lih Chen."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Core functionality improvements"}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Fixed an issue where files explicitly added via the command line were not correctly ignored if listed in .gitignore."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Improved automatic commit messages by providing more context during their generation, by wangboxue."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Fixed OpenRouter token cost calculation for improved accuracy."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Quality of life improvements"}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Improved OpenRouter model metadata handling by introducing a local cache, increasing reliability and performance."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Added shell tab completion for file path arguments (by saviour) and for --edit-format/--editor-edit-format options."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"The /settings command now displays detailed metadata for active main, editor, and weak models."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Improved user language detection by correctly normalizing hyphenated language codes (e.g., en-US to en) and enhancing the validation of locale results."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Prevented aider from instructing the LLM to reply in 'C' or 'POSIX' when these are detected as the system locale."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Displayed a spinner with the model name when generating commit messages."}
+{"tag":"v0.84.0","date":"2025-05-30","section":null,"item":"Bumped configargparse to 1.7.1 as 1.7 was pulled."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added support for gemini-2.5-pro-preview-05-06 models."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added support for qwen3-235b models."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added repo-map support for OCaml and OCaml interface files, by Andrey Popp."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added a spinner animation while waiting for the LLM to start streaming its response."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Updated the spinner animation to a Knight Rider style."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Introduced --attribute-co-authored-by option to add co-author trailer to commit messages, by Andrew Grigorev."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Updated Gemini model aliases (e.g., gemini, gemini-2.5-pro) to point to the 05-06 preview versions."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Marked Gemini 2.5 Pro preview models as overeager by default."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Commit message prompt specifies the user's language."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Updated the default weak model for Gemini 2.5 Pro models to gemini/gemini-2.5-flash-preview-04-17."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Corrected gemini-2.5-pro-exp-03-25 model settings to reflect its lack of support for thinking_budget."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Ensured model-specific system prompt prefixes are placed on a new line before the main system prompt."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added tracking of total tokens sent and received, now included in benchmark statistics."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Automatically fetch model parameters (context window, pricing) for OpenRouter models directly from their website, by Stefan Hladnik."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Enabled support for thinking_tokens and reasoning_effort parameters for OpenRouter models."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Improved cost calculation using litellm.completion_cost where available."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added model settings for openrouter/google/gemini-2.5-pro-preview-03-25."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added --disable-playwright flag to prevent Playwright installation prompts and usage, by Andrew Grigorev."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"The aider scrape command-line tool will now use Playwright for web scraping if it is available, by Jon Keys."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Fixed linter command execution on Windows by adopting oslex for argument quoting, by Titusz Pan."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Improved cross-platform display of shell commands by using oslex for robust argument quoting, by Titusz Pan."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Improved /ask mode to instruct the LLM to elide unchanging code in its responses."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Ensured web scraping in the GUI also respects Playwright availability and the --disable-playwright flag."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Improved display of filenames in the prompt header using rich Text formatting."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Enabled reasoning_effort for Gemini 2.5 Flash models."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Added a --shell-completions argument to generate shell completion scripts (e.g., for bash, zsh)."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Explicit --attribute-author or --attribute-committer flags now override the default behavior when --attribute-co-authored-by is used, allowing finer control over commit attribution, by Andrew Grigorev."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Fixed an issue where read-only status of files might not be preserved correctly by some commands (e.g. /drop after adding a read-only file)."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"The aider-args utility (or python -m aider.args) now defaults to printing a sample YAML configuration if no arguments are provided."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Displayed token count progress and the name of the file or identifier being processed during repo map updates."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Extended the waiting spinner to also show for non-streaming responses and further enhanced its animation with console width clipping, cursor hiding, and a more continuous appearance."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Dropped support for Python 3.9."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Aider wrote 55% of the code in this release."}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"Full release notes:"}
+{"tag":"v0.83.0","date":"2025-05-09","section":null,"item":"https://aider.chat/HISTORY.html"}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Support for GPT 4.1, mini and nano."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Improved support for using architect mode with Gemini 2.5 Pro."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Add support for xai/grok-3-beta, xai/grok-3-mini-beta, openrouter/x-ai/grok-3-beta,"}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"openrouter/x-ai/grok-3-mini-beta, and openrouter/openrouter/optimus-alpha models."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Added support for grok-3-fast-beta and grok-3-mini-fast-beta models."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Added new patch edit format for OpenAI's GPT-4.1 model."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Added new editor-diff, editor-whole, and editor-diff-fenced edit formats."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Bugfix for automatically selecting the best edit format to use in architect mode."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Add alias \"grok3\" for xai/grok-3-beta."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Add alias \"optimus\" for openrouter/openrouter/optimus-alpha."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Fix URL extraction from error messages."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Allow adding files by full path even if a file with the same basename is already in the chat."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Fix quoting of values containing '#' in the sample aider.conf.yml."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Add support for Fireworks AI model 'deepseek-v3-0324', by Felix Lisczyk."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"Aider wrote 92% of the code in this release."}
+{"tag":"v0.82.0","date":"2025-04-14","section":null,"item":"renanfranca, michabbb, mcthesw, lin72h, 0xHexE, StevenJPx2, and mooonseeker reacted with laugh emoji"}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Added support for the openrouter/openrouter/quasar-alpha model."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Currently free on OpenRouter."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Quasar scored 55% on the polyglot coding benchmark"}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Run with aider --model quasar"}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Offer OpenRouter OAuth authentication if an OpenRouter model is specified but the API key is missing."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Prevent retrying API calls when the provider reports insufficient credits."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Improve URL detection to exclude trailing double quotes."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Bumped deps to pickup litellm change to properly display the root cause of OpenRouter \"choices\" errors."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Improve error message for OpenRouter API connection issues to mention potential rate limiting or upstream provider issues."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Configure weak models (gemini/gemini-2.0-flash and openrouter/google/gemini-2.0-flash-exp:free) for Gemini 2.5 Pro models."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Add model metadata for openrouter/google/gemini-2.0-flash-exp:free."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Updated deps for yanked fsspec and aiohttp packages #3699"}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Removed redundant dependency check during OpenRouter OAuth flow, by Claudia Pellegrino."}
+{"tag":"v0.81.0","date":"2025-04-04","section":null,"item":"Aider wrote 86% of the code in this release."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"OpenRouter OAuth integration:"}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Offer to OAuth against OpenRouter if no model and keys are provided."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Select OpenRouter default model based on free/paid tier status if OPENROUTER_API_KEY is set and no model is specified."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Prioritize gemini/gemini-2.5-pro-exp-03-25 if GEMINI_API_KEY is set, and vertex_ai/gemini-2.5-pro-exp-03-25 if VERTEXAI_PROJECT is set, when no model is specified."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Validate user-configured color settings on startup and warn/disable invalid ones."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Warn at startup if --stream and --cache-prompts are used together, as cost estimates may be inaccurate."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Boost repomap ranking for files whose path components match identifiers mentioned in the chat."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Change web scraping timeout from an error to a warning, allowing scraping to continue with potentially incomplete content."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Left-align markdown headings in the terminal output, by Peter Schilling."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Update edit format to the new model's default when switching models with /model, if the user was using the old model's default format."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Add the openrouter/deepseek-chat-v3-0324:free model."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Add Ctrl-X Ctrl-E keybinding to edit the current input buffer in an external editor, by Matteo Landi."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Fix linting errors for filepaths containing shell metacharacters, by Mir Adnan ALI."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Add repomap support for the Scala language, by Vasil Markoukin."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Fixed bug in /run that was preventing auto-testing."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Fix bug preventing UnboundLocalError during git tree traversal."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Handle GitCommandNotFound error if git is not installed or not in PATH."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Handle FileNotFoundError if the current working directory is deleted while aider is running."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Fix completion menu current item color styling, by Andrey Ivanov."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Aider wrote 87% of the code in this release."}
+{"tag":"v0.80.0","date":"2025-03-31","section":null,"item":"Full change log:"}
+{"tag":"v0.79.0","date":"2025-03-25","section":null,"item":"Added support for SOTA Gemini 2.5 Pro."}
+{"tag":"v0.79.0","date":"2025-03-25","section":null,"item":"Added support for DeepSeek V3 0324."}
+{"tag":"v0.79.0","date":"2025-03-25","section":null,"item":"Added a new /context command that automatically identifies which files need to be edited for a given request."}
+{"tag":"v0.79.0","date":"2025-03-25","section":null,"item":"Added /edit as an alias for the /editor command."}
+{"tag":"v0.79.0","date":"2025-03-25","section":null,"item":"Added \"overeager\" mode for Claude 3.7 Sonnet models to try and keep it working within the requested scope."}
+{"tag":"v0.79.0","date":"2025-03-25","section":null,"item":"Aider wrote 65% of the code in this release."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added support for thinking tokens for OpenRouter Sonnet 3.7."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added commands to switch between model types: /editor-model for Editor Model, and /weak-model for Weak Model, by csala."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added model setting validation to ignore --reasoning-effort and --thinking-tokens if the model doesn't support them."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added --check-model-accepts-settings flag (default: true) to force unsupported model settings."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Annotated which models support reasoning_effort and thinking_tokens settings in the model settings data."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Improved code block rendering in markdown output with better padding using NoInsetMarkdown."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added --git-commit-verify flag (default: False) to control whether git commit hooks are bypassed."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Fixed autocompletion for /ask, /code, and /architect commands, by shladnik."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added vi-like behavior when pressing enter in multiline-mode while in vi normal/navigation-mode, by Marco Mayer."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added AWS_PROFILE support for Bedrock models, allowing use of AWS profiles instead of explicit credentials, by lentil32."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Enhanced --aiderignore argument to resolve both absolute and relative paths, by mopemope."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Improved platform information handling to gracefully handle retrieval errors."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Bumped dependencies to pickup litellm fix for Ollama."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Added support for openrouter/google/gemma-3-27b-it model."}
+{"tag":"v0.78.0","date":"2025-03-21","section":null,"item":"Updated exclude patterns for help documentation."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Big upgrade in programming languages supported by adopting tree-sitter-language-pack."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"130 new languages with linter support."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"20 new languages with repo-map support."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Added /think-tokens command to set thinking token budget with support for human-readable formats (8k, 10.5k, 0.5M)."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Added /reasoning-effort command to control model reasoning level."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"The /think-tokens and /reasoning-effort commands display current settings when called without arguments."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Display of thinking token budget and reasoning effort in model information."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Changed --thinking-tokens argument to accept string values with human-readable formats."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Added --auto-accept-architect flag (default: true) to automatically accept changes from architect coder format without confirmation."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Added support for cohere_chat/command-a-03-2025 and gemini/gemma-3-27b-it"}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"The bare /drop command now preserves original read-only files provided via args.read."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Fixed a bug where default model would be set by deprecated --shortcut switches even when already specified in the command line."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Improved AutoCompleter to require 3 characters for autocompletion to reduce noise."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Fixed handling of JSONDecodeError when loading model cache file."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Fixed handling of GitCommandError when retrieving git user configuration."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Added ignore_permission_denied option to file watcher to prevent errors when accessing restricted files, by Yutaka Matsubara."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"Aider wrote 72% of the code in this release."}
+{"tag":"v0.77.0","date":"2025-03-13","section":null,"item":"renanfranca, obiMadu, and juanramirezc2 reacted with laugh emoji"}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Improved support for thinking/reasoning models:"}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added --thinking-tokens CLI option to control token budget for models that support thinking."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Display thinking/reasoning content from LLMs which return it."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Enhanced handling of reasoning tags to better clean up model responses."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added deprecation warning for remove_reasoning setting, now replaced by reasoning_tag."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Aider will notify you when it's completed the last request and needs your input:"}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added notifications when LLM responses are ready with --notifications flag."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Specify desktop notification command with --notifications-command."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added/improved support for many models/providers:"}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added support for QWQ 32B."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Support for DeepSeek V3 free on OpenRouter: --model openrouter/deepseek/deepseek-chat:free."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added support for Claude 3.7 Sonnet models on OpenRouter, Bedrock and Vertex AI."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Updated default model to Claude 3.7 Sonnet on OpenRouter."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added support for GPT-4.5-preview model."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added support for Claude 3.7 Sonnet:beta on OpenRouter."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added support for openrouter/anthropic/claude-3.7-sonnet"}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Fixed weak_model_name patterns to match main model name patterns for some models."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Switch to tree-sitter-language-pack for tree sitter support."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Improved error handling for EOF (Ctrl+D) in user input prompts."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Added helper function to ensure hex color values have a # prefix."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Fixed handling of Git errors when reading staged files."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Improved SSL verification control for model information requests."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Improved empty LLM response handling with clearer warning messages."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Fixed Git identity retrieval to respect global configuration, by Akira Komamura."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Offer to install dependencies for Bedrock and Vertex AI models."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Deprecated model shortcut args (like --4o, --opus) in favor of the --model flag."}
+{"tag":"v0.76.0","date":"2025-03-10","section":null,"item":"Aider wrote 85% of the code in this release."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Basic support for Claude 3.7 Sonnet"}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Use --model sonnet to use the new 3.7"}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Thinking support coming soon."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Bugfix to /editor command."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Downgrade streamlit dependency to avoid threading bug."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Added support for tree-sitter language pack."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Added openrouter/o3-mini-high model configuration."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Added build.gradle.kts to special files for Kotlin project support, by Lucas Shadler."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Prevent more than one cache warming thread from becoming active."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Fixed continuation prompt \". \" for multiline input."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Added HCL (Terraform) syntax support, by Warren Krewenki."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Have o1 & o3-mini generate markdown by sending the magic \"Formatting re-enabled.\" string."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Bugfix for multi-line inputs, which should not include the \". \" continuation prompt."}
+{"tag":"v0.75.0","date":"2025-03-04","section":null,"item":"Aider wrote 46% of the code in this release."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Dynamically changes the Ollama context window to hold the current chat."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Better support for o3-mini, DeepSeek V3 & R1, o1-mini, o1 via secondary API providers."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Remove <think> tags from R1 responses for commit messages (and other weak model uses)."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Can now specify use_temperature: <float> in model settings, not just true/false."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"The full docker container now includes boto3 for Bedrock."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"~/.aider."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Bugfix to prevent creating incorrect filenames like python, php, etc."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Bugfix for --timeout"}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Bugfix so that /model now correctly reports that the weak model is not changed."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Bugfix so that multi-line mode persists through ^C at confirmation prompts."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Watch files now fully ignores top-level directories named in ignore files, to reduce the"}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"chance of hitting OS watch limits. Helpful to ignore giant subtrees like node_modules."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Fast startup with more providers and when model metadata provided in local files."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Improved .gitignore handling:"}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Honor ignores already in effect regardless of how they've been configured."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Check for .env only when the file exists."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Yes/No prompts now accept All/Skip as alias for Y/N even when not processing a group of"}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"confirmations."}
+{"tag":"v0.74.0","date":"2025-02-06","section":null,"item":"Aider wrote 77% of the code in this release."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Full support for o3-mini: aider --model o3-mini"}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"New --reasoning-effort argument: low, medium, high."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Improved handling of context window size limits, with better messaging and Ollama-specific guidance."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Added support for removing model-specific reasoning tags from responses with remove_reasoning: tagname model setting."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Auto-create parent directories when creating new files, by xqyz."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Support for R1 free on OpenRouter: --model openrouter/deepseek/deepseek-r1:free"}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Enforce user/assistant turn order to avoid R1 errors, by miradnanali."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Case-insensitive model name matching while preserving original case."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Harden against user/assistant turn order problems which cause R1 errors."}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Fix model metadata for openrouter/deepseek/deepseek-r1"}
+{"tag":"v0.73.0","date":"2025-01-31","section":null,"item":"Aider wrote 69% of the code in this release."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Support for DeepSeek R1."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Use shortcut: --model r1"}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Also via OpenRouter: --model openrouter/deepseek/deepseek-r1"}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Added Kotlin syntax support to repo map, by Paul Walker."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Added --line-endings for file writing, by Titusz Pan."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Added examples_as_sys_msg=True for GPT-4o models, improves benchmark scores."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Bumped all dependencies, to pick up litellm support for o1 system messages."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Bugfix for turn taking when reflecting lint/test errors."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Fix permissions issue in Docker images."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Added read-only file announcements."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Bugfix: ASCII fallback for unicode errors."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Bugfix: integer indices for list slicing in repomap calculations."}
+{"tag":"v0.72.0","date":"2025-01-20","section":null,"item":"Aider wrote 52% of the code in this release."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Prompts to help DeepSeek work better when alternating between /ask and /code."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Streaming pretty LLM responses is smoother and faster for long replies."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Streaming automatically turns of for model that don't support it"}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Can now switch to/from /model o1 and a streaming model"}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Pretty output remains enabled even when editing files with triple-backtick fences"}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Bare /ask, /code and /architect commands now switch the chat mode."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Increased default size of the repomap."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Increased max chat history tokens limit from 4k to 8k."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Turn off fancy input and watch files if terminal is dumb."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Added support for custom voice format and input device settings."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Disabled Streamlit email prompt, by apaz-cli."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Fixed lint command handling of nested spaced strings, by Aaron Weisberg."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Added token count feedback when adding command output to chat."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Improved error handling for large audio files with automatic format conversion."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Improved handling of git repo index errors, by Krazer."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Improved unicode handling in console output with ASCII fallback."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Added AssertionError to git error handling."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Fixed file export path in voice format conversion."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Added AttributeError to git error handling."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Improved markdown rendering performance with adaptive delay based on render time."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Fixed typo in model metadata variable name."}
+{"tag":"v0.71.0","date":"2025-01-10","section":null,"item":"Aider wrote 60% of the code in this release."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Full support for o1 models."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Watch files now honors --subtree-only, and only watches that subtree."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Improved prompting for watch files, to work more reliably with more models."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"New install methods via uv, including one-liners."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Support for openrouter/deepseek/deepseek-chat model."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Better error handling when interactive commands are attempted via /load or --load."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Display read-only files with abs path if its shorter than rel path."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Ask 10% of users to opt-in to analytics."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Bugfix for auto-suggest."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Gracefully handle unicode errors in git path names."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Fix for gemini model names in model metadata."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Show hints about AI! and AI? when user makes AI comments."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Support for running without git installed."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Improved environment variable setup messages on Windows."}
+{"tag":"v0.70.0","date":"2024-12-26","section":null,"item":"Aider wrote 74% of the code in this release."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Watch files improvements:"}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Use # ... AI? comments to trigger aider and ask questions about your code."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Now watches all files, not just certain source files."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Use # AI comments, // AI comments, or -- AI comments to give aider instructions in any text file."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Full support for Gemini Flash 2.0 Exp:"}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"aider --model flash or aider --model gemini/gemini-2.0-flash-exp"}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"New --multiline flag and /multiline-mode command makes ENTER a soft newline and META-ENTER send the message, by @miradnanali."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"/copy-context <instructions> now takes optional \"instructions\" when copying code context to the clipboard."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Improved clipboard error handling with helpful requirements install info."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Ask 5% of users if they want to opt-in to analytics."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"/voice now lets you edit the transcribed text before sending."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Disabled auto-complete in Y/N prompts."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"Aider wrote 68% of the code in this release."}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"ai-comment-ask-social.mp4"}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"miradnanali"}
+{"tag":"v0.69.0","date":"2024-12-13","section":null,"item":"renanfranca and RajaSunrise reacted with laugh emoji"}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Aider works with LLM web chat UIs."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"New --copy-paste mode."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"New /copy-context command."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Set API keys and other environment variables for all providers from command line or yaml conf file."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"New --api-key provider=key setting."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"New --set-env VAR=value setting."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Added bash and zsh support to --watch-files."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Better error messages when missing dependencies for Gemini and Bedrock models."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Control-D now properly exits the program."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Don't count token costs when API provider returns a hard error."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Bugfix so watch files works with files that don't have tree-sitter support."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Bugfix so o1 models can be used as weak model."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Updated shell command prompt."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Added docstrings for all Coders."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Reorganized command line arguments with improved help messages and grouping."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Use the exact sys.python for self-upgrades."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Added experimental Gemini models."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"Aider wrote 71% of the code in this release."}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"copy-paste-web-low.mp4"}
+{"tag":"v0.68.0","date":"2024-12-10","section":null,"item":"renanfranca, nightscape, knaoe, and Hauserrodr reacted with laugh emoji"}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Use aider in your IDE or editor."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Run aider --watch-files and it will watch for instructions you add to your source files."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"One-liner # ... or // ... comments that start or end with \"AI\" are instructions to aider."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"When aider sees \"AI!\" it reads and follows all the instructions in AI comments."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Support for new Amazon Bedrock Nova models."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"When /run or /test have non-zero exit codes, pre-fill \"Fix that\" into the next message prompt."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"/diff now invokes git diff to use your preferred diff tool."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Added Ctrl-Z support for process suspension."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Spinner now falls back to ASCII art if fancy symbols throw unicode errors."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"--read now expands ~ home dirs."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Enabled exception capture in analytics."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"Aider wrote 61% of the code in this release."}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"watch-files-720-social.mp4"}
+{"tag":"v0.67.0","date":"2024-12-06","section":null,"item":"renanfranca, knaoe, firengate, and RajaSunrise reacted with laugh emoji"}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"PDF support for Sonnet and Gemini models."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Added --voice-input-device to select audio input device for voice recording, by @preynal."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Added --timeout option to configure API call timeouts."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Set cwd to repo root when running shell commands."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Added Ctrl-Up/Down keyboard shortcuts for per-message history navigation."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Improved error handling for failed .gitignore file operations."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Improved error handling for input history file permissions."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Improved error handling for analytics file access."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Removed spurious warning about disabling pretty in VSCode."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Removed broken support for Dart."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Bugfix when scraping URLs found in chat messages."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Better handling of version import errors."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Improved /drop command to support substring matching for non-glob patterns."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Bugfix to --alias."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"Aider wrote 82% of the code in this release."}
+{"tag":"v0.66.0","date":"2024-12-01","section":null,"item":"firengate and renanfranca reacted with laugh emoji"}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Added --alias config to define custom model aliases."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Added --[no-]detect-urls flag to disable detecting and offering to scrape URLs found in the chat."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Ollama models now default to an 8k context window."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Added RepoMap support for Dart language by @malkoG."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Ask 2.5% of users if they want to opt-in to analytics."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Skip suggesting files that share names with files already in chat."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"/editor returns and prefill the file content into the prompt, so you can use /editor to compose messages that start with /commands, etc."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Enhanced error handling for analytics."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Improved handling of UnknownEditFormat exceptions with helpful documentation links."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Bumped dependencies to pick up grep-ast 0.4.0 for Dart language support."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"Aider wrote 81% of the code in this release."}
+{"tag":"v0.65.0","date":"2024-11-26","section":null,"item":"firengate and RajaSunrise reacted with laugh emoji"}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Added /editor command to open system editor for writing prompts, by @thehunmonkgroup."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Full support for gpt-4o-2024-11-20."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Stream o1 models by default."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"/run and suggested shell commands are less mysterious and now confirm that they \"Added XX lines of output to the chat.\""}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Ask 1% of users if they want to opt-in to analytics."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Added support for optional multiline input tags with matching closing tags."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Improved model settings configuration with support for global extra_params for litellm.completion()."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Architect mode now asks to add files suggested by the LLM."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Fixed bug in fuzzy model name matching."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Added Timeout exception to handle API provider timeouts."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Added --show-release-notes to control release notes display on first run of new version."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Save empty dict to cache file on model metadata download failure, to delay retry."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Improved error handling and code formatting."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Fixed bug in fuzzy model name matching when litellm provider info is missing."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Modified model metadata file loading to allow override of resource file."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Allow recursive loading of dirs using --read."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Updated dependency versions to pick up litellm fix for ollama models."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Added exponential backoff retry when writing files to handle editor file locks."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Updated Qwen 2.5 Coder 32B model configuration."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Fixed bug in git ignored file handling."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"Improved error handling for git operations."}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"thehunmonkgroup"}
+{"tag":"v0.64.0","date":"2024-11-21","section":null,"item":"firengate, RajaSunrise, meain, distbit0, and nang-dev reacted with laugh emoji"}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"Support for Qwen 2.5 Coder 32B."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"/web command just adds the page to the chat, without triggering an LLM response."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"Improved prompting for the user's preferred chat language."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"Improved handling of LiteLLM exceptions."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"Bugfix for double-counting tokens when reporting cache stats."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"Bugfix for the LLM creating new files."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"Other small bug fixes."}
+{"tag":"v0.63.0","date":"2024-11-13","section":null,"item":"firengate and nang-dev reacted with laugh emoji"}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Full support for Claude 3.5 Haiku"}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Scored 75% on aider's code editing leaderboard."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Almost as good as Sonnet at much lower cost."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Launch with --haiku to use it."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Easily apply file edits from ChatGPT, Claude or other web apps"}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Chat with ChatGPT or Claude via their web app."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Give it your source files and ask for the changes you want."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Use the web app's \"copy response\" button to copy the entire reply from the LLM."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Run aider --apply-clipboard-edits file-to-edit.js."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Aider will edit your file with the LLM's changes."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Bugfix for creating new files."}
+{"tag":"v0.62.0","date":"2024-11-04","section":null,"item":"Aider wrote 84% of the code in this release."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Load and save aider slash-commands to files:"}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"/save <fname> command will make a file of /add and /read-only commands that recreate the current file context in the chat."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"/load <fname> will replay the commands in the file."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"You can use /load to run any arbitrary set of slash-commands, not just /add and /read-only."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Use --load <fname> to run a list of commands on launch, before the interactive chat begins."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Anonymous, opt-in analytics with no personal data sharing."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Aider follows litellm's supports_vision attribute to enable image support for models."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Bugfix for when diff mode flexibly handles the model using the wrong filename."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Displays filenames in sorted order for /add and /read-only."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"New --no-fancy-input switch disables prompt toolkit input, now still available with --no-pretty."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Override browser config with --no-browser or --no-gui."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Offer to open documentation URLs when errors occur."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Properly support all o1 models, regardless of provider."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Improved layout of filenames above input prompt."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Better handle corrupted repomap tags cache."}
+{"tag":"v0.61.0","date":"2024-11-01","section":null,"item":"Improved handling of API errors, especially when accessing the weak model."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Full support for Sonnet 10/22, the new SOTA model on aider's code editing benchmark."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Aider uses Sonnet 10/22 by default."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Improved formatting of added and read-only files above chat prompt, by @jbellis."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Improved support for o1 models by more flexibly parsing their nonconforming code edit replies."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Corrected diff edit format prompt that only the first match is replaced."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Stronger whole edit format prompt asking for clean file names."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Now offers to add .env to the .gitignore file."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Ships with a small model metadata json file to handle models not yet updated in litellm."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Model settings for o1 models on azure."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Bugfix to properly include URLs in /help RAG results."}
+{"tag":"v0.60.0","date":"2024-10-22","section":null,"item":"Aider wrote 49% of the code in this release."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Improvements to /read-only:"}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Now supports shell-style auto-complete of the full file system."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Still auto-completes the full paths of the repo files like /add."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Now supports globs like src/**/*.py"}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Renamed --yes to --yes-always."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Now uses AIDER_YES_ALWAYS env var and yes-always: yaml key."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Existing YAML and .env files will need to be updated."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Can still abbreviate to --yes on the command line."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Config file now uses standard YAML list syntax with   - list entries, one per line."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"/settings now includes the same announcement lines that would print at launch."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Sanity checks the --editor-model on launch now, same as main and weak models."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Added --skip-sanity-check-repo switch to speedup launch in large repos."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Bugfix so architect mode handles Control-C properly."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Repo-map is deterministic now, with improved caching logic."}
+{"tag":"v0.59.0","date":"2024-10-04","section":null,"item":"Improved commit message prompt."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Use a pair of Architect/Editor models for improved coding"}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Use a strong reasoning model like o1-preview as your Architect."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Use a cheaper, faster model like gpt-4o as your Editor."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"New --o1-preview and --o1-mini shortcuts."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Support for new Gemini 002 models."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Better support for Qwen 2.5 models."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Many confirmation questions can be skipped for the rest of the session with \"(D)on't ask again\" response."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Autocomplete for /read-only supports the entire filesystem."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"New settings for completion menu colors."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"New /copy command to copy the last LLM response to the clipboard."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Renamed /clipboard to /paste."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Will now follow HTTP redirects when scraping urls."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"New --voice-format switch to send voice audio as wav/mp3/webm, by @mbailey."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"ModelSettings takes extra_params dict to specify any extras to pass to litellm.completion()."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Support for cursor shapes when in vim mode."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Numerous bug fixes."}
+{"tag":"v0.58.0","date":"2024-09-29","section":null,"item":"Aider wrote 53% of the code in this release."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Support for OpenAI o1 models:"}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"o1-preview now works well with diff edit format."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"o1-preview with diff now matches SOTA leaderboard result with whole edit format."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"aider --model o1-mini"}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"aider --model o1-preview"}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"On Windows, /run correctly uses PowerShell or cmd.exe."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Support for new 08-2024 Cohere models, by @jalammar."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Can now recursively add directories with /read-only."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"User input prompts now fall back to simple input() if --no-pretty or a Windows console is not available."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Improved sanity check of git repo on startup."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Improvements to prompt cache chunking strategy."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Removed \"No changes made to git tracked files\"."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Numerous bug fixes for corner case crashes."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Updated all dependency versions."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"Aider wrote 70% of the code in this release."}
+{"tag":"v0.57.0","date":"2024-09-21","section":null,"item":"jalammar"}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"Enables prompt caching for Sonnet via OpenRouter by @fry69"}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"Enables 8k output tokens for Sonnet via VertexAI and DeepSeek V2.5."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"New /report command to open your browser with a pre-populated GitHub Issue."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"New --chat-language switch to set the spoken language."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"Now --[no-]suggest-shell-commands controls both prompting for and offering to execute shell commands."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"Check key imports on launch, provide helpful error message if dependencies aren't available."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"Renamed --models to --list-models by @fry69."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"Aider wrote 56% of the code in this release."}
+{"tag":"v0.56.0","date":"2024-09-09","section":null,"item":"renanfranca, trinib, and HallStackStudios reacted with laugh emoji"}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Offer to submit a GitHub issue pre-filled with uncaught exception info."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Numerous corner case bug fixes submitted via new pre-filled crash report feature."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"New /settings command to show active settings."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Startup QOL improvements:"}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Sanity check the git repo and exit gracefully on problems."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Pause for confirmation after model sanity check to allow user to review warnings."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Include important devops files in the repo map."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Don't ask again in current session about a file the user has said not to add to the chat."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Only print the pip command when self updating on Windows, without running it."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Converted many error messages to warning messages."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Added --tool-warning-color setting."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Disabled built in linter for typescript."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Catch /voice transcription exceptions, show the WAV file so the user can recover it."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Adopted setuptools_scm to provide vX.Y.Z.dev version naming with git hashes."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Added --verbose debug output for shell commands."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Do not fuzzy match filenames when LLM is creating a new file, by @ozapinq"}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Only show cache warming status update if --verbose."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Bugfix for shell commands on Windows."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Refuse to make git repo in $HOME, warn user."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Added --update as an alias for --upgrade."}
+{"tag":"v0.55.0","date":"2024-09-04","section":null,"item":"Bugfix to completions for /model command."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Added model settings for gemini/gemini-1.5-pro-exp-0827 and"}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"gemini/gemini-1.5-flash-exp-0827."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Shell and /run commands can now be interactive in environments where a pty is available."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Optionally share output of suggested shell commands back to the LLM."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"New --[no-]suggest-shell-commands switch to configure shell commands."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Performance improvements for autocomplete in large/mono repos."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"New --upgrade switch to install latest version of aider from pypi."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Bugfix to --show-prompt."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Disabled automatic reply to the LLM on /undo for all models."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Removed pager from /web output."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"Aider wrote 64% of the code in this release."}
+{"tag":"v0.54.0","date":"2024-08-28","section":null,"item":"HallStackStudios reacted with laugh emoji"}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Keep your prompt cache from expiring with --cache-keepalive-pings."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Pings the API every 5min to keep the cache warm."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"You can now bulk accept/reject a series of add url and run shell confirmations."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Improved matching of filenames from S/R blocks with files in chat."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Stronger prompting for Sonnet to make edits in code chat mode."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Stronger prompting for the LLM to specify full file paths."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Improved shell command prompting."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Weak model now uses extra_headers, to support Anthropic beta features."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"New --install-main-branch to update to the latest dev version of aider."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Improved error messages on attempt to add not-git subdir to chat."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Show model metadata info on --verbose."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Improved warnings when LLMs env variables aren't set."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Bugfix to windows filenames which contain \\_."}
+{"tag":"v0.53.0","date":"2024-08-27","section":null,"item":"Aider wrote 59% of the code in this release."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Aider now offers to run shell commands:"}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Launch a browser to view updated html/css/js."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Install new dependencies."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Run DB migrations."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Run the program to exercise changes."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Run new test cases."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"/read and /drop now expand ~ to the home dir."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Show the active chat mode at aider prompt."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"New /reset command to /drop files and /clear chat history."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"New --map-multiplier-no-files to control repo map size multiplier when no files are in the chat."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Reduced default multiplier to 2."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Bugfixes and improvements to auto commit sequencing."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Improved formatting of token reports and confirmation dialogs."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Default OpenAI model is now gpt-4o-2024-08-06."}
+{"tag":"v0.52.0","date":"2024-08-23","section":null,"item":"Bumped dependencies to pickup litellm bugfixes."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Prompt caching for Anthropic models with --cache-prompts."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Caches the system prompt, repo map and /read-only files."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Repo map recomputes less often in large/mono repos or when caching enabled."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Use --map-refresh <always|files|manual|auto> to configure."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Improved cost estimate logic for caching."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Improved editing performance on Jupyter Notebook .ipynb files."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Show which config yaml file is loaded with --verbose."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Bumped dependency versions."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Bugfix: properly load .aider.models.metadata.json data."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Bugfix: Using --msg /ask ... caused an exception."}
+{"tag":"v0.51.0","date":"2024-08-20","section":null,"item":"Bugfix: litellm tokenizer bug for images."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Infinite output for DeepSeek Coder, Mistral models in addition to Anthropic's models."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"New --deepseek switch to use DeepSeek Coder."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"DeepSeek Coder uses 8k token output."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"New --chat-mode <mode> switch to launch in ask/help/code modes."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"New /code <message> command request a code edit while in ask mode."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Web scraper is more robust if page never idles."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Improved token and cost reporting for infinite output."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Improvements and bug fixes for /read only files."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Switched from setup.py to pyproject.toml, by @branchvincent."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Bug fix to persist files added during /ask."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Bug fix for chat history size in /tokens."}
+{"tag":"v0.50.0","date":"2024-08-13","section":null,"item":"Aider wrote 66% of the code in this release."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Add read-only files to the chat context with /read and --read,  including from outside the git repo."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"/diff now shows diffs of all changes resulting from your request, including lint and test fixes."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"New /clipboard command to paste images or text from the clipboard, replaces /add-clipboard-image."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Now shows the markdown scraped when you add a url with /web."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"When scripting aider messages can now contain in-chat / commands."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Aider in docker image now suggests the correct command to update to latest version."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Improved retries on API errors (was easy to test during Sonnet outage)."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Added --mini for gpt-4o-mini."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Bugfix to keep session cost accurate when using /ask and /help."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Performance improvements for repo map calculation."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"/tokens now shows the active model."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Enhanced commit message attribution options:"}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"New --attribute-commit-message-author to prefix commit messages with 'aider: ' if aider authored the changes, replaces --attribute-commit-message."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"New --attribute-commit-message-committer to prefix all commit messages with 'aider: '."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Added openai/gpt-4o-2024-08-06."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Worked around litellm bug that removes OpenRouter app headers when using extra_headers."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Improved progress indication during repo map processing."}
+{"tag":"v0.49.0","date":"2024-08-10","section":null,"item":"Removed obsolete 16k token limit on commit diffs, use per-model limits."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Performance improvements for large/mono repos."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Added --subtree-only to limit aider to current directory subtree."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Should help with large/mono repo performance."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"New /add-clipboard-image to add images to the chat from your clipboard."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Use --map-tokens 1024 to use repo map with any model."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Support for Sonnet's 8k output window."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Aider already supported infinite output from Sonnet."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Workaround litellm bug for retrying API server errors."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Upgraded dependencies, to pick up litellm bug fixes."}
+{"tag":"v0.48.0","date":"2024-08-06","section":null,"item":"Aider wrote 44% of the code in this release."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Commit message improvements:"}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Added Conventional Commits guidelines to commit message prompt."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Added --commit-prompt to customize the commit message prompt."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Added strong model as a fallback for commit messages (and chat summaries)."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Linting improvements:"}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Ask before fixing lint errors."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Improved performance of --lint on all dirty files in repo."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Improved lint flow, now doing code edit auto-commit before linting."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Bugfix to properly handle subprocess encodings (also for /run)."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Improved docker support:"}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Resolved permission issues when using docker run --user xxx."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"New paulgauthier/aider-full docker image, which includes all extras."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Switching to code and ask mode no longer summarizes the chat history."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Added graph of aider's contribution to each release."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Generic auto-completions are provided for /commands without a completion override."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Fixed broken OCaml tags file."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Bugfix in /run add to chat approval logic."}
+{"tag":"v0.47.0","date":"2024-07-31","section":null,"item":"Aider wrote 58% of the code in this release."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"New /ask <question> command to ask about your code, without making any edits."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"New /chat-mode <mode> command to switch chat modes:"}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"ask: Ask questions about your code without making any changes."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"code: Ask for changes to your code (using the best edit format)."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"help: Get help about using aider (usage, config, troubleshoot)."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Add file: CONVENTIONS.md to .aider.conf.yml to always load a specific file."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Or file: [file1, file2, file3] to always load multiple files."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Enhanced token usage and cost reporting. Now works when streaming too."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Filename auto-complete for /add and /drop is now case-insensitive."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Updated commit message prompt to use imperative tense."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Fall back to main model if weak model is unable to generate a commit message."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Stop aider from asking to add the same url to the chat multiple times."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Updates and fixes to --no-verify-ssl:"}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Fixed regression that broke it in v0.42.0."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Disables SSL certificate verification when /web scrapes websites."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Improved error handling and reporting in /web scraping functionality"}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Fixed syntax error in Elm's tree-sitter scm file (by @cjoach)."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Handle UnicodeEncodeError when streaming text to the terminal."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Updated dependencies to latest versions."}
+{"tag":"v0.46.0","date":"2024-07-29","section":null,"item":"Aider wrote 45% of the code in this release."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"GPT 4o mini scores like the original GPT 3.5 on aider's code editing benchmark, using whole edit format."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"Aider is better at offering to add files to the chat on Windows."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"Bugfix corner cases for /undo with new files or new repos."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"Now shows last 4 characters of API keys in --verbose output."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"Bugfix to precedence of multiple .env files."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"Bugfix to gracefully handle HTTP errors when installing pandoc."}
+{"tag":"v0.45.0","date":"2024-07-18","section":null,"item":"Aider wrote 42% of the code in this release."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"Default pip install size reduced by 3-12x."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"Added 3 package extras, which aider will offer to install when needed:"}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"aider-chat[help]"}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"aider-chat[browser]"}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"aider-chat[playwright]"}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"Improved regex for detecting URLs in user chat messages."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"Bugfix to globbing logic when absolute paths are included in /add."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"Simplified output of --models."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"The --check-update switch was renamed to --just-check-updated."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"The --skip-check-update switch was renamed to --[no-]check-update."}
+{"tag":"v0.44.0","date":"2024-07-16","section":null,"item":"Aider wrote 29% of the code in this release (157/547 lines)."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"Use /help <question> to ask for help about using aider, customizing settings,"}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"troubleshooting, using LLMs, etc."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"Allow multiple use of /undo."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"All config/env/yml/json files now load from home, git root, cwd and named command line switch."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"New $HOME/.aider/caches dir for app-wide expendable caches."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"Default --model-settings-file is now .aider.model.settings.yml."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"Default --model-metadata-file is now .aider.model.metadata.json."}
+{"tag":"v0.43.0","date":"2024-07-07","section":null,"item":"Bugfix affecting launch with --no-git."}
+{"tag":"v0.42.0","date":"2024-07-04","section":null,"item":"Performance release:"}
+{"tag":"v0.42.0","date":"2024-07-04","section":null,"item":"5X faster launch!"}
+{"tag":"v0.42.0","date":"2024-07-04","section":null,"item":"Faster auto-complete in large git repos (users report ~100X speedup)!"}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Allow Claude 3.5 Sonnet to stream back >4k tokens!"}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"It is the first model capable of writing such large coherent, useful code edits."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Do large refactors or generate multiple files of new code in one go."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Aider now uses claude-3-5-sonnet-20240620 by default if ANTHROPIC_API_KEY is set in the environment."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Enabled image support for 3.5 Sonnet and for GPT-4o & 3.5 Sonnet via OpenRouter (by @yamitzky)."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Added --attribute-commit-message to prefix aider's commit messages with \"aider:\"."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Fixed regression in quality of one-line commit messages."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"Automatically retry on Anthropic overloaded_error."}
+{"tag":"v0.41.0","date":"2024-07-01","section":null,"item":"yamitzky"}
+{"tag":"v0.40.0","date":"2024-06-24","section":null,"item":"Improved prompting to discourage Sonnet from wasting tokens emitting unchanging code (#705)."}
+{"tag":"v0.40.0","date":"2024-06-24","section":null,"item":"Improved error info for token limit errors."}
+{"tag":"v0.40.0","date":"2024-06-24","section":null,"item":"Options to suppress adding \"(aider)\" to the git author and committer names."}
+{"tag":"v0.40.0","date":"2024-06-24","section":null,"item":"Use --model-settings-file to customize per-model settings, like use of repo-map (by @caseymcc)."}
+{"tag":"v0.40.0","date":"2024-06-24","section":null,"item":"Improved invocation of flake8 linter for python code."}
+{"tag":"v0.40.0","date":"2024-06-24","section":null,"item":"caseymcc"}
+{"tag":"v0.39.0","date":"2024-06-20","section":null,"item":"Use --sonnet for Claude 3.5 Sonnet, which is the top model on aider's LLM code editing leaderboard."}
+{"tag":"v0.39.0","date":"2024-06-20","section":null,"item":"All AIDER_xxx environment variables can now be set in .env (by @jpshack-at-palomar)."}
+{"tag":"v0.39.0","date":"2024-06-20","section":null,"item":"Use --llm-history-file to log raw messages sent to the LLM (by @daniel-vainsencher)."}
+{"tag":"v0.39.0","date":"2024-06-20","section":null,"item":"Commit messages are no longer prefixed with \"aider:\". Instead the git author and committer names have \"(aider)\" added."}
+{"tag":"v0.39.0","date":"2024-06-20","section":null,"item":"daniel-vainsencher and jpshack-at-palomar"}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Use --vim for vim keybindings in the chat."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Add LLM metadata via .aider.models.json file (by @caseymcc)."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"More detailed error messages on token limit errors."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Single line commit messages, without the recent chat messages."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Ensure --commit --dry-run does nothing."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Have playwright wait for idle network to better scrape js sites."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Documentation updates, moved into website/ subdir."}
+{"tag":"v0.38.0","date":"2024-06-17","section":null,"item":"Moved tests/ into aider/tests/."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Repo map is now optimized based on text of chat history as well as files added to chat."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Improved prompts when no files have been added to chat to solicit LLM file suggestions."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Aider will notice if you paste a URL into the chat, and offer to scrape it."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Performance improvements the repo map, especially in large repos."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Aider will not offer to add bare filenames like make or run which may just be words."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Properly override GIT_EDITOR env for commits if it is already set."}
+{"tag":"v0.37.0","date":"2024-06-04","section":null,"item":"Detect supported audio sample rates for /voice."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Aider can now lint your code and fix any errors."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Aider automatically lints and fixes after every LLM edit."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"You can manually lint-and-fix files with /lint in the chat or --lint on the command line."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Aider includes built in basic linters for all supported tree-sitter languages."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"You can also configure aider to use your preferred linter with --lint-cmd."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Aider has additional support for running tests and fixing problems."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Configure your testing command with --test-cmd."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Run tests with /test or from the command line with --test."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"Aider will automatically attempt to fix any test failures."}
+{"tag":"v0.36.0","date":"2024-05-22","section":null,"item":"ysiListon reacted with laugh emoji"}
+{"tag":"v0.35.0","date":"2024-05-13","section":null,"item":"Aider now uses GPT-4o by default."}
+{"tag":"v0.35.0","date":"2024-05-13","section":null,"item":"GPT-4o tops the aider LLM code editing leaderboard at 72.9%, versus 68.4% for Opus."}
+{"tag":"v0.35.0","date":"2024-05-13","section":null,"item":"GPT-4o takes second on aider's refactoring leaderboard with 62.9%, versus Opus at 72.3%."}
+{"tag":"v0.35.0","date":"2024-05-13","section":null,"item":"Added --restore-chat-history to restore prior chat history on launch, so you can continue the last conversation."}
+{"tag":"v0.35.0","date":"2024-05-13","section":null,"item":"Improved reflection feedback to LLMs using the diff edit format."}
+{"tag":"v0.35.0","date":"2024-05-13","section":null,"item":"Improved retries on httpx errors."}
+{"tag":"v0.34.0","date":"2024-05-10","section":null,"item":"Updated prompting to use more natural phrasing about files, the git repo, etc. Removed reliance on read-write/read-only terminology."}
+{"tag":"v0.34.0","date":"2024-05-10","section":null,"item":"Refactored prompting to unify some phrasing across edit formats."}
+{"tag":"v0.34.0","date":"2024-05-10","section":null,"item":"Enhanced the canned assistant responses used in prompts."}
+{"tag":"v0.34.0","date":"2024-05-10","section":null,"item":"Added explicit model settings for openrouter/anthropic/claude-3-opus, gpt-3.5-turbo"}
+{"tag":"v0.34.0","date":"2024-05-10","section":null,"item":"Added --show-prompts debug switch."}
+{"tag":"v0.34.0","date":"2024-05-10","section":null,"item":"Bugfix: catch and retry on all litellm exceptions."}
+{"tag":"v0.33.0","date":"2024-05-08","section":null,"item":"Added native support for Deepseek models using DEEPSEEK_API_KEY and deepseek/deepseek-chat, etc rather than as a generic OpenAI compatible API."}
+{"tag":"v0.32.0","date":"2024-05-07","section":null,"item":"Aider LLM code editing leaderboards that rank popular models according to their ability to edit code."}
+{"tag":"v0.32.0","date":"2024-05-07","section":null,"item":"Leaderboards include GPT-3.5/4 Turbo, Opus, Sonnet, Gemini 1.5 Pro, Llama 3, Deepseek Coder & Command-R+."}
+{"tag":"v0.32.0","date":"2024-05-07","section":null,"item":"Gemini 1.5 Pro now defaults to a new diff-style edit format (diff-fenced), enabling it to work better with larger code bases."}
+{"tag":"v0.32.0","date":"2024-05-07","section":null,"item":"Support for Deepseek-V2, via more a flexible config of system messages in the diff edit format."}
+{"tag":"v0.32.0","date":"2024-05-07","section":null,"item":"Improved retry handling on errors from model APIs."}
+{"tag":"v0.32.0","date":"2024-05-07","section":null,"item":"Benchmark outputs results in YAML, compatible with leaderboard."}
+{"tag":"v0.31.0","date":"2024-05-02","section":null,"item":"Aider is now also AI pair programming in your browser! Use the --browser switch to launch an experimental browser based version of aider."}
+{"tag":"v0.31.0","date":"2024-05-02","section":null,"item":"Switch models during the chat with /model <name> and search the list of available models with /models <query>."}
+{"tag":"v0.30.0","date":"2024-04-24","section":null,"item":"Added Gemini 1.5 Pro as a recommended free model."}
+{"tag":"v0.30.0","date":"2024-04-24","section":null,"item":"Added better support for Groq's free Llama3 70B model."}
+{"tag":"v0.30.0","date":"2024-04-24","section":null,"item":"Allow repo map for \"whole\" edit format."}
+{"tag":"v0.30.0","date":"2024-04-24","section":null,"item":"Added --models <MODEL-NAME> to search the available models."}
+{"tag":"v0.30.0","date":"2024-04-24","section":null,"item":"Added --no-show-model-warnings to silence model warnings."}
+{"tag":"v0.30.0","date":"2024-04-24","section":null,"item":"Improved model warnings for unknown or unfamiliar models"}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Added support for directly connecting to Anthropic, Cohere, Gemini and many other LLM providers."}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Added --weak-model <model-name> which allows you to specify which model to use for commit messages and chat history summarization."}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"New command line switches for working with popular models:"}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"--4-turbo-vision"}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"--sonnet"}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"--anthropic-api-key"}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Improved \"whole\" and \"diff\" backends to better support Cohere's free to use Command-R+ model."}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Allow /add of images from anywhere in the filesystem."}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Fixed crash when operating in a repo in a detached HEAD state."}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Fix: Use the same default model in CLI and python scripting."}
+{"tag":"v0.29.0","date":"2024-04-21","section":null,"item":"Juraj-Mihaly reacted with laugh emoji"}
+{"tag":"v0.28.0","date":"2024-04-09","section":null,"item":"Added support for new gpt-4-turbo-2024-04-09 and gpt-4-turbo models."}
+{"tag":"v0.28.0","date":"2024-04-09","section":null,"item":"Benchmarked at 61.7% on Exercism benchmark, comparable to gpt-4-0613 and worse than the gpt-4-preview-XXXX models. See recent Exercism benchmark results."}
+{"tag":"v0.28.0","date":"2024-04-09","section":null,"item":"Benchmarked at 34.1% on the refactoring/laziness benchmark, significantly worse than the gpt-4-preview-XXXX models. See recent refactor bencmark results."}
+{"tag":"v0.28.0","date":"2024-04-09","section":null,"item":"Aider continues to default to gpt-4-1106-preview as it performs best on both benchmarks, and significantly better on the refactoring/laziness benchmark."}
+{"tag":"v0.27.0","date":"2024-03-22","section":null,"item":"Improved repomap support for typescript, by @ryanfreckleton."}
+{"tag":"v0.27.0","date":"2024-03-22","section":null,"item":"Bugfix: Only /undo the files which were part of the last commit, don't stomp other dirty files"}
+{"tag":"v0.27.0","date":"2024-03-22","section":null,"item":"Bugfix: Show clear error message when OpenAI API key is not set."}
+{"tag":"v0.27.0","date":"2024-03-22","section":null,"item":"Bugfix: Catch error for obscure languages without tags.scm file."}
+{"tag":"v0.27.0","date":"2024-03-22","section":null,"item":"ryanfreckleton"}
+{"tag":"v0.26.0","date":"2024-03-08","section":null,"item":"Use GPT-4 Turbo by default."}
+{"tag":"v0.26.0","date":"2024-03-08","section":null,"item":"Added -3 and -4 switches to use GPT 3.5 or GPT-4 (non-Turbo)."}
+{"tag":"v0.26.0","date":"2024-03-08","section":null,"item":"Bug fix to avoid reflecting local git errors back to GPT."}
+{"tag":"v0.26.0","date":"2024-03-08","section":null,"item":"Improved logic for opening git repo on launch."}
+{"tag":"v0.26.0","date":"2024-03-08","section":null,"item":"1 person reacted"}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"Issue a warning if user adds too much code to the chat."}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"https://aider.chat/docs/faq.html#how-can-i-add-all-the-files-to-the-chat"}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"Vocally refuse to add files to the chat that match .aiderignore"}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"Prevents bug where subsequent git commit of those files will fail."}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"Added --openai-organization-id argument."}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"Show the user a FAQ link if edits fail to apply."}
+{"tag":"v0.25.0","date":"2024-03-04","section":null,"item":"Made past articles part of https://aider.chat/blog/"}
+{"tag":"v0.24.0","date":"2024-02-10","section":null,"item":"New /web <url> command which scrapes the url, turns it into fairly clean markdown and adds it to the chat."}
+{"tag":"v0.24.0","date":"2024-02-10","section":null,"item":"Updated all OpenAI model names, pricing info"}
+{"tag":"v0.24.0","date":"2024-02-10","section":null,"item":"Default GPT 3.5 model is now gpt-3.5-turbo-0125."}
+{"tag":"v0.24.0","date":"2024-02-10","section":null,"item":"Bugfix to the ! alias for /run."}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"Added support for --model gpt-4-0125-preview and OpenAI's alias --model gpt-4-turbo-preview. The --4turbo switch remains an alias for --model gpt-4-1106-preview at this time."}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"New /test command that runs a command and adds the output to the chat on non-zero exit status."}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"Improved streaming of markdown to the terminal."}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"Added /quit as alias for /exit."}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"Added --skip-check-update to skip checking for the update on launch."}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"Added --openrouter as a shortcut for --openai-api-base https://openrouter.ai/api/v1"}
+{"tag":"v0.23.0","date":"2024-02-03","section":null,"item":"Fixed bug preventing use of env vars OPENAI_API_BASE, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_API_DEPLOYMENT_ID."}
+{"tag":"v0.22.0","date":"2024-01-23","section":null,"item":"Improvements for unified diff editing format."}
+{"tag":"v0.22.0","date":"2024-01-23","section":null,"item":"Added ! as an alias for /run."}
+{"tag":"v0.22.0","date":"2024-01-23","section":null,"item":"Autocomplete for /add and /drop now properly quotes filenames with spaces."}
+{"tag":"v0.22.0","date":"2024-01-23","section":null,"item":"The /undo command asks GPT not to just retry reverted edit."}
+{"tag":"v0.21.0","date":"2024-01-08","section":null,"item":"Support for python 3.12."}
+{"tag":"v0.21.0","date":"2024-01-08","section":null,"item":"Improvements to unified diff editing format."}
+{"tag":"v0.21.0","date":"2024-01-08","section":null,"item":"New --check-update arg to check if updates are available and exit with status code."}
+{"tag":"v0.20.0","date":"2024-01-04","section":null,"item":"Add images to the chat to automatically use GPT-4 Vision, by @joshuavial"}
+{"tag":"v0.20.0","date":"2024-01-04","section":null,"item":"Bugfixes:"}
+{"tag":"v0.20.0","date":"2024-01-04","section":null,"item":"Improved unicode encoding for /run command output, by @ctoth"}
+{"tag":"v0.20.0","date":"2024-01-04","section":null,"item":"Prevent false auto-commits on Windows, by @ctoth"}
+{"tag":"v0.20.0","date":"2024-01-04","section":null,"item":"joshuavial and ctoth"}
+{"tag":"v0.19.0","date":"2023-12-20","section":null,"item":"Significantly reduced \"lazy\" coding from GPT-4 Turbo due to new unified diff edit format"}
+{"tag":"v0.19.0","date":"2023-12-20","section":null,"item":"Score improves from 20% to 61% on new \"laziness benchmark\"."}
+{"tag":"v0.19.0","date":"2023-12-20","section":null,"item":"Aider now uses unified diffs by default for gpt-4-1106-preview."}
+{"tag":"v0.19.0","date":"2023-12-20","section":null,"item":"New --4-turbo command line switch as a shortcut for --model gpt-4-1106-preview."}
+{"tag":"v0.18.1","date":"2023-12-14","section":null,"item":"Upgraded to new openai python client v1.3.7."}
+{"tag":"v0.18.0","date":"2023-11-17","section":null,"item":"Improved prompting for both GPT-4 and GPT-4 Turbo."}
+{"tag":"v0.18.0","date":"2023-11-17","section":null,"item":"Far fewer edit errors from GPT-4 Turbo (gpt-4-1106-preview)."}
+{"tag":"v0.18.0","date":"2023-11-17","section":null,"item":"Significantly better benchmark results from the June GPT-4 (gpt-4-0613). Performance leaps from 47%/64% up to 51%/71%."}
+{"tag":"v0.18.0","date":"2023-11-17","section":null,"item":"Fixed bug where in-chat files were marked as both read-only and ready-write, sometimes confusing GPT."}
+{"tag":"v0.18.0","date":"2023-11-17","section":null,"item":"Fixed bug to properly handle repos with submodules."}
+{"tag":"v0.18.0","date":"2023-11-17","section":null,"item":"younes-io reacted with laugh emoji"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Support for OpenAI's new 11/06 models:"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"gpt-4-1106-preview with 128k context window"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"gpt-3.5-turbo-1106 with 16k context window"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Benchmarks for OpenAI's new 11/06 models"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Streamlined API for scripting aider, added docs"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Ask for more concise SEARCH/REPLACE blocks. Benchmarked at 63.9%, no regression."}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Improved repo-map support for elisp."}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Fixed crash bug when /add used on file matching .gitignore"}
+{"tag":"v0.17.0","date":"2023-11-07","section":null,"item":"Fixed misc bugs to catch and handle unicode decoding errors."}
+{"tag":"v0.16.1","date":"2023-10-31","section":null,"item":"Updated tree-sitter dependencies to streamline the pip install process"}
+{"tag":"v0.16.1","date":"2023-10-31","section":null,"item":"Plus everything from v0.16.0"}
+{"tag":"v0.16.1","date":"2023-10-31","section":null,"item":"Improved repository map using tree-sitter"}
+{"tag":"v0.16.1","date":"2023-10-31","section":null,"item":"Switched from \"edit block\" to \"search/replace block\", which reduced malformed edit blocks. Benchmarked at 66.2%, no regression."}
+{"tag":"v0.16.1","date":"2023-10-31","section":null,"item":"Improved handling of malformed edit blocks targetting multiple edits to the same file. Benchmarked at 65.4%, no regression."}
+{"tag":"v0.16.1","date":"2023-10-31","section":null,"item":"Bugfix to properly handle malformed /add wildcards."}
+{"tag":"v0.15.0","date":"2023-10-20","section":null,"item":"Added support for .aiderignore file, which instructs aider to ignore parts of the git repo."}
+{"tag":"v0.15.0","date":"2023-10-20","section":null,"item":"New --commit cmd line arg, which just commits all pending changes with a sensible commit message geneated by gpt-3.5."}
+{"tag":"v0.15.0","date":"2023-10-20","section":null,"item":"Added universal ctags and multiple architectures to the aider docker image"}
+{"tag":"v0.15.0","date":"2023-10-20","section":null,"item":"/run and /git now accept full shell commands, like: /run (cd subdir; ls)"}
+{"tag":"v0.15.0","date":"2023-10-20","section":null,"item":"Restored missing --encoding cmd line switch."}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Easily run aider from a docker image"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Fixed bug with chat history summarization."}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Fixed bug if soundfile package not available."}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Plus previous changes from v0.14.x releases..."}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"/add and /drop handle absolute filenames and quoted filenames"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"/add checks to be sure files are within the git repo (or root)"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"If needed, warn users that in-chat file paths are all relative to the git repo"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Fixed /add bug in when aider launched in repo subdir"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Show models supported by api/key if requested model isn't available"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Support for Claude2 and other LLMs via OpenRouter by @joshuavial"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Documentation for running the aider benchmarking suite"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"Aider now requires Python >= 3.9"}
+{"tag":"v0.14.2","date":"2023-10-18","section":null,"item":"joshuavial"}
+{"tag":"v0.14.1","date":"2023-09-30","section":null,"item":"Plus features from v0.14.0"}
+{"tag":"v0.13.0","date":"2023-08-22","section":null,"item":"Only git commit dirty files that GPT tries to edit"}
+{"tag":"v0.13.0","date":"2023-08-22","section":null,"item":"Send chat history as prompt/context for Whisper voice transcription"}
+{"tag":"v0.13.0","date":"2023-08-22","section":null,"item":"Added --voice-language switch to constrain /voice to transcribe to a specific language"}
+{"tag":"v0.13.0","date":"2023-08-22","section":null,"item":"Late-bind importing sounddevice, as it was slowing down aider startup"}
+{"tag":"v0.13.0","date":"2023-08-22","section":null,"item":"Improved --foo/--no-foo switch handling for command line and yml config settings"}
+{"tag":"v0.12.0","date":"2023-08-11","section":null,"item":"Voice-to-code support, which allows you to code with your voice."}
+{"tag":"v0.12.0","date":"2023-08-11","section":null,"item":"Fixed bug where /diff was causing crash."}
+{"tag":"v0.12.0","date":"2023-08-11","section":null,"item":"Improved prompting for gpt-4, refactor of editblock coder."}
+{"tag":"v0.12.0","date":"2023-08-11","section":null,"item":"Benchmarked at 63.2% for gpt-4/diff, no regression."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Added a progress bar when initially creating a repo map."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Fixed bad commit message when adding new file to empty repo."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Fixed corner case of pending chat history summarization when dirty committing."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Fixed corner case of undefined text when using --no-pretty."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Fixed /commit bug from repo refactor, added test coverage."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Benchmarked at 53.4% for gpt-3.5/whole (no regression)."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Plus the changes from v0.11.0"}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Automatically summarize chat history to avoid exhausting context window."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"More detail on dollar costs when running with --no-stream"}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Stronger GPT-3.5 prompt against skipping/eliding code in replies (51.9% benchmark, no regression)"}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Defend against GPT-3.5 or non-OpenAI models suggesting filenames surrounded by asterisks."}
+{"tag":"v0.11.1","date":"2023-08-08","section":null,"item":"Refactored GitRepo code out of the Coder class."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"/add and /drop always use paths relative to the git root"}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Encourage GPT to use language like \"add files to the chat\" to ask users for permission to edit them."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Plus changes from v0.10.0"}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Added /git command to run git from inside aider chats."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Use Meta-ENTER (Esc+ENTER in some environments) to enter multiline chat messages."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Create a .gitignore with .aider* to prevent users from accidentaly adding aider files to git."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Check pypi for newer versions and notify user."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Updated keyboard interrupt logic so that 2 ^C in 2 seconds always forces aider to exit."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Provide GPT with detailed error if it makes a bad edit block, ask for a retry."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Force --no-pretty if aider detects it is running inside a VSCode terminal."}
+{"tag":"v0.10.1","date":"2023-07-24","section":null,"item":"Benchmarked at 64.7% for gpt-4/diff (no regression)"}
+{"tag":"v0.9.0","date":"2023-07-16","section":null,"item":"Support for the OpenAI models in Azure"}
+{"tag":"v0.9.0","date":"2023-07-16","section":null,"item":"Added --show-repo-map"}
+{"tag":"v0.9.0","date":"2023-07-16","section":null,"item":"Improved output when retrying connections to the OpenAI API"}
+{"tag":"v0.9.0","date":"2023-07-16","section":null,"item":"Redacted api key from --verbose output"}
+{"tag":"v0.9.0","date":"2023-07-16","section":null,"item":"Bugfix: recognize and add files in subdirectories mentioned by user or GPT"}
+{"tag":"v0.9.0","date":"2023-07-16","section":null,"item":"Benchmarked at 53.8% for gpt-3.5-turbo/whole"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Added --dark-mode and --light-mode to select colors optimized for terminal background"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Install docs link to NeoVim plugin by @joshuavial"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Reorganized the --help output"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix/improvement to whole edit format, may improve coding editing for GPT-3.5"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix and tests around git filenames with unicode characters"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix so that aider throws an exception when OpenAI returns InvalidRequest"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix/improvement to /add and /drop to recurse selected directories"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix for live diff output when using \"whole\" edit format"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Plus changes from earlier v0.8.x releases"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Disabled general availability of gpt-4 (it's rolling out, not 100% available yet)"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Ask to create a git repo if none found, to better track GPT's code changes"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Glob wildcards are now supported in /add and /drop commands"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Pass --encoding into ctags, require it to return utf-8"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"More robust handling of filepaths, to avoid 8.3 windows filenames"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Added FAQ"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Marked GPT-4 as generally available"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix for live diffs of whole coder with missing filenames"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix for chats with multiple files"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Bugfix in editblock coder prompt"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Benchmark comparing code editing in GPT-3.5 and GPT-4"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Improved Windows support:"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Fixed bugs related to path separators in Windows"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Added a CI step to run all tests on Windows"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Improved handling of Unicode encoding/decoding"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Explicitly read/write text files with utf-8 encoding by default (mainly benefits Windows)"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Added --encoding switch to specify another encoding"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Gracefully handle decoding errors"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Added --code-theme switch to control the pygments styling of code blocks (by @kwmiebach)"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"Better status messages explaining the reason when ctags is disabled"}
+{"tag":"v0.8.3","date":"2023-07-12","section":null,"item":"joshuavial and kwmiebach"}
+{"tag":"v0.8.2","date":"2023-07-08","section":null,"item":"Disabled general availability of gpt-4 (it is rolling out, not 100% available yet)"}
+{"tag":"v0.8.2","date":"2023-07-08","section":null,"item":"kwmiebach"}
+{"tag":"v0.8.1","date":"2023-07-08","section":null,"item":"Plus everything from v0.8.0"}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"New in v0.7.2:"}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Fixed a bug to allow aider to edit files that contain triple backtick fences."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Plus changes from earlier v0.7.x versions:"}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Fixed a bug in the display of streaming diffs in GPT-3.5 chats."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Graceful handling of context window exhaustion, including helpful tips."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Added --message to give GPT that one instruction and then exit after it replies and any edits are performed."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Added --no-stream to disable streaming GPT responses."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Non-streaming responses include token usage info."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Enables display of cost info based on OpenAI advertised pricing."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Coding competence benchmarking tool against suite of programming tasks based on Execism's python repo."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"https://github.com/exercism/python"}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Major refactor in preparation for supporting new function calls api."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Initial implementation of a function based code editing backend for 3.5."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Initial experiments show that using functions makes 3.5 less competent at coding."}
+{"tag":"v0.7.2","date":"2023-06-26","section":null,"item":"Limit automatic retries when GPT returns a malformed edit response."}
+{"tag":"v0.7.1","date":"2023-06-26","section":null,"item":"New in v0.7.1:"}
+{"tag":"v0.7.1","date":"2023-06-26","section":null,"item":"Fixed a bug in the display of streaming diffs in GPT-3.5 chats"}
+{"tag":"v0.7.1","date":"2023-06-26","section":null,"item":"Plus all the additions from v0.7.0:"}
+{"tag":"v0.6.2","date":"2023-06-17","section":null,"item":"Support for gpt-3.5-turbo-16k, and all OpenAI chat models"}
+{"tag":"v0.6.2","date":"2023-06-17","section":null,"item":"Improved ability to correct when gpt-4 omits leading whitespace in code edits"}
+{"tag":"v0.6.2","date":"2023-06-17","section":null,"item":"Added --openai-api-base to support API proxies, etc."}
+{"tag":"v0.5.0","date":"2023-06-07","section":null,"item":"Added support for gpt-3.5-turbo and gpt-4-32k."}
+{"tag":"v0.5.0","date":"2023-06-07","section":null,"item":"Added --map-tokens to set a token budget for the repo map, along with a PageRank based algorithm for prioritizing which files and identifiers to include in the map."}
+{"tag":"v0.5.0","date":"2023-06-07","section":null,"item":"Added in-chat command /tokens to report on context window token usage."}
+{"tag":"v0.5.0","date":"2023-06-07","section":null,"item":"Added in-chat command /clear to clear the conversation history."}

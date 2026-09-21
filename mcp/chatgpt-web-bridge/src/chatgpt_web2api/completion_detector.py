@@ -675,6 +675,9 @@ class CompletionDetector:
                     try:
                         conv_id_for_check = await d._get_live_conversation_id_best_effort()
                         if conv_id_for_check:
+                            from . import send_receipts
+
+                            send_receipts.mark(conversation_id=conv_id_for_check)
                             logger.info(
                                 "Resolved conversation id mid-loop: %s",
                                 conv_id_for_check,

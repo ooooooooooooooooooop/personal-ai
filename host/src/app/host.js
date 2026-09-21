@@ -47,7 +47,9 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
     ],
     ask: governance.ask ?? null,
     modeProvider: governance.modeProvider ?? null,
+    modeOverlay: governance.modeOverlay ?? null,
     mutatingTools: governance.mutatingTools ?? [],
+    commandAllowlist: governance.commandAllowlist ?? null,
   });
   const registry = new BodyRegistry(paths);
   const leases = new DomainLeaseStore(paths);

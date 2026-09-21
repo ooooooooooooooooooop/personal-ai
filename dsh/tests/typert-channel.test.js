@@ -249,3 +249,66 @@ test('dsh channel: session.list maps to plain rows; history folds events', async
     await close();
   }
 });
+
+test('dsh channel: session/jobs + session/projection frames project into job_list/get_state', async () => {
+  const { server, port, push, muxOpen, close } = await fakeDsh();
+  try {
+    const client = createTypertClient({ baseUrl: base(port) });
+    const { channel, dispose } = createDshChannel({ client, sessionId: 's-1', cwd: '/tmp' });
+    const events = [];
+    channel.subscribe((m) => events.push(m));
+    await muxOpen;
+
+    // before any frame: job_list is an empty projection, not 'unavailable'
+    const empty = await channel.handle({ id: '1', type: 'job_list', n: 10 });
+    assert.equal(empty.success, true);
+    assert.deepEqual(empty.data, []);
+
+    push({
+      type: 'session/jobs', sessionId: 's-1',
+      jobs: [
+        { job_id: 'j-old', type: 'goal-round', state: 'done', updatedAt: '2026-01-01T00:00:00Z' },
+        { job_id: 'j-new', type: 'goal-round', state: 'running', updatedAt: '2026-01-02T00:00:00Z', label: 'nightly' },
+      ],
+    });
+    push({
+      type: 'session/projection', sessionId: 's-1',
+      projection: { goal: 'refactor auth', subagents: [{ id: 'a1' }, { id: 'a2' }] },
+    });
+    // queue/subscribed frames must not crash the pump
+    push({ type: 'session/queue', sessionId: 's-1', queue: [] });
+    push({ type: 'session/subscribed', sessionId: 's-1' });
+    await new Promise((r) => setTimeout(r, 80));
+
+    const list = await channel.handle({ id: '2', type: 'job_list', n: 10 });
+    assert.equal(list.success, true);
+    assert.equal(list.data.length, 2);
+    // newest first (updated_at desc)
+    assert.equal(list.data[0].job_id, 'j-new');
+    assert.equal(list.data[0].job_state, 'running');
+    assert.equal(list.data[0].command, 'nightly');
+    assert.equal(list.data[1].job_id, 'j-old');
+
+    const status = await channel.handle({ id: '3', type: 'job_status', job_id: 'j-new' });
+    assert.equal(status.success, true);
+    assert.equal(status.data.job.job_id, 'j-new');
+    assert.equal(status.data.lease, null); // honest: no lease surface
+
+    const st = await channel.handle({ id: '4', type: 'get_state' });
+    assert.equal(st.success, true);
+    assert.equal(st.data.projection.goal, 'refactor auth');
+    assert.equal(st.data.projection.subagents.length, 2);
+
+    // UI-facing events emitted for live refresh
+    const types = events.map((m) => m.event?.type);
+    assert.ok(types.includes('jobs_changed'));
+    assert.ok(types.includes('projection'));
+
+    // cancel stays fail-closed — no facade method exists
+    const cancel = await channel.handle({ id: '5', type: 'job_cancel', job_id: 'j-new' });
+    assert.equal(cancel.success, false);
+    dispose();
+  } finally {
+    await close();
+  }
+});

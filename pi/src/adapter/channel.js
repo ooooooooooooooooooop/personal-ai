@@ -4,11 +4,21 @@
  * shapes get translated into plain-data snapshots a UI can consume.
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
-import { normalizeAttachments, partitionByCapability, describeAttachment } from '../../../host/src/core/attachments.js';
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
+import { execFile } from 'node:child_process';
+import { join, dirname, resolve } from 'node:path';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
+
+/** Atomic JSON write: tmp + rename — a torn write must not leave a half-file
+ * behind (credential/config corruption is unrecoverable by reload). */
+function writeJsonAtomic(file, doc) {
+  mkdirSync(dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+  renameSync(tmp, file);
+}
 
 /**
  * @param {object} deps
@@ -24,7 +34,12 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   UI listeners survive the swap because they subscribe to the fan-out,
  *   not to the session object itself.
  */
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null }) {
+const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create']);
+// Shell-family tools whose side effects get a workspace-delta notice
+// (CC bashEditDiffEnabled analogue — the diff panel for command edits).
+const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
+
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, fallbacks = null, leases = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -39,6 +54,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
   // Bounded autonomy: bill every usage-bearing event onto the append-only
   // ledger, and on breach refuse further spend — emit + abort + audit.
+  const warnedScopes = new Set(); // 80% wrap-up hint fires once per scope
   const bill = (usage, source) => {
     if (!budget || !usage) return;
     try {
@@ -46,6 +62,18 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // tokens/cost only — the provider request itself was already counted
       // at the fetch gate (one HTTP call = one call, retries included)
       budget.record({ scope, source, usage, countCall: false });
+      const c = budget.consumed(scope);
+      const l = budget.limits ?? {};
+      const pct = Math.max(
+        l.maxTokensPerSession ? c.tokens / l.maxTokensPerSession : 0,
+        l.maxCostPerSessionUsd ? c.cost / l.maxCostPerSessionUsd : 0,
+        l.maxCallsPerSession ? c.calls / l.maxCallsPerSession : 0,
+      );
+      if (pct >= 0.8 && !warnedScopes.has(scope)) {
+        warnedScopes.add(scope);
+        core.audit?.write({ kind: 'BUDGET_WARNING', data: { scope, source, pct: Math.round(pct * 100), consumed: c } });
+        emit({ type: 'budget_warning', scope, pct: Math.round(pct * 100), consumed: c });
+      }
       const breach = budget.breach(scope);
       if (breach) {
         core.audit?.write({ kind: 'BUDGET_EXCEEDED', data: { scope, source, ...breach } });
@@ -59,23 +87,121 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     }
   };
   let pump = null;
+  let autoCompacted = false; // per-session latch — rebind resets it
+  // N3 workspace-delta notices for shell commands: `git status --porcelain`
+  // before/after the call; the NEW-dirty set is what the command touched.
+  // Best-effort — non-git workdirs and slow git simply yield no notice.
+  const pendingDelta = new Map(); // toolCallId → Promise<Set<path>|null>
+  let gitProbe = null; // null=unprobed · true=repo · false=disabled (not a repo)
+  const gitDirty = () => new Promise((res) => {
+    if (!workdir || gitProbe === false) return res(null);
+    execFile('git', ['status', '--porcelain', '--no-renames'], { cwd: workdir, timeout: 4000, windowsHide: true }, (e, out) => {
+      if (e) {
+        // disable permanently only when provably not a git repo
+        if (/not a git repository/i.test(String(e.stderr ?? e.message ?? ''))) gitProbe = false;
+        return res(null);
+      }
+      gitProbe = true;
+      res(new Set(out.split('\n').map((l) => l.slice(3).trim()).filter(Boolean)));
+    });
+  });
   const rebind = (newSession) => {
     pump?.();
+    autoCompacted = false;
     box.s = newSession;
     pump = newSession.subscribe((ev) => {
       if (ev?.type === 'message_end' && ev.message?.role === 'assistant' && ev.message?.usage) {
         bill(ev.message.usage, 'turn');
+        // H-family auto-compact (Codex-style): at ≥90% of the context
+        // window the body compacts itself once per threshold crossing —
+        // announced via event + audit, never silently rewriting context.
+        try {
+          const u = box.s.getContextUsage?.();
+          if (u?.contextWindow && u.tokens != null && !autoCompacted
+              && u.tokens / u.contextWindow >= 0.9 && !box.s.isStreaming) {
+            autoCompacted = true;
+            emit({ type: 'auto_compact', tokens: u.tokens, contextWindow: u.contextWindow });
+            core.audit?.write({ kind: 'AUTO_COMPACT', data: { tokens: u.tokens, contextWindow: u.contextWindow } });
+            box.s.compact?.().catch(() => {});
+          }
+        } catch { /* auto-compact is best-effort */ }
       } else if (ev?.type === 'compaction_end' && ev.result?.usage) {
         bill(ev.result.usage, 'compaction');
       } else if (ev?.type === 'tool_execution_end' && writeLease) {
         // belt for the afterToolCall release — idempotent, holder-matched
         writeLease.release(`fg:${ev.toolCallId}`);
-        hooks?.fire('tool_end', { toolName: ev.toolName, isError: Boolean(ev.isError) });
       } else if (ev?.type === 'agent_end' && writeLease) {
         // abort can skip afterToolCall — sweep any foreground-held lease so a
         // dead write never wedges the workspace
         const h = writeLease.held();
         if (h?.holder?.startsWith('fg:')) writeLease.release(h.holder);
+      }
+      // Lifecycle hooks (observational family — Claude Code SessionStart /
+      // Stop / PreToolUse-event analogue; the operator-private veto gate is
+      // the separate pre_tool hook on the decide path)
+      if (ev?.type === 'tool_execution_start') {
+        hooks?.fire('tool_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
+        if (EXEC_TOOLS.has(ev.toolName) && ev.toolCallId) pendingDelta.set(ev.toolCallId, gitDirty());
+      } else if (ev?.type === 'tool_execution_end') {
+        // bashEditDiff analogue: report which files the command newly dirtied.
+        // Detached — the tool_execution_end event itself must not wait on git.
+        const beforeP = pendingDelta.get(ev.toolCallId);
+        pendingDelta.delete(ev.toolCallId);
+        if (beforeP) {
+          const toolName = ev.toolName;
+          beforeP.then(async (before) => {
+            if (!before) return;
+            const after = await gitDirty();
+            if (!after) return;
+            const delta = [...after].filter((f) => !before.has(f)).slice(0, 12);
+            if (!delta.length) return;
+            core.audit?.write({ kind: 'BASH_WORKSPACE_DELTA', data: { toolName, files: delta } });
+            emit({ type: 'notify', message: `${toolName} 改动了 ${delta.length} 个文件：${delta.slice(0, 6).join('、')}${delta.length > 6 ? ` 等` : ''}`, level: 'info' });
+          }).catch(() => {});
+        }
+        hooks?.fire('tool_end', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
+      } else if (ev?.type === 'agent_end') {
+        hooks?.fire('agent_stop', {});
+      } else if (ev?.type === 'compaction_start') {
+        hooks?.fire('compact_start', {});
+      } else if (ev?.type === 'compaction_end') {
+        hooks?.fire('compact_end', {});
+      }
+      // Aider verify loop: a successful write-family call runs the project's
+      // .pai/verify.json command (armed only if policy allows its class)
+      if (ev?.type === 'tool_execution_end' && !ev.isError && VERIFY_WRITE_TOOLS.has(ev.toolName)) {
+        verify?.afterWrite().catch(() => {});
+      }
+      // Roo mistake_limit: consecutive tool errors escalate to the operator;
+      // 'deny' sets loopwatch.stopped → the decide chain refuses further calls.
+      // Detached (no await): the tool_execution_end event must reach the UI
+      // immediately — the error IS what the operator needs to see on the card.
+      if (ev?.type === 'tool_execution_end') {
+        const lw = getLoopwatch?.();
+        if (lw) {
+          const v = lw.observeResult(Boolean(ev.isError));
+          if (v.level === 'escalate') {
+            core.audit?.write({ kind: 'MISTAKE_LIMIT', data: { count: v.count, toolName: ev.toolName } });
+            const answered = asks?.ask
+              ? asks.ask({
+                  toolName: ev.toolName ?? 'tool',
+                  toolCallId: ev.toolCallId,
+                  rule: 'mistake_limit',
+                  summary: `连续 ${v.count} 次工具错误`,
+                  detail: `${v.reason} —— 允许=继续本轮，拒绝=停止本轮全部工具调用`,
+                  args: { streak: v.count, lastTool: ev.toolName },
+                  argsTruncated: false,
+                  argsTotalChars: null,
+                })
+              : Promise.resolve('deny'); // no operator channel → stop (fail-closed)
+            answered.then((a) => {
+              if (a !== 'allow' && a !== 'allow_session') {
+                lw.stopRun();
+                emit({ type: 'notify', message: '已停止本轮——连续工具错误过多', level: 'err' });
+              }
+            }).catch(() => {});
+          }
+        }
       }
       emit(ev);
     });
@@ -94,19 +220,56 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     prompt: (message, options) => {
       admitSpend();
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
+      // Auto-name (Goose/OpenClaw): an unnamed session takes its first user
+      // prompt as display name. Only fills the null slot — an operator
+      // rename or a previous auto-name is never overwritten.
+      try {
+        if (!box.s.sessionName && typeof message === 'string' && message.trim()) {
+          const t = message.trim().replace(/\s+/g, ' ');
+          box.s.setSessionName?.(t.length > 40 ? `${t.slice(0, 40)}…` : t);
+        }
+      } catch { /* naming is best-effort */ }
       // U5: generalized attachments normalize at the channel boundary, then
       // split by body capability — pi carries images natively; other media
       // degrades to a truthful descriptor block (never a fake modality).
       let msg = message;
       let opts = options;
+      // H-family microagents: prompt text matching a trigger injects that
+      // knowledge block for this turn — topic-scoped, not always-on.
+      try {
+        const kb = knowledge?.match?.(msg);
+        if (kb?.text) {
+          msg = `${kb.text}\n\n${msg ?? ''}`;
+          core.audit?.write({ kind: 'KNOWLEDGE_INJECTED', data: { agents: kb.agents } });
+        }
+      } catch { /* knowledge match is best-effort — never blocks a prompt */ }
       if (options?.attachments?.length) {
         const { attachments, rejected } = normalizeAttachments(options.attachments);
-        const { native, degraded } = partitionByCapability(attachments, { images: true });
+        // Capability-gated carry (OpenCode/Cline analogue): images ride
+        // natively only when the CURRENT model advertises image input —
+        // attaching to a text-only model degrades to a descriptor and the
+        // operator is told, instead of the SDK silently dropping bytes.
+        const curInput = box.s?.model?.input;
+        const caps = { images: !Array.isArray(curInput) || curInput.includes('image') };
+        const { native, degraded } = partitionByCapability(attachments, caps);
+        const lostImages = degraded.filter((a) => a.kind === 'image').length;
+        if (lostImages && caps.images === false) {
+          emit({
+            type: 'notify',
+            level: 'warn',
+            message: `当前模型 ${box.s?.model?.id ?? '?'} 不支持图片输入——${lostImages} 张图片将降级为文本描述（换个视觉模型可原生看图）`,
+          });
+        }
         if (native.length) {
           opts = { ...options, images: [...(options.images ?? []), ...native.map((a) => ({ type: 'image', data: a.source.data, mimeType: a.mime }))] };
         }
         if (degraded.length) {
-          msg = `${msg ?? ''}\n\n${degraded.map(describeAttachment).join('\n')}`;
+          // Extractable formats (text/code/ipynb) inline their CONTENT so the
+          // model reads them; opaque binaries stay honest descriptors.
+          msg = `${msg ?? ''}\n\n${degraded.map((a) => {
+            const text = extractAttachmentText(a);
+            return text ? `<attachment kind="${a.kind}" name="${a.name}" mime="${a.mime}">\n${text}\n</attachment>` : describeAttachment(a);
+          }).join('\n')}`;
         }
         if (rejected.length) {
           core.audit?.write({ kind: 'ATTACHMENT_REJECTED', data: { rejected } });
@@ -146,6 +309,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           file: s.sessionManager?.getSessionFile?.() ?? null,
         },
         contextUsage: s.getContextUsage?.() ?? null,
+        goals: goals?.() ?? null,
       };
     },
     // Context lifecycle — pi-native compact / tree rewind / stats / export.
@@ -173,9 +337,62 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       };
     },
     stats: async () => box.s.getSessionStats?.() ?? null,
-    export: async () => {
+    export: async (opts = {}) => {
+      // trajectory export (Hermes): raw JSONL is the replayable/training
+      // form; HTML stays the human-readable default.
+      if (opts.format === 'jsonl') {
+        const src = box.s.sessionFile;
+        if (!src) return { file: null, format: 'jsonl' };
+        const dir = join(dirname(src), 'exports');
+        mkdirSync(dir, { recursive: true });
+        const out = join(dir, `trajectory-${Date.now()}.jsonl`);
+        copyFileSync(src, out);
+        return { file: out, format: 'jsonl' };
+      }
+      // /debug bundle (Devin trajectory-with-subagents analogue): the raw
+      // session file PLUS the AgentTask subtree this session spawned and the
+      // job rows — one JSON the operator can hand to support or replay.
+      if (opts.format === 'debug') {
+        const src = box.s.sessionFile;
+        if (!src) return { file: null, format: 'debug' };
+        const scope = box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? null;
+        const dir = join(dirname(src), 'exports');
+        mkdirSync(dir, { recursive: true });
+        const out = join(dir, `debug-${Date.now()}.json`);
+        const allTasks = tasks?.list?.() ?? [];
+        // bind: tasks whose run_scope is this session (spawned children) or
+        // whose parent chain leads into this session's tree
+        const mine = new Set(
+          allTasks.filter((t) => t.run_scope === scope || t.parent_scope === scope).map((t) => t.task_id));
+        // pull grandchildren — a spawned child may itself have spawned tasks
+        let grew = true;
+        while (grew) {
+          grew = false;
+          for (const t of allTasks) {
+            if (!mine.has(t.task_id) && t.parent_task_id && mine.has(t.parent_task_id)) {
+              mine.add(t.task_id); grew = true;
+            }
+          }
+        }
+        const bundle = {
+          exportedAt: new Date().toISOString(),
+          sessionId: scope,
+          sessionFile: src,
+          trajectory: readFileSync(src, 'utf-8').trim().split('\n').filter(Boolean)
+            .map((l) => { try { return JSON.parse(l); } catch { return { raw: l.slice(0, 400) }; } }),
+          tasks: allTasks.filter((t) => mine.has(t.task_id)).map((t) => ({
+            task_id: t.task_id, label: t.label, state: t.state, kind: t.kind, name: t.name,
+            job_id: t.job_id, parent_task_id: t.parent_task_id, run_scope: t.run_scope,
+            created: t.created,
+            events: tasks?.read ? (tasks.read(t.task_id, 'events') ?? []) : [],
+          })),
+          jobs: (jobs?.list?.() ?? []).filter((j) => j.session_scope === scope || j.sessionId === scope),
+        };
+        writeJsonAtomic(out, bundle);
+        return { file: out, format: 'debug', tasks: bundle.tasks.length };
+      }
       const html = await box.s.exportToHtml?.();
-      return { file: html ?? null };
+      return { file: html ?? null, format: 'html' };
     },
     subscribe: (listener) => {
       uiListeners.add(listener);
@@ -205,6 +422,20 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
 
   // Model/auth surface — the body's ModelRuntime owns models.json + auth.json
   // under the instance's agentDir. Plain data out; key material never returns.
+  // Model aliases (Gemini CLI alias analogue): <instance>/model-aliases.json
+  // maps short names → {provider, model[, thinking]}. Read per call so edits
+  // take effect without respawn.
+  const aliasPath = core.paths.root ? join(core.paths.root, 'model-aliases.json') : null;
+  const readAliases = () => {
+    if (!aliasPath) return {};
+    try { return JSON.parse(readFileSync(aliasPath, 'utf-8')); }
+    catch { return {}; }
+  };
+  const writeAliases = (doc) => {
+    if (!aliasPath) throw new Error('instance root unavailable');
+    writeJsonAtomic(aliasPath, doc);
+  };
+
   const modelsFacade = {
     status: async () => {
       const s = box.s;
@@ -231,6 +462,34 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         availableCount: available.length,
       };
     },
+    // provider doctor (Cline `doctor` analogue): real connectivity probe —
+    // GET {baseUrl}/models with the resolved credential. Returns reachability
+    // + auth source; key material never leaves the process.
+    ping: async (providerId) => {
+      const rt = box.s.modelRuntime;
+      const pid = String(providerId ?? '').trim()
+        || (box.s.model?.provider ?? rt.getProviders()[0]?.id);
+      const p = rt.getProvider(pid);
+      if (!p) return { ok: false, error: `unknown provider '${pid}'` };
+      const configured = rt.hasConfiguredAuth(pid);
+      const auth = await rt.getAuth(pid).catch(() => undefined);
+      const base = auth?.auth?.baseUrl ?? p.baseUrl;
+      if (!base) return { ok: false, configured, error: 'provider has no baseUrl' };
+      const t0 = Date.now();
+      try {
+        const headers = { ...(p.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
+        if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
+        const res = await fetch(`${String(base).replace(/\/+$/, '')}/models`, {
+          headers, signal: AbortSignal.timeout(8000),
+        });
+        return {
+          ok: res.ok, reachable: true, httpStatus: res.status, ms: Date.now() - t0,
+          configured, authSource: auth?.source ?? null,
+        };
+      } catch (e) {
+        return { ok: false, reachable: false, configured, error: String(e?.message ?? e), ms: Date.now() - t0 };
+      }
+    },
     list: async () => {
       const available = await box.s.modelRuntime.getAvailable();
       return available.map((m) => ({
@@ -240,15 +499,77 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         reasoning: Boolean(m.reasoning),
         contextWindow: m.contextWindow ?? null,
         maxTokens: m.maxTokens ?? null,
+        // Codex models.json capability declaration — surfaced, not invented:
+        // the registry already carries input modalities per model.
+        capabilities: {
+          vision: Array.isArray(m.input) ? m.input.includes('image') : null,
+          tools: true, // every catalog model in this runtime accepts tool calls
+          reasoning: Boolean(m.reasoning),
+        },
       }));
     },
-    set: async ({ provider, model }) => {
+    set: async ({ provider, model, alias }) => {
+      let target = { provider, model };
+      if (alias) {
+        const hit = readAliases()[String(alias)];
+        if (!hit) throw new Error(`model alias '${alias}' is not registered`);
+        target = hit;
+      }
       const s = box.s;
-      const m = s.modelRuntime.getModel(provider, model);
-      if (!m) throw new Error(`model '${provider}/${model}' is not registered`);
+      const m = s.modelRuntime.getModel(target.provider, target.model);
+      if (!m) throw new Error(`model '${target.provider}/${target.model}' is not registered`);
       await s.setModel(m);
-      s.settingsManager?.setDefaultModelAndProvider?.(provider, model);
-      return { provider: m.provider, id: m.id, name: m.name ?? m.id };
+      s.settingsManager?.setDefaultModelAndProvider?.(target.provider, target.model);
+      if (target.thinking) await modelsFacade.setThinking(target.thinking).catch(() => {});
+      return { provider: m.provider, id: m.id, name: m.name ?? m.id, alias: alias ?? null };
+    },
+    // M100 fallback chain ops — mutates the shared config object the loop
+    // extension reads, and persists to <instance>/model-fallbacks.json.
+    fallbacks: async () => ({ chain: [...(fallbacks?.chain ?? [])] }),
+    setFallbacks: async (chain) => {
+      if (!fallbacks) throw new Error('fallback config unavailable');
+      if (!Array.isArray(chain)) throw new Error('setFallbacks requires an array of {provider, model}');
+      const clean = chain
+        .filter((e) => e && typeof e.provider === 'string' && typeof e.model === 'string')
+        .slice(0, 8);
+      writeJsonAtomic(join(core.paths.root, 'model-fallbacks.json'), { chain: clean });
+      fallbacks.chain = clean;
+      core.audit?.write({ kind: 'MODEL_FALLBACK_CONFIG', data: { chain: clean.map((e) => `${e.provider}/${e.model}`) } });
+      return { chain: clean };
+    },
+    // M95 local-inference discovery (Ollama/LM Studio/llama.cpp analogue):
+    // probe the well-known local endpoints, report reachable nodes + their
+    // model catalogs. Discovery only — nothing is configured implicitly.
+    discover: async () => {
+      const probes = [
+        { kind: 'ollama', url: 'http://localhost:11434', listPath: '/api/tags', pick: (b) => (b?.models ?? []).map((m) => m.name) },
+        { kind: 'lmstudio', url: 'http://localhost:1234', listPath: '/v1/models', pick: (b) => (b?.data ?? []).map((m) => m.id) },
+        { kind: 'llamacpp', url: 'http://localhost:8080', listPath: '/v1/models', pick: (b) => (b?.data ?? []).map((m) => m.id) },
+      ];
+      const nodes = [];
+      for (const p of probes) {
+        try {
+          const res = await fetch(`${p.url}${p.listPath}`, { signal: AbortSignal.timeout(2500) });
+          if (!res.ok) continue;
+          const body = await res.json().catch(() => null);
+          nodes.push({ kind: p.kind, url: p.url, models: p.pick(body) ?? [] });
+        } catch { /* node absent — discovery is best-effort */ }
+      }
+      return { nodes, hint: nodes.length ? 'add via provider panel: api=openai-completions, baseUrl=<node>/v1' : null };
+    },
+    aliasList: () => Object.entries(readAliases()).map(([name, a]) => ({ name, ...a })),
+    aliasSet: ({ name, provider, model, thinking }) => {
+      if (!name || !provider || !model) throw new Error('alias requires {name, provider, model}');
+      const doc = readAliases();
+      doc[String(name)] = { provider: String(provider), model: String(model), ...(thinking ? { thinking: String(thinking) } : {}) };
+      writeAliases(doc);
+      return { name: String(name), ...doc[String(name)] };
+    },
+    aliasDel: ({ name }) => {
+      const doc = readAliases();
+      const had = delete doc[String(name)];
+      writeAliases(doc);
+      return { removed: had };
     },
     setThinking: async (level) => {
       const s = box.s;
@@ -259,12 +580,45 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       return { thinkingLevel: s.thinkingLevel ?? lvl };
     },
     setApiKey: async ({ provider, key }) => {
-      await box.s.modelRuntime.setRuntimeApiKey(provider, key);
+      // external secret sources (Bitwarden/1Password "fill without seeing"):
+      // op://vault/item/field → `op read`; bw://item → `bw get password`.
+      // The resolved key lands in the credential store — the reference itself
+      // is never persisted, and resolution failures are reported, never
+      // silently stored as a literal key.
+      let resolved = key;
+      // placeholder keys must not install (competitor pit: `sk-xxx` stored,
+      // every call 401s, the failure reads like a provider outage). Real
+      // prefixes (sk-ant-, sk-proj-, ghp_…) pass — only obvious templates
+      // and toy values are refused.
+      if (/^(sk-[x*]{2,}|sk-your|your[-_]|[x*]{4,}|changeme|test[-_]?key|placeholder|api[-_]?key[-_]?(here|goes)|<|insert|paste)/i.test(key) || key.length < 8) {
+        return { provider, hasAuth: false, error: 'key looks like a placeholder — paste the real credential' };
+      }
+      if (/^op:\/\//.test(key) || /^bw:\/\//.test(key)) {
+        const { execFileSync } = await import('node:child_process');
+        try {
+          resolved = /^op:\/\//.test(key)
+            ? execFileSync('op', ['read', key], { timeout: 15_000, encoding: 'utf-8', windowsHide: true }).trim()
+            : execFileSync('bw', ['get', 'password', key.slice(5)], { timeout: 15_000, encoding: 'utf-8', windowsHide: true }).trim();
+        } catch (e) {
+          return { provider, hasAuth: false, error: `secret-source resolve failed: ${e.message?.slice(0, 200) ?? 'unknown'}` };
+        }
+        if (!resolved) return { provider, hasAuth: false, error: 'secret source returned an empty value' };
+      }
+      await box.s.modelRuntime.setRuntimeApiKey(provider, resolved);
       return { provider, hasAuth: true };
     },
     clearApiKey: async (provider) => {
       await box.s.modelRuntime.removeRuntimeApiKey(provider);
-      return { provider, hasAuth: false };
+      // honest sign-out: env-var / models.json fallbacks still resolve auth
+      // after the runtime key is removed — report what actually remains so
+      // the UI can say "signed out but env still provides a key" instead of
+      // claiming a clean logout (competitor pit: silent resurrection).
+      let residual = false;
+      try {
+        const auth = await box.s.modelRuntime.getAuth?.(provider);
+        residual = Boolean(auth?.apiKey ?? auth?.auth?.apiKey ?? auth?.token);
+      } catch { /* probe failure → report removal, not auth state */ }
+      return { provider, hasAuth: residual, note: residual ? 'env/config still provides credentials for this provider' : undefined };
     },
     // Custom OpenAI/Anthropic-compatible provider → models.json in agentDir,
     // then a runtime refresh. Keys never go into models.json — auth_set_key
@@ -292,7 +646,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           maxTokens: spec.maxTokens ?? 8192,
         }],
       };
-      writeFileSync(file, `${JSON.stringify(cfg, null, 2)}\n`);
+      writeJsonAtomic(file, cfg);
       await box.s.modelRuntime.refresh?.().catch(() => {});
       return { provider: spec.provider, model: spec.model };
     },
@@ -335,6 +689,171 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       }),
     },
     modes,
+    turns,
+    tasks,
+    memory,
+    exec,
+    commands,
+    pins,
+    verify,
+    projectTrust,
+    schedules,
+    goalStore,
+    monitors,
+    leases,
+    repoMap,
+    // M64 instance inventory — a cross-category purge PREVIEW surface: every
+    // persisted artifact class under the instance root with file/byte counts.
+    // Deletion goes through instance.purge: an explicit per-category action
+    // that defaults to dry-run, refuses enforcement-evidence classes, and
+    // never touches the live session file.
+    instance: (() => {
+      const cats = {
+        sessions: /sessions[\\/]/, jobs: /jobs[\\/]/, audit: /audit[\\/]/,
+        memory: /memory\.db$/, checkpoints: /checkpoints[\\/]/,
+        exports: /exports[\\/]/, spool: /spool[\\/]/, schedules: /schedules?\.json$/,
+        allowlists: /(command-allow|always-allow|egress-allow|feature-models)\.json$/,
+        tasks: /tasks[\\/]/, macros: /macros\.json$/, receipts: /receipts[\\/]|fileops[\\/]/,
+      };
+      const catFiles = (category) => {
+        const root = core.paths.root;
+        const out = [];
+        const walk = (dir, depth) => {
+          if (depth > 5) return;
+          let ents;
+          try { ents = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+          for (const e of ents) {
+            const p = join(dir, e.name);
+            if (e.isDirectory()) { walk(p, depth + 1); continue; }
+            const rel = p.slice(root.length);
+            const cat = Object.keys(cats).find((k) => cats[k].test(rel)) ?? 'other';
+            if (category == null || cat === category) {
+              let bytes = 0;
+              try { bytes = statSync(p).size; } catch { continue; }
+              out.push({ path: p, rel, cat, bytes });
+            }
+          }
+        };
+        walk(root, 0);
+        return out;
+      };
+      return {
+        inventory: () => {
+          const out = {};
+          for (const f of catFiles(null)) {
+            out[f.cat] ??= { files: 0, bytes: 0 };
+            out[f.cat].files += 1; out[f.cat].bytes += f.bytes;
+          }
+          return { root: core.paths.root, categories: out };
+        },
+        purge: ({ category, dry_run = true } = {}) => {
+          const PURGEABLE = new Set(['exports', 'spool', 'sessions']);
+          if (!PURGEABLE.has(String(category))) {
+            return {
+              ok: false,
+              error: `category '${category}' is not purgeable — exports/spool/sessions only; ` +
+                'audit/jobs/memory/receipts/schedules/allowlists are enforcement evidence',
+            };
+          }
+          const live = box.s.sessionFile ? String(box.s.sessionFile) : null;
+          const files = catFiles(category).filter((f) => f.path !== live);
+          const bytes = files.reduce((a, f) => a + f.bytes, 0);
+          if (dry_run !== false) {
+            return { ok: true, dry_run: true, category, files: files.length, bytes, paths: files.map((f) => f.rel) };
+          }
+          const removed = [];
+          for (const f of files) {
+            try { unlinkSync(f.path); removed.push(f.rel); } catch { /* locked/gone — skip, keep counting */ }
+          }
+          core.audit?.write({
+            kind: 'INSTANCE_PURGE',
+            data: { category, requested: files.length, removed: removed.length, bytes },
+          });
+          return { ok: true, dry_run: false, category, removed: removed.length, bytes, skipped: files.length - removed.length };
+        },
+      };
+    })(),
+    skills: knowledge, // skill-doctor stats + allow-list ride the knowledge facade
+    // M81 named profiles — a snapshot pack of {model, thinking, mode} the
+    // operator can save/apply/delete inside this instance. Cross-instance
+    // isolation is already the body layer's job; this is the in-instance
+    // preset switch the per-instance bodies don't cover.
+    profiles: (() => {
+      const file = () => join(core.paths.root, 'profiles.json');
+      const read = () => {
+        try { return JSON.parse(readFileSync(file(), 'utf-8')).profiles ?? {}; } catch { return {}; }
+      };
+      const write = (doc) => writeJsonAtomic(file(), { profiles: doc });
+      return {
+        list: () => Object.entries(read()).map(([name, p]) => ({ name, ...p })),
+        save: ({ name } = {}) => {
+          const n = String(name ?? '').trim();
+          if (!n || n.length > 40) throw new Error('profile name required (≤40 chars)');
+          const s = box.s;
+          const doc = read();
+          doc[n] = {
+            model: s?.model ? { provider: s.model.provider, id: s.model.id } : null,
+            thinking: s?.thinkingLevel ?? null,
+            mode: modes?.get?.() ?? null,
+            savedAt: new Date().toISOString(),
+          };
+          write(doc);
+          core.audit?.write({ kind: 'PROFILE_SAVED', data: { name: n, model: doc[n].model?.id ?? null } });
+          return { name: n, ...doc[n] };
+        },
+        apply: async ({ name } = {}) => {
+          const p = read()[String(name ?? '')];
+          if (!p) return { ok: false, error: `no profile '${name}'` };
+          const applied = {};
+          if (p.model) {
+            await modelsFacade.set({ provider: p.model.provider, model: p.model.id });
+            applied.model = p.model.id;
+          }
+          if (p.thinking) { await modelsFacade.setThinking(p.thinking).catch(() => {}); applied.thinking = p.thinking; }
+          if (p.mode && modes?.setMode) {
+            const r = modes.setMode(p.mode);
+            if (r?.ok === false) return { ok: false, error: `mode '${p.mode}' refused: ${r.error ?? 'unknown'}` };
+            applied.mode = p.mode;
+          }
+          core.audit?.write({ kind: 'PROFILE_APPLIED', data: { name: String(name), applied } });
+          return { ok: true, name: String(name), applied };
+        },
+        remove: ({ name } = {}) => {
+          const doc = read();
+          const had = delete doc[String(name ?? '')];
+          if (had) write(doc);
+          return { removed: had };
+        },
+        // Portability: profiles are instance-local presets — export/import
+        // carries them between instances (same confinement as allowlists).
+        export: ({ path } = {}) => {
+          const target = resolve(core.paths.root, String(path ?? 'profiles-export.json'));
+          if (!target.startsWith(core.paths.root) || !target.endsWith('.json')) {
+            return { ok: false, error: 'export target must be a .json path inside the instance directory' };
+          }
+          writeFileSync(target, JSON.stringify({ profiles: read() }, null, 2) + '\n');
+          core.audit?.write({ kind: 'PROFILE_EXPORT', data: { file: target, count: Object.keys(read()).length } });
+          return { ok: true, path: target };
+        },
+        import: ({ path } = {}) => {
+          const source = resolve(core.paths.root, String(path ?? ''));
+          if (!source.startsWith(core.paths.root) || !source.endsWith('.json')) {
+            return { ok: false, error: 'import source must be a .json path inside the instance directory' };
+          }
+          let doc;
+          try { doc = JSON.parse(readFileSync(source, 'utf-8')); }
+          catch (e) { return { ok: false, error: `invalid import file: ${e.message}` }; }
+          const entries = Object.entries(doc?.profiles ?? {});
+          if (!entries.length || entries.some(([n, p]) => !n || n.length > 40 || typeof p !== 'object' || p === null)) {
+            return { ok: false, error: 'import file must contain a non-empty profiles object (names ≤40 chars)' };
+          }
+          const merged = { ...read(), ...doc.profiles };
+          write(merged);
+          core.audit?.write({ kind: 'PROFILE_IMPORT', data: { file: source, count: entries.length } });
+          return { ok: true, imported: entries.length };
+        },
+      };
+    })(),
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

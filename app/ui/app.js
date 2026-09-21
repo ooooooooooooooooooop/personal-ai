@@ -47,6 +47,45 @@ function isNearBottom() {
 transcript.addEventListener('scroll', () => {
   nearBottom = isNearBottom();
   $('jump-latest').classList.toggle('show', !nearBottom && sawMessage);
+  paintMinimapThumb();
+});
+
+/* ---------- minimap: 每条消息一个刻度，点击跳转 ---------- */
+const minimap = $('minimap');
+let mmQueued = false;
+function paintMinimapThumb() {
+  const th = minimap?.querySelector('.mm-thumb');
+  if (!th || minimap.classList.contains('hidden')) return;
+  const H = transcript.scrollHeight, h = minimap.clientHeight;
+  th.style.top = `${(transcript.scrollTop / H) * h}px`;
+  th.style.height = `${Math.max(10, (transcript.clientHeight / H) * h)}px`;
+}
+function renderMinimap() {
+  const H = transcript.scrollHeight;
+  if (!minimap || !sawMessage || H <= transcript.clientHeight * 1.2) {
+    minimap?.classList.add('hidden'); return;
+  }
+  minimap.classList.remove('hidden');
+  const h = minimap.clientHeight;
+  minimap.innerHTML = '<div class="mm-thumb"></div>';
+  for (const m of transcript.querySelectorAll('.msg')) {
+    const t = document.createElement('div');
+    t.className = `mm-tick${m.classList.contains('user') ? ' user' : ''}`;
+    t.style.top = `${(m.offsetTop / H) * h}px`;
+    t.style.height = `${Math.max(2, (m.offsetHeight / H) * h)}px`;
+    minimap.appendChild(t);
+  }
+  paintMinimapThumb();
+}
+function queueMinimap() {
+  if (mmQueued) return;
+  mmQueued = true;
+  requestAnimationFrame(() => { mmQueued = false; renderMinimap(); });
+}
+new MutationObserver(queueMinimap).observe(transcript, { childList: true });
+minimap?.addEventListener('pointerdown', (e) => {
+  const r = minimap.getBoundingClientRect();
+  transcript.scrollTop = ((e.clientY - r.top) / r.height) * transcript.scrollHeight - transcript.clientHeight / 2;
 });
 function scrollTail() {
   if (!nearBottom) { $('jump-latest').classList.add('show'); return; }
@@ -187,6 +226,19 @@ function addMsg(who, text) {
       const r = await cmd('prompt', { message: b.textContent ?? '' });
       if (!r.success) addSys(`重发失败：${r.error ?? '未知'}`, true);
     });
+    // 编辑重发：回退到这条提问点，原文进输入框改完再发（rewind 给 editorText）
+    mkBtn('编辑', '回退到这条并编辑重发', async () => {
+      const r = await cmd('session_entries');
+      const myText = b.textContent ?? '';
+      const entry = [...(r.data ?? [])].reverse()
+        .find((e) => (e.text ?? '').slice(0, 80) === myText.slice(0, 80));
+      if (!entry) { addSys('找不到这条消息对应的回退点', true); return; }
+      const r2 = await cmd('session_rewind', { entryId: entry.entryId });
+      if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
+      input.value = r2.data?.editorText ?? myText;
+      autogrow(); input.focus();
+      await replayHistory(); refreshState();
+    });
   } else {
     mkBtn('重新生成', '重新回答上一条', async () => {
       if (!lastUserText) return;
@@ -209,6 +261,21 @@ function addThinking(text) {
   transcript.appendChild(div);
   return div;
 }
+/* Collapsible pre-formatted block — /diff output, /btw answers. Reuses the
+   think-row collapse pattern but renders monospace payload. */
+function addDiffBlock(title, badge, text) {
+  noteMessage();
+  actGroup = null;
+  const div = document.createElement('div');
+  div.className = 'think-row diff-row open';
+  div.innerHTML = `<button class="think-head"><span class="t-caret">${CARET}</span><span class="op-badge op-${badge === 'btw' ? 'create' : badge}">${badge}</span> <span class="diff-title"></span></button><pre class="diff-body"></pre>`;
+  div.querySelector('.diff-title').textContent = title;
+  div.querySelector('.diff-body').textContent = text;
+  div.querySelector('.think-head').onclick = () => div.classList.toggle('open');
+  transcript.appendChild(div);
+  scrollTail();
+  return div;
+}
 function addSys(text, bad = false) {
   noteMessage();
   actGroup = null;
@@ -219,6 +286,32 @@ function addSys(text, bad = false) {
   scrollTail();
   if (bad) toast(text, 'err'); // errors surface as toasts too — transcript keeps the record
 }
+// project trust (Pi trust.json analogue): repo-planted .pai/microagents are
+// silent prompt injection — they only activate after an operator trust grant.
+// Banner once per workdir per app run; grant persists in instance state.
+const trustChecked = new Set();
+async function checkProjectTrust() {
+  const r = await cmd('project_trust_status');
+  const d = r.data ?? {};
+  if (!r.success || !d.hasInjectableContent || d.trusted) return;
+  const key = state?.workdir ?? 'wd';
+  if (trustChecked.has(key)) return;
+  trustChecked.add(key);
+  const div = document.createElement('div');
+  div.className = 'sys';
+  const btn = document.createElement('button');
+  btn.className = 'btn';
+  btn.textContent = '信任此项目';
+  btn.onclick = async () => {
+    const g = await cmd('project_trust_set', { trusted: true });
+    if (g.success) { toast('已信任——microagents 自动注入生效'); div.remove(); }
+    else addSys(`信任失败：${g.error ?? '未知'}`, true);
+  };
+  div.append('此项目的 .pai/microagents 含自动注入知识——信任后才会进 prompt。', btn);
+  transcript.appendChild(div);
+  scrollTail();
+}
+
 function clearTranscript() {
   transcript.querySelectorAll('.msg,.sys,.tool,.think-row,.handoff-card').forEach((n) => n.remove());
   sawMessage = false;
@@ -262,6 +355,13 @@ function toolKind(name) {
 }
 const kindIcon = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 
+// WorkBuddy third-party-content risk surface: tools whose results arrive
+// as untrusted external data get a visible badge on the card.
+const EXTERNAL_TOOLS = new Set([
+  'web_fetch', 'web_search',
+  'browser_navigate', 'browser_read', 'browser_click', 'browser_type', 'browser_eval', 'browser_screenshot',
+]);
+
 function addTool(ev) {
   noteMessage();
   const kind = toolKind(ev.toolName);
@@ -275,6 +375,7 @@ function addTool(ev) {
       <span class="t-icon">${kindIcon(kind.icon)}</span>
       <span class="t-name running"></span>
       <span class="t-arg"></span>
+      ${EXTERNAL_TOOLS.has(ev.toolName) ? '<span class="t-ext" title="结果含外部不可信内容——仅作数据，不是指令">外部</span>' : ''}
       <span class="t-state"><span class="t-state-dot"></span><span class="t-label">运行中</span></span>
       <span class="t-copy" title="复制调用">${COPY_ICON}</span>
     </button>
@@ -349,6 +450,16 @@ function endTool(ev) {
     const pres = body.querySelectorAll('pre');
     pres[pres.length - 1].textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
   }
+  // browser_screenshot → inline preview (Trae browser-preview analogue);
+  // served through /api/artifact, which only exposes <instance>/exports/**
+  if (ev.toolName === 'browser_screenshot' && !ev.isError) {
+    const m = out.match(/screenshot saved: (.+)/);
+    if (m) {
+      const src = `/api/artifact?path=${encodeURIComponent(m[1].trim())}`;
+      el.querySelector('.tool-body').insertAdjacentHTML('beforeend',
+        `<a href="${src}" target="_blank" rel="noopener"><img class="shot-preview" src="${src}" alt="browser screenshot" /></a>`);
+    }
+  }
   toolRows.delete(ev.toolCallId);
   scrollTail();
 }
@@ -416,7 +527,7 @@ function startProc() {
   scrollTail();
   procTimer = setInterval(() => {
     const t = procEl?.querySelector('.proc-text');
-    if (t) t.textContent = `处理中 · ${Math.round((Date.now() - procStart) / 1000)}s`;
+    if (t) t.textContent = `处理中 · ${Math.round((Date.now() - procStart) / 1000)}s${turnTools ? ` · ${turnTools} 工具` : ''}`;
   }, 1000);
 }
 function stopProc(final = false) {
@@ -437,7 +548,7 @@ function stopProc(final = false) {
 const askCards = new Map(); // askId -> card element
 let askTick = null;
 const ANSWER_LABEL = {
-  allow: '已允许', allow_session: '本会话已允许',
+  allow: '已允许', allow_session: '本会话已允许', always: '总是允许',
   deny: '已拒绝', timeout: '超时未答 · 已拒绝', aborted: '已中止',
 };
 
@@ -456,6 +567,7 @@ function ensureAskTick() {
 function addAskCard(ask) {
   if (!ask?.id || askCards.has(ask.id)) return;
   noteMessage();
+  beep(1040, 0.15); // approval gate = attention request — ring even when focused
   actGroup = null; // an approval gate breaks any running tool group
   const kind = toolKind(ask.toolName);
   const div = document.createElement('div');
@@ -467,16 +579,31 @@ function addAskCard(ask) {
       <span class="t-icon">${kindIcon(kind.icon)}</span>
       <span class="ask-title">需要你的批准</span>
       <span class="ask-tool"></span>
+      <span class="ask-risk"></span>
       <span class="ask-timer"></span>
     </div>
+    <div class="ask-advice"></div>
     <pre class="ask-summary"></pre>
     <div class="ask-detail"></div>
     <div class="ask-foot">
       <button class="ask-btn primary" data-a="allow">允许一次</button>
       <button class="ask-btn" data-a="allow_session">本会话允许</button>
+      <button class="ask-btn" data-a="always">总是允许</button>
       <button class="ask-btn danger" data-a="deny">拒绝</button>
     </div>`;
   div.querySelector('.ask-tool').textContent = `${kind.verb} · ${ask.toolName}`;
+  // SecurityAnalyzer-style risk line: WHICH class and WHICH units earned it
+  if (ask.risk?.class) {
+    const units = (ask.risk.units ?? []).slice(0, 3).join(' | ');
+    div.querySelector('.ask-risk').textContent = `风险·${ask.risk.class}${units ? `：${units.slice(0, 120)}` : ''}`;
+  } else div.querySelector('.ask-risk').remove();
+  // P3 shadow judge: second opinion, clearly marked as advisory — it can
+  // never flip the verdict; the human still owns the buttons.
+  const adv = div.querySelector('.ask-advice');
+  if (ask.advisory?.suggest) {
+    adv.textContent = `顾问参考·风险 ${ask.advisory.risk} · 建议${ask.advisory.suggest === 'deny' ? '拒绝' : '允许'}：${ask.advisory.why || '（无说明）'}`;
+    adv.classList.add(ask.advisory.suggest === 'deny' ? 'advice-deny' : 'advice-allow');
+  } else adv.remove();
   div.querySelector('.ask-summary').textContent = ask.summary || '（无详情）';
   if (ask.detail) div.querySelector('.ask-detail').textContent = ask.detail;
   else div.querySelector('.ask-detail').remove();
@@ -487,7 +614,9 @@ function addAskCard(ask) {
   if (payload.classList?.contains('ask-detail') === false) payload.className = 'ask-detail';
   if (ask.argsTruncated) {
     // WYSIWYG guard: never silently clip — tell the operator the approval
-    // covers a payload larger than what is shown.
+    // covers a payload larger than what is shown. "总是允许" is withheld:
+    // a durable grant cannot be made over a clipped payload.
+    div.querySelector('[data-a="always"]')?.remove();
     payload.insertAdjacentHTML('beforeend',
       `<div class="ask-trunc">载荷过长，仅显示截断前缀（完整参数 ${ask.argsTotalChars ?? '?'} 字符）——批准/拒绝作用于完整参数</div>`);
   }
@@ -495,8 +624,24 @@ function addAskCard(ask) {
     const cmdStr = ask.args.command ?? ask.args.cmd;
     const editPair = [ask.args.oldText ?? ask.args.old_string, ask.args.newText ?? ask.args.new_string];
     if (cmdStr) {
-      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre>`);
+      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre><textarea class="ask-edit hidden" spellcheck="false"></textarea><button class="ask-edit-toggle" type="button">编辑命令</button>`);
       payload.querySelector('.ask-cmd').textContent = `$ ${cmdStr}`;
+      // edit-then-approve (CodeBuddy/Claude): the card can carry the
+      // operator's corrected command — the edited text replaces the args,
+      // never bypasses governance for other layers (deny-prefix, protected
+      // paths still apply to the edited command).
+      const editBox = payload.querySelector('.ask-edit');
+      editBox.value = String(cmdStr);
+      const tog = payload.querySelector('.ask-edit-toggle');
+      tog.onclick = () => {
+        const on = editBox.classList.toggle('hidden');
+        tog.textContent = on ? '编辑命令' : '收起编辑';
+        if (!on) editBox.focus();
+      };
+      div._editedCommand = () => {
+        const v = editBox.value;
+        return v !== String(cmdStr) ? v : null;
+      };
     } else if (editPair[0] != null || editPair[1] != null) {
       payload.insertAdjacentHTML('beforeend', `<div class="ask-path"></div><pre class="diff-block"></pre>`);
       if (ask.args.path) payload.querySelector('.ask-path').textContent = ask.args.path;
@@ -547,7 +692,15 @@ function addAskCard(ask) {
   div.querySelectorAll('.ask-btn').forEach((b) => {
     b.onclick = async () => {
       div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = true; });
-      const r = await cmd('decision_resolve', { askId: ask.id, answer: b.dataset.a });
+      let answer = b.dataset.a;
+      // edited-command approvals carry the operator's text; only allow-family
+      // answers may carry edits (deny+edit is meaningless)
+      const editedCmd = div._editedCommand?.();
+      const argKey = ask.args?.command != null ? 'command' : 'cmd';
+      if (editedCmd != null && answer !== 'deny') {
+        answer = { answer, edited: { [argKey]: editedCmd } };
+      }
+      const r = await cmd('decision_resolve', { askId: ask.id, answer });
       if (!r.success) {
         div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = false; });
         addSys(`批准提交失败：${r.error ?? '未知'}`, true);
@@ -584,47 +737,143 @@ async function refreshPending() {
 }
 
 /* ---------- history replay (session switch / restart) ---------- */
+/* ---------- history pagination (PI-Desktop long-session analogue) ----------
+   session_history returns the full fold; we render the newest page and keep
+   the rest in a backlog — "加载更早" mounts older chunks on demand so a
+   500-message session doesn't stamp 500 nodes at once. */
+const HISTORY_PAGE = 50;
+let historyBacklog = [];
+
+function renderHistoryMsg(m) {
+  if (m.role === 'user') { lastUserText = m.text ?? ''; addMsg('user', m.text ?? ''); }
+  else if (m.role === 'assistant') {
+    if (m.thinking) addThinking(m.thinking);
+    if (m.text) addMsg('assistant', m.text);
+    for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
+    if (m.error) addSys(`模型错误：${m.error}`, true);
+  } else if (m.role === 'toolResult' || m.role === 'tool_result') {
+    // Replayed tool results render as completed tool rows with output.
+    const kind = toolKind(m.toolName);
+    const div = document.createElement('div');
+    div.className = 'tool done';
+    div.innerHTML = `
+      <button class="tool-head">
+        <span class="t-caret">${CARET}</span>
+        <span class="t-icon">${kindIcon(kind.icon)}</span>
+        <span class="t-name"></span>
+        <span class="t-arg"></span>
+        <span class="t-state"><span class="t-state-dot"></span><span class="t-label">完成</span></span>
+      </button>
+      <div class="tool-body"><div class="tb-label">输出</div><pre></pre></div>`;
+    div.querySelector('.t-name').textContent = `${kind.verb} · ${m.toolName ?? 'tool'}`;
+    const out = (m.text ?? '');
+    div.querySelector('.tool-body pre').textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
+    div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
+    transcript.appendChild(div);
+    noteMessage();
+  }
+}
+
+function mountOlderButton() {
+  const btn = document.createElement('button');
+  btn.className = 'sys older-btn';
+  btn.id = 'older-btn';
+  const label = () => `加载更早的消息（还有 ${historyBacklog.length} 条）`;
+  btn.textContent = label();
+  btn.onclick = () => {
+    const chunk = historyBacklog.splice(-HISTORY_PAGE);
+    const before = transcript.children.length;
+    for (const m of chunk) renderHistoryMsg(m); // appends at bottom…
+    // …then move the freshly-rendered nodes up, right after the button.
+    // children[i] tracks correctly: each move shifts the next appended node
+    // into the following slot, so i++ walks exactly the new chunk.
+    const ref = btn.nextSibling;
+    const count = transcript.children.length - before;
+    for (let i = before; i < before + count; i++) transcript.insertBefore(transcript.children[i], ref);
+    if (historyBacklog.length) btn.textContent = label();
+    else btn.remove();
+  };
+  transcript.prepend(btn);
+}
+
 async function replayHistory() {
   clearTranscript();
   sessionCost = 0;
+  historyBacklog = [];
   const r = await cmd('session_history');
   const msgs = r.data ?? [];
-  for (const m of msgs) {
-    if (m.role === 'user') { lastUserText = m.text ?? ''; addMsg('user', m.text ?? ''); }
-    else if (m.role === 'assistant') {
-      if (m.thinking) addThinking(m.thinking);
-      if (m.text) addMsg('assistant', m.text);
-      for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
-      if (m.usage?.cost?.total) sessionCost += Number(m.usage.cost.total);
-      if (m.error) addSys(`模型错误：${m.error}`, true);
-    } else if (m.role === 'toolResult' || m.role === 'tool_result') {
-      // Replayed tool results render as completed tool rows with output.
-      const kind = toolKind(m.toolName);
-      const div = document.createElement('div');
-      div.className = 'tool done';
-      div.innerHTML = `
-        <button class="tool-head">
-          <span class="t-caret">${CARET}</span>
-          <span class="t-icon">${kindIcon(kind.icon)}</span>
-          <span class="t-name"></span>
-          <span class="t-arg"></span>
-          <span class="t-state"><span class="t-state-dot"></span><span class="t-label">完成</span></span>
-        </button>
-        <div class="tool-body"><div class="tb-label">输出</div><pre></pre></div>`;
-      div.querySelector('.t-name').textContent = `${kind.verb} · ${m.toolName ?? 'tool'}`;
-      const out = (m.text ?? '');
-      div.querySelector('.tool-body pre').textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
-      div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
-      transcript.appendChild(div);
-      noteMessage();
-    }
-  }
+  // cost accounting covers the WHOLE session, not just the rendered page
+  for (const m of msgs) if (m.usage?.cost?.total) sessionCost += Number(m.usage.cost.total);
+  historyBacklog = msgs.slice(0, Math.max(0, msgs.length - HISTORY_PAGE));
+  for (const m of msgs.slice(-HISTORY_PAGE)) renderHistoryMsg(m);
+  if (historyBacklog.length) mountOlderButton();
   if (!sawMessage && modelStatus?.current == null) $('setup-card')?.classList.remove('hidden');
 }
 
 /* ---------- agent events ---------- */
 let thinkEl = null; // live thinking row being streamed into
 let lastUserText = ''; // for regenerate
+let turnStart = 0;   // agent_start timestamp — for the turn-end summary line
+let turnTools = 0;   // tool_execution_start count within the active turn
+
+/* Prompt history (Crush 200-cap analogue): sent prompts persist across
+ * restarts; ArrowUp/Down on an empty composer walks back/forward. */
+const PROMPT_HIST_KEY = 'pai.prompt_hist';
+const PROMPT_HIST_CAP = 200;
+let promptHist = [];
+try { promptHist = JSON.parse(localStorage.getItem(PROMPT_HIST_KEY) ?? '[]'); } catch { promptHist = []; }
+let histIdx = -1; // -1 = not navigating; 0..n-1 = depth into history
+function histPush(text) {
+  if (!text || promptHist[promptHist.length - 1] === text) return;
+  promptHist.push(text);
+  if (promptHist.length > PROMPT_HIST_CAP) promptHist = promptHist.slice(-PROMPT_HIST_CAP);
+  try { localStorage.setItem(PROMPT_HIST_KEY, JSON.stringify(promptHist)); } catch { /* quota */ }
+  histIdx = -1;
+}
+
+/* notification drawer — bounded log behind the bell */
+const notifyLog = [];
+let unreadNotify = 0;
+// M69 notify policy (Codex/Goose analogue): how loud model→operator
+// notifications are. 'always' = toast+transcript+drawer; 'smart' = errors
+// toast, warns transcript-only, info drawer-silent; 'never' = drawer only.
+const NOTIFY_POLICY_KEY = 'pai.notifyPolicy';
+function notifyPolicy() {
+  const v = localStorage.getItem(NOTIFY_POLICY_KEY);
+  return ['always', 'smart', 'never'].includes(v) ? v : 'always';
+}
+function paintBell() {
+  const bell = $('bell');
+  if (!bell) return;
+  bell.classList.toggle('hidden', !notifyLog.length);
+  const c = $('bell-count');
+  c.classList.toggle('hidden', !unreadNotify);
+  c.textContent = unreadNotify > 9 ? '9+' : String(unreadNotify);
+}
+$('bell') && ($('bell').onclick = () => {
+  const d = $('bell-drawer');
+  if (d.classList.toggle('hidden')) return; // just closed — nothing to paint
+  unreadNotify = 0;
+  paintBell();
+  const policyRow = `<div class="bell-policy"><label class="dim">通知策略 </label><select id="notify-policy">
+    <option value="always">总是提醒</option><option value="smart">智能（仅错误提醒）</option><option value="never">静默入抽屉</option>
+  </select></div>`;
+  d.innerHTML = policyRow + (notifyLog.length
+    ? notifyLog.map((n) => `<div class="bell-row ${n.level === 'err' ? 'err' : ''}"><span class="bell-time"></span><span class="bell-msg"></span></div>`).join('')
+    : '<div class="dim" style="padding:12px">暂无通知</div>');
+  const sel = d.querySelector('#notify-policy');
+  sel.value = notifyPolicy();
+  sel.onchange = () => localStorage.setItem(NOTIFY_POLICY_KEY, sel.value);
+  d.querySelectorAll('.bell-row').forEach((row, i) => {
+    const n = notifyLog[i];
+    row.querySelector('.bell-time').textContent = new Date(n.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    row.querySelector('.bell-msg').textContent = n.message;
+  });
+});
+document.addEventListener('click', (e) => {
+  const d = $('bell-drawer');
+  if (d && !d.classList.contains('hidden') && !d.contains(e.target) && e.target.id !== 'bell' && !$('bell').contains(e.target)) d.classList.add('hidden');
+});
 
 function onAgentEvent(ev) {
   switch (ev?.type) {
@@ -632,6 +881,8 @@ function onAgentEvent(ev) {
       setBusy(true);
       assistantEl = null;
       thinkEl = null;
+      turnStart = Date.now();
+      turnTools = 0;
       startProc();
       break;
     case 'message_start':
@@ -660,7 +911,54 @@ function onAgentEvent(ev) {
       }
       break;
     }
+    case 'scheduled_job_done': {
+      // M14: a scheduled job's completion delivered to the operator surface —
+      // toast + notification drawer + a transcript line with the output tail.
+      const ok = ev.exit_code === 0;
+      const msg = `定时任务 ${ev.job_id} ${ok ? '完成' : `失败(exit ${ev.exit_code})`}`;
+      toast(msg, ok ? 'info' : 'err');
+      notifyLog.unshift({ message: msg, level: ok ? 'info' : 'err', at: Date.now() });
+      if (notifyLog.length > 50) notifyLog.pop();
+      paintBell?.();
+      addSys(`${msg}${ev.output_tail ? `\n${ev.output_tail.slice(-800)}` : ''}`, !ok);
+      refreshSchedules?.();
+      refreshJobs?.();
+      break;
+    }
+    case 'notify': {
+      // notify_user: model→operator one-way notification (Kimi NotifyUser).
+      // Policy gates the LOUDNESS, never the record — the drawer keeps every
+      // notification regardless of 'never'/'smart'.
+      const lvl = ev.level ?? 'info';
+      const pol = notifyPolicy();
+      if (pol === 'always' || (pol === 'smart' && lvl === 'err')) {
+        toast(ev.message, lvl === 'err' ? 'err' : 'info');
+        addSys(`通知：${ev.message}`, lvl === 'err');
+      } else if (pol === 'smart' && lvl === 'warn') {
+        addSys(`通知：${ev.message}`, false);
+      }
+      // notification drawer (PI-Desktop notification center analogue):
+      // toasts are transient — this keeps the last 50 for recall
+      notifyLog.unshift({ message: ev.message, level: lvl, at: Date.now() });
+      if (notifyLog.length > 50) notifyLog.pop();
+      unreadNotify += 1;
+      paintBell();
+      break;
+    }
+    case 'jobs_changed':
+      if (currentView === 'jobs') refreshJobs();
+      break;
+    case 'verify_result':
+      // Aider-style post-write verifier — failures already reflect into the
+      // model's context via the observation stream; this is the operator's copy
+      addSys(ev.ok ? `验证通过：${ev.command}` : `验证失败：${ev.command}（失败输出已回注上下文）`, !ev.ok);
+      break;
+    case 'projection':
+      lastProjection = ev.projection ?? null;
+      paintGoalLine();
+      break;
     case 'tool_execution_start':
+      turnTools++;
       addTool(ev);
       break;
     case 'tool_execution_update': {
@@ -720,6 +1018,9 @@ function onAgentEvent(ev) {
       refreshSessions();
       refreshState();
       break;
+    case 'budget_warning':
+      addSys(`预算已用 ${ev.pct}%——接近上限，建议收敛任务或继续前确认`, true);
+      break;
     case 'budget_exceeded':
       addSys(`预算超限——会话已停止：${ev.rule} ${ev.consumed} ≥ ${ev.limit}（上限来自规范策略/操作员环境，模型不能自行放宽）`, true);
       toast('预算超限，运行已中止');
@@ -735,6 +1036,9 @@ function onAgentEvent(ev) {
     case 'session_changed':
       currentSessionFile = ev.session?.file ?? null;
       sessionCost = 0;
+      turnStart = 0; // don't attribute a summary across the switch
+      loadDraft();
+      checkProjectTrust();
       replayHistory();
       refreshSessions();
       refreshPending();
@@ -744,8 +1048,15 @@ function onAgentEvent(ev) {
       break;
     case 'agent_end':
       setBusy(false);
+      if (document.hidden) beep(660, 0.18); // turn done while away — call the operator back
       assistantEl = null;
       thinkEl = null;
+      // ZCode turn-end summary: duration + tool-call count for the finished turn
+      if (turnStart) {
+        const secs = ((Date.now() - turnStart) / 1000).toFixed(1);
+        addSys(`本轮 ${secs}s · ${turnTools} 个工具调用`);
+        turnStart = 0;
+      }
       stopProc(true);
       actGroup?.classList.remove('open');
       actGroup = null;
@@ -808,6 +1119,50 @@ function updateUsageChip() {
     + (st ? `；会话累计 ${st.tokens?.total?.toLocaleString?.() ?? '?'} tok（缓存读 ${st.tokens?.cacheRead?.toLocaleString?.() ?? 0}）· ${st.totalMessages ?? '?'} 条 · $${(st.cost ?? 0).toFixed(4)}` : '');
   el.classList.toggle('hidden', !parts.length);
 }
+
+/* ---------- ctx breakdown: click usage chip → estimated composition ---------- */
+// Honest estimate: chars→tokens by script density (CJK ≈1.4 chars/tok,
+// latin ≈4) per category, scaled so the sum equals the body's reported
+// contextUsage.tokens. Labelled estimate — never a fake exact meter.
+const estTok = (s) => {
+  if (!s) return 0;
+  let cjk = 0, other = 0;
+  for (const ch of String(s)) (ch.codePointAt(0) > 0x2E7F ? cjk++ : other++);
+  return cjk / 1.4 + other / 4;
+};
+async function showCtxBreakdown() {
+  const r = await cmd('session_history');
+  if (!r.success) { toast('拉取历史失败'); return; }
+  const cat = { user: 0, assistant: 0, thinking: 0, tool: 0 };
+  for (const m of r.data ?? []) {
+    if (m.role === 'user') cat.user += estTok(m.text);
+    else if (m.role === 'assistant') {
+      cat.assistant += estTok(m.text) + estTok((m.tools ?? []).join(' '));
+      cat.thinking += estTok(m.thinking);
+    } else cat.tool += estTok(m.text ?? m.output ?? '');
+  }
+  const total = lastCtxUsage?.tokens ?? 0;
+  const msgSum = cat.user + cat.assistant + cat.thinking + cat.tool;
+  const sys = Math.max(0, total - msgSum); // envelope/steering/system residue
+  const rows = [
+    ['系统·信封', sys, 'var(--g500)'],
+    ['用户消息', cat.user, 'var(--green)'],
+    ['助手回复', cat.assistant, '#6ea8fe'],
+    ['思考', cat.thinking, '#b98cf0'],
+    ['工具结果', cat.tool, 'var(--yellow)'],
+  ].filter(([, v]) => v > 0);
+  const sum = rows.reduce((a, [, v]) => a + v, 0) || 1;
+  const box = $('ctx-pop');
+  box.innerHTML = `<div class="ctx-title">上下文分解（估算）· ${total.toLocaleString()} tok</div>
+    <div class="ctx-bar">${rows.map(([n, v, c]) => `<span style="width:${(100 * v / sum).toFixed(1)}%;background:${c}" title="${n}"></span>`).join('')}</div>
+    ${rows.map(([n, v, c]) => `<div class="ctx-row"><i style="background:${c}"></i><span>${n}</span><b>${Math.round(v).toLocaleString()}</b><em>${Math.round(100 * v / sum)}%</em></div>`).join('')}`;
+  box.classList.toggle('hidden');
+}
+$('usage-chip').onclick = () => showCtxBreakdown();
+document.addEventListener('click', (e) => {
+  const pop = $('ctx-pop');
+  if (pop && !pop.classList.contains('hidden') && !pop.contains(e.target) && e.target.id !== 'usage-chip') pop.classList.add('hidden');
+});
 
 /* ---------- supervisor events ---------- */
 const PHASES = ['prepared', 'quiesced', 'checkpointed', 'released', 'acquired', 'resumed', 'verified'];
@@ -883,15 +1238,71 @@ function sessionGroup(dateStr) {
 // Full-text hits from session_search — Map(path → [snippets]); null when the
 // filter is too short to bother the backend.
 let searchHits = null;
+let showArchived = false;
 function renderSessions() {
   const box = $('session-list');
   const filter = $('side-filter').value.trim().toLowerCase();
   box.innerHTML = '';
+  const hasArchived = sessionsCache.some((s) => s.archived);
   const items = sessionsCache
+    .filter((s) => showArchived || !s.archived)
     .filter((s) => !filter
       || `${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)
       || searchHits?.has(s.path))
-    .sort((a, b) => String(b.modified ?? '').localeCompare(String(a.modified ?? '')));
+    .sort((a, b) => (Number(b.pinned ?? 0) - Number(a.pinned ?? 0))
+      || String(b.modified ?? '').localeCompare(String(a.modified ?? '')));
+  if (hasArchived) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle';
+    t.textContent = showArchived ? '收起归档' : `显示归档（${sessionsCache.filter((s) => s.archived).length}）`;
+    t.onclick = () => { showArchived = !showArchived; renderSessions(); };
+    box.appendChild(t);
+  }
+  // Sweep affordance: archive candidates = unpinned sessions idle >14d
+  // (ZCode auto-archive analogue — operator-triggered, always reversible).
+  const sweepable = sessionsCache.filter((s) => !s.pinned && !s.archived
+    && Date.parse(s.modified ?? s.created ?? '') < Date.now() - 14 * 86400_000);
+  if (sweepable.length) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle';
+    t.textContent = `归档 ${sweepable.length} 个 14 天前的旧会话`;
+    t.onclick = async () => {
+      const r = await cmd('session_sweep', { days: 14 });
+      if (r.success) { toast(`已归档 ${r.data?.swept ?? 0} 个旧会话`); await refreshSessions(); }
+      else addSys(`归档清扫失败：${r.error ?? '未知'}`, true);
+    };
+    box.appendChild(t);
+  }
+  // Bulk-delete archived sessions (ZCode archived-bulk-delete analogue).
+  // Irreversible — explicit confirm; pinned sessions are never purged.
+  const purged = sessionsCache.filter((s) => s.archived && !s.pinned);
+  if (showArchived && purged.length) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle danger';
+    t.textContent = `永久删除 ${purged.length} 个已归档会话`;
+    t.onclick = async () => {
+      if (!confirm(`永久删除 ${purged.length} 个已归档会话？此操作不可撤销。`)) return;
+      const r = await cmd('session_purge');
+      if (r.success) { toast(`已删除 ${r.data?.purged ?? 0} 个归档会话`); await refreshSessions(); }
+      else addSys(`批量删除失败：${r.error ?? '未知'}`, true);
+    };
+    box.appendChild(t);
+  }
+  // session import (Cursor/Claude import-session): bring a foreign .jsonl
+  // session into the store — lands in the list as [导入] name, no switch.
+  {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle';
+    t.textContent = '导入会话文件…';
+    t.onclick = async () => {
+      const p = prompt('会话文件路径（.jsonl）：');
+      if (!p?.trim()) return;
+      const r = await cmd('session_import', { path: p.trim() });
+      if (r.success) { toast(`已导入：${r.data?.name ?? '会话'}`); await refreshSessions(); }
+      else addSys(`导入失败：${r.error ?? '未知'}`, true);
+    };
+    box.appendChild(t);
+  }
   const groups = new Map();
   for (const s of items) {
     const g = sessionGroup(s.modified);
@@ -909,9 +1320,10 @@ function renderSessions() {
     box.appendChild(h);
     for (const s of rows) {
       const row = document.createElement('div');
-      row.className = `sess${s.path === currentSessionFile ? ' active' : ''}`;
-      const title = s.name || s.firstMessage || '未命名任务';
-      row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.messageCount ?? 0} 条</span>`;
+      row.className = `sess${s.path === currentSessionFile ? ' active' : ''}${s.archived ? ' archived' : ''}`;
+      const typeTag = s.type === 'teammate' ? '👥 ' : s.type === 'subagent' ? '↳ ' : '';
+      const title = `${typeTag}${s.name || s.firstMessage || '未命名任务'}`;
+      row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
       const hit = searchHits?.get(s.path);
       if (hit?.length && !`${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)) {
@@ -926,6 +1338,20 @@ function renderSessions() {
         e.preventDefault();
         showCtxMenu(e.clientX, e.clientY, [
           { label: '打开', run: () => switchSession(s.path) },
+          {
+            label: s.pinned ? '取消置顶' : '置顶',
+            run: async () => {
+              await cmd('session_pin', { path: s.path, pinned: !s.pinned });
+              refreshSessions();
+            },
+          },
+          {
+            label: s.archived ? '取消归档' : '归档',
+            run: async () => {
+              await cmd('session_archive', { path: s.path, archived: !s.archived });
+              refreshSessions();
+            },
+          },
           {
             label: '重命名…',
             run: async () => {
@@ -977,7 +1403,26 @@ async function switchSession(path) {
   if (path === currentSessionFile) { switchView('chat'); return; }
   const r = await cmd('session_switch', { path });
   if (!r.success) addSys(`切换会话失败：${r.error ?? '未知'}`, true);
+  else await showRecap();
   switchView('chat');
+}
+/* /recap analogue — on returning to a session, an extractive one-liner of
+ * where it left off (first prompt + last user prompt + size). Local and
+ * extractive by design: no model call, no invented summary. */
+async function showRecap() {
+  const r = await cmd('session_entries');
+  const meta = sessionsCache.find((s) => s.path === currentSessionFile) ?? null;
+  const entries = r.success ? (r.data ?? []) : [];
+  const lastUser = entries.length ? String(entries[entries.length - 1].text ?? '').trim() : '';
+  const first = String(meta?.firstMessage ?? '').trim();
+  if (!lastUser && !first) return;
+  const clip = (s) => (s.length > 120 ? `${s.slice(0, 120)}…` : s);
+  const parts = [];
+  if (lastUser) parts.push(`上次你说：「${clip(lastUser)}」`);
+  if (first && first !== lastUser) parts.push(`起始于：「${clip(first)}」`);
+  if (meta?.messageCount) parts.push(`${meta.messageCount} 条消息`);
+  if (meta?.modified) parts.push(`更新于 ${meta.modified.slice(0, 16).replace('T', ' ')}`);
+  addSys(`会话回顾 — ${parts.join(' · ')}`);
 }
 async function refreshSessions() {
   const r = await cmd('session_list');
@@ -1013,7 +1458,7 @@ $('side-filter').addEventListener('input', () => {
 const chipMenu = $('chip-menu');
 function closeMenu() { chipMenu.classList.add('hidden'); chipMenu.innerHTML = ''; }
 document.addEventListener('click', (e) => {
-  if (!chipMenu.contains(e.target) && e.target.id !== 'model-chip' && e.target.id !== 'thinking-chip') closeMenu();
+  if (!chipMenu.contains(e.target) && e.target.id !== 'model-chip' && e.target.id !== 'thinking-chip' && e.target.id !== 'mode-chip') closeMenu();
 });
 function openMenu(items, onPick) {
   chipMenu.innerHTML = '';
@@ -1037,14 +1482,29 @@ $('model-chip').onclick = async () => {
     return;
   }
   const cur = modelStatus?.current;
-  openMenu(models.map((m) => ({
-    label: m.name ?? m.id,
-    sub: m.provider,
-    current: cur && m.provider === cur.provider && m.id === cur.id,
-    value: m,
-  })), async (it) => {
+  const ar = await cmd('model_alias_list');
+  const aliases = ar.success ? (ar.data ?? []) : [];
+  const items = models.map((m) => {
+    const caps = m.capabilities ?? {};
+    const badges = [caps.vision ? '图' : null, caps.reasoning ? '思' : null].filter(Boolean).join('·');
+    return {
+      label: m.name ?? m.id,
+      sub: [m.provider, badges].filter(Boolean).join(' · '),
+      current: cur && m.provider === cur.provider && m.id === cur.id,
+      value: m,
+    };
+  });
+  if (aliases.length) {
+    items.push({ label: '— 别名 —', sub: '', value: null });
+    for (const a of aliases) {
+      items.push({ label: `@${a.name}`, sub: `${a.provider}/${a.model}`, value: { alias: a.name } });
+    }
+  }
+  openMenu(items, async (it) => {
     if (!it.value) return;
-    const r2 = await cmd('model_set', { provider: it.value.provider, model: it.value.id });
+    const r2 = it.value.alias
+      ? await cmd('model_set', { alias: it.value.alias })
+      : await cmd('model_set', { provider: it.value.provider, model: it.value.id });
     if (!r2.success) addSys(`切换模型失败：${r2.error ?? '未知'}`, true);
     refreshState();
   });
@@ -1114,6 +1574,9 @@ async function refreshModels() {
   // Gate: no current model → setup card takes over the empty state
   const noModel = modelStatus?.current == null;
   $('setup-card')?.classList.toggle('hidden', sawMessage || !noModel);
+  // first-run tour: model configured + never dismissed + no messages yet
+  $('tour-card')?.classList.toggle('hidden',
+    sawMessage || noModel || localStorage.getItem('pai.onboarded') === '1');
   if (!sawMessage && noModel) $('empty-state')?.classList.add('hidden');
   else $('empty-state')?.classList.remove('hidden');
   updateChips();
@@ -1122,6 +1585,48 @@ function updateChips() {
   const cur = modelStatus?.current;
   $('model-chip').textContent = cur ? `${cur.name ?? cur.id} ▾` : '选择模型 ▾';
   $('thinking-chip').textContent = `推理 ${THINK_LABEL[modelStatus?.thinkingLevel ?? 'medium']} ▾`;
+}
+
+/* ---------- theme: UI-local preference (localStorage, zero governance) ---------- */
+const THEME_KEY = 'pai.theme';
+function applyTheme(name) {
+  document.documentElement.dataset.theme = name === 'light' ? 'light' : '';
+}
+applyTheme(localStorage.getItem(THEME_KEY) ?? 'dark');
+if ($('set-theme')) {
+  $('set-theme').value = localStorage.getItem(THEME_KEY) ?? 'dark';
+  $('set-theme').onchange = () => {
+    const v = $('set-theme').value;
+    localStorage.setItem(THEME_KEY, v);
+    applyTheme(v);
+  };
+}
+
+/* ---------- sound: opt-in notification bell (Goose terminal-bell analogue) ---------- */
+const SOUND_KEY = 'pai.sound';
+function soundOn() { return localStorage.getItem(SOUND_KEY) === 'on'; }
+let audioCtx = null;
+function beep(freq = 880, dur = 0.12) {
+  if (!soundOn()) return;
+  try {
+    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur);
+  } catch { /* audio unavailable — silent */ }
+}
+if ($('set-sound')) {
+  $('set-sound').value = localStorage.getItem(SOUND_KEY) ?? 'off';
+  $('set-sound').onchange = () => {
+    const v = $('set-sound').value;
+    localStorage.setItem(SOUND_KEY, v);
+    if (v === 'on') beep(); // immediate feedback that the toggle works
+  };
 }
 async function saveKey(providerSel, keyInput, msgEl) {
   const provider = $(providerSel).value;
@@ -1140,7 +1645,90 @@ async function saveKey(providerSel, keyInput, msgEl) {
   await refreshModels();
 }
 $('setup-save-key').onclick = () => saveKey('setup-provider', 'setup-key', 'setup-msg');
+// C12 provisioning: verify connectivity BEFORE first prompt — model_ping hits
+// the provider's /models with the resolved credential; honest reachability.
+$('setup-ping') && ($('setup-ping').onclick = async () => {
+  const provider = $('setup-provider').value;
+  const msg = $('setup-msg');
+  if (!provider) return;
+  msg.textContent = `正在测试 ${provider}…`; msg.className = 'setup-msg';
+  const r = await cmd('model_ping', { provider });
+  const d = r.data ?? {};
+  if (r.success && d.ok) {
+    msg.textContent = `${provider} 可达 · HTTP ${d.httpStatus} · ${d.ms}ms${d.configured === false ? '（未存密钥，仅探活）' : ''}`;
+    msg.className = 'setup-msg ok';
+  } else {
+    msg.textContent = `连接失败：${d.error ?? r.error ?? `HTTP ${d.httpStatus ?? '?'}`}${d.configured === false ? '——先保存密钥' : ''}`;
+    msg.className = 'setup-msg err';
+  }
+});
+$('tour-dismiss').onclick = () => {
+  localStorage.setItem('pai.onboarded', '1');
+  $('tour-card')?.classList.add('hidden');
+};
+
+/* ---------- modes editor (settings) — project .pai/modes.json ---------- */
+async function refreshModesCard() {
+  const list = $('modes-list');
+  if (!list) return;
+  const [r, rd] = await Promise.all([cmd('mode_list'), cmd('modes_read')]);
+  const modes = r.success ? (r.data?.modes ?? []) : [];
+  $('modes-active').textContent = r.success ? (r.data?.active ?? 'normal') : '';
+  list.innerHTML = modes.length
+    ? modes.map((m) => `<div class="mode-row"><span class="mode-name"></span><span class="dim mode-src"></span></div>`).join('')
+    : '<div class="dim" style="padding:6px 0">无预设——下方 JSON 保存即创建项目模式</div>';
+  modes.forEach((m, i) => {
+    const row = list.children[i];
+    row.querySelector('.mode-name').textContent = `${m.name}${m.description ? ` — ${m.description}` : ''}`;
+    row.querySelector('.mode-src').textContent = m.source ?? '';
+  });
+  if (rd?.success) $('modes-json').value = rd.data.content ?? '';
+}
+$('modes-save') && ($('modes-save').onclick = async () => {
+  const r = await cmd('modes_save', { content: $('modes-json').value });
+  const msg = $('modes-msg');
+  if (r.success) { msg.textContent = `已保存 ${r.data.presets} 个预设`; msg.className = 'setup-msg ok'; }
+  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+  refreshModesCard(); refreshMode();
+});
+/* command prefix lists — .pai/commands.json (deny) + command-allow.json (ask bypass) */
+async function refreshCommandsCard() {
+  if (!$('commands-json')) return;
+  const [d, a] = await Promise.all([cmd('commands_read'), cmd('command_allow_read')]);
+  if (d?.success) $('commands-json').value = d.data.content || '';
+  if (a?.success) $('command-allow-json').value = a.data.content || '';
+}
+$('commands-save') && ($('commands-save').onclick = async () => {
+  const r = await cmd('commands_save', { content: $('commands-json').value });
+  const msg = $('commands-msg');
+  if (r.success) { msg.textContent = '已保存'; msg.className = 'setup-msg ok'; }
+  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+});
+$('command-allow-save') && ($('command-allow-save').onclick = async () => {
+  const r = await cmd('command_allow_save', { content: $('command-allow-json').value });
+  const msg = $('command-allow-msg');
+  if (r.success) { msg.textContent = '已保存——命中前缀的命令不再弹批准卡'; msg.className = 'setup-msg ok'; }
+  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+});
 $('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
+// provider doctor — real GET {baseUrl}/models through the resolved credential
+$('set-ping').onclick = async () => {
+  const out = $('set-ping-result');
+  out.className = 'pill';
+  out.textContent = '…';
+  const r = await cmd('model_ping', { provider: $('set-provider').value });
+  const d = r.data ?? {};
+  if (!r.success || d.ok == null) {
+    out.className = 'pill err';
+    out.textContent = r.error ?? d.error ?? '失败';
+    return;
+  }
+  out.className = `pill ${d.ok ? 'ok' : 'err'}`;
+  out.textContent = d.ok
+    ? `通 ${d.ms}ms`
+    : d.reachable ? `HTTP ${d.httpStatus}` : '不可达';
+  out.title = d.error ?? `auth=${d.authSource ?? 'none'} http=${d.httpStatus ?? '—'} ${d.ms}ms`;
+};
 $('set-clear-key').onclick = async () => {
   const provider = $('set-provider').value;
   if (!provider) return;
@@ -1322,7 +1910,23 @@ async function refreshAudit() {
   renderAuditFilters();
   renderAuditList();
 }
+/* ---------- DSH projection (goal line) ---------- */
+let lastProjection = null;
+function paintGoalLine() {
+  const el = $('goal-line');
+  if (!el) return;
+  const p = lastProjection;
+  const goal = p?.goal ?? p?.goalIdentity ?? p?.summary ?? null;
+  const subs = p?.subagents ?? p?.children ?? null;
+  const text = typeof goal === 'string' && goal ? goal : null;
+  if (!text && !(Array.isArray(subs) && subs.length)) { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.textContent = (text ? `目标：${text}` : '')
+    + (Array.isArray(subs) && subs.length ? `${text ? '　' : ''}子代理 ×${subs.length}` : '');
+}
+
 async function refreshJobs() {
+  paintGoalLine();
   const r = await cmd('job_list', { n: 50 });
   const tbody = $('jobs').querySelector('tbody');
   tbody.innerHTML = '';
@@ -1341,10 +1945,214 @@ async function refreshJobs() {
     tr.onclick = () => openJobDetail(j.job_id);
     tbody.appendChild(tr);
   }
+  refreshSchedules();
+  refreshGoals();
+  refreshTasks();
+  paintStatusline(); // workspace-write lease rides job lifecycle
+}
+
+/* ---------- coordinator goals (operator mirror of goal_coordinator) ---------- */
+async function refreshGoals() {
+  const tbody = $('goals')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await cmd('goal_list');
+  const rows = r.success ? (r.data ?? []) : [];
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-4);padding:16px">暂无长期目标——goal_coordinator 创建后在此可见</td></tr>';
+    return;
+  }
+  for (const g of rows) {
+    const tr = document.createElement('tr');
+    const cells = [
+      g.goal_id, g.state,
+      g.schedule_id ?? '—',
+      String(g.task_ids?.length ?? 0),
+      g.last_tick_at ? new Date(g.last_tick_at).toLocaleString() : '从未',
+      (g.statement ?? '').slice(0, 60),
+    ];
+    tr.innerHTML = cells.map(() => '<td></td>').join('') + '<td><button class="ghost-btn warn"></button></td>';
+    tr.querySelectorAll('td').forEach((td, i) => { if (i < cells.length) td.textContent = cells[i]; });
+    const btn = tr.querySelector('button');
+    if (g.state === 'done') { btn.textContent = '已完成'; btn.disabled = true; }
+    else {
+      btn.textContent = g.state === 'paused' ? '恢复' : '暂停';
+      btn.onclick = async () => {
+        await cmd('goal_set', { id: g.goal_id, state: g.state === 'paused' ? 'open' : 'paused' });
+        refreshGoals();
+      };
+    }
+    tbody.appendChild(tr);
+  }
+}
+
+/* ---------- durable schedules (operator mirror of schedule_task) ---------- */
+async function refreshSchedules() {
+  const tbody = $('schedules')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await cmd('schedule_list');
+  const rows = r.success ? (r.data ?? []) : [];
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-4);padding:16px">暂无定时任务</td></tr>';
+    return;
+  }
+  for (const s of rows) {
+    const tr = document.createElement('tr');
+    const kind = `${s.kind}${s.every_seconds ? ` ${s.every_seconds}s` : ''}${s.enabled === false ? '（停用）' : ''}`;
+    const cells = [
+      s.id, kind,
+      s.nextRunAt ? new Date(s.nextRunAt).toLocaleString() : '—',
+      s.lastFiredAt ? new Date(s.lastFiredAt).toLocaleString() : '从未',
+      (s.label ?? s.command ?? '').slice(0, 60),
+    ];
+    tr.innerHTML = cells.map(() => '<td></td>').join('')
+      + '<td><button class="ghost-btn"></button> <button class="ghost-btn warn">取消</button></td>';
+    tr.querySelectorAll('td').forEach((td, i) => { if (i < cells.length) td.textContent = cells[i]; });
+    const [toggleBtn, cancelBtn] = tr.querySelectorAll('button');
+    toggleBtn.textContent = s.enabled === false ? '恢复' : '暂停';
+    toggleBtn.onclick = async () => {
+      await cmd('schedule_set', { id: s.id, enabled: s.enabled === false });
+      refreshSchedules();
+    };
+    cancelBtn.onclick = async () => { await cmd('schedule_cancel', { id: s.id }); refreshSchedules(); };
+    tbody.appendChild(tr);
+  }
+}
+
+/* ---------- AgentTask mailbox center (F-family) ---------- */
+let activeTask = null;
+
+async function refreshTasks() {
+  const tbody = $('tasks').querySelector('tbody');
+  tbody.innerHTML = '';
+  const r = await cmd('task_list');
+  const tasks = r.success ? (r.data ?? []) : [];
+  if (!tasks.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-4);padding:20px">暂无协作任务——delegate_task 委派自动建档</td></tr>';
+    return;
+  }
+  // 委派拓扑：parent_task_id 指向可见任务时按父子树缩进，孤儿/根并列
+  const byId = new Map(tasks.map((t) => [t.task_id, t]));
+  const kids = new Map();
+  const roots = [];
+  for (const t of tasks) {
+    const p = t.parent_task_id;
+    if (p && byId.has(p)) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(t); }
+    else roots.push(t);
+  }
+  const ordered = [];
+  const walk = (t, depth) => {
+    ordered.push({ t, depth });
+    for (const c of kids.get(t.task_id) ?? []) walk(c, depth + 1);
+  };
+  for (const r of roots) walk(r, 0);
+  for (const { t, depth } of ordered) {
+    const tr = document.createElement('tr');
+    const cells = [t.task_id?.slice(0, 16) ?? '', t.label ?? '', t.stale ? `${t.state ?? ''} · 失联` : (t.state ?? ''), (t.job_id ?? '').slice(0, 12), `收${t.inbox_count ?? 0}/发${t.outbox_count ?? 0}`];
+    tr.innerHTML = cells.map(() => '<td></td>').join('');
+    tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
+    if (depth) {
+      const td = tr.querySelectorAll('td')[1];
+      td.style.paddingLeft = `${8 + depth * 16}px`;
+      td.textContent = `└ ${td.textContent}`;
+    }
+    tr.classList.add('clickable');
+    tr.onclick = () => openTask(t.task_id);
+    tbody.appendChild(tr);
+  }
+  if (activeTask) paintTask(); // live stream follows the same refresh tick
+}
+
+async function openTask(taskId) {
+  activeTask = taskId;
+  const box = $('task-detail');
+  box.classList.remove('hidden');
+  await paintTask();
+}
+
+async function paintTask() {
+  if (!activeTask) return;
+  const r = await cmd('task_events', { taskId: activeTask });
+  if (!r.success) { $('task-stream').innerHTML = `<div class="dim" style="padding:12px">${escHtml(r.error ?? '读取失败')}</div>`; return; }
+  const stream = $('task-stream');
+  stream.innerHTML = '';
+  const rows = [
+    ...(r.data.inbox ?? []).map((m) => ({ tag: '→子', cls: 'dir-in', body: m.body, ts: m.ts })),
+    ...(r.data.outbox ?? []).map((m) => ({ tag: '子→', cls: 'dir-out', body: m.body, ts: m.ts })),
+    ...(r.data.events ?? []).map((e) => ({ tag: e.kind, cls: 'dir-ev', body: e.data?.note ?? e.data?.body ?? JSON.stringify(e.data ?? {}), ts: e.ts })),
+  ].sort((a, b) => (a.ts ?? '').localeCompare(b.ts ?? ''));
+  for (const m of rows) {
+    const div = document.createElement('div');
+    div.className = `task-msg ${m.cls}`;
+    div.innerHTML = `<span class="tm-tag"></span><span class="tm-body selectable"></span><span class="tm-ts dim"></span>`;
+    div.querySelector('.tm-tag').textContent = m.tag;
+    div.querySelector('.tm-body').textContent = String(m.body ?? '');
+    div.querySelector('.tm-ts').textContent = (m.ts ?? '').slice(11, 19);
+    stream.appendChild(div);
+  }
+  stream.scrollTop = stream.scrollHeight;
+  const st = r.data.task?.state;
+  $('task-send-input').disabled = st === 'closed';
+  $('task-send-btn').disabled = st === 'closed';
+}
+
+$('task-send-btn').onclick = async () => {
+  const body = $('task-send-input').value.trim();
+  if (!body || !activeTask) return;
+  $('task-send-input').value = '';
+  const r = await cmd('task_send', { taskId: activeTask, body });
+  if (!r.success) toast(`发送失败：${r.error ?? '未知'}`, 'err');
+  await paintTask();
+};
+$('task-send-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('task-send-btn').click(); }
+});
+$('task-interrupt-btn').onclick = async () => {
+  if (!activeTask || !confirm('中断该协作任务？绑定的 job 会被取消。')) return;
+  const r = await cmd('task_interrupt', { taskId: activeTask });
+  if (!r.success) toast(`中断失败：${r.error ?? '未知'}`, 'err');
+  else toast('任务已中断');
+  await paintTask(); refreshJobs();
+};
+$('task-close-btn').onclick = async () => {
+  if (!activeTask) return;
+  const r = await cmd('task_close', { taskId: activeTask });
+  if (!r.success) toast(`关闭失败：${r.error ?? '未知'}`, 'err');
+  await paintTask(); refreshTasks();
+};
+let taskTimer = null;
+function refreshTaskSoon() {
+  clearTimeout(taskTimer);
+  if (activeTask) taskTimer = setTimeout(paintTask, 1500);
 }
 
 /* ---------- changes & artifacts (fileops receipt stream) ---------- */
 const OP_LABEL = { write: '写入', create: '新建', delete: '删除', backup: '备份' };
+
+// Artifacts panel — everything exported under <instance>/exports browsable.
+async function refreshArtifacts() {
+  const tbody = $('artifacts')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await fetch('/api/artifacts').then((x) => x.json()).catch(() => ({}));
+  const rows = r.artifacts ?? [];
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-4);padding:20px">暂无产物</td></tr>';
+    return;
+  }
+  for (const a of rows) {
+    const tr = document.createElement('tr');
+    const name = a.path.split(/[\\/]/).slice(-2).join('/');
+    tr.innerHTML = `<td><a href="/api/artifact?path=${encodeURIComponent(a.path)}" target="_blank" rel="noopener"></a></td><td></td><td></td>`;
+    const [c1, c2, c3] = tr.querySelectorAll('td');
+    c1.querySelector('a').textContent = name;
+    c1.querySelector('a').title = a.path;
+    c2.textContent = a.bytes > 1024 * 1024 ? `${(a.bytes / 1048576).toFixed(1)}MB` : `${Math.round(a.bytes / 1024)}KB`;
+    c3.textContent = a.mtime ? new Date(a.mtime).toLocaleString() : '';
+    tbody.appendChild(tr);
+  }
+}
 
 async function refreshChanges() {
   const r = await cmd('fileops_list', { n: 200 });
@@ -1371,6 +2179,29 @@ async function refreshChanges() {
     tr.querySelector('.change-path').title = op.target ?? '';
     tr.querySelector('td:nth-child(3)').textContent = op.at ? new Date(op.at).toLocaleString('zh-CN', { hour12: false }) : '';
     const actCell = tr.querySelector('td:last-child');
+    // per-receipt diff preview — Trae 逐改动面板语义：先看差异再决定回滚
+    const dbtn = document.createElement('button');
+    dbtn.className = 'btn ghost sm';
+    dbtn.textContent = '差异';
+    dbtn.title = `回执 ${op.receiptId} — 备份与现状的 unified diff`;
+    let diffRow = null;
+    dbtn.onclick = async () => {
+      if (diffRow) { diffRow.remove(); diffRow = null; return; }
+      dbtn.disabled = true;
+      const rd = await cmd('fileops_diff', { receiptId: op.receiptId });
+      dbtn.disabled = false;
+      diffRow = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 4;
+      const body = rd.success && rd.data?.diffs?.length
+        ? rd.data.diffs[0].diff
+        : (rd.data?.skipped?.[0]?.reason ?? rd.error ?? '无差异（产物已不在）');
+      td.innerHTML = '<pre class="change-diff"></pre>';
+      td.querySelector('pre').textContent = body;
+      diffRow.appendChild(td);
+      tr.after(diffRow);
+    };
+    actCell.appendChild(dbtn);
     if (op.undoable) {
       const btn = document.createElement('button');
       btn.className = 'btn ghost sm';
@@ -1384,6 +2215,34 @@ async function refreshChanges() {
       };
       actCell.appendChild(btn);
     }
+    // M105: tool-call-scoped undo — revert every receipt attributed to the
+    // same tool call, plus a checkpoint boundary that rewinds the workspace
+    // to just before this receipt.
+    if (op.toolCallId) {
+      const cbtn = document.createElement('button');
+      cbtn.className = 'btn ghost sm';
+      cbtn.textContent = '撤调用';
+      cbtn.title = `撤销调用 ${op.toolCallId} 的全部文件变更`;
+      cbtn.onclick = async () => {
+        cbtn.disabled = true;
+        const rr = await cmd('fileops_undo_call', { toolCallId: op.toolCallId });
+        if (rr.success) { toast(`已撤销调用：恢复 ${rr.data?.restored?.length ?? 0} 项${rr.data?.skipped?.length ? `，跳过 ${rr.data.skipped.length}` : ''}`); refreshChanges(); }
+        else { toast(`撤销失败：${rr.error ?? '未知'}`, 'err'); cbtn.disabled = false; }
+      };
+      actCell.appendChild(cbtn);
+    }
+    const wbtn = document.createElement('button');
+    wbtn.className = 'btn ghost sm';
+    wbtn.textContent = '回退到此';
+    wbtn.title = '撤销此回执及之后全部文件变更（回到该变更之前的工作区状态）';
+    wbtn.onclick = async () => {
+      if (!confirm(`回退到此回执？将撤销该变更及其后全部 ${'(含)'} 已记录文件变更，且恢复本身可被再次恢复。`)) return;
+      wbtn.disabled = true;
+      const rr = await cmd('fileops_rewind', { receiptId: op.receiptId });
+      if (rr.success) { toast(`已回退：恢复 ${rr.data?.restored?.length ?? 0} 项${rr.data?.skipped?.length ? `，跳过 ${rr.data.skipped.length}` : ''}`); refreshChanges(); }
+      else { toast(`回退失败：${rr.error ?? '未知'}`, 'err'); wbtn.disabled = false; }
+    };
+    actCell.appendChild(wbtn);
     tbody.appendChild(tr);
   }
 }
@@ -1395,7 +2254,7 @@ async function openJobDetail(jobId) {
   const { job, attempts, lease, detail } = r.data ?? {};
   panel.classList.remove('hidden');
   panel.innerHTML = `
-    <div class="jd-head"><span class="jd-title"></span><button class="ghost-btn jd-cancel hidden">停止任务</button><button class="icon-btn jd-close" title="关闭">✕</button></div>
+    <div class="jd-head"><span class="jd-title"></span><button class="ghost-btn jd-restart hidden">重启</button><button class="ghost-btn warn jd-delete hidden">删除</button><button class="ghost-btn jd-cancel hidden">停止任务</button><button class="icon-btn jd-close" title="关闭">✕</button></div>
     <div class="jd-grid">
       <div><span class="jd-k">状态</span><span class="jd-v"></span></div>
       <div><span class="jd-k">编排</span><span class="jd-v"></span></div>
@@ -1420,7 +2279,29 @@ async function openJobDetail(jobId) {
   const evLines = (detail?.events ?? []).map((e) => `${(e.timestamp ?? '').slice(11, 19)}  ${e.event_type}`).join('\n');
   panel.querySelector('.jd-events').textContent = evLines || '（无事件）';
   const cancelBtn = panel.querySelector('.jd-cancel');
-  const cancellable = detail?.running || (job?.job_state && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.job_state));
+  const terminal = job?.job_state && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.job_state);
+  const cancellable = detail?.running || (job?.job_state && !terminal);
+  // M90/M92: terminal jobs expose restart (new job, same command) + delete
+  const restartBtn = panel.querySelector('.jd-restart');
+  const deleteBtn = panel.querySelector('.jd-delete');
+  if (terminal) {
+    restartBtn.classList.remove('hidden');
+    deleteBtn.classList.remove('hidden');
+    restartBtn.disabled = !detail?.command;
+    restartBtn.title = detail?.command ? '以同一命令重跑为新任务' : '无命令记录，无法重启';
+    restartBtn.onclick = async () => {
+      if (!confirm(`以同一命令重启新任务？（原任务 ${jobId} 保持不变）`)) return;
+      const rr = await cmd('job_restart', { job_id: jobId });
+      if (rr.success) { toast(`已重启为 ${rr.data?.job_id ?? '新任务'}`, 'ok'); renderJobs(); }
+      else toast(`重启被拒：${rr.error ?? '未知'}`, 'err');
+    };
+    deleteBtn.onclick = async () => {
+      if (!confirm(`确定删除任务 ${jobId} 的记录与产物？此操作不可恢复`)) return;
+      const dr = await cmd('job_delete', { job_id: jobId });
+      if (dr.success) { toast('任务已删除', 'ok'); panel.classList.add('hidden'); renderJobs(); }
+      else toast(`删除被拒：${dr.error ?? '未知'}`, 'err');
+    };
+  }
   if (cancellable) {
     cancelBtn.classList.remove('hidden');
     cancelBtn.onclick = async () => {
@@ -1491,6 +2372,31 @@ async function refreshBodies() {
     }
     grid.appendChild(card);
   }
+  // D6 capability matrix: when ≥2 bodies exist, align their verified
+  // capabilities into one comparison table — diffs are the decision surface.
+  if (bodiesCache.length > 1) {
+    const keys = [...new Set(bodiesCache.flatMap((b) => Object.keys(b.facts?.verified_capabilities ?? {})))];
+    if (keys.length) {
+      const tbl = document.createElement('table');
+      tbl.id = 'body-matrix';
+      tbl.className = 'data-table';
+      tbl.innerHTML = `<thead><tr><th>能力</th>${bodiesCache.map((b) => `<th></th>`).join('')}</tr></thead><tbody></tbody>`;
+      tbl.querySelectorAll('thead th:not(:first-child)').forEach((th, i) => { th.textContent = bodiesCache[i].label ?? bodiesCache[i].body_id; });
+      for (const k of keys) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td></td>${bodiesCache.map(() => '<td></td>').join('')}`;
+        tr.children[0].textContent = k.replaceAll('_', ' ');
+        bodiesCache.forEach((b, i) => {
+          const v = b.facts?.verified_capabilities?.[k];
+          const td = tr.children[i + 1];
+          td.textContent = v === true ? '✓' : v === false || v == null ? '—' : String(v);
+          td.className = v === true ? 'ok' : v ? 'warn' : 'dim';
+        });
+        tbl.querySelector('tbody').appendChild(tr);
+      }
+      grid.appendChild(tbl);
+    }
+  }
 }
 
 async function refreshState() {
@@ -1513,28 +2419,47 @@ async function refreshState() {
 async function paintStatusline() {
   const el = $('statusline');
   if (!el) return;
-  const mode = await cmd('risk_mode');
+  const mode = await cmd('mode_list');
   const parts = [];
   const model = $('model-chip')?.textContent?.trim();
   if (model) parts.push(model);
-  parts.push(mode.data?.mode === 'plan' ? '计划' : '执行');
+  const activeMode = mode.success ? mode.data?.active : 'normal';
+  parts.push(MODE_LABEL[activeMode] ?? activeMode);
   if (lastCtxUsage?.contextWindow) parts.push(`ctx ${Math.round(100 * (lastCtxUsage.tokens ?? 0) / lastCtxUsage.contextWindow)}%`);
   // Prefer the ledger total (session_stats.cost is a number in pi's
   // SessionStats) — incremental sessionCost drifts after compaction/reconnects.
   const costTotal = typeof state?.stats?.cost === 'number' ? state.stats.cost : sessionCost;
   if (costTotal > 0) parts.push(`$${Number(costTotal).toFixed(4)}`);
+  // evidence-contract goals (Qwen goals panel analogue) — only when the task
+  // launched with a requirements contract
+  const g = state?.goals;
+  if (g?.requirements?.length) {
+    parts.push(g.lastAction === 'complete'
+      ? `目标 ${g.requirements.length}/${g.requirements.length}✓`
+      : `目标 ${g.requirements.length - (g.lastGaps?.length ?? 0)}/${g.requirements.length}${g.continuations ? `·续${g.continuations}` : ''}`);
+  }
   const wd = state?.workdir;
   if (wd) parts.push(wd.split(/[\\/]/).pop() ?? wd);
+  // D7 lease badge: canonical writer owner + workspace-write mutex holder.
+  // The writer lease is held by the live body for the session's lifetime —
+  // surfacing it makes "who can write canonical state" visible, not implicit.
+  const leases = await cmd('lease_status');
+  if (leases.success && leases.data) {
+    const w = leases.data.writer?.owner;
+    const ws = leases.data.workspaceWrite?.holder;
+    if (w) parts.push(`✍ ${String(w).slice(0, 12)}`);
+    if (ws) parts.push(`🔒${String(ws).slice(0, 14)}`);
+  }
   el.textContent = parts.join('  ·  ');
 }
-function refreshAll() { refreshBodies(); refreshState(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); refreshTodos(); }
+function refreshAll() { refreshBodies(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); refreshTodos(); refreshState().then(checkProjectTrust); }
 function setStatus(t, kind) {
   $('status').textContent = t;
   $('status-dot').className = `dot${kind === 'err' ? ' err' : t === '就绪' ? ' on' : ''}`;
 }
 
 /* ---------- views ---------- */
-const TITLES = { jobs: '任务', changes: '变更与产物', audit: '审计', bodies: '身体', settings: '设置' };
+const TITLES = { about: '关于', jobs: '任务', changes: '变更与产物', audit: '审计', bodies: '身体', settings: '设置' };
 let currentView = 'chat';
 function switchView(v) {
   currentView = v;
@@ -1543,13 +2468,44 @@ function switchView(v) {
   if (v === 'chat') $('view-title').textContent = sessionsCache.find((s) => s.path === currentSessionFile)?.name || '当前任务';
   else $('view-title').textContent = TITLES[v] ?? '';
   if (v === 'jobs') refreshJobs();
-  if (v === 'changes') refreshChanges();
+  if (v === 'changes') { refreshChanges(); refreshArtifacts(); }
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
-  if (v === 'settings') { refreshSettings(); refreshModels(); }
+  if (v === 'about') refreshAbout();
+  if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); refreshCommandsCard(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
+
+/* about view — every claim on this page is backed by a live facade read,
+   so the evidence grid can never drift ahead of the runtime */
+async function refreshAbout() {
+  const box = $('about-evidence');
+  if (!box) return;
+  box.innerHTML = '<div class="set-sub">读取中…</div>';
+  const [pol, bodies, jobs, skills, scheds, trust, mem] = await Promise.all([
+    cmd('policy_status'), cmd('body_list'), cmd('job_list', { n: 200 }),
+    cmd('skills_list'), cmd('schedule_list'), cmd('project_trust_status'), cmd('memory_stats'),
+  ]);
+  const jl = jobs.data ?? [];
+  const running = jl.filter((x) => x.job_state === 'RUNNING').length;
+  const chips = [
+    ['治理姿态', pol.success
+      ? `policy ${String(pol.data?.checksum ?? '').slice(0, 10) || '—'} · ${(pol.data?.deniedTools ?? []).length} 个工具硬拒`
+      : 'facade 不可用'],
+    ['身体', bodies.success ? `${(bodies.data ?? []).length} 个已登记` : 'facade 不可用'],
+    ['持久任务', jobs.success ? `${jl.length} 个 · ${running} 运行中` : 'facade 不可用'],
+    ['技能', skills.success ? `${(skills.data?.skills ?? []).length} 个已加载` : '未配置 microagent'],
+    ['定时任务', scheds.success ? `${(scheds.data ?? []).length} 个` : 'facade 不可用'],
+    ['项目信任', trust.success
+      ? (trust.data?.trusted ? '已授予——仓库注入内容激活' : '未授予——仓库注入内容休眠中')
+      : 'facade 不可用'],
+    ['记忆', mem.success ? `${mem.data?.pinned ?? 0} 条 pinned / ${mem.data?.total ?? 0} 总` : 'facade 不可用'],
+  ];
+  box.innerHTML = chips.map(([k, v]) =>
+    `<div class="ev-chip"><div class="ev-k">${escHtml(k)}</div><div class="ev-v">${escHtml(v)}</div></div>`).join('');
+}
 $('body-chip').onclick = () => switchView('bodies');
+$('empty-about').onclick = () => switchView('about');
 
 /* sidebar collapse — remembered across launches */
 const applySide = (collapsed) => {
@@ -1573,6 +2529,18 @@ const SLASH = [
   { cmd: '/new', label: '新建任务', hint: '开一个干净会话', run: () => $('new-task').click() },
   { cmd: '/abort', label: '中止运行', hint: '停止当前任务', run: async () => { await cmd('abort'); } },
   { cmd: '/model', label: '选择模型', hint: '弹出模型菜单', run: () => $('model-chip').click() },
+  {
+    cmd: '/discover', label: '发现本地模型', hint: '探测 Ollama/LM Studio/llama.cpp 本地节点',
+    run: async () => {
+      const r = await cmd('model_discover');
+      if (!r.success) { addSys(`探测失败：${r.error ?? '未知'}`, true); return; }
+      const nodes = r.data?.nodes ?? [];
+      if (!nodes.length) { addSys('未发现本地推理节点（Ollama :11434 / LM Studio :1234 / llama.cpp :8080）'); return; }
+      addSys(`发现 ${nodes.length} 个本地节点：\n` + nodes.map((n) =>
+        `· ${n.kind} ${n.url} — ${n.models.length ? n.models.slice(0, 8).join('、') + (n.models.length > 8 ? ` …共${n.models.length}个` : '') : '无模型'}`).join('\n')
+        + '\n接入方式：模型面板添加 provider，api=openai-completions，baseUrl 填 <节点>/v1');
+    },
+  },
   { cmd: '/think', label: '推理强度', hint: '设置思考等级', run: () => $('thinking-chip').click() },
   {
     cmd: '/rename', label: '重命名会话', hint: '/rename 新名字',
@@ -1603,21 +2571,169 @@ const SLASH = [
         sub: e.entryId.slice(0, 8),
         value: e,
       })), async (it) => {
-        const r2 = await cmd('session_rewind', { entryId: it.value.entryId });
-        if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
-        if (r2.data?.editorText) { input.value = r2.data.editorText; autogrow(); }
-        await replayHistory();
-        refreshState();
-        toast('已回退——之后的回合仍在文件里，未删除');
+        // ZCode EscEsc scope choice: chat-only, files-only, both, or fork
+        // a NEW session from this point (original timeline untouched).
+        openMenu([
+          { label: '仅回退会话', sub: '对话头回到该点，文件不动', value: 'chat' },
+          { label: '仅回退文件', sub: '撤销该点之后的文件改动，对话不动', value: 'files' },
+          { label: '会话+文件一起回退', sub: '回到该点的完整现场', value: 'both' },
+          { label: '从此处开分叉会话', sub: '复制到该点为止的历史进新会话，原会话原样', value: 'fork' },
+        ], async (scope) => {
+          if (scope.value === 'fork') {
+            const fr = await cmd('session_fork', { path: currentSessionFile, entryId: it.value.entryId });
+            if (!fr.success) { addSys(`分叉失败：${fr.error ?? '未知'}`, true); return; }
+            await replayHistory(); refreshSessions(); refreshState();
+            toast('已分叉——当前会话切到从该点长出的新会话');
+            return;
+          }
+          const r2 = await cmd('session_rewind', { entryId: it.value.entryId, scope: scope.value });
+          if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
+          if (scope.value === 'files') {
+            const n = r2.data?.restoredFiles?.length ?? 0;
+            toast(`已回退文件：恢复 ${n} 处改动${r2.data?.partial ? '（部分失败）' : ''}`);
+            refreshChanges();
+            return;
+          }
+          if (r2.data?.editorText) { input.value = r2.data.editorText; autogrow(); }
+          await replayHistory();
+          refreshState();
+          if (scope.value === 'both') refreshChanges();
+          toast('已回退——之后的回合仍在文件里，未删除');
+        });
       });
     },
   },
   {
-    cmd: '/export', label: '导出会话', hint: '导出为 HTML 文件',
-    run: async () => {
-      const r = await cmd('session_export');
+    cmd: '/export', label: '导出会话', hint: '导出为 HTML（/export jsonl 导原始轨迹，/export debug 导含子任务链的调试包）',
+    run: async (arg) => {
+      const a = String(arg ?? '').trim().toLowerCase();
+      const format = ['jsonl', 'debug'].includes(a) ? a : 'html';
+      const r = await cmd('session_export', { format });
       if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
       else addSys(`导出失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/pin', label: '钉文件进上下文', hint: '/pin <路径> 每轮注入该文件最新内容；/pin 列出现有钉',
+    run: async (arg) => {
+      const p = String(arg ?? '').trim();
+      if (!p) {
+        const r = await cmd('pins_list');
+        const paths = r.data?.paths ?? [];
+        addSys(paths.length ? `已钉文件：\n${paths.map((x) => `  · ${x}`).join('\n')}` : '没有钉住的文件——/pin <路径> 钉一个');
+        return;
+      }
+      const r = await cmd('pins_add', { path: p });
+      if (r.success) toast(`已钉：${p}（每轮注入最新内容）`);
+      else addSys(`钉失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/unpin', label: '取消钉文件', hint: '从上下文钉列表移除',
+    run: async () => {
+      const r = await cmd('pins_list');
+      const paths = r.data?.paths ?? [];
+      if (!paths.length) { addSys('没有钉住的文件', true); return; }
+      openMenu(paths.map((x) => ({ label: x, value: x })), async (it) => {
+        const r2 = await cmd('pins_remove', { path: it.value });
+        if (r2.success) toast(`已移除：${it.value}`);
+        else addSys(`移除失败：${r2.error ?? '未知'}`, true);
+      });
+    },
+  },
+  {
+    cmd: '/chat', label: '存档会话', hint: '/chat save 名字 存快照；/chat load 打开已存',
+    run: async (arg) => {
+      const [sub, ...rest] = String(arg ?? '').trim().split(/\s+/).filter(Boolean);
+      if (sub === 'save') {
+        const name = rest.join(' ');
+        if (!name) { addSys('用法：/chat save 名字', true); return; }
+        const r = await cmd('session_save', { name });
+        if (r.success) toast(`已存档：${r.data?.name ?? name}`);
+        else addSys(`存档失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      if (sub === 'load' || !sub) {
+        const r = await cmd('session_saved_list');
+        const items = r.data ?? [];
+        if (!items.length) { addSys('没有已存会话——/chat save 名字 先存一个', true); return; }
+        openMenu(items.map((s) => ({
+          label: s.name, sub: new Date(s.modified).toLocaleString(), value: s,
+        })), async (it) => {
+          // Fork, not switch — the snapshot file stays pristine; the copy
+          // becomes the live session (Gemini resume semantics).
+          const r2 = await cmd('session_fork', { path: it.value.path });
+          if (!r2.success) { addSys(`打开失败：${r2.error ?? '未知'}`, true); return; }
+          await replayHistory(); refreshSessions(); refreshState();
+          toast(`已恢复存档「${it.value.name}」——快照原件不动`);
+        });
+        return;
+      }
+      addSys('用法：/chat save 名字 | /chat load', true);
+    },
+  },
+  {
+    cmd: '/stats', label: '用量总览', hint: '跨会话聚合：会话数/消息/token/成本',
+    run: async () => {
+      const r = await cmd('agent_stats');
+      if (!r.success) { addSys(`统计失败：${r.error ?? '未知'}`, true); return; }
+      const s = r.data ?? {};
+      const a = s.asks ?? {};
+      const asksLine = (a.allow || a.deny || a.timeout || a.always)
+        ? `\n批准卡结局：放行 ${a.allow ?? 0} · 总是允许 ${a.always ?? 0} · 本会话放行 ${a.allow_session ?? 0} · 拒绝 ${a.deny ?? 0} · 超时 ${a.timeout ?? 0}` : '';
+      addSys(`累计 ${s.sessions ?? 0} 个会话 · ${s.messages ?? 0} 条消息（你发了 ${s.userMessages ?? 0} 条）· ${(s.tokens ?? 0).toLocaleString()} tok · $${s.cost ?? 0}`
+        + (s.firstSession ? `——自 ${new Date(s.firstSession).toLocaleDateString()} 起` : '') + asksLine);
+      // M75 process telemetry rides the same report — honest RSS/heap/uptime
+      const m = await fetch('/api/metrics').then((x) => x.json()).catch(() => null);
+      if (m?.bridge) {
+        const mb = (b) => `${Math.round(b / 1048576)}MB`;
+        addSys(`进程 — 桥 pid ${m.bridge.pid} · 运行 ${m.bridge.uptime_s}s · RSS ${mb(m.bridge.rss_bytes)} · 堆 ${mb(m.bridge.heap_used_bytes)}/${mb(m.bridge.heap_total_bytes)}`
+          + (m.body ? ` · 身体 ${m.body.id} pid ${m.body.pid ?? '—'} ${m.body.alive ? '存活' : '已退出'}` : ''));
+      }
+    },
+  },
+  {
+    cmd: '/undo', label: '撤销上轮改动', hint: '恢复最近一次提问以来的全部文件操作',
+    run: async () => {
+      const [ops, ent] = await Promise.all([cmd('fileops_list'), cmd('session_entries')]);
+      const undoable = (ops.data ?? []).filter((o) => o.undoable);
+      if (!undoable.length) { addSys('没有可撤销的文件操作', true); return; }
+      // Turn-scoped undo: receipts since the last user prompt, newest-first
+      // restore order. No entries yet → just the single newest op.
+      const lastTs = (ent.data ?? []).at(-1)?.ts;
+      const scope = lastTs ? undoable.filter((o) => o.at >= lastTs) : undoable.slice(0, 1);
+      if (!scope.length) { addSys('上一轮没有文件改动可撤销', true); return; }
+      let restored = 0, failed = 0;
+      for (const o of scope) {
+        const r = await cmd('fileops_restore', { receiptId: o.receiptId });
+        r.success ? restored++ : failed++;
+      }
+      addSys(`已撤销 ${restored} 项文件改动${failed ? `（${failed} 项失败）` : ''}——原始回执仍在变更面板可查`);
+      refreshChanges?.();
+    },
+  },
+  {
+    cmd: '/diff', label: '查看改动聚合', hint: '最近文件改动的统一 diff（/diff N 指定条数）',
+    run: async (arg) => {
+      const n = Math.max(1, Math.min(50, parseInt(arg, 10) || 10));
+      const r = await cmd('fileops_diff', { n });
+      if (!r.success) { addSys(`diff 失败：${r.error ?? '未知'}`, true); return; }
+      const { diffs = [], skipped = [] } = r.data ?? {};
+      if (!diffs.length) { addSys('没有可展示的改动', true); return; }
+      for (const d of diffs) {
+        addDiffBlock(d.target.split(/[\\/]/).pop(), d.op, d.diff || '（无文本差异）');
+      }
+      if (skipped.length) addSys(`${skipped.length} 项回执无法 diff（备份工件已失）`, true);
+    },
+  },
+  {
+    cmd: '/btw', label: '旁路提问', hint: '临时分叉问一句，不污染当前会话',
+    run: async (arg) => {
+      if (!arg) { addSys('用法：/btw 你的问题', true); return; }
+      addSys('旁路提问中——临时分叉，回答不进本会话记录…');
+      const r = await cmd('session_btw', { message: arg });
+      if (!r.success) { addSys(`旁路失败：${r.error ?? '未知'}`, true); return; }
+      addDiffBlock('旁路回答', 'btw', r.data?.answer ?? '(无回答)');
     },
   },
   {
@@ -1635,6 +2751,125 @@ const SLASH = [
         if (r2.success) toast(`已恢复：${r2.data.restored}`);
         else addSys(`恢复失败：${r2.error ?? '未知'}`, true);
       });
+    },
+  },
+  {
+    cmd: '/recipe', label: '任务包', hint: '运行 .pai/recipes/<name>.md——/recipe name 参数=值',
+    run: async (arg) => {
+      const recipes = await loadRecipes();
+      if (!recipes.length) { addSys('没有任务包——在 workdir 下建 .pai/recipes/<name>.md（frontmatter: description/params，正文 {{参数}} 占位）', true); return; }
+      const [name, ...kv] = String(arg ?? '').trim().split(/\s+/).filter(Boolean);
+      const run = async (r, args) => {
+        const missing = (r.params ?? []).filter((p) => p.required && args[p.name] == null && p.default == null);
+        if (missing.length) {
+          addSys(`缺少参数：${missing.map((p) => p.name).join('、')}——用法：/recipe ${r.name} ${missing.map((p) => `${p.name}=值`).join(' ')}`, true);
+          return;
+        }
+        let text = r.body;
+        for (const p of r.params ?? []) {
+          const v = args[p.name] ?? p.default ?? '';
+          text = text.split(`{{${p.name}}}`).join(v);
+        }
+        input.value = text; autogrow();
+        await send();
+      };
+      if (!name) {
+        openMenu(recipes.map((r) => ({
+          label: r.name, sub: r.description || '',
+          value: r,
+        })), async (it) => {
+          const needArgs = (it.value.params ?? []).filter((p) => p.required && p.default == null);
+          if (needArgs.length) {
+            addSys(`/${it.value.name} 需要参数：${needArgs.map((p) => p.name).join('、')}——输入 /recipe ${it.value.name} ${needArgs.map((p) => `${p.name}=值`).join(' ')}`);
+            input.value = `/recipe ${it.value.name} `; autogrow(); input.focus();
+            return;
+          }
+          await run(it.value, {});
+        });
+        return;
+      }
+      const r = recipes.find((x) => x.name === name);
+      if (!r) { addSys(`没有任务包 '${name}'——可用：${recipes.map((x) => x.name).join('、')}`, true); return; }
+      const args = {};
+      for (const pair of kv) {
+        const i = pair.indexOf('=');
+        if (i > 0) args[pair.slice(0, i)] = pair.slice(i + 1);
+      }
+      await run(r, args);
+    },
+  },
+  {
+    cmd: '/plans', label: '计划库', hint: '载入 .pai/plans/<name>.md 继续执行——agent 用 plan_save 固化',
+    run: async (arg) => {
+      const l = await cmd('files_list', { prefix: '.pai/plans/' });
+      const files = (l.data?.files ?? []).filter((f) => f.endsWith('.md'));
+      if (!files.length) { addSys('没有已存计划——agent 可用 plan_save 把计划固化到 .pai/plans/', true); return; }
+      const pick = async (f) => {
+        const r = await cmd('file_read', { path: f });
+        if (!r.success || r.data?.content == null) { addSys(`读取失败：${f}`, true); return; }
+        const name = f.replace(/^\.pai\/plans\//, '').replace(/\.md$/, '');
+        input.value = `<plan name="${name}">\n${r.data.content.trim()}\n</plan>\n\n继续执行以上计划。`;
+        autogrow();
+        await send();
+      };
+      const name = String(arg ?? '').trim();
+      if (!name) {
+        openMenu(files.map((f) => ({ label: f.replace(/^\.pai\/plans\//, '').replace(/\.md$/, ''), value: f })), (it) => pick(it.value));
+        return;
+      }
+      const f = files.find((x) => x === `.pai/plans/${name}.md`);
+      if (!f) { addSys(`没有计划 '${name}'——可用：${files.map((x) => x.replace(/^\.pai\/plans\/|\.md$/g, '')).join('、')}`, true); return; }
+      await pick(f);
+    },
+  },
+  {
+    cmd: '/verify', label: '跑验证命令', hint: '手动触发 .pai/verify.json 的 onWrite 命令（Aider /lint /test 对等）',
+    run: async () => {
+      const r = await cmd('verify_run');
+      if (!r.success) { addSys(`验证不可用：${r.error ?? '未知'}`, true); return; }
+      const d = r.data ?? {};
+      if (!d.ran) { addSys(`验证未运行：${d.reason ?? '未配置'}`, true); return; }
+      addSys(`验证 ${d.ok ? '通过' : `失败（exit ${d.code}）`}：${(d.outputTail ?? '').split('\n').filter(Boolean).slice(-3).join(' / ') || '(无输出)'}`, !d.ok);
+    },
+  },
+  {
+    cmd: '/map', label: '仓库地图', hint: '源码文件+顶层符号的结构大纲（Aider /map 对等）',
+    run: async (arg) => {
+      const r = await cmd('repo_map', { subdir: arg.trim() || null });
+      if (!r.success) { addSys(`repo map 不可用：${r.error ?? '未知'}`, true); return; }
+      const d = r.data ?? {};
+      addSys(`仓库地图：${d.files} 文件 / ${d.symbols} 符号${d.truncated ? '（截断）' : ''}`, false);
+      addMsg('sys', `\`\`\`\n${d.text ?? '(空)'}\n\`\`\``);
+    },
+  },
+  {
+    cmd: '/skills', label: '技能体检', hint: '列出已加载 microagent 技能：大小/命中次数/启用态；/skills allow a,b 设白名单，/skills allow 清除',
+    run: async (arg) => {
+      const m = arg.trim().match(/^allow(?:\s+(.*))?$/);
+      if (m) {
+        const names = (m[1] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+        const r = await cmd('skill_allow_set', { names: names.length ? names : null });
+        if (!r.success) { addSys(`白名单设置失败：${r.error ?? '未知'}`, true); return; }
+        toast(r.data?.allow ? `技能白名单已设：${r.data.allow.join(', ')}` : '技能白名单已清除（全部启用）');
+      }
+      const r = await cmd('skills_list');
+      if (!r.success) { addSys(`技能体检不可用：${r.error ?? '未知'}`, true); return; }
+      const skills = r.data?.skills ?? [];
+      if (!skills.length) { addSys('没有已加载的 microagent 技能（.pai/microagents/*.md 且带 triggers:）', false); return; }
+      const lines = skills.map((s) =>
+        `${s.allowed ? '●' : '○'} ${s.name} — ${s.bytes}B 注入成本 / 本轮命中 ${s.hits} 次 / 触发 ${s.triggers.slice(0, 4).join('、')}${s.triggers.length > 4 ? '…' : ''}${s.allowed ? '' : '（白名单外·停用中）'}`);
+      addSys(`技能体检（${skills.filter((s) => s.allowed).length}/${skills.length} 启用）：\n${lines.join('\n')}`, false);
+    },
+  },
+  {
+    cmd: '/review', label: '审查变更', hint: '切只读审查模式并审查当前变更（Codex /review 对等）',
+    run: async () => {
+      const r = await cmd('mode_set', { name: 'review' });
+      if (!r.success) { addSys(`切审查模式失败：${r.error ?? '未知'}`, true); return; }
+      refreshMode();
+      input.value = '审查当前工作区的未提交变更：用 fileops 回执/git diff 看每个改动，指出问题、风险与建议修复，按严重度排序。';
+      autogrow();
+      await send();
     },
   },
   {
@@ -1706,6 +2941,53 @@ const SLASH = [
     cmd: '/clear', label: '清空开始', hint: '新会话（同 /new）', run: () => $('new-task').click(),
   },
   {
+    // M81 named profiles: snapshot {model, thinking, mode} as a switchable pack
+    cmd: '/profile', label: '配置档案', hint: '/profile save 名字 · /profile apply 名字 · /profile list · /profile del 名字 · /profile export|import 文件.json', run: async (arg) => {
+      const [sub, ...rest] = arg.trim().split(/\s+/);
+      const name = rest.join(' ');
+      if (sub === 'save' && name) {
+        const r = await cmd('profile_save', { name });
+        if (r.success) toast(`档案「${name}」已保存`); else addSys(`保存失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      if (sub === 'apply' && name) {
+        const r = await cmd('profile_apply', { name });
+        if (r.success) { toast(`已切到档案「${name}」`); refreshSessionsSoon(); }
+        else addSys(`切换失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      if (sub === 'del' && name) {
+        await cmd('profile_delete', { name });
+        toast(`档案「${name}」已删除`);
+        return;
+      }
+      if (sub === 'export' || sub === 'import') {
+        const r = await cmd(sub === 'export' ? 'profile_export' : 'profile_import', name ? { path: name } : {});
+        if (r.success) toast(sub === 'export' ? `已导出 ${r.data?.path ?? ''}` : `已导入 ${r.data?.imported ?? 0} 个档案`);
+        else addSys(`${sub} 失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      const r = await cmd('profile_list');
+      const rows = r.data ?? [];
+      addSys(rows.length
+        ? rows.map((p) => `${p.name} — ${p.model?.id ?? '模型未记'}${p.mode ? ` · ${p.mode}` : ''}${p.thinking ? ` · ${p.thinking}` : ''}`).join('\n')
+        : '暂无档案——/profile save 名字 保存当前 模型/思考档/模式');
+    },
+  },
+  {
+    // M71: ephemeral session — in-memory only; nothing lands in the session
+    // store, so it cannot be resumed, listed, or exported.
+    cmd: '/eph', label: '临时会话', hint: '免持久化：不写盘、不可恢复', run: async () => {
+      const r = await cmd('session_new', { ephemeral: true });
+      if (r.success) {
+        currentSessionFile = null;
+        addSys('临时会话——本会话不落盘，关闭即消失', false);
+        switchView('chat');
+        $('input').focus();
+      } else addSys(`临时会话失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
     cmd: '/resume', label: '继续会话', hint: '弹出会话选择器',
     run: async () => {
       const r = await cmd('session_list');
@@ -1754,6 +3036,30 @@ const SLASH = [
     },
   },
   {
+    cmd: '/doctor', label: '配置检视', hint: '有效姿态一览——模式/政策/记忆/目标/自动化配置（agent debug 对等）',
+    run: async () => {
+      const [st, pol, modes, mem, aliases] = await Promise.all([
+        cmd('get_state'), cmd('policy_status'), cmd('mode_list'), cmd('memory_stats'), cmd('model_alias_list'),
+      ]);
+      const s = st.data ?? {};
+      const p = pol.data ?? {};
+      const g = s.goals;
+      const counts = {};
+      for (const dir of ['steering', 'microagents', 'recipes', 'plans', 'agents']) {
+        const l = await cmd('files_list', { prefix: `.pai/${dir}/` }).catch(() => null);
+        counts[dir] = l?.success ? (l.data?.files ?? []).length : 0;
+      }
+      addSys([
+        `模型：${s.model?.id ?? '—'} · 模式：${modes.data?.active ?? 'normal'} · 政策指纹：${String(p.checksum ?? '—').slice(0, 12)}`,
+        `规则：${Object.keys(p.toolRules ?? {}).length} 条工具规则 · 禁表：${(p.deniedTools ?? []).length} 项 · 预算：${p.budget ? '已配' : '未配'}`,
+        `记忆：${mem.data ? `${mem.data.total ?? mem.data.rows ?? '—'} 条（置顶 ${mem.data.pinned ?? 0}）` : '—'}`,
+        g?.requirements?.length ? `目标契约：${g.requirements.length} 项 · 续 ${g.continuations}/${g.maxContinuations} · 最近：${g.lastAction ?? '—'}` : '目标契约：未挂',
+        `.pai 面：steering×${counts.steering} microagents×${counts.microagents} recipes×${counts.recipes} plans×${counts.plans} agents×${counts.agents}`,
+        `别名：${(aliases.data ?? []).length} 个 · 会话：${s.session?.name ?? '（未开）'} · 上下文：${s.contextUsage?.tokens ?? '?'}/${s.contextUsage?.contextWindow ?? '?'}`,
+      ].join('\n'));
+    },
+  },
+  {
     cmd: '/init', label: '生成 AGENTS.md', hint: '让模型分析 workdir 并写项目说明',
     run: async () => {
       input.value = '分析当前工作目录的结构与约定，生成一份 AGENTS.md 写进根目录——覆盖：项目用途、目录结构、构建/测试命令、代码风格、提交规范。';
@@ -1783,19 +3089,78 @@ async function refreshMacros() {
   if (r.success) MACROS = r.data?.macros ?? {};
 }
 
+/* ---------- memory (G-family): operator review surface ---------- */
+async function refreshMemory() {
+  const box = $('mem-list');
+  if (!box) return;
+  const q = $('mem-query')?.value.trim() ?? '';
+  const r = await cmd('memory_list', q ? { query: q } : {});
+  if (!r.success) { box.innerHTML = `<div class="dim" style="padding:8px">${escHtml(r.error ?? '此身体不支持记忆面')}</div>`; return; }
+  const rows = r.data ?? [];
+  box.innerHTML = '';
+  if (!rows.length) { box.innerHTML = '<div class="dim" style="padding:8px">暂无记忆——模型经 memory_save 沉淀，或点上方添加</div>'; return; }
+  for (const m of rows) {
+    const div = document.createElement('div');
+    div.className = 'mem-row';
+    div.innerHTML = `<span class="mem-pin" title="置顶注入"></span><span class="mem-text selectable"></span><span class="mem-kind dim"></span><button class="mem-forget" title="遗忘">×</button>`;
+    const pin = div.querySelector('.mem-pin');
+    pin.textContent = m.pinned ? '📌' : '·';
+    pin.classList.toggle('on', !!m.pinned);
+    pin.onclick = async () => { await cmd('memory_pin', { id: m.id, pinned: !m.pinned }); refreshMemory(); };
+    div.querySelector('.mem-text').textContent = m.text;
+    div.querySelector('.mem-text').title = `${m.id} · ${m.source} · 置信 ${m.confidence} · ${m.updated}`;
+    div.querySelector('.mem-kind').textContent = m.kind;
+    div.querySelector('.mem-forget').onclick = async () => {
+      if (!confirm(`遗忘这条记忆？\n${m.text.slice(0, 120)}`)) return;
+      await cmd('memory_forget', { id: m.id });
+      refreshMemory();
+    };
+    box.appendChild(div);
+  }
+}
+$('mem-add-btn').onclick = async () => {
+  const text = prompt('记住什么？（一句话事实/偏好/决定）');
+  if (!text?.trim()) return;
+  const r = await cmd('memory_save', { text: text.trim() });
+  if (r.success) { toast('已记住'); refreshMemory(); }
+  else toast(`写入被拒：${r.error ?? '未知'}`, 'err');
+};
+$('mem-query')?.addEventListener('input', () => {
+  clearTimeout($('mem-query')._t);
+  $('mem-query')._t = setTimeout(refreshMemory, 300);
+});
+
+const MODE_LABEL = { normal: '执行', plan: '计划' };
 async function refreshMode() {
-  const r = await cmd('risk_mode');
   const chip = $('mode-chip');
-  const plan = r.success && r.data?.mode === 'plan';
-  chip.textContent = plan ? '计划' : '执行';
-  chip.classList.toggle('plan', plan);
+  // mode_list carries preset overlays too; risk_mode is the legacy fallback
+  const r = await cmd('mode_list');
+  const active = r.success ? r.data?.active : (await cmd('risk_mode'))?.data?.mode;
+  const name = active ?? 'normal';
+  chip.textContent = MODE_LABEL[name] ?? name;
+  chip.classList.toggle('plan', name !== 'normal');
   paintStatusline();
 }
 $('mode-chip').onclick = async () => {
-  const r = await cmd('risk_mode');
-  const cur = r.success && r.data?.mode === 'plan' ? 'plan' : 'normal';
-  const r2 = await cmd('risk_mode_set', { mode: cur === 'plan' ? 'normal' : 'plan' });
-  if (r2.success) { refreshMode(); toast(r2.data.mode === 'plan' ? '计划模式：改动类调用会逐一询问' : '执行模式'); }
+  if (!chipMenu.classList.contains('hidden')) { closeMenu(); return; }
+  const r = await cmd('mode_list');
+  if (!r.success) { // body without preset support — keep the binary toggle
+    const cur = (await cmd('risk_mode'))?.data?.mode === 'plan' ? 'plan' : 'normal';
+    const r2 = await cmd('risk_mode_set', { mode: cur === 'plan' ? 'normal' : 'plan' });
+    if (r2.success) { refreshMode(); toast(r2.data.mode === 'plan' ? '计划模式：改动类调用会逐一询问' : '执行模式'); }
+    return;
+  }
+  const { modes, active } = r.data;
+  openMenu(modes.map((m) => ({
+    label: MODE_LABEL[m.name] ?? m.name,
+    sub: m.description || m.source,
+    current: m.name === active,
+    value: m.name,
+  })), async (it) => {
+    const r2 = await cmd('mode_set', { name: it.value });
+    if (r2.success) { refreshMode(); toast(`模式：${it.label}`); }
+    else toast(r2.error ?? '切换失败');
+  });
 };
 
 function slashFilter() {
@@ -1856,6 +3221,61 @@ function paintSlashSel() {
   [...slashMenu.children].forEach((el, i) => el.classList.toggle('sel', i === slashIdx));
 }
 function closeSlash() { slashMenu.classList.add('hidden'); slashItems = []; slashIdx = 0; atToken = null; }
+
+/* Ctrl+R — fuzzy reverse-search over prompt history (readline analogue).
+ * The composer doubles as the query box; matches render newest-first in the
+ * slash-menu overlay; Enter recalls, Esc restores the draft. */
+let histSearch = null; // {draft}
+function histMatches(q) {
+  const needle = q.toLowerCase();
+  const seen = new Set();
+  const out = [];
+  for (let i = promptHist.length - 1; i >= 0 && out.length < 12; i--) {
+    const h = promptHist[i];
+    if (seen.has(h)) continue;
+    if (!needle || h.toLowerCase().includes(needle)) { seen.add(h); out.push(h); }
+  }
+  return out;
+}
+function openHistSearch() {
+  histSearch = { draft: input.value };
+  slashFilterHist();
+}
+function slashFilterHist() {
+  if (!histSearch) return;
+  slashItems = histMatches(input.value.trim());
+  slashIdx = 0;
+  slashMenu.innerHTML = '';
+  if (!slashItems.length) {
+    const b = document.createElement('button');
+    b.className = 'slash-item';
+    b.innerHTML = '<span class="sl-label"></span>';
+    b.querySelector('.sl-label').textContent = '（无匹配历史）';
+    slashMenu.appendChild(b);
+    slashMenu.classList.remove('hidden');
+    return;
+  }
+  slashItems.forEach((h, i) => {
+    const b = document.createElement('button');
+    b.className = `slash-item${i === slashIdx ? ' sel' : ''}`;
+    b.innerHTML = '<span class="sl-cmd"></span><span class="sl-label"></span>';
+    b.querySelector('.sl-cmd').textContent = '⏪';
+    b.querySelector('.sl-label').textContent = h.length > 80 ? `${h.slice(0, 80)}…` : h;
+    b.onmouseenter = () => { slashIdx = i; paintSlashSel(); };
+    b.onclick = () => pickHist(h);
+    slashMenu.appendChild(b);
+  });
+  slashMenu.classList.remove('hidden');
+}
+function pickHist(h) {
+  input.value = h; histSearch = null; closeSlash(); autogrow();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+}
+function cancelHistSearch() {
+  input.value = histSearch?.draft ?? '';
+  histSearch = null; closeSlash(); autogrow();
+}
 async function execSlash(s) {
   // file-ref / macro entries edit the draft, not execute a command
   if (s.file && atToken) {
@@ -1876,8 +3296,31 @@ async function execSlash(s) {
   await s.run(arg);
 }
 
-input.addEventListener('input', () => { autogrow(); slashFilter(); });
+/* Per-session composer drafts (PI reference): text survives session
+ * switches — keyed by session file, cleared on send. */
+const draftKey = () => `pai.draft.${currentSessionFile ?? 'new'}`;
+function loadDraft() {
+  input.value = localStorage.getItem(draftKey()) ?? '';
+  autogrow();
+}
+input.addEventListener('input', () => { autogrow(); if (histSearch) slashFilterHist(); else slashFilter(); localStorage.setItem(draftKey(), input.value); });
 input.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
+    e.preventDefault();
+    if (histSearch) { cancelHistSearch(); } else { openHistSearch(); }
+    return;
+  }
+  if (histSearch) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = Math.min(slashIdx + 1, slashItems.length - 1); paintSlashSel(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = Math.max(slashIdx - 1, 0); paintSlashSel(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); cancelHistSearch(); return; }
+    if (e.key === 'Enter' || e.key === 'Tab') {
+      e.preventDefault();
+      if (slashItems.length) pickHist(slashItems[slashIdx]);
+      else cancelHistSearch();
+      return;
+    }
+  }
   if (!slashMenu.classList.contains('hidden')) {
     if (e.key === 'ArrowDown') { e.preventDefault(); slashIdx = (slashIdx + 1) % slashItems.length; paintSlashSel(); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); slashIdx = (slashIdx - 1 + slashItems.length) % slashItems.length; paintSlashSel(); return; }
@@ -1885,11 +3328,30 @@ input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); execSlash(slashItems[slashIdx]); return; }
   }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); return; }
-  // Esc interrupts a running turn (every harness: Esc = abort)
-  if (e.key === 'Escape' && busy) { e.preventDefault(); abort(); return; }
-  // ArrowUp on an empty composer recalls the last user message for edit-resend
-  if (e.key === 'ArrowUp' && !input.value.trim() && lastUserText) {
-    e.preventDefault(); input.value = lastUserText; autogrow(); return;
+  // Esc interrupts a running turn (every harness: Esc = abort); with queued
+  // prompts waiting, a second Esc within 1.5s drops the tail — aborting the
+  // run must not silently eat messages the operator typed deliberately, so
+  // queue-clear is a separate deliberate keystroke, not bundled into abort.
+  if (e.key === 'Escape' && busy) { e.preventDefault(); abort(); lastEscAt = Date.now(); return; }
+  if (e.key === 'Escape' && queue.length && Date.now() - lastEscAt < 1500) {
+    e.preventDefault();
+    const n = queue.length; queue.length = 0; renderQueue();
+    toast(`已弃尾 ${n} 条排队消息`, 'info'); lastEscAt = 0; return;
+  }
+  if (e.key === 'Escape') lastEscAt = Date.now();
+  // ArrowUp/Down walk prompt history when the composer is empty or already
+  // showing a recalled entry (shell-style; draft text is preserved).
+  if (e.key === 'ArrowUp' && promptHist.length
+      && (!input.value.trim() || histIdx >= 0)) {
+    e.preventDefault();
+    if (histIdx < promptHist.length - 1) histIdx++;
+    input.value = promptHist[promptHist.length - 1 - histIdx]; autogrow(); return;
+  }
+  if (e.key === 'ArrowDown' && histIdx >= 0) {
+    e.preventDefault();
+    histIdx--;
+    input.value = histIdx >= 0 ? promptHist[promptHist.length - 1 - histIdx] : '';
+    autogrow(); return;
   }
 });
 /* Ctrl+K / Ctrl+P — command palette over sessions + slash commands */
@@ -1903,6 +3365,7 @@ document.addEventListener('keydown', (e) => {
 /* prompt queue — messages sent while a run is active wait as chips above
  * the composer; agent_end flushes the next one. "立即转向" = steer now. */
 const queue = [];
+let lastEscAt = 0; // double-Esc window for queue-tail drop
 function renderQueue() {
   const row = $('queue-row');
   row.innerHTML = '';
@@ -1944,15 +3407,54 @@ async function expandAtMentions(text) {
     if (r.success && r.data?.content != null) {
       attached.push(rel);
       blocks.push(`\n\n<attached path="${rel}">\n${r.data.content}\n</attached>`);
+      continue;
+    }
+    // @folder: directory mention expands to a bounded listing block — the
+    // model sees the tree shape, not a fake file dump
+    const dirName = rel.replace(/[\\/]+$/, '');
+    const d = await cmd('files_list', { prefix: dirName });
+    const dirFiles = (d.data?.files ?? []).filter((f) => f === dirName || f.startsWith(dirName + '/'));
+    if (dirFiles.length) {
+      attached.push(rel);
+      blocks.push(`\n\n<folder path="${dirName}/">\n${dirFiles.slice(0, 200).join('\n')}\n</folder>`);
     } else missed.push(rel);
   }
   return { text: text + blocks.join(''), attached, missed };
 }
+/* ---------- recipes: .pai/recipes/<name>.md parameterized task packages ---------- */
+// Thin Goose-recipe analogue: frontmatter declares description + params
+// (`params: a(required), b=default`), body carries {{param}} placeholders.
+// Files come through file_read/files_list so .paiignore exclusions apply.
+async function loadRecipes() {
+  const l = await cmd('files_list', { prefix: '.pai/recipes/' });
+  const files = (l.data?.files ?? []).filter((f) => f.endsWith('.md'));
+  const out = [];
+  for (const f of files) {
+    const r = await cmd('file_read', { path: f });
+    if (!r.success || r.data?.content == null) continue;
+    const m = r.data.content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+    const meta = m ? m[1] : '';
+    const body = (m ? m[2] : r.data.content).trim();
+    const description = meta.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? '';
+    const paramsRaw = meta.match(/^params:\s*(.+)$/m)?.[1] ?? '';
+    const params = paramsRaw.split(',').map((s) => s.trim()).filter(Boolean).map((p) => {
+      const req = p.match(/^(\w+)\(required\)$/);
+      if (req) return { name: req[1], required: true };
+      const d = p.match(/^(\w+)=(.*)$/);
+      if (d) return { name: d[1], default: d[2] };
+      return { name: p, required: true };
+    });
+    out.push({ name: f.replace(/^\.pai\/recipes\//, '').replace(/\.md$/, ''), description, params, body });
+  }
+  return out;
+}
+
 /* ---------- attachments: paste/drop files + images into the composer ---------- */
 // Browser File API reads the bytes locally — no server-side path access, so
 // files from ANYWHERE (not just the workdir) can be attached. Text files land
 // inline as labeled blocks; images ride prompt options as ImageContent.
 const pendingAttach = []; // {name, kind:'text'|'image'|'media', text?, data?, mimeType?, bytes}
+const pendingBash = []; // {command, output} — `!cmd` results joining the next prompt
 const ATTACH_MAX = 512 * 1024;
 function renderAttach() {
   const row = $('attach-row');
@@ -1987,7 +3489,16 @@ async function attachFiles(fileList) {
   renderAttach();
 }
 input.addEventListener('paste', (e) => {
-  if (e.clipboardData?.files?.length) { e.preventDefault(); attachFiles(e.clipboardData.files); }
+  if (e.clipboardData?.files?.length) { e.preventDefault(); attachFiles(e.clipboardData.files); return; }
+  // Codex long-paste analogue: a wall of pasted text becomes an attachment
+  // chip instead of flooding the composer — same 'text' kind as file drops,
+  // sent as an inline labeled block.
+  const t = e.clipboardData?.getData?.('text/plain') ?? '';
+  if (t.length > 1500) {
+    e.preventDefault();
+    pendingAttach.push({ name: `粘贴文本-${new Date().toTimeString().slice(0, 8).replaceAll(':', '')}.txt`, kind: 'text', text: t, bytes: t.length });
+    renderAttach();
+  }
 });
 const composerEl = $('composer');
 composerEl.addEventListener('dragover', (e) => { e.preventDefault(); composerEl.classList.add('drop'); });
@@ -2002,6 +3513,28 @@ async function send() {
   if (!text && !pendingAttach.length) return;
   closeSlash();
   input.value = ''; autogrow();
+  localStorage.removeItem(draftKey());
+  // `!cmd` — operator direct-exec (Claude Code bang mode): runs through the
+  // governed decide chain (ask rules still pop approval cards); the output
+  // is stashed and prepended to the NEXT prompt so the model sees it.
+  if (text.startsWith('!') && !pendingAttach.length) {
+    const command = text.slice(1).trim();
+    if (!command) { addSys('! 后面要跟要执行的命令', true); return; }
+    addMsg('user', text);
+    const r = await cmd('bash_run', { command });
+    if (!r.success) addSys(`执行不可用：${r.error ?? '未知'}`, true);
+    else if (r.data?.blocked) addSys(`已拦截：${(r.data.reason ?? '').slice(0, 300)}`, true);
+    else if (r.data) pendingBash.push({ command, output: r.data.output ?? '' });
+    return;
+  }
+  // `#note` — quick-capture into long-term memory (Claude Code hash mode).
+  if (text.startsWith('#') && !pendingAttach.length) {
+    const note = text.slice(1).trim();
+    if (!note) { addSys('# 后面要跟要记住的内容', true); return; }
+    const r = await cmd('memory_save', { text: note, kind: 'fact' });
+    addSys(r.success ? `已记住：${note.slice(0, 80)}` : `记忆失败：${r.error ?? '未知'}`, !r.success);
+    return;
+  }
   // Fold pending attachments into the outgoing prompt: text → labeled block,
   // images → PromptOptions.images (pi prompt accepts {images: ImageContent[]}).
   let message = text;
@@ -2011,9 +3544,17 @@ async function send() {
     if (a.kind === 'text') message += `\n\n<file name="${a.name}">\n${a.text}\n</file>`;
     else attachments.push({ name: a.name, mime: a.mimeType, data: a.data, bytes: a.bytes });
   }
+  // `!cmd` outputs the operator ran since the last prompt ride into context
+  if (pendingBash.length) {
+    const blk = pendingBash.splice(0)
+      .map((b) => `<operator-bash command="${b.command.slice(0, 200)}">\n${b.output.slice(0, 4000)}\n</operator-bash>`)
+      .join('\n');
+    message = `${blk}\n\n${message}`;
+  }
   renderAttach();
   if (busy) { queue.push({ text: message, attachments, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }
   lastUserText = text;
+  histPush(text);
   addMsg('user', text || `（${attachCount} 个附件）`);
   const ex = await expandAtMentions(message);
   if (ex.attached.length) addSys(`已附着 ${ex.attached.length} 个文件：${ex.attached.join('、')}`);
@@ -2026,6 +3567,7 @@ async function steer() {
   if (!text) return;
   closeSlash();
   input.value = ''; autogrow();
+  localStorage.removeItem(draftKey());
   const r = await cmd('steer', { message: text });
   if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
 }
@@ -2049,8 +3591,47 @@ function refreshAuditSoon() {
   clearTimeout(auditTimer);
   auditTimer = setTimeout(refreshAudit, 400);
 }
-es.onerror = () => setStatus('连接断开，重试中…', 'err');
-es.onopen = () => { setStatus('就绪'); refreshPending(); }; // asks raised while disconnected are still live
+es.onerror = () => {
+  setStatus('连接断开，重试中…', 'err');
+  const ss = $('splash-status');
+  if (ss && !$('splash')?.classList.contains('done')) ss.textContent = '连接断开，重试中…';
+};
+es.onopen = () => {
+  setStatus('就绪');
+  refreshPending(); // asks raised while disconnected are still live
+  // splash is honest: it covers only the real connect wait, no fake progress
+  const sp = $('splash');
+  if (sp && !sp.classList.contains('done')) {
+    sp.classList.add('done');
+    setTimeout(() => sp.remove(), 450);
+  }
+};
+
+/* chat column width drag — Codex resize handle analogue; --chat-w is the
+   single var every centered row already keys off */
+{
+  const h = $('chatw-handle');
+  const savedW = Number(localStorage.getItem('pai.chatW'));
+  if (savedW >= 480 && savedW <= 1400) document.documentElement.style.setProperty('--chat-w', `${savedW}px`);
+  h?.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    h.classList.add('drag');
+    h.setPointerCapture(e.pointerId);
+    const move = (ev) => {
+      const center = $('view-chat').getBoundingClientRect().left + $('view-chat').offsetWidth / 2;
+      const w = Math.min(1400, Math.max(480, Math.round((ev.clientX - center) * 2)));
+      document.documentElement.style.setProperty('--chat-w', `${w}px`);
+    };
+    const up = () => {
+      h.classList.remove('drag');
+      h.removeEventListener('pointermove', move);
+      h.removeEventListener('pointerup', up);
+      localStorage.setItem('pai.chatW', getComputedStyle(document.documentElement).getPropertyValue('--chat-w').replace('px', ''));
+    };
+    h.addEventListener('pointermove', move);
+    h.addEventListener('pointerup', up);
+  });
+}
 
 autogrow();
 (async () => {

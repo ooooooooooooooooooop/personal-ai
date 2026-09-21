@@ -872,6 +872,11 @@ class BackendClient:
                 # 404 (bad id) apart from an empty-but-valid conversation —
                 # both used to collapse into indistinguishable empty results.
                 body["_fetch_status"] = status
+                from . import send_receipts
+
+                receipt = send_receipts.current()
+                if receipt is not None:
+                    send_receipts.reconcile(receipt.operation_id, body)
                 return body
             return {
                 "_fetch_status": status,

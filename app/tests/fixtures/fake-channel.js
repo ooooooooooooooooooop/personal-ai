@@ -28,6 +28,7 @@ const owner = `${body}:${runId}`;
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const write = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
 
+const deletedSessions = new Set();
 const leases = new DomainLeaseStore({ root: instance });
 let held = null;
 try {
@@ -104,7 +105,8 @@ rl.on('line', async (line) => {
       ]);
     case 'pending_list': return reply([]);
     case 'session_list':
-      return reply([{ path: `${instance}/sessions/s1.jsonl`, name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3 }]);
+      return reply([{ path: `${instance}/sessions/s1.jsonl`, name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3 }]
+        .filter((s) => !deletedSessions.has(s.path)));
     case 'session_history': return reply([]);
     case 'model_status': return reply({
       current: { provider: 'fake', id: 'fake-1', name: 'fake-1' },
@@ -131,6 +133,10 @@ rl.on('line', async (line) => {
     case 'session_entries': return reply([]);
     case 'session_export': return fail('export unsupported in fixture');
     case 'session_search': return reply([]);
+    case 'session_delete': {
+      deletedSessions.add(cmd.path);
+      return reply({ removed: cmd.path });
+    }
     case 'audit_tail': return reply([]);
     case 'handoff_prepare':
       return reply({

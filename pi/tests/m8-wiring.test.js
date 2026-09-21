@@ -301,3 +301,306 @@ test('U4 secret scan: no asks channel fails closed', async () => {
   assert.equal(r.block, true);
   assert.match(r.reason, /fail-closed/);
 });
+
+test('.paiignore blocks read AND write families on excluded paths', async () => {
+  const { dir, decide } = rig();
+  const { PaiIgnore } = await import('../../host/src/core/paiignore.js');
+  const decideIg = makeDecide({
+    core: { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } },
+    executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+    paiignore: new PaiIgnore(dir, 'secrets/\n*.pem\n'),
+  });
+  const blockedRead = await decideIg({ toolCall: { name: 'read' }, args: { path: join(dir, 'secrets/k.txt') } });
+  assert.equal(blockedRead.block, true);
+  assert.equal(blockedRead.rule, 'paiignore');
+  const blockedWrite = await decideIg({ toolCall: { name: 'write' }, args: { path: join(dir, 'a.pem'), content: 'x' } });
+  assert.equal(blockedWrite.block, true);
+  // unaffected path passes through to admit
+  const ok = await decideIg({ toolCall: { name: 'read' }, args: { path: join(dir, 'src/app.js') } });
+  assert.equal(ok, undefined);
+});
+
+test('turn cap: admitted calls over the budget are refused with a readable stop reason; prompt/steer reset restores', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-cap-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => undefined } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, maxTurnCalls: 3 });
+
+  const call = () => decide({ toolCall: { name: 'read' }, args: { path: 'x' } });
+  assert.equal(await call(), undefined);
+  assert.equal(await call(), undefined);
+  assert.equal(await call(), undefined);
+  const capped = await call();
+  assert.equal(capped.block, true);
+  assert.equal(capped.rule, 'turn_cap');
+  assert.match(capped.reason, /3\/3/); // model-readable: spent/budget
+  decide.resetTurn(); // prompt/steer boundary via channel turns.reset()
+  assert.equal(await call(), undefined);
+});
+
+test('unicode sanitization: invisible chars in strict args block; free-text strips and executes', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-uni-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const kernelArgs = [];
+  const core = { audit, kernel: { decideToolCall: async (c) => { kernelArgs.push(c.args); return undefined; } } };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir });
+
+  // zero-width space inside a command → block (identifier/classifier spoofing)
+  const b = await decide({ toolCall: { name: 'bash' }, args: { command: 'git​ status' } });
+  assert.equal(b.block, true);
+  assert.equal(b.rule, 'unicode_invisible');
+  // bidi override inside write content → stripped, kernel sees clean text
+  const ok = await decide({ toolCall: { name: 'write' }, args: { path: join(dir, 'a.txt'), content: 'he‮llo‬' } });
+  assert.equal(ok, undefined);
+  assert.equal(kernelArgs.at(-1).content, 'hello');
+});
+
+test('command denylist: .pai/commands.json denyPrefix blocks before kernel admit', async () => {
+  const { dir, decide } = rig();
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'commands.json'), JSON.stringify({ denyPrefixes: ['rm -rf', 'git push'] }));
+  const blocked = await decide({ toolCall: { name: 'bash', id: 'c1' }, args: { command: 'rm -rf node_modules' } });
+  assert.equal(blocked.block, true);
+  assert.equal(blocked.rule, 'command_denylist');
+  const ok = await decide({ toolCall: { name: 'bash', id: 'c2' }, args: { command: 'npm test' } });
+  assert.equal(ok, undefined); // non-matching passes through to kernel admit
+});
+
+test('operator pre_tool gate vetoes an admitted call (fail-closed on error)', async () => {
+  const { dir, decide: base } = rig();
+  void base;
+  const audit = { events: [], write: (e) => audit.events.push(e) };
+  const fileOps2 = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } }; // kernel admits
+  const gate = {
+    calls: [],
+    async fireGate(event, payload) {
+      gate.calls.push({ event, tool: payload.tool });
+      return payload.tool === 'bash' ? { deny: 'operator policy: no shells today' } : null;
+    },
+  };
+  const decide = makeDecide({ core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir, preToolGate: gate });
+
+  const denied = await decide({ toolCall: { name: 'bash' }, args: { command: 'echo hi' } });
+  assert.equal(denied.block, true);
+  assert.equal(denied.rule, 'pre_tool_hook');
+  assert.match(denied.reason, /no shells today/);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_VETO'));
+
+  const ok = await decide({ toolCall: { name: 'read' }, args: { path: join(dir, 'x.txt') } });
+  assert.equal(ok, undefined); // gate allowed → admit stands
+  assert.deepEqual(gate.calls.map((c) => c.tool), ['bash', 'read']);
+
+  // broken gate fails closed
+  const broken = { async fireGate() { throw new Error('gate exploded'); } };
+  const decide2 = makeDecide({ core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir, preToolGate: broken });
+  const r = await decide2({ toolCall: { name: 'read' }, args: { path: join(dir, 'x.txt') } });
+  assert.equal(r.block, true);
+  assert.match(r.reason, /fail-closed/);
+});
+
+test('mistake-limit stop: loopwatch.stopped refuses calls until a fresh turn resets', async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-stop-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const lw = new LoopDetector({ errorLimit: 2 });
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: lw });
+  // operator pressed stop after the escalation
+  lw.observeResult(true); lw.observeResult(true);
+  lw.stopRun();
+  const refused = await decide({ toolCall: { name: 'read_file' }, args: { path: 'x' } });
+  assert.equal(refused?.block, true);
+  assert.match(refused.reason, /operator stopped/);
+  // a fresh user turn releases the stop — the run-scoped latch clears
+  decide.resetTurn();
+  assert.equal(await decide({ toolCall: { name: 'read_file' }, args: { path: 'x' } }), undefined);
+});
+
+test('read outside workspace: asks once, deny latches session-wide block', async () => {
+  const { dir, decide } = rig();
+  const outside = join(dir, '..', 'outside.txt');
+  let asks = 0;
+  const decideAsk = makeDecide({
+    core: { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } },
+    executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+    asks: { ask: async () => { asks += 1; return 'deny'; } },
+  });
+  const r1 = await decideAsk({ toolCall: { name: 'read' }, args: { path: outside } });
+  assert.equal(r1?.block, true);
+  assert.equal(r1.rule, 'read_outside');
+  assert.equal(asks, 1);
+  // deny latched — a second outside read refuses WITHOUT asking again
+  const r2 = await decideAsk({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'other.txt') } });
+  assert.equal(r2?.block, true);
+  assert.equal(asks, 1);
+  // inside reads never prompted at all
+  const r3 = await decideAsk({ toolCall: { name: 'read' }, args: { path: join(dir, 'inside.txt') } });
+  assert.equal(r3, undefined);
+  void decide;
+});
+
+test('read outside workspace: no operator channel fails closed; allow_session stops re-asking', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-ro-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const core = { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } };
+  // no asks facade → fail closed on the outside read
+  const closed = makeDecide({ core, executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir });
+  const r = await closed({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'x.txt') } });
+  assert.equal(r?.block, true);
+  assert.equal(r.rule, 'read_outside');
+
+  let asks = 0;
+  const open = makeDecide({ core, executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+    asks: { ask: async () => { asks += 1; return 'allow_session'; } } });
+  assert.equal(await open({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'a.txt') } }), undefined);
+  assert.equal(await open({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'b.txt') } }), undefined);
+  assert.equal(asks, 1); // allow_session latches — no re-prompt
+});
+
+test('read outside workspace: relative path escapes count too', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-rel-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const core = { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } };
+  const d = makeDecide({ core, executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir });
+  const r = await d({ toolCall: { name: 'read' }, args: { path: '../sibling-secret.txt' } });
+  assert.equal(r?.block, true);
+  // workdir itself and descendants pass silently
+  assert.equal(await d({ toolCall: { name: 'ls' }, args: { path: '.' } }), undefined);
+  assert.equal(await d({ toolCall: { name: 'read' }, args: { path: 'sub/deep.txt' } }), undefined);
+});
+
+test('M105: receipts carry toolCallId; undoCall reverts exactly that call\'s mutations', async () => {
+  const { dir, decide, fileOps } = rig();
+  const t1 = join(dir, 'one.txt');
+  const t2 = join(dir, 'two.txt');
+  writeFileSync(t1, 'v1'); writeFileSync(t2, 'v2');
+
+  // two calls — call A mutates one.txt, call B mutates two.txt
+  await decide({ toolCall: { name: 'write', id: 'call-A' }, args: { path: t1, content: 'x' } });
+  writeFileSync(t1, 'mutated-A'); // the "tool execution" the backup covered
+  await decide({ toolCall: { name: 'write', id: 'call-B' }, args: { path: t2, content: 'x' } });
+  writeFileSync(t2, 'mutated-B');
+
+  const ops = opsLog(dir);
+  assert.equal(ops[0].toolCallId, 'call-A');
+  assert.equal(ops[1].toolCallId, 'call-B');
+
+  const r = await fileOps.undoCall('call-A');
+  assert.deepEqual(r.skipped, []);
+  assert.equal(readFileSync(t1, 'utf-8'), 'v1');   // A reverted
+  assert.equal(readFileSync(t2, 'utf-8'), 'mutated-B'); // B untouched
+});
+
+test('M105: undoFrom rewinds the anchor receipt and everything newer, oldest state wins', async () => {
+  const { fileOps } = rig();
+  const dir = fileOps.rootDir ?? undefined;
+  const tmp = mkdtempSync(join(tmpdir(), 'pai-m8-undo-'));
+  const guard = new FileOpsGuard(tmp);
+  const a = join(tmp, 'a.txt');
+  const b = join(tmp, 'b.txt');
+  writeFileSync(a, 'a0'); writeFileSync(b, 'b0');
+  const r1 = await guard.backup(a);   // anchor — state "before" is a0/b0
+  writeFileSync(a, 'a1');
+  await guard.backup(b);
+  writeFileSync(b, 'b1');
+
+  const r = await guard.undoFrom(r1.receiptId);
+  assert.equal(r.restored.length, 2);
+  assert.equal(readFileSync(a, 'utf-8'), 'a0');
+  assert.equal(readFileSync(b, 'utf-8'), 'b0');
+  // restores are themselves receipted — the rewind is recoverable
+  assert.ok(opsLog(tmp).some((o) => o.op === 'restore'));
+  void dir;
+});
+
+test('M100: terminal provider error walks the fallback chain; aborts never do', async () => {
+  const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
+  const events = {};
+  const sent = [];
+  const models = {
+    'openai/gpt-a': { provider: 'openai', id: 'gpt-a' },
+    'anthropic/claude-b': { provider: 'anthropic', id: 'claude-b' },
+  };
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    setModel: async (m) => m.provider !== 'anthropic' ? true : true, // all authed
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const auditEvents = [];
+  const audit = { write: (e) => auditEvents.push(e) };
+  const ext = loopGovernanceExtension({
+    audit, fallbacks: { chain: [{ provider: 'anthropic', model: 'claude-b' }, { provider: 'openai', model: 'gpt-a' }] },
+  });
+  ext.factory(pi);
+
+  const run = async (cur, stopReason) => {
+    events.agent_start();
+    await events.agent_end(
+      { messages: [{ role: 'assistant', stopReason, errorMessage: 'HTTP 429 rate limited' }] },
+      { model: cur, modelRegistry: { find: (p, id) => models[`${p}/${id}`] }, sendUserMessage: (t) => sent.push(t) },
+    );
+  };
+
+  // current model not in chain → first chain entry
+  await run({ provider: 'openai', id: 'gpt-5' }, 'error');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0], /claude-b/);
+  assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.to === 'anthropic/claude-b'));
+
+  // aborted runs never fall back
+  sent.length = 0;
+  await run({ provider: 'anthropic', id: 'claude-b' }, 'aborted');
+  assert.equal(sent.length, 0);
+
+  // new task resets the hop budget; chain position advances past current
+  await run({ provider: 'anthropic', id: 'claude-b' }, 'error');
+  assert.match(sent.at(-1), /gpt-a/); // idx+1 — skips re-selecting the failed model
+
+  // chain exhausted → audit 'exhausted', no more steers
+  sent.length = 0;
+  await run({ provider: 'openai', id: 'gpt-a' }, 'error');
+  assert.equal(sent.length, 0);
+  assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.exhausted));
+});
+
+test('stale agent_end: a duplicated end-of-run event without a new start is dropped + audited', async () => {
+  const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
+  const events = {};
+  const sent = [];
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    setModel: async () => true,
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const auditEvents = [];
+  const audit = { write: (e) => auditEvents.push(e) };
+  loopGovernanceExtension({
+    audit, fallbacks: { chain: [{ provider: 'anthropic', model: 'claude-b' }, { provider: 'openai', model: 'gpt-a' }] },
+  }).factory(pi);
+
+  const ctx = {
+    model: { provider: 'openai', id: 'gpt-5' },
+    modelRegistry: { find: (p, id) => ({ provider: p, id }) },
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const errMsg = { messages: [{ role: 'assistant', stopReason: 'error', errorMessage: 'HTTP 500' }] };
+
+  events.agent_start();
+  await events.agent_end(errMsg, ctx);
+  assert.equal(sent.length, 1, 'first end triggers the fallback');
+  // upstream double-fire / late duplicate: no agent_start in between
+  await events.agent_end(errMsg, ctx);
+  assert.equal(sent.length, 1, 'stale agent_end dropped — no double fallback');
+  assert.ok(auditEvents.some((e) => e.kind === 'STALE_AGENT_END' && e.data.dropped));
+  // a real new run re-arms the latch
+  events.agent_start();
+  await events.agent_end(errMsg, ctx);
+  assert.equal(sent.length, 2, 'fresh run is not silenced by the latch');
+});

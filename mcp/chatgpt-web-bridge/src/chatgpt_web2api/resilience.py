@@ -120,6 +120,11 @@ async def retry_on_rate_limit(
             retry_allowed = stage_safe and (
                 can_retry(e) if can_retry is not None else True
             )
+            from . import send_receipts
+            receipt = getattr(e, "send_receipt", {})
+            retry_allowed = retry_allowed and not send_receipts.submission_started() and (
+                not receipt or receipt.get("state") in {"not_sent", "preparing"}
+            )
             if not retry_allowed:
                 logger.warning(
                     "Rate limit arrived after send delivery became %s; "

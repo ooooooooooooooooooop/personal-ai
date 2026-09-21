@@ -16,7 +16,40 @@
  * Denials are structured: {rule, expected, actual, repair} — adapters render
  * them into repair-oriented reason text (Kimi-style guidance).
  */
+import { hashOf } from './audit.js';
+
+/**
+ * Agent standing-order files — a mutating file call aimed at any of these
+ * always escalates to an operator ask, regardless of session mode (Hermes
+ * protected-agent-instructions analogue). Covers this repo's own steering
+ * surfaces (.pai/**) plus the compat instruction files other harnesses read.
+ */
+const INSTRUCTION_PATH_RES = [
+  /(?:^|\/)\.pai\//i,
+  /(?:^|\/)\.paiignore$/i,
+  /(?:^|\/)AGENTS\.md$/i,
+  /(?:^|\/)CLAUDE\.md$/i,
+  /(?:^|\/)GEMINI\.md$/i,
+  /(?:^|\/)QWEN\.md$/i,
+  /(?:^|\/)CONVENTIONS\.md$/i,
+  /(?:^|\/)\.goosehints$/i,
+  /(?:^|\/)\.clinerules(?:$|[./])/i,
+  /(?:^|\/)\.cursorrules$/i,
+  /(?:^|\/)\.roomodes$/i,
+  /(?:^|\/)\.cursor\//i,
+  /(?:^|\/)\.kiro\//i,
+  /(?:^|\/)\.claude\//i,
+  /(?:^|\/)\.devin\//i,
+  /(?:^|\/)\.windsurf\//i,
+  /(?:^|\/)\.github\/copilot-instructions\.md$/i,
+];
+
 export class GovernanceKernel {
+  /** Rejection-memory signature set — per kernel instance = per session
+   * (CodeBuddy analogue): an identical call the operator already denied
+   * auto-denies on retry instead of re-asking the same card. */
+  #rejections = new Set();
+
   /**
    * @param {object} deps
    * @param {import('./audit.js').AuditWriter} deps.audit
@@ -34,7 +67,7 @@ export class GovernanceKernel {
    * @param {string[]} [deps.mutatingTools]  tool names that mutate without a
    *        shell command (write/edit/delete) — plan mode asks these too.
    */
-  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [] }) {
+  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [], modeOverlay = null, commandAllowlist = null, judge = null }) {
     if (!audit) throw new Error('GovernanceKernel requires an AuditWriter');
     if (!policy) throw new Error('GovernanceKernel requires an AttestedPolicy');
     this.audit = audit;
@@ -45,7 +78,12 @@ export class GovernanceKernel {
     this.commandArgs = commandArgs;
     this.ask = ask;
     this.modeProvider = modeProvider;
+    this.modeOverlay = modeOverlay;
     this.mutatingTools = new Set(mutatingTools);
+    this.commandAllowlist = commandAllowlist;
+    // P3 shadow judge: advisory second opinion on ASK cards only. It can
+    // never change a verdict — it rides the pending payload to the human.
+    this.judge = judge;
   }
 
   #deny(ctx, rule, detail) {
@@ -93,6 +131,36 @@ export class GovernanceKernel {
       kind: 'GOVERNANCE_ASK', toolName: ctx.toolName,
       data: { toolCallId: ctx.toolCallId, rule, summary },
     });
+    // Roo command-allowlist analogue: an OPERATOR-owned prefix list (instance
+    // root, not the agent-writable workdir) pre-approves matching commands —
+    // the ask is skipped but every other deny layer already ran. Only ever
+    // consulted inside #ask, so it can soften an approval request, never a deny.
+    // The adapter gets the rule + parsed units: instruction-file asks are
+    // never prefix-softened, and a compound command is allowed only when
+    // EVERY unit matches a prefix (a `good && rm -rf ~` must not ride on
+    // the good prefix).
+    if (this.commandAllowlist?.(ctx, { rule, parsed: detail.parsed ?? null })) {
+      this.audit.write({
+        kind: 'COMMAND_ALLOWLIST_HIT', toolName: ctx.toolName,
+        data: { toolCallId: ctx.toolCallId, rule, summary },
+      });
+      return this.#allow(ctx, 'operator:command_allowlist');
+    }
+    // Rejection memory: identical signature already denied → auto-deny.
+    // (After the allowlist — an operator standing order outranks a prior
+    // one-off denial.)
+    const sig = `${ctx.toolName}:${hashOf(stableJson(ctx.args ?? {}))}`;
+    if (this.#rejections.has(sig)) {
+      this.audit.write({
+        kind: 'REJECTION_MEMORY_HIT', toolName: ctx.toolName,
+        data: { toolCallId: ctx.toolCallId, rule, summary },
+      });
+      return this.#deny(ctx, 'rejection_memory', {
+        reason: `identical call already denied this session — ${detail.reason}`,
+        actual: summary,
+        repair: 'do not retry the same call; change the action or wait for a new session',
+      });
+    }
     // WYSIWYG contract: the operator must know whether the card shows the
     // complete payload or a clipped prefix — truncated args carry an explicit
     // flag + original size so the UI can say "you are approving N chars shown
@@ -100,24 +168,57 @@ export class GovernanceKernel {
     const argState = { truncated: false };
     const askArgs = sanitizeAskArgs(ctx.args, 0, argState);
     const argsTotalChars = (() => { try { return JSON.stringify(ctx.args ?? {}).length; } catch { return null; } })();
+    // Shadow judge: bounded second opinion rides the card to the operator.
+    // Judge errors/unavailability degrade to no advice — the human still
+    // decides; an opinion never flips a verdict on its own.
+    let advisory = null;
+    if (this.judge?.enabled) {
+      try {
+        advisory = await this.judge.assess({
+          toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary,
+          detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs,
+        });
+      } catch { advisory = null; }
+    }
     const answer = await this.ask(
-      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars },
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars, advisory },
       ctx.signal,
     );
+    // in-card editing: {answer, edited:{key:value}} — the operator's edited
+    // payload replaces the model's args (ctx.args is a live reference into
+    // the caller's context, so the tool executes what the operator wrote).
+    // Edits land before admission; the audit records both sides.
+    const ans = answer && typeof answer === 'object' ? answer.answer : answer;
+    const edited = answer && typeof answer === 'object' ? answer.edited : null;
+    if (edited && (ans === 'allow' || ans === 'allow_session' || ans === 'always')) {
+      const before = {};
+      for (const k of Object.keys(edited)) before[k] = ctx.args?.[k];
+      Object.assign(ctx.args, edited);
+      this.audit.write({
+        kind: 'GOVERNANCE_ASK_EDITED', toolName: ctx.toolName,
+        data: {
+          toolCallId: ctx.toolCallId, rule,
+          editedKeys: Object.keys(edited),
+          beforeHashes: Object.fromEntries(Object.entries(before).map(([k, v]) => [k, hashOf(String(v))])),
+          afterHashes: Object.fromEntries(Object.entries(edited).map(([k, v]) => [k, hashOf(String(v))])),
+        },
+      });
+    }
     this.audit.write({
       kind: 'GOVERNANCE_ASK_RESOLVED', toolName: ctx.toolName,
-      data: { toolCallId: ctx.toolCallId, rule, answer },
+      data: { toolCallId: ctx.toolCallId, rule, answer: ans },
     });
-    if (answer === 'allow' || answer === 'allow_session') {
-      return this.#allow(ctx, `operator:${answer}`);
+    if (ans === 'allow' || ans === 'allow_session' || ans === 'always') {
+      return this.#allow(ctx, `operator:${ans}`);
     }
+    if (ans === 'deny') this.#rejections.add(sig); // rejection memory
     const reasons = {
       deny: 'operator denied the call',
       timeout: 'operator did not answer before the ask expired',
       aborted: 'session aborted while awaiting operator',
     };
-    return this.#deny(ctx, `ask_${answer}`, {
-      reason: `${reasons[answer] ?? `ask unresolved (${answer})`} — ${detail.reason}`,
+    return this.#deny(ctx, `ask_${ans}`, {
+      reason: `${reasons[ans] ?? `ask unresolved (${ans})`} — ${detail.reason}`,
       actual: summary,
       repair: 're-issue after operator approval, or choose a permitted action',
     });
@@ -172,6 +273,14 @@ export class GovernanceKernel {
           repair: 'split the command into simpler units',
         });
       }
+      // instruction-file protection extends into shell writes: `echo x >
+      // AGENTS.md`, `tee`, `sed -i`, `cp dest` must not silently rewrite
+      // standing orders just because the command itself is allowed.
+      const instrWrite = (parsed.writeTargets ?? []).find((t) =>
+        INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
+      // inline env injection (`LD_PRELOAD=x cmd`, `MAVEN_OPTS=... mvn test`):
+      // loader/agent flags ride an otherwise-benign unit — always escalate.
+      const envInjection = (parsed.dangerEnv ?? [])[0] ?? null;
       const riskActions = this.policy.doc?.riskActions ?? {};
       // strictest applicable action: known worst risk AND unknown-unit policy
       const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
@@ -181,9 +290,27 @@ export class GovernanceKernel {
       const action = actions.includes('terminate') ? 'terminate'
         : actions.includes('deny') ? 'deny'
         : actions.includes('ask') ? 'ask' : 'allow';
+      if (instrWrite && (action === 'allow' || action === 'ask')) {
+        return this.#ask(ctx, 'instruction_file', {
+          reason: `command writes agent instruction file '${instrWrite}' — standing orders always need operator approval`,
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
+        });
+      }
+      if (envInjection && (action === 'allow' || action === 'ask')) {
+        return this.#ask(ctx, 'env_injection', {
+          reason: `command sets '${envInjection}' inline — loader/agent flags can inject code into the spawned process`,
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
+        });
+      }
       if (action === 'ask') {
         return this.#ask(ctx, `risk_${parsed.risk}`, {
           reason: `command risk class '${parsed.risk}' requires operator approval by policy`,
+          // SecurityAnalyzer analogue: the card shows WHICH class and WHICH
+          // command units earned it — not just "policy says ask".
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
         });
       }
       if (action === 'deny') {
@@ -207,6 +334,21 @@ export class GovernanceKernel {
       return this.#ask(ctx, 'tool_ask', {
         reason: `tool '${ctx.toolName}' requires operator approval by policy`,
       });
+    }
+
+    // 5b. instruction-file protection (Hermes protected-agent-instructions
+    // analogue): a mutating call that targets the agent's own standing-order
+    // files escalates to an operator ask in EVERY mode — the agent must never
+    // silently rewrite its own steering, skills, rules, or trust config via
+    // raw file writes. Proper facades (skill_create, /pin, goal_note) remain
+    // the intended channels; this gate only covers direct file mutation.
+    if (this.mutatingTools.has(ctx.toolName)) {
+      const hit = this.#instructionPath(args);
+      if (hit) {
+        return this.#ask(ctx, 'instruction_file', {
+          reason: `'${ctx.toolName}' targets agent instruction file '${hit}' — standing orders always need operator approval`,
+        });
+      }
     }
 
     // 6. prediction binding
@@ -253,7 +395,57 @@ export class GovernanceKernel {
       });
     }
 
+    // 8. mode preset overlay — a named session posture (Roo custom-mode
+    // analogue). Resolved LAST so it can only tighten: every canonical
+    // deny path above already returned. An overlay can never turn a deny
+    // into an allow — it adds asks and denies, nothing else.
+    const overlay = this.modeOverlay?.();
+    if (overlay) {
+      const act = this.#overlayAction(ctx, args, overlay);
+      if (act === 'deny') {
+        return this.#deny(ctx, 'mode_overlay', {
+          reason: `mode '${overlay.name}' denies '${ctx.toolName}'`,
+          repair: `switch mode or ask the operator to adjust the preset`,
+        });
+      }
+      if (act === 'ask') {
+        return this.#ask(ctx, 'mode_overlay', {
+          reason: `mode '${overlay.name}' requires approval for '${ctx.toolName}'`,
+        });
+      }
+    }
+
     return this.#allow(ctx, 'kernel');
+  }
+
+  /** Strictest applicable overlay action for this call. */
+  #overlayAction(ctx, args, overlay) {
+    const actions = [];
+    // tool rules — exact then longest '*' prefix (same convention as #toolRules)
+    const t = ctx.toolName;
+    if (overlay.toolActions[t]) actions.push(overlay.toolActions[t]);
+    else {
+      let best = null;
+      for (const key of Object.keys(overlay.toolActions)) {
+        if (!key.endsWith('*')) continue;
+        const prefix = key.slice(0, -1);
+        if (typeof t === 'string' && t.startsWith(prefix) && (!best || prefix.length > best.length)) best = prefix;
+      }
+      if (best) actions.push(overlay.toolActions[best + '*']);
+    }
+    // path rules — any path-like arg matched against preset globs
+    const paths = [args.path, args.file, args.target].filter((x) => typeof x === 'string');
+    for (const p of paths) {
+      const norm = p.replace(/\\/g, '/');
+      for (const r of overlay.pathRules) if (r.re.test(norm)) actions.push(r.action);
+    }
+    // default posture — toolAllow is the bypass list for a strict default
+    if (overlay.defaultAction && overlay.defaultAction !== 'allow' && !overlay.allowSet.has(t)) {
+      actions.push(overlay.defaultAction);
+    }
+    if (actions.includes('deny')) return 'deny';
+    if (actions.includes('ask')) return 'ask';
+    return 'allow';
   }
 
   /**
@@ -274,6 +466,17 @@ export class GovernanceKernel {
       }
     }
     return best ? table[`${best}*`] : {};
+  }
+
+  /** First path-like arg matching an agent-instruction file, else null. */
+  #instructionPath(args) {
+    const candidates = [args.path, args.file, args.target, args.from, args.to];
+    for (const p of candidates) {
+      if (typeof p !== 'string') continue;
+      const norm = p.replace(/\\/g, '/');
+      for (const re of INSTRUCTION_PATH_RES) if (re.test(norm)) return p;
+    }
+    return null;
   }
 
   #scanProtectedRoots(value, depth = 0) {
@@ -313,6 +516,14 @@ function summarizeArgs(args) {
 }
 
 const clip = (s, n = 240) => (s.length > n ? `${s.slice(0, n)}…` : s);
+
+/** Canonical args digest for rejection memory — key order must not change
+ * the signature (same recipe as loopwatch's repeat-signature). */
+const stableJson = (v) => JSON.stringify(v, (_k, x) => (
+  x && typeof x === 'object' && !Array.isArray(x)
+    ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+    : x
+));
 
 /**
  * Args carried onto the operator ask card — the operator approves what they

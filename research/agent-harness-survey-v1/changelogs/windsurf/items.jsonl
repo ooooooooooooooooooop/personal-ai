@@ -1,0 +1,1041 @@
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":null,"item":"Devin Desktop changelog - Devin Docs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fetch the complete documentation index at: /llms.txt"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Use this file to discover all available pages before exploring further."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.10.31September 16, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Restricted Mode blocks restricted workspace settings written in nested object form, not just the dotted form (CVE-2026-81376)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Switching back to one of your 10 most recently viewed sessions shows its transcript immediately."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.10.31"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.10.27September 15, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Dragging files from the Explorer onto the agent panel, or sending an editor selection to chat, adds them to the composer again."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Remote SSH sessions open right after a reload or relaunch, without a “session is locked by another process” error."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Fusion can be activated even when Claude Fable 5.1 isn’t available as a lead model."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.10.27"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.10.23September 10, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Remote agent hosts: connect to agents over SSH from the location selector, with saved hosts, status dots, and a server icon in the sidebar. SSH sessions recover the exact transcript after a reconnect."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Local sessions can now be deleted from the agent sidebar."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Faster startup, bounded memory for background transcripts and streamed file writes, and cheaper loading spinners."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"When switching between sessions in the Agent Command Center, the file explorer now updates to match the working directory of the active session."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"ACP is always enabled — the Enable ACP toggle is gone."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"MCP authorization opens the provider directly, and Docker-based MCP servers from the registry launch correctly."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Agent activation failures report the agent’s last stderr line and open that agent’s output channel."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Some legacy Cascade entry points are removed: new-agent option, annotations, conversation mentions, settings group, automatic Lifeguard checks, Vibe & Replace, Deploy, and workflow commands."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Files Devin edits in Desktop count toward lines-of-code analytics."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Cloud"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Network access requests now match the web app: an “Allowlist N domains” card that names the policy blocking the destinations and lets permitted users update the governing security profile or automation."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Archiving a cloud session with open pull requests offers to close them, and archives its child sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Improved cloud session formatting with an image preview carousel, hook run visibility, and rich queued messages."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"A message sent during a Devin Cloud outage is held and delivered when the connection returns."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.10.23"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.9.19September 8, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Cascade has been removed. Devin Local is now the only agent available in Devin Desktop. Use the Continue in Devin Local prompt to migrate existing conversations to the new agent."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The agent location picker now shows Local, Worktree, and Cloud as top-level options, with existing worktrees in a searchable nested submenu."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Agent sidebar: sessions updated in the last 30 days are shown by default."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The agent inbox list view now has per-row checkboxes for batch archive/unarchive, and the title-bar back/forward arrows navigate between the inbox and opened sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Trigger menus (/, @, !) no longer open when followed by whitespace, and stay closed after you click into the conversation."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Cmd/Ctrl+F opens find-in-page in Devin Review and embedded Devin web surfaces. Devin Review tabs show the PR title, open GitHub links at their diff anchor, and the sessions sidebar swaps to a PR files/review sidebar (or the wiki page tree) while a fullscreen review or wiki is open."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"PR cards gained Open Devin Review, Open in Desktop tab, Close PR, and Git settings actions, and Checkout branch now finds local clones (including worktrees) and lets you pick one when several match."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fixed attaching to dev containers whose remote user is a uid:gid, Remote-WSL activation on a fresh install, and MCP registry fetches behind corporate proxies."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Clipboard images can be pasted into the New Session page."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Problems panel actions now send problems to Devin Local when Cascade is disabled."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Config changes reach sessions in the order they are selected, so a rapid sequence no longer lets an older update overwrite a newer one."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.9.19"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.8.20August 21, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The Agent Command Center now follows whichever space is selected instead of being tied to one folder, converts an editor window in place (no reload, no save prompt), and any number of agent windows can run side by side."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"A new Agent Command Center location setting (devin.agentWindow.location) can be used to split the agent command center into a separate window from the editor."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Significantly improved performance for switching between Agent and Editor mode (Ctrl/Cmd+G)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Improved update process on Windows to only install after explicitly clicking Restart to Update."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Windows: Install Devin CLI now writes a shim to the bundled CLI, so updating Devin Desktop updates the devin command too."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Linux: uninstalling or upgrading the .deb no longer removes the shared Microsoft apt keyring, so other repositories signed by it keep working."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The agent sidebar, composer, and welcome page now warn when a workspace is untrusted and offer a trust workspace prompt to activate local agents."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fixed a rare bug where the window could scroll up after a mode switch."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Improved recovery for corrupted file:// working directories."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Added the ability to rename sessions from the tab dropdown."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Enterprise: Added a link to request more usage when hitting ACU limits."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Added support for working on multi-root workspaces containing virtual filesystem folders."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Improved plan mode with a full Markdown plan file that can be separately reviewed, with an explicit Implement button."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Running subagents can be stopped individually without cancelling the turn."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Explain and Fix Problem sends problems to Devin Local when Cascade is disabled."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Local tabs show the same status indicators as Cascade legacy tabs and the Current Workspace view keeps other projects’ conversations out of the list."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"post_setup_worktree hooks now run for worktrees created from a Devin Local session, so .env files and other untracked setup are copied in before the session starts."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"New settings control whether integrated terminal activity and local user-edit activity are shared with ACP agents (both remain on by default)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"mcp_config.json no longer shows spurious “Property is not allowed” warnings."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Up/down arrows in the chat input once again navigate through previous prompts."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fixed the migration wizard to work in remote SSH workspaces."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Cloud"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The sessions sidebar now has improved filtering and sorting controls."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Live shell output streams into the session while a command runs, and finished shell rows expand to their full command and complete output."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Terminal cards follow the newest output instead of the oldest, transcript timestamps appear on hover, and a failed send restores your draft to the input instead of losing it."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Session tabs and the command palette offer Copy Session URL."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Saving a session’s network config now reports a conflicting change instead of silently discarding it, and approving a network access request says why it failed."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.8.20"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.7.25August 13, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Faster sidebar for users with thousands of cached sessions: filtering, space grouping, and sorting now only process the sessions actually fetched for display, eliminating multi-second lag after “Reload Window” or while scrolling."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fixed authentication issues with certain MCP servers, such as self-hosted GitLab servers and older Atlassian MCP instances"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.7.25"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.7.16August 10, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"“Restart to Update” now asks for confirmation when local agents are still working and says how many will be stopped; cloud sessions keep running."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Settings and Keyboard Shortcuts open as regular editor tabs by default; set \"workbench.editor.useModal\": \"all\" to keep the modal overlay."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fixed a bug with accidentally triggering editor keybindings from the agent chat."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The old “Plugins” section for IDE extension marketplaces has been renamed to “Extensions”."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Hide Cascade-specific configuration and customization options when Cascade is disabled for your team."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Visual polish for the Agent Command Center: left-aligned titlebar, unsaved-changes indicator on file tabs, no more Cmd+P open/close flicker, aligned PR icons in Quick Open, full-width sidebar title renaming, and dragged session tabs that pick up their session name."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Starting an agent in a new worktree that fails now surfaces the git error instead of quietly running in your workspace."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Terminal: Create New Terminal in Editor Area now works inside worktrees."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Codemaps and MCP configuration files now open from the remote machine when connected over WSL, SSH, or a dev container."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Teams plan members no longer see quota warning banners they cannot act on."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Local conversations can be shared: Share Conversation uploads a sanitized transcript (system prompts and tool definitions dropped, secrets redacted, paths normalized) and copies a team-visible link. Share directly from the actions menu below a completed turn."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Reverting is reliable mid-turn: revert buttons appear as soon as a prompt is sent and reverting while the agent is working cancels the turn first."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The Customizations panel has search across every section (skills, subagents, rules, hooks, plugins, MCP servers), a new Subagents section, a refresh action for plugins, and an info indicator explaining why an enterprise-required plugin can’t be removed."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Plugins installed from Customizations are added to your personal plugins by default, so they are available in Devin Cloud and on your other devices; choose Install locally for a device-only install."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Permission rules from different levels (enterprise, mode, user, project, subagent) now compose predictably — an explicit deny: always wins, “always allow” options only appear when the grant would actually take effect, and denials say which layer denied them."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Fixed rendering of commands whose output contains non-UTF-8 bytes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Ensured sudo password prompts can’t hang a command."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Separate each MCP server’s logs into its own MCP: <server> output channel."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Large-file reads through ACP are bounded and paginated instead of repeatedly rereading overflow files. Late terminal flushes now preserve complete output and cannot reopen completed command cards."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Devin Cloud"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Session size chips use the same enterprise ACU thresholds as the web app, and auto-continuation billing notices appear inline in the transcript."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Queued messages can be edited: click the edit button or press ⬆ in an empty input to pull the last queued message back."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"The +X −Y diff summary on a collapsed agent group is now clickable and opens a multi-diff editor with just that group’s files."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"“Duplicate session” and “send as fork” open the fork in a new tab, keeping the original conversation open."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"“Grant access” on a network access request is disabled with an explanation when an admin owns the session’s network policy."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"Download 3.7.16"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Documentation Index","item":"v3.6.27August 1, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Desktop for Windows loads root and intermediate certificates from the Windows certificate store again, so sign-in and other HTTPS requests no longer fail with self signed certificate in certificate chain behind a TLS-inspecting proxy or a corporate root CA."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"The edit, write, apply_patch, and notebook_edit tools in Devin Local now refuse to write through a symlink, so an approved edit can no longer be redirected to an unexpected file."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Download 3.6.27"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"v3.6.22July 29, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Product analytics are no longer started before your account status resolves, so telemetry is never collected for accounts that have it turned off."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Download 3.6.22"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"v3.6.21July 29, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added a unified notifications setting that posts native OS notifications when any agent session finishes or needs your input."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Codemaps now open in their own editor tabs in agent window mode (home, generation, and individual codemaps), and codemap @-mentions now work in Devin Local. The Codemaps icon is also back in the activity bar in Agent Command Center mode."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Select text inside a message transcript and add it to the chat input with the “Add to chat” button or ⌘L / Ctrl+L."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added keyboard shortcuts for permission requests (always-allow and reject), with the shortcut hints shown on the buttons and dropdown entries."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Refreshed the agent window UI: Inter font by default, web-app icon set at web-app sizing, rounded pill session tabs (with state/PR icons), and smarter pane placement so files no longer cover your session tabs."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Pull request editor tabs now show a state-specific icon (open, draft, merged, or closed), and session-create cards show a Devin mode badge (Fast, Ultra, Fusion)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Faster syntax highlighting for streaming diffs, and typing in the input no longer lags while other background sessions stream."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Agent sidebar improvements: right-click context menus, double-click to rename, per-workspace filters/sort/grouping, greyed-out locked (read-only) sessions, a new-session shortcut hint, and sticky grouped spaces that keep their header."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Signed-out session tabs now show a “You are signed out” sign-in prompt instead of an endless spinner, and logging out cleans up stale session tabs."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Editing a past message keeps consistent typography, and the edited prompt stays visible at the bottom after a revert."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Cascade, Devin Local, and every other ACP agent are now unavailable while a workspace is open in Restricted Mode, and hooks no longer load or run there."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Local customizations has a new Plugins section listing the plugins it loads and the ones your repository, organization, or account offers."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Remote agent (ACP) sessions can now open a browser preview, the same workflow Cascade has: the agent proxies your local dev server, and the elements and console output you capture land in the agent’s message box as pending context. In Devin Desktop the preview opens in the built-in browser pane next to the agent."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"“Open customizations” is now available from the new-tab menu in an agent space and from a Devin Local session’s sidebar context menu, and the Cascade panel’s ... menu now only offers the customization surfaces that apply to the agent you have open."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"MCP servers reporting “Needs auth” now show an Authenticate button in the Devin Local MCP list, marketplace card, and detail page, which clears the stored OAuth credentials and reruns the browser authorization flow."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Models marked “Devin Local only” (including every GPT-5.6 variant) now appear disabled in Cascade’s model picker with a tooltip pointing you to Devin Local, rather than running degraded in Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Closing the last tab in the agent panel with the tab “x” now closes the panel instead of reopening a blank tab, matching Cmd/Ctrl+W."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Updated the base IDE to VS Code 1.126"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"New “Devin: Open Cascade Migration Wizard” command opens a guided wizard that chains hooks → skills → memories migration in one flow, with per-item opt-in and dry-run previews."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Plan mode now works like Cascade’s: the agent researches with read-only commands, keeps a persistent Markdown plan file at ~/.devin/plans/plan-<session>.md, and asks for approval before implementing."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Worktree sessions now show a Merge button to bring their changes back into the workspace, and you can pick an existing worktree from the agent location selector’s Local submenu."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"New tabs now default to Devin Local when you haven’t chosen a preferred agent (falling back to Cascade if it isn’t available), and Local is selectable in the agent selector while it’s still connecting."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Megaplan now work in Devin Local, switching the session into Plan mode and prompting the agent to plan first."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Editable command approvals: click a command in a permission card to edit it before approving, or use the wand action to describe a change in plain language and have a fast model rewrite it for review."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Queued messages can now be edited before they send, and editing or reverting a prompt preserves file, directory, skill, and terminal @-mentions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added Rules to the @-mention menu so you can pull a manual-trigger rule into a conversation."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added a “Duplicate session” action to the response footer to branch off a conversation, and a “Subagents (Preview)” toggle in Devin settings."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Custom subagents can now be defined as flat agents/<name>.md files, and per-agent directories also accept AGENTS.md, agent.md, and agents.md."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Response statistics now appear reliably after every turn."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"With “Agent Diff Zones” turned off, Devin Local no longer opens edited files in the background, and closing the last Devin Local tab now opens a fresh session instead of closing the panel."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Fixed streamed write/edit previews creating stray fragment files when a filename contains underscores."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Fixed permission rules written with relative globs (e.g. Read(**/*.pem)) being pinned to the directory the CLI was launched from, so they now apply under every workspace directory and pick up directories added mid-session."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Session permission grants and mode switches answered on a subagent’s prompt now apply to the whole session, so the root agent and sibling subagents no longer re-prompt for a scope you already granted."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Cloud"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Improved performance for loading Devin Cloud sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Cloud sessions now show the server-side send queue, kept in sync with the web app; Cmd/Ctrl+Enter queues the next message on the server."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Multi-user (Slack) sessions now show each participant’s name above their messages."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"A “Copy link” action was added to cloud session menus."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"A “Remote ACP is disconnected” banner with a Reconnect action now appears when the Cloud connection drops."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Download 3.6.21"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"v3.5.17July 17, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"@-mention pills in Cascade now show type-specific icons."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Restyled the command palette in the Agent Command Center."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Hiding the status bar by default in the Agent Command Center (set \"workbench.statusBar.visible\": true in user settings to restore it)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"New worktree-backed sessions now open instantly and stay interactive while the worktree is created in the background."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"“View usage” now opens eligible Devin users’ personal analytics page directly."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"The devin.* settings for gitignore access, completion mode, and auto-continue are now honored."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Resuming an agent session now uses its original working directory, so Claude sessions started in another folder can be reloaded."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Fixed a crash when opening the Recent Chat History modal in Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"On Windows, the auto-updater now clears stale Devin.exe processes before applying updates."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Cloud"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Long Devin Cloud sessions render, scroll, and type faster and stay responsive while streaming."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"A brief remote-connection drop no longer flashes a “disconnected” banner."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"You can now configure a session’s network policy and grant or deny network access requests inline from the chat, without switching to the web app."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Devin Local customizations and the sidebar skills count now span all open workspace folders."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"The Hooks tab in Devin Local Customizations now lists configured hooks with their source and trigger events."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added a command to migrate Windsurf hooks into Devin hooks across every workspace folder."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added a subtle timeline navigator for Devin Local sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added Fast Context support in Devin Local sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Download 3.5.17"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"v3.4.27July 7, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Download 3.4.27"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"v3.4.22July 4, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Added “New session in space” to the session kebab menu."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Devin Cloud sessions now auto-reconnect when the network returns."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Images can now be copied from chat via the context menu."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"New users now default to agent mode."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"The agent sidebar now stays visible when sending problems or explain-and-fix to Cascade in agent window mode."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Fixed branch checkout silently failing to open a worktree."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Very large sessions no longer crash the window when reading or writing the session event cache."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"The “Scroll to top” button in long sessions now has a solid background so it stays visible in dark themes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Orphaned Devin ACP agent processes are now detected and cleaned up on startup, including on Windows."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Fixed analytics connection failures under TLS-intercepting proxies."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Edits produced in autonomous mode now produce reviewable diffs."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"ACU usage is now shown in the /usage command."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Skill permissions: frontmatter now applies to auto-approvals."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Enterprise login policies are now enforced in the CLI."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Added a sandbox.excluded allow/ask/deny config (user and team settings) to run specific commands outside the sandbox; excluded commands also skip the sandbox proxy environment."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Fixed command approval parsing for PowerShell $variable assignment prefixes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Download 3.4.22"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"v3.3.18June 23, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Devin Desktop"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Devin ACU usage is now displayed in the client."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Fixed settings and extensions migration for Windows system-wide installs."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"CLI and Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"On Windows, bash now resolves to Git Bash instead of the WSL launcher stub."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Subagents can now be configured with a default model."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"The MCP registry cache is now warmed during startup, so MCP servers are ready sooner."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Injected context is no longer included in auto-generated session titles."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Fixed agent messages over-merging in Claude ACP sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Added an attribution option to the Devin Local config file; set it to false to suppress Devin mentions in commit messages."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Download 3.3.18"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"v3.2.28June 23, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Various bug fixes and improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"Download 3.2.28"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixes issues with diff viewing in autonomous mode.","item":"v3.2.23June 18, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Made MCP registry parsing more tolerant of old and inconsistent schemas."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Download 3.2.23"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"v3.2.19June 18, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Fixed a bug with loading skill files that use alternative fields."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Download 3.2.19"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"v3.2.16June 16, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"The 3.2 series brings Devin Local enhancements and continued Devin Desktop polish.Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Added a devin plugin system for extending Devin Local — in preview and opt-in for enterprises."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Subagents can now call MCP tools directly."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Teams can enforce terminal allow/deny lists through CLI permission scopes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Agent and Editor modes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Fixed","item":"Enabled the Cmd+. mode-toggle shortcut from the empty editor welcome panel."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Improved handling for less common MCP server features."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Removed the Explain sparkle button from the editor breadcrumbs."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Download 3.2.16"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"v3.1.7June 10, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"The 3.1 series builds on the Devin Desktop rebrand with a smoother Agent/Editor experience, Devin Local improvements, and continued polish.Agent and Editor modes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Added the Agent/Editor switch to the collapsed-sidebar titlebar, and unified the search icon to open agent search."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Kept the sidebar toggle in place when opening and closing the drawer."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Smoothed switching between Agent and Editor modes so auxiliary windows no longer close and restore."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Renamed the “Devin CLI” settings section to “Devin Local”."}
+{"file":"windsurf.com_changelog.html","version":null,"date":null,"section":"Other improvements","item":"Added a notification when Devin Local agent sign-in fails."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Updated the bundled Devin Local agent to v2026.5.26-8."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Added .devinignore support alongside .windsurfignore and .codeiumignore."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Settings and MCP marketplace pages now scroll across the full panel width and keep content centered on wide panels."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Download 3.1.7"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"v3.0.28June 6, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Hardened migration from Windsurf on Windows to preserve shortcut icon."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Improved handling of file context in Devin Local agent"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Increased proxy authentication timeout"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Other improvements","item":"Fixed issues with some stdio MCP servers on Windows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enterprise"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Simplified model picker pricing view for select enterprise customers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 3.0.28"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v3.0.21June 4, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added a new command for Devin Desktop to rerun the migration from Windsurf. This will reset Devin Desktop settings and give you a second chance to import extensions and other settings from Windsurf. The “Reset migration from Windsurf” command can be found in the command palette.If you are logged out of your account after migrating from Windsurf, we recommend opening the command palette via ctrl+shift+p (cmd+shift+p on macOS) and running the reset migration command."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 3.0.21"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v3.0.12June 2, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windsurf is now Devin Desktop."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 3.0.12"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v2.3.15May 27, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"General"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Increased remote server startup timeout from 2.5s to 6s."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin Local"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"This release updates the bundled Devin Local agent to 2026.5.26. See the changelog for the full list of changes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin Local is now aware of the files you have open in the editor as part of its context."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"When prompted for an MCP tool permission in Devin Local, two additional server-level options are now offered: approve all tools on the server for the current session, or permanently."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Repaired hooks for Devin Local to allow blocking user prompts."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved plan mode in Devin Local to work in the OS sandbox."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"“Always Allow” permission grants in Devin Local now persist across sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Image attachments in Devin Local now show the correct warning when the selected model does not support images."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 2.3.15"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v2.3.9May 16, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixed availability issues with swe-check model for some users."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved terminal processing performance"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Restored conversation sharing"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Repaired path resolution for the Devin local agent on WSL"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 2.3.9"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v2.2.17May 6, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin Review & Quick Review"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"All Windsurf IDE users now have access to Devin Review and Quick Review with your existing subscription."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin Review is available for all self-serve users."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enterprise users can only use Devin Review with a Cognition platform agreement."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Agent Command Center"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added list display option for the agent inbox"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved sessions sidebar sorting and filtering"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Performance improvements for loading and switching sessions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windows updates"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"We have fixed a bug preventing updates for some users on Windows. To upgrade to this version, you may need to:"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Wait for the update to download."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Once it is downloaded, open Windows Task Manager and close all devin.exe processes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Proceed with installing the update and restarting Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Fixed bugs with some MCP servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Improved reliability of Devin Local agent"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Download 2.2.17"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"v2.1.32April 29, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Fixed a crash that could occur when switching between Cascade conversations"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Fixed an authentication issue that could prevent Devin Cloud sessions from starting"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Fixed an issue where responses to agent questions were not sent correctly"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Download 2.1.32"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"v2.1.29April 29, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin for Terminal"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin is now available for Terminal. All Windsurf users can use this new CLI agent with your existing subscription."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Runs on your machine — Optimized for interactive work, with full access to your codebase, tools, and environment."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Hand off to the cloud — Seamless hand off to Devin in the cloud, with its own VM, testing, video recordings, autofix and more. Come back to a finished PR."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Multi-model — All of your favorite frontier models in one place, including Opus 4.7, GPT-5.5, and SWE-1.6."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fast — Written in Rust and so performant that the binary can run on an original VT100."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin Agent in Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can also enable the new Devin Local agent in Windsurf. This is the same agent harness used on the terminal and sessions can be accessed from both Windsurf and the CLI.In our testing, it’s up to 30% more token-efficient than the existing Cascade agent."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Additional Changes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved search subtitle layout during streaming"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed file drag-and-drop in agent window Cascade tabs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed Go to Line/Column keybinding on Windows/Linux (Ctrl+Shift+G)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for server-driven extension deny lists"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Stability and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 2.1.29"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v2.0.67April 22, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixed OAuth authentication issues for some MCP servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 2.0.67"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v2.0.63April 21, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixed a regression with OAuth integration for some MCP servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved reliability of Devin Cloud connections in Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 2.0.63"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v2.0.61April 17, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 2.0.61"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v2.0.50April 16, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements for improving Windsurf 2.0 auth experience."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixed bug with spawning Terminal sessions on Windows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 2.0.50"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v2.0.44April 15, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windsurf 2.0"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Read the full announcement here."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin in Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin cloud agent available directly inside Windsurf, included with every self-serve plan"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Delegate tasks from a local session to Devin with one click; Devin runs on its own VM"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Review Devin changes and test results without leaving the editor"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Billing is based on your existing quota and extra usage, with up to 50 USD in extra usage added for launching your first Devin Cloud session."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Note: Access to Devin Cloud is rolling out gradually. If you don’t see it yet, try logging out of the website and IDE then logging back in.Devin Cloud is disabled by default for enterprise accounts. Enterprise admins should enable Devin access in their organization settings if they have already purchased Cognition Platform."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Agent Command Center"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"New Kanban-style view showing all local and cloud agent sessions, organized by status"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Group agent sessions, PRs, files, and context into task-level Spaces"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Switch between Spaces to switch between tasks"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Additional Changes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Refined Windsurf Browser with toolbar integration and Cascade tool for reading page contents"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Sped up initial load times for the Cascade sidebar"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved .gitignore and .codeiumignore handling across the product"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Stability improvements for remote extensions (WSL, SSH, Dev Containers)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Performance improvements for typing in large active diff zones"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 2.0.44"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9600.41April 8, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Adaptive Fix"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"We fixed a bug with the adaptive model router which prevented switching models after the first request.All users who encountered the bug have had quota reset and overage restored."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9600.41"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9600.40April 7, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Adaptive Model Visibility"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"We’ve improved the visibility of the adaptive model in the model picker."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9600.40"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9600.38April 6, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Introducing Adaptive"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"We’ve made several model packaging changes, with more info here."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Adaptive Model Router"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"A new Adaptive model option is now available in the model picker. Adaptive intelligently selects the best model for each task, helping you make your quota last longer by avoiding overuse of premium models."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Availability: Now available to all self-serve users on Pro, Max, and Teams plans."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Dynamic model selection - Automatically chooses the right underlying model for your task while drawing down quota at a fixed per-token rate."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Extra usage promo - Beyond your quota, extra usage is offered at 0.50 USD per 1M input tokens, 2.00 USD per 1M output tokens, and 0.10 USD per 1M cache read tokens for the next 2 weeks."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Updated Model Picker with Pricing Context"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"The model picker now shows token pricing information directly, so you can see the exact rate extra usage is billed at."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Token pricing display - Per-model input, output, and cache read token rates visible in the picker."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Prompt cache timer - A new prompt cache timer is integrated into the context window indicator to help you track caching status."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Token counts in response cards - Response cards after messages now include token counts so you can understand exactly how each message cost was calculated."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9600.38"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9577.43March 19, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Quota Billing"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for the new quota billing system"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Daily and Weekly quota usage is now displayed directly in the IDE"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix build for Mac x64"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9577.43"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9577.42March 19, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9577.42"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9577.27March 12, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix for Apple M5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9577.27"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9577.24March 9, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fix dangling Diff Zones related to Jupyter Notebooks"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improve Jupyter Notebook performance when running on WSL"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improve Cascade UI rendering performance"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fix Cascade agent panel crashes under certain conditions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improve notifications for model price changes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Add support for loading SKILL.md files from the .windsurf/skills/ directory"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fix AGENTS.md being ignored by Cascade in specific cases"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Add support for system-level Skill definitions via MDM-managed configs for Enterprise"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improve context management for MCP servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Stability & Performance"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improve autocomplete error handling and performance"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improve SSH & Remote performance"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9577.24"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9566.11February 26, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix extension installation version selection"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9566.11"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9566.9February 25, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Model Picker","item":"We introduced a new model picker that groups models by family and adds a hovercard with toggles for"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Model Picker","item":"specific variants, like reasoning effort and speed."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Model Picker","item":"Separately, we also added the ability to pin models."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added POST_CASCADE_RESPONSE_WITH_TRANSCRIPT cascade hook"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added Cascade hooks configuration visibility on team settings page"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Reduced the priority of Git commits in @ mention search"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added a devin.cascade.readClaudeCodeConfig flag to disable reading Claude configuration"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"MCP Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added an MCP Refresh button"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Auto-trigger OAuth login when adding HTTP/SSE MCP servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fix bugs with parsing on Windows and startup"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Platform Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Merged changes from VS Code 1.108"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved startup reliability for Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed Windows update initialization path that could block updates"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Released binaries for Linux ARM64"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9566.9"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9552.25February 21, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix compatibility with GitHub Pull Requests extension"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9552.25"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9552.24February 17, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix for self-updating on Windows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix for macOS UI flickering"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9552.24"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9552.21February 12, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Plan Mode now supports automatic switching back to Code Mode when you start implementing a plan"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for reading skills from the .agents/skills directory"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Tracking triggered rules in the post_cascade_response hook via a new rules_applied field"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Diff zones will now automatically close on commit"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Linux ARM64 Support"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Full Linux ARM64 client support with deb and rpm packaging"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enterprise & Team Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cloud configuration for Cascade Hooks is now available for enterprise teams via the cloud dashboard"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Support for Devin service key authentication"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixes for post_write_code hooks to handle all code editing tool formats"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixes and improvements for MCP server resource loading"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fixed osascript privilege escalation being incorrectly triggered on Linux for shell command installation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Addressed multiple memory leaks"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved RTL language rendering in todo lists"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9552.21"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9544.35February 5, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Models","item":"GPT-5.3-Codex-Spark is now available in Arena Mode’s Fast Arena and Hybrid Arena battle groups"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Opus 4.6 (fast mode)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Opus 4.6 (fast mode) is now available in Windsurf in research preview with limited-time promotional pricing for self-serve users until Feb 16:"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"No thinking: 10x credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"With thinking: 12x credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Opus 4.6 (fast mode) has the same intelligence as Opus 4.6 but with up to 2.5x higher output speeds."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Opus 4.6"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Opus 4.6 is now available in Windsurf with limited-time promotional pricing for self-serve users:"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"No thinking: 2x credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"With thinking: 3x credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Opus 4.6 is available in Arena Mode’s Frontier Arena and Hybrid Arena. Try it head-to-head against other frontier models to see how it performs on your real-world tasks."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9544.35"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9544.28February 3, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix issues with Arena Mode Battle Groups"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9544.28"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9544.26January 30, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improve UI styling for announcement popups and notifications"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Close model picker when selecting a battle group"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9544.26"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.9544.24January 30, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Wave 14: Arena Mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Arena Mode brings side-by-side model comparison directly into your IDE, plus Plan Mode for smarter task planning."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Arena Mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Run two Cascade agents side-by-side with hidden model identities and vote on which performs better. Arena Mode lets you discover which models actually work best for your workflow, codebase, and tasks—not just what benchmarks or influencers say."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Battle Groups: Choose specific models to compare or let Windsurf randomly select from curated groups like “fast models” vs “smart models”"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Personal & Global Leaderboards: Your votes contribute to both a personal leaderboard (your preferences) and a global one (across all Windsurf users)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Sync or Branch: Send followup prompts to both agents simultaneously, or branch and explore different paths individually"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"To get started, select the new Arena tab in the model picker. All battle groups are free for the first week for paid users."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Plan Mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Plan Mode is a new Cascade mode alongside Code and Ask. Use it to create detailed implementation plans before diving into code.Pro tip: Type megaplan in the Cascade input box to trigger an advanced form that asks clarifying questions to create a more aligned, comprehensive plan."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Admins can now set a default model that applies to all team members when they first open Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.9544.24"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.14January 28, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix bug with permanently disconnected cascades"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.14"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.13January 27, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Fixes commit message generation and codemaps suggestions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Download 1.13.13"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"v1.13.12January 23, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enterprise Features"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enterprise admins can now specify organization-wide allow and deny lists for command auto-execution. Learn more"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Bug fixes and performance improvements for diff zones"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved overall stability and reliability"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Added post_setup_worktree hook for initializing worktrees in Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.12"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.9January 16, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improvements to GPT-5.2-Codex harness"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Admins can now manage Windsurf restrictions via Windows Group Policy"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.9"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.8January 14, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.2-Codex"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Adds support for GPT-5.2-Codex with four reasoning efforts (low, medium, high, and xhigh)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.2-Codex is OpenAI’s latest model designed for agentic coding. It excels at working in large codebases over long sessions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"For most tasks, we recommend using the medium reasoning effort."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved stability and reliability"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.8"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.6January 13, 2026"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Features and Improvements","item":"Windsurf now supports Agent Skills for Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved stability and reliability"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.6"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.5December 27, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Gemini 3 Flash"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Gemini 3 Flash is now available for all users. This model combines Gemini 3 Pro-grade reasoning with Flash-level speed and efficiency, making it ideal for agentic workflows and coding tasks."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Blazing Fast Responses: Experience near-instant feedback with 3x faster performance than previous generations, perfect for iterative development compared to Gemini 3 Pro"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Superior Coding Intelligence: Outperforms even Pro-tier models on key coding benchmarks (78% on SWE-bench Verified), providing more accurate code generation and debugging"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Deep Multimodal Understanding: Easily process complex video, data extraction, and visual Q&A tasks with frontier-level reasoning"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Various bug fixes and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Tab fixes and improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.13.3December 24, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Wave 13: Merry Shipmas"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Wave 13 brings first-class support for parallel, multi-agent sessions in Windsurf, along with Git worktrees, side-by-side Cascade panes, and a dedicated terminal profile for more reliable agent execution."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1.5 Free"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Our near-frontier model, SWE-1.5, is now available for free to all users for the next 3 months. SWE-1.5 Free has the full intelligence of SWE-1.5, with the same coding performance on SWE-Bench-Pro, but delivered at standard throughput speeds. The original variant of SWE-1.5 hosted on Cerebras will continue to be available for paid users. SWE-1.5 Free will replace SWE-1 as the default model in Windsurf starting today."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Git Worktree Support"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windsurf now supports Git worktrees, letting you spawn multiple Cascade sessions in the same repository without conflicts. Git worktrees check out different branches into separate directories while sharing the same Git history."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Multi-Cascade Panes & Tabs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can already run multiple Cascade sessions in Windsurf at the same time. Now, you can view and interact with them in separate panes and tabs within the same window. This lets you monitor progress and compare outputs of sessions side-by-side, or even turn Windsurf into a big Cascade dashboard."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Dedicated Terminal (Beta)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Context Window Indicator"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"When a model’s context window grows too long, earlier context can be dropped without warning and performance can degrade. Cascade already extends the window by occasionally summarizing messages and clearing history. This release adds a visual indicator to see how much of your context window is currently in use, helping you anticipate limits and decide when to start a new session."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Hooks"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Execute custom commands at key points during Cascade’s workflow, including on model response for auditing purposes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"System-level Rules & Workflows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enterprises can deploy rules and workflows via MDM policies, allowing organizations to place rules and workflows files on users’ machines."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Enhanced diff zone behavior with configurable scroll-to-next-hunk settings (default off)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Preserved colors and styling in Cascade terminal output"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Multiple fixes to the Model Context Protocol implementation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Supports lowering permissions for Cascade’s Web Fetch tool"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix race condition in the dedicated terminal implementation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Support force killing commands in the dedicated terminal"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Improved markdown completion"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Fix opening old Cascade diffs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"Download 1.13.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes and Improvements","item":"v1.12.47December 16, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Agents & Tool Execution"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed Command-I functionality"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed Ctrl+C during tool execution not working properly"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed Go (fallback) processes not being killed properly"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed handling of parallel tool call errors"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved MCP tool call visibility (show tool name, args, etc)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed fallback diff handling for nonexistent files in code actions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"UI & Rendering"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed incorrect indentation from code blocks in terminal rendering"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed nested lists not rendering on new line in terminal markdown"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed content spacing issues"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed streaming flashes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Enhanced code block file path display to hide line numbers for whole files"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved citation and language parsing in code blocks with a more robust regex pattern"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Updated the UI for code block title bars to properly handle long paths with truncation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved the auto-run command menu interface and its display logic"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added loading indicators when thinking or during long running operations"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fix opening old Cascade diffs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Platform & Messaging"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed rate limit error message to say “no credits were used” instead of “credits have been refunded”"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed continuously rechecking for updates on macOS"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added a user-facing message when API providers are exhausted"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Workspace & Onboarding"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Allowed clicking items in the Windsurf onboarding pane"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Respect gitignore patterns in the workspace directory tree"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.47"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.44December 12, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Reduce occurrence of “prompt is too long” errors"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Request all supported scopes if no scopes are provided in MCP OAuth config"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Download 1.12.44"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"v1.12.43December 11, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.2 is now available in Windsurf. This model will be available for 0x credits in Windsurf (to paid users) for a limited time.GPT-5.2 represents the biggest leap for GPT models in agentic coding since GPT-5 and is a SOTA coding model in its price range. The version bump undersells the jump in intelligence. We`re excited to make it the default across Windsurf and several core Devin workloads. - Jeff Wang, CEO of WindsurfDownload the latest version on Windsurf to try it out!"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"General Windsurf stability and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"General Tab (Supercomplete) improvements and stability"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Fixes issues with Cascade running commands that could not be cancelled during certain long-running processes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Download 1.12.43"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"v1.12.41December 10, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Hooks on User Prompts"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Users can now configure Cascade Hooks on user prompts for logging all user prompts and blocking policy-violating prompts."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"MCP Servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for GitLab remote MCP."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added OAuth support for GitHub remote MCP."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed an issue where every MCP would reauth on opening Windsurf."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for MCP prompts"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added toggles to enable/disable MCPs in the Cascade header"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Diff Zones"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixes issues with diff zones not rendering correctly or jumping to the end of a file when editing"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Tab (Supercomplete)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improves reliability of Tab autocomplete"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Makes Tab more responsive and faster in the appropiate circumstances"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"General stability and performance improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Fixes issues with login timing out too quickly during onboarding"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"Download 1.12.41"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug fixes and improvements","item":"v1.12.39December 4, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.1-Codex Max"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Introducing GPT-5.1-Codex Max in three reasoning tiers (Low, Medium, High). Low variant available at no cost to paid users for a limited time."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.39"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.37December 2, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"General bug fixes and improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Download 1.12.37"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"v1.12.36November 24, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Opus 4.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can now use Claude Opus 4.5 in Windsurf!Opus 4.5 is the most capable model in Windsurf yet and is now available at Sonnet pricing for a limited time (2x credits compared to 20x for Opus 4.1).This model is available to all paid Windsurf subscribers."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.36"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.35November 21, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"AI Models"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Gemini 3 Pro"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Resolved an issue where Gemini 3 Pro caused internal Cascade errors for some users."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed notebook tool functionality for SWE-1.5."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Addressed an issue where SWE-1.5 would unexpectedly stop or return “No response requested”."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Sonnet 4.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for Sonnet 4.5 with a 1M token context window."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Reduced the frequency of unnecessary Markdown file creation by Sonnet 4.5."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.1 Codex and Codex Mini"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for GPT-5.1 Codex and Codex Mini with low reasoning effort configuration."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Codemaps"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved reliability of saving and retrieving Codemaps."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed Codemap sorting and increased the limit of visible open Codemaps."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Resolved issues with mentioning Codemaps in Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"MCP Servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed scope handling and OAuth authentication flows for various MCP servers."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Resolved issues preventing installation of new MCP servers."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for handling embedded resource content in tool call responses."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Tab Completion"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved latency, responsiveness, and accuracy of autocomplete."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Note: The Autocomplete setting has been removed as it was a legacy option that had no effect. Windsurf’s Tab autocomplete feature is powered by Supercomplete."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Vibe and Replace"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed reliability issues with Vibe and Replace."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fast Context"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added support for .codeiumignore and .gitignore for Fast Context."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"General Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed various UI alignment issues with icons and styles."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"General performance and stability improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed issues with the file search tool."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.35"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.33November 18, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Gemini 3 Pro Preview"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can now use Gemini 3 Pro (Low and High) in Windsurf! This is a preview release that is available to paid Trial, Pro, and Teams subscribers and will soon be extended to Enterprise users as well."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.33"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.32November 14, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.1 Priority Mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Added priority processing support for GPT-5.1 models, providing guaranteed low-latency responses for faster (~50 tokens/sec), more reliable AI assistance."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Priority processing costs 2x the standard rate, which will be reflected in the Windsurf credit system."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Fixed tool call calling issues for GPT-5.1-Codex and GPT-5.1-Codex Mini models"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Download 1.12.32"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"v1.12.31November 13, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.1 and GPT-5.1-Codex"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5.1 and GPT-5.1-Codex are now available in Windsurf. GPT-5.1 will become the default model in Windsurf for one week, and paid users get free access during this period.GPT-5.1 and GPT-5.1-Codex deliver a solid upgrade from GPT-5 for agentic coding workflows. They’re noticeably better at understanding what you’re asking for and working with you to get it done. The new variable thinking feature dynamically adjusts reasoning depth—providing quick responses for simple tasks and more thoughtful analysis when complexity demands it."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"MCP Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Loading state indicators: Show loading state per installed MCP to improve visibility during initialization."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Refresh only edited MCPs: When mcp_config.json is modified, only the affected MCP server instance is initialized/refreshed; no other instances are refreshed."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Increased initialization timeout: MCP initialization timeout increased to 60s."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Refresh button for error states: Show refresh button for MCPs in error state to allow manual recovery."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Hooks"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Hooks feature: New Cascade Hooks feature available to all tiers."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Documentation: See Cascade Hooks docs for available hooks and usage examples."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE 1.5 Image Support"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Image understanding: SWE 1.5 now supports image understanding, enabling visual content analysis."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Removed Features","item":"Knowledge Base: Removed the Knowledge Base feature."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Vim extension typing lag: Fixed bug causing typing lag when Vim extension is enabled."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"PowerShell + Turbo Mode: Fixed an issue where PowerShell was not running commands when Turbo Mode is enabled."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Shortcuts"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Attach current file to Cascade: New shortcut Option/Alt+Cmd+L when in an editor to attach the current file to Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.31"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.28November 4, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Expanded Codemaps"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Codemaps now include powerful new capabilities:"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Chat with map - Interact directly with your codebase visualizations"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Mermaid diagrams - Generate visual diagrams within maps for better code understanding"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade suggestions - Get AI-powered suggestions directly in your maps"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Map option in chat/edit nudges - Easily create maps from chat and edit interactions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Smart mode option - Enhanced intelligent assistance when working with maps"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Summarization Fix"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improved Cascade summarization to better handle longer conversations. Previously, summaries could be too aggressive and drop important context. Now maintains better continuity across long sessions with multiple file changes and user messages."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"MCP Enhancements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Path component handling - Improved support for MCP URLs with path components (e.g., Smithery MCPs)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"OAuth flow improvements - Better OAuth flow for streamable HTTP MCPs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Sticky scroll lag fixes - Resolved lag spikes when using sticky scroll with Vim bindings"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"General slowness fixes - Addressed performance issues caused by VSCode OSS update"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Terminal rendering optimization - Fixed rendering loop that caused 500ms+ delays on first terminal open"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Terminal Fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"PowerShell improvements - Fixed Windows terminal integration edge cases where commands would appear stuck"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Shell theme compatibility - Resolved edge cases with custom shell themes (zsh, fish, powerlevel10k, etc.) that could cause Windsurf to break or show stuck commands"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Editor Stability"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Terminal freeze fix - Fixed an issue where the editor would freeze when opening the terminal"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"CMD+J fix - Resolved layout thrashing issue when opening terminal pane with CMD+J"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.28"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.27October 26, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Falcon Alpha"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can now try a new stealth model in Windsurf: Falcon Alpha. Falcon Alpha is a powerful agentic model designed for speed. We’re excited to hear what you build with it!"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Various performance improvements and bug fixes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Download 1.12.27"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"v1.12.25October 23, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Support and fixes for AGENTS.md"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Improvements and bug fixes for Codemaps."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Improvements to Fast Context. Enterprises can opt in using the Windsurf Team Settings. Users can toggle Fast Context automatically using “CMD/Ctrl + Enter” on the first message in a chat."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"New auto-linting behavior that speeds up Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Fix for MCP Marketplace not respecting team allowlist options."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Fixes for Jupyter Notebook tool."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Fixes for Memories, Rules, and Workflows."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"General bug fixes and improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes and Improvements","item":"Performance optimizations and stability enhancements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Dependencies"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Updated Code OSS to version 1.105.0 (Electron: 37.6.0, Chromium: 138.0.7204.251)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.25"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.21October 17, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Resolved issues affecting SSH remote connections with high resource usage."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fix certain models seeing increased error rates on editing files."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Improved diagnostics for third party extensions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.21"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.20October 16, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Features","item":"Fast Context: Introduced Fast Context subagent powered by SWE-grep, enabling agents to find relevant code context up to 20x faster with >2,800 tokens per second throughput."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Features","item":"Learn more on our blog."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Fixed issues with WSL compatibility."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Fixed bugs in Workflows and Rules UI."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Various stability improvements and minor bug fixes."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"Download 1.12.20"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Bug Fixes","item":"v1.12.18October 14, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes issue with custom MCP servers not being displayed correctly in the new MCP panel."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Improvements and bug fixes for the beta Codemaps feature."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes issue where some bash commands would get stuck."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes issue where certain models couldn’t create or edit Jupyter notebooks."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"General bug fixes and improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.18"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.16October 10, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Codemaps"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Codemaps is a beta feature for codebase understanding and navigation. Open the codemaps pane to try it out!"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes to Cascade to reduce internal errors."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes to Cascade not seeing terminal output."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Various other bug fixes and stability improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.16"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.12September 29, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Sonnet 4.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claude Sonnet 4.5 is now available"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.12"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.11September 26, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fix using MCP tools with certain models."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes to terminal issues on Windows."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.11"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.9September 24, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fix to Cascade slowness issues"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.9"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.8September 23, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5-Codex is now in Windsurf!"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5-Codex is now available for free (0x credits) for a limited time for paid users!Free users can use GPT-5-Codex as well for 0.5x credits."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.8"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.12.6September 16, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Queued messages"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Users can now add follow-up messages to Cascade while it is working, and Cascade will process them in order after the current task is complete."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Mermaid diagram support"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade now renders mermaid diagrams in the conversation."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Deprecation","item":"Windsurf Browser is now deprecated. We plan to refactor and release a replacement feature in the coming months. Please use Previews instead."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Made improvements to the sign up onboarding flow."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Various bug fixes and stability improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.6"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.5September 8, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.4September 4, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.4"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.3August 28, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Memory improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.2August 15, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.12.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.12.1September 29, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Devin features in Windsurf, stability improvements, and a brand new UI"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Stability & Performance: Over 100 bug fixes and reliability improvements."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"DeepWiki in Windsurf: Hover over code symbols for intelligent DeepWiki-powered documentation."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Vibe and Replace: AI-powered find and replace functionality. Apply intelligent transformations to multiple code matches."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Agent Improvements: Automatic planning mode with no manual toggles required. Revamped tools with more accurate edits. Enhanced code exploration leveraging long context models."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Tab Autocomplete: New system with more frequent and smarter suggestions."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"UI Redesign: All-new Chat, Cascade, and home screen panels."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Dev Containers: Support for development containers via remote SSH access."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.12.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.11.5August 7, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT-5 Available"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windsurf now supports the GPT-5 suite of models including GPT-5 (low reasoning), GPT-5 (medium reasoning), and GPT-5 (high reasoning). They are available for free for a limited time for paying users!"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.11.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.11.3August 1, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.11.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.11.2July 30, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.11.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.11.1July 23, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Kimi K2 Available"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windsurf now supports Kimi K2 model which costs 0.5 credits per prompt."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.11.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.11.0July 17, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Speak to Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Voice"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Users can now speak into the chat rather than having to type things out."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"@-mentioning conversations"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"@-mention the first conversation so Cascade has full context of it as it goes to write tests for you."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Deeper Browser integration"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Chat with Cascade about tabs that are open in the Browser using @-mentions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"JetBrains improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Planning Mode, Workflows, and file-based Rules are now available for Cascade on JetBrains"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Now you can @-mention terminal in Cascade."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"You can turn on the Auto-Continue setting to have Cascade automatically continue its response if it hits a limit."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Support for more MCP servers with easier and more secure authentication by integrating the new Streamable HTTP transport (replaces SSE) and MCP authentication (replaces access tokens or API keys in the config)."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Important for enterprise customers who use Windsurf across lots of repos. Now, you can enforce ignore rules across all repositories by placing .codeiumignore in the ~/.codeium/ folder"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Download 1.11.0"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"v1.10.8July 16, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Linux Fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixes to RHEL 8 Support"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.10.8"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.10.7July 3, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improvements to Cascade reliability"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.10.7"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.10.6June 24, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor improvements and bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.10.6"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.10.5June 19, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Browser Fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Fixed unauthenticated missing CSRF token"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.10.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.10.4June 18, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixed API Pricing labels in the model selector"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixed bugs related to planning mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixed some behavior around conversation button dropdown"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.10.4"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.10.3June 12, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Windsurf Browser"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Ability to share browser context with Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Share code blocks, selected text, web page elements, screenshots, and console logs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Send blocks directly to Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"Fixed writing to plan.md files for Enterprise users"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"Download 1.10.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"v1.10.1June 10, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Planning Mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Send messages to Cascade in Planning Mode, a setting that will let Cascade plan before making edits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade will create a plan.md file of the actions it plans to take before taking action"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"The plan is user-editable, and Cascade will pick up on user changes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Terminal Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Native terminal in Cascade panel"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Terminal now accepts user inputs in the Cascade panel"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Legacy Mode Removal"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Legacy mode has been removed, leaving Write and Chat mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Icons in @-mentions"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Theme-aware codeblocks with refreshed design"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Improvements to .codeiumignore"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"New menu to open previous conversations to quickly switch conversations"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"Download 1.10.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements","item":"v1.9.4June 3, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixed Cascade and terminal integration issues for Mac and Linux users"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Merged upstream changes from VS Code 1.99.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Improvements to import behavior during onboarding"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixed shadow with the App Icon on Mac"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.9.4"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.9.2May 22, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Bring your Own Anthropic Key"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"BYOK (Anthropic Key)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can now bring your own API Key from Anthropic to use the Claude 4 Sonnet, Claude 4 Sonnet (Thinking), Claude 4 Opus, and Claude 4 Opus (Thinking) models in Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"To use BYOK, go to provide API keys and input your key"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Once entered, go back to Windsurf and reload the window. You should now be able to use the new models"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"This is only available for Free and Pro users at this time"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9.1May 20, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1 Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Adds multi-modal (image) support to SWE-1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.9.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.9.0May 15, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"New SWE-1 Model made by Windsurf is available in Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1 is a new model with frontier model-level capabilities"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Free for a limited time for Pro Users"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1-lite"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1-lite is a new, far more capable model replacing Cascade Base"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Free to use for all plans and tiers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1-mini"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"SWE-1-Mini is our revamped model for tab completion in Windsurf"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Few memory leak bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Various fixes to Cascade Plugin Panel"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Download 1.9.0"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"v1.8.2May 7, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Customization"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade UX Improvements"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Redesigned Model Selector"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Continue button when reaching individual tool call limit"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Opening conversations will now open the associated workspace"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Hunk accept/reject widget now has a compact mode to cover less code"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Improvements to commit message generation quality"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Commit message generation reads from global rules as context"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Ability to edit proposed terminal command"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Custom Workflows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can create “workflows”, saved prompts that Cascade can follow"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Workflows can be invoked via slash command"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade can help create and edit workflows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Workflow files are saved in the workspace, under .windsurf/workflows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"File-Based Rules"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"You can create granular rules files that are always on, @mention-able, requested by Cascade, or attached to file globs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Rules files are saved in the workspace, under .windsurf/rules"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Simultaneous Cascades"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Allow Cascade to keep running when switching to another conversation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Add support for switching between conversations via a dropdown menu or keyboard shortcuts"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade Plugins"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"New panel in Cascade for managing MCP Servers"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Easier one-click uninstall and install"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Easier search"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"MCP now has MCP resources and multimodel responses"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"More MCP Server options coming soon"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"Fixed tool call errors for users with disabled telemetry"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"Fixed crashes around workspace conversation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"Download 1.8.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Fixes","item":"v1.8.0May 6, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams Features"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams: Windsurf Reviews"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Team admins can install a Github app for code review and PR title/description edits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Available to Teams and Enterprise SAAS for 500 reviews/month"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams: Conversation Sharing"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Team users can generate a shareable URL to a Cascade conversation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Only fellow team members can access this URL"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Available to Teams and Enterprise SaaS"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams: Knowledge"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Team admins can connect their Google account and curate relevant Google Docs"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Team members will be able to @mention these docs, and Cascade can retrieve them"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Available to Teams and Enterprise SaaS"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams Deploys"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams users can connect their Netlify account via Windsurf settings"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Deploy apps through Cascade directly to your Netlify team for full control"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Supports team-specific settings like SSO, custom domains, and more through the Netlify dashboard"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Team admins can manage Deploy permissions and settings for their team."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams Analytics"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Teams users get a refreshed analytics dashboard for their team"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Includes new Cascade analytics such as messages sent, total tool calls, model usage, and more"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Upgrade to VS Code 1.99.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Download 1.8.0"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"v1.7.3April 29, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Reduced errors for edit tool calls for Windows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixed model selection and loading bugs on Command"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.7.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.7.2April 27, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New App Icon","item":"Windsurf is now refreshed with a new app icon"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New App Icon","item":"Windsurf.com has been updated with the new wordmark"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New App Icon","item":"(Mac) Customizable app icons now use the new logo"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Upgraded Free Tier"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Free tier now has new, higher limits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Ability to use Cascade in write mode"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Cascade prompt credits: 5 to 25 Cascade prompt credits per month"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Unlimited Fast Tab"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Unlimited Cascade Base"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Access to Previews"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"1 Deploy"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Performance and reliability improvements when deploying an app using Deploys"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Allow users to create a new deployment even if they have an existing deployment config yaml"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Deploy web app tool now has a check deploy status tool call"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Stability improvements for remote extensions (WSL, SSH, Dev Containers)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Performance Improvements","item":"Performance improvements when typing in a large active diff zone"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Adds GPT-4.1 to Command"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Upgraded to VSCode base version 1.98"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Download 1.7.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"v1.7.1April 25, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Updates IDE marketplace link by mirroring Open VSX"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.7.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.7.0April 20, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Updated & Simplified Pricing"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"We’re getting rid of Flow Action Credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"We’re simplifying our pricing model by removing Flow Action Credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Change takes effect April 21st, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Plans now come with prompt credits with add-on credits available for purchase"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"User Prompt Credits"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Plans now come with prompt credits, which are consumed per every message sent and not via every tool call"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Add-on credits are available for purchase"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Auto-top off (with max limits) can be enabled via profile"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Existing Plans"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Existing plans are migrating over to the new pricing model"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"For more information, please visit the Pricing page"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Download 1.7.0"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"v1.6.5April 16, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"o4-mini Available"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New o4-mini models available and Free (Limited Time)","item":"Windsurf now supports the o4-mini medium and o4-mini high models, which are free for all users"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New o4-mini models available and Free (Limited Time)","item":"Usage in Windsurf is free for a limited time from April 16th to April 21st"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New o4-mini models available and Free (Limited Time)","item":"Download 1.6.5"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New o4-mini models available and Free (Limited Time)","item":"v1.6.4April 14, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"GPT 4.1 Available"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New GPT 4.1 Model available and Free (Limited Time)","item":"Windsurf now supports the new GPT 4.1 model, which is free for all users"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New GPT 4.1 Model available and Free (Limited Time)","item":"Usage in Windsurf is free for a limited time from April 14th to April 21st"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New GPT 4.1 Model available and Free (Limited Time)","item":"Download 1.6.4"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New GPT 4.1 Model available and Free (Limited Time)","item":"v1.6.3April 7, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes to Commit Generation parsing on Windows"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"UI Fixes to Rules"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Allow empty files on website deploy"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Better Deploys error visibility"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Ability to edit subdomain on website deploy"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Increased stability around MCP SSE connections"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Cascade bug fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.6.3"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.6.2April 4, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Fixes to “Remote - WSL” extension"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Minor UX fixes"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"Download 1.6.2"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Patch Fixes","item":"v1.6.1April 2, 2025"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Deploys"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Deploys (Beta)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Deploy your application with one prompt to Netlify under a windsurf.build domain"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Claim your application’s URL via Netlify"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Once claimed, continue deploying to the same project as you make updates"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"To deploy a new site or change your subdomain, just ask Cascade to deploy to a new subdomain"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Available to all users for all tiers, with more for paid plans"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Commit Message Generation (Beta)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Generate commit messages with a click in the Source Control Panel"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"​","item":"Available to users on paid plans with no additional credit cost per use"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Memories","item":"New memories tab in Cascade"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Memories","item":"New ability to edit Cascade’s generated memories, including the memory’s title, content and tags"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Memories","item":"New ability to search Cascade’s generated memories"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Memories","item":"User setting toggle for Auto-Generate Memories"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Memories","item":"When enabled, Cascade will autonomously generate memories to remember important context"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Memories","item":"When disabled, Cascade will only create memories when you explicitly ask in your prompt"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Long Conversations","item":"Introduced Cascade table of contents of all past user messages, which appears on conversation scroll"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Long Conversations","item":"Improved performance when interacting with long conversations"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Windsurf Tab","item":"Jupyter Notebook Support for Windsurf Tab"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Improvements to Windsurf Tab","item":"Additional context signals for Windsurf Tab, including in-IDE search"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"New Mac Icons","item":"Two new application icons (Retro and Pixel Surf) are available for users on paid plans"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Cascade new conversation screen now has a new toolbar for tools like MCP, Preview and Deployments."}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Cascade now supports SSE MCP servers in the JSON configuration"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Fixed “Open Cascade on Reload” setting so Cascade will be closed upon opening a new window when setting is disabled"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Cascade input is persisted across new conversation screen and an active conversation"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Refreshed terminal UI in Cascade, with increased visibility for the “Open terminal” button, which opens Cascade’s terminal instance directly"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Underlined links are now clickable in Cascade and user messages"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"New user setting to enable sound when Cascade is done running (beta)"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Fixes to “Remote - SSH” extension, including custom SSH binary path setting"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Merged changes from VS Code 1.97.0"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Download 1.6.1"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Assistant"}
+{"file":"windsurf.com_changelog.html","version":null,"date":"2026.5.26","section":"Misc","item":"Responses are generated using AI and may contain mistakes."}

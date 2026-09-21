@@ -36,8 +36,11 @@ export const DELEGATE_BRIDGE = fileURLToPath(new URL('../../bin/delegate-bridge.
  * @param {Map} [opts.profiles]  frontmatter subagent profiles (.pai/agents,
  *        <instance>/agents) — `profile` param resolves target + prepends the
  *        profile preamble to the task
+ * @param {TaskStore} [opts.taskStore]  F-family mailbox — when present every
+ *        delegation creates a task record and the bridge binds --task-dir,
+ *        upgrading the one-shot job to a bidirectional AgentTask.
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, taskStore = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -54,6 +57,9 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         target: { type: 'string', description: 'target agent id (e.g. codex, claude, gemini)' },
         profile: { type: 'string', description: 'named subagent profile — resolves target and prepends its preamble' },
         task: { type: 'string', description: 'task description for the delegate' },
+        name: { type: 'string', description: 'optional teammate name — makes the task a named, persistent member of the teammate pool (addressable via teammate_msg)' },
+        max_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes — the job is killed at the deadline and reported as timed out' },
+        worktree: { type: 'boolean', description: 'run inside a detached git worktree — parallel delegates cannot collide on the real checkout; dirty worktrees are kept and reported' },
       },
       required: ['task'],
     },
@@ -67,6 +73,14 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // its preamble — the delegated worker receives persona + task as one
       let target = params.target;
       let task = String(params.task ?? '');
+      let profileEnv = null; // {set, deny} → --env-json on the bridge
+      let profileBudget = null; // M94 {tokens,calls,costUsd} → --budget-* flags
+      let maxMin = null;
+      // CC subagent knobs analogue: profile-declared model/effort fill the
+      // operator template's {model}/{effort} slots; isolate_steering blinds
+      // the child to workdir steering files via a dedicated bridge flag.
+      let profileModel = null; let profileEffort = null; let steeringOff = false;
+      let toolsDeny = null; // M76 — dedicated bridge flag, never --env-json
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -78,6 +92,15 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         }
         target = p.target;
         if (p.preamble) task = `${p.preamble}\n\n---\n\n${task}`;
+        // OpenHands profile-scoped secrets analogue, inverted for a local
+        // single-user harness: the profile narrows/annotates the child env.
+        if (p.env || p.envDeny) profileEnv = { set: p.env ?? {}, deny: p.envDeny ?? [] };
+        if (p.maxMinutes) maxMin = p.maxMinutes;
+        if (p.model) profileModel = p.model;
+        if (p.effort) profileEffort = p.effort;
+        if (p.isolateSteering) steeringOff = true;
+        if (p.toolsDeny?.length) toolsDeny = p.toolsDeny.join(',');
+        if (p.budget) profileBudget = p.budget;
       }
       if (!target) {
         return {
@@ -85,10 +108,37 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           isError: true,
         };
       }
-      const inner = commandFor(target, task);
+      const inner = commandFor(target, task, { model: profileModel, effort: profileEffort });
+      // M94: a profile-declared budget is only meaningful when the child can
+      // actually enforce it — pai-channel bodies gate provider requests on
+      // PAI_BUDGET_MAX_*; any other target makes the declared cap a lie.
+      if (profileBudget && !/pai-channel\.js/.test(inner)) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: profile '${params.profile}' declares a budget, but target '${target}' cannot enforce ` +
+              'request-level caps — remove the budget fields or point the profile at a pai-channel body',
+          }],
+          details: { refused: true, reason: 'unenforceable_profile_budget', rule: 'budget' },
+        };
+      }
       const scope = getScope?.() ?? null;
+      // Codex thread-tree depth cap: PAI_SPAWN_DEPTH counts how many nested
+      // delegations produced this process (0 = operator's session). A child
+      // at the cap cannot delegate further — fail-closed, and the refusal is
+      // a tool result the model can route around (shallower sibling, do it
+      // inline) rather than a crashed job.
+      const depth = Number(process.env.PAI_SPAWN_DEPTH || 0);
+      const maxDepth = Number(process.env.PAI_MAX_SPAWN_DEPTH || 3);
+      if (depth >= maxDepth) {
+        return {
+          content: [{ type: 'text', text: `delegation refused: spawn depth ${depth} is at the cap (${maxDepth}) — nested delegation would hide work the operator cannot see; do this step inline or return it to the parent` }],
+          details: { refused: true, reason: 'spawn_depth_cap', depth, maxDepth, rule: 'spawn_depth' },
+        };
+      }
       let budgetFlags = '';
       let committedSlice = null;
+      let parentRem = null; // pre-commit remaining — captured once, reused for min()
       if (budget?.configured && scope) {
         // 0. parent admission — an already-breached scope may not spawn spend
         const gate = budget.admit(scope);
@@ -118,7 +168,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         //    without this, concurrent delegates and the parent itself could
         //    each spend the same remaining headroom. A cross-process race is
         //    caught by tryCommit's post-append breach check + refund rollback.
-        const rem = budget.remaining(scope);
+        const rem = (parentRem = budget.remaining(scope));
         // any configured dimension already at zero leaves the child no
         // headroom at all — refuse rather than spawn a dead-on-arrival worker
         const configuredDims = [rem.tokens, rem.calls, rem.costUsd].filter((v) => v != null);
@@ -137,11 +187,40 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           };
         }
         committedSlice = slice;
-        if (rem.tokens != null) budgetFlags += ` --budget-tokens ${Math.floor(rem.tokens)}`;
-        if (rem.calls != null) budgetFlags += ` --budget-calls ${Math.floor(rem.calls)}`;
-        if (rem.costUsd != null) budgetFlags += ` --budget-cost ${rem.costUsd}`;
       }
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags} -- ${inner}`;
+      // M94: effective child cap = min(parent-remaining slice, profile cap)
+      // per dimension — each flag is emitted ONCE (bridge flagVal reads the
+      // first occurrence), so the strictest value wins by construction.
+      const eff = (parent, prof) => (parent != null && prof != null ? Math.min(parent, prof) : parent ?? prof);
+      const effTokens = eff(parentRem?.tokens ?? null, profileBudget?.tokens ?? null);
+      const effCalls = eff(parentRem?.calls ?? null, profileBudget?.calls ?? null);
+      const effCost = eff(parentRem?.costUsd ?? null, profileBudget?.costUsd ?? null);
+      if (effTokens != null) budgetFlags += ` --budget-tokens ${Math.floor(effTokens)}`;
+      if (effCalls != null) budgetFlags += ` --budget-calls ${Math.floor(effCalls)}`;
+      if (effCost != null) budgetFlags += ` --budget-cost ${effCost}`;
+      // F-family: a task record upgrades the delegation to a mailbox-backed
+      // AgentTask — the bridge watches inbox→stdin and captures child
+      // markers→outbox/events. v1 is strictly parent↔child.
+      const tname = params.name ? String(params.name).trim() : null;
+      const agentTask = taskStore
+        ? taskStore.create({
+            label: tname ? `@${tname} ${task.slice(0, 60)}` : task.slice(0, 80),
+            parent: scope,
+            kind: tname ? 'teammate' : 'delegation',
+            name: tname,
+            spawnSpec: tname ? { target, profile: params.profile ?? null, task, depth: depth + 1 } : null,
+          })
+        : null;
+      // depth propagates through the bridge into the child's env so a nested
+      // delegate_task sees its own depth, not the parent's
+      // caller-level max_minutes wins over the profile's declared ceiling;
+      // the profile's is the default, the tool call's is the override
+      const maxMinParam = Number(params.max_minutes);
+      if (Number.isFinite(maxMinParam) && maxMinParam > 0) maxMin = Math.min(maxMinParam, 24 * 60);
+      const envFlag = profileEnv
+        ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
+        : '';
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,
@@ -151,6 +230,8 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         // committed charge covers the child's whole slice — its usage
         // envelope must NOT bill the parent again at exit (double-count)
         budgetCommitted: committedSlice != null,
+        timeoutMs: maxMin != null ? Math.round(maxMin * 60_000) : null,
+        worktree: params.worktree === true,
       });
       if (r.refused) {
         // spawn never happened — roll the committed slice back out
@@ -163,13 +244,19 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         };
       }
       const { job_id, attempt_id } = r;
+      if (agentTask) taskStore.bindJob(agentTask.task_id, job_id);
       return {
         content: [{
           type: 'text',
-          text: `delegated to ${target} as durable job ${job_id} (attempt ${attempt_id}). ` +
+          text: `delegated to ${target} as durable job ${job_id} (attempt ${attempt_id})` +
+            (agentTask ? ` — AgentTask ${agentTask.task_id}: use task_send/task_wait/task_yield/task_interrupt/task_close for two-way coordination. ` : '. ') +
             'Poll job_status for completion; the result envelope lands in the jobs directory.',
         }],
-        details: { job_id, attempt_id, target, profile: params.profile ?? null, ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}) },
+        details: {
+          job_id, attempt_id, target, profile: params.profile ?? null,
+          ...(agentTask ? { task_id: agentTask.task_id } : {}),
+          ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}),
+        },
       };
     },
   };

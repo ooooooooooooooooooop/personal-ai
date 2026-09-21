@@ -451,3 +451,209 @@ test('sandbox provider wraps the spawned command via argv spec and audits it', {
   assert.ok(existsSync(marker), 'sandbox spec was spawned instead of the bare command');
   assert.ok(auditEvents.some((e) => e.kind === 'JOB_SANDBOXED' && e.data.provider === 'test-wrap'));
 });
+
+// ─── F-family AgentTask mailbox — real two-way bridge streams ───────────
+
+test('mailbox bridge: inbox→stdin steer + child markers→outbox/events', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mailbox-'));
+  const taskDir = join(dir, 'tasks', 'task-t1');
+  mkdirSync(taskDir, { recursive: true });
+  writeFileSync(join(taskDir, 'task.json'),
+    JSON.stringify({ task_id: 'task-t1', state: 'open', acks: {} }));
+
+  const worker = join(here, 'fixtures', 'mailbox-child.js');
+  const bridge = join(here, '..', 'bin', 'delegate-bridge.js');
+  const child = spawn(process.execPath,
+    [bridge, '--target', 'fakechild', '--task-dir', taskDir, '--', process.execPath, worker],
+    { stdio: ['ignore', 'pipe', 'pipe'] });
+  let out = '';
+  child.stdout.on('data', (d) => { out += d; });
+  child.stderr.on('data', (d) => { out += d; });
+
+  // mid-run: the parent posts to inbox — the bridge forwards it as a steer
+  // frame on the child's stdin; the fixture echoes it back as GOT:
+  await new Promise((r) => setTimeout(r, 600));
+  const { appendFileSync } = await import('node:fs');
+  appendFileSync(join(taskDir, 'inbox.jsonl'),
+    `${JSON.stringify({ seq: 1, ts: new Date().toISOString(), from: 'parent', body: 'focus on tests' })}\n`);
+
+  await new Promise((r) => child.on('exit', r));
+
+  const readJsonl = (name) => {
+    const p = join(taskDir, name);
+    return existsSync(p) ? readFileSync(p, 'utf-8').split('\n').filter(Boolean).map(JSON.parse) : [];
+  };
+  const outbox = readJsonl('outbox.jsonl');
+  assert.equal(outbox.length, 2, 'two child posts landed in outbox');
+  assert.equal(outbox[0].body, 'child partial result');
+  assert.equal(outbox[1].body, 'child final result');
+  const events = readJsonl('events.jsonl');
+  assert.ok(events.some((e) => e.kind === 'progress' && e.data.pct === 50));
+  assert.ok(events.some((e) => e.kind === 'child_exited'));
+  // steer frame actually reached the child's stdin and marker lines were
+  // stripped from passthrough output
+  assert.match(out, /GOT:\{"type":"steer","message":"\[parent\] focus on tests"\}/);
+  assert.ok(!out.includes('PAI_TASK_POST'));
+  assert.match(out, /PAI_USAGE/);
+});
+
+test('spawn depth cap: a process at the cap cannot delegate further', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-depth-'));
+  const { store, executor } = rig(dir);
+  const prevDepth = process.env.PAI_SPAWN_DEPTH;
+  const prevMax = process.env.PAI_MAX_SPAWN_DEPTH;
+  process.env.PAI_SPAWN_DEPTH = '3';
+  process.env.PAI_MAX_SPAWN_DEPTH = '3';
+  try {
+    const tool = delegateTool(executor, {
+      commandFor: (target, task) => `echo "${target}: ${task}"`,
+      workdir: tmpdir(),
+    });
+    const res = await tool.execute('tc9', { target: 'codex', task: 'deeper' });
+    assert.equal(res.details.refused, true);
+    assert.equal(res.details.reason, 'spawn_depth_cap');
+    assert.match(res.content[0].text, /spawn depth 3 is at the cap/);
+  } finally {
+    if (prevDepth == null) delete process.env.PAI_SPAWN_DEPTH; else process.env.PAI_SPAWN_DEPTH = prevDepth;
+    if (prevMax == null) delete process.env.PAI_MAX_SPAWN_DEPTH; else process.env.PAI_MAX_SPAWN_DEPTH = prevMax;
+    store.close();
+  }
+});
+
+test('spawn depth propagates: child env stamp is parent depth + 1', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-depth2-'));
+  const { store } = rig(dir);
+  let captured = '';
+  const stub = { spawnCommandJob: async ({ command }) => { captured = command; return { job_id: 'job-d', attempt_id: 'a1' }; } };
+  const prevDepth = process.env.PAI_SPAWN_DEPTH;
+  process.env.PAI_SPAWN_DEPTH = '1';
+  try {
+    const tool = delegateTool(stub, {
+      commandFor: (target, task) => `echo "${target}: ${task}"`,
+      workdir: tmpdir(),
+    });
+    const res = await tool.execute('tc10', { target: 'codex', task: 'one level down' });
+    assert.match(res.content[0].text, /durable job job-d/);
+    assert.match(captured, /--task-depth 2 /);
+  } finally {
+    if (prevDepth == null) delete process.env.PAI_SPAWN_DEPTH; else process.env.PAI_SPAWN_DEPTH = prevDepth;
+    store.close();
+  }
+});
+
+test('profile knobs: model/effort fill commandFor opts; isolate_steering stamps --steering-off', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-knobs-'));
+  const { store } = rig(dir);
+  let captured = '';
+  let gotOpts = null;
+  const stub = { spawnCommandJob: async ({ command }) => { captured = command; return { job_id: 'job-k', attempt_id: 'a1' }; } };
+  const profiles = new Map([['pro', {
+    name: 'pro', target: 'pi', preamble: 'be terse',
+    model: 'sonnet', effort: 'high', isolateSteering: true,
+  }]]);
+  const tool = delegateTool(stub, {
+    commandFor: (target, task, opts) => { gotOpts = opts; return `echo "${target}: ${task}"`; },
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc11', { profile: 'pro', task: 'do it' });
+  assert.match(res.content[0].text, /durable job job-k/);
+  assert.deepEqual(gotOpts, { model: 'sonnet', effort: 'high' });
+  assert.match(captured, / --steering-off /);
+  store.close();
+});
+
+test('M14: onJobFinished fires for scheduled jobs only, with redacted tail', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m14-'));
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const seen = [];
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    onJobFinished: (d) => seen.push(d),
+  });
+  const echoCmd = process.platform === 'win32' ? 'echo hello-sched' : 'echo hello-sched';
+  const r = await executor.spawnCommandJob({ command: echoCmd, workdir: dir, jobType: 'scheduled' });
+  assert.ok(r.job_id);
+  // plain shell_command must NOT notify
+  const r2 = await executor.spawnCommandJob({ command: echoCmd, workdir: dir, jobType: 'shell_command' });
+  await new Promise((res) => setTimeout(res, 4000));
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].job_id, r.job_id);
+  assert.equal(seen[0].job_type, 'scheduled');
+  assert.equal(seen[0].exit_code, 0);
+  assert.match(seen[0].output_tail, /hello-sched/);
+  store.close();
+});
+
+test('M13: worktree job runs in a detached checkout; dirty worktree kept + audited', { timeout: 30_000 }, async (t) => {
+  const { spawnSync } = await import('node:child_process');
+  // a real git repo with one commit — worktree add needs HEAD
+  const repo = mkdtempSync(join(tmpdir(), 'pai-wt-repo-'));
+  for (const args of [
+    ['init', '-q'], ['config', 'user.email', 't@t'], ['config', 'user.name', 't'],
+  ]) spawnSync('git', args, { cwd: repo });
+  writeFileSync(join(repo, 'f.txt'), 'base');
+  spawnSync('git', ['add', '.'], { cwd: repo });
+  spawnSync('git', ['commit', '-qm', 'init'], { cwd: repo });
+
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wt-'));
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const audits = [];
+  const executor = new JobExecutor(store, join(dir, 'jobs'), {
+    audit: { write: (e) => audits.push(e) },
+  });
+  // dirty job: writes a file inside the worktree → worktree must be KEPT
+  const dirtyCmd = process.platform === 'win32' ? 'echo changed>newfile.txt' : 'echo changed > newfile.txt';
+  const r = await executor.spawnCommandJob({ command: dirtyCmd, workdir: repo, worktree: true });
+  assert.ok(r.job_id, 'worktree job spawned');
+  await new Promise((res) => setTimeout(res, 5000));
+  const result = JSON.parse(readFileSync(join(dir, 'jobs', `${r.attempt_id}.result.json`), 'utf-8'));
+  assert.ok(result.worktree, 'result carries worktree record');
+  assert.equal(result.worktree.kept, true, 'dirty worktree preserved for operator merge');
+  assert.ok(existsSync(join(result.worktree.path, 'newfile.txt')), 'job output lives in the worktree');
+  assert.ok(!existsSync(join(repo, 'newfile.txt')), 'real checkout untouched');
+  assert.ok(audits.some((e) => e.kind === 'JOB_WORKTREE_KEPT'));
+
+  // clean job: reads only → worktree removed
+  const r2 = await executor.spawnCommandJob({ command: 'git status --porcelain', workdir: repo, worktree: true });
+  await new Promise((res) => setTimeout(res, 5000));
+  const result2 = JSON.parse(readFileSync(join(dir, 'jobs', `${r2.attempt_id}.result.json`), 'utf-8'));
+  assert.equal(result2.worktree.kept, false);
+  assert.ok(!existsSync(result2.worktree.path), 'clean worktree removed');
+
+  // non-git dir → honest refusal, not a spawned job in the wrong place
+  const r3 = await executor.spawnCommandJob({ command: 'echo x', workdir: dir, worktree: true });
+  assert.equal(r3.refused, true);
+  assert.match(r3.reason, /worktree/);
+  store.close();
+});
+
+test('P1 job_spawn: durable job surface + sandbox selection semantics', { timeout: 20_000 }, async () => {
+  const { jobSpawnTool } = await import('../src/adapter/jobs.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-p1-'));
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const executor = new JobExecutor(store, join(dir, 'jobs'));
+  const tool = jobSpawnTool(executor, { workdir: dir });
+
+  // plain spawn — durable job runs to completion
+  const r = await tool.execute('t1', { command: 'echo p1-ok' });
+  assert.match(r.content[0].text, /job .* spawned/);
+  await new Promise((res) => setTimeout(res, 4000));
+  const job = store.getJob(r.job_id);
+  assert.equal(job.job_state, 'COMPLETED');
+
+  // unknown sandbox kind refuses BEFORE a job exists
+  const bad = await tool.execute('t2', { command: 'echo x', sandbox: 'gvisor' });
+  assert.equal(bad.isError, true);
+  assert.match(bad.content[0].text, /refused/);
+  assert.equal(store.listRecent(50).length, 1, 'refused spawn leaves no job record');
+
+  // sandbox:'ssh' without target fails the job honestly, not a crash
+  const ssh = await tool.execute('t3', { command: 'echo x', sandbox: 'ssh' });
+  assert.match(ssh.content[0].text, /spawned/);
+  await new Promise((res) => setTimeout(res, 1500));
+  const sshJob = store.getJob(ssh.job_id);
+  assert.equal(sshJob.job_state, 'FAILED');
+  const events = store.getEvents(ssh.job_id).map((e) => JSON.stringify(e));
+  assert.ok(events.some((e) => /ssh backend requires a target/.test(e)));
+  store.close();
+});

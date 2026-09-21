@@ -30,11 +30,15 @@ process.stdin.on('data', (c) => {
     if (!line) continue;
     const msg = JSON.parse(line);
     if (msg.method === 'initialize') {
-      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'fake', version: '0' }, capabilities: { tools: {} } } }) + '\\n');
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'fake', version: '0' }, capabilities: { tools: {}, prompts: {} } } }) + '\\n');
     } else if (msg.method === 'tools/list') {
       process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [{ name: 'echo', description: 'echo back', inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } }] } }) + '\\n');
     } else if (msg.method === 'tools/call') {
       process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: 'echo:' + (msg.params?.arguments?.text ?? '') }] } }) + '\\n');
+    } else if (msg.method === 'prompts/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { prompts: [{ name: 'greet', description: 'greeting prompt', arguments: [{ name: 'who', required: true }] }] } }) + '\\n');
+    } else if (msg.method === 'prompts/get') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { description: 'greet', messages: [{ role: 'user', content: { type: 'text', text: 'Say hello to ' + (msg.params?.arguments?.who ?? '?') } }] } }) + '\\n');
     } else if (msg.method === 'notifications/cancelled') {
       process.stdout.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/server_log', params: { cancelled: msg.params?.requestId } }) + '\\n');
     }
@@ -168,6 +172,46 @@ test('mcp extension: registers mcp__srv__tool, untrusted wrap, failure hides too
       assert.match(res.content[0].text, /echo:hello/);
       assert.equal(res.details.mcpServer, 'fake');
       // shutdown handler closes the child
+      await pi.handlers.get('session_shutdown')?.();
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('M82: mcp prompts register as slash commands; get expands to a user message', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, FAKE_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { fake: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    try {
+      const pi = fakePi();
+      const sent = [];
+      const notices = [];
+      const ctx = { sendUserMessage: (m) => sent.push(m), ui: { notify: (m, l) => notices.push([l, m]) } };
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.commands.has('mcp-fake-greet') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      const cmd = pi.commands.get('mcp-fake-greet');
+      assert.ok(cmd, 'prompt slash command registered');
+      // missing required arg → honest error, nothing sent
+      await cmd.handler('', ctx);
+      assert.equal(sent.length, 0);
+      assert.match(notices.at(-1)?.[1] ?? '', /missing required args: who/);
+      // k=v and positional both bind to declared argument order
+      await cmd.handler('who=world', ctx);
+      assert.equal(sent.length, 1);
+      assert.match(sent[0], /\[mcp prompt fake\/greet\]/, 'provenance prefix kept');
+      assert.match(sent[0], /Say hello to world/);
       await pi.handlers.get('session_shutdown')?.();
     } finally {
       if (prev === undefined) delete process.env.PAI_MCP_CONFIG;

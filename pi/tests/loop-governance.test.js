@@ -2,7 +2,7 @@
  * M3 loop governance extension — handler behavior with a fake pi/ctx,
  * real ContinuationGovernor + real audit on a temp instance.
  */
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -149,4 +149,52 @@ test('B4: tool results feed the canonical observation lifecycle', () => {
   const before = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
     .trim().split('\n').map(JSON.parse).find((e) => e.kind === 'COMPACT_BEFORE');
   assert.equal(before.data.observations, 2);
+});
+
+test('U15: first path-arg touch records a bounded subdirectory hint observation', () => {
+  const wd = mkdtempSync(join(tmpdir(), 'pai-hint-wd-'));
+  mkdirSync(join(wd, 'src', 'lib'), { recursive: true });
+  writeFileSync(join(wd, 'src', 'lib', 'a.js'), 'x');
+  writeFileSync(join(wd, 'src', 'lib', 'b.js'), 'x');
+  const handlers2 = {};
+  const pi2 = { on: (e, f) => { handlers2[e] = f; } };
+  const dir = mkdtempSync(join(tmpdir(), 'pai-loop2-'));
+  const paths = instancePaths(dir);
+  const audit = new AuditWriter(paths);
+  const canonical = join(dir, 'canonical');
+  const obs = new ObservationStore(canonical);
+  loopGovernanceExtension({
+    continuation: null, predictions: new PredictionStore(canonical),
+    observations: obs, audit, workdir: wd,
+    contextEnvelope: { kind: 'ContextEnvelope', briefing: 'b' },
+  }).factory(pi2);
+  handlers2.turn_end({
+    turnIndex: 0,
+    message: { content: 'x' },
+    toolResults: [{ toolName: 'read', toolCallId: 'tc1', isError: false }],
+    context: {
+      messages: [{
+        role: 'assistant',
+        content: [{ type: 'toolCall', id: 'tc1', name: 'read', args: { path: 'src/lib/a.js' } }],
+      }],
+    },
+  });
+  const hints = obs.list().filter((o) => o.kind === 'subdirectory_hint');
+  assert.equal(hints.length, 1);
+  assert.equal(hints[0].subject, join('src', 'lib'));
+  assert.ok(hints[0].detail.entries.some((e) => e.includes('a.js')));
+  // second touch of the same dir does not re-hint
+  handlers2.turn_end({
+    turnIndex: 1, message: { content: 'y' },
+    toolResults: [{ toolName: 'read', toolCallId: 'tc2', isError: false }],
+    context: { messages: [{ role: 'assistant', content: [{ type: 'toolCall', id: 'tc2', name: 'read', args: { path: 'src/lib/b.js' } }] }] },
+  });
+  assert.equal(obs.list().filter((o) => o.kind === 'subdirectory_hint').length, 1);
+  // outside workdir never hints
+  handlers2.turn_end({
+    turnIndex: 2, message: { content: 'z' },
+    toolResults: [{ toolName: 'read', toolCallId: 'tc3', isError: false }],
+    context: { messages: [{ role: 'assistant', content: [{ type: 'toolCall', id: 'tc3', name: 'read', args: { path: join(tmpdir(), 'elsewhere.txt') } }] }] },
+  });
+  assert.equal(obs.list().filter((o) => o.kind === 'subdirectory_hint').length, 1);
 });
