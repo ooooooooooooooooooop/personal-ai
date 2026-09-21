@@ -14,6 +14,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
+import { SandboxProvider, SandboxUnavailableError } from '../../../host/src/core/sandbox.js';
 
 /** PID liveness probe — the injected worker-alive check for recoveryTick. */
 export function isWorkerAlive(identity) {
@@ -140,7 +141,19 @@ export class JobExecutor {
    * write lease (another mutating job is running). Fail-closed on classify
    * errors: an unparseable mutating-capable command is treated as mutating.
    */
-  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false }) {
+  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false, sandbox = null }) {
+    // Remote execution (P1, web-review GO): a per-job sandbox selector
+    // overrides the global PAI_SANDBOX backend — 'wsl'/'docker'/'ssh' run the
+    // command off the host shell entirely. Unknown kinds refuse BEFORE the
+    // job record exists; an unavailable backend fails the attempt honestly.
+    let sandboxProvider = this.sandbox;
+    if (sandbox != null && sandbox !== false && sandbox !== 'none') {
+      const kind = typeof sandbox === 'object' ? (sandbox.kind ?? 'none') : String(sandbox);
+      if (!['wsl', 'docker', 'ssh'].includes(kind)) {
+        return { refused: true, reason: `unknown sandbox backend '${kind}' — expected wsl|docker|ssh` };
+      }
+      sandboxProvider = new SandboxProvider(kind, typeof sandbox === 'object' ? sandbox : {});
+    }
     // M13 (Codex/Cline worktree-parallel analogue, opt-in): run the attempt in
     // a detached `git worktree` so parallel mutating jobs can't collide on the
     // real checkout. Clean worktrees are removed at exit; dirty ones are LEFT
@@ -188,12 +201,12 @@ export class JobExecutor {
       workerIdentity: {}, // filled after spawn with real pid
       workspaceRef: workdir,
     });
-    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom });
+    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs, worktreePath, worktreeFrom, sandboxProvider });
     return { job_id: job.job_id, attempt_id };
   }
 
   /** Run one attempt: spawn → checkpoint → heartbeat → exit → result envelope. */
-  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktreePath = null, worktreeFrom = null }) {
+  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktreePath = null, worktreeFrom = null, sandboxProvider = null }) {
     const checkpointPath = join(this.jobsDir, `${attemptId}.checkpoint.json`);
     const leaseHolder = `job:${jobId}`;
     const resultPath = join(this.jobsDir, `${attemptId}.result.json`);
@@ -201,13 +214,25 @@ export class JobExecutor {
     // sandbox provider decides the real spawn shape — 'none' preserves the
     // historical shell:true path; 'wsl' spawns wsl.exe argv-style (no cmd.exe
     // quoting of the user command). Unavailable backend = fail-closed throw.
-    const spec = (this.sandbox ?? { spawnSpec: (c, w) => ({ file: c, args: [], shell: true, cwd: w }) })
-      .spawnSpec(command, workdir);
+    const provider = sandboxProvider ?? this.sandbox;
+    let spec;
+    try {
+      spec = (provider ?? { spawnSpec: (c, w) => ({ file: c, args: [], shell: true, cwd: w }) })
+        .spawnSpec(command, workdir);
+    } catch (e) {
+      // Unavailable backend (no docker daemon, no ssh binary, bad target) —
+      // the job fails honestly BEFORE any process exists.
+      const reason = e instanceof SandboxUnavailableError ? e.message : `sandbox spec failed: ${e.message}`;
+      try { this.store.updateWorkerState(attemptId, 'EXITED_ERROR', -1); } catch { /* store closed */ }
+      this.store.failJob(jobId, reason);
+      this.audit?.write({ kind: 'JOB_SANDBOX_REFUSED', data: { job_id: jobId, attempt_id: attemptId, reason, parent_run_id: this.runId } });
+      return null;
+    }
     const child = spec.shell
       ? spawn(spec.file, { cwd: spec.cwd, windowsHide: true, shell: true })
       : spawn(spec.file, spec.args, { cwd: spec.cwd, windowsHide: true });
-    if (this.sandbox?.kind && this.sandbox.kind !== 'none') {
-      this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: this.sandbox.kind } });
+    if (provider?.kind && provider.kind !== 'none') {
+      this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: provider.kind, container: spec.containerName ?? null } });
     }
     this.running.set(jobId, child);
 
@@ -261,10 +286,20 @@ export class JobExecutor {
     if (timeoutMs > 0) {
       timeoutTimer = setTimeout(() => {
         timedOut = true;
+        if (spec.containerName) {
+          // named disposable container — force-remove kills the whole tree
+          // inside it, which taskkill on the client pid cannot reach
+          try { spawnSync('docker', ['rm', '-f', spec.containerName], { windowsHide: true, timeout: 10_000 }); } catch { /* best-effort */ }
+        }
         if (process.platform === 'win32') {
           try { spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); }
           catch { child.kill(); }
         } else child.kill('SIGTERM');
+        if (spec.remote) {
+          // honest limit: killing the local ssh client does NOT kill the
+          // remote process — the orphan is recorded, not hidden
+          this.audit?.write({ kind: 'JOB_REMOTE_ORPHAN', data: { job_id: jobId, attempt_id: attemptId, target: provider?.target ?? null } });
+        }
       }, timeoutMs);
       timeoutTimer.unref();
     }
@@ -323,6 +358,7 @@ export class JobExecutor {
           output_tail: redactSecrets(out),
           usage,
           ...(worktreePath ? { worktree: { path: worktreePath, kept: Boolean(worktreeKept) } } : {}),
+          ...(provider?.kind && provider.kind !== 'none' ? { sandbox: provider.kind } : {}),
           parent_run_id: this.runId, // usage attribution: child work bills to parent
           finished_at: new Date().toISOString(),
         }, null, 2));
@@ -446,4 +482,75 @@ export class JobExecutor {
       },
     });
   }
+}
+
+const jobText = (t, extra = {}) => ({ content: [{ type: 'text', text: t }], ...extra });
+
+/**
+ * job_spawn — the model's durable-command surface (remote execution analogue):
+ * an arbitrary shell command runs as a durable job that survives restarts,
+ * optionally inside a WSL distro, a disposable Docker container, or on a
+ * remote host over SSH. The command string is governance-classified exactly
+ * like a bash call (same commandArgs wiring) — spawning it elsewhere is not
+ * a policy bypass, it is a different execution boundary for the same rules.
+ */
+export function jobSpawnTool(executor, { workdir, getScope = null } = {}) {
+  return {
+    name: 'job_spawn', label: 'Job Spawn',
+    description:
+      'Run a shell command as a durable background job — survives host restarts, ' +
+      'poll with job_status. Optional `sandbox` selects the execution boundary: ' +
+      '"wsl" (Windows WSL distro, sandbox_distro optional), "docker" (disposable ' +
+      'container with the workdir mounted at /work, sandbox_image optional), or ' +
+      '"ssh" (remote host — needs sandbox_target user@host[:port], remote_dir ' +
+      'required, sandbox_key optional; NO workspace sync — the remote dir must ' +
+      'already contain what the command needs). The command is classified by the ' +
+      'same governance rules as bash — a denied command is denied everywhere.',
+    parameters: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'shell command to run durably' },
+        timeout_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes' },
+        sandbox: { type: 'string', enum: ['wsl', 'docker', 'ssh'], description: 'execution boundary — omit for the host shell' },
+        sandbox_distro: { type: 'string', description: 'WSL distribution name (default distro when omitted)' },
+        sandbox_image: { type: 'string', description: 'docker image (default debian:bookworm-slim)' },
+        sandbox_target: { type: 'string', description: 'ssh target user@host[:port]' },
+        remote_dir: { type: 'string', description: 'remote working directory for ssh (default ~)' },
+        sandbox_key: { type: 'string', description: 'ssh identity file path' },
+        worktree: { type: 'boolean', description: 'run inside a detached git worktree (local jobs only)' },
+      },
+      required: ['command'],
+    },
+    promptSnippet: 'job_spawn(command, [sandbox]): run a command as a durable job — wsl/docker/ssh execution boundary optional',
+    async execute(_toolCallId, params) {
+      const command = String(params.command ?? '').trim();
+      if (!command) return jobText('job_spawn requires a command', { isError: true });
+      const timeoutMin = Number(params.timeout_minutes);
+      const r = await executor.spawnCommandJob({
+        command,
+        workdir: workdir ?? process.cwd(),
+        jobType: 'shell_command',
+        budgetScope: getScope?.() ?? null,
+        timeoutMs: Number.isFinite(timeoutMin) && timeoutMin > 0 ? Math.round(Math.min(timeoutMin, 24 * 60) * 60_000) : null,
+        worktree: params.worktree === true,
+        sandbox: params.sandbox
+          ? {
+              kind: String(params.sandbox),
+              image: params.sandbox_image ?? null,
+              target: params.sandbox_target ?? null,
+              dir: params.remote_dir ?? null,
+              key: params.sandbox_key ?? null,
+              distro: params.sandbox_distro ?? null,
+            }
+          : null,
+      });
+      if (r.refused) return jobText(`job_spawn refused: ${r.reason}`, { isError: true });
+      return jobText(
+        `job ${r.job_id} spawned (attempt ${r.attempt_id})` +
+        `${params.sandbox ? ` under ${params.sandbox}` : ''} — ` +
+        `survives restarts; poll job_status ${r.job_id} for output`,
+        { job_id: r.job_id, attempt_id: r.attempt_id },
+      );
+    },
+  };
 }

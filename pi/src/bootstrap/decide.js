@@ -296,7 +296,9 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     // the job acquires its own `job:` write lease, so this path must run
     // before the foreground lease is taken (no fg→job lock handoff).
     const command = ctx.args?.command;
-    if (typeof command === 'string' && isLongRunningCommand(command)) {
+    // job_spawn carries its own spawn semantics (sandbox/worktree params) —
+    // auto-converting it here would spawn a job WITHOUT those options.
+    if (toolName !== 'job_spawn' && typeof command === 'string' && isLongRunningCommand(command)) {
       const r = await executor.spawnCommandJob({
         command,
         workdir,
@@ -322,7 +324,11 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     const commandForLease = ctx.args?.command;
     // mcp__* tools are opaque external effects — they serialize against the
     // workspace lease like local mutations even though they touch no files.
+    // job_spawn writes nothing itself — the spawned job serializes via its
+    // own `job:` lease inside spawnCommandJob (an fg lease here would make
+    // every mutating job_spawn refuse against its own caller's hold).
     let mutating = FILE_MUTATION_TOOLS.has(toolName) || toolName?.startsWith('mcp__');
+    if (toolName === 'job_spawn') mutating = false;
     if (!mutating && typeof commandForLease === 'string' && classifier) {
       try {
         const parsed = await classifier(commandForLease);

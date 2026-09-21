@@ -626,3 +626,34 @@ test('M13: worktree job runs in a detached checkout; dirty worktree kept + audit
   assert.match(r3.reason, /worktree/);
   store.close();
 });
+
+test('P1 job_spawn: durable job surface + sandbox selection semantics', { timeout: 20_000 }, async () => {
+  const { jobSpawnTool } = await import('../src/adapter/jobs.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-p1-'));
+  const store = new JobStore(join(dir, 'durable_jobs.db'));
+  const executor = new JobExecutor(store, join(dir, 'jobs'));
+  const tool = jobSpawnTool(executor, { workdir: dir });
+
+  // plain spawn — durable job runs to completion
+  const r = await tool.execute('t1', { command: 'echo p1-ok' });
+  assert.match(r.content[0].text, /job .* spawned/);
+  await new Promise((res) => setTimeout(res, 4000));
+  const job = store.getJob(r.job_id);
+  assert.equal(job.job_state, 'COMPLETED');
+
+  // unknown sandbox kind refuses BEFORE a job exists
+  const bad = await tool.execute('t2', { command: 'echo x', sandbox: 'gvisor' });
+  assert.equal(bad.isError, true);
+  assert.match(bad.content[0].text, /refused/);
+  assert.equal(store.listRecent(50).length, 1, 'refused spawn leaves no job record');
+
+  // sandbox:'ssh' without target fails the job honestly, not a crash
+  const ssh = await tool.execute('t3', { command: 'echo x', sandbox: 'ssh' });
+  assert.match(ssh.content[0].text, /spawned/);
+  await new Promise((res) => setTimeout(res, 1500));
+  const sshJob = store.getJob(ssh.job_id);
+  assert.equal(sshJob.job_state, 'FAILED');
+  const events = store.getEvents(ssh.job_id).map((e) => JSON.stringify(e));
+  assert.ok(events.some((e) => /ssh backend requires a target/.test(e)));
+  store.close();
+});

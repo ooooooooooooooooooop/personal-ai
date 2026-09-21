@@ -79,6 +79,7 @@ function runShell(command, cwd, { detachedDir = null } = {}) {
   });
 }
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
+import { jobSpawnTool } from '../adapter/jobs.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
@@ -206,7 +207,7 @@ export async function startHost({
     governance: {
       // pi body supplies the real shell parser; host never imports pi code
       commandClassifier: parseShellCommand,
-      commandArgs: { powershell: 'command', bash: 'command', shell: 'command' },
+      commandArgs: { powershell: 'command', bash: 'command', shell: 'command', job_spawn: 'command' },
       // no responder yet = fail-closed deny, never crash-open
       ask: (pending, signal) => (asks ? asks.ask(pending, signal) : Promise.resolve('deny')),
       // session risk mode — 'plan' turns the session read-only (mutating
@@ -219,7 +220,7 @@ export async function startHost({
       // consulted inside the kernel's ask path — it can soften an ask, never
       // a deny. Re-read per call so operator edits take effect live.
       commandAllowlist: (ctx) => {
-        const arg = { powershell: 'command', bash: 'command', shell: 'command', cmd: 'command' }[ctx.toolName];
+        const arg = { powershell: 'command', bash: 'command', shell: 'command', cmd: 'command', job_spawn: 'command' }[ctx.toolName];
         const c = arg ? ctx.args?.[arg] : null;
         if (typeof c !== 'string') return false;
         let prefixes = [];
@@ -356,6 +357,9 @@ export async function startHost({
   const repoMapIgnore = () => { const ig = new PaiIgnore(workdir); return (rel) => ig.isIgnored(rel); };
   const customTools = [
     jobStatusTool(jobStore),
+    // remote execution (P1): durable command jobs under an optional
+    // wsl/docker/ssh boundary — same command classification as bash
+    jobSpawnTool(executor, { workdir, getScope: () => currentSession?.sessionId ?? null }),
     ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
     ...memoryTools(memoryStore),
     updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null),
