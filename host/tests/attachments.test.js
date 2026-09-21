@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
-import { kindOfMime, normalizeAttachment, normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../src/core/attachments.js';
+import { kindOfMime, normalizeAttachment, normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText, bmpToPng, sniffMime } from '../src/core/attachments.js';
 
 test('kindOfMime classifies media prefixes, rest is file', () => {
   assert.equal(kindOfMime('image/png'), 'image');
@@ -145,4 +145,28 @@ test('magic-byte sniffing: mislabeled inline payloads reclassify to truth', () =
   const blob = Buffer.from('plain text data').toString('base64');
   const { attachments: a3 } = normalizeAttachments([{ name: 'f.bin', mime: 'text/plain', data: blob }]);
   assert.equal(a3[0].mime, 'text/plain');
+});
+
+test('clipboard BMP → PNG transcoding (BI_RGB only; else honest descriptor)', () => {
+  // 2x1 24-bit BMP: row stride = ceil(2*3/4)*4 = 8 bytes (2 padding)
+  const w = 2, h = 1, stride = 8, dataOff = 54;
+  const bmp = Buffer.alloc(dataOff + stride);
+  bmp[0] = 0x42; bmp[1] = 0x4d; // 'BM'
+  bmp.writeUInt32LE(dataOff, 10);
+  bmp.writeUInt32LE(40, 14);            // DIB header size
+  bmp.writeInt32LE(w, 18); bmp.writeInt32LE(h, 22);
+  bmp.writeUInt16LE(1, 26); bmp.writeUInt16LE(24, 28); bmp.writeUInt32LE(0, 30);
+  bmp[dataOff] = 0x00; bmp[dataOff + 1] = 0x00; bmp[dataOff + 2] = 0xff; // BGR blue→wait R
+  const png = bmpToPng(bmp);
+  assert.ok(png, 'BI_RGB 24-bit transcodes');
+  assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  // normalizeAttachment: declared image/bmp bytes → real PNG rides as image/png
+  const { attachments } = normalizeAttachments([{ name: 'clip.bmp', mime: 'image/bmp', data: bmp.toString('base64') }]);
+  assert.equal(attachments[0].mime, 'image/png');
+  assert.equal(attachments[0].kind, 'image');
+  assert.equal(Buffer.from(attachments[0].source.data, 'base64').subarray(0, 4).toString('latin1'), '\x89PNG');
+  // compressed/garbage BMP stays an honest bmp descriptor
+  const bad = Buffer.from(bmp); bad.writeUInt32LE(1, 30); // BI_RLE8 — unsupported
+  const { attachments: a2 } = normalizeAttachments([{ name: 'x.bmp', mime: 'image/bmp', data: bad.toString('base64') }]);
+  assert.equal(a2[0].mime, 'image/bmp');
 });

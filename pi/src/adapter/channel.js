@@ -5,7 +5,7 @@
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname } from 'node:path';
 
@@ -687,6 +687,39 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     goalStore,
     monitors,
     repoMap,
+    // M64 instance inventory — a cross-category purge PREVIEW surface: every
+    // persisted artifact class under the instance root with file/byte counts.
+    // Read-only by design; deletion paths are separate governed operations.
+    instance: {
+      inventory: () => {
+        const root = core.paths.root;
+        const cats = {
+          sessions: /sessions[\\/]/, jobs: /jobs[\\/]/, audit: /audit[\\/]/,
+          memory: /memory\.db$/, checkpoints: /checkpoints[\\/]/,
+          exports: /exports[\\/]/, schedules: /schedules?\.json$/,
+          allowlists: /(command-allow|always-allow|egress-allow|feature-models)\.json$/,
+          tasks: /tasks[\\/]/, macros: /macros\.json$/, receipts: /receipts[\\/]|fileops[\\/]/,
+        };
+        const out = {};
+        const walk = (dir, depth) => {
+          if (depth > 5) return;
+          let ents;
+          try { ents = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+          for (const e of ents) {
+            const p = join(dir, e.name);
+            if (e.isDirectory()) { walk(p, depth + 1); continue; }
+            let bytes = 0;
+            try { bytes = statSync(p).size; } catch { continue; }
+            const rel = p.slice(root.length);
+            const cat = Object.keys(cats).find((k) => cats[k].test(rel)) ?? 'other';
+            out[cat] ??= { files: 0, bytes: 0 };
+            out[cat].files += 1; out[cat].bytes += bytes;
+          }
+        };
+        walk(root, 0);
+        return { root, categories: out };
+      },
+    },
     skills: knowledge, // skill-doctor stats + allow-list ride the knowledge facade
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
