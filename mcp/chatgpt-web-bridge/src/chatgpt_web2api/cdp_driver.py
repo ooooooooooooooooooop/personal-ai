@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from .breakers import BreakerKind, BreakerRegistry
+from .composer_surface import COMPOSER_ELEMENT_JS, ComposerReadinessError, wait_composer_ready
 from .diagnostics import diagnose
 from .lock_resolver import (
     MutationLock,
@@ -1946,7 +1947,7 @@ class CDPDriver:
             result = await self._js(
                 "(function() {"
                 "  return JSON.stringify({"
-                f"    ready: !!document.querySelector('{COMPOSER_SELECTOR}') || !!document.querySelector('{COMPOSER_FALLBACK_SELECTOR}'),"
+                f"    ready: !!{COMPOSER_ELEMENT_JS},"
                 "    url: location.href"
                 "  });"
                 "})()"
@@ -1974,6 +1975,9 @@ class CDPDriver:
 
         Delegated to ChatGPTDom (Phase 5 PR3 extraction)."""
         return await self._dom._has_composer()
+
+    async def _wait_for_send_composer(self, *, timeout: float = 8, conversation_id=None):
+        return await wait_composer_ready(self, timeout=timeout, conversation_id=conversation_id)
 
     async def _ensure_send_ready(self) -> None:
         """Guarantee the live tab can accept a typed message.
@@ -2019,7 +2023,8 @@ class CDPDriver:
             await self.ensure_conversation_tab(conversation_id)
             return
         if self._conv_target and self._current_conv_id == conversation_id:
-            return  # already on this conversation's tab
+            await self._wait_for_send_composer(conversation_id=conversation_id)
+            return
         if (
             self._conv_target
             and self._conv_affinity == conversation_id
@@ -2033,6 +2038,8 @@ class CDPDriver:
                 await self._ensure_send_ready()
                 self._current_conv_id = conversation_id
                 return
+            except ComposerReadinessError:
+                raise
             except Exception as exc:
                 from .send_recovery import is_recoverable_transport_error
 
@@ -2053,7 +2060,7 @@ class CDPDriver:
             "    url: location.href,"
             "    ready_state: document.readyState,"
             f"    app_shell: !!document.querySelector('nav') || !!document.querySelector('[class*=\"sidebar\"]'),"
-            f"    composer: !!document.querySelector('{COMPOSER_SELECTOR}') || !!document.querySelector('{COMPOSER_FALLBACK_SELECTOR}')"
+            f"    composer: !!{COMPOSER_ELEMENT_JS}"
             "  });"
             "})()"
         )
@@ -2403,7 +2410,6 @@ class CDPDriver:
         Polls briefly (3s at 0.5s intervals). Never raises.
         """
         import time as _time
-        from .chatgpt_dom import COMPOSER_SELECTOR, COMPOSER_FALLBACK_SELECTOR
 
         pre_send_count = getattr(self, "_pre_send_user_count", None)
         if pre_send_count is None:
@@ -2418,8 +2424,7 @@ class CDPDriver:
                     "(function() {"
                     "  var userMsgs = document.querySelectorAll("
                     "    '[data-message-author-role=\"user\"]').length;"
-                    f"  var composer = document.querySelector('{COMPOSER_SELECTOR}')"
-                    f"       || document.querySelector('{COMPOSER_FALLBACK_SELECTOR}');"
+                    f"  var composer = {COMPOSER_ELEMENT_JS};"
                     "  var composerPresent = !!composer;"
                     "  var composerEmpty = composer ? !(composer.innerText || composer.value || '').trim() : false;"
                     "  return JSON.stringify({userCount: userMsgs, composerPresent: composerPresent, composerEmpty: composerEmpty});"
@@ -2641,6 +2646,19 @@ class CDPDriver:
         self._reset_delivery_metadata()
         # PR4 belt-and-suspenders: refuse to mutate the DOM in parallel mode.
         self._assert_owned_tab_required()
+        # Preserve the existing generation gate before any page preparation.
+        # A missing/disabled composer during an active turn is not reloadable.
+        gen_gate_conv = self._current_conv_id
+        if gen_gate_conv:
+            busy_for = generation_gate.busy_remaining(gen_gate_conv)
+            if busy_for > 0:
+                raise GenerationInProgressError(gen_gate_conv, retry_after=busy_for)
+            if await self._dom.is_generating():
+                raise GenerationInProgressError(gen_gate_conv, retry_after=60.0)
+        # Connected/read-capable is not send-ready. Recheck the live page on
+        # every turn, including an already-bound/reused conversation tab.
+        await self._notify_send_progress(on_progress, "composer_readiness")
+        await self._wait_for_send_composer()
         # A1: count existing assistants BEFORE sending (fail-closed baseline).
         await self._notify_send_progress(on_progress, "pre_send_baseline")
         initial_count = await self._read_assistant_count_baseline()
@@ -2655,23 +2673,6 @@ class CDPDriver:
         # or wall-clock) for dual-anchor correlation if UUID capture fails.
         await self._notify_send_progress(on_progress, "pre_send_anchor")
         fallback_anchor = await self._capture_pre_send_fallback_anchor(text)
-        # Generation gate (per-conversation, cross-process): a second send
-        # into a conversation that is mid-generation kills the streaming
-        # reply — observed as 1-2 char truncated answers when two harness
-        # sessions shared one conv_id from different tabs/processes.
-        # MutationLock is per-target and does not cover this. Fresh chats
-        # skip the gate: a nonexistent conversation can't be generating.
-        gen_gate_conv = self._current_conv_id
-        if gen_gate_conv:
-            busy_for = generation_gate.busy_remaining(gen_gate_conv)
-            if busy_for > 0:
-                raise GenerationInProgressError(gen_gate_conv, retry_after=busy_for)
-            if await self._dom.is_generating():
-                # Live generation this process never flagged — e.g. a manual
-                # browser send or a flag that outlived its watcher. The DOM
-                # can't tell us how much longer; retry on a short horizon.
-                raise GenerationInProgressError(gen_gate_conv, retry_after=60.0)
-
         if self._identity_listener is not None and self._identity_listener.is_alive():
             capture_scope = self._identity_listener.arm_capture_scope(
                 expected_text_hash=hash_sent_text(text),
@@ -3143,7 +3144,7 @@ class CDPDriver:
             result = await self._js(
                 "(function() {"
                 "  return JSON.stringify({"
-                f"    ready: !!document.querySelector('{COMPOSER_SELECTOR}') || !!document.querySelector('{COMPOSER_FALLBACK_SELECTOR}'),"
+                f"    ready: !!{COMPOSER_ELEMENT_JS},"
                 "    url: location.href"
                 "  });"
                 "})()",

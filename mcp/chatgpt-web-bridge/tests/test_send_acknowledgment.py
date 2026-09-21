@@ -31,6 +31,7 @@ from chatgpt_web2api.turn_anchor import TurnReconciliationError, TurnTextResult
 def _make_driver():
     """A CDPDriver with mocked transport for testing."""
     driver = CDPDriver(cdp_port=9222)
+    driver._wait_for_send_composer = AsyncMock()
     driver._cdp = AsyncMock()
     driver._js_strict = AsyncMock(return_value="1")
     driver._js = AsyncMock(return_value="1")

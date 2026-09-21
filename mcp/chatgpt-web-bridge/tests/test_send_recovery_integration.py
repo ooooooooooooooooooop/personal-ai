@@ -21,6 +21,7 @@ def send_driver():
     driver = CDPDriver(cdp_port=9222)
     driver._identity_listener = None
     driver._current_conv_id = None
+    driver._wait_for_send_composer = AsyncMock()
     driver._read_assistant_count_baseline = AsyncMock(return_value=0)
     driver._capture_pre_send_fallback_anchor = AsyncMock(
         return_value=TurnAnchor(sent_text="continue", mode="fresh_chat")

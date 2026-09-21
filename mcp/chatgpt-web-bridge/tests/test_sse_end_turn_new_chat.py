@@ -34,6 +34,7 @@ def _make_driver():
     SSE/MCP starts each fresh send without it).
     """
     d = CDPDriver(cdp_port=9222)
+    d._wait_for_send_composer = AsyncMock()
     d._ws = MagicMock()
     d._access_token = "tok"
     d._token_fetched_at = time.time()

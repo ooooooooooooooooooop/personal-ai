@@ -3,9 +3,30 @@
 This revision reduces redundant bridge work and makes uncertain delivery explicit.
 It does not change ChatGPT's generation speed or lower account pacing limits.
 
-## 2026-09-19.2 — combined recovery and acceptance
+## 2026-09-21.1 — live composer readiness
 
-The current contract is `2026-09-19.2`. Previous revision results below are
+Every send observes the bound page and a unique visible, editable composer.
+Discovery, focus, insertion, verification and send-button lookup share the
+same resolver. Hidden hydration nodes, message editors and unrelated forms
+are excluded; missing `role=textbox` does not invalidate a known editor.
+
+Missing/loading editors get a bounded wait. Before any submission, one
+same-page reload is allowed after a fresh check confirms the same target and
+URL, no draft, no attachment and no login/challenge/dialog barrier. Reload
+and transport reattachment share one request allowance. Possible submission
+still requires receipt reconciliation and never authorizes another send.
+
+Failures expose `readiness.reason` and structural diagnostics (no draft or
+conversation text), with `retry_recommended=false`. `retry_safe` describes
+delivery safety, not whether an unchanged call is likely to work.
+
+`scripts/verify_composer_surface.py` runs synthetic DOM variants in one
+disposable real-browser tab. `scripts/verify_browser.py` also exercises real
+ChatGPT delayed-mount and missing-composer recovery without sending a message.
+
+## 2026-09-19.2 — combined recovery and acceptance (historical)
+
+The current contract is `2026-09-21.1`. Previous revision results below are
 historical evidence, not a substitute for rerunning the current revision.
 The repeatable checks and their limits are in [ACCEPTANCE.md](ACCEPTANCE.md).
 
@@ -61,7 +82,7 @@ bridge reports only what it observed. A source fingerprint describes process
 startup versus current disk contents; it does not attest to the web model or
 browser frontend version.
 
-Recovery contract version: `2026-09-19.2`. A new-process smoke test must not
+Recovery contract version: `2026-09-21.1`. A new-process smoke test must not
 be described as verification of an existing host's connection. Check
 `runtime_info` on that connection, or match its recorded initialize identity to
 the live host child and current checkout. Require matching startup/disk
