@@ -1511,3 +1511,17 @@
 | M93 排队弃尾 | **落地**——Esc 中止+1.5s 内再 Esc 弃尾队列（防静默吃消息） |
 
 未动：M83 惰性加载、M100 fallback 链、M105 工具级 checkpoint、M38 占位符回取、M135 动态调速——中重型项留待下批。测试基线 host 226 / pi 174+1skip / app 18+1skip。
+
+### 28.12 B 档薄件批次（2026-09-21，commit 011c3b2）
+
+| 项 | 终态 |
+|---|---|
+| M134 exec 危险环境变量 | **落地**——command-parse 提取 variable_assignment 名称命中装载/代理类环境变量（LD_PRELOAD、NODE_OPTIONS、JAVA_TOOL_OPTIONS、_JAVA_OPTIONS、MAVEN_OPTS、PERL5OPT、DYLD_*、BASH_ENV、GLIBC_TUNABLES 等）→ `dangerEnv`，治理层对含 dangerEnv 的命令强制 `env_injection` ask，即使命令单元本身 benign |
+| M61 占位凭证 | **落地**——auth_set_key 拒 sk-xxx 模板/your-key/changeme/<…>/<8 字符；真前缀（sk-ant-/sk-proj-/ghp_）放行 |
+| M62 运行时权限请求 | **落地**——`request_permission` 工具：模型请求 operator 授予某工具会话级免卡；`PendingAsks.grantSession` 仅在卡面批准后生效，deny/timeout/aborted 不授 |
+| M96 allowlist 导入导出 | **落地**——`command_allow_export`/`command_allow_import`：allow+deny 双名单合一 .json，路径限定 instance 根 |
+| M138 附件字节嗅探 | **落地**——inline 附件 magic bytes 与声明 mime 冲突时以字节为准（MZ 声明 image/png 被降级出视觉面）；未知字节保留声明 |
+| M54 Ctrl+R 历史搜索 | **落地**——输入框即查询框，slash 弹层渲染去重历史（新→旧），Enter 回填 Esc 还原草稿 |
+| M59 /recap 会话回顾 | **落地**——session_switch 后抽取式一行回顾（首条 prompt + 末条用户 prompt + 消息数 + 更新时间），零模型调用 |
+
+测试基线：host 229 / pi 176+1skip / app 18+1skip。
