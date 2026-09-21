@@ -119,6 +119,65 @@ async def test_gate_mine_proceeds_and_heartbeats():
     assert out is None
 
 
+@pytest.mark.parametrize("idle_seconds", [60, 72 * 60, 24 * 60 * 60])
+async def test_gate_same_owner_survives_idle_and_new_driver(monkeypatch, idle_seconds):
+    clock = time.time()
+    monkeypatch.setattr(conv_binding.time, "time", lambda: clock)
+    first_driver = _driver()
+    assert await conv_binding.gate_check(
+        first_driver, "conv-1", "sse:sess-A", confirmed=True
+    ) is None
+    clock += idle_seconds
+    # The driver was reclaimed; its replacement has no local send history.
+    new_driver = _driver()
+    assert await conv_binding.gate_check(
+        new_driver, "conv-1", "sse:sess-A", confirmed=False
+    ) is None
+    assert conv_binding.binding_for("conv-1")["last_seen"] == clock
+
+
+@pytest.mark.parametrize("change", ["session", "process", "takeover", "release", "target"])
+async def test_idle_confirmation_is_not_inherited(monkeypatch, change):
+    clock = time.time()
+    monkeypatch.setattr(conv_binding.time, "time", lambda: clock)
+    conv_binding.claim("conv-1", "sse:sess-A")
+    if change == "takeover":
+        conv_binding.claim("conv-1", "sse:sess-B")
+    elif change == "release":
+        conv_binding.release("conv-1", "sse:sess-A")
+    elif change == "process":
+        state = conv_binding._read_all()
+        state["conv-1"]["owner_pid"] = os.getpid() + 1000000
+        conv_binding._write_all(state)
+        monkeypatch.setattr(conv_binding, "_pid_alive", lambda _: True)
+    clock += 72 * 60
+    out = await conv_binding.gate_check(
+        _driver(), "conv-2" if change == "target" else "conv-1",
+        "sse:sess-B" if change == "session" else "sse:sess-A",
+        confirmed=False,
+    )
+    assert out["status"] == "confirmation_required"
+    assert out["occupied"] is False  # Occupancy TTL still applies to others.
+
+
+async def test_idle_binding_does_not_bypass_generation_gate(monkeypatch):
+    from chatgpt_web2api.cdp_driver import GenerationInProgressError
+
+    clock = time.time()
+    monkeypatch.setattr(conv_binding.time, "time", lambda: clock)
+    conv_binding.claim("conv-x", "sse:sess-A")
+    clock += 72 * 60
+    driver = await _driver_at_gate("conv-x")
+    assert await conv_binding.gate_check(
+        driver, "conv-x", "sse:sess-A", confirmed=False
+    ) is None
+    generation_gate.mark_generating("conv-x", ttl=100)
+    with pytest.raises(GenerationInProgressError):
+        async for _ in driver.send_and_stream("must not be sent"):
+            pass
+    driver._dom.type_message.assert_not_called()
+
+
 async def test_gate_occupied_warns_with_owner():
     conv_binding.claim("conv-1", "http:sess-A")
     out = await conv_binding.gate_check(

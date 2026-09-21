@@ -68,6 +68,8 @@ description: |
 - **回复未落盘需继续核查**：尾部仍是 user 或 `reply_persisted:false` 只说明当前未读到持久化回复，不能单次判定生成死亡。用 `wait_reply` 观察，并结合网页生成状态、发送记录和完整会话判断；仅在确认已停止生成、该发送已落盘且原任务授权包含继续时，才在原 conversation_id 发新的短催促，使用新 `operation_id`。读取失败、429、空/不完整结果均不构成重发依据；分页先查 total 再定位尾部。
 - **桥侧超时 ≠ 网页端死**：`generation_stuck` / 读超时只是桥等不到了，网页端可能仍在正常生成——**尾部有 assistant 消息 ≠ 生成完**（引言节点会先落盘、status=in_progress 持续更新）。`wait_reply` 只在终态（非 in_progress）报 `replied`；若它 timeout 先看 `tail_status`——`in_progress` = 还在写，再 `wait_reply` 即可，**此时催促是错误动作**（2026-09-15 实证：误判死生成发「继续」，网页端实际仍在生成）
 
+- **确认随发送方绑定**：首次向目标发送仍须确认；真正的新 MCP session 或 daemon 重启须重新确认。同一 daemon、同一 session id、同一目标且未被接管/释放时，空闲及 CDP driver 回收不撤销原确认，30 分钟 TTL 只影响向其他发送方提示占用。`send_seq=0` 是监听器实例计数，`WinError 10054` 本身不能证明身份变化；先对照前后 `session_key`。仍需确认时按返回的目标和占用信息处理，禁止自行设 `confirm=true`；生成保护继续有效。
+
 ## 四种用法
 
 ### A. 推进模式（默认，低频）

@@ -56,6 +56,11 @@ Chrome 里登录 ChatGPT 一次（profile 持久）。
   插入路径
 
 排障速查：
+- 空闲回收 CDP driver 不撤销原发送方的确认；30 分钟 TTL 只决定是否向其他
+  发送方提示占用。同一 daemon、同一 session、同一目标且未被接管或释放时，
+  空闲后自动恢复绑定心跳。新 session、daemon 重启、首次目标或接管仍须确认。
+  `send_seq=0` 是监听器实例计数；`WinError 10054` 也不能单独证明 SSE 身份变了，
+  应对照前后 `session_key`。空闲恢复会记录 `binding_reused_after_idle`。
 - `Composer text verification failed`：插入文本与读回不一致——多为换行截断
   或会话残留的未发送草稿；发送失败后桥会自动清 composer 草稿（2026-09-15
   起），仍见此错先 `get_conversation` 核实尾部再重发
