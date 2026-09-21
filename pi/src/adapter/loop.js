@@ -31,7 +31,7 @@ import { dirname, resolve, relative, sep } from 'node:path';
 const PATH_TOOLS = new Set(['read', 'ls', 'edit', 'write', 'delete', 'grep', 'glob']);
 const HINT_CAP = 30;
 
-export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit, workdir = null }) {
+export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit, workdir = null, fallbacks = null }) {
   return {
     name: 'pai-loop-governance',
     factory: (pi) => {
@@ -43,6 +43,11 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       const freshTranscript = () => ({ toolCalls: [], assistantText: '', fileChanges: [] });
       let transcript = freshTranscript();
       let pendingSteer = false;
+      // M100 provider fallback: `pendingFallback` marks a run triggered by our
+      // own fallback steer (same task); `fallbackHops` bounds how many chain
+      // hops a single task may consume so a broken provider set can't loop.
+      let pendingFallback = false;
+      let fallbackHops = 0;
       // U15: directories already hinted this session — hint once, not per touch
       const hintedDirs = new Set();
       const wd = workdir ? resolve(workdir) : null;
@@ -74,10 +79,12 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       };
 
       pi.on('agent_start', () => {
-        if (pendingSteer) {
+        if (pendingSteer || pendingFallback) {
           pendingSteer = false; // continuation run — same task, keep transcript
+          pendingFallback = false;
         } else {
           transcript = freshTranscript();
+          fallbackHops = 0; // a genuinely new task gets a fresh fallback budget
         }
       });
 
@@ -108,12 +115,55 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
         if (text) transcript.assistantText += (transcript.assistantText ? '\n' : '') + text;
       });
 
-      pi.on('agent_end', (_event, ctx) => {
-        if (!continuation) return;
-        const decision = continuation.evaluate(transcript);
-        if (decision.action === 'continue' && decision.steerText) {
-          pendingSteer = true;
-          ctx.sendUserMessage(decision.steerText);
+      pi.on('agent_end', async (event, ctx) => {
+        if (continuation) {
+          const decision = continuation.evaluate(transcript);
+          if (decision.action === 'continue' && decision.steerText) {
+            pendingSteer = true;
+            ctx.sendUserMessage(decision.steerText);
+            return; // governed continuation owns the next run — no fallback
+          }
+        }
+        // M100 provider fallback chain: a run that ended on a terminal
+        // provider error walks <instance>/model-fallbacks.json — session model
+        // switches to the next entry the registry can resolve + authenticate,
+        // then a steer re-triggers the task. Aborted runs never fall back;
+        // a chain is consumed at most once per task (fallbackHops cap).
+        const chain = fallbacks?.chain ?? [];
+        if (!chain.length || !ctx?.modelRegistry?.find || typeof pi.setModel !== 'function') return;
+        const last = [...(event?.messages ?? [])].reverse().find((m) => m?.role === 'assistant');
+        if (last?.stopReason !== 'error') return;
+        const cur = ctx.model;
+        const idx = chain.findIndex((e) => e.provider === cur?.provider && e.model === cur?.id);
+        for (let i = idx >= 0 ? idx + 1 : 0; i < chain.length && fallbackHops < chain.length; i += 1) {
+          const e = chain[i];
+          const model = ctx.modelRegistry.find(e.provider, e.model);
+          if (!model) {
+            audit.write({ kind: 'MODEL_FALLBACK', data: { skip: `${e.provider}/${e.model}`, reason: 'unregistered' } });
+            continue;
+          }
+          const ok = await pi.setModel(model).catch(() => false);
+          if (!ok) {
+            audit.write({ kind: 'MODEL_FALLBACK', data: { skip: `${e.provider}/${e.model}`, reason: 'no-auth' } });
+            continue;
+          }
+          fallbackHops += 1;
+          pendingFallback = true;
+          audit.write({
+            kind: 'MODEL_FALLBACK',
+            data: {
+              from: `${cur?.provider}/${cur?.id}`, to: `${e.provider}/${e.model}`,
+              hop: fallbackHops, error: String(last.errorMessage ?? 'provider error').slice(0, 300),
+            },
+          });
+          ctx.sendUserMessage(
+            `[model-fallback] 上一模型请求失败（${cur?.provider}/${cur?.id}：${String(last.errorMessage ?? 'provider error').slice(0, 200)}）。` +
+            `会话模型已切换到 ${e.provider}/${e.model} ——请继续完成刚才未完成的任务。`,
+          );
+          return;
+        }
+        if (last) {
+          audit.write({ kind: 'MODEL_FALLBACK', data: { exhausted: true, from: `${cur?.provider}/${cur?.id}`, error: String(last.errorMessage ?? '').slice(0, 200) } });
         }
       });
 

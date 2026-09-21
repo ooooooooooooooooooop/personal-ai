@@ -82,6 +82,8 @@ function runShell(command, cwd, { detachedDir = null } = {}) {
 }
 import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
 import { jobSpawnTool } from '../adapter/jobs.js';
+import { OutputSpool, outputReadTool } from '../adapter/outspool.js';
+import { toolActivateTool, toolSearchTool } from '../adapter/toollazy.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
@@ -244,6 +246,21 @@ export async function startHost({
     const body = await res.json().catch(() => null);
     return body?.choices?.[0]?.message?.content ?? null;
   };
+  // M100 provider fallback chain: <instance>/model-fallbacks.json —
+  // {chain:[{provider, model}, ...]}. The object is shared by reference with
+  // the loop extension and mutated in place by models_fallback_set.
+  const fallbackCfg = { chain: [] };
+  try {
+    const fb = JSON.parse(readFileSync(join(instanceRoot, 'model-fallbacks.json'), 'utf-8'));
+    if (Array.isArray(fb?.chain)) {
+      fallbackCfg.chain = fb.chain
+        .filter((e) => e && typeof e.provider === 'string' && typeof e.model === 'string')
+        .slice(0, 8);
+    }
+  } catch { /* absent/invalid file = no fallback */ }
+  // M38 — oversized tool outputs spool here; the tool_result seam swaps them
+  // for placeholders carrying an output_read handle.
+  const outputSpool = new OutputSpool(join(instanceRoot, 'spool'));
   const core = createHostCore({
     instanceRoot,
     manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
@@ -474,6 +491,15 @@ export async function startHost({
     // unblock a tool session-wide; the grant is issued by the operator on
     // the card, never self-applied.
     requestPermissionTool({ asks }),
+    // M38 — paged reader for externalized tool outputs (placeholder handle)
+    outputReadTool(outputSpool),
+    // M83 — lazy tool surface: deferred tools are discovered via tool_search
+    // and claimed via tool_activate (catalog late-bound — session built below)
+    toolActivateTool({ getSurface: () => toolSurface }),
+    toolSearchTool({
+      getSurface: () => toolSurface,
+      getCatalog: () => currentSession?.getAllTools?.() ?? [],
+    }),
     ...browserToolset,
   ];
   if (delegationCommand) customTools.push(delegateTool(executor, {
@@ -579,17 +605,24 @@ export async function startHost({
         preToolGate,
       })),
       writeLease,
-      loopGovernance: taskRequirements.length
+      // M100 provider fallback: the chain object is shared so the channel's
+      // models_fallback_set mutates the SAME object the extension reads —
+      // a config change takes effect on the next agent_end, no rebuild.
+      loopGovernance: (taskRequirements.length || fallbackCfg.chain.length)
         ? {
-            continuation: (currentGovernor = new ContinuationGovernor({
-              ledgerPath: join(core.paths.root, 'continuation.jsonl'),
-              audit: core.audit,
-              requirements: taskRequirements,
-            })),
+            continuation: taskRequirements.length
+              ? (currentGovernor = new ContinuationGovernor({
+                  ledgerPath: join(core.paths.root, 'continuation.jsonl'),
+                  audit: core.audit,
+                  requirements: taskRequirements,
+                }))
+              : null,
             predictions: core.predictions,
             observations: core.observations,
+            fallbacks: fallbackCfg,
           }
         : null,
+      outputSpool,
     });
     if (!built.guard.sealed()) {
       throw new Error('composite guard failed to seal');
@@ -601,6 +634,13 @@ export async function startHost({
       initialDeny,
     });
     toolSurface.reconcile();
+    // M83 deferred surface — <instance>/defer-tools.json {defer:[names]}
+    // hides tools without denying them; tool_activate claims them back.
+    // Session-scoped by design: a restart re-reads the file.
+    try {
+      const def = JSON.parse(readFileSync(join(instanceRoot, 'defer-tools.json'), 'utf-8'));
+      if (Array.isArray(def?.defer) && def.defer.length) toolSurface.defer(def.defer.map(String));
+    } catch { /* absent/invalid = nothing deferred */ }
     return built;
   };
 
@@ -1044,6 +1084,9 @@ export async function startHost({
       remove: (id) => monitors.remove(id),
       list: () => monitors.list(),
     },
+    // M100 — shared by reference with the loop extension; setFallbacks
+    // mutates this object so the new chain applies on the next agent_end.
+    fallbacks: fallbackCfg,
     // /map — operator surface over the same builder repo_map wraps
     repoMap: {
       build: (subdir) => buildRepoMap(workdir, { isIgnored: repoMapIgnore(), subdir }),
@@ -1195,6 +1238,8 @@ export async function startHost({
       list: (n) => fileOps.list(n),
       listAll: () => fileOps.listAll(),
       restore: async (receiptId) => ({ restored: fileOps.restore(receiptId) }),
+      undoCall: async (toolCallId) => fileOps.undoCall(toolCallId),
+      undoFrom: async (receiptId) => fileOps.undoFrom(receiptId),
       diff: (n, receiptId) => fileOps.diff(n, receiptId),
     },
     // /context add analogue — pinned files re-read live into the envelope

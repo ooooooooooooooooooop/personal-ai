@@ -475,3 +475,97 @@ test('read outside workspace: relative path escapes count too', async () => {
   assert.equal(await d({ toolCall: { name: 'ls' }, args: { path: '.' } }), undefined);
   assert.equal(await d({ toolCall: { name: 'read' }, args: { path: 'sub/deep.txt' } }), undefined);
 });
+
+test('M105: receipts carry toolCallId; undoCall reverts exactly that call\'s mutations', async () => {
+  const { dir, decide, fileOps } = rig();
+  const t1 = join(dir, 'one.txt');
+  const t2 = join(dir, 'two.txt');
+  writeFileSync(t1, 'v1'); writeFileSync(t2, 'v2');
+
+  // two calls — call A mutates one.txt, call B mutates two.txt
+  await decide({ toolCall: { name: 'write', id: 'call-A' }, args: { path: t1, content: 'x' } });
+  writeFileSync(t1, 'mutated-A'); // the "tool execution" the backup covered
+  await decide({ toolCall: { name: 'write', id: 'call-B' }, args: { path: t2, content: 'x' } });
+  writeFileSync(t2, 'mutated-B');
+
+  const ops = opsLog(dir);
+  assert.equal(ops[0].toolCallId, 'call-A');
+  assert.equal(ops[1].toolCallId, 'call-B');
+
+  const r = await fileOps.undoCall('call-A');
+  assert.deepEqual(r.skipped, []);
+  assert.equal(readFileSync(t1, 'utf-8'), 'v1');   // A reverted
+  assert.equal(readFileSync(t2, 'utf-8'), 'mutated-B'); // B untouched
+});
+
+test('M105: undoFrom rewinds the anchor receipt and everything newer, oldest state wins', async () => {
+  const { fileOps } = rig();
+  const dir = fileOps.rootDir ?? undefined;
+  const tmp = mkdtempSync(join(tmpdir(), 'pai-m8-undo-'));
+  const guard = new FileOpsGuard(tmp);
+  const a = join(tmp, 'a.txt');
+  const b = join(tmp, 'b.txt');
+  writeFileSync(a, 'a0'); writeFileSync(b, 'b0');
+  const r1 = await guard.backup(a);   // anchor — state "before" is a0/b0
+  writeFileSync(a, 'a1');
+  await guard.backup(b);
+  writeFileSync(b, 'b1');
+
+  const r = await guard.undoFrom(r1.receiptId);
+  assert.equal(r.restored.length, 2);
+  assert.equal(readFileSync(a, 'utf-8'), 'a0');
+  assert.equal(readFileSync(b, 'utf-8'), 'b0');
+  // restores are themselves receipted — the rewind is recoverable
+  assert.ok(opsLog(tmp).some((o) => o.op === 'restore'));
+  void dir;
+});
+
+test('M100: terminal provider error walks the fallback chain; aborts never do', async () => {
+  const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
+  const events = {};
+  const sent = [];
+  const models = {
+    'openai/gpt-a': { provider: 'openai', id: 'gpt-a' },
+    'anthropic/claude-b': { provider: 'anthropic', id: 'claude-b' },
+  };
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    setModel: async (m) => m.provider !== 'anthropic' ? true : true, // all authed
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const auditEvents = [];
+  const audit = { write: (e) => auditEvents.push(e) };
+  const ext = loopGovernanceExtension({
+    audit, fallbacks: { chain: [{ provider: 'anthropic', model: 'claude-b' }, { provider: 'openai', model: 'gpt-a' }] },
+  });
+  ext.factory(pi);
+
+  const run = async (cur, stopReason) => {
+    events.agent_start();
+    await events.agent_end(
+      { messages: [{ role: 'assistant', stopReason, errorMessage: 'HTTP 429 rate limited' }] },
+      { model: cur, modelRegistry: { find: (p, id) => models[`${p}/${id}`] }, sendUserMessage: (t) => sent.push(t) },
+    );
+  };
+
+  // current model not in chain → first chain entry
+  await run({ provider: 'openai', id: 'gpt-5' }, 'error');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0], /claude-b/);
+  assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.to === 'anthropic/claude-b'));
+
+  // aborted runs never fall back
+  sent.length = 0;
+  await run({ provider: 'anthropic', id: 'claude-b' }, 'aborted');
+  assert.equal(sent.length, 0);
+
+  // new task resets the hop budget; chain position advances past current
+  await run({ provider: 'anthropic', id: 'claude-b' }, 'error');
+  assert.match(sent.at(-1), /gpt-a/); // idx+1 — skips re-selecting the failed model
+
+  // chain exhausted → audit 'exhausted', no more steers
+  sent.length = 0;
+  await run({ provider: 'openai', id: 'gpt-a' }, 'error');
+  assert.equal(sent.length, 0);
+  assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.exhausted));
+});

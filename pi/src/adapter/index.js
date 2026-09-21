@@ -6,6 +6,7 @@ import {
 import { installCompositeGuard } from './session.js';
 import { createRevalidator } from './revalidate.js';
 import { loopGovernanceExtension } from './loop.js';
+import { outputSpoolExtension } from './outspool.js';
 import { withRenderedReason } from './errors.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { renderContext, renderInstruction } from '../../../host/src/core/envelopes.js';
@@ -129,6 +130,7 @@ export async function createPiSession({
   decide,
   writeLease = null, // workspace write mutex — fg mutating calls hold it through execution
   loopGovernance = null, // {continuation, predictions} — M3 evidence-gated loop
+  outputSpool = null, // M38 — tool_result seam externalizes oversized outputs
   customTools = [], // host-owned tools (job_status, delegate_task) — go through the same composite chain
   excludeTools = [], // policy-derived initial suppression — model never sees them
 }) {
@@ -143,6 +145,7 @@ export async function createPiSession({
       ...(audit && loopGovernance
         ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]
         : []),
+      ...(outputSpool ? [outputSpoolExtension({ spool: outputSpool, audit })] : []),
     ],
     noSkills: true,
     noPromptTemplates: true,

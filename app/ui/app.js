@@ -2197,6 +2197,34 @@ async function refreshChanges() {
       };
       actCell.appendChild(btn);
     }
+    // M105: tool-call-scoped undo — revert every receipt attributed to the
+    // same tool call, plus a checkpoint boundary that rewinds the workspace
+    // to just before this receipt.
+    if (op.toolCallId) {
+      const cbtn = document.createElement('button');
+      cbtn.className = 'btn ghost sm';
+      cbtn.textContent = '撤调用';
+      cbtn.title = `撤销调用 ${op.toolCallId} 的全部文件变更`;
+      cbtn.onclick = async () => {
+        cbtn.disabled = true;
+        const rr = await cmd('fileops_undo_call', { toolCallId: op.toolCallId });
+        if (rr.success) { toast(`已撤销调用：恢复 ${rr.data?.restored?.length ?? 0} 项${rr.data?.skipped?.length ? `，跳过 ${rr.data.skipped.length}` : ''}`); refreshChanges(); }
+        else { toast(`撤销失败：${rr.error ?? '未知'}`, 'err'); cbtn.disabled = false; }
+      };
+      actCell.appendChild(cbtn);
+    }
+    const wbtn = document.createElement('button');
+    wbtn.className = 'btn ghost sm';
+    wbtn.textContent = '回退到此';
+    wbtn.title = '撤销此回执及之后全部文件变更（回到该变更之前的工作区状态）';
+    wbtn.onclick = async () => {
+      if (!confirm(`回退到此回执？将撤销该变更及其后全部 ${'(含)'} 已记录文件变更，且恢复本身可被再次恢复。`)) return;
+      wbtn.disabled = true;
+      const rr = await cmd('fileops_rewind', { receiptId: op.receiptId });
+      if (rr.success) { toast(`已回退：恢复 ${rr.data?.restored?.length ?? 0} 项${rr.data?.skipped?.length ? `，跳过 ${rr.data.skipped.length}` : ''}`); refreshChanges(); }
+      else { toast(`回退失败：${rr.error ?? '未知'}`, 'err'); wbtn.disabled = false; }
+    };
+    actCell.appendChild(wbtn);
     tbody.appendChild(tr);
   }
 }

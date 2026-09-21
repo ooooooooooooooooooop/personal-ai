@@ -100,6 +100,17 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
       ctx = { ...ctx, args: san.args };
       core.audit.write({ kind: 'UNICODE_SANITIZED', toolName, data: { stripped: san.stripped } });
     }
+    // M83 lazy surface: a deferred tool is hidden from the schema surface,
+    // but a model that guesses its name must not execute it — the call
+    // blocks with an activation hint instead of running schema-less.
+    if (getSurface()?.isLazy?.(toolName)) {
+      return {
+        block: true,
+        rule: 'tool_deferred',
+        reason: `'${toolName}' is deferred (lazy surface) — call tool_activate({names:["${toolName}"]}) first, then retry`,
+        repair: `activate via tool_activate, then re-issue the call`,
+      };
+    }
     // signal rides on ctx so the kernel's ask path can abort a pending
     // operator question when the session is interrupted mid-decision
     const decision = await core.kernel.decideToolCall({ ...ctx, toolName, signal });
@@ -365,7 +376,7 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     if (typeof filePath === 'string' && FILE_MUTATION_TOOLS.has(toolName)) {
       if (toolName === 'delete') {
         try {
-          const { recycled, receiptId } = await fileOps.delete(filePath);
+          const { recycled, receiptId } = await fileOps.delete(filePath, { toolCallId: ctx.toolCall?.id ?? null });
           core.audit.write({ kind: 'FILEOP_RECYCLE', toolName, data: { receiptId, pathHash: hashOf(filePath) } });
           // the mutation already happened synchronously under the lease —
           // release now; there is no real tool execution to cover.
@@ -379,7 +390,7 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           // target already gone — let the tool report it
         }
       } else {
-        const { backup, receiptId } = await fileOps.backup(filePath);
+        const { backup, receiptId } = await fileOps.backup(filePath, { toolCallId: ctx.toolCall?.id ?? null });
         if (backup) {
           core.audit.write({ kind: 'FILEOP_BACKUP', toolName, data: { receiptId, pathHash: hashOf(filePath) } });
         } else if (receiptId) {

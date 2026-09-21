@@ -243,6 +243,14 @@ export class HostChannel {
           if (!this.models?.discover) return reply(false, undefined, 'discovery unavailable');
           return reply(true, await this.models.discover());
         }
+        case 'model_fallbacks': {
+          if (!this.models?.fallbacks) return reply(false, undefined, 'fallback chain unavailable');
+          return reply(true, await this.models.fallbacks());
+        }
+        case 'model_fallback_set': {
+          if (!this.models?.setFallbacks) return reply(false, undefined, 'fallback chain unavailable');
+          return reply(true, await this.models.setFallbacks(cmd.chain));
+        }
         case 'model_alias_del': {
           if (!this.models?.aliasDel) return reply(false, undefined, 'models facade unavailable');
           return reply(true, this.models.aliasDel({ name: cmd.name }));
@@ -520,6 +528,16 @@ export class HostChannel {
         case 'fileops_diff': {
           if (!this.fileops?.diff) return reply(false, undefined, 'fileops diff unavailable');
           return reply(true, await this.fileops.diff(cmd.n, cmd.receiptId ?? null));
+        }
+        case 'fileops_undo_call': {
+          if (!this.fileops?.undoCall) return reply(false, undefined, 'fileops undo-call unavailable');
+          if (!cmd.toolCallId) return reply(false, undefined, 'fileops_undo_call requires {toolCallId}');
+          return reply(true, await this.fileops.undoCall(String(cmd.toolCallId)));
+        }
+        case 'fileops_rewind': {
+          if (!this.fileops?.undoFrom) return reply(false, undefined, 'fileops rewind unavailable');
+          if (!cmd.receiptId) return reply(false, undefined, 'fileops_rewind requires {receiptId}');
+          return reply(true, await this.fileops.undoFrom(String(cmd.receiptId)));
         }
         case 'session_btw': {
           if (!this.sessions?.btw) return reply(false, undefined, 'btw unavailable');

@@ -33,6 +33,11 @@ export class ToolSurface {
       ...(existsSync(denyMemoryPath) ? JSON.parse(readFileSync(denyMemoryPath, 'utf-8')) : []),
     ]);
     this.modeDenied = new Set();
+    // M83 deferred tools — session-scoped lazy surface. Unlike denied, lazy
+    // tools are NOT persisted and NOT governance denials: they are hidden to
+    // keep the schema prompt small until tool_activate claims them.
+    this.lazy = new Set();
+    this.lastLazyHidden = [];
     if (initialDeny.length) this.#persist(); // initial suppression is durable too
   }
 
@@ -73,6 +78,46 @@ export class ToolSurface {
     this.session.setActiveToolsByName(visible);
   }
 
+  /**
+   * Defer tools (lazy surface): hide without denying. Candidates must include
+   * tools already hidden lazy/deferred so re-deferring doesn't lose them —
+   * same candidates mechanism as setModeDenied.
+   */
+  defer(names) {
+    const candidates = [...this.session.getActiveToolNames(), ...this.lastLazyHidden];
+    this.lazy = new Set(names ?? []);
+    const visible = candidates.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n));
+    this.lastLazyHidden = candidates.filter((n) => this.lazy.has(n));
+    this.session.setActiveToolsByName(visible);
+  }
+
+  /** Activate deferred tools: re-add to the visible surface. Returns the names actually activated. */
+  activate(names) {
+    const want = new Set((names ?? []).map(String));
+    const activated = [];
+    for (const n of want) {
+      if (!this.lazy.has(n)) continue;
+      this.lazy.delete(n);
+      activated.push(n);
+    }
+    if (activated.length) {
+      const active = this.session.getActiveToolNames();
+      const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n));
+      for (const n of activated) if (!visible.includes(n)) visible.push(n);
+      this.lastLazyHidden = this.lastLazyHidden.filter((n) => this.lazy.has(n));
+      this.session.setActiveToolsByName(visible);
+    }
+    return activated;
+  }
+
+  isLazy(toolName) {
+    return this.lazy.has(toolName);
+  }
+
+  lazyList() {
+    return [...this.lazy];
+  }
+
   isDenied(toolName) {
     return this.denied.has(toolName);
   }
@@ -83,7 +128,7 @@ export class ToolSurface {
 
   #apply() {
     const active = this.session.getActiveToolNames();
-    const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n));
+    const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n));
     if (visible.length !== active.length) {
       this.session.setActiveToolsByName(visible);
     }

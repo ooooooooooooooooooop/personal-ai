@@ -39,7 +39,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, fallbacks = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -522,6 +522,20 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       s.settingsManager?.setDefaultModelAndProvider?.(target.provider, target.model);
       if (target.thinking) await modelsFacade.setThinking(target.thinking).catch(() => {});
       return { provider: m.provider, id: m.id, name: m.name ?? m.id, alias: alias ?? null };
+    },
+    // M100 fallback chain ops — mutates the shared config object the loop
+    // extension reads, and persists to <instance>/model-fallbacks.json.
+    fallbacks: async () => ({ chain: [...(fallbacks?.chain ?? [])] }),
+    setFallbacks: async (chain) => {
+      if (!fallbacks) throw new Error('fallback config unavailable');
+      if (!Array.isArray(chain)) throw new Error('setFallbacks requires an array of {provider, model}');
+      const clean = chain
+        .filter((e) => e && typeof e.provider === 'string' && typeof e.model === 'string')
+        .slice(0, 8);
+      writeJsonAtomic(join(core.paths.root, 'model-fallbacks.json'), { chain: clean });
+      fallbacks.chain = clean;
+      core.audit?.write({ kind: 'MODEL_FALLBACK_CONFIG', data: { chain: clean.map((e) => `${e.provider}/${e.model}`) } });
+      return { chain: clean };
     },
     // M95 local-inference discovery (Ollama/LM Studio/llama.cpp analogue):
     // probe the well-known local endpoints, report reachable nodes + their
