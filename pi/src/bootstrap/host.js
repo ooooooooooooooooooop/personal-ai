@@ -1,7 +1,7 @@
 import { join, resolve, basename } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../adapter/paths.js';
 import { spawn, spawnSync } from 'node:child_process';
-import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, openSync, writeSync, closeSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, openSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -110,7 +110,7 @@ import { loadAgentProfiles } from '../adapter/agentprofiles.js';
 import { createChannelHost } from '../adapter/channel.js';
 import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
-import { makeDecide } from './decide.js';
+import { makeDecide, commandDenyPrefixes } from './decide.js';
 import { resolveManagedExtensions } from '../extensions/loader.js';
 import { writeRuntimeIdentity } from '../../../host/src/core/identity.js';
 import {
@@ -406,11 +406,32 @@ export async function startHost({
         return Array.isArray(doc?.exclude) ? doc.exclude.map(String) : [];
       } catch { return []; }
     },
-    // M90-R2: restart replays a persisted command — re-run today's hard
-    // policy on it (freshness, tool deny, protected roots, parse, risk
-    // deny/terminate). Ask-level outcomes are covered by the restart click.
-    preflightCommand: (command) =>
-      core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args: { command } }),
+    // M90-R2: restart replays a persisted command — re-run the SAME gates a
+    // fresh job_spawn tool call would face, not just the kernel slice:
+    //   1. .pai/commands.json denyPrefix (project-side tightening, re-read live)
+    //   2. kernel hardPolicyGate (freshness, tool deny, protected roots,
+    //      parse validity, risk deny/terminate)
+    //   3. operator pre_tool veto hook (fail-closed external gate)
+    // Ask-level outcomes are covered by the operator's restart click.
+    // `preToolGate` is initialized later in this scope — the closure only
+    // dereferences it when a restart actually runs.
+    preflightCommand: async (command) => {
+      const hit = commandDenyPrefixes(workdir).find((p) => command.trim().startsWith(p));
+      if (hit) {
+        return { block: true, rule: 'command_denylist', reason: `command matches .pai/commands.json denyPrefix '${hit}' — project-level deny` };
+      }
+      const k = await core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args: { command } });
+      if (k?.block) return k;
+      if (preToolGate) {
+        try {
+          const g = await preToolGate.fireGate('pre_tool', { tool: 'job_spawn', toolCallId: 'job_restart', args: { command } });
+          if (g?.deny) return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook refused: ${g.deny}` };
+        } catch (err) {
+          return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook error (fail-closed): ${String(err?.message ?? err).slice(0, 200)}` };
+        }
+      }
+      return undefined;
+    },
     // M14: scheduled-job completions surface to the UI as an event — a job
     // nobody is watching must still deliver its result somewhere visible.
     onJobFinished: (d) => channelHandle?.channel.emitEvent({ type: 'scheduled_job_done', ...d }),
@@ -984,7 +1005,25 @@ export async function startHost({
         const mgr = sessionManagers.forkFrom(scratch, workdir, sessionDir);
         const srcName = mgr.getSessionName?.() ?? basename(abs);
         mgr.appendSessionInfo?.(`[导入] ${srcName}`);
-        return { file: mgr.getSessionFile?.() ?? null, name: `[导入] ${srcName}`, importedFrom: abs };
+        // M89-R2: forkFrom stamps `parentSession: <scratch path>` — after the
+        // scratch is deleted that provenance dangles. Rewrite the DESTINATION
+        // header so it names the original source (atomic tmp+rename; the
+        // source file itself is never touched).
+        const destFile = mgr.getSessionFile?.() ?? null;
+        if (destFile && existsSync(destFile)) {
+          try {
+            const raw = readFileSync(destFile, 'utf-8');
+            const nl = raw.indexOf('\n');
+            const header = nl > 0 ? JSON.parse(raw.slice(0, nl)) : null;
+            if (header?.type === 'session' && header.parentSession) {
+              header.parentSession = abs;
+              const tmp = `${destFile}.rewrite-${process.pid}`;
+              writeFileSync(tmp, JSON.stringify(header) + raw.slice(nl));
+              renameSync(tmp, destFile);
+            }
+          } catch { /* provenance rewrite is best-effort — import itself stands */ }
+        }
+        return { file: destFile, name: `[导入] ${srcName}`, importedFrom: abs };
       } finally {
         try { unlinkSync(scratch); } catch { /* leftover scratch is cosmetic */ }
       }

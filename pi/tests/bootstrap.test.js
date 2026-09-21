@@ -3,8 +3,8 @@
  * No model contact — stub model satisfies construction; the guard chain and
  * host artifacts are what matter here.
  */
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -150,5 +150,16 @@ test('M89: session_import never mutates the source file', async () => {
   const r = await host.channel.handle({ type: 'session_import', path: src });
   assert.equal(r.success, true, `import failed: ${JSON.stringify(r)}`);
   assert.deepEqual(readFileSync(src), before, 'source bytes must be identical after import');
+  // M89-R2: the fork stamps parentSession=<scratch>; the import must rewrite
+  // the destination header to name the ORIGINAL source — provenance must not
+  // dangle on a deleted temp file.
+  const destFile = r.data?.file ?? r.file;
+  assert.ok(destFile && existsSync(destFile), `imported session file missing: ${JSON.stringify(r)}`);
+  const header = JSON.parse(readFileSync(destFile, 'utf-8').split('\n')[0]);
+  assert.equal(header.parentSession, resolve(src), 'imported header must name the original source, not the deleted scratch');
+  const scratchDir = join(dir, 'sessions', '.import-scratch');
+  assert.ok(
+    !existsSync(scratchDir) || readdirSync(scratchDir).length === 0,
+    'scratch copy must be gone after import');
   host.leases.close();
 });

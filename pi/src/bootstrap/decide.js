@@ -49,7 +49,7 @@ const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'comma
  * there is no allow list here because an agent-writable file must never widen.
  * Operator-side allowlists live at <instance>/command-allow.json (kernel dep).
  */
-function commandDenyPrefixes(workdir) {
+export function commandDenyPrefixes(workdir) {
   try {
     const doc = JSON.parse(readFileSync(join(workdir, '.pai', 'commands.json'), 'utf-8'));
     return (Array.isArray(doc?.denyPrefixes) ? doc.denyPrefixes : [])
