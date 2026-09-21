@@ -176,7 +176,7 @@ def ensure_deployment_mirror(home: Path | None = None,
         # git process holding the source repo, e.g. inside a pre-commit hook).
         rc = subprocess.run(["git", "clone", "--no-checkout", "--no-hardlinks",
                              str(src), str(mirror_dir)],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding="utf-8", errors="replace")
         if rc.returncode != 0:
             raise RuntimeError(f"failed to initialize deployment mirror: {rc.stderr}")
 
@@ -184,7 +184,7 @@ def ensure_deployment_mirror(home: Path | None = None,
                     "+refs/heads/*:refs/remotes/origin/*",
                     "+refs/remotes/origin/*:refs/remotes/upstream/*",
                     "+refs/tags/*:refs/tags/*"],
-                   capture_output=True, text=True)
+                   capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     if not target_commit:
         rc, out = _git(mirror_dir, "rev-parse", "refs/remotes/upstream/main")
@@ -195,9 +195,9 @@ def ensure_deployment_mirror(home: Path | None = None,
         target_commit = out.strip()
 
     subprocess.run(["git", "-C", str(mirror_dir), "checkout", "--force", "--detach", target_commit],
-                   capture_output=True, text=True)
+                   capture_output=True, text=True, encoding="utf-8", errors="replace")
     subprocess.run(["git", "-C", str(mirror_dir), "clean", "-ffxd"],
-                   capture_output=True, text=True)
+                   capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     rc, status_out = _git(mirror_dir, "status", "--porcelain")
     rc, head_out = _git(mirror_dir, "rev-parse", "HEAD")
@@ -665,7 +665,7 @@ def cmd_validate(args) -> int:
             continue
         if node_exe:
             chk = subprocess.run([str(node_exe), "--check", str(deployed)],
-                                 capture_output=True, text=True, timeout=60)
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
             if chk.returncode != 0:
                 reasons.append(f"plugin load syntax fail: {plugin['id']}")
 

@@ -111,6 +111,9 @@ export class PendingAsks {
    * @returns {Promise<'allow'|'allow_session'|'deny'|'timeout'|'aborted'|string>}
    */
   ask(descriptor, signal) {
+    // Cancellation also wins over an earlier session-wide permission. An
+    // already-aborted call must not create an unreachable pending Promise.
+    if (signal?.aborted) return Promise.resolve('aborted');
     const { toolName } = descriptor;
     const isQuestion = descriptor.kind === 'question';
     if (!isQuestion && this.#sessionAllows.has(toolName)) return Promise.resolve('allow');
@@ -166,10 +169,10 @@ export class PendingAsks {
         this.#emit({ type: 'governance_resolved', askId: id, toolName, answer: ans });
         resolve(answer);
       };
+      // This timer owns an unresolved caller. Keep the loop alive until it
+      // refuses the ask; finish()/dispose() clear it on all earlier exits.
       const timer = setTimeout(() => finish('timeout'), this.timeoutMs);
-      timer.unref?.();
       const onAbort = () => finish('aborted');
-      if (signal?.aborted) return finish('aborted');
       signal?.addEventListener?.('abort', onAbort, { once: true });
       const rec = {
         id,

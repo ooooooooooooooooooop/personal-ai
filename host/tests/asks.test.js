@@ -63,6 +63,24 @@ test('abort signal resolves pending asks as aborted', async () => {
   assert.equal(await p, 'aborted');
 });
 
+test('an already-aborted call resolves immediately, including a session-allowed tool', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((event) => events.push(event));
+  const ac = new AbortController();
+  ac.abort();
+  assert.equal(await asks.ask(desc(), ac.signal), 'aborted');
+  assert.deepEqual(asks.list(), []);
+  assert.deepEqual(events, []);
+
+  const allowed = asks.ask(desc());
+  asks.resolve(asks.list()[0].id, 'allow_session');
+  assert.equal(await allowed, 'allow_session');
+  assert.equal(await asks.ask(desc(), ac.signal), 'aborted');
+  assert.deepEqual(asks.list(), []);
+  asks.dispose();
+});
+
 test('resolve validates: unknown id and bad answers fail politely', async () => {
   const asks = new PendingAsks({ timeoutMs: 5000 });
   const p = asks.ask(desc());
