@@ -16,6 +16,33 @@
  * Denials are structured: {rule, expected, actual, repair} — adapters render
  * them into repair-oriented reason text (Kimi-style guidance).
  */
+
+/**
+ * Agent standing-order files — a mutating file call aimed at any of these
+ * always escalates to an operator ask, regardless of session mode (Hermes
+ * protected-agent-instructions analogue). Covers this repo's own steering
+ * surfaces (.pai/**) plus the compat instruction files other harnesses read.
+ */
+const INSTRUCTION_PATH_RES = [
+  /(?:^|\/)\.pai\//i,
+  /(?:^|\/)\.paiignore$/i,
+  /(?:^|\/)AGENTS\.md$/i,
+  /(?:^|\/)CLAUDE\.md$/i,
+  /(?:^|\/)GEMINI\.md$/i,
+  /(?:^|\/)QWEN\.md$/i,
+  /(?:^|\/)CONVENTIONS\.md$/i,
+  /(?:^|\/)\.goosehints$/i,
+  /(?:^|\/)\.clinerules(?:$|[./])/i,
+  /(?:^|\/)\.cursorrules$/i,
+  /(?:^|\/)\.roomodes$/i,
+  /(?:^|\/)\.cursor\//i,
+  /(?:^|\/)\.kiro\//i,
+  /(?:^|\/)\.claude\//i,
+  /(?:^|\/)\.devin\//i,
+  /(?:^|\/)\.windsurf\//i,
+  /(?:^|\/)\.github\/copilot-instructions\.md$/i,
+];
+
 export class GovernanceKernel {
   /**
    * @param {object} deps
@@ -225,6 +252,21 @@ export class GovernanceKernel {
       });
     }
 
+    // 5b. instruction-file protection (Hermes protected-agent-instructions
+    // analogue): a mutating call that targets the agent's own standing-order
+    // files escalates to an operator ask in EVERY mode — the agent must never
+    // silently rewrite its own steering, skills, rules, or trust config via
+    // raw file writes. Proper facades (skill_create, /pin, goal_note) remain
+    // the intended channels; this gate only covers direct file mutation.
+    if (this.mutatingTools.has(ctx.toolName)) {
+      const hit = this.#instructionPath(args);
+      if (hit) {
+        return this.#ask(ctx, 'instruction_file', {
+          reason: `'${ctx.toolName}' targets agent instruction file '${hit}' — standing orders always need operator approval`,
+        });
+      }
+    }
+
     // 6. prediction binding
     const needsPrediction = rules.requiresPrediction === true || args.predictionId != null;
     if (needsPrediction) {
@@ -340,6 +382,17 @@ export class GovernanceKernel {
       }
     }
     return best ? table[`${best}*`] : {};
+  }
+
+  /** First path-like arg matching an agent-instruction file, else null. */
+  #instructionPath(args) {
+    const candidates = [args.path, args.file, args.target, args.from, args.to];
+    for (const p of candidates) {
+      if (typeof p !== 'string') continue;
+      const norm = p.replace(/\\/g, '/');
+      for (const re of INSTRUCTION_PATH_RES) if (re.test(norm)) return p;
+    }
+    return null;
   }
 
   #scanProtectedRoots(value, depth = 0) {

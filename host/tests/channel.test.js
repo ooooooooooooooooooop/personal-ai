@@ -302,3 +302,34 @@ test('verify_run/verify_status dispatch to the verify facade; absent facade fail
   const bare = new HostChannel({ session: fakeSession() });
   assert.equal((await bare.handle({ type: 'verify_run' })).success, false);
 });
+
+test('stop_all aborts the turn and cancels every non-terminal job', async () => {
+  const session = fakeSession();
+  const cancelled = [];
+  const jobs = {
+    listRecent: () => [
+      { job_id: 'j1', job_state: 'RUNNING' },
+      { job_id: 'j2', job_state: 'COMPLETED' },
+      { job_id: 'j3', job_state: 'QUEUED' },
+    ],
+    cancelJob: (id) => cancelled.push(id),
+  };
+  const events = [];
+  const audit = { write: (e) => events.push(e) };
+  const ch = new HostChannel({ session, jobs, audit });
+  const r = await ch.handle({ type: 'stop_all' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.aborted, true);
+  assert.deepEqual(r.data.cancelled.sort(), ['j1', 'j3']);
+  assert.deepEqual(session.calls, [['abort']]);
+  assert.equal(events.at(-1).kind, 'STOP_ALL');
+});
+
+test('stop_all with no jobs facade still aborts the live turn', async () => {
+  const session = fakeSession();
+  const ch = new HostChannel({ session });
+  const r = await ch.handle({ type: 'stop_all' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.aborted, true);
+  assert.deepEqual(r.data.cancelled, []);
+});

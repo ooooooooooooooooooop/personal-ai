@@ -301,3 +301,37 @@ test("command allowlist skips the ask card but never a deny (Roo whitelist analo
   assert.equal(deny.rule, 'risk_privilege');
   assert.equal(calls.length, 1); // no new ask
 });
+
+test('instruction-file gate: mutating calls to standing-order files ask in every mode', async () => {
+  const { audit, policy, predictions } = fixture();
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write', 'edit', 'delete'],
+    ask: async (pending) => { asked.push(pending.rule); return 'allow'; },
+  });
+  // no modeProvider → default normal mode; gate must still fire
+  const r1 = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: '.pai/steering/rules.md' } }));
+  assert.equal(r1, undefined); // operator allowed → admit
+  const r2 = await kernel.decideToolCall(ctx({ toolName: 'edit', args: { path: 'AGENTS.md' } }));
+  assert.equal(r2, undefined);
+  const r3 = await kernel.decideToolCall(ctx({ toolName: 'delete', args: { path: '.clinerules' } }));
+  assert.equal(r3, undefined);
+  assert.deepEqual(asked, ['instruction_file', 'instruction_file', 'instruction_file']);
+  // ordinary source files are untouched by the gate
+  await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: 'src/main.js' } }));
+  // non-mutating tools can still read instruction files freely
+  await kernel.decideToolCall(ctx({ toolName: 'read', args: { path: 'AGENTS.md' } }));
+  assert.equal(asked.length, 3, 'read + normal file did not escalate');
+});
+
+test('instruction-file gate: operator deny blocks the write', async () => {
+  const { audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write'],
+    ask: async () => 'deny',
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: '.cursor/rules/x.md' } }));
+  assert.equal(d.block, true);
+});

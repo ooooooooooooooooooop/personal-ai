@@ -136,6 +136,25 @@ export class HostChannel {
         case 'abort':
           await this.session.abort();
           return reply(true);
+        case 'stop_all': {
+          // Hermes global emergency stop: abort the foreground turn AND
+          // cancel every non-terminal durable job — one operator kill switch.
+          const out = { aborted: false, cancelled: [] };
+          try { await this.session.abort(); out.aborted = true; } catch { /* no live turn */ }
+          if (this.jobs?.listRecent) {
+            const running = this.jobs.listRecent(200)
+              .filter((j) => !['COMPLETED', 'FAILED', 'CANCELLED'].includes(j.job_state));
+            for (const j of running) {
+              try {
+                if (this.jobDetail?.cancel) this.jobDetail.cancel(j.job_id);
+                else this.jobs.cancelJob?.(j.job_id);
+                out.cancelled.push(j.job_id);
+              } catch { /* already terminal */ }
+            }
+          }
+          this.audit?.write?.({ kind: 'STOP_ALL', data: { aborted: out.aborted, cancelled: out.cancelled.length } });
+          return reply(true, out);
+        }
         case 'bash_run': {
           // `!cmd` operator direct-exec (Claude Code bang-mode analogue): the
           // command still runs through the full decide chain — nothing the
