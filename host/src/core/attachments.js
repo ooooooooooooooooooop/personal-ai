@@ -14,6 +14,7 @@
  *     source: { type: 'inline', data: <base64> } | { type: 'path', path } | { type: 'url', url } }
  */
 import { readFileSync } from 'node:fs';
+import zlib from 'node:zlib';
 
 const KIND_PREFIX = {
   image: 'image/',
@@ -102,27 +103,33 @@ const TEXT_MIME = /^(text\/|application\/(json|xml|javascript|typescript|x-yaml|
  * Best-effort text extraction for file-kind attachments (ZCode PDF/ipynb
  * analogue — the zero-dependency slice): formats we can read honestly are
  * inlined so the model gets CONTENT, not just a reference tag. Formats that
- * need a real parser (pdf/docx/xlsx) return null and stay descriptors — a
- * descriptor is honest, a half-parse is not.
+ * yield no extractable text return null and stay descriptors — a descriptor
+ * is honest, a half-parse is not.
  * @returns {string|null} extracted text, or null when not extractable
  */
 export function extractAttachmentText(a) {
   if (a.kind !== 'file') return null;
   const raw = readSource(a);
   if (raw == null) return null;
+  if (/\.docx$/i.test(a.name) || a.mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return extractDocx(raw);
+  }
+  if (/\.pdf$/i.test(a.name) || a.mime === 'application/pdf' || raw.subarray(0, 4).toString('latin1') === '%PDF') {
+    return extractPdf(raw);
+  }
   if (/\.ipynb$/i.test(a.name) || a.mime === 'application/x-ipynb+json') {
-    return extractIpynb(raw);
+    return extractIpynb(raw.toString('utf-8'));
   }
   if (TEXT_MIME.test(a.mime) || /\.(md|markdown|txt|py|js|ts|jsx|tsx|json|ya?ml|toml|xml|html?|css|csv|rs|go|java|c|h|cpp|rb|sh|sql|log)$/i.test(a.name)) {
-    return raw.slice(0, TEXT_EXTRACT_MAX);
+    return raw.toString('utf-8').slice(0, TEXT_EXTRACT_MAX);
   }
   return null;
 }
 
 function readSource(a) {
   try {
-    if (a.source.type === 'inline') return Buffer.from(a.source.data, 'base64').toString('utf-8');
-    if (a.source.type === 'path') return readFileSync(a.source.path, 'utf-8');
+    if (a.source.type === 'inline') return Buffer.from(a.source.data, 'base64');
+    if (a.source.type === 'path') return readFileSync(a.source.path);
   } catch { /* unreadable source → no extraction */ }
   return null;
 }
@@ -144,4 +151,129 @@ function extractIpynb(raw) {
     }
     return out.slice(0, TEXT_EXTRACT_MAX) || null;
   } catch { return null; }
+}
+
+const ZIP_INFLATE_CAP = 8 * 1024 * 1024;   // per-entry decompressed cap (zip-bomb fence)
+const ZIP_ENTRIES_CAP = 512;
+const PDF_STREAM_CAP = 4 * 1024 * 1024;    // per-stream decompressed cap
+
+/**
+ * Minimal zip central-directory reader — enough for OOXML (stored/deflate
+ * entries only). Returns Map<name, Buffer> of inflated entries, or null when
+ * the container is not a readable zip.
+ */
+function unzipEntries(buf) {
+  try {
+    // EOCD signature 0x06054b50 — scan the last 64KB (comment cap)
+    const tail = Math.max(0, buf.length - 65558);
+    let eocd = -1;
+    for (let i = buf.length - 22; i >= tail; i--) {
+      if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) return null;
+    const count = Math.min(buf.readUInt16LE(eocd + 10), ZIP_ENTRIES_CAP);
+    let p = buf.readUInt32LE(eocd + 16);
+    const out = new Map();
+    for (let n = 0; n < count && p + 46 <= buf.length; n++) {
+      if (buf.readUInt32LE(p) !== 0x02014b50) break;
+      const method = buf.readUInt16LE(p + 10);
+      const compSize = buf.readUInt32LE(p + 20);
+      const uncompSize = buf.readUInt32LE(p + 24);
+      const nameLen = buf.readUInt16LE(p + 28);
+      const extraLen = buf.readUInt16LE(p + 30);
+      const cmtLen = buf.readUInt16LE(p + 32);
+      const lho = buf.readUInt32LE(p + 42);
+      const name = buf.subarray(p + 46, p + 46 + nameLen).toString('utf-8');
+      p += 46 + nameLen + extraLen + cmtLen;
+      if (uncompSize > ZIP_INFLATE_CAP || lho + 30 > buf.length) continue;
+      const lhNameLen = buf.readUInt16LE(lho + 26);
+      const lhExtraLen = buf.readUInt16LE(lho + 28);
+      const dataStart = lho + 30 + lhNameLen + lhExtraLen;
+      const comp = buf.subarray(dataStart, dataStart + compSize);
+      let data = null;
+      if (method === 0) data = comp;
+      else if (method === 8) {
+        data = zlib.inflateRawSync(comp, { maxOutputLength: ZIP_INFLATE_CAP });
+      }
+      if (data && !name.endsWith('/')) out.set(name, data);
+    }
+    return out;
+  } catch { return null; }
+}
+
+/** docx = OOXML zip → word/document.xml → paragraph text. Null on failure. */
+function extractDocx(buf) {
+  const entries = unzipEntries(buf);
+  const doc = entries?.get('word/document.xml');
+  if (!doc) return null;
+  const xml = doc.toString('utf-8');
+  const text = xml
+    .replace(/<w:tab\s[^>]*\/>/g, '\t')
+    .replace(/<w:br\s[^>]*\/>|<\/w:p>/g, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'").replace(/&amp;/g, '&')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return text ? text.slice(0, TEXT_EXTRACT_MAX) : null;
+}
+
+/**
+ * Minimal PDF text pull: inflate each FlateDecode stream, collect text-show
+ * operators inside BT/ET blocks. Encrypted/image-only/odd-encoding files
+ * yield null → the caller keeps the honest descriptor.
+ */
+function extractPdf(buf) {
+  const latin = buf.toString('latin1');
+  let out = '';
+  let pos = 0;
+  while (out.length < TEXT_EXTRACT_MAX) {
+    const s = latin.indexOf('stream', pos);
+    if (s < 0) break;
+    const e = latin.indexOf('endstream', s);
+    if (e < 0) break;
+    pos = e + 9;
+    // stream data starts after EOL following the 'stream' keyword
+    let start = s + 6;
+    if (latin[start] === '\r' && latin[start + 1] === '\n') start += 2;
+    else if (latin[start] === '\n' || latin[start] === '\r') start += 1;
+    const raw = buf.subarray(start, e);
+    let inflated = null;
+    try { inflated = zlib.inflateSync(raw, { maxOutputLength: PDF_STREAM_CAP }); } catch { continue; }
+    out += pdfTextOf(inflated);
+  }
+  const text = out.trim();
+  return text ? text.slice(0, TEXT_EXTRACT_MAX) : null;
+}
+
+function pdfTextOf(stream) {
+  const src = stream.toString('latin1');
+  let out = '';
+  const btEt = /BT([\s\S]*?)ET/g;
+  let m;
+  while ((m = btEt.exec(src))) {
+    const block = m[1];
+    const shown = [];
+    // (str) Tj and [(a) 12 (b)] TJ
+    const ops = /\((?:\\.|[^\\)])*\)\s*Tj|\[((?:\((?:\\.|[^\\)])*\)|[^\]])*)\]\s*TJ|T\*/g;
+    let o;
+    while ((o = ops.exec(block))) {
+      if (o[0] === 'T*') { shown.push('\n'); continue; }
+      const piece = o[1] != null ? o[1].match(/\((?:\\.|[^\\)])*\)/g) : [o[0]];
+      for (const lit of piece ?? []) {
+        shown.push(pdfUnescape(lit.slice(1, lit.lastIndexOf(')') > 0 ? lit.lastIndexOf(')') : lit.length - 1)));
+      }
+      shown.push(' ');
+    }
+    if (shown.length) out += shown.join('') + '\n';
+  }
+  return out;
+}
+
+function pdfUnescape(s) {
+  return s.replace(/\\([nrtbf()\\]|[0-7]{1,3})/g, (_, c) => {
+    const simple = { n: '\n', r: '\r', t: '\t', b: '\b', f: '\f', '(': '(', ')': ')', '\\': '\\' }[c];
+    if (simple != null) return simple;
+    return String.fromCharCode(parseInt(c, 8) & 0xff);
+  });
 }

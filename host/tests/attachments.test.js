@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import zlib from 'node:zlib';
 import { kindOfMime, normalizeAttachment, normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../src/core/attachments.js';
 
 test('kindOfMime classifies media prefixes, rest is file', () => {
@@ -66,6 +67,64 @@ test('extractAttachmentText: ipynb renders cells; text inlines; pdf stays null',
   assert.match(ipynb, /cell 1 \[code\]/);
   assert.match(ipynb, /out: 1/);
   assert.equal(extractAttachmentText(attachments[1]), 'print(1)');
-  assert.equal(extractAttachmentText(attachments[2]), null, 'pdf needs a real parser — descriptor stays honest');
+  assert.equal(extractAttachmentText(attachments[2]), null, 'streamless pdf yields nothing — descriptor stays honest');
   assert.equal(extractAttachmentText({ kind: 'image', source: { type: 'inline', data: 'x' } }), null);
+});
+
+/** Hand-rolled minimal zip (one deflated entry) — enough for the EOCD reader. */
+function makeZip(name, content) {
+  const nameB = Buffer.from(name, 'utf-8');
+  const comp = zlib.deflateRawSync(content);
+  const lho = Buffer.alloc(30);
+  lho.writeUInt32LE(0x04034b50, 0);
+  lho.writeUInt16LE(20, 4); lho.writeUInt16LE(0, 6); lho.writeUInt16LE(8, 8);
+  lho.writeUInt16LE(0, 10); lho.writeUInt16LE(0, 12);
+  lho.writeUInt32LE(0, 14);
+  lho.writeUInt32LE(comp.length, 18); lho.writeUInt32LE(content.length, 22);
+  lho.writeUInt16LE(nameB.length, 26); lho.writeUInt16LE(0, 28);
+  const local = Buffer.concat([lho, nameB, comp]);
+  const cd = Buffer.alloc(46);
+  cd.writeUInt32LE(0x02014b50, 0);
+  cd.writeUInt16LE(20, 4); cd.writeUInt16LE(20, 6); cd.writeUInt16LE(0, 8); cd.writeUInt16LE(8, 10);
+  cd.writeUInt16LE(0, 12); cd.writeUInt16LE(0, 14); cd.writeUInt32LE(0, 16);
+  cd.writeUInt32LE(comp.length, 20); cd.writeUInt32LE(content.length, 24);
+  cd.writeUInt16LE(nameB.length, 28);
+  cd.writeUInt32LE(0, 42);
+  const central = Buffer.concat([cd, nameB]);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(1, 8); eocd.writeUInt16LE(1, 10);
+  eocd.writeUInt32LE(central.length, 12); eocd.writeUInt32LE(local.length, 16);
+  return Buffer.concat([local, central, eocd]);
+}
+
+test('extractAttachmentText: docx pulls document.xml paragraph text', () => {
+  const docx = makeZip('word/document.xml', Buffer.from(
+    '<?xml version="1.0"?><w:document><w:body>' +
+    '<w:p><w:r><w:t>Hello &amp; welcome</w:t></w:r></w:p>' +
+    '<w:p><w:r><w:t>Second para</w:t></w:r></w:p>' +
+    '</w:body></w:document>', 'utf-8'));
+  const { attachments } = normalizeAttachments([
+    { name: 'r.docx', mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', data: docx.toString('base64') },
+    { name: 'bad.docx', mime: 'application/octet-stream', data: Buffer.from('not a zip').toString('base64') },
+  ]);
+  const text = extractAttachmentText(attachments[0]);
+  assert.match(text, /Hello & welcome/);
+  assert.match(text, /Second para/);
+  assert.equal(extractAttachmentText(attachments[1]), null, 'corrupt docx degrades to descriptor');
+});
+
+test('extractAttachmentText: pdf pulls text-show ops from FlateDecode streams', () => {
+  const stream = zlib.deflateSync(Buffer.from('BT /F1 12 Tf 72 720 Td (Hello \\(PDF\\)) Tj T* (second line) Tj ET', 'latin1'));
+  const pdf = Buffer.concat([
+    Buffer.from('%PDF-1.4\n1 0 obj<</Length ' + stream.length + '>>stream\n', 'latin1'),
+    stream,
+    Buffer.from('\nendstream\nendobj\n%%EOF', 'latin1'),
+  ]);
+  const { attachments } = normalizeAttachments([
+    { name: 'doc.pdf', mime: 'application/pdf', data: pdf.toString('base64') },
+  ]);
+  const text = extractAttachmentText(attachments[0]);
+  assert.match(text, /Hello \(PDF\)/);
+  assert.match(text, /second line/);
 });
