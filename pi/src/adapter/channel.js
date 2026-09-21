@@ -6,6 +6,7 @@
 import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 import { join, dirname } from 'node:path';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
@@ -25,8 +26,11 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
  *   not to the session object itself.
  */
 const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create']);
+// Shell-family tools whose side effects get a workspace-delta notice
+// (CC bashEditDiffEnabled analogue — the diff panel for command edits).
+const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -75,6 +79,23 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
   let pump = null;
   let autoCompacted = false; // per-session latch — rebind resets it
+  // N3 workspace-delta notices for shell commands: `git status --porcelain`
+  // before/after the call; the NEW-dirty set is what the command touched.
+  // Best-effort — non-git workdirs and slow git simply yield no notice.
+  const pendingDelta = new Map(); // toolCallId → Promise<Set<path>|null>
+  let gitProbe = null; // null=unprobed · true=repo · false=disabled (not a repo)
+  const gitDirty = () => new Promise((res) => {
+    if (!workdir || gitProbe === false) return res(null);
+    execFile('git', ['status', '--porcelain', '--no-renames'], { cwd: workdir, timeout: 4000, windowsHide: true }, (e, out) => {
+      if (e) {
+        // disable permanently only when provably not a git repo
+        if (/not a git repository/i.test(String(e.stderr ?? e.message ?? ''))) gitProbe = false;
+        return res(null);
+      }
+      gitProbe = true;
+      res(new Set(out.split('\n').map((l) => l.slice(3).trim()).filter(Boolean)));
+    });
+  });
   const rebind = (newSession) => {
     pump?.();
     autoCompacted = false;
@@ -111,7 +132,24 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // the separate pre_tool hook on the decide path)
       if (ev?.type === 'tool_execution_start') {
         hooks?.fire('tool_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
+        if (EXEC_TOOLS.has(ev.toolName) && ev.toolCallId) pendingDelta.set(ev.toolCallId, gitDirty());
       } else if (ev?.type === 'tool_execution_end') {
+        // bashEditDiff analogue: report which files the command newly dirtied.
+        // Detached — the tool_execution_end event itself must not wait on git.
+        const beforeP = pendingDelta.get(ev.toolCallId);
+        pendingDelta.delete(ev.toolCallId);
+        if (beforeP) {
+          const toolName = ev.toolName;
+          beforeP.then(async (before) => {
+            if (!before) return;
+            const after = await gitDirty();
+            if (!after) return;
+            const delta = [...after].filter((f) => !before.has(f)).slice(0, 12);
+            if (!delta.length) return;
+            core.audit?.write({ kind: 'BASH_WORKSPACE_DELTA', data: { toolName, files: delta } });
+            emit({ type: 'notify', message: `${toolName} 改动了 ${delta.length} 个文件：${delta.slice(0, 6).join('、')}${delta.length > 6 ? ` 等` : ''}`, level: 'info' });
+          }).catch(() => {});
+        }
         hooks?.fire('tool_end', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
       } else if (ev?.type === 'agent_end') {
         hooks?.fire('agent_stop', {});
@@ -198,7 +236,21 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       } catch { /* knowledge match is best-effort — never blocks a prompt */ }
       if (options?.attachments?.length) {
         const { attachments, rejected } = normalizeAttachments(options.attachments);
-        const { native, degraded } = partitionByCapability(attachments, { images: true });
+        // Capability-gated carry (OpenCode/Cline analogue): images ride
+        // natively only when the CURRENT model advertises image input —
+        // attaching to a text-only model degrades to a descriptor and the
+        // operator is told, instead of the SDK silently dropping bytes.
+        const curInput = box.s?.model?.input;
+        const caps = { images: !Array.isArray(curInput) || curInput.includes('image') };
+        const { native, degraded } = partitionByCapability(attachments, caps);
+        const lostImages = degraded.filter((a) => a.kind === 'image').length;
+        if (lostImages && caps.images === false) {
+          emit({
+            type: 'notify',
+            level: 'warn',
+            message: `当前模型 ${box.s?.model?.id ?? '?'} 不支持图片输入——${lostImages} 张图片将降级为文本描述（换个视觉模型可原生看图）`,
+          });
+        }
         if (native.length) {
           opts = { ...options, images: [...(options.images ?? []), ...native.map((a) => ({ type: 'image', data: a.source.data, mimeType: a.mime }))] };
         }
@@ -566,6 +618,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     projectTrust,
     schedules,
     repoMap,
+    skills: knowledge, // skill-doctor stats + allow-list ride the knowledge facade
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

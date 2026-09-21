@@ -32,11 +32,27 @@ if (!instanceRoot) {
 const workdir = opt('workdir', process.cwd());
 const delegateCmd = opt('delegate-command', null);
 
+// Planted-exe defense (Cline 4.1.19 analogue): on Windows, cmd.exe resolves
+// bare commands through the current directory first — a checkout containing
+// a planted npm.exe/git.exe would execute it on any `npm …` call. Setting
+// NoDefaultCurrentDirectoryInExePath removes '.' from the CreateProcess
+// search path for this process AND every child it spawns (jobs, delegate
+// bridge, built-in bash tool — one stamp covers the whole tree).
+if (process.platform === 'win32') {
+  process.env.NoDefaultCurrentDirectoryInExePath ||= '1';
+}
+
 const host = await startHost({
   instanceRoot,
   workdir,
   delegationCommand: delegateCmd
-    ? (target, task) => delegateCmd.replaceAll('{target}', target).replaceAll('{task}', task.replaceAll('"', '\\"'))
+    // {model}/{effort} slots let an operator template consume profile hints
+    // (e.g. `--model {model}`) — empty string when the profile declares none
+    ? (target, task, opts = {}) => delegateCmd
+      .replaceAll('{target}', target)
+      .replaceAll('{task}', task.replaceAll('"', '\\"'))
+      .replaceAll('{model}', opts.model ?? '')
+      .replaceAll('{effort}', opts.effort ?? '')
     : null,
 });
 

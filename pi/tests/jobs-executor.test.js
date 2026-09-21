@@ -540,3 +540,25 @@ test('spawn depth propagates: child env stamp is parent depth + 1', async () => 
     store.close();
   }
 });
+
+test('profile knobs: model/effort fill commandFor opts; isolate_steering stamps --steering-off', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-knobs-'));
+  const { store } = rig(dir);
+  let captured = '';
+  let gotOpts = null;
+  const stub = { spawnCommandJob: async ({ command }) => { captured = command; return { job_id: 'job-k', attempt_id: 'a1' }; } };
+  const profiles = new Map([['pro', {
+    name: 'pro', target: 'pi', preamble: 'be terse',
+    model: 'sonnet', effort: 'high', isolateSteering: true,
+  }]]);
+  const tool = delegateTool(stub, {
+    commandFor: (target, task, opts) => { gotOpts = opts; return `echo "${target}: ${task}"`; },
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc11', { profile: 'pro', task: 'do it' });
+  assert.match(res.content[0].text, /durable job job-k/);
+  assert.deepEqual(gotOpts, { model: 'sonnet', effort: 'high' });
+  assert.match(captured, / --steering-off /);
+  store.close();
+});

@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
-import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -23,6 +23,14 @@ import { loadSteering } from '../../../host/src/core/steering.js';
 import { loadPins, editPins } from '../../../host/src/core/pins.js';
 import { PaiIgnore } from '../../../host/src/core/paiignore.js';
 import { ModePresets, validateModesDoc } from '../../../host/src/core/modes.js';
+
+// Windows planted-binary defense (Cline NoDefaultCurrentDirectoryInExePath
+// analogue): cmd.exe resolves bare names against the cwd BEFORE PATH, so a
+// repo-planted git.exe/rg.exe/node.exe would run with user privileges the
+// moment a command mentions it. Set the opt-out on our own env — every
+// spawned shell (bash tool, durable jobs, delegate children) inherits it.
+// `??=` respects an operator who deliberately unset it.
+if (process.platform === 'win32') process.env.NoDefaultCurrentDirectoryInExePath ??= '1';
 
 /** Operator env lever — a number or undefined; never NaN into limits. */
 function numEnv(name) {
@@ -211,6 +219,18 @@ export async function startHost({
 
   asks = new PendingAsks({ audit: core.audit }, join(core.paths.root, 'always-allow.json'));
 
+  // Skill allow-list lives in the INSTANCE root (operator-private), never in
+  // .pai/ — a repo-planted file must not decide which repo-planted knowledge
+  // can inject. Per-process hit counts feed the skill-doctor stats surface.
+  const skillAllowPath = join(core.paths.root, 'skill-allow.json');
+  const skillHitCounts = new Map();
+  const readSkillAllow = () => {
+    try {
+      const doc = JSON.parse(readFileSync(skillAllowPath, 'utf-8'));
+      return Array.isArray(doc?.allow) ? new Set(doc.allow.map(String)) : null;
+    } catch { return null; }
+  };
+
   core.registry.register(piFacts());
 
   // Body selection is a mechanism, not a declaration: evaluate every
@@ -342,7 +362,9 @@ export async function startHost({
     getScope: () => currentSession?.sessionId ?? null,
     budget,
     // frontmatter subagent personas: project .pai/agents + instance agents/
-    profiles: loadAgentProfiles({ workdir, instanceRoot: core.paths.root }),
+    // profile env fields only load under the same trust gate as microagents —
+    // a repo-planted profile must never steer the delegate child's environment
+    profiles: loadAgentProfiles({ workdir, instanceRoot: core.paths.root, workdirTrusted: isTrusted(core.paths.root, workdir) }),
     // every delegation becomes a mailbox-backed AgentTask — the bridge
     // binds --task-dir for real two-way coordination
     taskStore,
@@ -387,7 +409,10 @@ export async function startHost({
       // context composed at this boundary (host core stays workdir-blind)
       contextEnvelope: () => ({
         ...core.contextProvider(),
-        steering: loadSteering(workdir),
+        // Steering isolation (CC omitClaudeMd analogue): a delegated child
+        // spawned with --steering-off carries PAI_STEERING_OFF — workdir
+        // steering files (AGENTS.md et al.) never reach its context.
+        steering: process.env.PAI_STEERING_OFF ? null : loadSteering(workdir),
         // pinned memory rides the context envelope as untrusted evidence —
         // recalled claims, never an authority channel
         memoryDigest: memoryStore.injection(),
@@ -670,7 +695,7 @@ export async function startHost({
     },
     // Full-text search across persisted session JSONL — the sidebar filter
     // only covers name/firstMessage; this scans message bodies too.
-    search: async (query) => {
+    search: async (query, { scope = 'all' } = {}) => {
       const q = String(query ?? '').toLowerCase().trim();
       if (!q) return [];
       const metas = new Map((await sessionManagers.list(workdir, sessionDir)).map((s) => [s.path, s]));
@@ -685,6 +710,12 @@ export async function startHost({
           for (const line of readFileSync(p, 'utf-8').split('\n')) {
             if (!line.includes(q) && !line.toLowerCase().includes(q)) continue;
             let e; try { e = JSON.parse(line); } catch { continue; }
+            // scope 'prompts' (Kiro session-search-scope analogue): only the
+            // user's own messages match — agent replies stay out of recall.
+            if (scope === 'prompts') {
+              const role = e?.message?.role ?? e?.role;
+              if (role !== 'user') continue;
+            }
             const c = e?.message?.content ?? e?.content;
             const flat = typeof c === 'string' ? c
               : Array.isArray(c) ? c.filter((x) => x?.type === 'text').map((x) => x.text).join(' ') : '';
@@ -872,6 +903,7 @@ export async function startHost({
     repoMap: {
       build: (subdir) => buildRepoMap(workdir, { isIgnored: repoMapIgnore(), subdir }),
     },
+    workdir, // bash workspace-delta notices diff git status against this root
     memory: memoryStore,
     // H-family microagents — .pai/microagents/*.md frontmatter triggers
     // inject topic-scoped knowledge into the matching prompt, this turn only.
@@ -881,8 +913,35 @@ export async function startHost({
     knowledge: {
       match: (text) => {
         if (!isTrusted(core.paths.root, workdir)) return null;
-        const hits = matchMicroagents(loadMicroagents(workdir), text);
+        const allow = readSkillAllow();
+        const hits = matchMicroagents(loadMicroagents(workdir), text)
+          .filter((a) => !allow || allow.has(a.name));
+        for (const h of hits) skillHitCounts.set(h.name, (skillHitCounts.get(h.name) ?? 0) + 1);
         return hits.length ? { text: renderKnowledge(hits), agents: hits.map((h) => h.name) } : null;
+      },
+      // Skill-doctor analogue (CC /skill-doctor): which skills exist, what
+      // they cost when injected, and how often they actually fired this run.
+      stats: () => {
+        const allow = readSkillAllow();
+        return loadMicroagents(workdir).map((a) => ({
+          name: a.name,
+          triggers: a.triggers,
+          bytes: Buffer.byteLength(a.body, 'utf-8'),
+          hits: skillHitCounts.get(a.name) ?? 0,
+          allowed: !allow || allow.has(a.name),
+        }));
+      },
+      allowGet: () => { const a = readSkillAllow(); return a ? [...a] : null; },
+      allowSet: (names) => {
+        if (names === null) {
+          try { unlinkSync(skillAllowPath); } catch {}
+          return { allow: null };
+        }
+        if (!Array.isArray(names) || names.some((n) => typeof n !== 'string' || !n)) {
+          return { error: 'names must be an array of skill names, or null to clear' };
+        }
+        writeFileSync(skillAllowPath, JSON.stringify({ allow: names }, null, 2) + '\n');
+        return { allow: names };
       },
     },
     asks,

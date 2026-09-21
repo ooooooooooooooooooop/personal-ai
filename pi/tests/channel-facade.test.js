@@ -596,3 +596,68 @@ test('model_ping probes {baseUrl}/models with resolved auth, never leaks the key
     dispose();
   }
 });
+
+test('capability-gated attachments: text-only model degrades images with operator notice', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-1', input: ['text'] };
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-caps-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir }, audit: { write: () => {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+
+  await ch.handle({
+    type: 'prompt', message: 'see this',
+    options: { attachments: [{ name: 'p.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  const [msg, opts] = calls[0];
+  assert.ok(!opts.images?.length, 'no native images for a text-only model');
+  assert.match(msg, /<attachment kind="image" name="p.png"/);
+  assert.ok(events.some((m) => m.event?.type === 'notify' && /不支持图片输入/.test(m.event.message ?? '')),
+    'operator is told the image degraded');
+
+  // vision-capable model still rides natively
+  fakeSessionRef.model = { provider: 'cpa', id: 'vision-1', input: ['text', 'image'] };
+  await ch.handle({
+    type: 'prompt', message: 'again',
+    options: { attachments: [{ name: 'q.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  assert.deepEqual(calls[1][1].images, [{ type: 'image', data: 'aGk=', mimeType: 'image/png' }]);
+  dispose();
+});
+
+test('skills_list and skill_allow_set dispatch to the knowledge facade; fail closed without it', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-skills-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const calls = [];
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    knowledge: {
+      stats: () => [{ name: 'deploy', triggers: ['deploy'], bytes: 40, hits: 2, allowed: true }],
+      allowSet: (names) => { calls.push(names); return { allow: names }; },
+    },
+  });
+  const list = await ch.handle({ type: 'skills_list' });
+  assert.equal(list.success, true);
+  assert.equal(list.data.skills[0].name, 'deploy');
+  const set = await ch.handle({ type: 'skill_allow_set', names: ['a', 'b'] });
+  assert.equal(set.success, true);
+  assert.deepEqual(calls[0], ['a', 'b']);
+  const clear = await ch.handle({ type: 'skill_allow_set', names: null });
+  assert.equal(clear.success, true);
+  assert.deepEqual(calls[1], null);
+  dispose();
+
+  const bare = createChannelHost({ session: fakeSession(), core });
+  const r = await bare.channel.handle({ type: 'skills_list' });
+  assert.equal(r.success, false);
+  assert.match(r.error, /skills facade unavailable/);
+  bare.dispose();
+});

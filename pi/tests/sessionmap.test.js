@@ -47,3 +47,15 @@ test('repo_map tool wraps the builder; subdir traversal refused', async () => {
   const ig = repoMapTool({ workdir: w, getIgnored: () => () => true });
   assert.match((await ig.execute('t', {})).content[0].text, /no source files/);
 });
+
+test('session_search passes scope through to the facade', async () => {
+  const { sessionSearchTool } = await import('../src/adapter/sessionsearch.js');
+  let gotScope = null;
+  const tool = sessionSearchTool(() => async (q, opts) => { gotScope = opts?.scope; return [{ name: 's1', snippets: ['…hit…'] }]; });
+  await tool.execute('t', { query: 'x' });
+  assert.equal(gotScope, 'all'); // default
+  await tool.execute('t', { query: 'x', scope: 'prompts' });
+  assert.equal(gotScope, 'prompts');
+  await tool.execute('t', { query: 'x', scope: 'bogus' });
+  assert.equal(gotScope, 'all'); // unknown scope falls back, never widens silently
+});

@@ -567,6 +567,7 @@ function ensureAskTick() {
 function addAskCard(ask) {
   if (!ask?.id || askCards.has(ask.id)) return;
   noteMessage();
+  beep(1040, 0.15); // approval gate = attention request — ring even when focused
   actGroup = null; // an approval gate breaks any running tool group
   const kind = toolKind(ask.toolName);
   const div = document.createElement('div');
@@ -958,6 +959,7 @@ function onAgentEvent(ev) {
       break;
     case 'agent_end':
       setBusy(false);
+      if (document.hidden) beep(660, 0.18); // turn done while away — call the operator back
       assistantEl = null;
       thinkEl = null;
       stopProc(true);
@@ -1453,6 +1455,33 @@ if ($('set-theme')) {
     const v = $('set-theme').value;
     localStorage.setItem(THEME_KEY, v);
     applyTheme(v);
+  };
+}
+
+/* ---------- sound: opt-in notification bell (Goose terminal-bell analogue) ---------- */
+const SOUND_KEY = 'pai.sound';
+function soundOn() { return localStorage.getItem(SOUND_KEY) === 'on'; }
+let audioCtx = null;
+function beep(freq = 880, dur = 0.12) {
+  if (!soundOn()) return;
+  try {
+    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + dur);
+  } catch { /* audio unavailable — silent */ }
+}
+if ($('set-sound')) {
+  $('set-sound').value = localStorage.getItem(SOUND_KEY) ?? 'off';
+  $('set-sound').onchange = () => {
+    const v = $('set-sound').value;
+    localStorage.setItem(SOUND_KEY, v);
+    if (v === 'on') beep(); // immediate feedback that the toggle works
   };
 }
 async function saveKey(providerSel, keyInput, msgEl) {
@@ -2471,6 +2500,25 @@ const SLASH = [
       const d = r.data ?? {};
       addSys(`仓库地图：${d.files} 文件 / ${d.symbols} 符号${d.truncated ? '（截断）' : ''}`, false);
       addMsg('sys', `\`\`\`\n${d.text ?? '(空)'}\n\`\`\``);
+    },
+  },
+  {
+    cmd: '/skills', label: '技能体检', hint: '列出已加载 microagent 技能：大小/命中次数/启用态；/skills allow a,b 设白名单，/skills allow 清除',
+    run: async (arg) => {
+      const m = arg.trim().match(/^allow(?:\s+(.*))?$/);
+      if (m) {
+        const names = (m[1] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+        const r = await cmd('skill_allow_set', { names: names.length ? names : null });
+        if (!r.success) { addSys(`白名单设置失败：${r.error ?? '未知'}`, true); return; }
+        toast(r.data?.allow ? `技能白名单已设：${r.data.allow.join(', ')}` : '技能白名单已清除（全部启用）');
+      }
+      const r = await cmd('skills_list');
+      if (!r.success) { addSys(`技能体检不可用：${r.error ?? '未知'}`, true); return; }
+      const skills = r.data?.skills ?? [];
+      if (!skills.length) { addSys('没有已加载的 microagent 技能（.pai/microagents/*.md 且带 triggers:）', false); return; }
+      const lines = skills.map((s) =>
+        `${s.allowed ? '●' : '○'} ${s.name} — ${s.bytes}B 注入成本 / 本轮命中 ${s.hits} 次 / 触发 ${s.triggers.slice(0, 4).join('、')}${s.triggers.length > 4 ? '…' : ''}${s.allowed ? '' : '（白名单外·停用中）'}`);
+      addSys(`技能体检（${skills.filter((s) => s.allowed).length}/${skills.length} 启用）：\n${lines.join('\n')}`, false);
     },
   },
   {

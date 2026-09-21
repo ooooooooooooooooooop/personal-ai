@@ -138,7 +138,7 @@ export class JobExecutor {
    * write lease (another mutating job is running). Fail-closed on classify
    * errors: an unparseable mutating-capable command is treated as mutating.
    */
-  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false }) {
+  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null }) {
     let mutating = false;
     if (this.classifier) {
       try {
@@ -165,12 +165,12 @@ export class JobExecutor {
       workerIdentity: {}, // filled after spawn with real pid
       workspaceRef: workdir,
     });
-    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted });
+    this.executeAttempt(job.job_id, attempt_id, { command, workdir, mutating, budgetScope, budgetCommitted, timeoutMs });
     return { job_id: job.job_id, attempt_id };
   }
 
   /** Run one attempt: spawn → checkpoint → heartbeat → exit → result envelope. */
-  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false }) {
+  executeAttempt(jobId, attemptId, { command, workdir, resume = false, mutating = false, budgetScope = null, budgetCommitted = false, timeoutMs = null }) {
     const checkpointPath = join(this.jobsDir, `${attemptId}.checkpoint.json`);
     const leaseHolder = `job:${jobId}`;
     const resultPath = join(this.jobsDir, `${attemptId}.result.json`);
@@ -230,7 +230,24 @@ export class JobExecutor {
     child.stdout?.on('data', (d) => { out += d; if (out.length > 8192) out = out.slice(-8192); });
     child.stderr?.on('data', (d) => { out += d; if (out.length > 8192) out = out.slice(-8192); });
 
+    // Kiro max_plan_duration analogue — a wall-clock ceiling on the attempt.
+    // The exit handler records 'timeout' as the failure reason so audits
+    // distinguish a deadline kill from a genuine nonzero exit.
+    let timedOut = false;
+    let timeoutTimer = null;
+    if (timeoutMs > 0) {
+      timeoutTimer = setTimeout(() => {
+        timedOut = true;
+        if (process.platform === 'win32') {
+          try { spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); }
+          catch { child.kill(); }
+        } else child.kill('SIGTERM');
+      }, timeoutMs);
+      timeoutTimer.unref();
+    }
+
     child.on('exit', (code, signal) => {
+      clearTimeout(timeoutTimer);
       this.running.delete(jobId);
       clearInterval(heartbeat);
       if (mutating) this.writeLease?.release(leaseHolder);
@@ -280,7 +297,7 @@ export class JobExecutor {
             data: { job_id: jobId, attempt_id: attemptId, exit_code: code, parent_run_id: this.runId },
           });
         } else if (code === 0) this.store.completeJob(jobId);
-        else this.store.failJob(jobId, `exit ${code ?? signal}`);
+        else this.store.failJob(jobId, timedOut ? `wall-clock timeout exceeded (${timeoutMs}ms)` : `exit ${code ?? signal}`);
         this.audit?.write({
           kind: 'JOB_FINISHED',
           data: { job_id: jobId, attempt_id: attemptId, exit_code: code, usage, parent_run_id: this.runId },

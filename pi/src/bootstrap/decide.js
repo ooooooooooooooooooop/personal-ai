@@ -2,7 +2,7 @@ import { isLongRunningCommand } from '../adapter/jobs.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { scanForSecrets } from '../adapter/secrets.js';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 
 const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
@@ -38,6 +38,8 @@ function sanitizeArgs(args) {
 // File-access tool surface the .paiignore check applies to — read AND write
 // families: context exclusion means invisible AND untouchable.
 const FILE_ACCESS_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files', 'write', 'edit', 'delete', 'apply_patch', 'patch']);
+// Read-family tools whose path arg is checked against the workspace boundary.
+const READ_PATH_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files']);
 // Tools whose args carry a shell command string — prefix lists apply here.
 const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'command', cmd: 'command' };
 
@@ -71,6 +73,14 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
   // and report, not to retry.
   const cap = maxTurnCalls ?? (Number(process.env.PAI_MAX_TOOL_CALLS) > 0 ? Number(process.env.PAI_MAX_TOOL_CALLS) : 100);
   let turnCalls = 0;
+  // CC blockReadsOutsideWorkingDirectories analogue — session latch:
+  // null=not asked yet · 'allowed'=operator permitted all · 'blocked'=deny all.
+  let readOutside = null;
+  const outsideWorkdir = (p) => {
+    const root = resolve(workdir);
+    const abs = resolve(root, String(p));
+    return abs !== root && !abs.startsWith(root + sep);
+  };
   const inner = async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
     // Invisible-unicode sanitization FIRST (Goose analogue): the kernel must
@@ -143,6 +153,37 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           rule: 'paiignore',
           reason: `'${p}' is excluded by .paiignore — context-excluded paths are invisible and untouchable`,
         };
+      }
+    }
+    // Read-outside-workspace boundary (CC analogue): the FIRST outside read
+    // prompts the operator once; 'deny' latches a session-wide block so the
+    // model cannot trickle the filesystem out path by path. No operator
+    // channel → fail closed on outside reads (they are never urgent).
+    const readPath = ctx.args?.path ?? ctx.args?.dir ?? ctx.args?.file;
+    if (typeof readPath === 'string' && READ_PATH_TOOLS.has(toolName) && outsideWorkdir(readPath)) {
+      if (readOutside === 'blocked') {
+        return { block: true, rule: 'read_outside', reason: `reads outside the workspace are blocked this session (operator choice) — '${readPath}' is outside ${workdir}` };
+      }
+      if (readOutside !== 'allowed') {
+        const answer = asks?.ask
+          ? await asks.ask({
+              toolName,
+              toolCallId: ctx.toolCall?.id ?? null,
+              rule: 'read_outside',
+              summary: `read outside workspace: ${String(readPath).slice(0, 300)}`,
+              detail: `工具 ${toolName} 要读取工作目录之外的路径。允许一次=仅本次；本会话允许=此后越界读不再询问；拒绝=本会话所有越界读直接拦下。`,
+              args: { path: readPath },
+              argsTruncated: false,
+              argsTotalChars: null,
+            }, signal)
+          : 'deny';
+        core.audit.write({ kind: 'READ_OUTSIDE_RESOLVED', toolName, data: { path: String(readPath).slice(0, 300), answer } });
+        if (answer === 'deny') {
+          readOutside = 'blocked';
+          return { block: true, rule: 'read_outside', reason: `operator refused reads outside the workspace — '${readPath}' blocked` };
+        }
+        if (answer === 'allow_session' || answer === 'always') readOutside = 'allowed';
+        // 'allow' = this call proceeds; the next outside read asks again
       }
     }
     // Operator veto hooks (Claude Code PreToolUse analogue): <instance>/

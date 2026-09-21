@@ -85,6 +85,7 @@ export function sessionSearchTool(getSearch) {
       type: 'object',
       properties: {
         query: { type: 'string', description: 'text to search for in past session messages' },
+        scope: { type: 'string', enum: ['all', 'prompts'], description: "'prompts' searches only user messages; 'all' (default) includes agent replies" },
       },
       required: ['query'],
     },
@@ -97,7 +98,8 @@ export function sessionSearchTool(getSearch) {
       if (!search) {
         return { content: [{ type: 'text', text: 'session_search unavailable: no session index configured' }], isError: true };
       }
-      const hits = await search(q);
+      const scope = params.scope === 'prompts' ? 'prompts' : 'all';
+      const hits = await search(q, { scope });
       if (!hits?.length) {
         return { content: [{ type: 'text', text: `no past sessions match '${q}'` }] };
       }

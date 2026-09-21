@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -94,6 +94,7 @@ export class HostChannel {
     this.projectTrust = projectTrust;
     this.schedules = schedules;
     this.repoMap = repoMap;
+    this.skills = skills;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -282,7 +283,7 @@ export class HostChannel {
         }
         case 'session_search': {
           if (!this.sessions?.search) return reply(false, undefined, 'sessions facade unavailable');
-          return reply(true, await this.sessions.search(String(cmd.query ?? '')));
+          return reply(true, await this.sessions.search(String(cmd.query ?? ''), { scope: cmd.scope === 'prompts' ? 'prompts' : 'all' }));
         }
         case 'session_history': {
           if (!this.session?.history) return reply(false, undefined, 'history unavailable');
@@ -567,6 +568,19 @@ export class HostChannel {
           const r = this.repoMap.build(cmd.subdir ? String(cmd.subdir) : null);
           if (r?.error) return reply(false, undefined, r.error);
           return reply(true, r);
+        }
+        // Skill-doctor surface: which microagents load, what they cost, how
+        // often they fired — plus an operator-private allow-list so a noisy
+        // skill can be shelved without deleting the file.
+        case 'skills_list': {
+          if (!this.skills?.stats) return reply(false, undefined, 'skills facade unavailable');
+          return reply(true, { skills: this.skills.stats() });
+        }
+        case 'skill_allow_set': {
+          if (!this.skills?.allowSet) return reply(false, undefined, 'skills facade unavailable');
+          const out = this.skills.allowSet(cmd.names === null ? null : (cmd.names ?? []).map(String));
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
         }
         case 'pins_add': {
           if (!this.pins?.add) return reply(false, undefined, 'pins facade unavailable');

@@ -69,6 +69,27 @@ if (taskDir) childEnv.PAI_TASK_DIR = taskDir;
 // a nested delegate_task call sees its own depth and hits the cap honestly.
 const taskDepth = flagVal('--task-depth');
 if (taskDepth != null) childEnv.PAI_SPAWN_DEPTH = String(taskDepth);
+// Steering isolation (CC omitClaudeMd analogue): a dedicated bridge flag —
+// never settable through --env-json since PAI_* is refused there — blinds the
+// child to workdir steering files. Profiles can only request this when they
+// come from an operator-private dir or a trusted project.
+if (argv.includes('--steering-off')) childEnv.PAI_STEERING_OFF = '1';
+// Profile env fields (OpenHands profile-scoped secrets analogue): set/deny
+// ride the bridge so the CHILD's env is shaped — the parent process env is
+// untouched. PAI_* keys are refused outright, so profile env can never
+// override the enforcement channels applied above (budget/depth/task dir).
+const envJson = flagVal('--env-json');
+if (envJson) {
+  try {
+    const spec = JSON.parse(Buffer.from(envJson, 'base64').toString('utf-8'));
+    for (const k of spec.deny ?? []) {
+      if (typeof k === 'string' && !k.startsWith('PAI_')) delete childEnv[k];
+    }
+    for (const [k, v] of Object.entries(spec.set ?? {})) {
+      if (!k.startsWith('PAI_')) childEnv[k] = String(v);
+    }
+  } catch { /* malformed env spec — ignore, child runs with parent env */ }
+}
 // re-quote args that lost their shell quoting through argv — whitespace must
 // survive the shell:true respawn as one token
 const command = argv.slice(sep + 1)

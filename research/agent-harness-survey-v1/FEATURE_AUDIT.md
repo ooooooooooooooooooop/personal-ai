@@ -1071,4 +1071,20 @@
 | N10 | Windows planted-exe 防御核实（NoDefaultCurrentDirectoryInExePath 等价物） | Cline 4.1.19 |
 | N11 | delegate profile 凭据/env 暴露面收窄（secret scope 本地映射） | OpenHands 1.19-20 |
 
+**N1–N11 消耗结果（本批全部落地/证实，无决策滞留）**：
+
+| # | 终态 | 落地证据 |
+|---|---|---|
+| N1 | ✅ 已有 | `skills_list` 通道命令 + `/skills` UI——per-skill 注入字节成本、本轮命中计数、启用态 |
+| N2 | ✅ 已有 | decide 链 `read_outside` 闸门：越界读先问一次，deny 闩锁会话级 block，`allow_session` 免复问，无操作员通道 fail-closed |
+| N3 | ✅ 已有 | tool_execution_end 对 bash 族做 git porcelain 前后差集→notify 回显改动文件清单 |
+| N4 | ✅ 已有 | profile `model:`/`effort:` 填模板 `{model}`/`{effort}` 槽（操作员模板决定如何消费，零 per-target flag 知识）；`isolate_steering:` → `--steering-off` → `PAI_STEERING_OFF` 专用 flag 盲化子 steering——全部 envCapable/信任门控 |
+| N5 | ✅ 已有 | `session_search(scope)` 透传到 facade（prompts vs +responses） |
+| N6 | ✅ 已有 | `max_minutes`（工具参数+profile 默认，调用级覆盖 profile 级）→ `timeoutMs` deadline kill，审计区分 timeout 与非零 exit |
+| N7 | ✅ 已有 | `<instance>/skill-allow.json` 操作员白名单 + `skill_allow_set` + `/skills allow a,b`；实例私有，仓库文件够不到 |
+| N8 | ✅ 已有 | 附着按**当前模型** `input` 模态门控：无 image 模态→图片降级描述符 + notify 警告（此前恒 `images:true`，真 bug）；PDF 维持诚实降级 |
+| N9 | ✅ 已有 | 外观卡 opt-in 声音开关 + WebAudio beep：批准卡必响，turn 完成仅窗口不可见时响 |
+| N10 | ✅ 已有 | pai-channel 引导即设 `NoDefaultCurrentDirectoryInExePath`——进程级 env 覆盖 jobs/bridge/内置 bash 全 spawn 树 |
+| N11 | ✅ 已有 | profile `env:`/`env_deny:` 经 `--env-json` 桥收窄子 env；`PAI_*` 拒穿（执行信道不可谈判），envCapable 信任门控 |
+
 **机制族趋势确认**（供第三遍定向复扫）：事件唤醒→常驻 coordinator→动态 worker 池（Cursor Projects / Kiro Crew）证实为行业收敛方向，我方 mailbox+teammate+schedule 已是地基，编排面仍是 §28.5 决策项；远程执行目标在本窗口新增 Cursor self-hosted+Cline SSH 两票，累计四家了。

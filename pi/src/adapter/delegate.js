@@ -58,6 +58,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         profile: { type: 'string', description: 'named subagent profile — resolves target and prepends its preamble' },
         task: { type: 'string', description: 'task description for the delegate' },
         name: { type: 'string', description: 'optional teammate name — makes the task a named, persistent member of the teammate pool (addressable via teammate_msg)' },
+        max_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes — the job is killed at the deadline and reported as timed out' },
       },
       required: ['task'],
     },
@@ -71,6 +72,12 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // its preamble — the delegated worker receives persona + task as one
       let target = params.target;
       let task = String(params.task ?? '');
+      let profileEnv = null; // {set, deny} → --env-json on the bridge
+      let maxMin = null;
+      // CC subagent knobs analogue: profile-declared model/effort fill the
+      // operator template's {model}/{effort} slots; isolate_steering blinds
+      // the child to workdir steering files via a dedicated bridge flag.
+      let profileModel = null; let profileEffort = null; let steeringOff = false;
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -82,6 +89,13 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         }
         target = p.target;
         if (p.preamble) task = `${p.preamble}\n\n---\n\n${task}`;
+        // OpenHands profile-scoped secrets analogue, inverted for a local
+        // single-user harness: the profile narrows/annotates the child env.
+        if (p.env || p.envDeny) profileEnv = { set: p.env ?? {}, deny: p.envDeny ?? [] };
+        if (p.maxMinutes) maxMin = p.maxMinutes;
+        if (p.model) profileModel = p.model;
+        if (p.effort) profileEffort = p.effort;
+        if (p.isolateSteering) steeringOff = true;
       }
       if (!target) {
         return {
@@ -89,7 +103,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           isError: true,
         };
       }
-      const inner = commandFor(target, task);
+      const inner = commandFor(target, task, { model: profileModel, effort: profileEffort });
       const scope = getScope?.() ?? null;
       // Codex thread-tree depth cap: PAI_SPAWN_DEPTH counts how many nested
       // delegations produced this process (0 = operator's session). A child
@@ -173,7 +187,14 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         : null;
       // depth propagates through the bridge into the child's env so a nested
       // delegate_task sees its own depth, not the parent's
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
+      // caller-level max_minutes wins over the profile's declared ceiling;
+      // the profile's is the default, the tool call's is the override
+      const maxMinParam = Number(params.max_minutes);
+      if (Number.isFinite(maxMinParam) && maxMinParam > 0) maxMin = Math.min(maxMinParam, 24 * 60);
+      const envFlag = profileEnv
+        ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
+        : '';
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,
@@ -183,6 +204,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         // committed charge covers the child's whole slice — its usage
         // envelope must NOT bill the parent again at exit (double-count)
         budgetCommitted: committedSlice != null,
+        timeoutMs: maxMin != null ? Math.round(maxMin * 60_000) : null,
       });
       if (r.refused) {
         // spawn never happened — roll the committed slice back out

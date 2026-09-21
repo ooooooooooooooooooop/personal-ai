@@ -422,3 +422,56 @@ test('mistake-limit stop: loopwatch.stopped refuses calls until a fresh turn res
   decide.resetTurn();
   assert.equal(await decide({ toolCall: { name: 'read_file' }, args: { path: 'x' } }), undefined);
 });
+
+test('read outside workspace: asks once, deny latches session-wide block', async () => {
+  const { dir, decide } = rig();
+  const outside = join(dir, '..', 'outside.txt');
+  let asks = 0;
+  const decideAsk = makeDecide({
+    core: { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } },
+    executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+    asks: { ask: async () => { asks += 1; return 'deny'; } },
+  });
+  const r1 = await decideAsk({ toolCall: { name: 'read' }, args: { path: outside } });
+  assert.equal(r1?.block, true);
+  assert.equal(r1.rule, 'read_outside');
+  assert.equal(asks, 1);
+  // deny latched — a second outside read refuses WITHOUT asking again
+  const r2 = await decideAsk({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'other.txt') } });
+  assert.equal(r2?.block, true);
+  assert.equal(asks, 1);
+  // inside reads never prompted at all
+  const r3 = await decideAsk({ toolCall: { name: 'read' }, args: { path: join(dir, 'inside.txt') } });
+  assert.equal(r3, undefined);
+  void decide;
+});
+
+test('read outside workspace: no operator channel fails closed; allow_session stops re-asking', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-ro-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const core = { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } };
+  // no asks facade → fail closed on the outside read
+  const closed = makeDecide({ core, executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir });
+  const r = await closed({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'x.txt') } });
+  assert.equal(r?.block, true);
+  assert.equal(r.rule, 'read_outside');
+
+  let asks = 0;
+  const open = makeDecide({ core, executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+    asks: { ask: async () => { asks += 1; return 'allow_session'; } } });
+  assert.equal(await open({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'a.txt') } }), undefined);
+  assert.equal(await open({ toolCall: { name: 'read' }, args: { path: join(dir, '..', 'b.txt') } }), undefined);
+  assert.equal(asks, 1); // allow_session latches — no re-prompt
+});
+
+test('read outside workspace: relative path escapes count too', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-rel-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const core = { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null } };
+  const d = makeDecide({ core, executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir });
+  const r = await d({ toolCall: { name: 'read' }, args: { path: '../sibling-secret.txt' } });
+  assert.equal(r?.block, true);
+  // workdir itself and descendants pass silently
+  assert.equal(await d({ toolCall: { name: 'ls' }, args: { path: '.' } }), undefined);
+  assert.equal(await d({ toolCall: { name: 'read' }, args: { path: 'sub/deep.txt' } }), undefined);
+});
