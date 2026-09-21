@@ -1343,20 +1343,20 @@
 
 | # | 缺口 | 证据源 | 量级 |
 |---|---|---|---|
-| M9 | **http-bridge POST 无 Origin/Sec-Fetch 校验**——127.0.0.1 绑定挡不住恶意网页跨域 POST /cmd（CORS 只拦读不拦写） | CodeBuddy 同源漏洞修复（gateway 跨域 + SSE CORS wildcard） | 薄·安全 |
-| M10 | **拒绝记忆**——用户拒过的工具调用，模型重问仍弹批准（CodeBuddy in-session rejection memory） | codebuddy | 薄 |
-| M11 | **凭证输入不剥不可见字符**（BOM/零宽/换行→401 不可分辨，Cline 连修三版） | cline | 薄 |
-| M12 | **前台命令超时→自动转后台 job 而非杀死**（CodeBuddy Auto-Backgrounding） | codebuddy | 薄 |
-| M13 | **git worktree 并行工作目录隔离**（CodeBuddy/Codex/Cline --worktree 三家收敛） | codebuddy/codex/cline | 中 |
-| M14 | **调度输出无投递通道**——scheduled job 输出只进 job 详情，无完成通知（Hermes no_agent 非空投递 + CodeBuddy 完成主动通知） | hermes/codebuddy | 薄 |
-| M15 | **级联上下文文件加载**——父目录链式加载 + 个人 local 文件不入 VCS（CodeBuddy CODEBUDDY.md 级联 + CODEBUDDY.local.md） | codebuddy | 薄 |
-| M16 | **上下文溢出检测→强制压缩恢复**（Cline force-compact 非裸错误；PAI 溢出处理未核实） | cline | 薄·核查 |
-| M17 | **turn 级瞬时错误重试**（Cline 中流死亡 3 次指数退避；PAI 失败即终） | cline | 中·韧性族 |
-| M18 | **文档附着族**——DOCX/IPYNB/PDF 文本提取附着（Aider 多格式；PAI 仅 image） | aider | 中·需依赖 |
-| M19 | **WebFetch 工具缺失**——无网页抓取工具（CodeBuddy 并发竞速+100K 上限+15K 压缩是成熟参照） | codebuddy 等 | 中 |
-| M20 | **workspace info 注入的 git remote URL 凭证脱敏**（Cline 踩坑） | cline | 薄·核查 |
-| M21 | **schedule pause/resume + edit**（Goose pause/unpause/edit；PAI 仅 create/list/cancel） | goose | 薄 |
-| M22 | **Typed Memory**（user/feedback/project/reference 结构 + 查询选相关注入） | codebuddy | 中 |
+| M9 | ~~http-bridge POST 无 Origin/Sec-Fetch 校验~~ **✅已落 `ac18d6a`**：Origin 主机白名单（127.0.0.1/localhost/[::1]）+ Sec-Fetch-Site 拒绝 cross-site，POST /cmd 与 /api/pick-dir 双闸 | CodeBuddy 同源漏洞修复（gateway 跨域 + SSE CORS wildcard） | ~~薄·安全~~ done |
+| M10 | ~~拒绝记忆~~ **✅已落 `ac18d6a`**：governance #rejections 签名集（tool+stableJson(args) hash），deny 后同签名自动拒不再弹卡；allowlist 仍压过记忆 | codebuddy | ~~薄~~ done |
+| M11 | ~~凭证输入不剥不可见字符~~ **✅已落 `ac18d6a`**：auth_set_key 边界剥 BOM/零宽/bidi/NBSP/空白，全不可见即拒存，永不回显 | cline | ~~薄~~ done |
+| M12 | ~~前台命令超时→自动转后台~~ **✅已落 `ac18d6a`**：operator bash 120s 超时→进程不死、输出切到 jobs/detached-<pid>.log + SHELL_DETACHED 审计 + 操作员获真实转场提示 | codebuddy | ~~薄~~ done |
+| M13 | ~~git worktree 并行工作目录隔离~~ **✅已落 `ac18d6a`**：delegate_task worktree:true → `git worktree add --detach`，干净自动移除、脏保留+JOB_WORKTREE_KEPT 审计，非 git 仓诚实拒绝 | codebuddy/codex/cline | ~~中~~ done |
+| M14 | ~~调度输出无投递通道~~ **✅已落 `ac18d6a`**：JobExecutor.onJobFinished（仅 job_type=scheduled）→ scheduled_job_done UI 事件（toast+通知抽屉+transcript 尾+jobs 刷新） | hermes/codebuddy | ~~薄~~ done |
+| M15 | ~~级联上下文文件加载~~ **✅已落 `ac18d6a`**：父目录级联此前已在（steering.js ancestor merge）；本批补 `*.local.md` 个人文件最后读+local 标记 | codebuddy | ~~薄~~ done |
+| M16 | ~~上下文溢出检测→强制压缩恢复~~ **核查=已有**：pi-agent-core `isContextOverflow`→`prepareOverflowCompaction`→summary.deciding 一次恢复（overflowRecoveryUsed 闸防循环，二次溢出诚实报错） | cline | ~~薄·核查~~ 已有 |
+| M17 | ~~turn 级瞬时错误重试~~ **核查=已有**：pi-agent-core `isRetryableAssistantError`→assistant.retry_wait→指数退避（retryPolicy.maxAttempts/baseDelayMs） | cline | ~~中·韧性族~~ 已有 |
+| M18 | ~~文档附着族~~ **✅已落 `ac18d6a`（零依赖切片）**：text/code/ipynb 提取真内容入 prompt（ipynb 渲染 cell+输出截断）；pdf/docx 需真解析库→保持诚实描述符，不半解析 | aider | ~~中·需依赖~~ done(部分·docx/pdf 边界) |
+| M19 | ~~WebFetch 工具缺失~~ **核查=已有**：`pi/src/adapter/web.js` web_fetch（协议白名单+标记剥离+截断标记）+ web_search | codebuddy 等 | ~~中~~ 已有 |
+| M20 | ~~workspace info 注入的 git remote URL 凭证脱敏~~ **核查=不复发**：全仓搜证——workspace 信息从不注入 remote URL（唯一 git 接触是 `git status --porcelain`，只出文件路径） | cline | ~~薄·核查~~ 不复发 |
+| M21 | ~~schedule pause/resume + edit~~ **✅已落 `ac18d6a`**：ScheduleStore.setEnabled（resume 重锚防 storm-fire）+ edit 校验；schedule_task pause/resume/edit + schedule_set 通道 + UI 开关 | goose | ~~薄~~ done |
+| M22 | ~~Typed Memory~~ **✅已落 `ac18d6a`**：kind 分类（fact/preference/decision/note）+ pin→每轮注入已在；本批补 per-turn 相关性注入（当前用户文本→FTS OR 查询→去重合并 capped，仍走 untrusted `<memory>` 证据块） | codebuddy | ~~中~~ done |
 
 **协调器设计输入**（域证据直接喂给已拍板的协调器）：/loop 每轮模型自选 advance/delay/maintain（codebuddy）、headless 调度不问问题要默认 auto-approve 策略（cline）、调度 run 折叠+run number+来源过滤（cline UI）、monitor-skip 无变化跳 tick（hermes curator）、daemon 重启恢复 active goals（codex）、Cron 带持久记忆（hermes）。
 
@@ -1364,8 +1364,8 @@
 
 | 对方踩坑 | PAI 状态 |
 |---|---|
-| CodeBuddy 本地 gateway 跨域 POST | **复发→M9** |
-| Cline 凭证不可见字符 | **复发→M11** |
+| CodeBuddy 本地 gateway 跨域 POST | ~~复发→M9~~ **已修复 `ac18d6a`** |
+| Cline 凭证不可见字符 | ~~复发→M11~~ **已修复 `ac18d6a`** |
 | CodeBuddy exec→execFile 注入 | 不复发（spawn 数组形+治理分类命令串） |
 | Cline 凭证刷新生效抢 provider 选择 | 待核（轻） |
 | CodeBuddy ExitPlanMode 经代理路径绕批准 | 同类已防（decide 单入口）；代理旁路类已记录 |
