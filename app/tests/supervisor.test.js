@@ -356,3 +356,23 @@ test('session sweep: archives idle unpinned sessions; pinned survive', async () 
     assert.equal(r.data[0].archived, false);
   } finally { await sup.dispose(); }
 });
+
+test('session purge: deletes archived unpinned sessions; pinned and live survive', async () => {
+  const { sup, dir } = await boot();
+  try {
+    const path = `${dir}/sessions/s1.jsonl`;
+    // live session → nothing to purge
+    let r = await sup.handle({ type: 'session_purge' });
+    assert.equal(r.success, true);
+    assert.equal(r.data.purged, 0);
+    // archive → purge deletes it and clears its meta
+    await sup.handle({ type: 'session_archive', path });
+    r = await sup.handle({ type: 'session_purge' });
+    assert.equal(r.data.purged, 1);
+    assert.deepEqual(r.data.paths, [path]);
+    r = await sup.handle({ type: 'session_list' });
+    assert.equal(r.data.length, 0, 'deleted session gone from list');
+    const meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[path], undefined, 'meta entry cleared');
+  } finally { await sup.dispose(); }
+});

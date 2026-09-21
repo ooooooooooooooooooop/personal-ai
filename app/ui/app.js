@@ -781,6 +781,23 @@ async function replayHistory() {
 /* ---------- agent events ---------- */
 let thinkEl = null; // live thinking row being streamed into
 let lastUserText = ''; // for regenerate
+let turnStart = 0;   // agent_start timestamp — for the turn-end summary line
+let turnTools = 0;   // tool_execution_start count within the active turn
+
+/* Prompt history (Crush 200-cap analogue): sent prompts persist across
+ * restarts; ArrowUp/Down on an empty composer walks back/forward. */
+const PROMPT_HIST_KEY = 'pai.prompt_hist';
+const PROMPT_HIST_CAP = 200;
+let promptHist = [];
+try { promptHist = JSON.parse(localStorage.getItem(PROMPT_HIST_KEY) ?? '[]'); } catch { promptHist = []; }
+let histIdx = -1; // -1 = not navigating; 0..n-1 = depth into history
+function histPush(text) {
+  if (!text || promptHist[promptHist.length - 1] === text) return;
+  promptHist.push(text);
+  if (promptHist.length > PROMPT_HIST_CAP) promptHist = promptHist.slice(-PROMPT_HIST_CAP);
+  try { localStorage.setItem(PROMPT_HIST_KEY, JSON.stringify(promptHist)); } catch { /* quota */ }
+  histIdx = -1;
+}
 
 /* notification drawer — bounded log behind the bell */
 const notifyLog = [];
@@ -818,6 +835,8 @@ function onAgentEvent(ev) {
       setBusy(true);
       assistantEl = null;
       thinkEl = null;
+      turnStart = Date.now();
+      turnTools = 0;
       startProc();
       break;
     case 'message_start':
@@ -871,6 +890,7 @@ function onAgentEvent(ev) {
       paintGoalLine();
       break;
     case 'tool_execution_start':
+      turnTools++;
       addTool(ev);
       break;
     case 'tool_execution_update': {
@@ -948,6 +968,7 @@ function onAgentEvent(ev) {
     case 'session_changed':
       currentSessionFile = ev.session?.file ?? null;
       sessionCost = 0;
+      turnStart = 0; // don't attribute a summary across the switch
       loadDraft();
       checkProjectTrust();
       replayHistory();
@@ -962,6 +983,12 @@ function onAgentEvent(ev) {
       if (document.hidden) beep(660, 0.18); // turn done while away — call the operator back
       assistantEl = null;
       thinkEl = null;
+      // ZCode turn-end summary: duration + tool-call count for the finished turn
+      if (turnStart) {
+        const secs = ((Date.now() - turnStart) / 1000).toFixed(1);
+        addSys(`本轮 ${secs}s · ${turnTools} 个工具调用`);
+        turnStart = 0;
+      }
       stopProc(true);
       actGroup?.classList.remove('open');
       actGroup = null;
@@ -1175,6 +1202,21 @@ function renderSessions() {
       const r = await cmd('session_sweep', { days: 14 });
       if (r.success) { toast(`已归档 ${r.data?.swept ?? 0} 个旧会话`); await refreshSessions(); }
       else addSys(`归档清扫失败：${r.error ?? '未知'}`, true);
+    };
+    box.appendChild(t);
+  }
+  // Bulk-delete archived sessions (ZCode archived-bulk-delete analogue).
+  // Irreversible — explicit confirm; pinned sessions are never purged.
+  const purged = sessionsCache.filter((s) => s.archived && !s.pinned);
+  if (showArchived && purged.length) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle danger';
+    t.textContent = `永久删除 ${purged.length} 个已归档会话`;
+    t.onclick = async () => {
+      if (!confirm(`永久删除 ${purged.length} 个已归档会话？此操作不可撤销。`)) return;
+      const r = await cmd('session_purge');
+      if (r.success) { toast(`已删除 ${r.data?.purged ?? 0} 个归档会话`); await refreshSessions(); }
+      else addSys(`批量删除失败：${r.error ?? '未知'}`, true);
     };
     box.appendChild(t);
   }
@@ -2903,9 +2945,19 @@ input.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); return; }
   // Esc interrupts a running turn (every harness: Esc = abort)
   if (e.key === 'Escape' && busy) { e.preventDefault(); abort(); return; }
-  // ArrowUp on an empty composer recalls the last user message for edit-resend
-  if (e.key === 'ArrowUp' && !input.value.trim() && lastUserText) {
-    e.preventDefault(); input.value = lastUserText; autogrow(); return;
+  // ArrowUp/Down walk prompt history when the composer is empty or already
+  // showing a recalled entry (shell-style; draft text is preserved).
+  if (e.key === 'ArrowUp' && promptHist.length
+      && (!input.value.trim() || histIdx >= 0)) {
+    e.preventDefault();
+    if (histIdx < promptHist.length - 1) histIdx++;
+    input.value = promptHist[promptHist.length - 1 - histIdx]; autogrow(); return;
+  }
+  if (e.key === 'ArrowDown' && histIdx >= 0) {
+    e.preventDefault();
+    histIdx--;
+    input.value = histIdx >= 0 ? promptHist[promptHist.length - 1 - histIdx] : '';
+    autogrow(); return;
   }
 });
 /* Ctrl+K / Ctrl+P — command palette over sessions + slash commands */
@@ -3107,6 +3159,7 @@ async function send() {
   renderAttach();
   if (busy) { queue.push({ text: message, attachments, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }
   lastUserText = text;
+  histPush(text);
   addMsg('user', text || `（${attachCount} 个附件）`);
   const ex = await expandAtMentions(message);
   if (ex.attached.length) addSys(`已附着 ${ex.attached.length} 个文件：${ex.attached.join('、')}`);

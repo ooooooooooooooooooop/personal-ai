@@ -13,6 +13,7 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 /** PID liveness probe — the injected worker-alive check for recoveryTick. */
 export function isWorkerAlive(identity) {
@@ -280,7 +281,9 @@ export class JobExecutor {
         writeFileSync(resultPath, JSON.stringify({
           attempt_id: attemptId, job_id: jobId,
           exit_code: code, signal,
-          output_tail: out,
+          // scrub before persist (M5): child stdout/stderr may echo
+          // credentials; the artifact must not become a secret store.
+          output_tail: redactSecrets(out),
           usage,
           parent_run_id: this.runId, // usage attribution: child work bills to parent
           finished_at: new Date().toISOString(),

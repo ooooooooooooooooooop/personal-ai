@@ -585,6 +585,24 @@ export class BodySupervisor {
           }
           return reply(true, { swept: swept.length, paths: swept, days });
         }
+        // ZCode archived-bulk-delete analogue: permanently delete every
+        // archived, unpinned session. Irreversible — the caller (UI) confirms.
+        case 'session_purge': {
+          const r = await this.sendToBody({ type: 'session_list' });
+          if (!r.success || !Array.isArray(r.data)) return r;
+          const meta = this.#sessMeta();
+          const purged = [];
+          const failed = [];
+          for (const s of r.data) {
+            const m = meta[s.path];
+            if (!m?.archived || m?.pinned) continue;
+            const d = await this.sendToBody({ type: 'session_delete', path: s.path });
+            if (d.success) { purged.push(s.path); delete meta[s.path]; }
+            else failed.push(s.path);
+          }
+          if (purged.length) this.#saveSessMeta(meta);
+          return reply(true, { purged: purged.length, paths: purged, failed });
+        }
         case 'session_list': {
           const r = await this.sendToBody(cmd);
           if (r.success && Array.isArray(r.data)) {

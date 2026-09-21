@@ -24,3 +24,19 @@ export function scanForSecrets(content) {
   }
   return null;
 }
+
+/**
+ * Scrub secret-looking spans out of content that MUST be persisted (job
+ * output tails, logs) — unlike scanForSecrets (refuse-the-write), this
+ * keeps the artifact while removing the credential bytes.
+ * @param {string} content
+ * @returns {string} content with every pattern hit replaced by [REDACTED:label]
+ */
+export function redactSecrets(content) {
+  if (typeof content !== 'string' || !content) return content;
+  let out = content;
+  for (const [label, re] of PATTERNS) {
+    out = out.replace(new RegExp(re.source, 'g'), `[REDACTED:${label}]`);
+  }
+  return out;
+}
