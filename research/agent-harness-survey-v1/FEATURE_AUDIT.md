@@ -1468,3 +1468,46 @@
 20. apiKeyHelper 类配置是否在信任门之前执行
 
 **扫描方法论诚实边界**：0-3 带（~55k 条）按词法判噪声未逐条人眼；4-7 带 19k 条抽样 360（产率 ~1.4%）外推全量预期还有 ~260 条候选未捞——多为已知族变体。若需真全量，可对 4-7 带再跑一轮聚类后抽簇心。
+
+### 28.11 坑核查 22 项裁决 + A 档实现批次（2026-09-21，commit 05cf07a / f2ad836）
+
+**坑核查终裁**（逐项对真实代码路径验证）：
+
+| 坑 | 裁决 |
+|---|---|
+| #1 bash 重定向绕过 M1 | **真坑已修**：解析器吐 writeTargets（file_redirect 目的地 + tee/cp/mv/sed -i/dd of= 参数目标），命中指令文件强制 ASK |
+| #15 复合命令白名单绕过 | **真坑已修**：`commandAllowlistMatch` 纯函数——逐单元全匹配、expansion 单元不软化、instruction_file 规则豁免（`echo x > AGENTS.md` 不再被 `echo` 前缀吃掉） |
+| #14 sign-out 凭证复活 | **真坑已修**：auth_clear 清除后探测 getAuth，env/config 残余如实上报 |
+| #4 后台孙进程 stdio 悬挂 | **真坑已修**：exit 边界+250ms 优雅期销毁流，不挂 FD 到孙进程死 |
+| #3 compaction 丢 delegate | 不复发——结果落持久化 job store 不落 transcript，结构性免疫 |
+| #2 deny 等价面 | 已修（前批 mutatingTools 扩展） |
+| ExitPlanMode 绕过 | 不复发——mode_request 强制 operator ask |
+| Enter 串键/误批 | 不复发——卡面无 Enter 绑定，批准只认点击 |
+| 配置写竞态 | 不复发——fresh read 无缓存快照 |
+| CRLF frontmatter | 不复发——全部 `\r?\n` 兼容 |
+| checkpoint 全量 hash | 不复发——anchor 制 rewind |
+| fail-open 沙箱 | 不复发——fail-closed throw |
+| $HOME 索引 | 不复发——workdir 限定+MAX_FILES |
+| 调度 delay 溢出 | 不复发——interval 轮询制 |
+| 流式误删 | 不复发——全量替换渲染 |
+| 重启丢参数/daemon 指纹 | 不复发——spec 重推导/自生子进程 |
+| 脱敏过激 | 不复发——锚定模式 |
+| AbortSignal/图片 MIME/apiKeyHelper/ripgrep | 不复发或 N/A（无对应面；图片归一记入 M138） |
+
+**登记残余（上游语义待确认）**：stale agent_end 事件污染、MCP 工具列表顺序（均属 pi 上游行为域）。
+
+**A 档 9 族终态**：
+
+| 族 | 终态 |
+|---|---|
+| M55 结构化提问 | **已有**——ask_user（kind:question，选项+自由文本+拒绝语义） |
+| M70/M97 会话树/编辑即分支 | **已有**——session_fork 任一点分叉+编辑重发 rewind+EscEsc scope |
+| M63 出口域控 | **落地**——egress-allow.json 域白名单+重定向落点复查 |
+| M84 卡内编辑命令 | **落地**——编辑框+{answer,edited}对象答案+截断载荷拒编辑+deny 层仍生效 |
+| M89 会话导入 | **落地**——forkFrom 导入+parentSession provenance+[导入]标记+不切换 |
+| M87 Monitor 唤醒 | **落地**——MonitorRegistry fs.watch→governed promptSink，busy 拒、事件不排队 |
+| M56 per-feature 模型 | **落地**——feature-models.json judge 独立模型 |
+| M57 外部密源 | **落地**——auth_set_key 收 op://（op read）/bw://（bw get），引用不落盘 |
+| M93 排队弃尾 | **落地**——Esc 中止+1.5s 内再 Esc 弃尾队列（防静默吃消息） |
+
+未动：M83 惰性加载、M100 fallback 链、M105 工具级 checkpoint、M38 占位符回取、M135 动态调速——中重型项留待下批。测试基线 host 226 / pi 174+1skip / app 18+1skip。
