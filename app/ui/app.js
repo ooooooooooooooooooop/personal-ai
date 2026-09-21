@@ -527,7 +527,7 @@ function startProc() {
   scrollTail();
   procTimer = setInterval(() => {
     const t = procEl?.querySelector('.proc-text');
-    if (t) t.textContent = `处理中 · ${Math.round((Date.now() - procStart) / 1000)}s`;
+    if (t) t.textContent = `处理中 · ${Math.round((Date.now() - procStart) / 1000)}s${turnTools ? ` · ${turnTools} 工具` : ''}`;
   }, 1000);
 }
 function stopProc(final = false) {
