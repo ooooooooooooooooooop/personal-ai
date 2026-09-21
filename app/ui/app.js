@@ -2888,6 +2888,34 @@ const SLASH = [
     cmd: '/clear', label: '清空开始', hint: '新会话（同 /new）', run: () => $('new-task').click(),
   },
   {
+    // M81 named profiles: snapshot {model, thinking, mode} as a switchable pack
+    cmd: '/profile', label: '配置档案', hint: '/profile save 名字 · /profile apply 名字 · /profile list · /profile del 名字', run: async (arg) => {
+      const [sub, ...rest] = arg.trim().split(/\s+/);
+      const name = rest.join(' ');
+      if (sub === 'save' && name) {
+        const r = await cmd('profile_save', { name });
+        if (r.success) toast(`档案「${name}」已保存`); else addSys(`保存失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      if (sub === 'apply' && name) {
+        const r = await cmd('profile_apply', { name });
+        if (r.success) { toast(`已切到档案「${name}」`); refreshSessionsSoon(); }
+        else addSys(`切换失败：${r.error ?? '未知'}`, true);
+        return;
+      }
+      if (sub === 'del' && name) {
+        await cmd('profile_delete', { name });
+        toast(`档案「${name}」已删除`);
+        return;
+      }
+      const r = await cmd('profile_list');
+      const rows = r.data ?? [];
+      addSys(rows.length
+        ? rows.map((p) => `${p.name} — ${p.model?.id ?? '模型未记'}${p.mode ? ` · ${p.mode}` : ''}${p.thinking ? ` · ${p.thinking}` : ''}`).join('\n')
+        : '暂无档案——/profile save 名字 保存当前 模型/思考档/模式');
+    },
+  },
+  {
     // M71: ephemeral session — in-memory only; nothing lands in the session
     // store, so it cannot be resumed, listed, or exported.
     cmd: '/eph', label: '临时会话', hint: '免持久化：不写盘、不可恢复', run: async () => {

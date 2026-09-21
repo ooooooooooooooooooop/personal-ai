@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null, profiles = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -95,6 +95,7 @@ export class HostChannel {
     this.schedules = schedules;
     this.goalStore = goalStore;
     this.monitors = monitors;
+    this.profiles = profiles;
     this.instance = instance;
     this.repoMap = repoMap;
     this.skills = skills;
@@ -348,6 +349,25 @@ export class HostChannel {
         case 'monitor_list': {
           if (!this.monitors?.list) return reply(false, undefined, 'monitors unavailable');
           return reply(true, this.monitors.list());
+        }
+        // M81 named profiles: snapshot/apply {model, thinking, mode} packs
+        case 'profile_list': {
+          if (!this.profiles?.list) return reply(false, undefined, 'profiles unavailable');
+          return reply(true, this.profiles.list());
+        }
+        case 'profile_save': {
+          if (!this.profiles?.save) return reply(false, undefined, 'profiles unavailable');
+          try { return reply(true, this.profiles.save({ name: cmd.name })); }
+          catch (e) { return reply(false, undefined, e.message); }
+        }
+        case 'profile_apply': {
+          if (!this.profiles?.apply) return reply(false, undefined, 'profiles unavailable');
+          const r = await this.profiles.apply({ name: cmd.name });
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
+        }
+        case 'profile_delete': {
+          if (!this.profiles?.remove) return reply(false, undefined, 'profiles unavailable');
+          return reply(true, this.profiles.remove({ name: cmd.name }));
         }
         // M64 purge-preview substrate: cross-category artifact inventory of
         // the instance root. Read-only — nothing here deletes.

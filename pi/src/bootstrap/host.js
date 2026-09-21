@@ -506,7 +506,7 @@ export async function startHost({
     ...specTools({ getWorkdir: () => workdir }),
     // self-authored skills (triggered knowledge) + durable plan library —
     // agent writes .pai/microagents|plans, governed like every other call
-    ...skillTools({ workdir, audit: core.audit }),
+    ...skillTools({ workdir, audit: core.audit, getAsks: () => asks }),
     // Claude ExitPlanMode analogue: the model REQUESTS a mode switch; the
     // operator approves on an ask card. Never self-applies — a model asking
     // to leave plan mode is exactly the escalation the mode exists for.

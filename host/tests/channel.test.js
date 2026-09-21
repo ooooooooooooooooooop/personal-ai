@@ -434,3 +434,23 @@ test('M90/M92: job_restart re-spawns terminal command; job_delete removes termin
   assert.equal((await bare.handle({ type: 'job_restart', job_id: 'j' })).success, false);
   assert.equal((await bare.handle({ type: 'job_delete', job_id: 'j' })).success, false);
 });
+
+test('M81: profile_save/apply/list/delete route to the profiles facade', async () => {
+  const store = new Map();
+  const profiles = {
+    save: ({ name }) => { store.set(name, { model: { provider: 'p', id: 'm' }, mode: 'fast' }); return { name, saved: true }; },
+    apply: async ({ name }) => store.has(name) ? { ok: true, name, applied: { model: 'm', mode: 'fast' } } : { ok: false, error: `no profile '${name}'` },
+    list: () => [...store.keys()].map((name) => ({ name, ...store.get(name) })),
+    remove: ({ name }) => ({ removed: store.delete(name) }),
+  };
+  const ch = new HostChannel({ session: fakeSession(), profiles });
+  await ch.handle({ type: 'profile_save', name: 'work' });
+  assert.equal((await ch.handle({ type: 'profile_list' })).data.length, 1);
+  const ap = await ch.handle({ type: 'profile_apply', name: 'work' });
+  assert.equal(ap.data.applied.mode, 'fast');
+  assert.equal((await ch.handle({ type: 'profile_apply', name: 'nope' })).success, false);
+  await ch.handle({ type: 'profile_delete', name: 'work' });
+  assert.equal((await ch.handle({ type: 'profile_list' })).data.length, 0);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'profile_list' })).success, false);
+});

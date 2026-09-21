@@ -48,6 +48,10 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       // hops a single task may consume so a broken provider set can't loop.
       let pendingFallback = false;
       let fallbackHops = 0;
+      // Stale-event defense (upstream residual): a duplicated/late agent_end
+      // must not double-trigger continuation or fallback. Every legitimate
+      // run passes agent_start first, which re-arms this flag.
+      let agentEnded = false;
       // U15: directories already hinted this session — hint once, not per touch
       const hintedDirs = new Set();
       const wd = workdir ? resolve(workdir) : null;
@@ -79,6 +83,7 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       };
 
       pi.on('agent_start', () => {
+        agentEnded = false; // fresh run — re-arm the end-of-run latch
         if (pendingSteer || pendingFallback) {
           pendingSteer = false; // continuation run — same task, keep transcript
           pendingFallback = false;
@@ -116,6 +121,11 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       });
 
       pi.on('agent_end', async (event, ctx) => {
+        if (agentEnded) {
+          audit.write({ kind: 'STALE_AGENT_END', data: { dropped: true } });
+          return;
+        }
+        agentEnded = true;
         if (continuation) {
           const decision = continuation.evaluate(transcript);
           if (decision.action === 'continue' && decision.steerText) {

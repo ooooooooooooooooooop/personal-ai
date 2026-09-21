@@ -569,3 +569,38 @@ test('M100: terminal provider error walks the fallback chain; aborts never do', 
   assert.equal(sent.length, 0);
   assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.exhausted));
 });
+
+test('stale agent_end: a duplicated end-of-run event without a new start is dropped + audited', async () => {
+  const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
+  const events = {};
+  const sent = [];
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    setModel: async () => true,
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const auditEvents = [];
+  const audit = { write: (e) => auditEvents.push(e) };
+  loopGovernanceExtension({
+    audit, fallbacks: { chain: [{ provider: 'anthropic', model: 'claude-b' }, { provider: 'openai', model: 'gpt-a' }] },
+  }).factory(pi);
+
+  const ctx = {
+    model: { provider: 'openai', id: 'gpt-5' },
+    modelRegistry: { find: (p, id) => ({ provider: p, id }) },
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const errMsg = { messages: [{ role: 'assistant', stopReason: 'error', errorMessage: 'HTTP 500' }] };
+
+  events.agent_start();
+  await events.agent_end(errMsg, ctx);
+  assert.equal(sent.length, 1, 'first end triggers the fallback');
+  // upstream double-fire / late duplicate: no agent_start in between
+  await events.agent_end(errMsg, ctx);
+  assert.equal(sent.length, 1, 'stale agent_end dropped — no double fallback');
+  assert.ok(auditEvents.some((e) => e.kind === 'STALE_AGENT_END' && e.data.dropped));
+  // a real new run re-arms the latch
+  events.agent_start();
+  await events.agent_end(errMsg, ctx);
+  assert.equal(sent.length, 2, 'fresh run is not silenced by the latch');
+});

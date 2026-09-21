@@ -82,3 +82,30 @@ test('skill_delete removes only .pai/microagents files, audited', async () => {
   assert.equal((await byName.skill_delete.execute('t', { name: 'nope' })).isError, true);
   assert.equal((await byName.skill_delete.execute('t', { name: '../x' })).isError, true);
 });
+
+test('M91: missing required params ask the operator per-param; denial aborts honestly', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-recipe-'));
+  mkdirSync(join(dir, '.pai', 'recipes'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'recipes', 'deploy.md'),
+    '---\nparams: env(required), tag=latest\n---\nDeploy {{env}} with tag {{tag}}');
+  const asked = [];
+  const asks = { ask: async (p) => { asked.push(p.summary); return p.summary?.includes('env') ? 'prod' : 'deny'; } };
+  const tools = skillTools({ workdir: dir, audit: null, getAsks: () => asks });
+  const recipe = tools.find((t) => t.name === 'recipe_run');
+  // answered param fills the placeholder
+  const r = await recipe.execute('c1', { name: 'deploy' });
+  assert.equal(r.isError, undefined);
+  assert.match(r.content[0].text, /Deploy prod with tag latest/);
+  assert.equal(asked.length, 1);
+  // denied answer aborts the expansion — no partial recipe text
+  const denied = { ask: async () => 'deny' };
+  const tools2 = skillTools({ workdir: dir, audit: null, getAsks: () => denied });
+  const r2 = await tools2.find((t) => t.name === 'recipe_run').execute('c2', { name: 'deploy' });
+  assert.equal(r2.isError, true);
+  assert.match(r2.content[0].text, /unanswered/);
+  // no ask channel → plain refusal, unchanged behavior
+  const tools3 = skillTools({ workdir: dir, audit: null });
+  const r3 = await tools3.find((t) => t.name === 'recipe_run').execute('c3', { name: 'deploy' });
+  assert.equal(r3.isError, true);
+  assert.match(r3.content[0].text, /missing required params/);
+});

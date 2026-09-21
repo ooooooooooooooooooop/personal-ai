@@ -773,6 +773,58 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       };
     })(),
     skills: knowledge, // skill-doctor stats + allow-list ride the knowledge facade
+    // M81 named profiles — a snapshot pack of {model, thinking, mode} the
+    // operator can save/apply/delete inside this instance. Cross-instance
+    // isolation is already the body layer's job; this is the in-instance
+    // preset switch the per-instance bodies don't cover.
+    profiles: (() => {
+      const file = () => join(core.paths.root, 'profiles.json');
+      const read = () => {
+        try { return JSON.parse(readFileSync(file(), 'utf-8')).profiles ?? {}; } catch { return {}; }
+      };
+      const write = (doc) => writeJsonAtomic(file(), { profiles: doc });
+      return {
+        list: () => Object.entries(read()).map(([name, p]) => ({ name, ...p })),
+        save: ({ name } = {}) => {
+          const n = String(name ?? '').trim();
+          if (!n || n.length > 40) throw new Error('profile name required (≤40 chars)');
+          const s = box.s;
+          const doc = read();
+          doc[n] = {
+            model: s?.model ? { provider: s.model.provider, id: s.model.id } : null,
+            thinking: s?.thinkingLevel ?? null,
+            mode: modes?.get?.() ?? null,
+            savedAt: new Date().toISOString(),
+          };
+          write(doc);
+          core.audit?.write({ kind: 'PROFILE_SAVED', data: { name: n, model: doc[n].model?.id ?? null } });
+          return { name: n, ...doc[n] };
+        },
+        apply: async ({ name } = {}) => {
+          const p = read()[String(name ?? '')];
+          if (!p) return { ok: false, error: `no profile '${name}'` };
+          const applied = {};
+          if (p.model) {
+            await modelsFacade.set({ provider: p.model.provider, model: p.model.id });
+            applied.model = p.model.id;
+          }
+          if (p.thinking) { await modelsFacade.setThinking(p.thinking).catch(() => {}); applied.thinking = p.thinking; }
+          if (p.mode && modes?.setMode) {
+            const r = modes.setMode(p.mode);
+            if (r?.ok === false) return { ok: false, error: `mode '${p.mode}' refused: ${r.error ?? 'unknown'}` };
+            applied.mode = p.mode;
+          }
+          core.audit?.write({ kind: 'PROFILE_APPLIED', data: { name: String(name), applied } });
+          return { ok: true, name: String(name), applied };
+        },
+        remove: ({ name } = {}) => {
+          const doc = read();
+          const had = delete doc[String(name ?? '')];
+          if (had) write(doc);
+          return { removed: had };
+        },
+      };
+    })(),
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };
   return { channel, rebind, dispose };

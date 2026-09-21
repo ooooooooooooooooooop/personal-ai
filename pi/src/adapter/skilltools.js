@@ -21,7 +21,7 @@ const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,60}$/i;
 const BODY_CAP = 32 * 1024;
 
-export function skillTools({ workdir, audit }) {
+export function skillTools({ workdir, audit, getAsks = null }) {
   const dir = (kind) => join(workdir, '.pai', kind);
   const write = (kind, name, content) => {
     mkdirSync(dir(kind), { recursive: true });
@@ -162,9 +162,30 @@ export function skillTools({ workdir, audit }) {
             const d = spec.match(/^(\w+)=(.*)$/);
             return d ? { name: d[1], default: d[2] } : { name: spec, required: true };
           });
-        const args = p?.args && typeof p.args === 'object' ? p.args : {};
+        const args = p?.args && typeof p.args === 'object' ? { ...p.args } : {};
         const missing = params.filter((x) => x.required && args[x.name] == null).map((x) => x.name);
-        if (missing.length) return err(`recipe '${name}' missing required params: ${missing.join(', ')}`);
+        // M91 structured form (Automation Blueprints analogue): a recipe
+        // invoked without required params asks the operator one card per
+        // param instead of refusing outright. No ask channel → same refusal
+        // as before; denied/timeout params abort the expansion honestly.
+        if (missing.length) {
+          const asks = getAsks?.();
+          if (!asks) return err(`recipe '${name}' missing required params: ${missing.join(', ')}`);
+          for (const pname of missing) {
+            const answer = await asks.ask({
+              kind: 'question',
+              toolName: 'recipe_run',
+              toolCallId: _id,
+              rule: 'recipe_param',
+              summary: `recipe '${name}' 需要参数 ${pname}`,
+              options: [],
+            });
+            if (answer === 'deny' || answer === 'timeout' || answer === 'aborted') {
+              return err(`recipe '${name}' aborted: param '${pname}' unanswered (${answer})`);
+            }
+            args[pname] = answer;
+          }
+        }
         const values = Object.fromEntries(params.map((x) => [x.name, String(args[x.name] ?? x.default ?? '')]));
         const expanded = body.replace(/\{\{(\w+)\}\}/g, (all, k) => values[k] ?? all);
         audit?.write({ kind: 'RECIPE_RUN', data: { name, params: Object.keys(values).length } });
