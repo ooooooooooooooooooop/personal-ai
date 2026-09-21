@@ -42,10 +42,8 @@ function errResult(text) {
   return { content: [{ type: 'text', text }], isError: true };
 }
 
-const normalizeHostLiteral = (h) => {
-  const s = String(h ?? '').toLowerCase().replace(/^\[|\]$/g, '');
-  return s.startsWith('::ffff:') ? s.slice(7) : s;
-};
+const normalizeHostLiteral = (h) =>
+  String(h ?? '').toLowerCase().replace(/^\[|\]$/g, '');
 
 const parseV4 = (h) => {
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
@@ -54,20 +52,46 @@ const parseV4 = (h) => {
   return o.every((n) => n <= 255) ? o : null;
 };
 
-const firstHextet = (h) => {
-  const g = h.split(':')[0];
-  return g ? parseInt(g, 16) : NaN;
+/** Full IPv6 parser → array of 8 hextets, or null. Handles `::` compression
+ * and embedded dotted-quad tails (`::ffff:1.2.3.4`). */
+const parseV6 = (h) => {
+  if (typeof h !== 'string' || !h.includes(':')) return null;
+  const halves = h.split('::');
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 ? (halves[1] ? halves[1].split(':') : []) : [];
+  let v4parts = null;
+  const lastGroup = tail.length ? tail[tail.length - 1] : head[head.length - 1];
+  if (lastGroup?.includes('.')) {
+    v4parts = parseV4(lastGroup);
+    if (!v4parts) return null;
+    (tail.length ? tail : head).pop();
+  }
+  if (head.concat(tail).some((g) => !/^[0-9a-f]{1,4}$/i.test(g))) return null;
+  const total = head.length + tail.length + (v4parts ? 2 : 0);
+  if (total > 8 || (halves.length === 1 && total !== 8)) return null;
+  const hexes = head.concat(new Array(8 - total).fill('0')).concat(tail).map((g) => parseInt(g, 16));
+  if (v4parts) hexes.push((v4parts[0] << 8) | v4parts[1], (v4parts[2] << 8) | v4parts[3]);
+  return hexes;
 };
 
-/** Never-egress ranges: link-local/metadata, ULA, loopback-v6. */
+const V4_MAPPED_PREFIX = [0, 0, 0, 0, 0, 0xffff];
+const isV4Mapped = (v6) => v6.slice(0, 6).every((g, i) => g === V4_MAPPED_PREFIX[i]);
+const mappedV4 = (v6) => [v6[6] >> 8, v6[6] & 255, v6[7] >> 8, v6[7] & 255];
+
+/** Never-egress ranges: link-local/metadata, ULA, loopback, unspecified. */
 export function isForbiddenAddress(ip) {
   const h = normalizeHostLiteral(ip);
   const v4 = parseV4(h);
   if (v4) return v4[0] === 169 && v4[1] === 254;
-  if (h === '::1' || /^0{1,4}(::?0{1,4}){6}:0{0,3}1$/.test(h)) return true; // ::1 canonical + expanded
-  const t = firstHextet(h);
-  return (t >= 0xfe80 && t <= 0xfebf)  // fe80::/10 link-local (fe80–febf, not just fe80)
-      || (t >= 0xfc00 && t <= 0xfdff); // fc00::/7 ULA (fc AND fd)
+  const v6 = parseV6(h);
+  if (!v6) return false; // hostname, not a literal address
+  if (isV4Mapped(v6)) return isForbiddenAddress(mappedV4(v6).join('.'));
+  if (v6.every((g) => g === 0)) return true;                          // :: unspecified
+  if (v6[7] === 1 && v6.slice(0, 7).every((g) => g === 0)) return true; // ::1 loopback
+  const t = v6[0];
+  return (t & 0xffc0) === 0xfe80  // fe80::/10 link-local (fe80–febf)
+      || (t & 0xfe00) === 0xfc00; // fc00::/7 ULA (fc AND fd)
 }
 
 /** Resolved-address private pivot: superset of forbidden + loopback/RFC1918. */
@@ -75,7 +99,11 @@ function isPrivateResolved(ip) {
   const h = normalizeHostLiteral(ip);
   if (isForbiddenAddress(h)) return true;
   const v4 = parseV4(h);
-  if (!v4) return false;
+  if (!v4) {
+    const v6 = parseV6(h);
+    if (v6 && isV4Mapped(v6)) return isPrivateResolved(mappedV4(v6).join('.'));
+    return false;
+  }
   const [a, b] = v4;
   return a === 127 || a === 10 || a === 0
       || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);

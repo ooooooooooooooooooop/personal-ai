@@ -173,7 +173,8 @@ test('M66: DNS resolution is validated — IPv6 literals normalized, forbidden a
   }
   // R2 CIDR completeness — fe80::/10 is fe80–febf, ULA fc00::/7 is fc AND fd
   for (const bad of ['fe80::1', 'fe90::1', 'fea0::1', 'feb0::1', 'fc00::1', 'fd12::1', '::1',
-                     '169.254.169.254', '0:0:0:0:0:0:0:1']) {
+                     '169.254.169.254', '0:0:0:0:0:0:0:1', '::', '0::1', '00::0001',
+                     '::ffff:a9fe:a9fe', '0:0:0:0:0:ffff:169.254.169.254']) {
     assert.equal(isForbiddenAddress(bad), true, bad);
   }
   for (const ok of ['2001:db8::1', 'fec0::1', '8.8.8.8', 'example.com']) {
