@@ -1577,3 +1577,20 @@
 测试基线：host 236 / pi 189+1skip / app 18+1skip 全绿。
 
 **仍待**：M64 实际删除动作、M71 免持久会话、M77 子 agent 实况窗格、M81 多 profile、M82 MCP prompts、M90 workflow 生命周期页、M92 后台会话页、M99 workers 页、M73 向量记忆（重依赖决策）、上游残余（stale agent_end、MCP 顺序）。
+
+### 28.16 中档批次 3（2026-09-21，commit 8846934）
+
+| 项 | 终态 |
+|---|---|
+| M82 MCP prompts 上浮 | **落地**——prompts/list 在连接时发现，/mcp-&lt;server&gt;-&lt;prompt&gt; 注册为 slash 命令；prompts/get 展开为用户轮（带 [mcp prompt] 溯源前缀）；必填参数 k=v/位置双绑定、缺失诚实报错不发送；managed-manifest 重钉 |
+| M64 实际删除动作 | **落地**——instance_purge：exports/spool/sessions（除活动会话文件）三类可清；audit/jobs/memory/receipts/schedules/allowlists 为治理证据拒绝；默认 dry_run，删除须显式 dry_run:false，INSTANCE_PURGE 审计 |
+| M71 免持久会话 | **落地**——session_new {ephemeral:true} → SessionManager.inMemory；不写 sessionDir、不出现在列表、不可恢复/导出；UI /eph 命令 |
+| M90 workflow 生命周期 | **落地**——job_restart（终态任务的恢复命令以新 job_id 重跑，血缘记审计）+ job_delete（仅终态，删 DB 行+attempt 产物文件）+ 详情面板重启/删除按钮；活动任务两者皆拒 |
+| M92 后台会话页 | **落地**——同批 job 生命周期 + 已有 task 树/mailbox 中心覆盖后台派遣会话 |
+| M77 子agent 实况窗格 | **核查已有**——task-detail 面板：inbox/outbox/events 合并时间线 + 1.5s 轮询 + 中断/关闭/发消息 |
+| M99 workers 页 | **核查已有**——jobs 页四区（jobs/goals/schedules/tasks）即 workers 面 |
+| M81 多 profile 实例 | **部分**——instance root + body_select 已给隔离与切换；「同实例内命名 profile（模型/凭证/权限预设包）+ export/import」未做 |
+
+测试基线：host 240 / pi 192+1skip（其中 mcp-ext 7/7、channel 22/22、jobs 7/7 全绿）/ app 18+1skip。
+
+**真剩余**：M73 向量记忆（sqlite-vec 依赖决策，host 零依赖约束下只能挂 pi）、M81 命名 profile 包、上游残余（stale agent_end、MCP 工具顺序）。
