@@ -1053,6 +1053,8 @@
 
 **Codex**：releases 全是 alpha tag 无说明（仅版本时钟）；app-server 协议面需专项对照（评审已提示）。
 
+**Aider**（B 级 title 扫描）：窗口内零 release——最新 v0.86.0 发布于 08-17 早于窗口起点；无增量。
+
 **Roo Code**：**2026-05-15 关停、仓库 archive**——降级为历史设计样本，移出更新监控集；后续 Roomote 若研究按新对象准入。
 
 **本轮候选新缺口汇总**（全部薄/中，无边界冲突）：
@@ -1086,5 +1088,7 @@
 | N9 | ✅ 已有 | 外观卡 opt-in 声音开关 + WebAudio beep：批准卡必响，turn 完成仅窗口不可见时响 |
 | N10 | ✅ 已有 | pai-channel 引导即设 `NoDefaultCurrentDirectoryInExePath`——进程级 env 覆盖 jobs/bridge/内置 bash 全 spawn 树 |
 | N11 | ✅ 已有 | profile `env:`/`env_deny:` 经 `--env-json` 桥收窄子 env；`PAI_*` 拒穿（执行信道不可谈判），envCapable 信任门控 |
+
+**方向三·评审者视角 UI pass（已落）**：新增「关于」视图（侧栏首位）——它是什么 / 现在能做什么（六族清单）/ 有意不做（边界带理由）/ **运行证据实况 chips**（policy checksum·硬拒工具数、身体数、持久任务+运行中、技能数、定时任务、项目信任态、记忆——全部来自 live facade，不可能比运行时先漂移）；空态加一行直达链接。Kiro 变体项"diff 折叠为 file chip"核实为已覆盖（tool row 默认折叠、diff 在行内）。OpenHands hover 时间戳/图片全尺寸属 UI 细节变体，不入列。
 
 **机制族趋势确认**（供第三遍定向复扫）：事件唤醒→常驻 coordinator→动态 worker 池（Cursor Projects / Kiro Crew）证实为行业收敛方向，我方 mailbox+teammate+schedule 已是地基，编排面仍是 §28.5 决策项；远程执行目标在本窗口新增 Cursor self-hosted+Cline SSH 两票，累计四家了。

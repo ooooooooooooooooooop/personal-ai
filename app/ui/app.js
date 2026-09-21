@@ -2169,7 +2169,7 @@ function setStatus(t, kind) {
 }
 
 /* ---------- views ---------- */
-const TITLES = { jobs: '任务', changes: '变更与产物', audit: '审计', bodies: '身体', settings: '设置' };
+const TITLES = { about: '关于', jobs: '任务', changes: '变更与产物', audit: '审计', bodies: '身体', settings: '设置' };
 let currentView = 'chat';
 function switchView(v) {
   currentView = v;
@@ -2181,10 +2181,41 @@ function switchView(v) {
   if (v === 'changes') { refreshChanges(); refreshArtifacts(); }
   if (v === 'audit') refreshAudit();
   if (v === 'bodies') refreshBodies();
+  if (v === 'about') refreshAbout();
   if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); refreshCommandsCard(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
+
+/* about view — every claim on this page is backed by a live facade read,
+   so the evidence grid can never drift ahead of the runtime */
+async function refreshAbout() {
+  const box = $('about-evidence');
+  if (!box) return;
+  box.innerHTML = '<div class="set-sub">读取中…</div>';
+  const [pol, bodies, jobs, skills, scheds, trust, mem] = await Promise.all([
+    cmd('policy_status'), cmd('body_list'), cmd('job_list', { n: 200 }),
+    cmd('skills_list'), cmd('schedule_list'), cmd('project_trust_status'), cmd('memory_stats'),
+  ]);
+  const jl = jobs.data ?? [];
+  const running = jl.filter((x) => x.job_state === 'RUNNING').length;
+  const chips = [
+    ['治理姿态', pol.success
+      ? `policy ${String(pol.data?.checksum ?? '').slice(0, 10) || '—'} · ${(pol.data?.deniedTools ?? []).length} 个工具硬拒`
+      : 'facade 不可用'],
+    ['身体', bodies.success ? `${(bodies.data ?? []).length} 个已登记` : 'facade 不可用'],
+    ['持久任务', jobs.success ? `${jl.length} 个 · ${running} 运行中` : 'facade 不可用'],
+    ['技能', skills.success ? `${(skills.data?.skills ?? []).length} 个已加载` : '未配置 microagent'],
+    ['定时任务', scheds.success ? `${(scheds.data ?? []).length} 个` : 'facade 不可用'],
+    ['项目信任', trust.success
+      ? (trust.data?.trusted ? '已授予——仓库注入内容激活' : '未授予——仓库注入内容休眠中')
+      : 'facade 不可用'],
+    ['记忆', mem.success ? `${mem.data?.pinned ?? 0} 条 pinned / ${mem.data?.total ?? 0} 总` : 'facade 不可用'],
+  ];
+  box.innerHTML = chips.map(([k, v]) =>
+    `<div class="ev-chip"><div class="ev-k">${escHtml(k)}</div><div class="ev-v">${escHtml(v)}</div></div>`).join('');
+}
 $('body-chip').onclick = () => switchView('bodies');
+$('empty-about').onclick = () => switchView('about');
 
 /* sidebar collapse — remembered across launches */
 const applySide = (collapsed) => {
