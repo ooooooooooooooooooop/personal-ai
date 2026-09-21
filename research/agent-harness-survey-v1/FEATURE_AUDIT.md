@@ -1092,3 +1092,34 @@
 **方向三·评审者视角 UI pass（已落）**：新增「关于」视图（侧栏首位）——它是什么 / 现在能做什么（六族清单）/ 有意不做（边界带理由）/ **运行证据实况 chips**（policy checksum·硬拒工具数、身体数、持久任务+运行中、技能数、定时任务、项目信任态、记忆——全部来自 live facade，不可能比运行时先漂移）；空态加一行直达链接。Kiro 变体项"diff 折叠为 file chip"核实为已覆盖（tool row 默认折叠、diff 在行内）。OpenHands hover 时间戳/图片全尺寸属 UI 细节变体，不入列。
 
 **机制族趋势确认**（供第三遍定向复扫）：事件唤醒→常驻 coordinator→动态 worker 池（Cursor Projects / Kiro Crew）证实为行业收敛方向，我方 mailbox+teammate+schedule 已是地基，编排面仍是 §28.5 决策项；远程执行目标在本窗口新增 Cursor self-hosted+Cline SSH 两票，累计四家了。
+
+### 28.7 定向机制复扫（delta 驱动，2026-09-21）
+
+按评审裁定只对 delta 暴露的两个未决机制族做落点级复核，不再全面重扫。已落地族（N1–N11）以测试名为证，不重复论证。
+
+**族 A：常驻 coordinator + 动态 worker 池**（Cursor Projects / Kiro Crew dispatching）
+
+已核实的地基（全部在产）：
+- `TaskStore`：durable task + `spawn_spec`（{target, profile, task, depth} 可重生身份）+ 三流信箱（inbox/outbox/events）+ parent 链 + job 绑定
+- `ScheduleStore`：durable 调度 + missed-fire catch-up-once + lastJobId 回执
+- `delegate_task`+bridge：durable spawn + 预算切片 + 深度帽 + steering 隔离 + env 收窄 + max_minutes deadline
+- ContinuationGovernor：会话级目标维持
+
+距 Projects 形态的真实缺口（不是"地基不够"，是三个具体原语）：
+1. **跨会话存活的协调者实体**——今天 task 是信箱，背后是父会话的脑子；会话结束就没有进程继续为它决策
+2. **目标绑定的周期 tick**——schedule 现在只 fire shell 命令；"按目标决定下一步"的再入循环不存在（最薄路径：schedule 可 fire 一条受治理 prompt，child 持 task 目标+信箱进场）
+3. **一任务多 worker 池语义**——今天是 task↔job 一对一；池化=同 task dir 下多个并发 job+按目标退避/退役
+
+判定：维持 §28.5 决策项，但落点已精确——若拍板做，最薄形态=「schedule 能 fire prompt」+「task 可绑多 job」，不需要新抽象层。
+
+**族 B：远程执行目标**（SSH/WSL/Docker，本窗口累计四票）
+
+已核实的接缝：`SandboxProvider.spawnSpec(command, workdir)` 已把 spawn 形状抽象成 argv spec——wsl 后端证明包裹路径可行（`PAI_SANDBOX=wsl` 在产）。
+
+但 SSH 目标 ≠ 加一个 spawnSpec：
+- spawnSpec 只管 durable job 的**进程诞生**；fileops/read/write/repo_map/session_read/writeLease/authorizedRoot 全部假设**本地文件系统**
+- 真远程面=执行 seam + 远端 workspace 供给/checkout + 远端文件 IO + 跨边界 lease 语义，是执行环境抽象层
+
+判定：维持决策项不动；若未来做，入口是 `sandbox.js` spawnSpec + fileops/observation 的 locality 假设清单，不是重写。
+
+**复扫收尾**：N1–N11 消耗完毕；方向三「关于」视图已落；两个未决族都有精确落点，等拍板。
