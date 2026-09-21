@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -94,6 +94,7 @@ export class HostChannel {
     this.projectTrust = projectTrust;
     this.schedules = schedules;
     this.goalStore = goalStore;
+    this.monitors = monitors;
     this.repoMap = repoMap;
     this.skills = skills;
     this.listeners = new Set();
@@ -297,6 +298,26 @@ export class HostChannel {
         case 'session_rename': {
           if (!this.sessions?.rename) return reply(false, undefined, 'sessions facade unavailable');
           return reply(true, await this.sessions.rename(String(cmd.name ?? '')));
+        }
+        case 'monitor_add': {
+          if (!this.monitors?.add) return reply(false, undefined, 'monitors unavailable');
+          if (!cmd.path || !cmd.prompt) return reply(false, undefined, 'monitor_add requires {path, prompt}');
+          const r = this.monitors.add({ path: String(cmd.path), prompt: String(cmd.prompt) });
+          return r.error ? reply(false, undefined, r.error) : reply(true, r);
+        }
+        case 'monitor_remove': {
+          if (!this.monitors?.remove) return reply(false, undefined, 'monitors unavailable');
+          const r = this.monitors.remove(String(cmd.id ?? ''));
+          return r.error ? reply(false, undefined, r.error) : reply(true, r);
+        }
+        case 'monitor_list': {
+          if (!this.monitors?.list) return reply(false, undefined, 'monitors unavailable');
+          return reply(true, this.monitors.list());
+        }
+        case 'session_import': {
+          if (!this.sessions?.importSession) return reply(false, undefined, 'session import unavailable');
+          if (!cmd.path) return reply(false, undefined, 'session_import requires {path}');
+          return reply(true, await this.sessions.importSession(String(cmd.path)));
         }
         case 'session_fork': {
           if (!this.sessions?.fork) return reply(false, undefined, 'sessions facade unavailable');
@@ -648,7 +669,9 @@ export class HostChannel {
         }
         case 'decision_resolve': {
           if (!this.asks?.resolve) return reply(false, undefined, 'asks facade unavailable');
-          const r = this.asks.resolve(String(cmd.askId ?? cmd.ask ?? ''), String(cmd.answer ?? ''));
+          // object answers carry in-card edits: {answer:'allow', edited:{...}}
+          const answer = cmd.answer && typeof cmd.answer === 'object' ? cmd.answer : String(cmd.answer ?? '');
+          const r = this.asks.resolve(String(cmd.askId ?? cmd.ask ?? ''), answer);
           return r.ok ? reply(true, { resolved: true }) : reply(false, undefined, r.error);
         }
         default:

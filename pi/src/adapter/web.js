@@ -38,7 +38,21 @@ function errResult(text) {
   return { content: [{ type: 'text', text }], isError: true };
 }
 
-export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAULT_MAX_CHARS } = {}) {
+/**
+ * Domain-match: exact host or leading-dot suffix (`example.com`,
+ * `.example.com`). Caller supplies the operator-owned allowlist; null/empty
+ * means unrestricted (the governance ask is the baseline gate).
+ */
+export function domainAllowed(host, allowlist) {
+  if (!allowlist?.length) return true;
+  const h = String(host ?? '').toLowerCase();
+  return allowlist.some((d) => {
+    const dom = String(d).toLowerCase().trim();
+    return dom.startsWith('.') ? (h === dom.slice(1) || h.endsWith(dom)) : h === dom;
+  });
+}
+
+export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAULT_MAX_CHARS, egressAllow = null } = {}) {
   return {
     name: 'web_fetch',
     label: 'Web Fetch',
@@ -64,6 +78,9 @@ export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAUL
       if (url.protocol !== 'http:' && url.protocol !== 'https:') {
         return errResult(`web_fetch only fetches http/https (got ${url.protocol})`);
       }
+      if (!domainAllowed(url.hostname, egressAllow?.())) {
+        return errResult(`web_fetch refused: '${url.hostname}' is not on the operator egress allowlist`);
+      }
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       try {
@@ -72,6 +89,12 @@ export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAUL
           redirect: 'follow',
           headers: { 'user-agent': 'personal-ai/web_fetch (+local agent)', accept: 'text/*,application/json,application/xml;q=0.9,*/*;q=0.5' },
         });
+        // redirect-hop escape: 'follow' may land on a different host — the
+        // final URL must pass the same allowlist as the requested one.
+        const finalHost = res.url ? new URL(res.url).hostname : url.hostname;
+        if (!domainAllowed(finalHost, egressAllow?.())) {
+          return errResult(`web_fetch refused: redirect landed on '${finalHost}', not on the operator egress allowlist`);
+        }
         const buf = Buffer.from(await res.arrayBuffer());
         if (buf.length > MAX_BODY_BYTES) {
           return errResult(`response too large (${buf.length} bytes > ${MAX_BODY_BYTES}) — fetch a narrower resource`);

@@ -624,8 +624,24 @@ function addAskCard(ask) {
     const cmdStr = ask.args.command ?? ask.args.cmd;
     const editPair = [ask.args.oldText ?? ask.args.old_string, ask.args.newText ?? ask.args.new_string];
     if (cmdStr) {
-      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre>`);
+      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre><textarea class="ask-edit hidden" spellcheck="false"></textarea><button class="ask-edit-toggle" type="button">编辑命令</button>`);
       payload.querySelector('.ask-cmd').textContent = `$ ${cmdStr}`;
+      // edit-then-approve (CodeBuddy/Claude): the card can carry the
+      // operator's corrected command — the edited text replaces the args,
+      // never bypasses governance for other layers (deny-prefix, protected
+      // paths still apply to the edited command).
+      const editBox = payload.querySelector('.ask-edit');
+      editBox.value = String(cmdStr);
+      const tog = payload.querySelector('.ask-edit-toggle');
+      tog.onclick = () => {
+        const on = editBox.classList.toggle('hidden');
+        tog.textContent = on ? '编辑命令' : '收起编辑';
+        if (!on) editBox.focus();
+      };
+      div._editedCommand = () => {
+        const v = editBox.value;
+        return v !== String(cmdStr) ? v : null;
+      };
     } else if (editPair[0] != null || editPair[1] != null) {
       payload.insertAdjacentHTML('beforeend', `<div class="ask-path"></div><pre class="diff-block"></pre>`);
       if (ask.args.path) payload.querySelector('.ask-path').textContent = ask.args.path;
@@ -676,7 +692,15 @@ function addAskCard(ask) {
   div.querySelectorAll('.ask-btn').forEach((b) => {
     b.onclick = async () => {
       div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = true; });
-      const r = await cmd('decision_resolve', { askId: ask.id, answer: b.dataset.a });
+      let answer = b.dataset.a;
+      // edited-command approvals carry the operator's text; only allow-family
+      // answers may carry edits (deny+edit is meaningless)
+      const editedCmd = div._editedCommand?.();
+      const argKey = ask.args?.command != null ? 'command' : 'cmd';
+      if (editedCmd != null && answer !== 'deny') {
+        answer = { answer, edited: { [argKey]: editedCmd } };
+      }
+      const r = await cmd('decision_resolve', { askId: ask.id, answer });
       if (!r.success) {
         div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = false; });
         addSys(`批准提交失败：${r.error ?? '未知'}`, true);
@@ -1239,6 +1263,21 @@ function renderSessions() {
       const r = await cmd('session_purge');
       if (r.success) { toast(`已删除 ${r.data?.purged ?? 0} 个归档会话`); await refreshSessions(); }
       else addSys(`批量删除失败：${r.error ?? '未知'}`, true);
+    };
+    box.appendChild(t);
+  }
+  // session import (Cursor/Claude import-session): bring a foreign .jsonl
+  // session into the store — lands in the list as [导入] name, no switch.
+  {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle';
+    t.textContent = '导入会话文件…';
+    t.onclick = async () => {
+      const p = prompt('会话文件路径（.jsonl）：');
+      if (!p?.trim()) return;
+      const r = await cmd('session_import', { path: p.trim() });
+      if (r.success) { toast(`已导入：${r.data?.name ?? '会话'}`); await refreshSessions(); }
+      else addSys(`导入失败：${r.error ?? '未知'}`, true);
     };
     box.appendChild(t);
   }
@@ -3008,8 +3047,17 @@ input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); execSlash(slashItems[slashIdx]); return; }
   }
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); busy ? steer() : send(); return; }
-  // Esc interrupts a running turn (every harness: Esc = abort)
-  if (e.key === 'Escape' && busy) { e.preventDefault(); abort(); return; }
+  // Esc interrupts a running turn (every harness: Esc = abort); with queued
+  // prompts waiting, a second Esc within 1.5s drops the tail — aborting the
+  // run must not silently eat messages the operator typed deliberately, so
+  // queue-clear is a separate deliberate keystroke, not bundled into abort.
+  if (e.key === 'Escape' && busy) { e.preventDefault(); abort(); lastEscAt = Date.now(); return; }
+  if (e.key === 'Escape' && queue.length && Date.now() - lastEscAt < 1500) {
+    e.preventDefault();
+    const n = queue.length; queue.length = 0; renderQueue();
+    toast(`已弃尾 ${n} 条排队消息`, 'info'); lastEscAt = 0; return;
+  }
+  if (e.key === 'Escape') lastEscAt = Date.now();
   // ArrowUp/Down walk prompt history when the composer is empty or already
   // showing a recalled entry (shell-style; draft text is preserved).
   if (e.key === 'ArrowUp' && promptHist.length
@@ -3036,6 +3084,7 @@ document.addEventListener('keydown', (e) => {
 /* prompt queue — messages sent while a run is active wait as chips above
  * the composer; agent_end flushes the next one. "立即转向" = steer now. */
 const queue = [];
+let lastEscAt = 0; // double-Esc window for queue-tail drop
 function renderQueue() {
   const row = $('queue-row');
   row.innerHTML = '';

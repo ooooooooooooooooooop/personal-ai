@@ -417,3 +417,17 @@ test('command allowlist receives parsed units for per-unit matching', async () =
   assert.equal(metaSeen.rule, 'risk_mutating');
   assert.equal(metaSeen.parsed.units.length, 2);
 });
+
+test('in-card edited command: operator edit lands on ctx.args before admission', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: { destructive: 'ask' } });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({ units: [{ raw: 'rm -rf a' }], parseError: null, risk: 'destructive' }),
+    ask: async () => ({ answer: 'allow', edited: { command: 'rm -rf ./build/out' } }),
+  });
+  const c = ctx({ toolName: 'shell', args: { command: 'rm -rf a' } });
+  const r = await kernel.decideToolCall(c);
+  assert.equal(r, undefined, 'edited allow admits');
+  assert.equal(c.args.command, 'rm -rf ./build/out', 'edited text replaced the executed arg');
+});

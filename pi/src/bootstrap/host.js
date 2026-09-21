@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path';
+import { join, resolve, basename } from 'node:path';
 import { spawn } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, openSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -95,6 +95,7 @@ import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
+import { MonitorRegistry } from '../adapter/monitor.js';
 import { goalCoordinatorTool } from '../adapter/goals.js';
 import { GoalStore } from '../../../host/src/core/goals.js';
 import { sessionSearchTool, sessionReadTool } from '../adapter/sessionsearch.js';
@@ -210,11 +211,19 @@ export async function startHost({
   const judgeCall = async (system, user) => {
     const rt = currentSession?.modelRuntime;
     if (!rt) return null;
-    const pid = currentSession?.model?.provider ?? rt.getProviders?.()[0]?.id;
+    // per-feature model routing: <instance>/feature-models.json may point the
+    // judge at a cheaper/stronger model than the session's — judge calls are
+    // frequent and low-stakes, so a small model is usually the right pick.
+    let feature = null;
+    try {
+      const fm = JSON.parse(readFileSync(join(instanceRoot, 'feature-models.json'), 'utf-8'));
+      feature = fm?.judge ?? null;
+    } catch { /* absent file = session model */ }
+    const pid = feature?.provider ?? currentSession?.model?.provider ?? rt.getProviders?.()[0]?.id;
     const p = rt.getProvider?.(pid);
     const auth = await rt.getAuth?.(pid).catch(() => undefined);
     const base = auth?.auth?.baseUrl ?? p?.baseUrl;
-    const model = currentSession?.model?.id ?? currentSession?.model?.model;
+    const model = feature?.model ?? currentSession?.model?.id ?? currentSession?.model?.model;
     if (!base || !model) return null;
     const headers = { 'content-type': 'application/json', ...(p?.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
     if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
@@ -386,6 +395,18 @@ export async function startHost({
     },
   });
 
+  // event-driven monitors (CodeBuddy Monitor / ambient-context analogue):
+  // operator-armed fs.watch entries wake the session through the SAME
+  // governed promptSink as schedule ticks — a busy session refuses.
+  const monitors = new MonitorRegistry({
+    audit: core.audit,
+    promptSink: async (msg) => {
+      if (!channelHandle || currentSession?.isStreaming) return { refused: 'busy' };
+      const r = await channelHandle.channel.handle({ type: 'prompt', message: msg, meta: { monitor_wake: true } });
+      return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
+    },
+  });
+
   // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
   // into every context envelope as untrusted evidence.
   const memoryStore = new MemoryStore(memoryDbPath(core.paths.root));
@@ -412,7 +433,15 @@ export async function startHost({
     notifyUserTool(() => (ev) => channelHandle?.channel.emitEvent(ev)),
     // network tools — web_fetch always on (policy maps it to ask); web_search
     // only when the operator configures an endpoint (never advertised empty)
-    webFetchTool(),
+    // egress domain allowlist — operator-owned <instance>/egress-allow.json
+    // {allowDomains:[...]}; absent file = unrestricted (governance ask is the
+    // baseline). Re-read per call so operator edits take effect live.
+    webFetchTool({ egressAllow: () => {
+      try {
+        const doc = JSON.parse(readFileSync(join(instanceRoot, 'egress-allow.json'), 'utf-8'));
+        return Array.isArray(doc?.allowDomains) ? doc.allowDomains.map(String) : null;
+      } catch { return null; }
+    } }),
     ...(process.env.PAI_WEB_SEARCH_URL
       ? [webSearchTool({ endpoint: process.env.PAI_WEB_SEARCH_URL, apiKey: process.env.PAI_WEB_SEARCH_KEY ?? null })]
       : []),
@@ -836,6 +865,18 @@ export async function startHost({
         file: s.sessionManager?.getSessionFile?.() ?? null,
       };
     },
+    // session import (Cursor/Claude import-session analogue): copy a foreign
+    // pi-format session file into the store WITHOUT switching to it — the
+    // imported transcript lands in the drawer with a [导入] name marker and
+    // forkFrom's parentSession header records the source path (provenance).
+    importSession: async (srcPath) => {
+      const abs = resolve(String(srcPath ?? ''));
+      if (!existsSync(abs)) throw new Error(`session file not found: ${abs}`);
+      const mgr = sessionManagers.forkFrom(abs, workdir, sessionDir);
+      const srcName = mgr.getSessionName?.() ?? basename(abs);
+      mgr.appendSessionInfo?.(`[导入] ${srcName}`);
+      return { file: mgr.getSessionFile?.() ?? null, name: `[导入] ${srcName}`, importedFrom: abs };
+    },
     // /btw — a side question on an EPHEMERAL fork: same context, answer never
     // lands in the live transcript. The fork is a real governed session
     // (same guard/lease/audit) — read-only is enforced by the operator's
@@ -991,6 +1032,13 @@ export async function startHost({
     goalStore: {
       list: () => goalStore.list(),
       setState: (id, state) => goalStore.setState(id, state),
+    },
+    // event-driven monitors — operator arms/disarms fs watchers that wake
+    // the session through the governed prompt path
+    monitors: {
+      add: ({ path, prompt }) => monitors.add({ path, prompt }),
+      remove: (id) => monitors.remove(id),
+      list: () => monitors.list(),
     },
     // /map — operator surface over the same builder repo_map wraps
     repoMap: {
@@ -1226,6 +1274,7 @@ export async function startHost({
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     ungateFetch();
     schedulerPump.dispose();
+    monitors.dispose();
     releaseWriter();
     asks.dispose();
     channelHandle.dispose();

@@ -122,8 +122,12 @@ export class PendingAsks {
         this.#pending.delete(id);
         clearTimeout(rec._timer);
         signal?.removeEventListener?.('abort', rec._onAbort);
-        if (answer === 'allow_session' && rec.kind !== 'question') this.#sessionAllows.add(toolName);
-        if (answer === 'always' && rec.kind !== 'question') {
+        // object answers carry {answer, edited} — edited approval grants
+        // persist the EDITED command, not the model's original payload.
+        const ans = answer && typeof answer === 'object' ? answer.answer : answer;
+        const edited = answer && typeof answer === 'object' ? answer.edited : null;
+        if (ans === 'allow_session' && rec.kind !== 'question') this.#sessionAllows.add(toolName);
+        if (ans === 'always' && rec.kind !== 'question') {
           // 'always' grants the PATTERN ({tool,command}), not the whole tool —
           // sessionAllows.add(toolName) here would over-grant every future arg.
           // Persist {tool} or {tool,command} — never persist from a truncated
@@ -131,7 +135,8 @@ export class PendingAsks {
           // cannot durably approve what they could not fully see.
           if (!rec.argsTruncated && this.alwaysPath) {
             const entry = { tool: toolName };
-            if (typeof rec.args?.command === 'string') entry.command = rec.args.command;
+            const persistedCmd = edited?.command ?? rec.args?.command;
+            if (typeof persistedCmd === 'string') entry.command = persistedCmd;
             this.#alwaysAllows.push(entry);
             try {
               mkdirSync(dirname(this.alwaysPath), { recursive: true });
@@ -140,13 +145,13 @@ export class PendingAsks {
             this.audit?.write?.({ kind: 'ASK_ALWAYS_PERSIST', toolName, data: { command: entry.command != null ? entry.command.slice(0, 200) : null } });
           }
         }
-        if (answer === 'deny' && rec.kind !== 'question') {
+        if (ans === 'deny' && rec.kind !== 'question') {
           this.#sessionDenies.add(PendingAsks.#sigOf(toolName, rec.args));
         }
         // outcome ledger — AgentStats outcome-bucketed counts (agreed/
         // rejected/timed-out) read this trail, not the transient event
-        this.audit?.write?.({ kind: 'ASK_RESOLVED', toolName, data: { rule: rec.rule ?? 'ask', kind: rec.kind, answer } });
-        this.#emit({ type: 'governance_resolved', askId: id, toolName, answer });
+        this.audit?.write?.({ kind: 'ASK_RESOLVED', toolName, data: { rule: rec.rule ?? 'ask', kind: rec.kind, answer: ans, edited: edited ? Object.keys(edited) : null } });
+        this.#emit({ type: 'governance_resolved', askId: id, toolName, answer: ans });
         resolve(answer);
       };
       const timer = setTimeout(() => finish('timeout'), this.timeoutMs);
@@ -202,13 +207,37 @@ export class PendingAsks {
       rec._finish(answer.slice(0, 2000));
       return { ok: true };
     }
+    // in-card editing (CodeBuddy edit-then-approve): the operator may approve
+    // an EDITED payload — answer arrives as {answer, edited:{key:value}}.
+    // Only allow-family answers may carry edits; edited keys must already
+    // exist in the card's args (no arg injection via the approval channel).
+    let edited = null;
+    if (answer && typeof answer === 'object') {
+      edited = answer.edited;
+      answer = answer.answer;
+      if (edited && (typeof edited !== 'object' || Array.isArray(edited))) {
+        return { ok: false, error: 'edited must be a plain object' };
+      }
+      if (edited) {
+        // a clipped payload can never be edited-approved — the card showed a
+        // truncated string; executing it would run a prefix of the real
+        // command. Operator must approve/deny the full payload or retry.
+        if (rec.argsTruncated) return { ok: false, error: 'cannot edit a truncated payload' };
+        const bad = Object.entries(edited).find(([k, v]) =>
+          typeof v !== 'string' || !(rec.args && Object.prototype.hasOwnProperty.call(rec.args, k)));
+        if (bad) return { ok: false, error: `edited key '${bad[0]}' is not an existing string arg` };
+      }
+    }
     if (!['allow', 'allow_session', 'always', 'deny'].includes(answer)) {
       return { ok: false, error: "answer must be 'allow', 'allow_session', 'always' or 'deny'" };
+    }
+    if (edited && answer === 'deny') {
+      return { ok: false, error: 'a denial cannot carry edits' };
     }
     if (answer === 'always' && rec.argsTruncated) {
       return { ok: false, error: 'cannot persist always-approval for a truncated payload — approve per-call instead' };
     }
-    rec._finish(answer);
+    rec._finish(edited ? { answer, edited } : answer);
     return { ok: true };
   }
 

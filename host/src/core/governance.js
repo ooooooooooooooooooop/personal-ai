@@ -184,21 +184,41 @@ export class GovernanceKernel {
       { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars, advisory },
       ctx.signal,
     );
+    // in-card editing: {answer, edited:{key:value}} — the operator's edited
+    // payload replaces the model's args (ctx.args is a live reference into
+    // the caller's context, so the tool executes what the operator wrote).
+    // Edits land before admission; the audit records both sides.
+    const ans = answer && typeof answer === 'object' ? answer.answer : answer;
+    const edited = answer && typeof answer === 'object' ? answer.edited : null;
+    if (edited && (ans === 'allow' || ans === 'allow_session' || ans === 'always')) {
+      const before = {};
+      for (const k of Object.keys(edited)) before[k] = ctx.args?.[k];
+      Object.assign(ctx.args, edited);
+      this.audit.write({
+        kind: 'GOVERNANCE_ASK_EDITED', toolName: ctx.toolName,
+        data: {
+          toolCallId: ctx.toolCallId, rule,
+          editedKeys: Object.keys(edited),
+          beforeHashes: Object.fromEntries(Object.entries(before).map(([k, v]) => [k, hashOf(String(v))])),
+          afterHashes: Object.fromEntries(Object.entries(edited).map(([k, v]) => [k, hashOf(String(v))])),
+        },
+      });
+    }
     this.audit.write({
       kind: 'GOVERNANCE_ASK_RESOLVED', toolName: ctx.toolName,
-      data: { toolCallId: ctx.toolCallId, rule, answer },
+      data: { toolCallId: ctx.toolCallId, rule, answer: ans },
     });
-    if (answer === 'allow' || answer === 'allow_session' || answer === 'always') {
-      return this.#allow(ctx, `operator:${answer}`);
+    if (ans === 'allow' || ans === 'allow_session' || ans === 'always') {
+      return this.#allow(ctx, `operator:${ans}`);
     }
-    if (answer === 'deny') this.#rejections.add(sig); // rejection memory
+    if (ans === 'deny') this.#rejections.add(sig); // rejection memory
     const reasons = {
       deny: 'operator denied the call',
       timeout: 'operator did not answer before the ask expired',
       aborted: 'session aborted while awaiting operator',
     };
-    return this.#deny(ctx, `ask_${answer}`, {
-      reason: `${reasons[answer] ?? `ask unresolved (${answer})`} — ${detail.reason}`,
+    return this.#deny(ctx, `ask_${ans}`, {
+      reason: `${reasons[ans] ?? `ask unresolved (${ans})`} — ${detail.reason}`,
       actual: summary,
       repair: 're-issue after operator approval, or choose a permitted action',
     });

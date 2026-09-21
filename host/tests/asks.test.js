@@ -206,3 +206,32 @@ test('ASK_RESOLVED audit row lands per resolution (stats outcome trail)', async 
   assert.equal(r.data.answer, 'deny');
   assert.equal(r.data.kind, 'approval');
 });
+
+test('edited approval: object answer carries edited args, deny cannot edit', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask({ toolName: 'bash', args: { command: 'rm -rf a' } });
+  const pend = asks.list()[0];
+  // deny + edit is meaningless → refused
+  const bad = asks.resolve(pend.id, { answer: 'deny', edited: { command: 'rm -rf b' } });
+  assert.equal(bad.ok, false);
+  // editing a key not present in the card args → refused (no arg injection)
+  const bad2 = asks.resolve(pend.id, { answer: 'allow', edited: { url: 'x' } });
+  assert.equal(bad2.ok, false);
+  // allow + edited command → resolves the object
+  const ok = asks.resolve(pend.id, { answer: 'allow', edited: { command: 'rm -rf a' } });
+  assert.equal(ok.ok, true);
+  const ans = await p;
+  assert.deepEqual(ans, { answer: 'allow', edited: { command: 'rm -rf a' } });
+});
+
+test('edited approval refused on truncated payloads', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const p = asks.ask({ toolName: 'bash', args: { command: 'x'.repeat(50) }, argsTruncated: true });
+  const pend = asks.list()[0];
+  const r = asks.resolve(pend.id, { answer: 'allow', edited: { command: 'ls' } });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /truncated/);
+  // still pending — resolve normally so the ask doesn't linger
+  asks.resolve(pend.id, 'deny');
+  await p;
+});

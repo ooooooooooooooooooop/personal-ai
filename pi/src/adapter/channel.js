@@ -30,7 +30,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -537,7 +537,24 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       return { thinkingLevel: s.thinkingLevel ?? lvl };
     },
     setApiKey: async ({ provider, key }) => {
-      await box.s.modelRuntime.setRuntimeApiKey(provider, key);
+      // external secret sources (Bitwarden/1Password "fill without seeing"):
+      // op://vault/item/field → `op read`; bw://item → `bw get password`.
+      // The resolved key lands in the credential store — the reference itself
+      // is never persisted, and resolution failures are reported, never
+      // silently stored as a literal key.
+      let resolved = key;
+      if (/^op:\/\//.test(key) || /^bw:\/\//.test(key)) {
+        const { execFileSync } = await import('node:child_process');
+        try {
+          resolved = /^op:\/\//.test(key)
+            ? execFileSync('op', ['read', key], { timeout: 15_000, encoding: 'utf-8', windowsHide: true }).trim()
+            : execFileSync('bw', ['get', 'password', key.slice(5)], { timeout: 15_000, encoding: 'utf-8', windowsHide: true }).trim();
+        } catch (e) {
+          return { provider, hasAuth: false, error: `secret-source resolve failed: ${e.message?.slice(0, 200) ?? 'unknown'}` };
+        }
+        if (!resolved) return { provider, hasAuth: false, error: 'secret source returned an empty value' };
+      }
+      await box.s.modelRuntime.setRuntimeApiKey(provider, resolved);
       return { provider, hasAuth: true };
     },
     clearApiKey: async (provider) => {
@@ -632,6 +649,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     projectTrust,
     schedules,
     goalStore,
+    monitors,
     repoMap,
     skills: knowledge, // skill-doctor stats + allow-list ride the knowledge facade
   });

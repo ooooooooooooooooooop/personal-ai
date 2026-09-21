@@ -2,7 +2,7 @@
  * schedule_task tool + scheduler pump — the tool writes the store; the pump
  * fires due entries as durable jobs and only consumes successful spawns.
  */
-import { mkdtempSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -162,4 +162,25 @@ test('paused/done goals skip their tick; busy sink leaves the entry due', async 
     assert.equal(store.due().length, 1);
     assert.equal(store.due()[0].goal_id, g2.goal_id);
   } finally { pump.dispose(); }
+});
+
+test('monitor registry: fs.watch fires governed promptSink, debounced, removable', async () => {
+  const { MonitorRegistry } = await import('../src/adapter/monitor.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mon-'));
+  const target = join(dir, 'watched.txt');
+  writeFileSync(target, 'v1');
+  const fired = [];
+  const reg = new MonitorRegistry({ promptSink: async (msg) => { fired.push(msg); return { ok: true }; } });
+  const r = reg.add({ path: target, prompt: 'check the change' });
+  assert.ok(r.id);
+  writeFileSync(target, 'v2');
+  writeFileSync(target, 'v3'); // debounce collapses the burst
+  await new Promise((res) => setTimeout(res, 2200));
+  assert.equal(fired.length, 1);
+  assert.match(fired[0], /watched\.txt/);
+  assert.match(fired[0], /check the change/);
+  assert.equal(reg.list()[0].fires, 1);
+  reg.remove(r.id);
+  assert.equal(reg.list().length, 0);
+  reg.dispose();
 });
