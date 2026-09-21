@@ -33,7 +33,7 @@ export function buildInstructionEnvelope({ soulManifest, policyText, policyCheck
   return env;
 }
 
-export function buildContextEnvelope({ briefing = '', openPredictions = [], observations = [], memoryDigest = null, steering = null, budget = null, pins = null } = {}) {
+export function buildContextEnvelope({ briefing = '', openPredictions = [], observations = [], memoryDigest = null, steering = null, budget = null, pins = null, ambient = null } = {}) {
   return {
     kind: 'ContextEnvelope',
     version: 1,
@@ -44,6 +44,7 @@ export function buildContextEnvelope({ briefing = '', openPredictions = [], obse
     steering,
     budget,
     pins,
+    ambient,
   };
 }
 
@@ -86,6 +87,14 @@ export function renderContext(env) {
     throw new Error('renderContext expects ContextEnvelope');
   }
   const parts = [env.briefing];
+  if (env.ambient) {
+    // M86 ambient context — time/cwd/platform/git state re-read every turn.
+    // Grounding facts, not instructions: the model anchors 'today' and 'here'
+    // instead of guessing from training data.
+    parts.push('<ambient>');
+    parts.push(env.ambient);
+    parts.push('</ambient>');
+  }
   if (env.steering) {
     parts.push('<steering>');
     parts.push(env.steering);

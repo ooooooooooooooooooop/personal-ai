@@ -23,6 +23,12 @@
  *   model: sonnet           (model hint — fills the {model} template slot)
  *   effort: high            (effort hint — fills the {effort} template slot)
  *   isolate_steering: true  (child skips workdir steering files entirely)
+ *   tools_deny: bash,deploy (child tool surface suppression — reaches the
+ *                            child via PAI_TOOLS_DENY env; honored by our own
+ *                            pai bodies, inert hint for foreign harnesses)
+ *   budget_tokens: 50000    (M94 per-agent context budget — child is stamped
+ *   budget_calls: 20         with a hard request-level cap; only enforceable
+ *   budget_cost: 0.50        on pai-channel children, refused surface-wide else)
  *   ---
  *   System preamble prepended to every delegated task.
  *
@@ -63,6 +69,19 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
       if (/^[A-Za-z_]\w*$/.test(key) && !key.startsWith('PAI_')) envDeny.push(key);
     }
   }
+  // M76 per-agent disallowed tools — same trust gate as env/model: a
+  // repo-planted profile must never narrow the child's enforcement surface.
+  const toolsDeny = envCapable
+    ? String(fields.tools_deny ?? '').split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 32)
+    : [];
+  // M94 per-agent budget — numeric caps stamped into the child's env gate.
+  const budget = {};
+  if (envCapable) {
+    for (const [k, key] of [['budget_tokens', 'tokens'], ['budget_calls', 'calls'], ['budget_cost', 'costUsd']]) {
+      const v = Number(fields[k]);
+      if (Number.isFinite(v) && v > 0) budget[key] = v;
+    }
+  }
   const maxMin = Number(fields.max_minutes);
   return {
     name,
@@ -74,6 +93,8 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
     ...(envCapable && fields.model ? { model: fields.model } : {}),
     ...(envCapable && fields.effort ? { effort: fields.effort } : {}),
     ...(envCapable && /^(1|true|yes)$/i.test(fields.isolate_steering ?? '') ? { isolateSteering: true } : {}),
+    ...(toolsDeny.length ? { toolsDeny } : {}),
+    ...(Object.keys(budget).length ? { budget } : {}),
     maxMinutes: Number.isFinite(maxMin) && maxMin > 0 ? Math.min(maxMin, 24 * 60) : null,
   };
 }

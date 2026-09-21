@@ -138,6 +138,49 @@ test('monitor-skip: unchanged world consumes the fire without an LLM call', asyn
   } finally { pump.dispose(); }
 });
 
+test('M135: adaptive entry slows on quiet ticks, re-hastens when the world moves', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const { GoalStore } = await import('../../host/src/core/goals.js');
+  const { TaskStore } = await import('../../host/src/core/tasks.js');
+  const goals = new GoalStore(dir, () => now);
+  const tasks = new TaskStore(dir);
+  const store = new ScheduleStore(dir, () => now);
+  const goal = goals.create({ statement: 'watch thing' });
+  const rec = store.add({ prompt: goal.statement, goal_id: goal.goal_id, every_seconds: 60, min_seconds: 60, max_seconds: 240 });
+  let calls = 0;
+  const promptSink = async () => (++calls, { ok: true });
+  const pump = startSchedulerPump({
+    store, executor: { spawnCommandJob: async () => ({ job_id: 'never' }) },
+    workdir: dir, audit, intervalMs: 60_000, promptSink, goals, tasks,
+  });
+  const get = () => store.list().find((x) => x.id === rec.id);
+  try {
+    await new Promise((r) => setImmediate(r));
+    now += 61_000;
+    await pump.tick();           // first fire — establishes the fingerprint
+    assert.equal(calls, 1);
+    now += 61_000;
+    await pump.tick();           // unchanged → quiet, interval stretches to 120
+    assert.equal(calls, 1);
+    assert.equal(get().quietStreak, 1);
+    assert.equal(get().current_seconds, 120);
+    assert.equal(get().nextRunAt, now + 120_000);
+    now += 61_000;
+    assert.equal(store.due().length, 0, 'stretched slot not yet due — no hot-loop billing');
+    now += 60_000;
+    await pump.tick();           // quiet again → 240 (cap)
+    assert.equal(get().current_seconds, 240);
+    goals.note(goal.goal_id, 'moved');
+    now += 240_000;
+    await pump.tick();           // world changed → real fire resets to base
+    assert.equal(calls, 2);
+    assert.equal(get().quietStreak, 0);
+    assert.equal(get().current_seconds, null);
+    assert.equal(get().nextRunAt, now + 60_000);
+  } finally { pump.dispose(); }
+});
+
 test('paused/done goals skip their tick; busy sink leaves the entry due', async () => {
   const { dir, audit } = rig();
   let now = 1_000_000;

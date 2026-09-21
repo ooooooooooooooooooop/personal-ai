@@ -54,7 +54,7 @@ export class ScheduleStore {
    * via the prompt sink (coordinator tick). run_at in the past → fires on
    * the next tick (catch-up once semantics).
    */
-  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null }) {
+  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null, min_seconds = null, max_seconds = null }) {
     const cmd = String(command ?? '').trim();
     const prm = String(prompt ?? '').trim();
     if (!cmd && !prm) throw new Error('schedule requires a non-empty command or prompt');
@@ -75,6 +75,18 @@ export class ScheduleStore {
     if (schedules.filter((s) => s.enabled !== false).length >= MAX_SCHEDULES) {
       throw new Error(`schedule cap reached (${MAX_SCHEDULES})`);
     }
+    // M135 adaptive rate: min+max bound a quiet-streak backoff. Both must be
+    // set and bracket the base interval — partial bounds are refused, not
+    // silently ignored.
+    const minS = min_seconds != null ? Math.floor(Number(min_seconds)) : null;
+    const maxS = max_seconds != null ? Math.floor(Number(max_seconds)) : null;
+    const adaptive = minS != null || maxS != null;
+    if (adaptive) {
+      if (interval == null) throw new Error('adaptive rate (min/max_seconds) requires every_seconds');
+      if (minS == null || maxS == null || !(minS >= MIN_INTERVAL_SECONDS && minS <= interval && interval <= maxS)) {
+        throw new Error(`adaptive rate needs min_seconds ≤ every_seconds ≤ max_seconds (min ≥ ${MIN_INTERVAL_SECONDS})`);
+      }
+    }
     const rec = {
       id: `sch-${randomUUID().slice(0, 8)}`,
       target: cmd ? 'command' : 'prompt',
@@ -84,6 +96,12 @@ export class ScheduleStore {
       label: label != null ? String(label).slice(0, 200) : null,
       kind: interval != null ? 'interval' : 'once',
       every_seconds: interval,
+      // M135: effective interval — quiet streaks stretch it toward
+      // max_seconds; a real fire resets to base. null = run at base rate.
+      current_seconds: null,
+      quietStreak: 0,
+      min_seconds: minS,
+      max_seconds: maxS,
       nextRunAt,
       enabled: true,
       createdAt: new Date(this.now()).toISOString(),
@@ -108,8 +126,13 @@ export class ScheduleStore {
     const rec = schedules.find((s) => s.id === id);
     if (!rec) return { ok: false, error: `no schedule '${id}'` };
     rec.enabled = enabled !== false;
-    // re-armed intervals re-anchor from now — stale slots don't storm-fire
-    if (rec.enabled && rec.kind === 'interval') rec.nextRunAt = this.now() + rec.every_seconds * 1000;
+    // re-armed intervals re-anchor from now — stale slots don't storm-fire;
+    // re-enable also drops any accumulated quiet backoff (fresh start)
+    if (rec.enabled && rec.kind === 'interval') {
+      rec.nextRunAt = this.now() + rec.every_seconds * 1000;
+      rec.current_seconds = null;
+      rec.quietStreak = 0;
+    }
     this.#save(schedules);
     return { ok: true, rec };
   }
@@ -128,6 +151,8 @@ export class ScheduleStore {
         return { ok: false, error: `every_seconds must be ≥ ${MIN_INTERVAL_SECONDS}` };
       }
       rec.every_seconds = interval;
+      rec.current_seconds = null; // base change resets adaptation
+      rec.quietStreak = 0;
       rec.kind = 'interval';
       rec.nextRunAt = this.now() + interval * 1000;
     } else if (run_at != null) {
@@ -159,6 +184,10 @@ export class ScheduleStore {
     return this.#advance(id, (rec) => {
       rec.lastFiredAt = new Date(this.now()).toISOString();
       rec.lastJobId = jobId;
+      // M135: a real fire is "world changed" evidence — drop any quiet
+      // backoff so an adaptive entry returns to its base interval.
+      rec.quietStreak = 0;
+      rec.current_seconds = null;
     });
   }
 
@@ -173,6 +202,24 @@ export class ScheduleStore {
     });
   }
 
+  /**
+   * M135 adaptive rate — a quiet tick (fingerprint unchanged) stretches the
+   * effective interval exponentially toward max_seconds; a REAL fire resets
+   * to base. The world slowing down shouldn't keep billing ticks at the
+   * hot-loop rate. Only applies to adaptive entries (min/max configured).
+   */
+  markQuiet(id) {
+    return this.#advance(id, (rec) => {
+      rec.lastQuietAt = new Date(this.now()).toISOString();
+      rec.quietStreak = (rec.quietStreak ?? 0) + 1;
+      if (rec.min_seconds != null && rec.max_seconds != null) {
+        const stretched = Math.round((rec.every_seconds ?? rec.min_seconds) * 2 ** Math.min(rec.quietStreak, 6));
+        rec.current_seconds = Math.max(rec.min_seconds, Math.min(stretched, rec.max_seconds));
+      }
+    });
+  }
+
+
   #advance(id, mutate) {
     const schedules = this.#load();
     const rec = schedules.find((s) => s.id === id);
@@ -181,7 +228,7 @@ export class ScheduleStore {
     if (rec.kind === 'once') {
       rec.enabled = false;
     } else {
-      rec.nextRunAt = this.now() + rec.every_seconds * 1000;
+      rec.nextRunAt = this.now() + (rec.current_seconds ?? rec.every_seconds) * 1000;
     }
     this.#save(schedules);
     return { ok: true };

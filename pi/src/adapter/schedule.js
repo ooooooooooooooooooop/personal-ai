@@ -90,8 +90,11 @@ export function startSchedulerPump({ store, executor, workdir, audit = null, get
         }
         const fp = goal ? fingerprint(goal) : null;
         if (goal && fp === goal.fingerprint && goal.last_tick_at) {
-          store.markFired(s.id, null);
-          audit?.write({ kind: 'GOAL_TICK_UNCHANGED', data: { id: s.id, goal_id: goal.goal_id } });
+          // M135 adaptive rate: quiet tick stretches an adaptive entry's
+          // effective interval toward max_seconds; static entries stay put.
+          if (s.min_seconds != null) store.markQuiet(s.id);
+          else store.markFired(s.id, null);
+          audit?.write({ kind: 'GOAL_TICK_UNCHANGED', data: { id: s.id, goal_id: goal.goal_id, quietStreak: s.quietStreak ?? 0 } });
           continue;
         }
         if (!promptSink) {
@@ -150,6 +153,8 @@ export function scheduleTool(store) {
         prompt: { type: 'string', description: 'prompt text (edit on a prompt-target entry)' },
         run_at: { type: 'string', description: 'ISO timestamp for a one-shot run (create/edit)' },
         every_seconds: { type: 'number', description: 'repeat interval ≥ 60s (create/edit)' },
+        min_seconds: { type: 'number', description: 'adaptive rate floor — quiet ticks stretch the interval from every_seconds toward max_seconds (create, requires max_seconds)' },
+        max_seconds: { type: 'number', description: 'adaptive rate ceiling (create, requires min_seconds)' },
         label: { type: 'string', description: 'optional human label (create/edit)' },
         id: { type: 'string', description: 'schedule id (cancel/pause/resume/edit)' },
       },
@@ -168,6 +173,8 @@ export function scheduleTool(store) {
               run_at: params.run_at,
               every_seconds: params.every_seconds,
               label: params.label,
+              min_seconds: params.min_seconds,
+              max_seconds: params.max_seconds,
             });
             return text(
               `scheduled ${rec.id} (${rec.kind}${rec.every_seconds ? ` ${rec.every_seconds}s` : ''}) — next fire ${new Date(rec.nextRunAt).toISOString()}`,
@@ -178,7 +185,7 @@ export function scheduleTool(store) {
             const rows = store.list();
             if (!rows.length) return text('no schedules');
             return text(rows.map((s) =>
-              `${s.id} ${s.enabled === false ? '[disabled] ' : ''}${s.kind}${s.every_seconds ? ` ${s.every_seconds}s` : ''}${s.target === 'prompt' ? '→goal' : ''} next=${new Date(s.nextRunAt).toISOString()} lastFired=${s.lastFiredAt ?? 'never'}${s.lastJobId ? ` job=${s.lastJobId}` : ''} :: ${s.label ?? s.command ?? s.prompt}`,
+              `${s.id} ${s.enabled === false ? '[disabled] ' : ''}${s.kind}${s.every_seconds ? ` ${s.current_seconds ?? s.every_seconds}s` : ''}${s.min_seconds != null ? `[adapt ${s.min_seconds}–${s.max_seconds}s quiet=${s.quietStreak ?? 0}]` : ''}${s.target === 'prompt' ? '→goal' : ''} next=${new Date(s.nextRunAt).toISOString()} lastFired=${s.lastFiredAt ?? 'never'}${s.lastJobId ? ` job=${s.lastJobId}` : ''} :: ${s.label ?? s.command ?? s.prompt}`,
             ).join('\n'));
           }
           case 'cancel': {

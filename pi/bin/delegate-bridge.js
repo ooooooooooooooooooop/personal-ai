@@ -74,6 +74,12 @@ if (taskDepth != null) childEnv.PAI_SPAWN_DEPTH = String(taskDepth);
 // child to workdir steering files. Profiles can only request this when they
 // come from an operator-private dir or a trusted project.
 if (argv.includes('--steering-off')) childEnv.PAI_STEERING_OFF = '1';
+// M76 per-agent disallowedTools — dedicated flag (PAI_* refused via
+// --env-json, so a profile/env can never inject it sideways): pai-channel
+// children read PAI_TOOLS_DENY into their initial deny surface; foreign
+// harnesses ignore it — the profile doc states that honestly.
+const toolsDeny = flagVal('--tools-deny');
+if (toolsDeny) childEnv.PAI_TOOLS_DENY = String(toolsDeny).slice(0, 2000);
 // Profile env fields (OpenHands profile-scoped secrets analogue): set/deny
 // ride the bridge so the CHILD's env is shaped — the parent process env is
 // untouched. PAI_* keys are refused outright, so profile env can never

@@ -65,7 +65,7 @@ export class JobExecutor {
    *        covers the durable-job surface only — foreground tool calls execute
    *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -75,6 +75,9 @@ export class JobExecutor {
     this.budget = budget;
     this.sandbox = sandbox;
     this.onJobFinished = onJobFinished; // M14: scheduled-job completion delivery
+    // M80 sandbox exclusions — () => string[] of command prefixes that bypass
+    // the AMBIENT sandbox only (an explicit per-job sandbox request stands).
+    this.sandboxExcludes = sandboxExcludes;
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
   }
@@ -153,6 +156,16 @@ export class JobExecutor {
         return { refused: true, reason: `unknown sandbox backend '${kind}' — expected wsl|docker|ssh` };
       }
       sandboxProvider = new SandboxProvider(kind, typeof sandbox === 'object' ? sandbox : {});
+    } else if (sandboxProvider?.kind && sandboxProvider.kind !== 'none' && this.sandboxExcludes) {
+      // M80 command-level exclusion: an operator-listed prefix (e.g. a VCS
+      // binary that needs the real filesystem) runs unsandboxed — audited so
+      // the bypass is visible, and an explicit per-job sandbox still wins.
+      const prefixes = this.sandboxExcludes() ?? [];
+      const head = command.trim().split(/\s+/)[0] ?? '';
+      if (head && prefixes.some((p) => head === p || command.trim().startsWith(`${p} `))) {
+        sandboxProvider = false; // explicit-bypass sentinel — executeAttempt must not fall back to ambient
+        this.audit?.write({ kind: 'SANDBOX_EXCLUDED', data: { command: command.slice(0, 200), parent_run_id: this.runId } });
+      }
     }
     // M13 (Codex/Cline worktree-parallel analogue, opt-in): run the attempt in
     // a detached `git worktree` so parallel mutating jobs can't collide on the
@@ -214,7 +227,7 @@ export class JobExecutor {
     // sandbox provider decides the real spawn shape — 'none' preserves the
     // historical shell:true path; 'wsl' spawns wsl.exe argv-style (no cmd.exe
     // quoting of the user command). Unavailable backend = fail-closed throw.
-    const provider = sandboxProvider ?? this.sandbox;
+    const provider = sandboxProvider === false ? null : (sandboxProvider ?? this.sandbox);
     let spec;
     try {
       spec = (provider ?? { spawnSpec: (c, w) => ({ file: c, args: [], shell: true, cwd: w }) })

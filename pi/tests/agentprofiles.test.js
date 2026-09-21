@@ -76,3 +76,45 @@ test('env-shaping fields (env/model/effort/isolate_steering) load only under tru
   assert.equal(warm.get('pro').model, 'sonnet');
   assert.equal(warm.get('pro').isolateSteering, true);
 });
+
+test('M76/M94: tools_deny + budget_* load under trust, strip without it', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-prof4-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-prof4-inst-'));
+  const rich = '---\nname: gated\ntarget: pi\ntools_deny: bash, deploy\nbudget_tokens: 50000\nbudget_cost: 0.25\n---\nwork\n';
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'agents', 'gated.md'), rich);
+
+  const cold = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: false });
+  assert.equal(cold.get('gated').toolsDeny, undefined);
+  assert.equal(cold.get('gated').budget, undefined);
+
+  const warm = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: true });
+  assert.deepEqual(warm.get('gated').toolsDeny, ['bash', 'deploy']);
+  assert.deepEqual(warm.get('gated').budget, { tokens: 50000, costUsd: 0.25 });
+});
+
+test('M94: profile budget stamps --budget-* flags; unenforceable target refused', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-prof5-'));
+  const spawned = [];
+  const executor = { spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j1', attempt_id: 'a1' }; } };
+  const profiles = new Map([
+    ['bounded', { name: 'bounded', target: 'pai', preamble: '', budget: { tokens: 50000 }, toolsDeny: ['bash'] }],
+    ['free', { name: 'free', target: 'codex', preamble: '', budget: { tokens: 1 } }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: (t) => (t === 'pai' ? 'node pai-channel.js --serve' : 'codex run'),
+    workdir: dir,
+    profiles,
+  });
+  // enforceable target → flags in the spawned command
+  const r = await tool.execute('c1', { profile: 'bounded', task: 'do thing' });
+  assert.ok(!r.isError, JSON.stringify(r));
+  assert.match(spawned[0], /--budget-tokens 50000/);
+  assert.match(spawned[0], /--tools-deny "bash"/);
+  // unenforceable target with a declared budget → refused pre-spawn
+  const r2 = await tool.execute('c2', { profile: 'free', task: 'do thing' });
+  assert.equal(r2.details.refused, true);
+  assert.equal(r2.details.reason, 'unenforceable_profile_budget');
+  assert.equal(spawned.length, 1); // refused before spawn
+});

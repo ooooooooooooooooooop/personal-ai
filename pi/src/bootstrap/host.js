@@ -1,5 +1,5 @@
 import { join, resolve, basename } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, openSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
@@ -128,6 +128,26 @@ const WRITER_LEASE = { scope: 'domain', name: 'canonical-writer' };
 const WRITER_TTL_SECONDS = 8;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** M86 ambient context — cheap per-turn grounding facts. Git probes are
+ *  bounded (1.5s) and fail-soft: a non-repo workdir just reports no git. */
+function ambientInfo(workdir) {
+  const lines = [
+    `date: ${new Date().toISOString().slice(0, 19)} (${Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'local'})`,
+    `cwd: ${workdir}`,
+    `platform: ${process.platform} ${process.arch}`,
+  ];
+  try {
+    const b = spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: workdir, timeout: 1500, encoding: 'utf-8', windowsHide: true });
+    if (b.status === 0) {
+      const branch = b.stdout.trim();
+      const s = spawnSync('git', ['status', '--porcelain'], { cwd: workdir, timeout: 1500, encoding: 'utf-8', windowsHide: true });
+      const dirty = s.status === 0 && s.stdout.trim() ? 'dirty' : 'clean';
+      lines.push(`git: ${branch} (${dirty})`);
+    }
+  } catch { /* no git / timed out — ambient stays partial */ }
+  return lines.join('\n');
+}
 
 /**
  * Claim the canonical-writer lease, waiting out a dead predecessor's TTL.
@@ -377,6 +397,14 @@ export async function startHost({
     classifier: parseShellCommand,
     budget, // child PAI_USAGE bills into the spawning session's scope
     sandbox: SandboxProvider.fromEnv(), // PAI_SANDBOX=none|wsl — durable-job surface only
+    // M80 — <instance>/sandbox-exclude.json {exclude:[prefixes]} bypasses the
+    // ambient sandbox per command; re-read per spawn so edits are live.
+    sandboxExcludes: () => {
+      try {
+        const doc = JSON.parse(readFileSync(join(instanceRoot, 'sandbox-exclude.json'), 'utf-8'));
+        return Array.isArray(doc?.exclude) ? doc.exclude.map(String) : [];
+      } catch { return []; }
+    },
     // M14: scheduled-job completions surface to the UI as an event — a job
     // nobody is watching must still deliver its result somewhere visible.
     onJobFinished: (d) => channelHandle?.channel.emitEvent({ type: 'scheduled_job_done', ...d }),
@@ -522,6 +550,13 @@ export async function startHost({
   const initialDeny = Object.entries(core.policy.toolPolicy)
     .filter(([, rules]) => rules?.action === 'deny')
     .map(([name]) => name);
+  // M76 — a delegate child stamped with PAI_TOOLS_DENY (profile tools_deny,
+  // bridged via the dedicated flag) carries its narrowed surface from turn
+  // zero. Merged into initialDeny → hidden + enforced, session-inherited.
+  for (const t of String(process.env.PAI_TOOLS_DENY ?? '').split(',')) {
+    const n = t.trim();
+    if (/^[a-zA-Z][\w*-]*$/.test(n) && !initialDeny.includes(n)) initialDeny.push(n);
+  }
   const fileOps = new FileOpsGuard(core.paths.root);
   let toolSurface = null; // assigned once the session exists — decide runs later
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
@@ -555,6 +590,10 @@ export async function startHost({
       // context composed at this boundary (host core stays workdir-blind)
       contextEnvelope: (hint) => ({
         ...core.contextProvider(),
+        // M86 ambient context — re-computed per turn: current time, cwd,
+        // platform, git branch/dirty. The model anchors 'now' and 'here'
+        // from fact, not from stale training assumptions.
+        ambient: ambientInfo(workdir),
         // Steering isolation (CC omitClaudeMd analogue): a delegated child
         // spawned with --steering-off carries PAI_STEERING_OFF — workdir
         // steering files (AGENTS.md et al.) never reach its context.

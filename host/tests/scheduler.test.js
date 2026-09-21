@@ -130,3 +130,53 @@ test('markSkipped: overdue entry advances without firing (skipMissedJobs)', () =
   assert.equal(s.due().length, 0, 'no longer due');
   assert.ok(after.nextRunAt > now, 'advanced to the next slot');
 });
+
+test('M135 adaptive rate: quiet ticks stretch interval toward max, real fire resets to base', () => {
+  let now = 1_000_000;
+  const s = new ScheduleStore(rig(), () => now);
+  // base 120s, adaptive bounds 60–960s
+  const rec = s.add({ prompt: 'tick', goal_id: 'g1', every_seconds: 120, min_seconds: 60, max_seconds: 960 });
+  assert.equal(rec.current_seconds, null);
+  assert.equal(rec.quietStreak, 0);
+  const get = () => s.list().find((x) => x.id === rec.id);
+  // quiet tick 1: effective = min(120*2, 960) = 240
+  s.markQuiet(rec.id);
+  assert.equal(get().quietStreak, 1);
+  assert.equal(get().current_seconds, 240);
+  assert.equal(get().nextRunAt, now + 240_000);
+  // quiet ticks 2-3: 480 then 960 (capped at max)
+  now += 240_000; s.markQuiet(rec.id);
+  assert.equal(get().current_seconds, 480);
+  now += 480_000; s.markQuiet(rec.id);
+  assert.equal(get().current_seconds, 960);
+  // quiet tick 4: stays at the cap, does not blow through
+  now += 960_000; s.markQuiet(rec.id);
+  assert.equal(get().current_seconds, 960);
+  assert.equal(get().quietStreak, 4);
+  // real fire (world changed) resets to base rate
+  now += 960_000; s.markFired(rec.id, null);
+  assert.equal(get().current_seconds, null);
+  assert.equal(get().quietStreak, 0);
+  assert.equal(get().nextRunAt, now + 120_000);
+});
+
+test('M135 adaptive validation: partial bounds, non-interval, out-of-range all refused', () => {
+  const s = new ScheduleStore(rig());
+  assert.throws(() => s.add({ command: 'x', every_seconds: 120, min_seconds: 60 }), /min_seconds ≤ every_seconds ≤ max_seconds/);
+  assert.throws(() => s.add({ command: 'x', every_seconds: 120, max_seconds: 600 }), /min_seconds ≤ every_seconds ≤ max_seconds/);
+  assert.throws(() => s.add({ command: 'x', run_at: Date.now() + 5000, min_seconds: 60, max_seconds: 600 }), /requires every_seconds/);
+  assert.throws(() => s.add({ command: 'x', every_seconds: 120, min_seconds: 30, max_seconds: 600 }), /min_seconds ≤ every_seconds ≤ max_seconds/);
+  assert.throws(() => s.add({ command: 'x', every_seconds: 120, min_seconds: 200, max_seconds: 600 }), /min_seconds ≤ every_seconds ≤ max_seconds/);
+  assert.throws(() => s.add({ command: 'x', every_seconds: 120, min_seconds: 60, max_seconds: 90 }), /min_seconds ≤ every_seconds ≤ max_seconds/);
+});
+
+test('M135: static entries ignore markQuiet (no adaptive bounds configured)', () => {
+  let now = 1_000_000;
+  const s = new ScheduleStore(rig(), () => now);
+  const rec = s.add({ command: 'x', every_seconds: 120 });
+  s.markQuiet(rec.id);
+  const stored = s.list().find((x) => x.id === rec.id);
+  assert.equal(stored.quietStreak, 1, 'streak still tracked for audit');
+  assert.equal(stored.current_seconds, null, 'no stretch without min/max');
+  assert.equal(stored.nextRunAt, now + 120_000, 'static rate preserved');
+});

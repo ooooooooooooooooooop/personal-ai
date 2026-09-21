@@ -74,11 +74,13 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       let target = params.target;
       let task = String(params.task ?? '');
       let profileEnv = null; // {set, deny} → --env-json on the bridge
+      let profileBudget = null; // M94 {tokens,calls,costUsd} → --budget-* flags
       let maxMin = null;
       // CC subagent knobs analogue: profile-declared model/effort fill the
       // operator template's {model}/{effort} slots; isolate_steering blinds
       // the child to workdir steering files via a dedicated bridge flag.
       let profileModel = null; let profileEffort = null; let steeringOff = false;
+      let toolsDeny = null; // M76 — dedicated bridge flag, never --env-json
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -97,6 +99,8 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (p.model) profileModel = p.model;
         if (p.effort) profileEffort = p.effort;
         if (p.isolateSteering) steeringOff = true;
+        if (p.toolsDeny?.length) toolsDeny = p.toolsDeny.join(',');
+        if (p.budget) profileBudget = p.budget;
       }
       if (!target) {
         return {
@@ -105,6 +109,19 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         };
       }
       const inner = commandFor(target, task, { model: profileModel, effort: profileEffort });
+      // M94: a profile-declared budget is only meaningful when the child can
+      // actually enforce it — pai-channel bodies gate provider requests on
+      // PAI_BUDGET_MAX_*; any other target makes the declared cap a lie.
+      if (profileBudget && !/pai-channel\.js/.test(inner)) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: profile '${params.profile}' declares a budget, but target '${target}' cannot enforce ` +
+              'request-level caps — remove the budget fields or point the profile at a pai-channel body',
+          }],
+          details: { refused: true, reason: 'unenforceable_profile_budget', rule: 'budget' },
+        };
+      }
       const scope = getScope?.() ?? null;
       // Codex thread-tree depth cap: PAI_SPAWN_DEPTH counts how many nested
       // delegations produced this process (0 = operator's session). A child
@@ -121,6 +138,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       }
       let budgetFlags = '';
       let committedSlice = null;
+      let parentRem = null; // pre-commit remaining — captured once, reused for min()
       if (budget?.configured && scope) {
         // 0. parent admission — an already-breached scope may not spawn spend
         const gate = budget.admit(scope);
@@ -150,7 +168,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         //    without this, concurrent delegates and the parent itself could
         //    each spend the same remaining headroom. A cross-process race is
         //    caught by tryCommit's post-append breach check + refund rollback.
-        const rem = budget.remaining(scope);
+        const rem = (parentRem = budget.remaining(scope));
         // any configured dimension already at zero leaves the child no
         // headroom at all — refuse rather than spawn a dead-on-arrival worker
         const configuredDims = [rem.tokens, rem.calls, rem.costUsd].filter((v) => v != null);
@@ -169,10 +187,17 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           };
         }
         committedSlice = slice;
-        if (rem.tokens != null) budgetFlags += ` --budget-tokens ${Math.floor(rem.tokens)}`;
-        if (rem.calls != null) budgetFlags += ` --budget-calls ${Math.floor(rem.calls)}`;
-        if (rem.costUsd != null) budgetFlags += ` --budget-cost ${rem.costUsd}`;
       }
+      // M94: effective child cap = min(parent-remaining slice, profile cap)
+      // per dimension — each flag is emitted ONCE (bridge flagVal reads the
+      // first occurrence), so the strictest value wins by construction.
+      const eff = (parent, prof) => (parent != null && prof != null ? Math.min(parent, prof) : parent ?? prof);
+      const effTokens = eff(parentRem?.tokens ?? null, profileBudget?.tokens ?? null);
+      const effCalls = eff(parentRem?.calls ?? null, profileBudget?.calls ?? null);
+      const effCost = eff(parentRem?.costUsd ?? null, profileBudget?.costUsd ?? null);
+      if (effTokens != null) budgetFlags += ` --budget-tokens ${Math.floor(effTokens)}`;
+      if (effCalls != null) budgetFlags += ` --budget-calls ${Math.floor(effCalls)}`;
+      if (effCost != null) budgetFlags += ` --budget-cost ${effCost}`;
       // F-family: a task record upgrades the delegation to a mailbox-backed
       // AgentTask — the bridge watches inbox→stdin and captures child
       // markers→outbox/events. v1 is strictly parent↔child.
@@ -195,7 +220,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       const envFlag = profileEnv
         ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
         : '';
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,
