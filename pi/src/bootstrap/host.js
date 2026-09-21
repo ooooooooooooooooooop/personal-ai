@@ -880,6 +880,13 @@ export async function startHost({
       const s = await rebuildSession(sessionManagers.create(workdir, sessionDir), 'new');
       return { id: s.sessionId ?? null, file: s.sessionManager?.getSessionFile?.() ?? null };
     },
+    // M71 ephemeral session: same governed body, no file persistence — the
+    // session never lands in sessionDir, so it cannot be resumed, listed,
+    // or leaked into exports. The transcript dies with the process.
+    createEphemeral: async () => {
+      const s = await rebuildSession(sessionManagers.inMemory(workdir), 'ephemeral');
+      return { id: s.sessionId ?? null, file: null, ephemeral: true };
+    },
     open: async (path) => {
       const s = await rebuildSession(sessionManagers.open(path, sessionDir), 'switch');
       return {

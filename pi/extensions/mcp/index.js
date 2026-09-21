@@ -279,6 +279,21 @@ export class McpClient {
     return this.request('tools/call', { name, arguments: args ?? {} }, { signal, timeoutMs });
   }
 
+  async listPrompts() {
+    const out = [];
+    let cursor;
+    do {
+      const res = await this.request('prompts/list', cursor ? { cursor } : {});
+      out.push(...(res?.prompts ?? []));
+      cursor = res?.nextCursor;
+    } while (cursor);
+    return out;
+  }
+
+  getPrompt(name, args = {}, { timeoutMs } = {}) {
+    return this.request('prompts/get', { name, arguments: args }, { timeoutMs });
+  }
+
   close() {
     this.#closed = true;
     try { this.#transport.close(); } catch { /* best effort */ }
@@ -329,8 +344,49 @@ function wrapUntrusted(server, tool, result) {
 
 export default function mcpExtension(pi) {
   const { path: configPath, servers, error: configError } = loadConfig();
-  /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean}>} */
+  /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean, prompts?:object[]}>} */
   const connected = new Map();
+
+  // M82: an MCP prompt is an operator-invoked slash command that expands to
+  // the server-supplied messages as a user turn. The operator asked for it
+  // explicitly (like Claude Code's /mcp__server__prompt), but the transcript
+  // keeps a provenance prefix — server text is still external content.
+  const registerPromptCommand = (serverName, prompt, client) => {
+    const cmdName = `mcp-${serverName}-${prompt.name}`.replace(/[^a-zA-Z0-9_-]/g, '_');
+    pi.registerCommand(cmdName, {
+      description: `[mcp:${serverName}] ${prompt.description ?? prompt.name}`,
+      handler: async (args, ctx) => {
+        const declared = (prompt.arguments ?? []).map((a) => a.name);
+        const values = {};
+        const positional = [];
+        for (const tok of String(args ?? '').split(/\s+/).filter(Boolean)) {
+          const eq = tok.indexOf('=');
+          if (eq > 0) values[tok.slice(0, eq)] = tok.slice(eq + 1);
+          else positional.push(tok);
+        }
+        declared.forEach((n, i) => { if (values[n] == null && positional[i] != null) values[n] = positional[i]; });
+        const missing = (prompt.arguments ?? []).filter((a) => a.required && values[a.name] == null);
+        if (missing.length) {
+          ctx.ui?.notify?.(`mcp prompt '${prompt.name}' missing required args: ${missing.map((a) => a.name).join(', ')}`, 'error');
+          return;
+        }
+        try {
+          const res = await client.getPrompt(prompt.name, values);
+          const text = (res?.messages ?? []).map((m) => {
+            const c = m?.content;
+            return typeof c === 'string' ? c : (c?.type === 'text' ? c.text : '');
+          }).filter(Boolean).join('\n');
+          if (!text.trim()) {
+            ctx.ui?.notify?.(`mcp prompt '${prompt.name}' returned no text`, 'warning');
+            return;
+          }
+          ctx.sendUserMessage(`[mcp prompt ${serverName}/${prompt.name}]\n${text}`);
+        } catch (err) {
+          ctx.ui?.notify?.(`mcp prompt failed (${serverName}/${prompt.name}): ${err?.message ?? err}`, 'error');
+        }
+      },
+    });
+  };
 
   const boot = (async () => {
     for (const [name, spec] of Object.entries(servers)) {
@@ -364,7 +420,18 @@ export default function mcpExtension(pi) {
           });
           names.push(toolName);
         }
-        connected.set(name, { client, tools: names, spec });
+        const entry = { client, tools: names, spec, prompts: [] };
+        // M82: prompts/list — a server that only exposes prompts still shows
+        // up on /mcp. A server advertising no prompts capability errors here;
+        // that is not a connection failure.
+        try {
+          const prompts = await client.listPrompts();
+          for (const p of prompts) {
+            entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
+            registerPromptCommand(name, p, client);
+          }
+        } catch { /* no prompts capability */ }
+        connected.set(name, entry);
       } catch {
         // connect/handshake failure → this server contributes no tools;
         // /mcp reports it as failed so the operator can see why
@@ -391,8 +458,12 @@ export default function mcpExtension(pi) {
       for (const [name, entry] of connected) {
         lines.push(entry.failed
           ? `  ${name}: FAILED to connect/list — no tools exposed`
-          : `  ${name}: connected — ${entry.tools.length} tools`);
+          : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
         for (const t of entry.tools) lines.push(`    ${t}`);
+        for (const p of entry.prompts ?? []) {
+          const req = (p.args ?? []).filter((a) => a.required).map((a) => a.name);
+          lines.push(`    /mcp-${name}-${p.name}`.replace(/[^a-zA-Z0-9_\-/]/g, '_') + (req.length ? ` (args: ${req.join(' ')})` : ''));
+        }
       }
       if (Object.keys(servers).length === 0 && configPath) lines.push('  (config has no servers)');
       ctx.ui?.notify?.(lines.join('\n'), 'info');

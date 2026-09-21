@@ -272,6 +272,26 @@ export class JobStore {
     });
   }
 
+  /**
+   * Hard-delete a job record and all of its rows (attempts/events/validations/
+   * lease). Terminal states only — a live job's worker would orphan, so the
+   * caller must cancel first. Returns false for non-terminal jobs.
+   */
+  deleteJob(jobId) {
+    const job = this.getJob(jobId);
+    if (!job) return { ok: false, error: `job '${jobId}' not found` };
+    if (![JobState.COMPLETED, JobState.FAILED, JobState.CANCELLED].includes(job.job_state)) {
+      return { ok: false, error: `job '${jobId}' is ${job.job_state} — cancel it first` };
+    }
+    return this.#tx(() => {
+      for (const t of ['attempts', 'events', 'validations', 'leases']) {
+        this.db.prepare(`DELETE FROM ${t} WHERE job_id = ?`).run(jobId);
+      }
+      this.db.prepare('DELETE FROM jobs WHERE job_id = ?').run(jobId);
+      return { ok: true, job_id: jobId };
+    });
+  }
+
   getEvents(jobId) {
     return this.db.prepare('SELECT * FROM events WHERE job_id = ? ORDER BY event_id').all(jobId);
   }

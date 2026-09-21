@@ -11,7 +11,7 @@
  * and the job continues across process restarts via recoveryTick.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 import { SandboxProvider, SandboxUnavailableError } from '../../../host/src/core/sandbox.js';
@@ -135,6 +135,50 @@ export class JobExecutor {
     this.store.cancelJob(jobId, reason);
     this.audit?.write({ kind: 'JOB_CANCEL_REQUESTED', data: { job_id: jobId, reason, killed: killable, parent_run_id: this.runId } });
     return { cancelled: true, killed: killable };
+  }
+
+  /**
+   * M90/M92 restart: re-spawn a TERMINAL job's command as a fresh job. The
+   * new attempt is a new job_id (lineage is in audit, not state reuse) —
+   * resurrecting a terminal row would falsify its history.
+   */
+  async restart(jobId) {
+    const detail = this.describe(jobId);
+    if (!detail) return { refused: true, reason: `job '${jobId}' not found` };
+    const state = detail.job.job_state;
+    if (!['COMPLETED', 'FAILED', 'CANCELLED'].includes(state)) {
+      return { refused: true, reason: `job '${jobId}' is ${state} — only terminal jobs restart` };
+    }
+    if (!detail.command) {
+      return { refused: true, reason: `job '${jobId}' has no recoverable command (missing checkpoint)` };
+    }
+    const workdir = detail.job.authorized_root;
+    if (!workdir) return { refused: true, reason: `job '${jobId}' has no recorded workdir` };
+    const r = await this.spawnCommandJob({ command: detail.command, workdir, jobType: detail.job.job_type });
+    if (!r.refused) {
+      this.audit?.write({ kind: 'JOB_RESTARTED', data: { from_job: jobId, to_job: r.job_id, command: detail.command.slice(0, 200), parent_run_id: this.runId } });
+    }
+    return r;
+  }
+
+  /** M90/M92 delete: terminal jobs only; removes the DB rows + artifacts. */
+  remove(jobId) {
+    const detail = this.describe(jobId);
+    if (!detail) return { ok: false, error: `job '${jobId}' not found` };
+    const r = this.store.deleteJob(jobId);
+    if (!r.ok) return r;
+    // artifacts (checkpoint/result envelopes) live in jobsDir under the
+    // attempt prefix — sweep them so delete is real, not a dangling file set
+    const removedFiles = [];
+    try {
+      for (const f of readdirSync(this.jobsDir)) {
+        if (f.startsWith(`${jobId}_att_`) || f.startsWith(`${jobId}.`)) {
+          try { rmSync(join(this.jobsDir, f), { force: true }); removedFiles.push(f); } catch { /* locked — record anyway */ }
+        }
+      }
+    } catch { /* jobsDir unreadable */ }
+    this.audit?.write({ kind: 'JOB_DELETED', data: { job_id: jobId, artifacts: removedFiles.length, parent_run_id: this.runId } });
+    return { ok: true, job_id: jobId, artifacts_removed: removedFiles.length };
   }
 
   /**

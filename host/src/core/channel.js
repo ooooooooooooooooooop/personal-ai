@@ -187,6 +187,21 @@ export class HostChannel {
           }
           return reply(false, undefined, 'job cancel unavailable');
         }
+        // M90/M92 workflow lifecycle: restart re-spawns a terminal job's
+        // command as a NEW job (lineage in audit); delete removes a terminal
+        // job's rows + artifacts. Live jobs refuse both.
+        case 'job_restart': {
+          if (!cmd.job_id) return reply(false, undefined, 'job_restart requires {job_id}');
+          if (!this.jobDetail?.restart) return reply(false, undefined, 'job restart unavailable');
+          const r = await this.jobDetail.restart(cmd.job_id);
+          return r?.refused ? reply(false, r, r.reason) : reply(true, r);
+        }
+        case 'job_delete': {
+          if (!cmd.job_id) return reply(false, undefined, 'job_delete requires {job_id}');
+          if (!this.jobDetail?.remove) return reply(false, undefined, 'job delete unavailable');
+          const r = this.jobDetail.remove(cmd.job_id);
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
+        }
         case 'audit_tail': {
           if (!this.audit) return reply(false, undefined, 'audit facade unavailable');
           return reply(true, this.audit.tail(cmd.n ?? 20));
@@ -302,6 +317,11 @@ export class HostChannel {
           return reply(true, await this.sessions.list());
         }
         case 'session_new': {
+          // M71: ephemeral:true → in-memory session (no file, not listed)
+          if (cmd.ephemeral === true) {
+            if (!this.sessions?.createEphemeral) return reply(false, undefined, 'ephemeral sessions unavailable');
+            return reply(true, await this.sessions.createEphemeral());
+          }
           if (!this.sessions?.create) return reply(false, undefined, 'sessions facade unavailable');
           return reply(true, await this.sessions.create());
         }
@@ -334,6 +354,13 @@ export class HostChannel {
         case 'instance_inventory': {
           if (!this.instance?.inventory) return reply(false, undefined, 'inventory unavailable');
           return reply(true, this.instance.inventory());
+        }
+        // M64 actual purge: dry_run is the default; deletion requires an
+        // explicit dry_run:false and is restricted to non-evidence classes.
+        case 'instance_purge': {
+          if (!this.instance?.purge) return reply(false, undefined, 'purge unavailable');
+          const r = this.instance.purge({ category: cmd.category, dry_run: cmd.dry_run });
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
         }
         case 'session_import': {
           if (!this.sessions?.importSession) return reply(false, undefined, 'session import unavailable');

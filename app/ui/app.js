@@ -2236,7 +2236,7 @@ async function openJobDetail(jobId) {
   const { job, attempts, lease, detail } = r.data ?? {};
   panel.classList.remove('hidden');
   panel.innerHTML = `
-    <div class="jd-head"><span class="jd-title"></span><button class="ghost-btn jd-cancel hidden">停止任务</button><button class="icon-btn jd-close" title="关闭">✕</button></div>
+    <div class="jd-head"><span class="jd-title"></span><button class="ghost-btn jd-restart hidden">重启</button><button class="ghost-btn warn jd-delete hidden">删除</button><button class="ghost-btn jd-cancel hidden">停止任务</button><button class="icon-btn jd-close" title="关闭">✕</button></div>
     <div class="jd-grid">
       <div><span class="jd-k">状态</span><span class="jd-v"></span></div>
       <div><span class="jd-k">编排</span><span class="jd-v"></span></div>
@@ -2261,7 +2261,29 @@ async function openJobDetail(jobId) {
   const evLines = (detail?.events ?? []).map((e) => `${(e.timestamp ?? '').slice(11, 19)}  ${e.event_type}`).join('\n');
   panel.querySelector('.jd-events').textContent = evLines || '（无事件）';
   const cancelBtn = panel.querySelector('.jd-cancel');
-  const cancellable = detail?.running || (job?.job_state && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.job_state));
+  const terminal = job?.job_state && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.job_state);
+  const cancellable = detail?.running || (job?.job_state && !terminal);
+  // M90/M92: terminal jobs expose restart (new job, same command) + delete
+  const restartBtn = panel.querySelector('.jd-restart');
+  const deleteBtn = panel.querySelector('.jd-delete');
+  if (terminal) {
+    restartBtn.classList.remove('hidden');
+    deleteBtn.classList.remove('hidden');
+    restartBtn.disabled = !detail?.command;
+    restartBtn.title = detail?.command ? '以同一命令重跑为新任务' : '无命令记录，无法重启';
+    restartBtn.onclick = async () => {
+      if (!confirm(`以同一命令重启新任务？（原任务 ${jobId} 保持不变）`)) return;
+      const rr = await cmd('job_restart', { job_id: jobId });
+      if (rr.success) { toast(`已重启为 ${rr.data?.job_id ?? '新任务'}`, 'ok'); renderJobs(); }
+      else toast(`重启被拒：${rr.error ?? '未知'}`, 'err');
+    };
+    deleteBtn.onclick = async () => {
+      if (!confirm(`确定删除任务 ${jobId} 的记录与产物？此操作不可恢复`)) return;
+      const dr = await cmd('job_delete', { job_id: jobId });
+      if (dr.success) { toast('任务已删除', 'ok'); panel.classList.add('hidden'); renderJobs(); }
+      else toast(`删除被拒：${dr.error ?? '未知'}`, 'err');
+    };
+  }
   if (cancellable) {
     cancelBtn.classList.remove('hidden');
     cancelBtn.onclick = async () => {
@@ -2864,6 +2886,19 @@ const SLASH = [
   { cmd: '/settings', label: '设置', hint: '模型与工作目录', run: () => switchView('settings') },
   {
     cmd: '/clear', label: '清空开始', hint: '新会话（同 /new）', run: () => $('new-task').click(),
+  },
+  {
+    // M71: ephemeral session — in-memory only; nothing lands in the session
+    // store, so it cannot be resumed, listed, or exported.
+    cmd: '/eph', label: '临时会话', hint: '免持久化：不写盘、不可恢复', run: async () => {
+      const r = await cmd('session_new', { ephemeral: true });
+      if (r.success) {
+        currentSessionFile = null;
+        addSys('临时会话——本会话不落盘，关闭即消失', false);
+        switchView('chat');
+        $('input').focus();
+      } else addSys(`临时会话失败：${r.error ?? '未知'}`, true);
+    },
   },
   {
     cmd: '/resume', label: '继续会话', hint: '弹出会话选择器',

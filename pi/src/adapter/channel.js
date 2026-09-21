@@ -5,7 +5,7 @@
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname } from 'node:path';
 
@@ -703,18 +703,20 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     repoMap,
     // M64 instance inventory — a cross-category purge PREVIEW surface: every
     // persisted artifact class under the instance root with file/byte counts.
-    // Read-only by design; deletion paths are separate governed operations.
-    instance: {
-      inventory: () => {
+    // Deletion goes through instance.purge: an explicit per-category action
+    // that defaults to dry-run, refuses enforcement-evidence classes, and
+    // never touches the live session file.
+    instance: (() => {
+      const cats = {
+        sessions: /sessions[\\/]/, jobs: /jobs[\\/]/, audit: /audit[\\/]/,
+        memory: /memory\.db$/, checkpoints: /checkpoints[\\/]/,
+        exports: /exports[\\/]/, spool: /spool[\\/]/, schedules: /schedules?\.json$/,
+        allowlists: /(command-allow|always-allow|egress-allow|feature-models)\.json$/,
+        tasks: /tasks[\\/]/, macros: /macros\.json$/, receipts: /receipts[\\/]|fileops[\\/]/,
+      };
+      const catFiles = (category) => {
         const root = core.paths.root;
-        const cats = {
-          sessions: /sessions[\\/]/, jobs: /jobs[\\/]/, audit: /audit[\\/]/,
-          memory: /memory\.db$/, checkpoints: /checkpoints[\\/]/,
-          exports: /exports[\\/]/, schedules: /schedules?\.json$/,
-          allowlists: /(command-allow|always-allow|egress-allow|feature-models)\.json$/,
-          tasks: /tasks[\\/]/, macros: /macros\.json$/, receipts: /receipts[\\/]|fileops[\\/]/,
-        };
-        const out = {};
+        const out = [];
         const walk = (dir, depth) => {
           if (depth > 5) return;
           let ents;
@@ -722,18 +724,54 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           for (const e of ents) {
             const p = join(dir, e.name);
             if (e.isDirectory()) { walk(p, depth + 1); continue; }
-            let bytes = 0;
-            try { bytes = statSync(p).size; } catch { continue; }
             const rel = p.slice(root.length);
             const cat = Object.keys(cats).find((k) => cats[k].test(rel)) ?? 'other';
-            out[cat] ??= { files: 0, bytes: 0 };
-            out[cat].files += 1; out[cat].bytes += bytes;
+            if (category == null || cat === category) {
+              let bytes = 0;
+              try { bytes = statSync(p).size; } catch { continue; }
+              out.push({ path: p, rel, cat, bytes });
+            }
           }
         };
         walk(root, 0);
-        return { root, categories: out };
-      },
-    },
+        return out;
+      };
+      return {
+        inventory: () => {
+          const out = {};
+          for (const f of catFiles(null)) {
+            out[f.cat] ??= { files: 0, bytes: 0 };
+            out[f.cat].files += 1; out[f.cat].bytes += f.bytes;
+          }
+          return { root: core.paths.root, categories: out };
+        },
+        purge: ({ category, dry_run = true } = {}) => {
+          const PURGEABLE = new Set(['exports', 'spool', 'sessions']);
+          if (!PURGEABLE.has(String(category))) {
+            return {
+              ok: false,
+              error: `category '${category}' is not purgeable — exports/spool/sessions only; ` +
+                'audit/jobs/memory/receipts/schedules/allowlists are enforcement evidence',
+            };
+          }
+          const live = box.s.sessionFile ? String(box.s.sessionFile) : null;
+          const files = catFiles(category).filter((f) => f.path !== live);
+          const bytes = files.reduce((a, f) => a + f.bytes, 0);
+          if (dry_run !== false) {
+            return { ok: true, dry_run: true, category, files: files.length, bytes, paths: files.map((f) => f.rel) };
+          }
+          const removed = [];
+          for (const f of files) {
+            try { unlinkSync(f.path); removed.push(f.rel); } catch { /* locked/gone — skip, keep counting */ }
+          }
+          core.audit?.write({
+            kind: 'INSTANCE_PURGE',
+            data: { category, requested: files.length, removed: removed.length, bytes },
+          });
+          return { ok: true, dry_run: false, category, removed: removed.length, bytes, skipped: files.length - removed.length };
+        },
+      };
+    })(),
     skills: knowledge, // skill-doctor stats + allow-list ride the knowledge facade
   });
   const dispose = () => { pump?.(); uiListeners.clear(); channel.dispose(); };

@@ -103,3 +103,21 @@ test('recoveryTick: dead worker + invalid checkpoint → WAITING_EVENT + REVIEW_
   assert.equal(j.validation_state, 'REVIEW_REQUIRED');
   assert.equal(s.getAttempts(job.job_id).length, 1); // never blindly restarted
 });
+
+test('deleteJob: terminal-only hard delete removes all rows; live jobs refuse', () => {
+  const s = store();
+  const job = s.createJob({ jobType: 't' });
+  s.startAttempt({ jobId: job.job_id, writerId: 'w', workerType: 'p', workerIdentity: { pid: 1 } });
+  // live job refuses
+  const live = s.deleteJob(job.job_id);
+  assert.equal(live.ok, false);
+  assert.match(live.error, /RUNNING|cancel/i);
+  s.completeJob(job.job_id);
+  const r = s.deleteJob(job.job_id);
+  assert.equal(r.ok, true);
+  assert.equal(s.getJob(job.job_id), null);
+  assert.equal(s.getAttempts(job.job_id).length, 0);
+  assert.equal(s.getEvents(job.job_id).length, 0);
+  assert.equal(s.getLease(job.job_id), null);
+  assert.equal(s.deleteJob('job-nope').ok, false);
+});

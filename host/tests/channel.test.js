@@ -365,3 +365,72 @@ test('auth_set_key strips invisible characters; never echoes key material', asyn
   // response surface must not contain the key
   assert.ok(!JSON.stringify(r).includes('sk-abc123'));
 });
+
+test('M64: instance_purge defaults to dry-run; explicit dry_run:false deletes; evidence classes refused', async () => {
+  const calls = [];
+  const instance = {
+    inventory: () => ({ root: '/r', categories: { exports: { files: 2, bytes: 10 } } }),
+    purge: (opts) => {
+      calls.push(opts);
+      if (opts.category === 'audit') return { ok: false, error: 'not purgeable' };
+      return { ok: true, dry_run: opts.dry_run !== false, category: opts.category, files: 2, bytes: 10 };
+    },
+  };
+  const ch = new HostChannel({ session: fakeSession(), instance });
+  // default → preview only
+  const pre = await ch.handle({ type: 'instance_purge', category: 'exports' });
+  assert.equal(pre.success, true);
+  assert.equal(pre.data.dry_run, true);
+  assert.equal(calls[0].dry_run, undefined, 'absent dry_run forwarded as absent — the facade defaults to preview');
+  // explicit false → real delete
+  const real = await ch.handle({ type: 'instance_purge', category: 'exports', dry_run: false });
+  assert.equal(real.data.dry_run, false);
+  // enforcement evidence refused at the facade
+  const bad = await ch.handle({ type: 'instance_purge', category: 'audit', dry_run: false });
+  assert.equal(bad.success, false);
+  assert.match(bad.error, /not purgeable/);
+  // absent facade fails closed
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'instance_purge', category: 'exports' })).success, false);
+});
+
+test('M71: session_new ephemeral routes to createEphemeral; absent fails closed', async () => {
+  const calls = [];
+  const sessions = {
+    create: async () => { calls.push('persisted'); return { id: 's1', file: '/s/1.jsonl' }; },
+    createEphemeral: async () => { calls.push('ephemeral'); return { id: 's2', file: null, ephemeral: true }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), sessions });
+  const eph = await ch.handle({ type: 'session_new', ephemeral: true });
+  assert.equal(eph.success, true);
+  assert.equal(eph.data.ephemeral, true);
+  assert.equal(eph.data.file, null);
+  const normal = await ch.handle({ type: 'session_new' });
+  assert.equal(normal.data.file, '/s/1.jsonl');
+  assert.deepEqual(calls, ['ephemeral', 'persisted']);
+  const bare = new HostChannel({ session: fakeSession(), sessions: { create: sessions.create } });
+  assert.equal((await bare.handle({ type: 'session_new', ephemeral: true })).success, false);
+});
+
+test('M90/M92: job_restart re-spawns terminal command; job_delete removes terminal only', async () => {
+  const calls = [];
+  const jobDetail = {
+    restart: async (id) => { calls.push(['restart', id]); return { job_id: 'job-new', attempt_id: 'a1' }; },
+    remove: (id) => { calls.push(['remove', id]); return { ok: true, job_id: id }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), jobDetail });
+  const rr = await ch.handle({ type: 'job_restart', job_id: 'job-1' });
+  assert.equal(rr.success, true);
+  assert.equal(rr.data.job_id, 'job-new');
+  const dr = await ch.handle({ type: 'job_delete', job_id: 'job-1' });
+  assert.equal(dr.success, true);
+  // refusal surfaces honestly
+  const refusing = { restart: async () => ({ refused: true, reason: 'job is RUNNING' }), remove: () => ({ ok: false, error: 'job is RUNNING — cancel first' }) };
+  const ch2 = new HostChannel({ session: fakeSession(), jobDetail: refusing });
+  assert.equal((await ch2.handle({ type: 'job_restart', job_id: 'j' })).success, false);
+  assert.equal((await ch2.handle({ type: 'job_delete', job_id: 'j' })).success, false);
+  // absent facade fails closed
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'job_restart', job_id: 'j' })).success, false);
+  assert.equal((await bare.handle({ type: 'job_delete', job_id: 'j' })).success, false);
+});

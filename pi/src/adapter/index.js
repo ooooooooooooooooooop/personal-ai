@@ -106,6 +106,8 @@ export function contextEnvelopeExtension(contextEnvelope) {
 /** Persisted-session lifecycle — the only @earendil-works seam bootstrap needs. */
 export const sessionManagers = {
   create: (cwd, sessionDir) => SessionManager.create(cwd, sessionDir),
+  // M71: in-memory session — never touches sessionDir; nothing to purge
+  inMemory: (cwd) => SessionManager.inMemory(cwd),
   open: (path, sessionDir) => SessionManager.open(path, sessionDir),
   list: (cwd, sessionDir) => SessionManager.list(cwd, sessionDir),
   forkFrom: (sourcePath, cwd, sessionDir) => SessionManager.forkFrom(sourcePath, cwd, sessionDir),
