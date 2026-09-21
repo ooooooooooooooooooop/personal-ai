@@ -1382,3 +1382,21 @@
 | CodeBuddy 批准弹窗 Enter 键串台误批准 | 待核（PAI 批准卡键处理） |
 
 **子 agent 域核查**：abort 不级联 delegate job 是 durable 设计（stop_all 已补全局急停）→ 变体；同 step 多 delegate_task 天然并行（独立 job）→ 同构；sub-agent output 反注入扫描 → PAI 未做，入 M 系核查项。
+
+### 28.9 网页评审裁决批次终表（2026-09-21）
+
+外部评审（chatgpt-web「审计方向顺序建议」会话）对剩余决策项的裁定 + 落地状态：
+
+| 优先级 | 项 | 裁定 | 落地 |
+|---|---|---|---|
+| P1 | **远程执行**（WSL→Docker→SSH 风险梯度） | GO | **✅ `432566f`**：`job_spawn` 模型工具（command+timeout+sandbox 参数，走 bash 同款治理/allowlist，fg-lease 豁免防自锁）+ SandboxProvider docker（命名容器可强杀）/ssh（b64 传输，BatchMode）/wsl 后端；未知 kind 在 job 记录创建前拒绝；超时杀容器、ssh 孤儿审计 JOB_REMOTE_ORPHAN |
+| P2 | **docx/pdf 真解析** | GO（依赖仅进 pi） | **✅ `e0cd7d9`（零依赖版）**：手写最小 zip 阅读器取 word/document.xml + PDF FlateDecode 流文本算子提取；zip 炸弹/流膨胀设帽；加密/图像型/坏文件 yield null → 保持诚实描述符，不冒充理解 |
+| P3 | **LLM 判官** | **仅 Shadow/Secondary** | **✅ `74c66b5`**：JudgeAdvisor（注入式 call 缝，host 零依赖）+ PAI_JUDGE=1 显式 opt-in + 审批卡「顾问参考」块 + JUDGE_OPINION 全量审计（意见-人类决定相关数据集）；**永不进授权链**——意见不能翻任何判决，judge 错误→人类照常决定 |
+| P4 | 会话分组视图 | GO 低优先 | **核查=已有**：今天/昨天/近7天/更早分组头已渲染（renderSessions+sessionGroup） |
+| — | 草稿任务 | **HOLD** | 无真实阻塞证据，不建新 lifecycle |
+
+**评审附带论证已固化**：①LLM judge 不照竞品抄（OpenHands/Cline 的模型自评风险已被公开 issue 证明可绕人工批准）②远程先于判官——远程执行会真实产生值得 judge 研究的问题（同一命令本地 vs 一次性容器 vs SSH 生产机风险是否相同）③FEATURE_AUDIT 此后降级为"外部雷达"，新增能力须回答"解决哪个真实工作阻断"。
+
+**SSH v1 诚实边界**（已写进提交）：无 workspace 同步（远端目录需自含所需）、仅 BatchMode 认证、远程孤儿只能审计不能强杀。
+
+**测试基线**：host 220 / pi 171+1skip / app 18+1skip 全绿。
