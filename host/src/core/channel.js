@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null, profiles = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null, profiles = null, leases = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -96,6 +96,7 @@ export class HostChannel {
     this.goalStore = goalStore;
     this.monitors = monitors;
     this.profiles = profiles;
+    this.leases = leases;
     this.instance = instance;
     this.repoMap = repoMap;
     this.skills = skills;
@@ -368,6 +369,12 @@ export class HostChannel {
         case 'profile_delete': {
           if (!this.profiles?.remove) return reply(false, undefined, 'profiles unavailable');
           return reply(true, this.profiles.remove({ name: cmd.name }));
+        }
+        // D7 lease badge substrate — who currently holds canonical-writer and
+        // the workspace write mutex. Read-only; never mutates lease state.
+        case 'lease_status': {
+          if (!this.leases?.status) return reply(false, undefined, 'leases facade unavailable');
+          return reply(true, this.leases.status());
         }
         case 'profile_export': {
           if (!this.profiles?.export) return reply(false, undefined, 'profiles unavailable');

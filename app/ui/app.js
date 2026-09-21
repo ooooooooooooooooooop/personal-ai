@@ -1931,6 +1931,7 @@ async function refreshJobs() {
   refreshSchedules();
   refreshGoals();
   refreshTasks();
+  paintStatusline(); // workspace-write lease rides job lifecycle
 }
 
 /* ---------- coordinator goals (operator mirror of goal_coordinator) ---------- */
@@ -2397,6 +2398,16 @@ async function paintStatusline() {
   }
   const wd = state?.workdir;
   if (wd) parts.push(wd.split(/[\\/]/).pop() ?? wd);
+  // D7 lease badge: canonical writer owner + workspace-write mutex holder.
+  // The writer lease is held by the live body for the session's lifetime —
+  // surfacing it makes "who can write canonical state" visible, not implicit.
+  const leases = await cmd('lease_status');
+  if (leases.success && leases.data) {
+    const w = leases.data.writer?.owner;
+    const ws = leases.data.workspaceWrite?.holder;
+    if (w) parts.push(`✍ ${String(w).slice(0, 12)}`);
+    if (ws) parts.push(`🔒${String(ws).slice(0, 14)}`);
+  }
   el.textContent = parts.join('  ·  ');
 }
 function refreshAll() { refreshBodies(); refreshJobs(); refreshAudit(); refreshSessions(); refreshSettings(); refreshMode(); refreshMacros(); refreshTodos(); refreshState().then(checkProjectTrust); }

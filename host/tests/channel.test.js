@@ -475,3 +475,14 @@ test('M81: profile_export/import route with path confinement enforced in facade'
   assert.equal((await bare.handle({ type: 'profile_export' })).success, false);
   assert.equal((await bare.handle({ type: 'profile_import', path: 'x.json' })).success, false);
 });
+
+test('D7: lease_status reports writer + workspace-write holders; absent fails closed', async () => {
+  const leases = { status: () => ({ writer: { owner: 'pi:r1', generation: 3 }, workspaceWrite: { holder: 'job:j9' } }) };
+  const ch = new HostChannel({ session: fakeSession(), leases });
+  const r = await ch.handle({ type: 'lease_status' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.writer.owner, 'pi:r1');
+  assert.equal(r.data.workspaceWrite.holder, 'job:j9');
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'lease_status' })).success, false);
+});

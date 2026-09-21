@@ -1102,6 +1102,14 @@ export async function startHost({
     },
     handoff: handoffFacade,
     sessions: sessionsFacade,
+    // D7 lease badge substrate: who holds canonical-writer and the workspace
+    // write mutex right now — read-only truth for the statusline.
+    leases: {
+      status: () => ({
+        writer: core.leases.heldBy({ scope: 'domain', name: 'canonical-writer' }) ?? null,
+        workspaceWrite: writeLease.held() ?? null,
+      }),
+    },
     // task facade — channel-facing mirror of the model's task_* tools
     tasks: {
       list: () => taskStore.list(),
