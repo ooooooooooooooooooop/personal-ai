@@ -67,7 +67,7 @@ export class GovernanceKernel {
    * @param {string[]} [deps.mutatingTools]  tool names that mutate without a
    *        shell command (write/edit/delete) — plan mode asks these too.
    */
-  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [], modeOverlay = null, commandAllowlist = null }) {
+  constructor({ audit, policy, predictions = null, commandClassifier = null, protectedRoots = [], commandArgs = {}, ask = null, modeProvider = null, mutatingTools = [], modeOverlay = null, commandAllowlist = null, judge = null }) {
     if (!audit) throw new Error('GovernanceKernel requires an AuditWriter');
     if (!policy) throw new Error('GovernanceKernel requires an AttestedPolicy');
     this.audit = audit;
@@ -81,6 +81,9 @@ export class GovernanceKernel {
     this.modeOverlay = modeOverlay;
     this.mutatingTools = new Set(mutatingTools);
     this.commandAllowlist = commandAllowlist;
+    // P3 shadow judge: advisory second opinion on ASK cards only. It can
+    // never change a verdict — it rides the pending payload to the human.
+    this.judge = judge;
   }
 
   #deny(ctx, rule, detail) {
@@ -161,8 +164,20 @@ export class GovernanceKernel {
     const argState = { truncated: false };
     const askArgs = sanitizeAskArgs(ctx.args, 0, argState);
     const argsTotalChars = (() => { try { return JSON.stringify(ctx.args ?? {}).length; } catch { return null; } })();
+    // Shadow judge: bounded second opinion rides the card to the operator.
+    // Judge errors/unavailability degrade to no advice — the human still
+    // decides; an opinion never flips a verdict on its own.
+    let advisory = null;
+    if (this.judge?.enabled) {
+      try {
+        advisory = await this.judge.assess({
+          toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary,
+          detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs,
+        });
+      } catch { advisory = null; }
+    }
     const answer = await this.ask(
-      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars },
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars, advisory },
       ctx.signal,
     );
     this.audit.write({

@@ -13,6 +13,7 @@ import { MemoryStore, memoryDbPath } from '../../../host/src/core/memory.js';
 import { PendingAsks } from '../../../host/src/core/asks.js';
 import { JobExecutor } from '../adapter/jobs.js';
 import { SandboxProvider } from '../../../host/src/core/sandbox.js';
+import { JudgeAdvisor } from '../../../host/src/core/judge.js';
 import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
@@ -201,6 +202,38 @@ export async function startHost({
     core.audit.write({ kind: 'MODE_SET', data: { mode: name, overlay: true, policy_hash: overlay.hash } });
     return { mode: name, overlay: { hideTools: overlay.hideTools, defaultAction: overlay.defaultAction } };
   };
+  // P3 judge call seam: POST {baseUrl}/chat/completions with the resolved
+  // credential of the session's default provider. Runs through the gated
+  // fetch → it IS billed as a provider call. Returns null when the session
+  // or provider auth isn't resolvable — the card then shows no advice.
+  const judgeCall = async (system, user) => {
+    const rt = currentSession?.modelRuntime;
+    if (!rt) return null;
+    const pid = currentSession?.model?.provider ?? rt.getProviders?.()[0]?.id;
+    const p = rt.getProvider?.(pid);
+    const auth = await rt.getAuth?.(pid).catch(() => undefined);
+    const base = auth?.auth?.baseUrl ?? p?.baseUrl;
+    const model = currentSession?.model?.id ?? currentSession?.model?.model;
+    if (!base || !model) return null;
+    const headers = { 'content-type': 'application/json', ...(p?.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
+    if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
+    const res = await fetch(`${String(base).replace(/\/+$/, '')}/chat/completions`, {
+      method: 'POST', headers,
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        max_tokens: 160,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const body = await res.json().catch(() => null);
+    return body?.choices?.[0]?.message?.content ?? null;
+  };
   const core = createHostCore({
     instanceRoot,
     manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
@@ -214,6 +247,11 @@ export async function startHost({
       // calls escalate to ask). Session-scoped: resets on session switch.
       modeProvider: () => riskMode,
       modeOverlay: () => modeOverlay,
+      // P3 shadow judge (web-review ruling): explicit opt-in PAI_JUDGE=1.
+      // Advisory only — opinions ride the approval card to the operator and
+      // are audited; they can never flip a verdict. The call seam resolves
+      // the configured provider per ask; unconfigured → advisor absent.
+      judge: process.env.PAI_JUDGE === '1' ? new JudgeAdvisor({ call: judgeCall }) : null,
       mutatingTools: ['write', 'edit', 'delete'],
       // Roo command allowlist — OPERATOR-owned <instance>/command-allow.json
       // (never the workdir): matching prefixes skip the approval card. Only

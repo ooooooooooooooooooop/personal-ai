@@ -582,6 +582,7 @@ function addAskCard(ask) {
       <span class="ask-risk"></span>
       <span class="ask-timer"></span>
     </div>
+    <div class="ask-advice"></div>
     <pre class="ask-summary"></pre>
     <div class="ask-detail"></div>
     <div class="ask-foot">
@@ -596,6 +597,13 @@ function addAskCard(ask) {
     const units = (ask.risk.units ?? []).slice(0, 3).join(' | ');
     div.querySelector('.ask-risk').textContent = `风险·${ask.risk.class}${units ? `：${units.slice(0, 120)}` : ''}`;
   } else div.querySelector('.ask-risk').remove();
+  // P3 shadow judge: second opinion, clearly marked as advisory — it can
+  // never flip the verdict; the human still owns the buttons.
+  const adv = div.querySelector('.ask-advice');
+  if (ask.advisory?.suggest) {
+    adv.textContent = `顾问参考·风险 ${ask.advisory.risk} · 建议${ask.advisory.suggest === 'deny' ? '拒绝' : '允许'}：${ask.advisory.why || '（无说明）'}`;
+    adv.classList.add(ask.advisory.suggest === 'deny' ? 'advice-deny' : 'advice-allow');
+  } else adv.remove();
   div.querySelector('.ask-summary').textContent = ask.summary || '（无详情）';
   if (ask.detail) div.querySelector('.ask-detail').textContent = ask.detail;
   else div.querySelector('.ask-detail').remove();
