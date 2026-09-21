@@ -359,3 +359,61 @@ test('rejection memory: operator deny auto-denies the identical call signature',
   await kernel.decideToolCall(ctx({ toolName: 'write', toolCallId: 'tc-3', args: { path: '.pai/plan.md', content: 'y' } }));
   assert.equal(asks, 2);
 });
+
+test('shell redirect into an instruction file escalates a benign command to ask', async () => {
+  const { audit, policy, predictions } = fixture();
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: 'echo pwned' }], parseError: null,
+      risk: 'benign',
+      writeTargets: /AGENTS\.md/.test(src) ? ['AGENTS.md'] : ['out.txt'],
+    }),
+    ask: async (pending) => { asked.push(pending.rule); return 'deny'; },
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo pwned > AGENTS.md' } }));
+  assert.equal(d.block, true);
+  assert.deepEqual(asked, ['instruction_file']);
+  // ordinary redirect stays on the benign path — no card
+  const ok = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo hi > out.txt' } }));
+  assert.equal(ok, undefined);
+  assert.equal(asked.length, 1);
+});
+
+test('command allowlist gets rule+parsed: instruction-file asks are never prefix-softened', async () => {
+  const { audit, policy, predictions } = fixture();
+  const seen = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({
+      units: [{ raw: 'echo x' }], parseError: null,
+      risk: 'benign', writeTargets: ['CLAUDE.md'],
+    }),
+    // adapter-side policy: refuse softening for instruction_file rule
+    commandAllowlist: (ctx, meta) => meta?.rule !== 'instruction_file' && String(ctx.args?.command ?? '').startsWith('echo'),
+    ask: async () => 'deny',
+  });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo x > CLAUDE.md' } }));
+  assert.equal(d.block, true, 'instruction-file write must reach the operator even when echo is allowlisted');
+});
+
+test('command allowlist receives parsed units for per-unit matching', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: { mutating: 'ask' } });
+  let metaSeen = null;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async () => ({
+      units: [{ raw: 'cp a b' }, { raw: 'rm -rf x' }], parseError: null,
+      risk: 'mutating', hasUnknown: false,
+    }),
+    commandAllowlist: (ctx, meta) => { metaSeen = meta; return false; },
+    ask: async () => 'deny',
+  });
+  await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'cp a b && rm -rf x' } }));
+  assert.equal(metaSeen.rule, 'risk_mutating');
+  assert.equal(metaSeen.parsed.units.length, 2);
+});

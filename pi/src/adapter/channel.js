@@ -542,7 +542,16 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     },
     clearApiKey: async (provider) => {
       await box.s.modelRuntime.removeRuntimeApiKey(provider);
-      return { provider, hasAuth: false };
+      // honest sign-out: env-var / models.json fallbacks still resolve auth
+      // after the runtime key is removed — report what actually remains so
+      // the UI can say "signed out but env still provides a key" instead of
+      // claiming a clean logout (competitor pit: silent resurrection).
+      let residual = false;
+      try {
+        const auth = await box.s.modelRuntime.getAuth?.(provider);
+        residual = Boolean(auth?.apiKey ?? auth?.auth?.apiKey ?? auth?.token);
+      } catch { /* probe failure → report removal, not auth state */ }
+      return { provider, hasAuth: residual, note: residual ? 'env/config still provides credentials for this provider' : undefined };
     },
     // Custom OpenAI/Anthropic-compatible provider → models.json in agentDir,
     // then a runtime refresh. Keys never go into models.json — auth_set_key

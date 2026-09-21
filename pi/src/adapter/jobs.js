@@ -308,6 +308,16 @@ export class JobExecutor {
       clearTimeout(timeoutTimer);
       this.running.delete(jobId);
       clearInterval(heartbeat);
+      // backgrounded grandchildren (nohup/&) inherit our stdio pipes — the
+      // shell exit is the job boundary. Give the final flush a beat, then
+      // drop our ends instead of holding FDs open until some detached
+      // process decides to die.
+      child.stdin?.destroy();
+      const release = setTimeout(() => {
+        child.stdout?.destroy();
+        child.stderr?.destroy();
+      }, 250);
+      release.unref();
       if (mutating) this.writeLease?.release(leaseHolder);
       // If the store is closed (host shutting down) the exit is recorded by
       // the NEXT boot's recoveryTick — durable semantics, not a swallowed error.

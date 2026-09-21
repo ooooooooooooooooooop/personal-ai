@@ -207,3 +207,23 @@ test('FileOpsGuard: restore never clobbers — current bytes are recycled first'
   assert.ok(displaced);
   assert.equal(readFileSync(join(dir, 'recycle', displaced), 'utf-8'), 'v3 external');
 });
+
+test('command allowlist: compound bypass and instruction-file exemption (real parser)', async () => {
+  const { commandAllowlistMatch } = await import('../src/adapter/command-allow.js');
+  const { parseShellCommand } = await import('../src/adapter/command-parse.js');
+  const prefixes = ['echo', 'git status'];
+  const meta = async (c, rule = 'risk_mutating') => ({ rule, parsed: await parseShellCommand(c) });
+
+  // every unit matches → soften
+  assert.equal(commandAllowlistMatch('echo a && echo b', await meta('echo a && echo b'), prefixes), true);
+  // `echo` prefix must NOT carry `rm -rf`
+  assert.equal(commandAllowlistMatch('echo hi && rm -rf x', await meta('echo hi && rm -rf x'), prefixes), false);
+  // expansion units are unverifiable — never softened
+  assert.equal(commandAllowlistMatch('echo $(whoami)', await meta('echo $(whoami)'), prefixes), false);
+  // instruction_file rule exempt regardless of prefix match
+  assert.equal(commandAllowlistMatch('echo x > AGENTS.md', await meta('echo x > AGENTS.md', 'instruction_file'), prefixes), false);
+  // same redirect under a risk rule: per-unit match still applies
+  assert.equal(commandAllowlistMatch('echo x > log.txt', await meta('echo x > log.txt'), prefixes), true);
+  // unclassified literal commands are still matchable
+  assert.equal(commandAllowlistMatch('cargo build --release', await meta('cargo build --release'), ['cargo']), true);
+});

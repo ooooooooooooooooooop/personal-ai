@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
 import { parseShellCommand } from '../adapter/command-parse.js';
+import { commandAllowlistMatch } from '../adapter/command-allow.js';
 import { ContinuationGovernor } from '../../../host/src/core/continuation.js';
 import { selectBody } from '../../../host/src/core/eligibility.js';
 import { JobStore } from '../../../host/src/core/jobs.js';
@@ -252,21 +253,23 @@ export async function startHost({
       // are audited; they can never flip a verdict. The call seam resolves
       // the configured provider per ask; unconfigured → advisor absent.
       judge: process.env.PAI_JUDGE === '1' ? new JudgeAdvisor({ call: judgeCall }) : null,
-      mutatingTools: ['write', 'edit', 'delete'],
+      // all write-capable surfaces — a patch-family tool must hit the same
+      // instruction-file gate as write/edit (deny-equivalence analogue: a
+      // rule covering 'write' must not leak through apply_patch/patch).
+      mutatingTools: ['write', 'edit', 'delete', 'patch', 'apply_patch', 'create'],
       // Roo command allowlist — OPERATOR-owned <instance>/command-allow.json
       // (never the workdir): matching prefixes skip the approval card. Only
       // consulted inside the kernel's ask path — it can soften an ask, never
       // a deny. Re-read per call so operator edits take effect live.
-      commandAllowlist: (ctx) => {
+      commandAllowlist: (ctx, meta) => {
         const arg = { powershell: 'command', bash: 'command', shell: 'command', cmd: 'command', job_spawn: 'command' }[ctx.toolName];
         const c = arg ? ctx.args?.[arg] : null;
-        if (typeof c !== 'string') return false;
         let prefixes = [];
         try {
           const doc = JSON.parse(readFileSync(join(instanceRoot, 'command-allow.json'), 'utf-8'));
           prefixes = (Array.isArray(doc?.allowPrefixes) ? doc.allowPrefixes : []).map((p) => String(p).trim()).filter(Boolean).slice(0, 100);
         } catch { return false; }
-        return prefixes.some((p) => c.trim().startsWith(p));
+        return commandAllowlistMatch(c, meta, prefixes);
       },
     },
     runtime: {

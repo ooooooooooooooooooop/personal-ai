@@ -135,7 +135,11 @@ export class GovernanceKernel {
     // root, not the agent-writable workdir) pre-approves matching commands —
     // the ask is skipped but every other deny layer already ran. Only ever
     // consulted inside #ask, so it can soften an approval request, never a deny.
-    if (this.commandAllowlist?.(ctx)) {
+    // The adapter gets the rule + parsed units: instruction-file asks are
+    // never prefix-softened, and a compound command is allowed only when
+    // EVERY unit matches a prefix (a `good && rm -rf ~` must not ride on
+    // the good prefix).
+    if (this.commandAllowlist?.(ctx, { rule, parsed: detail.parsed ?? null })) {
       this.audit.write({
         kind: 'COMMAND_ALLOWLIST_HIT', toolName: ctx.toolName,
         data: { toolCallId: ctx.toolCallId, rule, summary },
@@ -249,6 +253,11 @@ export class GovernanceKernel {
           repair: 'split the command into simpler units',
         });
       }
+      // instruction-file protection extends into shell writes: `echo x >
+      // AGENTS.md`, `tee`, `sed -i`, `cp dest` must not silently rewrite
+      // standing orders just because the command itself is allowed.
+      const instrWrite = (parsed.writeTargets ?? []).find((t) =>
+        INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
       const riskActions = this.policy.doc?.riskActions ?? {};
       // strictest applicable action: known worst risk AND unknown-unit policy
       const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
@@ -258,12 +267,20 @@ export class GovernanceKernel {
       const action = actions.includes('terminate') ? 'terminate'
         : actions.includes('deny') ? 'deny'
         : actions.includes('ask') ? 'ask' : 'allow';
+      if (instrWrite && (action === 'allow' || action === 'ask')) {
+        return this.#ask(ctx, 'instruction_file', {
+          reason: `command writes agent instruction file '${instrWrite}' — standing orders always need operator approval`,
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
+        });
+      }
       if (action === 'ask') {
         return this.#ask(ctx, `risk_${parsed.risk}`, {
           reason: `command risk class '${parsed.risk}' requires operator approval by policy`,
           // SecurityAnalyzer analogue: the card shows WHICH class and WHICH
           // command units earned it — not just "policy says ask".
           risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
         });
       }
       if (action === 'deny') {
