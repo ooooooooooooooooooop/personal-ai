@@ -1093,6 +1093,24 @@
 
 **机制族趋势确认**（供第三遍定向复扫）：事件唤醒→常驻 coordinator→动态 worker 池（Cursor Projects / Kiro Crew）证实为行业收敛方向，我方 mailbox+teammate+schedule 已是地基，编排面仍是 §28.5 决策项；远程执行目标在本窗口新增 Cursor self-hosted+Cline SSH 两票，累计四家了。
 
+**B 级补扫（title-level，窗口 09-15→09-20）**：
+
+| Harness | 窗口增量 | 判定 |
+|---|---|---|
+| ZCode | 3.14.0（09-19）：**Dynamic Workflows**——单脚本编排多 subagent 协作 + `/workflow` 命令；Office/Coding 模式切换；批准卡"直接授予全权限"；Repo Wiki 修复；手机远控改进 | **编排族第三票**；模式切换/全权限批准=同构；远控=边界 |
+| | 3.12.3（09-17）：PDF+媒体预览、per-workspace 插件、受阻操作显示具体原因 | PDF 全量预览 vs 我方诚实降级（N8 族，决策邻近）；受阻原因=同构（structured denial）；插件=边界 |
+| Crush | v0.95.0（09-16）：**Plan Mode**（shift+tab）旗舰；压缩后只读 summary 尾部；prompt history 200 帽 | Plan Mode=同构（risk_mode+/plan+mode_request，经批准卡更强）；压缩 perf=变体 |
+| Qwen Code | 最新 v0.22.0 @ 08-22——窗口内零 release | — |
+| Trae | 09-04 hotfix；09-03 插件市场（个人版）；09-01 Solo+Agent 合并（/goal /plan /spec 内置命令，企业版）——早于窗口起点但晚于首轮快照 | 插件市场=边界；/goal/plan/spec=同构族（goal governor+plan 模式+spec 三件套在产） |
+| Hermes | v2026.9.7/9.11（窗口前缘）；v0.21.0 Pantheon（08-31）：**Bot Mode**——命名 agent 社群+群聊互相对话；**cron 带记忆与连续性**（调度 agent 跨 run 学习）；subagent mid-flight steer；agent 驱动内置浏览器；SQLite 多写者修复 | **编排族第四票**；cron 带记忆=族 A 原语②的实锤佐证；mid-flight steer=同构（mailbox inbox→stdin）；浏览器=同构 |
+| Devin | 09-16 blog：**Code Scans**——宽泛工程目标→调查→评估发现→PR | **编排族第五票**（goal→coordinator→PR 形态，自家方向）；Desktop Testing=CUA 边界；v3 API RBAC=多用户边界 |
+| Codebuddy | 密集 CLI release（v2.97.0 等）+ Hy4 模型 co-design 波 | title 级无新机制族 |
+| KAOS | v2.0.x/2.1.1（09-01+）：本地多 agent fleet + SQLite flight recorder + neuroplasticity memory + **预注册可证伪 kill gates** + 58 工具 MCP + 并行 agent | **编排族第六票**；kill gates=验证族同思路（verify+门禁）；余首轮已覆盖 |
+| Vibe / PI-Desktop | 无公开 changelog 入口 | 首轮快照即终态 |
+| Roo Code | 已关停 archive（前文） | 历史样本 |
+
+**票仓修正**：编排族在本窗口累计 **6 票**（Cursor Projects、Kiro Crew、ZCode Workflows、Hermes Bot Mode、Devin Code Scans、KAOS fleets）——全部 delta 里最强的收敛信号；远程执行 4 票。两族维持 §28.5/§28.7 决策项，证据权重已显著倾斜编排族。
+
 ### 28.7 定向机制复扫（delta 驱动，2026-09-21）
 
 按评审裁定只对 delta 暴露的两个未决机制族做落点级复核，不再全面重扫。已落地族（N1–N11）以测试名为证，不重复论证。
