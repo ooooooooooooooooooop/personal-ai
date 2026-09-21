@@ -111,3 +111,17 @@ test('teammate pool: named task + byName addressing (latest open wins)', () => {
   const s2 = new TaskStore(root);
   assert.equal(s2.byName('nova').task_id, b.task_id);
 });
+
+test('bindJob accumulates job_ids; job_id tracks the last bound', () => {
+  const { store: s } = mk();
+  const t = s.create({ label: 'multi' });
+  s.bindJob(t.task_id, 'job-1');
+  s.bindJob(t.task_id, 'job-2');
+  let g = s.get(t.task_id);
+  assert.equal(g.job_id, 'job-2');
+  assert.deepEqual(g.job_ids, ['job-1', 'job-2']);
+  s.bindJob(t.task_id, 'job-1'); // re-bind: job_ids dedupes, job_id re-points
+  g = s.get(t.task_id);
+  assert.equal(g.job_id, 'job-1');
+  assert.deepEqual(g.job_ids, ['job-1', 'job-2']);
+});

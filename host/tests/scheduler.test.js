@@ -66,3 +66,18 @@ test('persistence: a new store instance sees the same schedules; corrupt file re
   writeFileSync(join(dir, 'schedules.json'), '{corrupt');
   assert.deepEqual(new ScheduleStore(dir).list(), []);
 });
+
+test('prompt-target schedules: validation, goal_id, once/interval timing', () => {
+  let now = 1_000_000;
+  const s = new ScheduleStore(rig(), () => now);
+  assert.throws(() => s.add({}), /command or prompt/);
+  assert.throws(() => s.add({ command: 'x', prompt: 'y', run_at: now }), /not both/);
+  const rec = s.add({ prompt: 'tick', goal_id: 'goal-1', every_seconds: 120 });
+  assert.equal(rec.target, 'prompt');
+  assert.equal(rec.command, null);
+  assert.equal(rec.goal_id, 'goal-1');
+  now += 121_000;
+  assert.deepEqual(s.due().map((x) => x.id), [rec.id]);
+  s.markFired(rec.id, null);
+  assert.equal(s.due().length, 0); // interval advanced past now
+});

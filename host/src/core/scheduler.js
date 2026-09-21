@@ -49,12 +49,16 @@ export class ScheduleStore {
   }
 
   /**
-   * @param {object} spec {command, run_at? (ms epoch|ISO), every_seconds?}
-   * run_at in the past → fires on the next tick (catch-up once semantics).
+   * @param {object} spec {command?|prompt?, goal_id?, run_at? (ms epoch|ISO), every_seconds?}
+   * command → fired as a durable shell job; prompt → fired into the session
+   * via the prompt sink (coordinator tick). run_at in the past → fires on
+   * the next tick (catch-up once semantics).
    */
-  add({ command, run_at = null, every_seconds = null, label = null }) {
+  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null }) {
     const cmd = String(command ?? '').trim();
-    if (!cmd) throw new Error('schedule requires a non-empty command');
+    const prm = String(prompt ?? '').trim();
+    if (!cmd && !prm) throw new Error('schedule requires a non-empty command or prompt');
+    if (cmd && prm) throw new Error('schedule takes command OR prompt, not both');
     const interval = every_seconds != null ? Math.floor(Number(every_seconds)) : null;
     if (interval != null && (!Number.isFinite(interval) || interval < MIN_INTERVAL_SECONDS)) {
       throw new Error(`every_seconds must be ≥ ${MIN_INTERVAL_SECONDS}`);
@@ -73,7 +77,10 @@ export class ScheduleStore {
     }
     const rec = {
       id: `sch-${randomUUID().slice(0, 8)}`,
-      command: cmd,
+      target: cmd ? 'command' : 'prompt',
+      command: cmd || null,
+      prompt: prm || null,
+      goal_id: goal_id != null ? String(goal_id) : null,
       label: label != null ? String(label).slice(0, 200) : null,
       kind: interval != null ? 'interval' : 'once',
       every_seconds: interval,

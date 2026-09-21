@@ -68,7 +68,7 @@ export class HostChannel {
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -93,6 +93,7 @@ export class HostChannel {
     this.verify = verify;
     this.projectTrust = projectTrust;
     this.schedules = schedules;
+    this.goalStore = goalStore;
     this.repoMap = repoMap;
     this.skills = skills;
     this.listeners = new Set();
@@ -574,6 +575,18 @@ export class HostChannel {
         case 'schedule_list': {
           if (!this.schedules?.list) return reply(false, undefined, 'schedules facade unavailable');
           return reply(true, this.schedules.list());
+        }
+        // Coordinator goals — operator mirror of goal_coordinator: read
+        // goal truth (statement/state/tasks/last tick) + set state.
+        case 'goal_list': {
+          if (!this.goalStore?.list) return reply(false, undefined, 'goals facade unavailable');
+          return reply(true, this.goalStore.list());
+        }
+        case 'goal_set': {
+          if (!this.goalStore?.setState) return reply(false, undefined, 'goals facade unavailable');
+          const g = this.goalStore.setState(String(cmd.id ?? ''), String(cmd.state ?? ''));
+          if (!g || g.error) return reply(false, undefined, g?.error ?? `no goal '${cmd.id}'`);
+          return reply(true, g);
         }
         case 'schedule_cancel': {
           if (!this.schedules?.cancel) return reply(false, undefined, 'schedules facade unavailable');

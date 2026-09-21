@@ -1827,7 +1827,43 @@ async function refreshJobs() {
     tbody.appendChild(tr);
   }
   refreshSchedules();
+  refreshGoals();
   refreshTasks();
+}
+
+/* ---------- coordinator goals (operator mirror of goal_coordinator) ---------- */
+async function refreshGoals() {
+  const tbody = $('goals')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await cmd('goal_list');
+  const rows = r.success ? (r.data ?? []) : [];
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-4);padding:16px">暂无长期目标——goal_coordinator 创建后在此可见</td></tr>';
+    return;
+  }
+  for (const g of rows) {
+    const tr = document.createElement('tr');
+    const cells = [
+      g.goal_id, g.state,
+      g.schedule_id ?? '—',
+      String(g.task_ids?.length ?? 0),
+      g.last_tick_at ? new Date(g.last_tick_at).toLocaleString() : '从未',
+      (g.statement ?? '').slice(0, 60),
+    ];
+    tr.innerHTML = cells.map(() => '<td></td>').join('') + '<td><button class="ghost-btn warn"></button></td>';
+    tr.querySelectorAll('td').forEach((td, i) => { if (i < cells.length) td.textContent = cells[i]; });
+    const btn = tr.querySelector('button');
+    if (g.state === 'done') { btn.textContent = '已完成'; btn.disabled = true; }
+    else {
+      btn.textContent = g.state === 'paused' ? '恢复' : '暂停';
+      btn.onclick = async () => {
+        await cmd('goal_set', { id: g.goal_id, state: g.state === 'paused' ? 'open' : 'paused' });
+        refreshGoals();
+      };
+    }
+    tbody.appendChild(tr);
+  }
 }
 
 /* ---------- durable schedules (operator mirror of schedule_task) ---------- */

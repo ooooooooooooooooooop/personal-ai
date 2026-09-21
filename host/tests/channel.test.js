@@ -333,3 +333,20 @@ test('stop_all with no jobs facade still aborts the live turn', async () => {
   assert.equal(r.data.aborted, true);
   assert.deepEqual(r.data.cancelled, []);
 });
+
+test('goal_list/goal_set route to the goalStore facade; absent fails politely', async () => {
+  const goalStore = {
+    list: () => [{ goal_id: 'goal-1', state: 'open', task_ids: ['t1'], statement: 'x' }],
+    setState: (id, state) => id === 'goal-1' ? { goal_id: id, state } : null,
+  };
+  const ch = new HostChannel({ session: fakeSession(), goalStore });
+  const r = await ch.handle({ type: 'goal_list' });
+  assert.equal(r.success, true);
+  assert.equal(r.data[0].goal_id, 'goal-1');
+  const set = await ch.handle({ type: 'goal_set', id: 'goal-1', state: 'paused' });
+  assert.equal(set.data.state, 'paused');
+  const missing = await ch.handle({ type: 'goal_set', id: 'goal-nope', state: 'done' });
+  assert.equal(missing.success, false);
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'goal_list' })).success, false);
+});

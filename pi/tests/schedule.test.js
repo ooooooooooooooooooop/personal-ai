@@ -75,3 +75,91 @@ test('refused spawn does not consume the fire — retried next tick', async () =
     pump.dispose();
   }
 });
+
+test('prompt schedules fire through the governed sink with goal context', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const { GoalStore } = await import('../../host/src/core/goals.js');
+  const { TaskStore } = await import('../../host/src/core/tasks.js');
+  const goals = new GoalStore(dir, () => now);
+  const tasks = new TaskStore(dir);
+  const store = new ScheduleStore(dir, () => now);
+  const goal = goals.create({ statement: 'fix the flaky suite' });
+  goals.note(goal.goal_id, 'attempt 1: retry loop');
+  store.add({ prompt: goal.statement, goal_id: goal.goal_id, run_at: now - 1000 });
+  const sent = [];
+  const promptSink = async (msg) => { sent.push(msg); return { ok: true }; };
+  const pump = startSchedulerPump({
+    store, executor: { spawnCommandJob: async () => ({ job_id: 'never' }) },
+    workdir: dir, audit, intervalMs: 60_000, promptSink, goals, tasks,
+  });
+  try {
+    await pump.tick();
+    assert.equal(sent.length, 1);
+    assert.match(sent[0], /fix the flaky suite/);
+    assert.match(sent[0], /attempt 1: retry loop/, 'scratchpad tail injected');
+    assert.equal(store.due().length, 0);
+    const g = goals.get(goal.goal_id);
+    assert.ok(g.last_tick_at);
+    assert.ok(g.fingerprint, 'fingerprint recorded for monitor-skip');
+  } finally { pump.dispose(); }
+});
+
+test('monitor-skip: unchanged world consumes the fire without an LLM call', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const { GoalStore } = await import('../../host/src/core/goals.js');
+  const { TaskStore } = await import('../../host/src/core/tasks.js');
+  const goals = new GoalStore(dir, () => now);
+  const tasks = new TaskStore(dir);
+  const store = new ScheduleStore(dir, () => now);
+  const goal = goals.create({ statement: 'watch thing' });
+  store.add({ prompt: goal.statement, goal_id: goal.goal_id, every_seconds: 60 });
+  let calls = 0;
+  const promptSink = async () => (++calls, { ok: true });
+  const pump = startSchedulerPump({
+    store, executor: { spawnCommandJob: async () => ({ job_id: 'never' }) },
+    workdir: dir, audit, intervalMs: 60_000, promptSink, goals, tasks,
+  });
+  try {
+    // the boot tick keeps `inflight` occupied for one microtask — drain it
+    // so subsequent tick() calls don't await a stale promise
+    await new Promise((r) => setImmediate(r));
+    now += 61_000;               // first slot comes due
+    await pump.tick();           // first tick fires (no prior fingerprint)
+    assert.equal(calls, 1);
+    now += 61_000;
+    await pump.tick();           // nothing changed → monitor-skip
+    assert.equal(calls, 1, 'unchanged world skipped the prompt');
+    goals.note(goal.goal_id, 'something moved'); // scratchpad changes fingerprint
+    now += 61_000;
+    await pump.tick();
+    assert.equal(calls, 2, 'changed world fires again');
+  } finally { pump.dispose(); }
+});
+
+test('paused/done goals skip their tick; busy sink leaves the entry due', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const { GoalStore } = await import('../../host/src/core/goals.js');
+  const goals = new GoalStore(dir, () => now);
+  const store = new ScheduleStore(dir, () => now);
+  const g1 = goals.create({ statement: 'paused goal' });
+  const g2 = goals.create({ statement: 'busy goal' });
+  goals.setState(g1.goal_id, 'paused');
+  store.add({ prompt: g1.statement, goal_id: g1.goal_id, run_at: now - 1000 });
+  store.add({ prompt: g2.statement, goal_id: g2.goal_id, run_at: now - 1000 });
+  let calls = 0;
+  const promptSink = async () => (++calls, { refused: 'busy' });
+  const pump = startSchedulerPump({
+    store, executor: { spawnCommandJob: async () => ({ job_id: 'never' }) },
+    workdir: dir, audit, intervalMs: 60_000, promptSink, goals,
+  });
+  try {
+    await pump.tick();
+    assert.equal(calls, 1, 'only the open goal reached the sink');
+    // paused consumed (skipped); busy stays due for next tick
+    assert.equal(store.due().length, 1);
+    assert.equal(store.due()[0].goal_id, g2.goal_id);
+  } finally { pump.dispose(); }
+});

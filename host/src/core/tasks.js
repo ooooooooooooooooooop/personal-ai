@@ -47,7 +47,7 @@ export class TaskStore {
     const taskId = `task-${randomUUID().slice(0, 12)}`;
     mkdirSync(this.#taskDir(taskId), { recursive: true });
     const meta = {
-      task_id: taskId, job_id: jobId, label, kind,
+      task_id: taskId, job_id: jobId, job_ids: jobId ? [jobId] : [], label, kind,
       name, // teammate pool: stable human/model address across restarts
       spawn_spec: spawnSpec, // {target, profile, task} — respawnable identity
       parent_task_id: parent,
@@ -160,11 +160,14 @@ export class TaskStore {
     return meta;
   }
 
-  /** Job linkage — set once the delegation job id is issued. */
+  /** Job linkage — a task may bind many jobs over its lifetime (coordinator
+   * retries/follow-ups); job_id stays the latest for single-slot readers. */
   bindJob(taskId, jobId) {
     const meta = this.#readMeta(taskId);
     if (!meta) return null;
     meta.job_id = jobId;
+    if (!Array.isArray(meta.job_ids)) meta.job_ids = meta.job_id ? [meta.job_id] : [];
+    if (!meta.job_ids.includes(jobId)) meta.job_ids.push(jobId);
     this.#writeMeta(taskId, meta);
     this.postEvent(taskId, 'job_bound', { job_id: jobId });
     return meta;

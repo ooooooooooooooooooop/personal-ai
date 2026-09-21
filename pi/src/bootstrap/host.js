@@ -70,6 +70,8 @@ import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
+import { goalCoordinatorTool } from '../adapter/goals.js';
+import { GoalStore } from '../../../host/src/core/goals.js';
 import { sessionSearchTool, sessionReadTool } from '../adapter/sessionsearch.js';
 import { repoMapTool } from '../adapter/repomap.js';
 import { buildRepoMap } from '../../../host/src/core/repomap.js';
@@ -294,17 +296,29 @@ export async function startHost({
   // restart-safe); boot tick catches up missed fires exactly once. The store
   // instance is shared with the schedule_task tool so list shows live truth.
   const scheduleStore = new ScheduleStore(core.paths.root);
+  const goalStore = new GoalStore(core.paths.root);
+  // F-family AgentTask mailbox — durable task records binding delegation
+  // jobs to two-way inbox/outbox/event streams (v1: parent↔child only).
+  const taskStore = new TaskStore(core.paths.root);
   const schedulerPump = startSchedulerPump({
     store: scheduleStore,
     executor,
     workdir,
     audit: core.audit,
     getScope: () => currentSession?.sessionId ?? null,
+    goals: goalStore,
+    tasks: taskStore,
+    jobStore,
+    // governed prompt path (heartbeat analogue): the tick travels the same
+    // channel prompt route — budget admission, audit, governance on every
+    // tool call in the turn. Busy sessions refuse; the entry stays due.
+    promptSink: async (msg) => {
+      if (!channelHandle || currentSession?.isStreaming) return { refused: 'busy' };
+      const r = await channelHandle.channel.handle({ type: 'prompt', message: msg, meta: { goal_tick: true } });
+      return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
+    },
   });
 
-  // F-family AgentTask mailbox — durable task records binding delegation
-  // jobs to two-way inbox/outbox/event streams (v1: parent↔child only).
-  const taskStore = new TaskStore(core.paths.root);
   // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
   // into every context envelope as untrusted evidence.
   const memoryStore = new MemoryStore(memoryDbPath(core.paths.root));
@@ -333,6 +347,9 @@ export async function startHost({
       ? [webSearchTool({ endpoint: process.env.PAI_WEB_SEARCH_URL, apiKey: process.env.PAI_WEB_SEARCH_KEY ?? null })]
       : []),
     scheduleTool(scheduleStore),
+    // orchestrator family: long-horizon goals armed with prompt-kind
+    // schedules — each tick wakes the agent with live goal context
+    goalCoordinatorTool(goalStore, scheduleStore),
     // agent-facing past-session recall — same index the operator's Ctrl+K
     // uses, late-bound to sessionsFacade.search (built below)
     sessionSearchTool(() => sessionsFacade.search),
@@ -898,6 +915,11 @@ export async function startHost({
     schedules: {
       list: () => scheduleStore.list(),
       cancel: (id) => scheduleStore.remove(id),
+    },
+    // coordinator surface — operator reads goal truth + sets state
+    goalStore: {
+      list: () => goalStore.list(),
+      setState: (id, state) => goalStore.setState(id, state),
     },
     // /map — operator surface over the same builder repo_map wraps
     repoMap: {
