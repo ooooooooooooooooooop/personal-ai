@@ -98,6 +98,58 @@ test('unparseable commands are unverifiable — denied', async () => {
   assert.equal(d.rule, 'command_unparseable');
 });
 
+test('M84: operator-edited ask payload re-runs hard policy — deny/terminate refuse', async () => {
+  const { audit, policy, predictions } = fixture({ tools: { shell: { action: 'ask' } } });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (source) => source.includes('rm -rf')
+      ? { units: [{ raw: source }], parseError: null, risk: 'destructive' }
+      : source.includes('???')
+        ? { units: [], parseError: 'ERROR nodes', risk: 'unknown' }
+        : { units: [{ raw: source }], parseError: null, risk: 'benign' },
+    // operator approves the ask but edits the command to a denied class
+    ask: async () => ({ answer: 'allow', edited: { command: 'rm -rf worktree' } }),
+  });
+  // tool_ask on a benign command; the card edit swaps in destructive content
+  const d = await kernel.decideToolCall(ctx({
+    toolName: 'shell', args: { command: 'ls' },
+  }));
+  assert.equal(d.block, true, 'edited-to-destructive must be refused, not admitted');
+  assert.equal(d.rule, 'risk_destructive');
+});
+
+test('M84: edited benign payload still admits (no double-ask on approval)', async () => {
+  const { audit, policy, predictions } = fixture({ tools: { shell: { action: 'ask' } } });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (source) => ({ units: [{ raw: source }], parseError: null, risk: 'benign' }),
+    ask: async () => ({ answer: 'allow', edited: { command: 'ls -la' } }),
+  });
+  const d = await kernel.decideToolCall(ctx({
+    toolName: 'shell', args: { command: 'ls' },
+  }));
+  assert.equal(d, undefined);
+});
+
+test('M84: edited unparseable command refused', async () => {
+  const { audit, policy, predictions } = fixture({ tools: { shell: { action: 'ask' } } });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (source) => source.includes('???')
+      ? { units: [], parseError: 'ERROR nodes', risk: 'unknown' }
+      : { units: [{ raw: source }], parseError: null, risk: 'benign' },
+    ask: async () => ({ answer: 'allow', edited: { command: '???' } }),
+  });
+  const d = await kernel.decideToolCall(ctx({
+    toolName: 'shell', args: { command: 'ls' },
+  }));
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'command_unparseable');
+});
+
 test('prediction binding: open prediction admits + records binding', async () => {
   const { audit, policy, predictions } = fixture({
     tools: { world_model_write: { requiresPrediction: true } },

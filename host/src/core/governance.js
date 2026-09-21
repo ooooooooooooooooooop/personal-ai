@@ -203,6 +203,19 @@ export class GovernanceKernel {
           afterHashes: Object.fromEntries(Object.entries(edited).map(([k, v]) => [k, hashOf(String(v))])),
         },
       });
+      // M84: the operator's edited payload never saw deterministic preflight —
+      // the original classification ran against the PRE-edit command. Re-run
+      // the hard-policy slice on the edited args: deny/terminate/unparseable
+      // refuse outright; ask-level outcomes (risk ask, instruction_file,
+      // env_injection) are satisfied by the operator's own edit+approve.
+      const recheck = await this.#recheckEditedArgs(ctx);
+      if (recheck) {
+        this.audit.write({
+          kind: 'GOVERNANCE_ASK_EDITED_REFUSED', toolName: ctx.toolName,
+          data: { toolCallId: ctx.toolCallId, rule, verdict: recheck.rule },
+        });
+        return recheck;
+      }
     }
     this.audit.write({
       kind: 'GOVERNANCE_ASK_RESOLVED', toolName: ctx.toolName,
@@ -416,6 +429,54 @@ export class GovernanceKernel {
     }
 
     return this.#allow(ctx, 'kernel');
+  }
+
+  /**
+   * M84 hard-policy recheck for operator-edited ask payloads. Runs the
+   * refuse-producing slice of decideToolCall against the EDITED args:
+   * protected roots, command parse, risk deny/terminate. Ask-level outcomes
+   * are intentionally not re-raised — editing the card and clicking allow IS
+   * the operator's approval of that exact payload.
+   * @returns {Promise<ToolCallDecision|undefined>} a deny decision, or
+   *   undefined when the edited args pass hard policy.
+   */
+  async #recheckEditedArgs(ctx) {
+    const args = ctx.args ?? {};
+    const badPath = this.#scanProtectedRoots(args);
+    if (badPath) {
+      return this.#deny(ctx, 'negative_capability', {
+        reason: `edited argument targets protected runtime path: ${badPath}`,
+        actual: badPath,
+        repair: 'write inside the task worktree, never into instance internals',
+      });
+    }
+    const cmdArg = this.commandArgs[ctx.toolName];
+    if (cmdArg && typeof args[cmdArg] === 'string' && this.commandClassifier) {
+      const parsed = await this.commandClassifier(args[cmdArg]);
+      if (parsed.parseError) {
+        return this.#deny(ctx, 'command_unparseable', {
+          reason: `edited command could not be parsed (${parsed.parseError}); unparseable commands are unverifiable`,
+          repair: 'split the command into simpler units',
+        });
+      }
+      const riskActions = this.policy.doc?.riskActions ?? {};
+      const actions = [parsed.risk, ...(parsed.hasUnknown ? ['unknown'] : [])]
+        .map((cls) => riskActions[cls] ?? 'allow');
+      if (actions.includes('terminate')) {
+        return this.#deny(ctx, `risk_${parsed.risk}`, {
+          terminate: true,
+          reason: `edited command risk class '${parsed.risk}' halts the batch by policy`,
+        });
+      }
+      if (actions.includes('deny')) {
+        return this.#deny(ctx, `risk_${parsed.risk}`, {
+          reason: `edited command risk class '${parsed.risk}' denied by policy`,
+          actual: parsed.units.map((u) => u.raw).join(' | '),
+          repair: 'remove the denied unit or request elevation through the operator',
+        });
+      }
+    }
+    return undefined;
   }
 
   /** Strictest applicable overlay action for this call. */

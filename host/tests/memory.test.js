@@ -140,8 +140,12 @@ test('bulk: all-or-nothing — a refused op rolls the whole batch back', () => {
   ]);
   assert.ok(bad.refused);
   assert.equal(s.all(10).length, before, 'nothing partial landed');
-  // pin/forget ride the same transaction
+  // pin/forget ride the same transaction — a missing target is a business
+  // failure that rolls the batch back (M74: no half-applied success)
   const id = s.all(10)[0].id;
+  const pinned0 = s.all(10).find((m) => m.id === id).pinned;
   const r = s.bulk([{ action: 'pin', id }, { action: 'forget', id: 'mem-missing' }]);
-  assert.equal(r.applied, 2);
+  assert.ok(r.refused, 'missing target must refuse the batch');
+  assert.equal(r.applied, 0);
+  assert.equal(s.all(10).find((m) => m.id === id).pinned, pinned0, 'pin rolled back too');
 });

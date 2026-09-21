@@ -32,6 +32,23 @@ test('command parser sees subshells and &&/|| lists', async () => {
   assert.ok(names.includes('bash'));
 });
 
+test('M134: env-utility assignments feed the same danger list as AST assignments', async () => {
+  // `env NAME=VAL cmd` — assignments are plain argv, not variable_assignment
+  // nodes; without this, LD_PRELOAD via env rides past the env-injection ask.
+  for (const c of [
+    'env LD_PRELOAD=x sh -c true',
+    'env NODE_OPTIONS=--inspect node app.js',
+    '/usr/bin/env BASH_ENV=x bash -c true',
+    'env -i PATH=/usr/bin LD_LIBRARY_PATH=/evil make',
+  ]) {
+    const p = await parseShellCommand(c);
+    assert.ok(p.dangerEnv.length >= 1, `${c} must surface a dangerous env name`);
+  }
+  // benign env usage does not false-positive
+  const clean = await parseShellCommand('env FOO=bar echo hi');
+  assert.equal(clean.dangerEnv.length, 0);
+});
+
 test('static classification: privilege/network/exec/destructive', () => {
   assert.equal(classifyCommandName('sudo'), 'privilege');
   assert.equal(classifyCommandName('curl'), 'network');

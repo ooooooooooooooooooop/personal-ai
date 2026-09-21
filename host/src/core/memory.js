@@ -155,8 +155,8 @@ export class MemoryStore {
         else if (op.action === 'pin') results.push({ ok: this.pin(String(op.id), op.pinned !== false) });
         else results.push({ refused: `unknown bulk action '${op.action}'` });
       }
-      const bad = results.find((r) => r.refused);
-      if (bad) { this.db.exec('ROLLBACK'); return { refused: bad.refused, applied: 0, results: [] }; }
+      const bad = results.find((r) => r.refused || r.ok === false);
+      if (bad) { this.db.exec('ROLLBACK'); return { refused: bad.refused ?? 'a bulk op failed (missing target)', applied: 0, results: [] }; }
       this.db.exec('COMMIT');
       return { applied: results.length, results };
     } catch (e) {

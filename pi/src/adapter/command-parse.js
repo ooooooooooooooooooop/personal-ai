@@ -110,6 +110,21 @@ function collectCommands(node, units, redirects, dangerEnv, context) {
       if (/expansion|substitution|heredoc/.test(c.type)) hasExpansion = true;
       args.push(c.text);
     }
+    // `env NAME=VAL cmd` — env-utility assignments ride as plain argv, never
+    // as AST variable_assignment nodes. Feed each leading NAME=VALUE arg's
+    // name through the same danger list (options like -i/-u don't match the
+    // NAME= pattern; the first non-assignment word is the real command).
+    if (baseName(name) === 'env') {
+      let skipNext = false;
+      for (const a of args) {
+        if (skipNext) { skipNext = false; continue; }
+        if (a === '-u' || a === '--unset') { skipNext = true; continue; } // -u consumes a NAME operand
+        const m = /^([A-Za-z_][A-Za-z0-9_]*)=/.exec(a);
+        if (!m) { if (!a.startsWith('-')) break; continue; }
+        hasEnvAssignment = true;
+        if (DANGER_ENV_RE.test(m[1])) dangerEnv.push(m[1]);
+      }
+    }
     units.push({
       name: baseName(name),
       rawName: name,
