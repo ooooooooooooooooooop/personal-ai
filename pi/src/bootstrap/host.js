@@ -1,5 +1,5 @@
 import { join, resolve, basename } from 'node:path';
-import { pathInsideRoot, pathInsideRootReal } from '../adapter/paths.js';
+import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../adapter/paths.js';
 import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, openSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -853,6 +853,10 @@ export async function startHost({
     return built.session;
   };
 
+  // M71: authoritative ephemeral tracking — a WeakSet owned by bootstrap,
+  // not a monkeypatched field on the upstream session object (which could
+  // be frozen and silently degrade the non-exportable contract).
+  const ephemeralSessions = new WeakSet();
   const sessionInfo = (s) => ({
     path: s.path,
     id: s.id,
@@ -886,10 +890,7 @@ export async function startHost({
     // or leaked into exports. The transcript dies with the process.
     createEphemeral: async () => {
       const s = await rebuildSession(sessionManagers.inMemory(workdir), 'ephemeral');
-      // M71: tag the live session so export paths (session_export html/jsonl)
-      // can refuse — inMemory alone still lets exportToHtml write the
-      // transcript out, which would break the non-exportable contract.
-      try { s.ephemeral = true; } catch { /* read-only session object — guard degrades */ }
+      ephemeralSessions.add(s); // authoritative flag — channel export checks this set
       return { id: s.sessionId ?? null, file: null, ephemeral: true };
     },
     open: async (path) => {
@@ -1096,6 +1097,8 @@ export async function startHost({
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   channelHandle = createChannelHost({
     session, core, jobs: jobStore, jobDetail: executor,
+    // M71: channel asks this predicate before any transcript export
+    sessionFlags: { isEphemeral: (s) => ephemeralSessions.has(s) },
     bodies: {
       current: async () => ({
         body_id: 'pi',
@@ -1265,7 +1268,7 @@ export async function startHost({
       // a UI path arg must not become an arbitrary-file write primitive.
       exportLists: (targetPath) => {
         const target = resolve(instanceRoot, String(targetPath ?? 'command-allow-export.json'));
-        if (!pathInsideRoot(instanceRoot, target) || !target.endsWith('.json')) {
+        if (!pathInsideRootForWrite(instanceRoot, target) || !target.endsWith('.json')) {
           return { error: 'export target must be a .json path inside the instance directory' };
         }
         const project = (() => { try { return JSON.parse(readFileSync(join(workdir, '.pai', 'commands.json'), 'utf-8')); } catch { return { denyPrefixes: [] }; } })();

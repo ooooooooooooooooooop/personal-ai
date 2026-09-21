@@ -8,7 +8,7 @@ import { normalizeAttachments, partitionByCapability, describeAttachment, extrac
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
-import { pathInsideRoot, pathInsideRootReal } from './paths.js';
+import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from './paths.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
 
@@ -40,7 +40,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, fallbacks = null, leases = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, fallbacks = null, leases = null, sessionFlags = null }) {
   const auditPath = () => core.audit?.file
     ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
@@ -341,8 +341,10 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     export: async (opts = {}) => {
       // M71: an ephemeral session's transcript must not leave the process —
       // export (any format) would write it to disk, defeating the contract.
-      if (box.s.ephemeral === true) {
-        return { file: null, format: opts.format ?? 'html', refused: true, reason: 'ephemeral session is not exportable' };
+      // Throwing keeps the wire semantics honest: session_export surfaces as
+      // success:false, not a refused data payload.
+      if (sessionFlags?.isEphemeral?.(box.s) === true) {
+        throw new Error('ephemeral session is not exportable — transcript never leaves the process');
       }
       // trajectory export (Hermes): raw JSONL is the replayable/training
       // form; HTML stays the human-readable default.
@@ -834,7 +836,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         // carries them between instances (same confinement as allowlists).
         export: ({ path } = {}) => {
           const target = resolve(core.paths.root, String(path ?? 'profiles-export.json'));
-          if (!pathInsideRoot(core.paths.root, target) || !target.endsWith('.json')) {
+          if (!pathInsideRootForWrite(core.paths.root, target) || !target.endsWith('.json')) {
             return { ok: false, error: 'export target must be a .json path inside the instance directory' };
           }
           writeFileSync(target, JSON.stringify({ profiles: read() }, null, 2) + '\n');

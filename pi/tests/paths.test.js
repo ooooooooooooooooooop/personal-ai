@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { pathInsideRoot, pathInsideRootReal } from '../src/adapter/paths.js';
+import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../src/adapter/paths.js';
 
 test('M96: containment is real — sibling-prefix paths do not pass', () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-path-'));
@@ -34,4 +34,35 @@ test('M96: an in-root symlink pointing outside fails the real-path check', () =>
   assert.equal(pathInsideRootReal(root, link), false);       // realpath: escape
   // nonexistent export target stays allowed by the lexical check
   assert.equal(pathInsideRootReal(root, join(root, 'new-export.json')), true);
+});
+
+test('M96 export: a symlinked PARENT directory cannot carry a write outside root', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-path-'));
+  const root = join(dir, 'pai');
+  const outside = join(dir, 'outside');
+  mkdirSync(root, { recursive: true });
+  mkdirSync(outside, { recursive: true });
+  const escapeDir = join(root, 'escape');
+  try {
+    symlinkSync(outside, escapeDir, 'dir');
+  } catch {
+    return; // platform without symlink privilege
+  }
+  // lexical containment is fooled: root/escape/out.json looks inside
+  assert.equal(pathInsideRoot(root, join(escapeDir, 'out.json')), true);
+  // write-target check follows the parent link and refuses
+  assert.equal(pathInsideRootForWrite(root, join(escapeDir, 'out.json')), false);
+  // honest writes still pass: real parent inside, new or existing target
+  assert.equal(pathInsideRootForWrite(root, join(root, 'out.json')), true);
+  const real = join(root, 'exists.json');
+  writeFileSync(real, '{}');
+  assert.equal(pathInsideRootForWrite(root, real), true);
+  // an existing target that is itself an escape symlink is refused
+  const outFile = join(outside, 'stolen.json');
+  writeFileSync(outFile, '{}');
+  const linkFile = join(root, 'stolen.json');
+  try {
+    symlinkSync(outFile, linkFile);
+    assert.equal(pathInsideRootForWrite(root, linkFile), false);
+  } catch { /* no symlink privilege */ }
 });
