@@ -1,0 +1,360 @@
+api-sdk       |New Cline API docs: Getting Started, Auth, Chat Completions, Models, Errors, and SDK Examples
+api-sdk       |Plugins/SDK: add bounded before_agent_finalize retry instructions so workflow plugins can request one more model pass. Thanks @100yenadmin.
+api-sdk       |Python 3.10 Support: Agent SDK extended compatible Python version range, now supporting Python 3.10
+api-sdk       |Tavily: resolve dedicated tavily_search and tavily_extract tool credentials from the active runtime config snapshot, so exec SecretRef-backed API keys
+api-sdk       |Enabled ACP elicitations by default, allowing ACP agents to collect structured user input.
+api-sdk       |Unified Response Format: Public endpoints adopt the standard { data } / { error: { code, message } } envelope format, improving API consistency
+api-sdk       |Report cumulative total_tokens in stream-json/json output #8910
+api-sdk       |Expose a reusable question handler factory for custom question API hosts.
+api-sdk       |feat(acp): add complete hooks support for ACP integration
+api-sdk       |SDK Version Update: Updated SDK-JS to 0.3.16 and SDK-Python to 0.3.14
+api-sdk       |Codex can route authentication and Responses API traffic through macOS and Windows system proxies, including PAC and WPAD configurations. (#26708, #26
+api-sdk       |test(core): improve testing for API request/response parsing
+api-sdk       |Gateway protocol: require v4 clients and stream explicit chat deltaText/replace frames so SDK clients can consume assistant updates without local diff
+api-sdk       |Added /client and /server import paths for JS SDK
+api-sdk       |feat(serve): expose workspace Channel management API (#7637) by @qqqys
+approval-gate |Voice input failures caused by provider setup — missing credentials, transcription config — now take you straight to voice settings instead of a toast
+approval-gate |feat(plan): allow skills to be enabled in plan mode
+approval-gate |Updated extension docs, examples, runtime help, trust prompts, and config labels to use the configured project config directory instead of hardcoded .
+approval-gate |App-server docs and generated schemas were refreshed for the new transport, thread, marketplace, sticky environment, and permission-profile APIs. (#18
+approval-gate |Approving a guardrailed command whose argument the shell could not read no longer approves the same command with a different one.
+approval-gate |The npm cache producer now runs as a non-root user to prevent file permission issues on persistent self-hosted CI runners. (#8669) by @yiliang114
+approval-gate |Permission Command Risk Adjustment: Optimized risk classification strategy for privilege escalation commands like sudo/su, reducing unnecessary confir
+approval-gate |fix(core): enable global session and persistent approval for web_fetch
+approval-gate |Gateway/nodes: add disabled-by-default gateway.nodes.pairing.autoApproveCidrs for first-time node pairing from explicit trusted CIDRs, while keeping o
+approval-gate |feat(web-shell): bind plan approval to its Todo revision
+approval-gate |Security controls including sender whitelisting and permission relay are supported
+approval-gate |codex exec --help now shows clearer usage and approval-mode wording (#16881, #16888).
+approval-gate |feat(plan): update UI Theme for Plan Mode
+approval-gate |Build: align Telegram QA workflows and git source installs with the pnpm 11 workspace build allowlist surface. (#80588) Thanks @altaywtf.
+approval-gate |Added project trust gating for project-local settings, resources, instructions, and packages (#5332).
+attachments   |Added support for custom voice format and input device settings.
+attachments   |The input footer shows a “ctrl+v to paste image in clipboard” hint while an image is on the system clipboard.
+attachments   |fix: add state to pause existing audio for demo menus, add support fo…
+attachments   |Copy Shortcut: Added Ctrl+Y shortcut to quickly copy the last AI response to clipboard, making it convenient to grab code snippets or important inform
+attachments   |Apple Watch voice turns: dictate a message from the Watch chat and hear the new OpenClaw reply spoken on the Watch, with explicit silent-message and s
+attachments   |Media: preserve GIF animation when uploading to Discord/other providers (skip JPEG optimization for image/gif).
+attachments   |Today's release includes a minimap, image support in hover documentation, and many improvements to the agent panel.
+attachments   |feat(cohere): add support from Reasoning/Vision/Translate models
+attachments   |feat(tui): add debug info dialog with copy to clipboard
+attachments   |Fixed an issue where the app could crash when opening the markdown preview with a malformed image tag
+attachments   |#43645 Expand TUI regression coverage for realtime voice conversations @copyberry
+attachments   |fix(cli): change image paste location to global temp directory
+attachments   |Browser/security: enforce SSRF policy on snapshot, screenshot, and tab routes [AI]. (#66040) Thanks @pgondhi987.
+attachments   |Fixed image support check by passing model info to ReadTool
+attachments   |Support MiniMax image generation schema
+bugfix        |Automation event acceptance is now atomic. The event log row was committed before specs were matched and runs materialized, so a failure mid-fan-out l
+bugfix        |Fixed validateToolArguments() to fall back gracefully when AJV schema compilation is blocked in restricted runtimes such as Cloudflare Workers, allowi
+bugfix        |QA-Lab: add a personal-agent failure recovery scenario that checks honest partial status, retry boundaries, and local recovery artifacts. (#83872) Tha
+bugfix        |Reconnecting to a stale managed Cline Hub daemon is fixed. When another Cline install ships a newer Hub, the app now prompts to update and restart — a
+bugfix        |fix: fix tool execute abnormal when there is no tool policy data in the local cache
+bugfix        |Auto-reply/billing: classify pure billing cooldown fallback summaries from structured fallback reasons so users see billing guidance instead of the ge
+bugfix        |fix(core): cap a streaming response's total lifetime, slim the review fan-out launch
+bugfix        |/diff now shows diffs of all changes resulting from your request, including lint and test fixes.
+bugfix        |Fix Windows navigation keys, reliably terminate sandboxed process trees, and preserve proxy settings during security reviews. (#34625, #34624, #35036)
+bugfix        |At Charm, we're all about creature comforts. This release contains a couple nice quality-of-life features and a handful of fixes, particularly around
+bugfix        |OTLP signals skipped when protocol=grpc to avoid background-thread panic
+bugfix        |WhatsApp: route proactive phone-number sends through Baileys LID forward mappings when available, so LID-addressed contacts receive agent messages ins
+bugfix        |fix: configure agent-server telemetry in Canvas launchers
+bugfix        |fix(core): allow web_fetch JSON fallback
+bugfix        |Agent: Fixed model dropdown resetting to "Default (recommended)" when opening a previous conversation from history. (#51587; thanks OmChillure)
+cli-flags     |Added support for removing model-specific reasoning tags from responses with remove_reasoning: tagname model setting.
+cli-flags     |CLI/update: install npm global updates into a verified temporary prefix before swapping the package tree into place, preventing mixed old/new installs
+cli-flags     |Per-token stream deltas are no longer mirrored into telemetry — they accounted for ~97% of all agent event volume with no analytical value
+cli-flags     |Environment substitution for auth blocks - Dynamic environment variable substitution in authentication configuration [#5439]
+cli-flags     |feat(cli): OpenTUI migration infra batch — locked deps, dependency-direction arch check, framework-neutral streaming model
+cli-flags     |Changed the new "elixir": { "next": "on" } setting to "elixir": { "lsp": "next_ls" }. The elixir.lsp setting requires a full restart to take effect.
+cli-flags     |Add isSignedIn to config reload telemetry
+cli-flags     |feat(eval): add add-logging behavioral scenario (11th scenario) (#2072) (e389c0ce5)
+cli-flags     |Enabled /review presubmit on Aone targets to detect self-MRs and head drift by routing through the a1 CLI and comparing author identity.
+cli-flags     |Added yaml-language-server configuration via settings. See: zed.dev/docs/languages/yaml (#17479).
+cli-flags     |#13381 chore: rm --all-features flag from rust-analyzer @sayan-oai
+cli-flags     |feat(extensions): add --skip-settings flag to install command
+cli-flags     |feat(cli): add gptme-util chats stats command (#1618) (53c415e9a)
+cli-flags     |Export AI SDK telemetry spans to OTLP trace backends.
+cli-flags     |feat(cli): support same-turn message steering (#7090) by @LaZzyMan
+file-edit     |We adopted the write tool to allow the model to create empty files (thanks @vorticalbox).
+file-edit     |fix(patch): cherry-pick 050c303 to release/v0.38.0-pr-25317 to patch version v0.38.0 and create version 0.38.1
+file-edit     |fix(patch): cherry-pick a8b4c38 to release/v0.27.0-pr-18161 to patch version v0.27.0 and create version 0.27.1
+file-edit     |fix(patch): cherry-pick fe67ef6 to release/v0.18.1-pr-13596 to patch version v0.18.1 and create version 0.18.2
+file-edit     |feat: added patch tool, added more integration test examples (2c2a6c0)
+file-edit     |Add new search_and_replace tool for batch text replacements across files (PR #9549 by @hannesrudolph)
+file-edit     |Agents/tools: stop treating tools.deny: ["write"] as an implicit apply_patch deny; operators who want to block patch writes should deny apply_patch or
+file-edit     |Agent: Improved the edit tool so it can still apply edits when a file has changed on disk, as long as the target text still matches.
+file-edit     |If something doesn't work as expected by the LSP, don't worry. We'll report an error to the model so it can fallback to using the edit tool.
+file-edit     |feat(release): Add dev env support to release-3-patch
+file-edit     |CLI/config: preserve numeric-looking object keys such as Discord guild IDs during config patch recursive merges. (#81999) Thanks @giodl73-repo.
+file-edit     |Intra-line diff highlighting: Edit tool now shows word-level changes with inverse highlighting when a single line is modified. Multi-line changes show
+file-edit     |Fixed off-by-one error in edit tool’s reported start/end line numbers when the edit is not at the beginning of the file
+file-edit     |Fixed patch tool to support line removal
+file-edit     |remove edit tool from plan agent
+git-pr-ci     |New --attribute-commit-message-author to prefix commit messages with 'aider: ' if aider authored the changes, replaces --attribute-commit-message.
+git-pr-ci     |Agent: Added Paste as Plain Text to the agent panel message editor right-click menu.
+git-pr-ci     |feat(eval): add root-cause-pipeline-debug behavioral scenario (ef2cac82d)
+git-pr-ci     |Added Stash Tracked and Stash Staged options to the Git Panel, letting you stash only tracked changes or only staged changes. (#62254; thanks Priyadha
+git-pr-ci     |Added --commit-language option to specify the language for commit messages, by Kyosuke Takayama.
+git-pr-ci     |/verbose slash command to toggle debug at runtime ([#94](https://github.com/Nou...
+git-pr-ci     |Reduced CI test flakes caused by disk space and system load by optimizing fixture cleanup and using disk-backed temporary directories on Linux. (#8982
+git-pr-ci     |Fix: Token limit exceeded for PR body issue
+git-pr-ci     |Added git stash apply command.
+git-pr-ci     |feat: added instant apply for unified diff
+git-pr-ci     |PR #95308 fix(ci): filter ClawSweeper comment dispatches before token minting. Thanks @vincentkoc.
+git-pr-ci     |Added branch picker for repository on homepage
+git-pr-ci     |React Compiler integration added to webview-ui for automatic memoization and performance improvements (#9916 by @In-line, PR #9565 by @In-line)
+git-pr-ci     |Agent: Fixed an issue where cmd-f would not work if the file was open in the center pane.
+git-pr-ci     |Added git stash drop command.
+i18n-l10n     |CLI Documentation Update: Updated CLI reference, environment variables, HTTP API, slash commands, and other documentation in both Chinese and English
+i18n-l10n     |Expanded translation coverage and added more supported desktop languages.
+i18n-l10n     |CLI Documentation Archive: Completed English translations for 6 release notes from v2.100.0 ~ v2.103.0, updated the Chinese/English navigation bar, an
+i18n-l10n     |Added localization support for all macOS specific date and time configurations in chat.
+i18n-l10n     |Slack/Discord/Telegram: add per-channel ack reaction overrides (account/channel-level) to support platform-specific emoji formats. (#17092) Thanks @ze
+i18n-l10n     |feat(i18n): add br locale support
+i18n-l10n     |Full Unicode input: Input fields now accept Unicode characters beyond ASCII. (#306 by @kim0)
+i18n-l10n     |Added support for automatically replacing emoji shortcodes in chat (e.g. typing ":wave:" will be converted to "?").
+i18n-l10n     |i18n infrastructure — added react-intl based internationalization framework to the desktop app
+i18n-l10n     |WhatsApp/reactions: agents can now react with emoji on incoming WhatsApp messages, enabling more natural conversational interactions like acknowledgin
+i18n-l10n     |Added locale-aware plural rules so translated counts and summaries read correctly.
+i18n-l10n     |Add translations support to app
+i18n-l10n     |feat: Add support for Norwegian translations
+i18n-l10n     |feat(i18n): add German language support
+i18n-l10n     |Add: Task expand and collapse translations (thanks @app/roomote!)
+integrations  |Team Feature Toggle: Agent Teams functionality can be flexibly controlled via the CODEBUDDY_CODE_EXPERIMENTAL_AGENT_TEAMS environment variable
+integrations  |Hooks/agent deliveries: dedupe repeated hook requests by optional idempotency key so webhook retries can reuse the first run instead of launching dupl
+integrations  |Added gateway webhook coverage (auth, validation, and summary posting).
+integrations  |Agents: widen progress draft command preview lines by 50% so Discord inline tool updates preserve more useful command context.
+integrations  |Discord: allow channel-edit to archive/lock threads and set auto-archive duration. (#5542) Thanks @stumct.
+integrations  |Added Slack integration package with Bolt framework support
+integrations  |Add a email privacy note to bug_report template
+integrations  |Teams/security: require shared Bot Framework audience tokens to name the configured Teams app via verified appid or azp, blocking cross-bot token repl
+integrations  |Discord: add debug logging for message routing decisions to improve --debug tracing. (#16202) Thanks @jayleekr.
+integrations  |Robustness: WebSocket error guards and global unhandled handlers; Baileys @lid resolution; webhook media hosting uses shared host module (test-covered
+integrations  |A Vercel account is required to use the publish feature.
+integrations  |Rate limit Google Chat webhook requests [AI]. (#80974) Thanks @pgondhi987.
+integrations  |Slack/partial streaming: key turn-local dedupe by dispatch kind and keep the final fallback reply path active when preview finalization fails so stale
+integrations  |Slack: read thread replies for message reads when threadId is provided (replies-only). (#1450) Thanks @rodrigouroz.
+integrations  |feat(azure-devops): add resolver mentions + org-level one-click webhook setup
+mcp-tools     |Feature/Qwen Code CLI API Support with OAuth
+mcp-tools     |MCP sampling support: MCP servers can request LLM completions via the sampling protocol
+mcp-tools     |feat(telemetry): Add MCP tool usage tracking
+mcp-tools     |You can now send a message to steer the agent while it's working without interruption. Follow-ups wait for the next tool call instead of cutting the a
+mcp-tools     |Show pending tool call count in TUI instead of generic 'Running...' message
+mcp-tools     |Add Composio to adding-mcp-servers-from-github.mdx
+mcp-tools     |feat: add tool call support for moonshot models
+mcp-tools     |feat: add image tool to developer mcp
+mcp-tools     |Add MCP resources support (@paoloricciuti)
+mcp-tools     |Fixed OpenAI Codex (ChatGPT subscription) sign-in silently dead-ending when callback port 1455 was already in use — it now fails immediately with an a
+mcp-tools     |#34550 Test thread-scoped MCP refresh behavior @copyberry
+mcp-tools     |fix: use common process.env values to launch MCP
+mcp-tools     |Honor MCP tool model visibility in Code Mode #11425
+mcp-tools     |MCP response limits: reject oversized HTTP responses and SSE events before parsing while preserving healthy long-lived streams and keepalives. Related
+mcp-tools     |xAI device-code OAuth and Grok 4.5 Responses support — Sign in to xAI with a device code and use Grok 4.5 with low, medium, or high thinking. See xAI.
+memory-context|Added /think-tokens command to set thinking token budget with support for human-readable formats (8k, 10.5k, 0.5M).
+memory-context|Memory-core: scan persisted memory source sessions on startup, comparing on-disk transcripts against the index and marking only missing/newer/resized
+memory-context|RPC mode supports {"type":"compact"} command and auto-compaction (emits compaction events)
+memory-context|Memory summaries are now versioned and rebuilt when the stored format is stale, which should keep long-lived memory context leaner and more predictabl
+memory-context|Plugins/memory-lancedb: bootstrap LanceDB into plugin runtime state on first use when the bundled npm install does not already have it, so plugins.slo
+memory-context|(Preview only) Agent: Agent favorite models now remember and restore per-model thinking, effort level, and fast mode preferences.
+memory-context|Add tokenizer tests and fix auto-compact calculation to account for max_tokens
+memory-context|Chat polish: compaction gets a folding shimmer, the composer has a stable accessible name and accepts the next prompt right after send, Escape closes
+memory-context|Add input limit for compaction (@brandon93s)
+memory-context|Local review-fix loops now anchor incremental rounds to working tree content changes instead of commits, reducing token usage by avoiding full tree re
+memory-context|running context rewriting prior to running auto compact
+memory-context|#4706 Fix command output truncation that sometimes used too much of the context window
+memory-context|fix(autocompact): record context-savings ledger when tool outputs are summarized (#2342) (941bb9b25)
+memory-context|Made session compaction keep complete recent turns and produce clearer summaries for smaller models.
+memory-context|feat(external-context): Add optional Mem0 memory writes
+models-routing|Added native support for Deepseek models using DEEPSEEK_API_KEY and deepseek/deepseek-chat, etc rather than as a generic OpenAI compatible API.
+models-routing|Added inherited OpenAI-compatible vllmPriority and supportsMaxOutputTokens model settings for vLLM scheduler priority and OpenAI Responses output-toke
+models-routing|Added ClinePass support, with selectable ClinePass models in the model picker
+models-routing|Agents/runtime: memoize transcript replay-policy resolution for stable config and process-env runs while preserving custom-env provider hook behavior.
+models-routing|Fix: Model switch re-applies selected profile, ensuring task configuration stays in sync (#9179 by @hannesrudolph, PR by @hannesrudolph)
+models-routing|Add support for 200k context for claude sonnet 4 using openrouter/cline
+models-routing|fix: write to config yaml if provider test succeeds
+models-routing|fix(provider): add support for jp. prefix in Amazon Bedrock cross-region inference profiles
+models-routing|Add Claude Opus 4.5 model to Bedrock provider (#9571 by @pisicode, PR #9572 by @roomote)
+models-routing|Have o1 & o3-mini generate markdown by sending the magic "Formatting re-enabled." string.
+models-routing|#18921 Fix /review interrupt and TUI exit wedges @etraut-openai
+models-routing|feat(config): enable Gemma 4 models by default via Gemini API
+models-routing|QA/Matrix: keep the mock OpenAI tool-progress provider aligned with exact-marker Matrix prompts so the hardened live preview scenario still forces a d
+models-routing|Fixed OpenAI Responses early stream endings to trigger automatic retry instead of ending the agent run (#6727).
+models-routing|Fix: Gate auth-driven Roo model refresh to active provider only (thanks @daniel-lxs!)
+orchestration |Task history no longer goes blank when a task spawns many subagents. Subagent rows crowded out the tasks that created them, hiding the parent task and
+orchestration |Duplicate Sub-Agent Names in Expert Team: Fixed an issue where duplicate sub-agent names in expert teams caused spawn failures, improving the stabilit
+orchestration |Tasks: add a minimal SQLite-backed task flow registry plus task-to-flow linkage scaffolding, so orchestrated work can start gaining a first-class pare
+orchestration |Lost subagent results after compaction: Fixed an issue where the parent agent could not receive the actual result after automatic context compaction a
+orchestration |fix(test): improve test isolation and enable subagent evaluations
+orchestration |feat(workflows): add an orchestration policy layer to the Workflow tool description
+orchestration |CLI parameter: --subagent-permission-mode
+orchestration |feat(subagent): accept plain dict as output_schema, generate proper JSON Schema hints (#554) (#3174) (3b9fb6c6c)
+orchestration |Media: prevent image metadata probing from invoking external decoder delegates on unrecognized image bytes, and stop fallback chaining after real proc
+orchestration |Improved Web Shell subagent panel responsiveness by fixing animation stutter, elapsed time resets, and output scrolling behavior. (#8915) by @ytahdn
+orchestration |Subagent preamble text hidden: Descriptive text output by the model before invoking subagents is no longer displayed in the conversation flow, reducin
+orchestration |#13218 Add role-specific subagent nickname overrides @gabec-openai
+orchestration |Subagent tool hidden when running as a subagent [#6125]
+orchestration |Agents/subagents: pin admin-only subagent gateway calls to operator.admin while keeping agent at least privilege, so sessions_spawn no longer dies on
+orchestration |feat(core): add Goal v3 runtime orchestration (#7664) by @qqqys
+other         |Added repo-map support for OCaml and OCaml interface files, by Andrey Popp.
+other         |Added search settings section to configure default options enabled in buffer and project searches (#17179; thanks thataboy).
+other         |This audited record covers the complete v2026.6.6..v2026.6.8 history: 192 merged PRs. The generation manifest also supplies direct commits as editoria
+other         |Added support for copying in Markdown preview using ctrl-insert on Linux/Windows.
+other         |#19071 Add computer_use feature requirement key @leoshimo-oai
+other         |feat(logmanager): add content-addressable file storage (Issue #150) (#913) (86febf7de)
+other         |tweak(config): make markdown agent files in subfolder discoverable .opencode/agent/some-folder/*.md
+other         |Added text selection for vim::PushFindForward and vim::PushFindBackward keybinds in helix mode. (#31547; thanks thebasilisk)
+other         |Synchronized Task History: Real-time task history synchronization across all Cline instances
+other         |#8942 Add 5s timeout to models list call + integration test @aibrahim-oai
+other         |security(hooks): Wrap hook-injected context in distinct XML tags
+other         |Feat: Add roulette model class & config
+other         |Add new sounds to app
+other         |Added optional OpenTelemetry trace and span IDs to daemon logs to improve correlation and debugging capabilities for sampled requests. (#9084) by @dou
+other         |Helix: Added vim::HelixSubstitute and vim::HelixSubstituteNoYank with better imitations of helix's behavior. (#38735; thanks jneem)
+perf          |Cancel button: With the new streaming feature, you can now Cancel mid-generation to give Cline feedback if he goes off in the wrong direction. This gi
+perf          |BlueBubbles: lazy-refresh the Private API server-info cache on send when reply threading or message effects are requested but status is unknown, so se
+perf          |ACP Protocol Optimization: Enhanced command filtering mechanism and output display, improving protocol compatibility and interface clarity
+perf          |Hi! Today's release adds first class support for Hyper, our inference service for coding focused on price, performance, and privacy.
+perf          |v1.2.0 and beyond includes a data migration that will execute on first run. It will migrate all flat files in data directory to a single sqlite databa
+perf          |Add "Lazy Teammate Mode" experimental toggle
+perf          |Network Error Handling: Optimized automatic retry logic for network errors in print mode to avoid abnormal exits
+perf          |Promoted js_repl to /experimental, added startup compatibility checks with user-visible warnings, and lowered the validated minimum Node version to 22
+perf          |LINE/Security: fail closed on webhook startup when channel token or channel secret is missing, and treat LINE accounts as configured only when both ar
+perf          |Input Experience Optimization: Improved support for special characters and emojis, enhancing editing fluency
+perf          |Added prewarmInitialize option to move CLI startup time to the prewarm phase
+perf          |fix(cli): validate --model argument at startup
+perf          |CPU-scaled foreground concurrency: size default top-level agent concurrency from available CPU parallelism, bounded between 8 and 16 simultaneous runs
+perf          |fix(desktop): performance optimization for showing large diff & files
+perf          |perf(core): lazy-load web-tree-sitter runtime
+remote-cloud  |Render the ask question tool prompt inline with the conversation so the question and suggested answers stay attached to the assistant turn that asked
+remote-cloud  |Mobile and chat surfaces got a broader refresh: the iOS Pro UI, hosted push relay default, realtime Talk tab playback, Gateway chat transport, onboard
+remote-cloud  |Added support for repositories hosted on git.sr.ht (Sourcehut), codeberg.org, and bitbucket.org (Bitbucket Cloud) to the editor: copy permalink to lin
+remote-cloud  |#20150 Add remote plugin skill read API @xli-oai
+remote-cloud  |Browser: surface pending and recently handled modal dialogs in snapshots, return blockedByDialog when an action opens a modal, and allow browser dialo
+remote-cloud  |Agent: Added support for installing ACP agents via ACP registry in remote projects.
+remote-cloud  |Headless Terminal Noise Suppression: Headless terminal construction now disables xterm log output, avoiding Parsing error messages from PTY chunks and
+remote-cloud  |Crush is really powerful in scripts, CI/CD, and so on, and we're seeing more and more headless Crush usage. On that note, this release adds some impro
+remote-cloud  |Added support on windows without WSL
+remote-cloud  |Debugger: Browser debugging is now supported in SSH and WSL projects. #39248
+remote-cloud  |Add support for Claude 4 models (Sonnet 4 and Opus 4) in AWS Bedrock and Vertex AI providers
+remote-cloud  |#20773 feat: add remote compaction v2 Responses client path @jif-oai
+remote-cloud  |feat(core): add google credentials provider for remote agents
+remote-cloud  |Add left padding to command items in search modal
+remote-cloud  |Remote Dev: Added 10s connect timeout for server download.
+sandbox-exec  |Basic Interaction Refinements: Unified the font size of the bottom input box and message bubbles to ease visual fragmentation; added a configurable wr
+sandbox-exec  |Added request_scope tool for requesting read/write access to directories when running in sandbox mode
+sandbox-exec  |Sessions/Security: add session.dmScope for multi-user DM isolation and audit warnings. (#948) — thanks @Alphonse-arianee.
+sandbox-exec  |Linux sandboxed tool calls are more reliable on older distributions with older bubblewrap, and Windows restricted-token sandboxing now supports more s
+sandbox-exec  |Tests/security audit: isolate audit-test home and personal skill resolution so local ~/.agents/skills installs no longer make maintainer prep runs fai
+sandbox-exec  |fix(web-shell): isolate slash command plugin pages
+sandbox-exec  |Improved Windows execution and sandbox reliability, including native exec-server sandboxing, network-proxy enforcement, hidden helper consoles, and co
+sandbox-exec  |Add note about root privileges in sandbox docs
+sandbox-exec  |Browser/Profile defaults: prefer openclaw profile over chrome in headless/no-sandbox environments unless an explicit defaultProfile is configured. (#1
+sandbox-exec  |Hand off to the cloud — Seamless hand off to Devin in the cloud, with its own VM, testing, video recordings, autofix and more. Come back to a finished
+sandbox-exec  |#29624 Preserve Windows sandbox identity during credential retry @jif-oai
+sandbox-exec  |Windows sandbox treats <workspace_root>/.git as read-only, and risky browser launches are flagged before execution.
+sandbox-exec  |fix(eval): pass API keys to Docker container
+sandbox-exec  |feat: surface a clear error when a custom sandbox image's agent-server SDK mismatches
+sandbox-exec  |Patches high-severity CVEs, secures sandbox images against tampering, and enforces stricter dependency and workflow security gates.
+scheduling    |Recurring schedules created without a timezone now persist the host's local IANA timezone rather than an implicit default, and the scheduling tool pro
+scheduling    |Cron/channels: preserve external sessions_send routes, include the job name in single-job history, keep Mattermost attachments on the upload path, and
+scheduling    |Heartbeat/Config: replace heartbeat DM toggle with agents.defaults.heartbeat.directPolicy (allow | block; also supported per-agent via agents.list[].h
+scheduling    |Automation Task Langfuse Tags: Requests triggered by scheduled tasks now automatically carry the automation tag, making it easier to filter and analyz
+scheduling    |Approve recurring work once: grant an automation permission for an exact operation, inspect or revoke that permission later, and require a fresh appro
+scheduling    |Gateway: expose optional isHeartbeat metadata on agent event payloads so clients can distinguish scheduled heartbeat runs from ordinary chat runs. (#8
+scheduling    |Web UI: add Agents dashboard for managing agent files, tools, skills, models, channels, and cron jobs.
+scheduling    |Platform Tool for Scheduler: Allow Goose to Manage Its Own Schedule
+scheduling    |Heartbeat: clamp oversized scheduler delays through the shared safe timer helper, preventing every values over Node's timeout cap from becoming a 1 ms
+scheduling    |Cron: auto-deliver isolated agent output to explicit targets without tool calls.
+scheduling    |fix(cron): add deterministic test seam for cron-interactive E2E (#6987) by @yiliang114
+scheduling    |Pools can also hibernate idle machines, then restore within a reconnect window when a follow-up arrives, so you don't keep expensive capacity warm jus
+scheduling    |feat: implement proper task cancellation for scheduled jobs
+scheduling    |PR #88160 test(unit-fast): isolate fake-timer files. Thanks @RomneyDa.
+scheduling    |Cron: share isolated announce flow and harden scheduling/delivery reliability. (#11641) Thanks @tyler6204.
+search-index  |TaskOutput Enhancement: Supports background task output file management and streaming retrieval, making it easier to handle long-output tasks.
+search-index  |Knowledge management – Create, update, delete, and organize knowledge notes into folders. Review knowledge suggestions.
+search-index  |Added editor: select enclosing symbol command based on tree-sitter outline. This is useful when combined with inline assist to rewrite a function.
+search-index  |Grep Tool: Added context parameter alias for improved usability
+search-index  |Introducing Devin 2.0: an agent-native IDE experience. Generally available today starting at $20.Check out our launch announcement on X to learn more!
+search-index  |Added file_scan_inclusions setting to force Zed to index files that match the provided globs, even if they're gitignored (#16852; thanks Hawkbawk).
+search-index  |Use “send to channel” to mirror sessions started via the web app on Slack:This enables anyone in the channel (with Devin access) to quickly follow alo
+search-index  |feat(eval): add SWE-bench two-stage file retrieval (#3179) (593bdb760)
+search-index  |feat(integrations): add retrieval-only external context search
+search-index  |Added support for working on multi-root workspaces containing virtual filesystem folders.
+search-index  |feat(cli): add grep/find/findstr as alternative search strategy
+search-index  |Support for modifying default commands like /plan and /review
+search-index  |feat(knowledge): wire search to gptme-rag semantic ranking (#3865) (73074e58d)
+search-index  |Add ctx.abort to grep tool
+search-index  |Add comprehensive error telemetry to code-index service (thanks @daniel-lxs!)
+security-secre|Added support for the tool injection flow in Quick Q&A mode and improved the exit animation for recommendation capsules.
+security-secre|Sessions: redact persisted tool result detail metadata before writing transcripts so diagnostic secrets do not survive tool output redaction. (#80444)
+security-secre|Add Cline Hub, a web app for monitoring connected clients, viewing and driving sessions, streaming assistant output, and restarting the local hub, wit
+security-secre|feat(security): add --injection-hygiene CLI flag; screen local file reads (#3218) (bda4c1a3f)
+security-secre|Dependencies: update @openclaw/fs-safe to 0.2.7 so OpenClaw's default Python-helper-off policy keeps best-effort Node write fallbacks for private stor
+security-secre|feat: Add version information injection to CLI build script
+security-secre|Agents/bootstrap: add agents.defaults.contextInjection: "never" to disable workspace bootstrap file injection for agents that fully own their prompt l
+security-secre|Security/Logging: redact Telegram bot tokens from error messages and uncaught stack traces to prevent accidental secret leakage into logs. Thanks @aet
+security-secre|feat(acp): add model dropdown and credential fields to agent settings page
+security-secre|Resolved 17 security vulnerabilities including high-severity DoS issues in dependencies (body-parser, axios, qs, tar, and others)
+security-secre|resource-monitoring: prevent file descriptor count leak by adding caching (a99288f)
+security-secre|Retry on authentication failure with credential refresh #7812
+security-secre|Security/dependency audit: force basic-ftp to 5.2.1 for the CRLF command-injection fix and bump Hono plus @hono/node-server in production resolution p
+security-secre|Agents: harden Cloud Code Assist tool ID sanitization (toolUse/toolCall/toolResult) and scrub extra JSON Schema constraints. (#665) — thanks @sebsligh
+security-secre|Fixed grep and find tool argument injection for flag-like search patterns (#4018).
+sessions-histo|Checkpoints no longer stall every message in workspaces with large untracked directories. Each turn re-hashed every untracked file before the model ca
+sessions-histo|Infra/secrets: restore the fail-closed contract for tryReadSecretFileSync so credential loaders that pass rejectSymlink: true (Telegram, LINE, Zalo, I
+sessions-histo|Added a button to the quick action bar to start a debug session or spawn a task, depending on which of these actions was taken most recently.
+sessions-histo|fix: launching session in new window
+sessions-histo|Add workspace controls when starting a new session.
+sessions-histo|Changed the default split directions for the pane: split horizontal and pane: split vertical actions. You can restore the old behavior by modifying th
+sessions-histo|ebd845c: feat(agent): send session hash in header for cache affinity (@meowgorithm)
+sessions-histo|ACP session/set_config_options support for switching mode and model
+sessions-histo|Fix inability to select text when creating a new session
+sessions-histo|[codex] Add daemon session load/resume
+sessions-histo|#25316 feat(tui): restore output-free cancelled prompts @fcoury-oai
+sessions-histo|/new command to start a fresh session without restarting #10767
+sessions-histo|Gateway: return deterministic 400 invalid_request_error responses for malformed encoded session-kill HTTP paths instead of letting route-shaped reques
+sessions-histo|tweak(session title): change prompt to have the response with user language
+sessions-histo|fix(cli): restore goal-less startup broken by the goal-runtime wait refactor
+shell-tools   |The run_commands tool description now names the actual PowerShell edition in use — Windows PowerShell (powershell.exe) versus PowerShell (pwsh.exe) or
+shell-tools   |Header values in models.json now support environment variables and shell commands, matching apiKey resolution
+shell-tools   |New --[no-]suggest-shell-commands switch to configure shell commands.
+shell-tools   |CLI/status: show the selected agent runtime/harness in openclaw status session rows so terminal status matches the /status runtime line. Thanks @vince
+shell-tools   |fix(web-shell): add :focus-visible outline to GitHub PR list rows
+shell-tools   |Terminal Emulation Optimization: Improved terminal emulation module under Bun runtime for better compatibility
+shell-tools   |feat: added tmux terminal tool, major tools refactor
+shell-tools   |Preserves the originally submitted prompt for UserPromptSubmit hooks so Auto Recall works for Web Shell submissions and opted-in ACP or daemon clients
+shell-tools   |feat(web-shell): expose session controls to hosts (#6906) by @dreamWB
+shell-tools   |Added a tab switcher, which is accessible via ctrl-tab and ctrl-shift-tab (#7321, #7653). The tab switcher works in both the main workspace area and i
+shell-tools   |#9150 feat: add sourcing of rc files to shell snapshot @jif-oai
+shell-tools   |fix: added 'head' to allowlisted commands in shell tool (7cc752f)
+shell-tools   |Fixed RpcClient to reject pending requests and consume stdin pipe errors when the child process exits unexpectedly (#4764).
+shell-tools   |fix(web-shell): make tool summaries consistently collapsible
+shell-tools   |feat(web-shell): allow host to override streaming loading phrases
+skills-plugins|Model lists for providers sharing the built-in catalog now refresh from the live catalog, so newly published models appear without an extension update
+skills-plugins|Plugins/PDF: move local PDF extraction into a bundled document-extract plugin so core no longer owns pdfjs-dist or PDF image-rendering dependencies. T
+skills-plugins|Manually created due to a GitHub API outage — the automated workflow published v4.0.9 to the VS Code Marketplace and Open VSX Registry successfully, b
+skills-plugins|plugin ClawHub publish: https://github.com/openclaw/openclaw/actions/runs/26557068673 published all workflow candidates except @openclaw/pixverse-prov
+skills-plugins|Changed ModelRuntime to compose built-in providers, immutable models.json configuration, and extension overlays through ad-hoc pi-ai provider methods.
+skills-plugins|Log the name of the telemetry provider(s) enabled in the extension
+skills-plugins|PreToolUse hooks receive a tool_provenance object identifying the skill or MCP server behind the call, and the config file or plugin that declared it.
+skills-plugins|Channels/WeCom: refresh the official onboarding install to @wecom/wecom-openclaw-plugin@2026.5.7 and update existing managed npm installs instead of f
+skills-plugins|Fixed failed extension factories leaving event subscriptions, provider registrations, and default flag state active (#8424 by @acmerfight).
+skills-plugins|feat: add symlink support for AGENTS.md file loading (thanks @app/roomote!)
+skills-plugins|#25060 Add goal extension idle continuation @jif-oai
+skills-plugins|update(telemetry): add hashed_extension_name to field to extension events
+skills-plugins|PR #90326 fix(fireworks): resolve catalog model params from plugin.json via core. Thanks @obuchowski.
+skills-plugins|feat(plugin): add DigitalOcean OAuth + Inference Routers
+skills-plugins|Documentation: Added skills system documentation to README (setup, usage, CLI flags, settings)
+ui-ux         |Multi-expert collaboration stuck: Fixed an issue in multi-member collaboration scenarios where the lead could get stuck on "thinking" with no output w
+ui-ux         |Added the command_palette.use_command_history setting to disable history-based command palette ranking without erasing history.
+ui-ux         |Hook activity in the TUI is easier to scan, with live running hooks shown separately and completed hook output kept only when useful
+ui-ux         |Custom tools: Extend pi with custom tools written in TypeScript. Tools can provide custom TUI rendering, interact with users via pi.ui (select, confir
+ui-ux         |Added support for using the insert button to activate vim mode (#19245; thanks axelcarl).
+ui-ux         |#39154 Box the TUI future to bound CLI stack usage @copyberry
+ui-ux         |Matrix/partial streaming: add MSC4357 live markers to draft preview sends and edits so supporting Matrix clients can render a live/typewriter animatio
+ui-ux         |Compacted sessions show a collapsible summary in the TUI (toggle with o key)
+ui-ux         |Agent Beta: Added assistant panel width persistence.
+ui-ux         |Complete Web UI streaming text: Repeated consecutive fragments in model output, such as 1000, are no longer dropped and rendered as 100.
+ui-ux         |Introduces new editor tooltip
+ui-ux         |Adjustable code panel: Customize your workspace by adjusting the width of the code panel to your preferred viewing experience.
+ui-ux         |fix(tui): slash command autocomplete highlighted row jumping
+ui-ux         |Added a structured error code for closing sessions to ensure reliable retry handling in the Web UI and Java clients. (#8884) by @yiliang114
+ui-ux         |Project Panel: Revamped how project panel entries are refreshed, which should lead to a significantly smoother experience when working in large projec
