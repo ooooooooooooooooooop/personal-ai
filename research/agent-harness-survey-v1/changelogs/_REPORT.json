@@ -1,0 +1,289 @@
+[
+  {
+    "slug": "codex-cli",
+    "source": "github:openai/codex",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "gemini-cli",
+    "source": "github:google-gemini/gemini-cli",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "opencode",
+    "source": "github:anomalyco/opencode",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "mistral-vibe",
+    "source": "github:mistralai/mistral-vibe",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "pi",
+    "source": "github:earendil-works/pi",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "openclaw",
+    "source": "github:openclaw/openclaw",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "hermes",
+    "source": "github:NousResearch/hermes-agent",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "aider",
+    "source": "github:Aider-AI/aider",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "openhands",
+    "source": "github:All-Hands-AI/OpenHands",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "mini-swe-agent",
+    "source": "github:SWE-agent/mini-swe-agent",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "goose",
+    "source": "github:block/goose",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "cline",
+    "source": "github:cline/cline",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "roo-code",
+    "source": "github:RooCodeInc/Roo-Code",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "kimi-code",
+    "source": "github:MoonshotAI/kimi-code",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "qwen-code",
+    "source": "github:QwenLM/qwen-code",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "crush",
+    "source": "github:charmbracelet/crush",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "kaos",
+    "source": "github:canivel/kaos",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "continue",
+    "source": "github:continuedev/continue",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "swe-agent",
+    "source": "github:SWE-agent/SWE-agent",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "zed",
+    "source": "github:zed-industries/zed",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "gptme",
+    "source": "github:gptme/gptme",
+    "kind": "releases-api",
+    "releases": 0,
+    "first": null,
+    "last": null,
+    "limited": true
+  },
+  {
+    "slug": "claude-code",
+    "source": "https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md",
+    "kind": "raw-md",
+    "bytes": 745908,
+    "sections": 401
+  },
+  {
+    "slug": "kaos-changelog",
+    "source": "https://raw.githubusercontent.com/canivel/kaos/main/CHANGELOG.md",
+    "kind": "raw-md",
+    "bytes": 57531,
+    "sections": 25
+  },
+  {
+    "slug": "zcode",
+    "source": "https://zcode.z.ai/en/changelog",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 109461
+  },
+  {
+    "slug": "cursor",
+    "source": "https://cursor.com/changelog",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 203025
+  },
+  {
+    "slug": "kiro",
+    "source": "https://kiro.dev/changelog/",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 285709
+  },
+  {
+    "slug": "trae",
+    "source": "https://docs.trae.ai/ide/changelog",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 2085013
+  },
+  {
+    "slug": "trae",
+    "source": "https://docs.trae.cn/ide_changelog",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 165289
+  },
+  {
+    "slug": "workbuddy",
+    "source": "https://www.workbuddy.cn/docs/workbuddy/changelog",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 3795
+  },
+  {
+    "slug": "devin",
+    "source": "https://docs.devin.ai/release-notes/2026",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 1585525
+  },
+  {
+    "slug": "codebuddy",
+    "source": "https://www.codebuddy.ai/docs/cli/release-notes/overview",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 3840
+  },
+  {
+    "slug": "devin",
+    "source": "https://docs.devin.ai/release-notes/2025",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 1408166
+  },
+  {
+    "slug": "windsurf",
+    "source": "https://windsurf.com/changelog",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 2617765
+  },
+  {
+    "slug": "devin",
+    "source": "https://docs.devin.ai/release-notes/2024",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 1431564
+  },
+  {
+    "slug": "devin",
+    "source": "https://docs.devin.ai/cli/changelog/stable",
+    "kind": "web-html",
+    "status": 200,
+    "bytes": 1457024
+  }
+]

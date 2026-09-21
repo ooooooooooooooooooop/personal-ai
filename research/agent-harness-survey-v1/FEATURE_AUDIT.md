@@ -1111,6 +1111,197 @@
 
 **票仓修正**：编排族在本窗口累计 **6 票**（Cursor Projects、Kiro Crew、ZCode Workflows、Hermes Bot Mode、Devin Code Scans、KAOS fleets）——全部 delta 里最强的收敛信号；远程执行 4 票。两族维持 §28.5/§28.7 决策项，证据权重已显著倾斜编排族。
 
+**B 级逐条 itemized delta（全量展开，含踩坑）**：
+
+*ZCode 3.14.0（09-19，窗口内）*：
+
+| 条目 | 判定 |
+|---|---|
+| Dynamic Workflows：单脚本编排多 subagent + `/workflow` + 输入框入口 | 编排族第三票（决策项已拍板做） |
+| Office/Coding 模式切换 | 同构（risk_mode/mode 预设） |
+| 自定义快捷键即时生效 | 变体（键位固定；薄） |
+| 三步 onboarding 按角色推荐任务/插件 | 变体（tour-card+About 已有；角色推荐薄） |
+| 归档任务批量删除 | **候选（薄）**：session_sweep 只归档，无批量删除 |
+| 手机远程控制改进 | 边界 |
+| Help 菜单 About + Check for Updates | 同构（About 视图已落） |
+| 批准卡"直接授予全权限" | 变体（allow_session+always 持久化存在；"全信任"按钮有意不做） |
+| Start Plan 独立可用 | 同构（plan 模式独立） |
+| 邀请奖励中心 / Plan 领取提醒 | 商业面边界 |
+| CUA 调用改进 | 边界（computer use） |
+| repo wiki 上传修复 | Repo Wiki 决策项佐证 |
+| 远端浏览器 tab/窗口记忆 | 边界（内置浏览器） |
+| 空闲任务超限友好提示 | 变体（schedule 语义不同） |
+| 工具失败错误正确显示、不残留半成品卡 | 同构（tool 错误行+denial reason） |
+| 后台 workflow 运行中的 session 不消失在任务列表 | 踩坑：我方 task_list 持久列全部任务，不复发 |
+| workflow 取消/恢复被拒时显示原因 | 同构（structured denial） |
+
+*ZCode 3.12.3（09-17，窗口内）+ 3.11.2（09-04）+ 3.10.2（08-31）*：
+
+| 条目 | 判定 |
+|---|---|
+| PDF 上传/读取/预览 + 媒体预览 | 变体（N8 诚实降级；全量 PDF 需新依赖，决策邻近项） |
+| per-workspace 插件安装 + 更新提醒徽标 | 边界（插件市场族） |
+| 受阻操作显示具体原因 | 同构 |
+| 侧栏中键关闭/状态记忆/草稿任务可见 | UI 变体 |
+| Plan Mode×排队消息交互、编辑消息即时发送不排队 | 变体（steer+队列已落） |
+| OpenCode Go provider 模板/provider 模板显示 | provider 兼容 N/A |
+| DB 初始化升级流程 | 同构（迁移链） |
+| thinking traces 可搜索+默认展开 | 变体（session_search 扫 flat 文本覆盖 thinking） |
+| MCP 协议版本可配 | N/A 无 MCP |
+| turn 结束执行摘要+时长 | **候选（薄）**：meta chips 有 token/cost，无 turn 时长行 |
+| 粘贴长文→附件阈值上调 | 变体 |
+| 上下文用量点击可查（触屏） | 同构（statusline contextUsage） |
+| 中断流自动重试 | 变体（provider 韧性族，已记） |
+| 模型切换不丢上下文 | 踩坑：durable session 不复发 |
+| 长命令输出自动截断防 UI 卡 | 踩坑：8k tail 截断已在 |
+| 多 skill 目录并列展示 | 踩坑：skills_list 全源聚合，不复发 |
+| 用量统计默认 7 天 | 同构（agent_stats） |
+| Windows 退出后残留后台进程 | 踩坑：supervisor 回收子进程（job 链 kill 树在产） |
+| 文件监听资源占用/搜索中输入/滚动位置/消息宽度/空 thinking/波浪号渲染 | UI 细节变体或 N/A |
+
+*Crush v0.95.0（09-16，窗口内）*：
+
+| 条目 | 判定 |
+|---|---|
+| **Plan Mode**（shift+tab 旗舰） | 同构（risk_mode plan+/plan+mode_request 批准链） |
+| 压缩后只读 summary 尾部（perf） | 变体（compact 族内部优化） |
+| prompt history 200 帽 | **候选（薄）**：输入历史无显式帽 |
+| `--reasoning-effort` 非交互 flag | 同构（effort 旋钮+profile effort） |
+| tool results 紧随调用即发 | 同构（泵逐条 emit） |
+| TUI 全量显示 bash 命令 | 同构（bash 命令行可见） |
+| OpenAI OAuth 登录族 | provider auth 变体 |
+| 展开/折叠保持滚动位置、选中项钉顶、AtBottom 诚实 | UI 变体 |
+| 用户消息保留单换行 | 同构（pre-wrap） |
+| 会话删除后列表位置保持 | UI 变体 |
+| 可配置超时 | 同构（max_minutes/job timeout） |
+| 每轮显示路由命中的模型（Hyper） | 变体（statusline 有当前模型） |
+| 关闭鼠标支持/exit-banner 样式 | N/A（TUI 专属） |
+
+*Crush v0.93.1（09-09）+ v0.92.x/0.91.x（窗口前缘）*：
+
+| 条目 | 判定 |
+|---|---|
+| 非视觉模型附着图片被静默丢弃→校验+提示 | 踩坑：N8 能力门控已修同类 bug |
+| MCP init 等待有界/错误域隔离/sessionless | N/A 无 MCP |
+| discover_models 内存泄漏修复 | N/A |
+| LM Studio enricher 保留用户 supports_attachments | 变体（models.json 操作员自持） |
+| providers.json 在禁 auto-update 时生效 | 同构 |
+| 代码块缩进/复制/闪烁 UI 修复 | UI 变体 |
+| sessionless GitHub MCP | N/A |
+
+*Hermes v0.21.0 Pantheon（08-31）+ v2026.9.7/0.21.2（09-07/11，窗口前缘）*：
+
+| 条目 | 判定 |
+|---|---|
+| **Bot Mode**：命名 agent+头像+群聊，bot 互相对话 | 编排族第四票（决策项已拍板） |
+| `hermes peer` bot-to-bot DM（跨 profile、持久可查） | 变体（task inbox/outbox mailbox 同族；跨 profile DM 是 UX 面差异） |
+| **cron 带记忆与连续性**：持久 memory+continuity 携带上轮输出+durable notepad+无变化跳过 LLM+输出落 Bot Chat | 编排族原语②实锤（协调器设计输入：scratchpad+continuity+monitor-skip 三件套进设计） |
+| `delegate_task` live 编排：列运行中子任务/中途 steer/提前停保留部分结果 | 同构（task_list+mailbox steer+job_cancel 保 events） |
+| 子输出 JSON-schema 校验 | 同构（delegate 契约校验） |
+| per-delegation cost 进结果 | 同构（child-reported usage 前转） |
+| 默认 250 iter/10 并发子任务 | 变体（配置值） |
+| **指令文件保护**：AGENTS.md/skills/memory 写必批准 | **候选（薄，治理）**：protectedRoots 只盖 instance 目录，`.pai/**`/AGENTS.md 在宽松模式可静默写——已核实为真缺口 |
+| 深度脱敏：terminal 错误/.env 读/checkpoint/ACP 日志 | **候选（薄）**：audit 键名 REDACTED 在产；job stdout/stderr 事件不 scrub |
+| Windows 破坏性命令进批准分类 | 同构（commandClassifier+deny 规则） |
+| macOS TCC 签名身份持久 | 平台 N/A |
+| **全局急停** | **候选（薄）**：只有 per-job job_cancel，无一键全停 |
+| session pin/unpin | 同构（supervisor session_pin+置顶排序+sweep 豁免已在产） |
+| Ctrl+P 模糊命令面板 | 变体（slash 补全在产） |
+| /status 显示推理模式+待批准+上下文 | 同构 |
+| 状态栏实时 cache-hit%/延迟/tok-s | 变体（session_stats 有 token/cost，无实时速率） |
+| agent 驱动内置浏览器 | 同构（browser 工具族已配置即在产） |
+| 6 provider+model_overrides 覆写 context/pricing | 同构（models.json 操作员文件直接可改） |
+| SQLite 多写者修复（hosted rooms 分库/dashboard 只读开/注册连接/doctor 拒不安全 checkpoint） | 踩坑：canonical writer lease 预先防同类 |
+| FTS 损伤域隔离（索引坏≠会话死） | 变体（memory FTS LIKE fallback；索引重建无） |
+| 桌面 session 控件/浏览器注解/rotating 占位符/terminal pets | UI 变体或 N/A |
+
+*Devin（09-16/09-18，窗口内）*：
+
+| 条目 | 判定 |
+|---|---|
+| **Code Scans**：宽泛工程目标→调查→评估→PR | 编排族第五票（决策项已拍板） |
+| Sessions Wake as You Type | N/A（本地会话常驻，无唤醒） |
+| 跳过的问题显示为"已跳过" | 同构（ask 超时卡显 resolved+结局） |
+| Reboot VM 侧栏动作 | N/A 无 VM |
+| 侧栏 agent mode 图标 | 同构（会话类型徽章） |
+| session origin 过滤（Slack/Web/API/Jira/Linear） | 变体（来源维度≈会话类型徽章；无多来源） |
+| 安全 bug 每次 review 必查 | 变体（verify 族已含安全扫描项） |
+| 从目录安装插件 | 同构（skills 目录装载） |
+| 插件版本 diff/下载/编辑/直链 | 变体（skill_manage 有删改；版本史无） |
+| MCP 连接状态+重连/密钥页面迁移/个人 OAuth | N/A 无 MCP |
+| Live Voice Mode | 边界（语音 UX 非范围） |
+| Slack/Teams/Jira/Linear/PagerDuty/email 触发与通知 | 边界（外部集成族） |
+| 消息复制保留格式/发送快捷键可配 | UI 变体 |
+| audit-logs 分页/PR 评论访问闸/Azure DevOps/Perforce 收窄 | 多租户边界 |
+| blueprint source git\|database | 同构（文件态配置） |
+| 60fps 录屏/机器启动提示/侧栏键盘导航/嵌套组展开 | UI 变体或 N/A |
+
+*KAOS 2.0.x/2.1.x（09-01/02，窗口前缘）*：
+
+| 条目 | 判定 |
+|---|---|
+| 本地多 agent fleet + "三个 agent 并行 review" | 编排族第六票 |
+| **预注册可证伪 kill gates**：延迟门失败→特性默认关+CI 拒发布 | 同构哲学（verify+validate_repo --strict+quality_report 门禁同思路；其"哈希锁定先注册后跑"更形式化） |
+| memory write 名/id FK 崩溃修复 | 踩坑：API 形状不同 N/A |
+| Claude Code 插件（SessionStart 注入排序记忆+工具调用 journal） | 边界（挂进其他 harness 的集成面） |
+| `memory search --format inject --token-cap` | 同构（预算化 context block） |
+| agent_sdk 子会话继承用户配置泄漏（MCP/tools 渗入） | 踩坑：N4/N11 隔离旋钮已修同类 |
+| OpenAI 式工具丢失→统一 tool_call 协议 | 踩坑：工具协议统一在产 |
+| FTS5 语法错误降级 sanitized 查询 | 踩坑：session_search 子串扫描无 FTS 面；memory FTS 有 LIKE fallback |
+| 排序确定性 tiebreak（CI flake 修复） | 同构（列表序有 id 兜底） |
+| ulid 移除（启动省 216ms）/demo 实测 p95 | perf 纪律变体 |
+| sdist 141MB 超 PyPI 帽 | 踩坑：发布边界不同 N/A |
+| neuroplasticity memory/Gantt 仪表盘/58 工具 MCP | 变体/边界（MCP 面无） |
+
+*Trae（09-01/03/04，窗口前缘，title 级）*：
+
+| 条目 | 判定 |
+|---|---|
+| Solo+Agent 合并 + `/goal` `/plan` `/spec` 内置命令（企业版） | 同构（goal governor+plan+spec 三件套） |
+| 插件市场个人版 | 边界 |
+| 3.3.98 hotfix | N/A |
+
+*Codebuddy v2.153.0（窗口内）*：
+
+| 条目 | 判定 |
+|---|---|
+| customPassthroughHeaders：逐 turn 头透传+启动前缀白名单+默认关 | 同构哲学（env_deny 同款"收窄默认+显式放行"）；SDK 线面 N/A |
+| QA harness（ACP/控制面/MCP/权限流一致性测试） | 同构（host/pi/app 三层测试+契约测） |
+| A2A×stream-json 混合模式输出修复 | N/A（协议面不同） |
+| 畸形 JSON-RPC→协议错误不再静默执行 | 踩坑：channel 未知命令 reply(false) 不误执行，不复发 |
+| 会话 API 200 空体不重试/单次 failover 408 | 变体（provider 韧性细节） |
+| 侧栏特性族：Goal/Scheduled Tasks/Channels β/Daemon/Agent Teams/Dynamic Workflows/Remote Control/Bash Sandboxing/Prewarm/Checkpointing/Worktree | 编排+远程族佐证（Goal/Channels/Daemon=编排票；Remote Control/Dev Container=远程票） |
+
+**踩坑对照表（他们修过的 bug × 我方核实）**：
+
+| # | 对方踩坑 | 我方核实结果 |
+|---|---|---|
+| P1 | 非视觉模型图片静默丢弃（Crush） | ✅ 已防：N8 能力门控+降级警告 |
+| P2 | 子会话继承操作员配置（KAOS agent_sdk） | ✅ 已防：N4 isolate_steering+N11 env 收窄 |
+| P3 | SQLite 多写者损毁（Hermes 四处） | ✅ 已防：canonical writer lease |
+| P4 | FTS 语法崩查询/索引损毁拖死会话（KAOS/Hermes） | ✅ 已防：session_search 子串扫描；memory FTS LIKE fallback |
+| P5 | 长输出不截断卡 UI（ZCode/Crush） | ✅ 已防：8k tail 多层截断 |
+| P6 | 畸形协议消息被当正常输入执行（Codebuddy） | ✅ 已防：channel 未知命令 reply(false) |
+| P7 | 后台任务运行中 session 从任务列表消失（ZCode） | ✅ 不复发：task_list 持久列全部 |
+| P8 | 模型切换丢上下文（ZCode） | ✅ 不复发：durable session |
+| P9 | Windows 目录 planted-exe 劫持（Cline） | ✅ 已防：N10 NoDefaultCurrentDirectoryInExePath |
+| P10 | **agent 静默改写自身指令文件**（Hermes） | ❌ **真缺口**：宽松模式下 `.pai/**`、AGENTS.md、steering/skills 源可静默写 → **M1** |
+| P11 | 凭证泄进 job 事件/checkpoint（Hermes 深度脱敏） | 🟡 半防：audit 键名 REDACTED；job stdout/stderr 事件未 scrub → **M5** |
+| P12 | 退出残留后台进程（ZCode） | ✅ 已防：supervisor 回收链 |
+
+**本轮新候选缺口（M 系）**：
+
+| # | 项 | 来源 | 量级 |
+|---|---|---|---|
+| M1 | 指令文件保护写：`.pai/**`、AGENTS.md、steering/skills/microagents 源文件在任何模式下写前必批准 | Hermes P10 | 薄（kernel always-ask path globs） |
+| M2 | 全局急停：一键取消全部运行中 job/task+中止当前 turn | Hermes | 薄 |
+| M3 | ~~session pin~~ → 核实为已有（supervisor meta+置顶排序+sweep 豁免），非缺口 | Hermes | — |
+| M4 | turn 结束执行摘要行（时长+工具数+cost delta） | ZCode | 薄 |
+| M5 | job stdout/stderr 事件入库前 secret 扫描 | Hermes P11 | 薄 |
+| M6 | 归档会话批量删除（sweep 现只归档） | ZCode | 薄 |
+| M7 | 输入历史 200 帽 | Crush | 薄（UI） |
+| M8 | monitor-mode schedule：无变化跳过本轮（协调器设计输入） | Hermes cron | 随协调器 |
+
 ### 28.7 定向机制复扫（delta 驱动，2026-09-21）
 
 按评审裁定只对 delta 暴露的两个未决机制族做落点级复核，不再全面重扫。已落地族（N1–N11）以测试名为证，不重复论证。
@@ -1141,3 +1332,53 @@
 判定：维持决策项不动；若未来做，入口是 `sandbox.js` spawnSpec + fileops/observation 的 locality 假设清单，不是重写。
 
 **复扫收尾**：N1–N11 消耗完毕；方向三「关于」视图已落；两个未决族都有精确落点，等拍板。
+
+### 28.8 全量更新日志收录 + 逐条核查（2026-09-21）
+
+**收录层**：`changelogs/` 36 个 harness 目录、~900 文件、~460MB 原始数据（`_REPORT.md` 有逐家覆盖表与缺口诚实记录）。解析层：7,239 个 release（21 家 GitHub releases 全页，各含 tag/date/全文 body）+ 文档站全量页 → 去重降噪后 **80,369 条信号条目**（`items.jsonl`/家），高信号 11 域 16,261 条全量抽出（`_signal-review.txt`）。Copilot CLI 无公开 changelog；codex/zed 受 GitHub 100 页封顶（最旧各到 rust-v0.33α / v0.106，缺口<5%）；amp/replit 主站 JS 壳仅索引。
+
+**方法**：条目→24 能力域关键词桶 + 机制性条目逐条读 + PAI 代码核查。域名桶内同义条目合并计数；机制性条目（cancel/retry/schema/isolate/inject/redact/scope/persist/budget 类）全部人工过眼。
+
+**新增候选缺口清单**（本轮全量扫描产出，编号续 M 系）：
+
+| # | 缺口 | 证据源 | 量级 |
+|---|---|---|---|
+| M9 | **http-bridge POST 无 Origin/Sec-Fetch 校验**——127.0.0.1 绑定挡不住恶意网页跨域 POST /cmd（CORS 只拦读不拦写） | CodeBuddy 同源漏洞修复（gateway 跨域 + SSE CORS wildcard） | 薄·安全 |
+| M10 | **拒绝记忆**——用户拒过的工具调用，模型重问仍弹批准（CodeBuddy in-session rejection memory） | codebuddy | 薄 |
+| M11 | **凭证输入不剥不可见字符**（BOM/零宽/换行→401 不可分辨，Cline 连修三版） | cline | 薄 |
+| M12 | **前台命令超时→自动转后台 job 而非杀死**（CodeBuddy Auto-Backgrounding） | codebuddy | 薄 |
+| M13 | **git worktree 并行工作目录隔离**（CodeBuddy/Codex/Cline --worktree 三家收敛） | codebuddy/codex/cline | 中 |
+| M14 | **调度输出无投递通道**——scheduled job 输出只进 job 详情，无完成通知（Hermes no_agent 非空投递 + CodeBuddy 完成主动通知） | hermes/codebuddy | 薄 |
+| M15 | **级联上下文文件加载**——父目录链式加载 + 个人 local 文件不入 VCS（CodeBuddy CODEBUDDY.md 级联 + CODEBUDDY.local.md） | codebuddy | 薄 |
+| M16 | **上下文溢出检测→强制压缩恢复**（Cline force-compact 非裸错误；PAI 溢出处理未核实） | cline | 薄·核查 |
+| M17 | **turn 级瞬时错误重试**（Cline 中流死亡 3 次指数退避；PAI 失败即终） | cline | 中·韧性族 |
+| M18 | **文档附着族**——DOCX/IPYNB/PDF 文本提取附着（Aider 多格式；PAI 仅 image） | aider | 中·需依赖 |
+| M19 | **WebFetch 工具缺失**——无网页抓取工具（CodeBuddy 并发竞速+100K 上限+15K 压缩是成熟参照） | codebuddy 等 | 中 |
+| M20 | **workspace info 注入的 git remote URL 凭证脱敏**（Cline 踩坑） | cline | 薄·核查 |
+| M21 | **schedule pause/resume + edit**（Goose pause/unpause/edit；PAI 仅 create/list/cancel） | goose | 薄 |
+| M22 | **Typed Memory**（user/feedback/project/reference 结构 + 查询选相关注入） | codebuddy | 中 |
+
+**协调器设计输入**（域证据直接喂给已拍板的协调器）：/loop 每轮模型自选 advance/delay/maintain（codebuddy）、headless 调度不问问题要默认 auto-approve 策略（cline）、调度 run 折叠+run number+来源过滤（cline UI）、monitor-skip 无变化跳 tick（hermes curator）、daemon 重启恢复 active goals（codex）、Cron 带持久记忆（hermes）。
+
+**新踩坑对照**（核查结论）：
+
+| 对方踩坑 | PAI 状态 |
+|---|---|
+| CodeBuddy 本地 gateway 跨域 POST | **复发→M9** |
+| Cline 凭证不可见字符 | **复发→M11** |
+| CodeBuddy exec→execFile 注入 | 不复发（spawn 数组形+治理分类命令串） |
+| Cline 凭证刷新生效抢 provider 选择 | 待核（轻） |
+| CodeBuddy ExitPlanMode 经代理路径绕批准 | 同类已防（decide 单入口）；代理旁路类已记录 |
+| CodeBuddy sub-agent 听主 abort 信号误杀 | 不复发（delegate job 分离） |
+| CodeBuddy sandbox 不可用 fail-open | 不复发（PAI fail-closed 哲学） |
+| Cline hub 广播全量 transcript 内存膨胀 | 不复发（SSE 事件流） |
+| CodeBuddy 禁用 skill 模型仍可调 | 不复发（N1 allowlist 门控） |
+| Cline repo 内 planted rg.exe/git.exe | 不复发（N10） |
+| CodeBuddy 图片路径泄进会话标题 | 待核（轻） |
+| Cline 压缩 1024 硬帽压死 reasoning | 待核（压缩预算配置） |
+| CodeBuddy 大 tool 结果外部化后回同步内存 | 待核（PAI 截断策略） |
+| CodeBuddy MCP /mcp 禁用重启复活 | 待核（PAI MCP 面） |
+| Cline MCP 不可达 60s 拖死启动 | 待核（PAI MCP 面） |
+| CodeBuddy 批准弹窗 Enter 键串台误批准 | 待核（PAI 批准卡键处理） |
+
+**子 agent 域核查**：abort 不级联 delegate job 是 durable 设计（stop_all 已补全局急停）→ 变体；同 step 多 delegate_task 天然并行（独立 job）→ 同构；sub-agent output 反注入扫描 → PAI 未做，入 M 系核查项。

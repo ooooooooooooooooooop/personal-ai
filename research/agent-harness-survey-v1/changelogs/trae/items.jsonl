@@ -1,0 +1,799 @@
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"更新日志"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"TRAE"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"TraeCodeTraeWorkTraeCode PluginTraeCode CLI企业版"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"AI 助手"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"TRAE 智能问答助手"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"你好，我是 TRAE 文档问答助手 🎉"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"你在阅读当前文档的过程中，无论对文档概念的解释，还是文档内容方面的疑问，都可以随时向我提问，我会全力为你解答"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"推荐问题"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"TRAE IDE 里最热门的 Skill 是哪些？"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"如何创建自定义智能体？"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"如何配置 Rules？"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"文档反馈"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"TRAE 概览"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"重磅更新：TraeWork 客户端上线"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"重磅更新：以积分为核心的计费模式正式上线"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"什么是 TraeCode？"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"快速开始"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"设备数量限制"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"更新日志"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"教程 & 最佳实践"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"AI 编程核心"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"SOLO 模式"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"工具与扩展"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"开发环境"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"IDE 设置"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"会员套餐"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"官方活动"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"问题排查"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"联系我们"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"相关协议"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":null,"item":"TraeCode/入门/更新日志"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"更新日志","item":"本文记录 TraeCode 的变更情况。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 15 日（Hotfix）","item":"TraeCode v3.3.101 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 15 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 11 日（Hotfix）","item":"TraeCode v3.3.100 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 11 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 08 日（功能发布）","item":"TraeCode v3.3.99 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 08 日（功能发布）","item":"支持分享对话。详情参考分享对话。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 08 日（功能发布）","item":"支持配置网络代理。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 08 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 04 日（Hotfix）","item":"TraeCode v3.3.98 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 04 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 03 日（功能发布）","item":"TraeCode v3.3.97 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 03 日（功能发布）","item":"【仅个人版】支持插件市场。详情参考插件市场。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 03 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 01 日（功能发布）","item":"TraeCode v3.3.93 - 3.3.96 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 01 日（功能发布）","item":"【仅企业版】Solo Agent 智能体和 Agent 智能体将合并为 Agent 智能体，支持在 IDE、SOLO 模式使用。Agent 智能体包含原 Solo Agent 智能体、 Agent 智能体的能力集合，包括：支持 /goal、/plan、/spec 等内置命令，支持根据模型选择是否开启 Max 模式，支持选择是否使用 Auto Mode 模型，支持调用自定义智能体等。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 09 月 01 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 20 日（功能发布）","item":"TraeCode v3.3.92 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 20 日（功能发布）","item":"支持 TRAE 移动端连接 TraeCode。详情参考连接 TRAE 移动端。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 20 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 19 日（Hotfix）","item":"TraeCode v3.3.89 ～ 3.3.91 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 19 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 12 日（功能发布）","item":"TraeCode v3.3.88 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 12 日（功能发布）","item":"【仅个人版】支持电脑控制（Computer Use）功能。详情参考电脑控制（Computer Use）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 12 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 10 日（Hotfix）","item":"TraeCode v3.3.87 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 10 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 07 日（功能发布）","item":"TraeCode v3.3.84 ～ 3.3.86 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 07 日（功能发布）","item":"支持为部分模型开启 Max 模式。详情参考 Max 模式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 07 日（功能发布）","item":"支持跳转至对话流中的任一 Query，通过对话面板左侧的对话缩略导航实现。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 08 月 07 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 30 日（功能发布）","item":"TRAE CN v3.3.81 ～ 3.3.83 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 30 日（功能发布）","item":"上线以积分为核心的计费模式。详情参考套餐与计费。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 30 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 23 日（功能发布）","item":"TRAE CN v3.3.79 ～ 3.3.80 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 23 日（功能发布）","item":"【仅个人版】Windows 系统支持智能体通过 Browser Use 调用外部浏览器。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 23 日（功能发布）","item":"修复安全相关问题并优化安全能力。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 23 日（功能发布）","item":"修复了其余已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 17 日（Hotfix）","item":"TRAE CN v3.3.77 ～ 3.3.78 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 17 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 16 日（Hotfix）","item":"TRAE CN v3.3.76 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 16 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 13 日（Hotfix）","item":"TRAE CN v3.3.75 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 13 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 08 日（功能发布）","item":"TRAE CN v3.3.74 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 08 日（功能发布）","item":"【仅个人版】设置中新增 “浏览器” 配置页。详情参考浏览器控制。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 08 日（功能发布）","item":"【仅个人版】Windows 接入 MSSDK。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 08 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 06 日（Hotfix）","item":"TRAE CN v3.3.73 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 06 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 02 日（Hotfix）","item":"TRAE CN v3.3.72 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 07 月 02 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 29 日（功能发布）","item":"TRAE CN v3.3.70 ～ 3.3.71 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 29 日（功能发布）","item":"【仅个人版】Browser Use 部分卡片增加截图展示。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 29 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 23 日（Hotfix）","item":"TRAE CN v3.3.69 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 23 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 18 日（Hotfix）","item":"TRAE CN v3.3.68 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 18 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 17 日（功能发布）","item":"TRAE CN v3.3.67 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 17 日（功能发布）","item":"支持加载 .trae/agents 目录下的 Subagents 定义文件。需先在 Beta 功能设置页开启 “启用 Subagents 目录“ 开关。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 17 日（功能发布）","item":"针对 -1 或 3003 这类可重试的错误，在端上自动发起重试，并撤回未执行的工具卡片。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 17 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 10 日（功能发布）","item":"TRAE CN v3.3.66 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 10 日（功能发布）","item":"支持钩子（Hook）功能。通过 Hook，你可以在智能体执行过程中的特定事件节点运行自定义 Shell 命令，详情参考钩子。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 10 日（功能发布）","item":"逐步灰度 Agent 删除工具的自动执行，其删除的文件可以在系统回收站/废纸篓中找到。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 10 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 09 日（功能发布）","item":"TRAE CN v3.3.64 ～ 3.3.65 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 09 日（功能发布）","item":"【仅企业版】支持在客户端中一键上传日志。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 09 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 04 日（功能发布）","item":"TRAE CN v3.3.63 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 04 日（功能发布）","item":"【仅个人版】TRAE CN 与 TRAE 国际版的全局技能目录相互兼容。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 04 日（功能发布）","item":"解决了特殊场景下，Subagent 卡片不支持展开或折叠的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 06 月 04 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 29 日（Hotfix）","item":"TRAE CN v3.3.61 ～ 3.3.62 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 29 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 21 日（功能优化）","item":"TRAE CN v3.3.59 ～ 3.3.60 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 21 日（功能优化）","item":"提升了终端命令执行的稳定性与兼容性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 21 日（功能优化）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 15 日（功能发布）","item":"TRAE CN v3.3.58 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 15 日（功能发布）","item":"Kimi K2.5 / K2.6 模型新增视频读取能力。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 15 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 11 日（Hotfix）","item":"TRAE CN v3.3.57 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 11 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 08 日（功能发布）","item":"TRAE CN v3.3.56 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 08 日（功能发布）","item":"将 Builder 和 Builder with MCP 智能体合并为 Agent，并将 SOLO Coder 更名为 SOLO Agent。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 08 日（功能发布）","item":".trae/commands/ 下的项目命令文件支持最多 3 层目录嵌套。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 05 月 08 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 30 日（Hotfix）","item":"TRAE CN v3.3.55 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 30 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 28 日（功能发布）","item":"TRAE CN v3.3.54 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 28 日（功能发布）","item":"新增斜杠命令功能。通过创建自定义命令，你可以将常用的指令或操作封装起来，从而简化工作流程，提高与 AI 协作的效率。详情参考命令。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 28 日（功能发布）","item":"优化了设置面板：将上下文相关的功能归类为 ”索引与文档“、”技能与命令“ 和 ”规则“。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 20 日（Hotfix）","item":"TRAE CN v3.3.53 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 20 日（Hotfix）","item":"修复了部分场景下 CPU 占用过高、界面卡顿的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 15 日（Hotfix）","item":"TRAE CN v3.3.52 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 15 日（Hotfix）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"TRAE CN v3.3.51 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"优化了 RunCommand 工具的执行。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"优化了规则功能："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"支持规则嵌套：你可以在 .trae/rules/ 目录下创建子文件夹来对规则进行分类。系统会自动递归读取最多 3 层的规则目录。详情参考关于多层规则嵌套。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"支持为子目录创建规则：你可以在项目内任一子目录下创建 .trae/rules/ 文件夹，以便为该模块配置专属规则。当你在对话中提及该目录下的文件，或 AI 读取这些文件时，系统将自动应用这些规则。详情参考关于为子目录创建规则。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"增加 Git Commit Message 生成规则的配置入口："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"在 “源代码管理” 面板的下拉菜单中，点击 “配置提交信息生成规则” 后可打开规则文件，你可以在该文件中配置 Git Commit Message 生成规则。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"首次使用 AI 生成 Git Commit Message 功能时，系统会弹出规则配置提示。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"详情参考为提交内容（Git Commit Message）设置规则。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"MCP Server 支持完整的 OAuth 授权流程，包括授权、运行、调用和解除授权。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（功能发布）","item":"支持为自定义模型配置自定义请求地址。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（Hotfix）","item":"TRAE CN v3.3.50 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 14 日（Hotfix）","item":"修复了已知问题"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 09 日（功能发布）","item":"TRAE CN v3.3.47 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 09 日（功能发布）","item":"对话流设置新增 “执行命令时自动打开终端” 配置。开启后，智能体执行终端命令时可自动展示对应终端。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 09 日（功能发布）","item":"修复了已知问题"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 02 日（功能发布）","item":"TRAE CN v3.3.44 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 02 日（功能发布）","item":"支持从 .agents/skills 目录自动加载技能。详情参考使用 .agents 技能目录。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 02 日（功能发布）","item":"支持为 AI 生成的 Git Commit Message 设置规则。详情参考为提交内容（Git Commit Message）设置规则。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 04 月 02 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 31 日（Hotfix）","item":"TRAE CN v3.3.43 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 31 日（Hotfix）","item":"修复了 TraeCode 无法正常启动的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 28 日（Hotfix）","item":"TRAE CN v3.3.42 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 28 日（Hotfix）","item":"修复了部分依赖 Worker 能力的插件无法启动或功能异常的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 28 日（Hotfix）","item":"【企业版】修复了专属域名访问不通、账号切换相关等几个已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 26 日（功能发布）","item":"TRAE CN v3.3.41 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 26 日（功能发布）","item":"支持引用历史对话：IDE 和 SOLO 模式下，在输入框内使用 # 即可引用历史对话。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 26 日（功能发布）","item":"支持导出历史对话：SOLO 模式可在多任务面板导出，IDE 模式点击历史对话旁按钮即可导出。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 26 日（功能发布）","item":"【本功能逐步灰度中】Agent 运行终端底层重构为只读模式：提升了性能与稳定性，引入交互更精简的命令卡片，后台命令运行岛台可以管理当前对话启动的长命令。如果遇到执行问题，可在 设置 > 对话流 > 终端工具偏好 中恢复旧版执行机制。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 26 日（功能发布）","item":"修复了对话中大量终端卡片导致的闪动问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 26 日（功能发布）","item":"修复了其他已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 24 日（功能发布）","item":"TRAE CN v3.3.40 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 24 日（功能发布）","item":"【本功能逐步灰度中】Agent 运行终端底层重构为只读模式：提升了性能与稳定性，引入交互更精简的命令卡片，后台命令运行岛台可以管理当前对话启动的长命令。如果遇到执行问题，可在 设置 > 对话流 > 终端工具偏好 中恢复旧版执行机制。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 24 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 21 日（功能发布）","item":"TRAE CN v3.3.39 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 21 日（功能发布）","item":"进程资源管理器新增 CPU 和内存 AI 诊断。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 21 日（功能发布）","item":"【本功能逐步灰度中】Agent 运行终端底层重构为只读模式：提升了性能与稳定性，引入交互更精简的命令卡片，后台命令运行岛台可以管理当前对话启动的长命令。如果遇到执行问题，可在 设置 > 对话流 > 终端工具偏好 中恢复旧版执行机制。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 21 日（功能发布）","item":"修复了已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 14 日（Hotfix）","item":"TRAE CN v3.3.38 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 14 日（Hotfix）","item":"修复了 Windows 终端沙箱问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 14 日（Hotfix）","item":"修复了其他已知问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 11 日（功能发布）","item":"TRAE CN v3.3.37 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 11 日（功能发布）","item":"SOLO 模式下，打开 Markdown 文件时将默认进入可实时编辑的预览视图。你可以在普通 “预览” 模式和 “Markdown” 模式间自由切换 ，还可以在通用设置中设置 Markdown 文件的默认展示方式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 11 日（功能发布）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 09 日（Hotfix）","item":"TRAE CN v3.3.36 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 09 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 05 日（功能发布）","item":"TRAE CN v3.3.35 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 05 日（功能发布）","item":"支持在编辑器内直接预览 Markdown 文件。你可以在普通 ”预览“ 模式和 ”Markdown“ 模式间自由切换 ，还可以在通用设置中设置 Markdown 文件的默认展示方式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 05 日（功能发布）","item":"智能体执行命令时，不再自动打开原始终端，你可以手动点击终端卡片按钮来将其打开。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 03 月 05 日（功能发布）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 28 日（Hotfix）","item":"TRAE CN v3.3.34 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 28 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 26 日（功能发布）","item":"TRAE CN v3.3.33 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 26 日（功能发布）","item":"支持配置多个规则。详情参考规则（Rule）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 26 日（功能发布）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 14 日（Hotfix）","item":"TRAE CN v3.3.32 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 14 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 12 日（功能发布）","item":"TRAE CN v3.3.31 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 12 日（功能发布）","item":"新增 Spec 模式，可在 SOLO Coder 中使用。详情参考 Spec 模式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 12 日（功能发布）","item":"移除 SOLO Coder 的 Plan 模式开关，新增 /plan 和 /spec 两个内置的模式切换指令。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 12 日（功能发布）","item":"优化了终端工具。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 12 日（功能发布）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 09 日（Hotfix）","item":"TRAE CN v3.3.30 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 09 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"TRAE CN 企业版的变更细节如下："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"焕新订阅套餐，提供基础版、团队版、旗舰版。详情参考套餐类型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"支持配置企业专属智能体。详情参考企业智能体。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"支持配置企业内置文档集，作为 AI 对话的上下文。详情参考企业文档集。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"支持 SOLO 模式。详情参考SOLO 模式概览。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"支持将常用指令、规范与最佳实践等封装为可复用的技能。详情参考技能（Skill）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"支持配置项目级 MCP Server。详情参考项目级 MCP Server。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 06 日（功能发布）","item":"支持按模型或人均维度，为内置模型与自定义模型配置 Token 用量限额。详情参考配置用量限额。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 04 日（Hotfix）","item":"TRAE CN v3.3.29 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 04 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 04 日（Hotfix）","item":"Skills 功能优化及问题修复 。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 02 日（Hotfix）","item":"TRAE CN v3.3.27 & 3.3.28 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 02 月 02 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 30 日（功能优化）","item":"TRAE CN v3.3.26 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 30 日（功能优化）","item":"提升终端的命令执行体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 30 日（功能优化）","item":"优化对话流体验：支持用户在任务执行过程中对当前消息进行复制、删除、回退。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"TRAE CN v3.3.24 & v3.3.25 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"升级 “技能” 功能："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"支持全局技能和项目技能；"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"支持手动开启或关闭技能；"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"支持在 IDE 模式和自定义智能体中使用技能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"详情参考技能（Skill）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"优化沙箱的使用体验，支持自动为 Windows (WSL 2) 和 Linux 完成环境配置，降低使用门槛。详情参考沙箱。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"支持项目级 MCP。详情参考添加 MCP Server。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"AI 执行终端命令时，命令不记录在终端的历史中。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"支持渲染 AI 对话流中输出的 LaTeX 公式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"Mac 版 TRAE 新增状态栏功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"引导页和设置项增加 IntelliJ 快捷键支持。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 23 日（功能发布）","item":"优化部分使用场景下的用户体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 19 日（Hotfix）","item":"TRAE CN v3.3.23 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 19 日（Hotfix）","item":"修复了代码索引失败的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"TRAE CN v3.3.21 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"支持创建技能并在 SOLO 模式中使用："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"支持用户手动上传及添加技能；"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"支持通过对话自动创建技能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"详情参考技能（Skill）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"Browser 增加 devtools 打开入口。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"优化了 SOLO 模式下 DocView 中的 Mermaid 展示。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（功能发布）","item":"优化了部分场景的用户体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（Hotfix）","item":"TRAE CN v3.3.20 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（Hotfix）","item":"TRAE CN v3.3.19 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 13 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 06 日（功能发布）","item":"TRAE CN v3.3.18 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 06 日（功能发布）","item":"支持在对话流中展示消息的发送时间。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 06 日（功能发布）","item":"支持将 “问题“ 面板中的单条问题添加至 AI 对话。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 06 日（功能发布）","item":"优化了 #Web 的信息检索能力。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2026 年 01 月 06 日（功能发布）","item":"优化了 AI 对话框的使用体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 31 日（功能优化）","item":"TRAE CN v3.3.16 & 3.3.17 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 31 日（功能优化）","item":"优化了部分场景的用户体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 29 日（Hotfix）","item":"TRAE CN v3.3.14 & 3.3.15 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 29 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 26 日（功能优化）","item":"TRAE CN v3.3.13 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 26 日（功能优化）","item":"优化了部分场景的用户体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 26 日（功能发布）","item":"TRAE CN v3.3.12 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 26 日（功能发布）","item":"SOLO 支持 Auto 模式。该模式下，系统会综合考虑问答速度、性能与资源占用情况，智能调用合适的模型，提供更流畅的 AI 问答体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 26 日（功能发布）","item":"SOLO 支持切换模型及添加自定义模型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 25 日（Hotfix）","item":"TRAE CN v3.3.11 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 25 日（Hotfix）","item":"修复了部分场景下 AI 对话框中无法选择文件作为上下文的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 24 日（功能发布）","item":"TRAE CN v3.3.10 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 24 日（功能发布）","item":"支持从对话流中跳转至代码文件/目录。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 22 日（Hotfix）","item":"TRAE CN v3.3.9 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 22 日（Hotfix）","item":"修复了部分场景下使用 Remote SSH 或 WSL 时，AI 面板无法打开的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 20 日（Hotfix）","item":"TRAE CN v3.3.6 ～ 3.3.8 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 20 日（Hotfix）","item":"修复了部分场景下使用 Remote SSH 或 WSL 时，AI 面板无法打开的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 18 日（Hotfix）","item":"TRAE CN v3.3.5 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 18 日（Hotfix）","item":"修复了部分设备上 TRAE 异常退出的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 18 日（Hotfix）","item":"TRAE CN v3.3.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 18 日（Hotfix）","item":"修复了部分插件无法搜索文件的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 18 日（Hotfix）","item":"修复了 WSL 连接慢的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（Hotfix）","item":"TRAE CN v3.3.2 及 3.3.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（Hotfix）","item":"TRAE CN v3.3.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（Hotfix）","item":"修复了部分场景下插件无法使用的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（Hotfix）","item":"修复了对话面板中终端无法渲染的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"TRAE CN v3.3.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"升级了 AI 生成命令行的运行方式，确保命令行的运行更安全。提供三种运行模式供选择（功能灰度中）："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"沙箱运行（支持白名单）：该模式默认启用。命令在安全沙箱中自动运行并判定风险，设置的白名单命令无需经过沙箱，可直接运行。详情参考沙箱。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"手动运行：所有命令需手动确认后执行。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"自动运行：所有命令自动在沙箱外执行"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"支持在对话流中展示代码流程图。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"企业版相关："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"TraeCode 内新增企业版登录入口。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 17 日（功能发布）","item":"IDE 模式下新增 Max 模式，为长文本分析、多轮复杂对话等复杂任务场景提供高效、增强的模型能力。详情参考  Max 模式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 12 日（Hotfix）","item":"TRAE CN v3.2.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 12 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 11 日（Hotfix）","item":"TRAE CN v3.2.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 11 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 10 日（Hotfix）","item":"TRAE CN v3.2.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 10 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 10 日（功能优化）","item":"TRAE CN v3.2.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 10 日（功能优化）","item":"优化了 AI 对话输入框的使用体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 10 日（功能优化）","item":"优化了 “代码审查” 功能的使用体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 10 日（功能优化）","item":"提升了 Remote SSH 的连接成功率。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 04 日（Hotfix）","item":"TRAE CN v3.1.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 04 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 03 日（Hotfix）","item":"TRAE CN v3.1.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 03 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 03 日（功能发布）","item":"TRAE CN v3.1.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 03 日（功能发布）","item":"将 “自动接受文件变更” 功能升级为 “代码审查”，提供三种审查方式，可根据需求灵活控制 AI 的代码变更处理方式。详情参考 TraeCode 设置总览。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 12 月 03 日（功能发布）","item":"支持使用快捷键为（macOS：Option + P；Windows：Alt + P）SOLO Coder 开启 Plan 模式。详情参考 SOLO Agent。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 26 日（Hotfix）","item":"TRAE CN v3.0.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 26 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（Hotfix）","item":"TRAE CN v3.0.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"TRAE CN v3.0.0 版本正式发布，SOLO 模式免费使用，按照加入等待名单的顺序逐步开放使用权限。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"内置智能体 SOLO Coder，支持复杂编程项目。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"开启 Plan 模式，从清晰的规划开始，让任务精准推进执行。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"智能调用自定义智能体，让专业的智能体完成专业的任务。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"详情参考 SOLO Agent。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"支持多任务并行，告别单线程限制，提高工作效率。详情参考多任务并行。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"拆解任务并标记完成情况，已完成的任务将自动折叠并生成摘要。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"支持管理上下文，包括上下文使用率展示及上下文压缩。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 25 日（功能发布）","item":"新增代码变更工具，集中展示代码变更历史。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 19 日（Hotfix）","item":"TRAE CN v2.12.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 19 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 14 日（Hotfix）","item":"TRAE CN v2.12.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 14 日（Hotfix）","item":"修复了部分场景下文件写入乱码的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 12 日（Hotfix）","item":"TRAE CN v2.12.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 12 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 11 日（功能发布）","item":"TRAE CN v2.12.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 11 日（功能发布）","item":"优化设置功能，支持全局搜索，快速定位所需配置项。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 11 日（功能发布）","item":"支持编辑对话流中 AI 生成的命令。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 11 日（功能发布）","item":"对话流中展示终端卡片，并支持交互。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 07 日（Hotfix）","item":"TRAE CN v2.11.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 07 日（Hotfix）","item":"修复了 AI 输出过程中卡住的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 05 日（功能发布）","item":"TRAE CN v2.11.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 05 日（功能发布）","item":"新增 xAI 作为自定义模型服务商。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 05 日（功能发布）","item":"提供多种命令执行模式：始终手动运行、使用黑名单、使用白名单、始终自动运行；且支持高风险命令的自动检测，增强防护与提示，确保重要文件免受意外操作影响。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 04 日（Hotfix）","item":"TRAE CN v2.10.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 11 月 04 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 30 日（功能优化）","item":"TRAE CN v2.10.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 30 日（功能优化）","item":"优化了用户体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 29 日（功能发布）","item":"TRAE CN v2.10.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 29 日（功能发布）","item":"Remote-SSH 使用时支持连接 Linux ARM 设备。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 29 日（功能发布）","item":"插件市场的 UI 替换为 VS Code 原生插件市场的 UI。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 25 日（Hotfix）","item":"TRAE CN v2.9.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 25 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 24 日（Hotfix）","item":"TRAE CN v2.9.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 24 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（Hotfix）","item":"TRAE CN v2.9.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（Hotfix）","item":"TRAE CN v2.9.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（功能优化）","item":"TRAE CN v2.9.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（功能优化）","item":"支持修改 CUE 的预览功能的快捷键。详情参考超级代码补全：CUE。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（功能优化）","item":"IDE 模式下，支持为 Builder、Builder with MCP 和自定义智能体设置 “自动接受变更”。开启该功能后，文件变更无需手动确认。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（功能优化）","item":"IDE 模式下，在每轮对话末尾，支持查看本轮对话完整的代码变更。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（功能优化）","item":"减少 “提示词优化” 功能中的中英文混用问题的出现频率。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 21 日（功能优化）","item":"其他功能体验优化，让 AI 使用更流畅。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 18 日（Hotfix）","item":"TRAE CN v2.8.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 18 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 17 日（Hotfix）","item":"TRAE CN v2.8.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 17 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 16 日（Hotfix）","item":"TRAE CN v2.8.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 16 日（Hotfix）","item":"修复了从插件市场安装插件失败，旧版 Windows 的兼容性等问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（Hotfix）","item":"TRAE CN v2.8.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（功能发布）","item":"TRAE CN v2.8.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（功能发布）","item":"升级 CUE (Context Understanding Engine) 的交互："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（功能发布）","item":"更清晰地展示编辑建议；"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（功能发布）","item":"支持查看编辑摘要；"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（功能发布）","item":"支持连续的编辑预测和 Tab。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 14 日（功能发布）","item":"升级 VSCode 内核至 1.104。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 10 日（功能优化）","item":"TRAE CN v2.7.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 10 日（功能优化）","item":"提升了部分场景下模型的稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 09 日（Hotfix）","item":"TRAE CN v2.7.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 10 月 09 日（Hotfix）","item":"修复部分场景下的登录失败问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 30 日（功能优化）","item":"TRAE CN v2.7.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 30 日（功能优化）","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 29 日（功能发布）","item":"TRAE CN v2.7.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 29 日（功能发布）","item":"支持开启或关闭对话中的 “自动修复” 功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 28 日（功能优化）","item":"TRAE CN v2.7.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 28 日（功能优化）","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 26 日（Hotfix）","item":"TRAE CN v2.6.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 26 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 25 日（功能优化）","item":"TRAE CN v2.6.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 25 日（功能优化）","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 23 日（功能发布）","item":"TRAE CN v2.6.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 23 日（功能发布）","item":"支持为任务状态通知设置自定义音效。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 19 日（功能优化）","item":"TRAE CN v2.5.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 19 日（功能优化）","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 17 日（功能发布）","item":"TRAE CN v2.5.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 17 日（功能发布）","item":"优化 “Auto-Run” 功能：开启 “Auto-Run” 后，只有用户添加至黑名单的命令需要手动运行，其他命令均自动运行。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 17 日（功能发布）","item":"支持通过 # 符号将 Problems 引用为上下文。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 15 日（Hotfix）","item":"TRAE CN v2.4.4 和 2.4.5 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 15 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 12 日（功能优化）","item":"TRAE CN v2.4.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 12 日（功能优化）","item":"优化了 cue 功能的使用体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 10 日（Hotfix）","item":"TRAE CN v2.4.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 10 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 09 日（Hotfix）","item":"TRAE CN v2.4.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 09 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 09 日（功能发布）","item":"TRAE CN v2.4.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 09 日（功能发布）","item":"在创建智能体的过程中添加 MCP Server 时，支持自主勾选/取消勾选工具。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 09 日（功能发布）","item":"修复了部分已知的性能问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 02 日（功能发布）","item":"TRAE CN v2.3.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 02 日（功能发布）","item":"修复了部分 Streamable HTTP 类型的 MCP Server 连接失败的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 01 日（Hotfix）","item":"TRAE CN v2.2.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 09 月 01 日（Hotfix）","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 28 日（Hotfix）","item":"TRAE CN v2.2.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 28 日（Hotfix）","item":"修复了部分场景下 AI 面板无法打开的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 27 日（Hotfix）","item":"TRAE CN v2.2.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 27 日（Hotfix）","item":"修复了线上问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 27 日（功能发布）","item":"TRAE CN v2.2.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 27 日（功能发布）","item":"新增任务完成与中断提醒：实时感知任务状态变化，减少无效等待时间。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 27 日（功能发布）","item":"优化 Chat 与 Builder 模式的切换交互。Chat 也可以作为智能体使用，支持用户通过 @ 进行选择。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 27 日（功能发布）","item":"新增内置模型 DeepSeek-V3.1。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 23 日","item":"TRAE CN v2.1.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 23 日","item":"修复了部分问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 22 日","item":"TRAE CN v2.1.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 22 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 21 日","item":"TRAE CN v2.1.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 21 日","item":"新增隐私模式，加强隐私保护。你可以在 “账号设置” 处开启或关闭该模式。详情参考隐私模式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 15 日","item":"TRAE CN v2.0.13 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 15 日","item":"优化了一键应用的使用体验：应用速度更快，Diff 展示更明显，应用成功或失败的提示更清晰。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 15 日","item":"优化了进程资源管理器的使用体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 13 日","item":"TRAE CN v2.0.12 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 13 日","item":"新增任务列表，智能拆解任务并标记完成情况。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 13 日","item":"支持对输入内容进行智能优化。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 11 日","item":"TRAE CN v2.0.11 版本正式发布。以下是变更细节"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 11 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"TRAE CN v2.0.10 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"Cue 更新如下："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"新增智能导入功能，支持在 Python、TypeScript 和 Golang 项目中智能识别并导入依赖模块。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"新增智能重命名功能，支持在 Python、TypeScript 和 Golang 项目中智能识别并提供变量和函数名称修改建议，支持跨文件级别。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"详情参考超级代码补全：CUE。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"预览工具和浏览器中的控制台日志新增 Console Warnings 和 Console Info 类型，并支持筛选日志类型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"预览工具和浏览器支持管理多个标签页。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 08 日","item":"优化了部分场景下智能体读取文件的性能表现。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 05 日","item":"TRAE CN v2.0.9 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 05 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 04 日","item":"TRAE CN v2.0.8 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 04 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 01 日","item":"TRAE CN v2.0.7 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 01 日","item":"优化了部分场景下，耗电和 CPU 资源占用高的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 01 日","item":"优化了长对话场景 AI 终端复用效果。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 01 日","item":"优化了 Windows 场景 AI 运行终端命令效果。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 01 日","item":"修复了多编辑器混用时，未接受的代码有一定概率被覆盖的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 08 月 01 日","item":"修复了 $ 字符导致对话中断的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 30 日","item":"TRAE CN v2.0.5 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 30 日","item":"优化了一些边界条件下的性能问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"TRAE CN v2.0.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"支持暂时禁用 Tab-Cue，可随时重新开启。详情参考超级代码补全：CUE。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"新增 Kimi-K2 和 Qwen3-Coder 模型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"支持在插件市场选择插件版本。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"优化了 Tab-Cue 的交互体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 25 日","item":"解决了部分场景下内存 和 CPU 资源占用偏多的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 21 日","item":"TRAE CN v2.0.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 21 日","item":"优化了交互体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 19 日","item":"TRAE CN v2.0.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 19 日","item":"修复了部分主题下 UI 不兼容的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"TRAE CN v2.0.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"提供全新视觉设计，打造更沉浸的智能开发体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"支持在 AI 对话中使用语音输入。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"支持为自定义智能体生成随机头像。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"支持将预览窗口中的信息作为上下文。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"新增数据看板，用于追踪你的 AI 编程数据。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"全新 SOLO 模式（开放等待名单）："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"AI 自动分析和梳理需求，生成可编辑的产品需求文档。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"AI 灵活调度编辑器、浏览器、终端、文档等工具，适配各种开发场景。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"通过 SOLO Builder **** 智能体快速搭建美观的前端应用，实现便捷的端到端开发流程。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 18 日","item":"实时跟随 AI 操作，自动切换工具面板，清晰展示开发环节和产物。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 15 日","item":"Trae CN v0.6.18 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 15 日","item":"优化了部分场景下 AI 对话中 MarkDown 渲染嵌套代码块的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 15 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 09 日","item":"Trae CN v0.6.17 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 09 日","item":"支持管理 Preview 工具使用的服务权限，包括麦克风、摄像头和地图等。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 09 日","item":"支持在部分场景下跳过终端中正在执行的命令。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 09 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 08 日","item":"Trae CN v0.6.16 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 08 日","item":"修复了部分场景下插件激活失败的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 07 日","item":"Trae CN v0.6.15 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 07 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 04 日","item":"Trae CN v0.6.14 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 04 日","item":"修复了部分场景下 MCP 的兼容性问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 04 日","item":"优化了创建智能体的交互体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 02 日","item":"Trae CN v0.6.13 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 02 日","item":"新增消息通知功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 01 日","item":"Trae CN v0.6.12 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 01 日","item":"修复了 Intel 芯片在部分场景下可能导致 AI 进程 CPU 占用过高的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 07 月 01 日","item":"修复了部分场景中下拉框无法点击的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 30 日","item":"Trae CN v0.6.11 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 30 日","item":"修复了 AI 终端在 Windows PowerShell 中的兼容性问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 27 日","item":"Trae CN v0.6.10 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 27 日","item":"新增 OpenAI 作为自定义模型服务商。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 27 日","item":"新增进程资源管理器，用于实时查看 TraeCode 资源使用和网络状态，管理进程资源。详情参考进程资源管理器。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 27 日","item":"新增适用于 MCP 的 NPX 和 UVX 环境配置引导。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 27 日","item":"优化部分场景下 cue 的推荐和展示逻辑。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 27 日","item":"修复了部分场景下 AI 无法检测到终端命令状态的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 24 日","item":"Trae CN v0.6.8 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 24 日","item":"支持以工作区维度来启用和禁用插件。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 24 日","item":"升级 VSCode 内核版本至 1.100.3。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 24 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 24 日","item":"提升了稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 17 日","item":"Trae CN v0.6.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 17 日","item":"修复了 WSL 远程开发部分场景下 AI 面板无法正常使用的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 13 日","item":"Trae CN v0.6.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 13 日","item":"新增 Doubao-Seed-1.6 模型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 13 日","item":"模型服务商新增 Gemini。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 13 日","item":"修复了部分场景下 AI 对话一直显示 “Loading” 的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"Trae CN v0.6.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"新增智能编程工具 cue："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"优化了模型的能力，自动补全的代码准确性更高。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"支持多行修改、修改点预测、修改点跳转功能。详情参考超级代码补全：CUE。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"简化了为智能体添加 MCP Server 的流程。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"移除了内置的 Vue - Official 插件。你可以在插件市场中下载。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 11 日","item":"修复了部分场景下连续提示 “输出过长，请输入继续后获得更多结果” 的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"Trae CN v0.6.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"Trae MCP 市场接入火山引擎 MCP 市场中的资源："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"新增超过 100 个优质 MCP Server 并支持快捷配置。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"支持通过在 TraeCode 内添加火山引擎 MCP Server 的方式来接入其云服务，包括计算、存储、网络等服务。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"MCP 功能升级："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"支持 Streamable HTTP 传输方式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 06 月 05 日","item":"支持为 Streamable HTTP 和 SSE 传输方式配置 header 字段。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"Trae CN v0.6.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"优化 AI 对话的流程和质量，具体如下："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"取消了 Builder 智能体的固定的前置 Proposal，由 AI 根据上下文自主决策，从而发挥出更智能、更灵活的效果。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"扩充了 AI 可自主调用的工具集，减少了编程过程中的人工干预，使得编程体验更流畅、更高效。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"提升了多轮对话中的上下文连贯性，并支持通过 “继续” 指令无缝衔接和执行问答，使得问答过程更流畅。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"支持将智能体分享到社交平台，同时支持通过点击他人分享的智能体链接，一键将智能体导入至 TraeCode，实现对提示词和 MCP Server 配置的快速复用。详情参考创建并管理智能体。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 27 日","item":"新增对 Python、Java、Go 等语言的环境配置引导。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 21 日","item":"Trae CN v0.5.10 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 21 日","item":"Remote SSH 支持 Linux Debian 10 发行版。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 21 日","item":"支持通过导入本地 VSIX 文件的方式来安装插件。详情参考插件。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 16 日","item":"Trae CN v0.5.9 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 16 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 13 日","item":"Trae CN v0.5.8 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 13 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 09 日","item":"Trae CN v0.5.7 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 05 月 09 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 28 日","item":"Trae CN v0.5.5 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 28 日","item":"提升了插件市场的使用稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 28 日","item":"优化了智能体相关界面。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 27 日","item":"Trae CN v0.5.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 27 日","item":"提升了稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 25 日","item":"Trae CN v0.5.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 25 日","item":"支持自定义智能体的头像。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 25 日","item":"支持配置插件市场源。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 25 日","item":"优化了部分功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 23 日","item":"Trae CN v0.5.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 23 日","item":"提升了稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"Trae CN v0.5.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"提升了稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"合并 Chat 与 Builder 面板。你可以通过 @Builder 方式将 Builder 作为智能体使用。详情参考智能体概述。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"支持将文档内容和网页内容作为上下文："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"#Web：支持联网搜索，AI 会自动提取网页内的相关内容作为上下文。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"#Doc：支持通过 URL 或上传 .md/.txt 文件的方式添加文档集。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"详情参考通过 # 符号引用上下文。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"支持通过配置规则来规范 AI 的行为，包括："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"个人规则：根据个人偏好创建适用于所有项目的规则。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"项目规则： 创建仅适用于当前项目的规则。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"详情参考规则（Rule）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"升级智能体（Agent）能力："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"支持创建自定义智能体。你可以自定义智能体的提示词和工具集。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"提供两个内置智能体：Builder 和 Builder with MCP。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"支持为智能体开启 “自动运行” 模式，使智能体自动执行命令和调用工具，同时支持配置命令黑名单。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"详情参考自动运行 & 安全性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"支持模型上下文协议（MCP）："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"提供内置 MCP 市场，支持快速添加第三方 MCP Servers。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"支持将 MCP Server 添加到智能体进行使用，从而丰富智能体的能力。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 22 日","item":"详情参考MCP 概览。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 16 日","item":"Trae CN v0.3.11 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 16 日","item":"提升了 C 语言的编程体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 15 日","item":"Trae CN v0.3.10 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 15 日","item":"提升了网络连接的稳定性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 15 日","item":"支持在 ”报告问题“ 窗口中提供联系方式。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 11 日","item":"Trae CN v0.3.9 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 11 日","item":"新增 “报告问题” 窗口，可以使用快捷键打开（macOS：Command + K  Command + R；Windows：Ctrl + K  Ctrl + R）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 03 日","item":"Trae CN v0.3.7 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 03 日","item":"修复了部分插件的兼容性问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 03 日","item":"修复了 Remote SSH 在一些场景下无法连接的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 02 日","item":"Trae CN v0.3.6 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 02 日","item":"修复了部分场景下 Trae AI 一直显示 “思考中” 的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 02 日","item":"修复 Tooltip 和模型选择下拉框的样式问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 01 日","item":"Trae CN v0.3.5 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 01 日","item":"升级 VS Code 内核至 1.98.2 版本。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 01 日","item":"优化 Remote SSH 功能的远程连接速度。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 01 日","item":"新增自动生成 Git Commit 指令的快捷键（macOS：Command + G；Windows：Ctrl + G）。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 01 日","item":"增强 Preview 插件：支持输入自定义 URL 进行预览。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 04 月 01 日","item":"支持自动识别 Golang 和 Python 项目并安装对应的语言服务插件。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 28 日","item":"Trae CN v0.3.4 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 28 日","item":"修复了若干样式问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 27 日","item":"Trae CN v0.3.3 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 27 日","item":"修复了若干和通知功能相关的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 26 日","item":"Trae CN v0.3.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 26 日","item":"支持 DeepSeek-V3-0324。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 26 日","item":"支持接入 OpenRouter 提供的 AI 模型。详情参考自定义模型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 26 日","item":"支持连接 Windows Subsystem for Linux（WSL）进行开发。详情参考使用 WSL 进行远程开发。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 26 日","item":"优化了预览插件：新增设备工具栏，支持灵活调整页面尺寸，并提供响应式布局以及针对移动端设备的自适应布局。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 26 日","item":"优化了通知中心：新增 “勿扰模式” 并支持按插件管理消息推送。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 19 日","item":"Trae CN v0.3.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 19 日","item":"优化了代码合并逻辑，避免代码因长度过长而被截断，从而确保合并后代码的完整性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 19 日","item":"优化了 AI 生成的 Git Commit 消息，提升其准确性和可读性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 19 日","item":"修复了若干自定义主题的兼容性问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 17 日","item":"Trae CN v0.3.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 17 日","item":"新增日语作为用户界面语言。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 17 日","item":"支持安装来自插件市场的主题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 17 日","item":"支持使用 AI 生成 Git Commit 消息。详情参考源代码管理。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 17 日","item":"新增插件运行时内存占用过高的通知。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 17 日","item":"修复了 Webview 插件 IPv4、IPv6 端口占用冲突的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 13 日","item":"Trae CN v0.2.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 13 日","item":"优化了浅色主题的代码颜色。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 12 日","item":"Trae CN v0.2.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 12 日","item":"优化了 Builder 模式的推理效果。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 12 日","item":"优化了 AI 快照功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 11 日","item":"Trae CN v0.2.0 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 11 日","item":"支持自定义模型。你可以通过 API 密钥接入自有模型资源。详情参考自定义模型。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 11 日","item":"新增远程资源管理器（Remote SSH），支持连接操作系统为 Debian 11+ 或 Ubuntu 20+ 的远程主机。更多操作系统和版本将在后续更新中陆续提供。详情参考使用 SSH 进行远程开发。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 05 日","item":"Trae CN v0.1.2 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 05 日","item":"Builder 模式支持新模型 Doubao-1.5-pro。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 05 日","item":"优化了 Acitivity Bar 的交互体验。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 05 日","item":"修复了编辑器中代码提示可能失效的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 04 日","item":"Trae CN v0.1.1 版本正式发布。以下是变更细节："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 04 日","item":"优化了 Chat / Builder 的报错提示。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 04 日","item":"修复了代码补全偶尔无法触发的问题。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"Trae CN v0.1.0 正式发布。以下是有关此版本的详细信息："}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"提供 Builder 模式，支持开发需求的自动分析、规划和执行，并提供实时预览功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"支持通过多轮对话生成项目级代码。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"支持快速应用代码变更、代码审查、Diff 查看和版本回退等功能。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"支持丰富的上下文类型（如代码片段、文件、文件夹、工作区和终端日志），从而提高问答准确性。"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"文档对您有帮助吗?"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"有帮助无帮助"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"设备数量限制"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"TRAE Editor for Unity：让 AI 融入 Unity 开发工作流"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 09 月 15 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 09 月 11 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 09 月 08 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 09 月 04 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 09 月 03 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 09 月 01 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 08 月 20 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 08 月 19 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 08 月 12 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 08 月 10 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 08 月 07 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 30 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 23 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 17 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 16 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 13 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 08 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 06 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 07 月 02 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 29 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 23 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 18 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 17 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 10 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 09 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 06 月 04 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 05 月 29 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 05 月 21 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 05 月 15 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 05 月 11 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 05 月 08 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 30 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 28 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 20 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 15 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 14 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 14 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 09 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 04 月 02 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 31 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 28 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 26 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 24 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 21 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 14 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 11 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 09 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 03 月 05 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 28 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 26 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 14 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 12 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 09 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 06 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 04 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 02 月 02 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 30 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 23 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 19 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 13 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 13 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 13 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2026 年 01 月 06 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 31 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 29 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 26 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 26 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 25 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 24 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 22 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 20 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 18 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 18 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 17 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 17 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 17 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 12 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 11 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 10 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 10 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 04 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 03 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 12 月 03 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 26 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 25 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 25 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 19 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 14 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 12 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 11 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 07 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 05 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 11 月 04 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 30 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 29 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 25 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 24 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 21 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 21 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 21 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 18 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 17 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 16 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 14 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 14 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 10 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 10 月 09 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 30 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 29 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 28 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 26 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 25 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 23 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 19 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 17 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 15 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 12 日（功能优化）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 10 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 09 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 09 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 02 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 09 月 01 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 28 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 27 日（Hotfix）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 27 日（功能发布）"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 23 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 22 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 21 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 15 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 13 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 11 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 08 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 05 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 04 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 08 月 01 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 30 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 25 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 21 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 19 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 18 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 15 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 09 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 08 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 07 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 04 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 02 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 07 月 01 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 30 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 27 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 24 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 17 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 13 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 11 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 06 月 05 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 05 月 27 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 05 月 21 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 05 月 16 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 05 月 13 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 05 月 09 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 28 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 27 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 25 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 23 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 22 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 16 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 15 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 11 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 03 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 02 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 04 月 01 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 28 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 27 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 26 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 19 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 17 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 13 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 12 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 11 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 05 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 04 日"}
+{"file":"docs.trae.cn_ide_changelog.html","version":null,"date":null,"section":"2025 年 03 月 03 日","item":"2025 年 03 月 03 日"}

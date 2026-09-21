@@ -1,0 +1,809 @@
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Subagent conversation history is readable through the owning parent session"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Configurable live subagent status and read-only transcript switching from the interactive prompt"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"--experimental-harness sessions can track todos, shown as a pinned line under the input and in full on /todo, and keep a per-session scratchpad whose notes are re-stated to the agent after the conversation is summarised."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Turn an installed skill on or off from the /skills browser without removing it."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Skill authors can mark skills as explicit-only, keeping slash invocation available while preventing model-initiated loading."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"vibe mcp add --allow-insecure-http and /mcp add --allow-insecure-http opt into plaintext http:// MCP servers on non-localhost hosts, such as a server on the LAN."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Tool telemetry events now carry approval_source (config/smart/user/bypass/never) to distinguish how a tool call was authorized."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Press r in the MCP servers & connectors panel to refresh the list on demand."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Connectors view now links to Studio to add more connectors, pre-scoped to your org and workspace."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Local app-server sessions now persist and expose their latest accepted user interaction timestamp for downstream session resources."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Unified Harness app-server sessions can now be pinned, and remember it across restarts."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Scheduled loops (/loop) are now available in the Vibe VS Code extension with a panel UI for creating, listing, editing, and canceling recurring prompts."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Vulnerability disclosure guidance and private reporting instructions in SECURITY.md."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"/teleport now works under --experimental-harness"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"The Unified Harness is no longer labeled \"experimental\"; --legacy-harness is the documented escape hatch back to the legacy Python harness."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Sessions with OAuth MCP servers configured start faster: fewer and overlapping keychain reads."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Approving a shell command with a variable expansion now covers the next call that differs only in the expansion."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Switched the audio engine to miniaudio to improve stability and performance of voice recording and playback"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Connectors are listed and titled by their display name, falling back to the connector name."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Removed the local Cargo build job cap that limited editable builds to 2 jobs, restoring full parallelism for local harness builds."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Admin-managed config now enforces the individual keys it sets inside session_logging, project_context and experiments, rather than the whole group. Keys an admin does not set are taken from the user's own config instead of being reset to defaults."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A model change requested while a turn is running is now accepted and applied at the next turn boundary, instead of being rejected."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"The Vibe CLI now sends a dedicated MistralAI-VibeCLI/<version> User-Agent header on MCP HTTP requests, letting the connectors gateway distinguish Vibe CLI tool calls from other MCP clients."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Images attached to text-only models now fall back to file links instead of failing the turn."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Worktree sessions now tell the agent about the worktree working directory instead of the original checkout."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Subagents no longer prompt for tool permission when the parent session is in auto-approve mode under the Unified Harness"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Workspace trust decisions over ACP now require a session and can only target its working directory."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"The experimental unified harness can now record the IDE's workspace trust decision."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Keep skills with invalid invocation policy metadata explicit-only instead of exposing them to the model."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Creating or cleaning up a worktree no longer runs the repository's own git hooks (such as post-checkout) or its fsmonitor command."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Show retrying status during transient provider failures."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Cancelling a turn no longer hangs when the interrupt wedges server-side, and an interrupt that is taking unusually long now warns with the force-quit hint instead of leaving you staring at a silent \"Interrupting\" spinner."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Message sending after resuming pre-existing sessions that use connectors"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Attaching an image from outside the workspace (e.g. ~/Downloads) in a fresh session no longer fails with 'Image file is outside the workspace or session attachments'."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Existing session logs are restricted to owner-only permissions when Vibe starts."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Vibe's home directory and the logs inside it are now accessible only to the current user."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Tool telemetry events now carry the actual approval decision (execute/skip) and approval type (always/never/ask) instead of always None."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"MCP and connector tool calls now respect the permission system: they honor each tool's configured permission, ask before running by default, and remember your approval for later calls."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"The enabled_tools and disabled_tools config globs now apply to MCP tools, not just connector tools."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"session_logging.enabled = false is honoured again on the Unified Harness: the conversation and its attachments no longer land in the session save directory, the session log summary reports that logging is off, and --continue/--resume are refused with the same message the legacy backend gives."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Hooks now run inside subagents on the experimental harness, instead of being silently skipped."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"pre_tool and post_tool hooks now run for the skill tool, which previously took no hooks at all."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Hook commands using pipes, &&, redirects, globs or $VAR now run through the shell."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A hook's match now matches the tool the model actually calls, including edit and MCP tools."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Unified Harness now injects the current git branch, status, and recent commits into the system instructions, matching the legacy backend"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Shell approvals no longer widen to cover a different program, subcommand, custom shell, or environment."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Shell approvals no longer cover side-effecting options that the command's guardrails gate."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Approving a guardrailed command whose argument the shell could not read no longer approves the same command with a different one."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A shell call that can only be approved as written -- a redirect, a heredoc, a command the shell could not read -- is no longer covered by a wider approval for the same program."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A permanent approval a tool's allowlist cannot express is kept to the session instead of written there, and now says which scopes it kept."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Saving a setting while another part of Vibe reads the same config file no longer fails the request"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Starting a turn after an enqueued first message no longer fails while a worktree is being prepared."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Agent and experiment updates no longer conflict with a worktree setup turn the UI already shows as running."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Stopping a worktree setup turn now runs the next queued message."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A dropped first-turn response no longer blocks later turns while a worktree is being prepared."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A dropped stop response no longer leaves a worktree setup turn stuck."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Creating a loop via /loop no longer fails with an opaque \"Internal error\"; app-server errors are now surfaced with their actual message."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"/mcp login now recovers when a stored OAuth token refresh fails transiently (e.g. the server returns 5xx); it discards the stuck credentials and retries a fresh authorization instead of failing every retry."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Shell commands using line continuations now require approval."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"sort --files0-from now requires approval before reading listed files."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Teleport no longer runs repository-configured external diff or text conversion helpers when preparing diffs."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Teleport no longer runs repository-configured file-monitor hooks when preparing diffs."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"WebFetch now requires separate approval before following redirects to another origin."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Vibe no longer runs a project-local Git executable during automatic repository inspection."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Config layers now merge key by key, so setting one nested value through an environment variable or a project file no longer discards the rest of that group."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Reopening a session now restores the model that was picked last, not the one the last turn started with."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Changing the model in the CLI no longer stops the session's live display."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Smart approve now asks you to confirm a risky action you requested, instead of blocking it repeatedly and giving up."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Commands that discard output, such as ls 2>&1 or make >/dev/null, no longer ask for approval. Redirections that write to a file still do."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Smart approve no longer asks you to confirm deleting a file the agent created earlier in the same session."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Smart approve no longer prompts when a tool only reads .vibe/ or .git/ configuration; it still asks before writing one."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Smart approve no longer overrides your permission rules: a command your rules had already gated is no longer auto-approved."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Smart approve now reclassifies each risky call instead of reusing an earlier decision, so revising your instructions mid-session takes effect immediately."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Keep a subagent's initial instruction visible after long transcripts"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Crash when the subagent list updates while a row is highlighted"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Escape now returns from a subagent transcript to the main conversation"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Quit confirmation no longer leaks after leaving a subagent transcript"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Clearing or resuming no longer races subagent transcript refreshes"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Resumed sessions and tool approvals no longer stall when notifications arrive"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Providers configured without an API key environment variable — local or self-hosted model servers — run again on the Unified Harness instead of failing every turn with a missing MISTRAL_API_KEY error."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"A provider error on the Unified Harness shows the provider's own explanation again, such as \"model is overloaded\" or \"context length exceeded\", instead of only the HTTP status line and the request URL."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Queueing a message on a Unified session no longer risks killing the app server when the queue change arrives on a session state update."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Opening a session and loading the session list are much faster on machines with many linked checkouts: reads no longer resolve plugins, MCP servers and connectors they never use, and Deskt..."}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Source code (zip)"}
+{"tag":"v2.25.5","date":"2026-09-18","section":null,"item":"Source code (tar.gz)"}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"Connector discovery excludes raw HTTP connectors that do not support MCP tools."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"A single invalid connector no longer prevents the rest of your connectors from loading; an individual tool with an oversized schema is dropped on its own, and accounts over the connector cap keep a bounded catalog instead of loading none."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"Automatic session titles use the active model on custom Mistral endpoints."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"Smart-approve now appears in the Vibe Desktop mode picker when enabled via its rollout, and a background refresh no longer drops it."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"ACP clients (Zed/JetBrains) always list the active mode, so a session can never get stuck on a mode missing from its own list."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"Smart-approve now escalates to a confirmation prompt when a risky action is requested again, instead of only blocking it, and shows the reason it is asking."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"Auto-approved calls no longer read as warnings: the reason smart-approve let a call run is shown as a note rather than a warning."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"@ file mentions now resolve against every workspace root, including --add-dir ones."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"A @ mention outside the workspace no longer rejects the whole message; it stays plain text and the read tool can still ask for it."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"--add-dir no longer drops the working directory from the file tools' workspace roots."}
+{"tag":"v2.25.4","date":"2026-09-12","section":null,"item":"Shell permission checks now require approval for risky syntax and command options that could bypass workspace and denylist controls (CVE-2026-87984, CVE-2026-87985, CVE-2026-87986, CVE-2026-87987, and residual CVE-2026-87988 variants)."}
+{"tag":"v2.25.3","date":"2026-09-11","section":null,"item":"New /branch command forks the current conversation into a new resumable session, leaving the current session unchanged. Resume the copy in another terminal with vibe --resume <id>."}
+{"tag":"v2.25.3","date":"2026-09-11","section":null,"item":"Bump the local harness runtime to v0.4.5."}
+{"tag":"v2.25.3","date":"2026-09-11","section":null,"item":"Make @ file mentions use Git-aware discovery and accept standalone pasted files and folders."}
+{"tag":"v2.25.3","date":"2026-09-11","section":null,"item":"Retained chats remain readable and restore their worktrees when work resumes."}
+{"tag":"v2.25.3","date":"2026-09-11","section":null,"item":"New session logs are no longer readable by other users on POSIX systems."}
+{"tag":"v2.25.3","date":"2026-09-11","section":null,"item":"AGENTS.md instructions now load into the system prompt under the experimental unified harness."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"VS Code extension: debug submenu with log level picker, open log file, and a togglable session status panel showing agent statistics (steps, tokens, tokens/sec, context, cost)"}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"Open the session picker faster by building the merged session listing once per cursor walk instead of on every page."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"Renamed SessionBackendKind literals from \"python\"/\"rust\" to \"legacy\"/\"unified\" to match backend identity naming."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"An \"always\" permission grant that fails to reach ~/.vibe now warns instead of passing silently: ConfigOrchestrator.set_field returns its errors rather than raising, so an ignored failure looked exactly like a successful write and the next session asked again with nothing to explain why."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"Steered prompts now preserve their host-provided display content in app-server session history."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"Preserve the selected permission mode when a session starts in a worktree."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"Managed worktree creation, attachment, and retention cleanup are serialized across processes, and stale reservations are recovered safely."}
+{"tag":"v2.25.2","date":"2026-09-10","section":null,"item":"Stop dropping a session from the picker when it is touched while paging through the list."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"[2.25.1] - 2026-09-09"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Desktop keeps 15 recent managed Code worktrees by default, configurable in Local Coding settings; cleanup skips active, dirty, untracked, or unpushed worktrees."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Background process tools (process.start, process.stop, process.output, process.list, process.write) now show the command or process ID in the call header and a typed result widget instead of raw JSON."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Tool call groups now fold into a single compact summary line by default. Click to expand the full list. Ctrl+O toggles all groups and result bodies. The summary shows present-tense labels while running (e.g. \"Running commands\") and past-tense when done (e.g. \"Ran commands\"). File edits and writes are included in the fold."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Show a loading spinner in the conversation while /reload is in progress"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"A risky call is returned to the model to self-correct rather than interrupting the human, escalating to an approval prompt only after a streak; no failure path auto-approves"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Experimental experimental_enable_tab_status config option: shows >> (running) and ? (waiting) indicators in the terminal tab title."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"New built-in worktree plugin with a skill for creating, reusing, and cleaning up git worktrees under $VIBE_HOME/worktrees."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The invalid API key error now names where the key came from (env var MISTRAL_API_KEY, the keyring), so a shell-exported key shadowing the one saved at setup is visible."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Optimized resource usage when running the full test suite."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The vibe and skill-creator skills now reach a session as skills of the shipped vibe plugin, so they are offered once, as /vibe:vibe and /vibe:skill-creator."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Bump harness to v0.4.3"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Vibe Desktop can create local projects from any existing folder."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Background LLM session titles are now off by default. Set session_logging.generate_titles = true to re-enable them."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Vibe CLI shows the output of a ! command directly in the timeline: it is neither folded behind its own toggle nor gathered into the summary line that folds the agent's tool calls. Shell calls the model makes still fold, as every other tool result does."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The /plugins detail view now leads with Author and Version, then the description, then Location (renamed from \"Installed from\"), Scope, Format, and Pinned."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The /resume session picker now shows an animated loading indicator while saved sessions are discovered and waits briefly before loading a highlighted session preview, keeping rapid keyboard navigation responsive."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"A session that asks for a worktree now starts in the repository and moves into the worktree once git worktree add lands, so the session exists from the moment the prompt is sent instead of after the checkout. Only its first turn waits."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Worktree sessions retain access to attached images and files."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Pinning or removing a shared skill now republishes this repository's claims, so another repository's cleanup no longer deletes a skill you just added."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Removed unauthenticated debugpy listener on localhost:5678 that was activated by DEBUG_MODE=true under vibe-acp"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"A rejected API key no longer offers /retry, which could only fail again with the same key."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Path autocomplete now prioritizes matches beneath an explicitly typed directory prefix in large repositories"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"GrowthBook rollouts set only via a feature's default value now take effect (previously ignored)"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"GrowthBook boolean feature flags now take effect, not just string on/off values"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Cached experiment variants are no longer dropped to defaults on cold start or resume"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Stop the CLI from dumping a traceback on exit when the app-server connection drops during shutdown (a failed reconnect/resume no longer crashes the event listener)."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Built-in plugins are no longer listed under \"Not loaded\" in /plugins with \"Plugin namespace 'vibe' is reserved\". Only a built-in may claim the reserved vibe namespace, but the re-resolve a session's plugin bind performs was re-reading every checkout at project scope, so the shipped vibe plugin was dropped from every session."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Tool call group icon now reflects the status of the last call in the group instead of the worst (any failure no longer overrides a later success)"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Individual failed tool call indicators stay grey (muted) when a later call in the same group succeeds, instead of escalating to red"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Tool group and individual tool call indicators now show a blinking square while running, then a colored dropdown triangle when settled"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"App-server validation errors now name the offending field and reason instead of only \"Invalid request parameters\"."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The auto-generated session title now waits for the first turn to complete and ignores the assistant's process preamble, so it names the actual task (e.g. the real subject of a linked issue) rather than an opening line like \"I'll explore the codebase\""}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Session titles now generate and refresh while a turn is still running — including long, tool-heavy turns that emit few assistant messages — instead of only when the turn ends or is interrupted"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"A ! command that exits non-zero (or is interrupted) now shows what it printed. Only the exit status was reported before, which hid the stderr explaining it."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"User-scope plugins (~/.vibe/plugins/) were shown as project scope in /plugins because the bind-time resolve collapsed all staged checkouts to project scope. Scope is now preserved from the original discovery."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Smart approve now runs its classifier on the fast Mistral model regardless of the session's active model, including when you switch into the mode mid-turn; a session on another model (e.g. a non-Mistral provider) sent the classify call to the wrong endpoint, so every gated tool call came back unverifiable and prompted instead of auto-approving"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The smart-approve pre-check no longer fast-approves content-dumping git commands (git diff/show/blame, git log -p, git status -v); they defer to the classifier so a secret shown in a diff is not auto-read"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The smart-approve pre-check no longer fast-approves a secret path hidden behind a cd prefix (e.g. cd ~/.ssh && ls); the secret scan now reads the whole command, not the part after the cd"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"The classifier now runs the fast model with deterministic decoding (temperature 0, thinking off) regardless of the session, so a thinking session no longer sends a thinking request to the small model and escalates every gated call"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"A subagent's classification event under smart approve is now forwarded to telemetry like a top-level one, instead of being applied as a subagent state update — which had dropped the subagent's events from the main-agent stream"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Smart approve no longer classifies ui.ask_user_question; asking the user a clarifying question is the escalation channel itself, so it always runs instead of paying a classifier round-trip, being deny-and-continued, or escalating to an approval dialog to ask"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Starting with --smart-approve now keeps the mode in the Shift+Tab cycle for the whole session; it was selected at launch but dropped out of the cycle after switching to another mode, so you could not switch back to it"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Switching agent mode mid-turn now re-gates MCP/connector tools too: leaving smart approve stopped asking for built-in tools but kept classifying every connector call because the mid-turn config graft dropped provided_tool_mode"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"\"Approve for session\" on an MCP/connector tool under smart approve now covers the whole tool instead of the exact arguments, so calling the same tool with different arguments no longer re-prompts (built-in tools keep their per-call resolver scope)"}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Resuming a session created by a newer version of Vibe now shows a clear message to restart with --check-upgrade and update, instead of an internal store-format validation error."}
+{"tag":"v2.25.1","date":"2026-09-09","section":null,"item":"Hook commands run without a shell to prevent injection via hooks.toml"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/skills browser for session skills, with search and filter; shared skills sync on session start. Experimental, off by default."}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Browser SSO completes behind split-horizon reverse proxies; opt-in browser_auth_allow_origin_rewrite rewrites sign-in/poll URLs onto configured origins"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Discovery of Mistral's built-in web-search connector"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Plugin-declared MCP servers in /mcp, tagged with their plugin and authenticatable via /mcp login; a pending login is announced at session start"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Connectors (Notion, Linear, Slack, GitHub, Gmail, Google Calendar, Drive) in ACP"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"ACP elicitation-form clients can answer ask_user_question and exit_plan_mode"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Session-scoped model pinning for resumed conversations"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"vibe update to check for and install a newer release"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Connector discovery skips unsupported protocols"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"agents/list no longer requires a session id"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Prompt queueing runs through the app server with select, edit, remove, pause, and resume controls"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/skills browser groups by scope, fits rows to width, and pages long lists"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"vibe --yolo selects the auto-approve profile (cyclable with Shift+Tab; blockable via disabled_agents)"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"A plugin MCP server whose name collides with an [[mcp_servers]] entry is dropped with a warning instead of inheriting the configured credential"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/config saves to user config by default; Tab cycles user / session / (trusted) project target"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Vibe CLI sends queued prompts as a single turn; Desktop keeps turn-by-turn"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/mcp title marks an in-flight background refresh"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Pruning cached skills preserves versions pinned by other repos"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Approved file operations act on the cleared path, preventing symlink redirection outside the project; approved writes outside the project execute"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Onboarding crash on a malformed browser_auth_api_base_url port"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Split-horizon account and re-signin reach the connector origin and adopt tenant domains from /whoami"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Multi-line tool descriptions (remote MCP, connector, plugin) no longer break /mcp layout; rows render the first line only, [source] prefix stripped"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Mode indicator reflects the effective tool-approval bypass (--yolo, --auto-approve, bypass_tool_permissions)"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Builtin vibe skill no longer recommends the removed /terminal-setup and now documents /copy, /paste-image, /remote-project"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Context gauge drops the discarded conversation immediately after /clear and /compact"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/config shows and edits the active model's effective auto-compaction threshold, preserving org-enforced global locks"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Session event stream no longer crashes on a JSON-Patch move from a field relocation"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/mcp login no longer probes with a bare GET (405 before credentials); for a plugin server it sends the plugin's declared headers and uses its own URL, not a same-named [[mcp_servers]] entry from another session"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Toggling an MCP row the app server refuses to change shows a notice instead of ending the session"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/mcp add under a plugin-owned name takes the name immediately for the configured entry"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/mcp refresh reconnects plugin servers, not just configured ones"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Same-named plugin MCP servers each get their own /mcp row with their own status and tools"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Adding then removing an [[mcp_servers]] entry under a plugin-owned name no longer strands the plugin's server"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"A second session no longer drops the first's plugin servers or [[mcp_servers]] entries; each session's configured servers are its own"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"A server whose name another session shares no longer gets that session's credential deleted on identity mismatch"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Context-window indicator updates on model switch without a restart"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Failed queue merge no longer leaves a ghost prompt; rewind targets the merged turn's real history entry and survives removing the first queued prompt"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Connectors/MCP panel auto-sizes to content instead of a fixed 50vh"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/mcp no longer paints a failing-discovery source or unlinked connector as enabled before it comes up"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Crash on closing the app while a turn is streaming"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Loading spinner keeps its \"Interrupting\" label in the pre-surface gap"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Closing the resume picker mid-load no longer crashes with NoMatches"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Invalid active model falls back to the current default; the banner model refreshes after clearing a session"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Account refresh no longer overwrites third-party provider settings on a concurrent model change"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Rewind into a new session and rewind-in-place while resyncing no longer redraw stale turns"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"/mcp opens from cache and waits 60s before refreshing; HTTP setup runs outside the UI loop"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"System trust store respected during browser sign-in"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"A message sent while idle or right after interrupting no longer flashes as queued and shows the loading indicator immediately"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Escape-to-interrupt updates the status immediately; Escape+Enter to restart a queued turn no longer drops the Enter; Escape just as a turn finishes no longer stalls the next message"}
+{"tag":"v2.25.0","date":"2026-09-04","section":null,"item":"Devstral Small (devstral-small-latest) from the default models list; stale sparse config overrides migrated automatically"}
+{"tag":"v2.24.5","date":"2026-08-27","section":null,"item":"Fuzzy search in the MCP servers and connectors browser"}
+{"tag":"v2.24.5","date":"2026-08-27","section":null,"item":"Faster startup through additional lazy imports and deferred schema builds"}
+{"tag":"v2.24.5","date":"2026-08-27","section":null,"item":"Trust prompt is skipped when --worktree or --trust already grants access"}
+{"tag":"v2.24.5","date":"2026-08-27","section":null,"item":"Links are normalized before opening to prevent broken clicks"}
+{"tag":"v2.24.5","date":"2026-08-27","section":null,"item":"Themes apply correctly at startup"}
+{"tag":"v2.24.5","date":"2026-08-27","section":null,"item":"Retried Mistral responses are released back into the connection pool"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"LLM-generated session titles and terminal title"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Queue selection and edit mode for queued messages"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Git info is shown in the session header"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Model connections are reused across tool turns for faster responses"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"/mcp login <connector> routes to the connector auth flow"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Rate-limited calls retry with adaptive backoff and pacing"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Model retry state stays authoritative across clients"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Loading nix-managed skills through a symlinked SKILL.md no longer freezes"}
+{"tag":"v2.24.4","date":"2026-08-26","section":null,"item":"Chat-completion connections are closed to avoid pool timeouts"}
+{"tag":"v2.24.3","date":"2026-08-20","section":null,"item":"Slash commands and setting pickers can be used while the agent or a command is running"}
+{"tag":"v2.24.3","date":"2026-08-20","section":null,"item":"The process is named \"Vibe CLI\" and the bottom bar shows its PID"}
+{"tag":"v2.24.3","date":"2026-08-20","section":null,"item":"Models are shown by display name instead of the raw config alias"}
+{"tag":"v2.24.3","date":"2026-08-20","section":null,"item":"Python dependencies updated to clear known security advisories"}
+{"tag":"v2.24.3","date":"2026-08-20","section":null,"item":"Connector bootstrap failures are surfaced instead of reporting no connectors"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"In-app session picker with live preview"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"/log-level command for runtime log-level control"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"/retry is exposed to ACP clients"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Created worktrees are shown in the transcript"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Worktrees are cleaned up when their local session is deleted"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Faster startup: the TUI renders before session initialization and imports are deferred"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Faster session resume"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Edit and read tool headers show paths relative to the current directory"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Admin config fetch retries with exponential backoff"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Custom tools are flagged as deprecated"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"New worktrees branch from the remote default instead of local HEAD"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Configured temperature is respected for reasoning models"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Thinking setting updates correctly for routed models"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Path picker stays open on / and supports ../ traversal"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Escape sequences in command output no longer flood the input box"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Live tool-permission bypass propagates to child agent loops"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Managed shell output is no longer sent to the LLM twice"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"Adding a tool to the allowlist keeps the default allowlist"}
+{"tag":"v2.24.2","date":"2026-08-18","section":null,"item":"OpenTelemetry traces are sent to the correct endpoint"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Inline ghost-text completion for mid-prompt skills"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"/clear and /new accept an optional first prompt and show the resume id"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Compacted conversation history is preserved"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"OpenTelemetry tracing configuration is now available"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Default agent renamed to ask and defaults to accept-edits"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Auto worktrees are named with a model"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Faster resume by deferring sub-agent instantiation"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Surface MCP server startup failures to the user"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Text selection is now visible in the chat input"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Provider reasoning is replayed verbatim"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Detect and retry incomplete LLM streams"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Surface voice transcription errors instead of swallowing them"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Proactively refresh expired MCP OAuth tokens"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Theme switching is now responsive"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Crash on undo of a large multiline insert in the chat input"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Config modal headers stay visible on wrap, with a tighter layout"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Trusting the cwd no longer untrusts <cwd>/.vibe"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Home directory is no longer treated as a project root"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Explain the fallback when the configured default model is invalid"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Scope sensitive-file read grants and stop chat bypass"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Git Bash paths no longer create bogus C:\\c\\... directories on Windows"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"Use POSIX separators when shortening home paths in display"}
+{"tag":"v2.24.1","date":"2026-08-11","section":null,"item":"/clear resume hint gated on session persistability"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"[2.24.0] - 2026-08-05"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Admin config layer for shared/enforced config that applies over user config"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"\"Default\" (unpinned) model option in /model and /config to track the recommended model without pinning a specific alias"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Server-side default model routing via experiment, never overriding explicit pins"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"LLM retries surfaced in ACP/VS Code conversations via _session/retrying notification"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Explore subagent can load skills"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Local sessions start in the selected worktree"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"User and project config layers compose; trusted project config overlays user config instead of replacing it"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Startup duration telemetry (vibe.startup)"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Experiment variants routed through the config schema; TOML/env/overrides now take precedence over GrowthBook assignments"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Autocopy: keyboard copy shortcuts give feedback, double/triple-click drag improved, and autocopy_to_clipboard documented"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Drag-and-drop of files into the terminal when unfocused (iTerm2, Ghostty)"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Subagent session handoff after compaction"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Stale devstral-small thinking setting migrated to off"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"Noisy non-Vibe events dropped from Sentry"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"ACP returns max_turn_requests stop reason instead of erroring on turn limit"}
+{"tag":"v2.24.0","date":"2026-08-05","section":null,"item":"/resume listing speed no longer scales with total session count (persistent index)"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"/retry command to retry an interrupted response"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"/rewind now lets you choose between forking and rewinding in place"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"LLM retries surfaced in the UI and logs"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Read the config catalogue without an attached session"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"/status shows provider prompt-cache usage and discounts cached tokens from the session cost"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Native copy hint on the clipboard notice"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Refused config change no longer wipes the picker"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Git fsmonitor hook disabled in project context"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Signed reasoning blocks preserved"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Tab hint colored in config edit modal"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"UPX disabled in the PyInstaller specs"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"List formatting preserved when copying a selection from the TUI"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Duplicate approval widget prevented when callbacks overlap"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"ACP usage update sent on session resume, fork, and new"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Context token display updated on session resume"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"More frequent context window updates in ACP"}
+{"tag":"v2.23.3","date":"2026-08-03","section":null,"item":"Unreachable chat mode"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Skill-creator built-in skill: a guided flow to author, update, and delete your own skills"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Browser sign-in can target a custom login domain for self-hosted or private-gateway deployments"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Session stats now track provider cache-hit (cached) tokens"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Redesigned /config as a searchable, full-screen settings browser with typed edit modals and per-layer origin display"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"App-server protocol extended and packaged as a standalone vibe-app-server binary for desktop integration"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Cached-token counts now reported in session stats instead of always zero"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Zed ACP packaging preserves symlinks by shipping .tar.gz archives"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"grep result chips open the correct file and no longer leak absolute host paths into context (ACP)"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"ACP /rewind truncates in place instead of forking"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Extra fields in the whoami response no longer rejected"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"ACP session history sorted by recency"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"Blank permission prompt and duplicated user message in the ACP/VS Code webview"}
+{"tag":"v2.23.2","date":"2026-07-30","section":null,"item":"WhoAmI result again tolerates extra fields"}
+{"tag":"v2.23.1","date":"2026-07-28","section":null,"item":"Crash when @-mentioning a file, which aborted the turn"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"[A/B testing] OS-native managed shell tools"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"vibe mcp add and vibe mcp remove commands to add and remove remote MCP servers without editing TOML"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Auto theme that follows terminal/OS appearance"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"ACP project links surface for desktop integration"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Dense, grouped tool-call rendering in the TUI"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Trust dialog now defaults to \"Trust folder\" and is simplified"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Tool descriptions compressed to reduce context bloat"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Smoother, faster scrolling in long conversations"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Fixed unnecessary textual relayout computation on constant-size animation frames, removing lag spikes"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Major internal refactor introducing a JSON-RPC 2.0 app server as the single runtime owner between delivery surfaces (TUI, -p, ACP) and the core engine, replacing direct AgentLoop/callback coupling with a typed, projected protocol"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Option+Left/Right word navigation in the chat input"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Unsigned thinking blocks dropped on backend replay"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"SGR mouse protocol renegotiated when the emulator sends x10 bytes"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Crash on /resume delete confirmation"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Empty mapping treated as absent in CONCAT/UNION config merge"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"LC_CTYPE used instead of LC_ALL in the bash tool environment"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Chunk text emitted before its tool call in the streaming loop"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Text selection guarded against detached widgets"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"OSError on over-long @-mention autocompletion candidates"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"MCP registry created when the first server is added via /mcp add"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"CLI conversation ID preserved after teleport"}
+{"tag":"v2.23.0","date":"2026-07-28","section":null,"item":"Data-retention link accessible to non-admins"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"/new command as an alias for /clear"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"ACP review support: approve or revert agent changes from ACP clients, with live refresh"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"Full migration to ConfigOrchestrator for configuration handling"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"Defaults now filled at merge time via DefaultConfigLayer; config.toml stores only user-set values"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"read_file no longer prompts for approval on plan files in plan mode"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"Benign Sentry noise suppressed (EIO, clean exits, broken pipe, transcription 401)"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"Exception on unsafe configuration read"}
+{"tag":"v2.22.0","date":"2026-07-21","section":null,"item":"Teleport context summary flag"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Registry skills content store and manifest for skill discovery"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Config schema exposed through ACP"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Checkpointer engine state model, owner union, and pending hunks"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"[Breaking — hooks] Hooks graduated from experimental; hooks.toml is now stable. Every hook type is renamed: post_agent_turn → post_agent, before_tool → pre_tool, after_tool → post_tool (the hook_event_name payload field is renamed to match). Update existing hooks.toml files accordingly."}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Telemetry routed through client-side redaction"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Models field migration from list to dict"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"VibeConfig cutover prep with persisted-config read and orchestrator SSL parity"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Reduced feedback survey frequency for users who already responded"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Duplicate model aliases deduplicated instead of failing config load"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"UTF-8 BOM stripped in decode_safe"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"UTF-8 BOM stripped from SKILL.md before parsing frontmatter"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"MCP server connection errors now surface in the TUI"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"MCP discovery failures now surface in ACP sessions"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"stdin content no longer discarded when /dev/tty is unavailable"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"GitPython import deferred off the ACP startup path"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Blank line removed between approval options"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"Connector tool permission content scrolls instead of cropping"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"ConfigOrchestrator gained an explicit copy() for forking"}
+{"tag":"v2.21.0","date":"2026-07-17","section":null,"item":"enable_experimental_hooks config flag (and VIBE_ENABLE_EXPERIMENTAL_HOOKS env var); hooks now load unconditionally when declared"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Warning when the Narrator is enabled without working audio output"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Windows command prompt is now shell-aware"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Hardened bash tool permissions and cross-platform shell handling"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Rewind now triggers on a double Esc when the input is empty, with improved keybindings"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Teleports now include summarized context"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Renamed user plan labels (Teams → Team, Education → Student)"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"ask_user_question selection now works via mouse and supports free-text entry"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"More robust SSE streaming in the generic backend"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"NoneType crash when stopping voice recording during a drain-timeout race"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Windows ProactorEventLoop teardown tracebacks on /exit"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"MCP OAuth tokens are no longer dropped on transient refresh errors"}
+{"tag":"v2.20.0","date":"2026-07-15","section":null,"item":"Stensel8 reacted with laugh emoji"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Experimental managed bash tool for running and tracking shell sessions"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"--disabled-tools CLI flag to turn off specific tools for a run"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Per-tool description overrides via <tools-dir>/prompts/<name>.md"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Setting to clear context when a plan is accepted"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Discovered AGENTS.md files are now surfaced during read_file tool calls"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Reactive compaction with a dedicated summary fallback and stricter summaries"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"User-invoked skills now load as a synthetic tool call"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Tool config now merges via deep merge"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"MCP panel now refreshes silently in the background"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Debounced the agent-switch spinner"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Neutral color for keyboard shortcut hints"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Falls back to the first available model when the active model is unknown"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"HTTP requests now honor CIDR notation in NO_PROXY"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"History now loads lazily on resume, and session writes are off the event loop"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Faster startup by deferring heavy imports"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"PII and identifying paths are now scrubbed from Sentry reports"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Rewind now happens in place instead of forking the session"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"No longer includes pydantic URLs in error messages"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Text can now be scrolled while selecting at the chat bottom"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Click text selection is now scoped to word and paragraph"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"DuplicateIds crash when the recording UI starts twice"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Git subprocess output is now decoded as UTF-8"}
+{"tag":"v2.19.1","date":"2026-07-09","section":null,"item":"Corrected the truncated indicator position and removed a duplicate fetch link"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"--worktree NAME option to create or reuse a git worktree and run inside it"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"Rewind support over ACP for both the agent and the host"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"Teleport URL in the CLI is now clickable"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"Raised the Leanstral context limit"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"Sentry auto integrations are now disabled"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"Path prompt work is now offloaded from the UI thread"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"StopIteration crash in QuestionApp when submitting an empty multi-select"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"User message index now accounts for the deferred system prompt"}
+{"tag":"v2.19.0","date":"2026-07-03","section":null,"item":"No longer reports benign Sentry noise (KeyboardInterrupt and destroyed pending tasks)"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Whole-line content now shown in the edit diff"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Declined or skipped tool calls now render as a muted square"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Auto-approve now works in lean mode"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Session resume with --continue now matches the resolved working directory"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Long tool call titles now wrap instead of being cropped"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Duplicate mcp_servers names in config are now rejected"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"MarkupError crash when a tool error contained square brackets"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Teleport now uses the matched GitHub remote"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Raw compaction user messages are now preserved"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"ACP now honors default_agent on new and resumed sessions"}
+{"tag":"v2.18.4","date":"2026-07-01","section":null,"item":"Ambiguous teleport session creates are now retried"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"j/k navigation in selectable lists across the TUI (questions, theme picker, rewind, voice, MCP panels)"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"ask_confirmation_on_exit config option to prompt before quitting"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"Project-level .vibe/config.toml now persists config option changes"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"Consistent styling and casing for keyboard shortcut hints across the TUI"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"ask_user_question now supports more than 4 options and questions"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"No longer prompts to log in for disabled MCP servers"}
+{"tag":"v2.18.3","date":"2026-06-30","section":null,"item":"Teleport diff no longer mutates the real git index"}
+{"tag":"v2.18.2","date":"2026-06-29","section":null,"item":"Sentry crash reporting for unhandled exceptions in the TUI (gated by enable_telemetry; off when telemetry is disabled)"}
+{"tag":"v2.18.2","date":"2026-06-29","section":null,"item":"Recoverable tool-call errors are now muted in the UI; only terminal errors render as a hard failure"}
+{"tag":"v2.18.2","date":"2026-06-29","section":null,"item":"MarkupError crash when tool output contained square brackets"}
+{"tag":"v2.18.2","date":"2026-06-29","section":null,"item":"OpenTelemetry chat/LLM spans missing after Mistral Python SDK 2.4.10+ telemetry opt-in gate"}
+{"tag":"v2.18.1","date":"2026-06-29","section":null,"item":"/mcp add slash command for adding OAuth MCP servers"}
+{"tag":"v2.18.1","date":"2026-06-29","section":null,"item":"Petit chat animation idle pauses"}
+{"tag":"v2.18.1","date":"2026-06-29","section":null,"item":"Bare exit synonyms (exit, quit, :q, :quit) now treated as slash commands instead of prompts"}
+{"tag":"v2.18.1","date":"2026-06-29","section":null,"item":"MCP OAuth login crash when keyring backend is un-loadable"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Clickable URLs in web fetch and web search tool output"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Context window usage display in tokens at the bottom of the TUI"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Clipboard image paste support in the TUI (macOS)"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Max generated tokens set_config_option in ACP"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"MCP OAuth authentication UX improvements in /mcp panel"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Diff gutter and body split into separate widgets"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Faster UI startup with lazy heavy imports"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Improved connector performance with bootstrap caching"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"macOS keychain access for Vibe credentials"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Standalone denylist incorrectly blocking commands with heredocs"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Copy selected text from prompt input and text areas"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Repeated keyring requests in Vibe Code"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Brew upgrade now always runs even when uv upgrade succeeds"}
+{"tag":"v2.18.0","date":"2026-06-25","section":null,"item":"Terminal kill/release bounding for ACP to prevent hangs"}
+{"tag":"v2.17.1","date":"2026-06-19","section":null,"item":"Commands in /help are now listed alphabetically in both the CLI and ACP"}
+{"tag":"v2.17.1","date":"2026-06-19","section":null,"item":"/teleport is now always available and shows an explicit error when its prerequisites aren't met, instead of being hidden"}
+{"tag":"v2.17.1","date":"2026-06-19","section":null,"item":"1 person reacted"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"/mcp login, /mcp logout, and /mcp status commands to authenticate OAuth-backed MCP servers from the TUI"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"vibe --check-upgrade to force an immediate update check and exit"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"--yolo as an alias for --auto-approve"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"ACP now accepts inline image content blocks"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"API keys are now stored in the OS keyring instead of plain text"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Edit diff view now shows all replaced occurrences instead of just the first"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Completion popup now uses a two-column layout"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Chat messages now have right padding so text no longer collapses into the scrollbar"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Faster CLI shutdown by deferring resource cleanup on exit"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Skill autocomplete popup now dismisses after Tab completion"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Stdio MCP connections now persist across tool calls"}
+{"tag":"v2.17.0","date":"2026-06-19","section":null,"item":"Retryable 5xx responses from the Mistral backend are now retried instead of failing"}
+{"tag":"v2.16.1","date":"2026-06-16","section":null,"item":"ACP workspace trust gated behind the workspace-trust client capability"}
+{"tag":"v2.16.1","date":"2026-06-16","section":null,"item":"/resume now opens much faster"}
+{"tag":"v2.16.1","date":"2026-06-16","section":null,"item":"Startup update-failure message is now gentler and no longer alarms when an update can't be applied"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"Fuzzy search in slash command autocomplete"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"Syntax-highlighted, line-numbered, theme-aware diffs for file edits"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"/resume now scopes the session picker to the current folder"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"Clipboard copy confirmations now appear inline instead of stacking toast notifications"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"ACP teleports now use the client title as the Vibe Code project name when no explicit project name is configured"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"ACP max-output-token responses now stop gracefully with max_tokens instead of surfacing internal errors"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"Context-too-long responses wrapped as HTTP 422 are now classified correctly"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"SSE streams are parsed on CR/LF boundaries only, avoiding crashes on valid Unicode line separators in JSON strings"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"CLI banner now shows the Free plan correctly"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"Mistral backend no longer sends reasoning content when model thinking is off"}
+{"tag":"v2.16.0","date":"2026-06-15","section":null,"item":"ChrisZo11 and le-codeur-rapide reacted with laugh emoji"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"[Experimental] before_tool and after_tool hooks: shell scripts declared in hooks.toml that fire around every tool call; hooks can deny the call, rewrite tool inputs, or append context to the output — enable with enable_experimental_hooks = true"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Message queue: messages typed while the agent or a !bash command is running are queued and shown above the input; Esc pauses the queue, Ctrl+C drops the last queued message (LIFO), Enter flushes the queue when paused"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Tool result output is now collapsed by default to keep responses scannable"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Common read-only shell commands (ls, cat, pwd, etc.) are allowed without approval by default"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Session deletion available directly from the resume picker"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"[mcp_servers.auth] block in config for per-server MCP authentication"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Collapsed web tool output now shows the URL and search query at a glance"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"max_turns support exposed over ACP via set_config_option"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Compaction now re-injects prior user messages so the agent retains the original task goals across context resets"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"[Breaking — experimental hooks] post_agent_turn retries no longer use exit code 2; hooks must now exit 0 and return {\"decision\": \"deny\", \"reason\": \"...\"} on stdout to trigger a retry — exit code 2 is treated as a failure"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Model refusal stop reason is now surfaced to the user instead of stopping silently"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"CLI UI no longer goes blank during app switches"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"User messages are preserved correctly across repeated compactions"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Non-UTF-8 input is handled gracefully across all CLI surfaces"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"--resume now shows history when launched from a dangerous directory"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Startup no longer crashes in unowned folders or when a git ancestor is unreadable"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"Plain-string answers from web_search are handled without crashing"}
+{"tag":"v2.15.0","date":"2026-06-12","section":null,"item":"NaN SGR mouse reports no longer leak into the chat input"}
+{"tag":"v2.14.1","date":"2026-06-08","section":null,"item":"/teleport slash command exposed over ACP, mirroring the TUI command for IDE integrations"}
+{"tag":"v2.14.1","date":"2026-06-08","section":null,"item":"Startup prompt to install a pending Vibe update before continuing the session"}
+{"tag":"v2.14.1","date":"2026-06-08","section":null,"item":"JetBrains IDEs no longer trigger a preemptive auth prompt over ACP and no longer drop terminal arguments"}
+{"tag":"v2.14.1","date":"2026-06-08","section":null,"item":"Initial ACP slash-command advertisement is delayed so Zed registers commands like /help instead of rejecting them"}
+{"tag":"v2.14.1","date":"2026-06-08","section":null,"item":"Built-in tool prompts no longer reference the removed search_replace name and now point to edit"}
+{"tag":"v2.14.1","date":"2026-06-08","section":null,"item":"bernahe, ChrisZo11, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Image attachments via @-mentions in the TUI for vision-capable models"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Session deletion, exposed over ACP as the session/delete extension method"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Browser sign-in now shows a copyable fallback URL when the browser does not open, so SSH and remote sessions can complete onboarding"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Toast notification when a SKILL.md file fails to parse instead of silently dropping the skill"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Trust prompt now proposes the git repository ancestor as a trust target"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"EnvironmentLayer in the layered configuration, populated from VIBE_-prefixed environment variables"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"New tool-call format for read and the file edit tool"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"write_file is now create-only and refuses to overwrite existing files"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Bumped agent-client-protocol to 0.10.1"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"LLM calls now retry on network errors and timeouts (connection, read, write, remote protocol, timeout)"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Approval modal now sizes itself so the bottom of long tool-call payloads stays visible above the options block"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Banner connector count and /mcp panel ordering now reflect which connectors are actually usable and the user's enable/disable choices"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"disabled_tools from runtime is merged with the TOML configuration instead of replacing it, and is enforced inside ToolManager.get()"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"shift+backspace and shift+delete now work in the chat input"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Crash in the ACP todo plan-update handler when the model's tool call failed validation"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"Recursive search for nested harness files"}
+{"tag":"v2.14.0","date":"2026-06-04","section":null,"item":"flingsbrt, clammywsda, bernahe, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"enable_system_trust_store config flag to switch the shared SSL context to the OS trust store for corporate TLS / private CA setups"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"MCP HTTP transport now uses Vibe's shared SSL context so it honors SSL_CERT_FILE / SSL_CERT_DIR and the system trust store opt-in"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"API key onboarding and plan-upgrade CTAs now link to the new Mistral Vibe Code extensions page"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"Compaction summaries are now injected into the conversation instead of replacing it"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"Crash during initialization"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"VS Code extension promo banner now sits at the top of the conversation instead of being pinned above the input"}
+{"tag":"v2.13.0","date":"2026-05-29","section":null,"item":"DanielEDFEF, farazxcnmhuil, Nadinexnmuyuhgjhk, flingsbrt, bernahe, and Markney reacted with laugh emoji"}
+{"tag":"v2.12.1","date":"2026-05-27","section":null,"item":"VS Code extension promo link in the CLI banner now points to the renamed mistralai.mistral-vibe-code extension"}
+{"tag":"v2.12.1","date":"2026-05-27","section":null,"item":"/teleport now uses the new Vibe Code Web sessions"}
+{"tag":"v2.12.1","date":"2026-05-27","section":null,"item":"clammywsda, bernahe, and Markney reacted with laugh emoji"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Custom compaction prompts via the compaction_prompt_id config setting, resolved from ~/.vibe/prompts/ or .vibe/prompts/"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"--max-tokens flag for programmatic mode (-p)"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"ACP _auth/status and _auth/signOut extension methods so IDE extensions can show auth state and sign the user out"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Auth source assessment in vibe.setup.auth to classify the active credential source"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"VS Code extension promo line in the CLI banner when launched from a VS Code, Cursor, or VS Code Insiders terminal"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"OverridesLayer and ProjectConfigLayer for the layered configuration system"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Programmatic mode (-p) no longer auto-approves tool calls by default"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Browser sign-in is enabled by default for Mistral providers; the enable_experimental_browser_sign_in flag is no longer required (stale entries are silently ignored)"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Compaction quality improved"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Refreshed user message styling and slash/teleport variants"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"/teleport to Vibe Code Web now carries the working diff and last commit, matching the legacy teleport"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Reworded /teleport help and completion copy to say \"Vibe Code Web\""}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"Zed extension publishing job from the release workflow"}
+{"tag":"v2.11.1","date":"2026-05-27","section":null,"item":"herbertdfgse, DanielEDFEF, Nadinexnmuyuhgjhk, flingsbrt, clammywsda, bernahe, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Load skills from ~/.agents/skills so they can be shared across agents"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Restore the textual theme selection system with an onboarding theme picker"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Surface unauthenticated connectors in /mcp with needs auth / needs setup labels and start the OAuth flow from inside the CLI"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Current date injected into the system prompt"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"minimal system prompt variant for eval and training"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Refreshed manual API key onboarding screen to match the new onboarding panel layout"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Newly discovered connectors are now disabled by default; existing user choices are preserved"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Preserve original line endings in ACP search_replace"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"Show MCP/connectors count as enabled/total in the banner"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"ACP grep tool displays the search path as a chip and no longer drops the filename"}
+{"tag":"v2.11.0","date":"2026-05-25","section":null,"item":"herbertdfgse, DanielEDFEF, farazxcnmhuil, Nadinexnmuyuhgjhk, flingsbrt, clammywsda, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.10.1","date":"2026-05-20","section":null,"item":"Pretty session titles that format @mention syntax for human-readable display"}
+{"tag":"v2.10.1","date":"2026-05-20","section":null,"item":"Auto-emit SessionInfoUpdate on the first prompt so IDE session pickers reflect the title immediately"}
+{"tag":"v2.10.1","date":"2026-05-20","section":null,"item":"End-to-end layered config read path with TomlFileLayer, ConfigBuilder, and ConfigOrchestrator"}
+{"tag":"v2.10.1","date":"2026-05-20","section":null,"item":"MCP menu no longer shows D/E shortcuts in the detail view when there are no tools to enable or disable"}
+{"tag":"v2.10.1","date":"2026-05-20","section":null,"item":"Parallel bash tool calls in ACP each render their own live terminal instead of racing on shared state"}
+{"tag":"v2.10.1","date":"2026-05-20","section":null,"item":"Nadinexnmuyuhgjhk, flingsbrt, bernahe, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"GrowthBook A/B testing layer with first system prompt experiment"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"--add-dir flag to pull additional repository roots into a session"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"--no-autofill flag for bump_version.py script"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"TTY-keyed --continue scoping to current terminal"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Improved plan mode readability with live-editable plan display (Ctrl+G to edit)"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"ACP dispatch user rating telemetry"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"enable_connectors config flag to control connector availability"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Connectors migrated to public GA endpoints"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Combine git subprocess calls in SessionLogger for improved performance by @MichisGitIsKing"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Indent assistant message content to align with other messages"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Deprecate retrying workflow status and expose retry source"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Drop consecutive user-message merging in LLM backends"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Bump pydantic-settings to >=2.13.0"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Avoid closing in-use backend on agent reload"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Slash commands broken when automatic IDE context is enabled"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Debounce tool approvals to avoid interrupting user typing"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Preserve newline style in search_replace"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Reset cursor position on up-arrow"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Remove hardcoded API key env var in websearch"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Fix whoami hardcoded url"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"Pin dependencies in published wheel"}
+{"tag":"v2.10.0","date":"2026-05-19","section":null,"item":"bernahe, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"Syntax-highlighted file diffs for write_file and search_replace in the IDE agent webview"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"Spinner and loader for ! (bang) command output"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"prepare release script can resume after resolving merge conflicts"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"Strip wildcard suffix when persisting bash allowlist patterns"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"Build a combined SSL context for all outbound HTTPS requests"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"Hide non-interactive tools from the LLM in ACP and programmatic mode"}
+{"tag":"v2.9.6","date":"2026-05-11","section":null,"item":"herbertdfgse, DanielEDFEF, farazxcnmhuil, Nadinexnmuyuhgjhk, flingsbrt, bernahe, Markney, and Raymonnr reacted with laugh emoji"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"/loop command to run a prompt or slash command on a recurring interval"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"default_agent config setting"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Telemetry instrumentation for the teleport command"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Logging environment variables documented in --help"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"enable_telemetry now takes precedence over enable_otel"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Non-retryable errors raised by sub-activities now correctly stop the retry when the agent loop runs inside a Temporal activity (deepens the 2.9.4 fix to walk the exception cause chain)"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Compacted session IDs displayed correctly"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Reload the history file before writing so parallel instances don't clobber each other"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"read_file flagged as truncated when the limit is reached"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"CLI loader left-alignment"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Default scroll sensitivity in the TUI restored"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Loosened the \"no git commit\" constraint"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"Ensure enable_telemetry takes precedence over enable_otel"}
+{"tag":"v2.9.5","date":"2026-05-07","section":null,"item":"herbertdfgse, DanielEDFEF, farazxcnmhuil, Nadinexnmuyuhgjhk, and flingsbrt reacted with laugh emoji"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"/rename command to rename the current session"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"feat: vibe.at_mention_inserted telemetry event"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"\"Always allow\" tool permissions persist across sessions"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"Eager agent-loop warmup so vibe.ready telemetry fires sooner"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"bash (!command) bang commands run via async subprocess for better latency"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"Bumped mistral SDK to 2.4.4"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"Bumped cryptography to address upstream CVEs"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"Preserve non_retryable flag on exceptions raised through _chat / _chat_streaming, so callers driving the agent loop from a Temporal activity can signal \"do not retry\""}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"/clear no longer chains parent_session_id to the previous session"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"vibe.new_session telemetry no longer fires when resuming a session"}
+{"tag":"v2.9.4","date":"2026-05-05","section":null,"item":"farazxcnmhuil and Nadinexnmuyuhgjhk reacted with laugh emoji"}
+{"tag":"v2.9.3","date":"2026-04-30","section":null,"item":"Fix textual version"}
+{"tag":"v2.9.2","date":"2026-04-29","section":null,"item":"Teleport surfaces the latest GitHub connection status while polling"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"Connector OAuth authentication flow in /mcp menu"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"ConfigPatch operation types for Vibe Code"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"extra_headers field to ProviderConfig"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"Structured metadata on ACP tool results"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"vibe.user_cancelled_action ACP telemetry coverage"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"vibe.new_session telemetry event emitted whenever the session is reset"}
+{"tag":"v2.9.1","date":"2026-04-29","section":null,"item":"Migrated default model to mistral-medium-3.5"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Scratchpad directory for temporary working files shared with subagents"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"/copy slash command"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Experimental hooks system with post-agent-turn lifecycle"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"OpenAI Responses API adapter"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"ACP session fork and session close support"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Thinking level picker in ACP CLI"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"--trust session-only flag and fail-fast behavior in -p mode"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Opus 4.7 model support"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"ConfigLayer for layered configuration resolution"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"~/.vibe/prompts overrides for builtin prompts"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Enable/disable MCP servers and individual tools from /mcp menu"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Custom compaction instructions via /compact"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"vibe.ready telemetry event"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Usage updates sent after every LLM turn for ACP"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Headless section in system prompt to prevent bad model behavior"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Renamed auto_approve config to bypass_tool_permissions"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Increased feedback bar frequency with cooldown and TOML cache"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Feedback bar only shown when active model is Mistral"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Centralized telemetry metadata construction and wired through entrypoints"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Preserved stable session identity across compact/fork/rewind"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Filtered remote sessions by current user and deduped continue-as-new"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"--continue now only looks for sessions of the current working directory"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Batched widget mounts and narrowed CSS selectors for UI performance"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Autocomplete popup height calculation for wrapped lines"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Autocomplete popup dismissed on tab completion and escape"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Double Ctrl+C/Ctrl+D required to quit instead of killing session immediately"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Context window overrun now shows a friendly error message"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"MallocStackLogging error messages suppressed in CLI input"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"index.lock leftover on interrupted deferred init"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Safe find commands allowed by default"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Session ID preserved when resuming sessions through ACP"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"Usage updates sent after tool results instead of tool streams in ACP"}
+{"tag":"v2.9.0","date":"2026-04-28","section":null,"item":"KV cache warming via x-affinity in count tokens"}
+{"tag":"v2.8.1","date":"2026-04-21","section":null,"item":"Fixed changelog and whats_new"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"Builtin skills system with self-awareness skill"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"cwd configuration parameter for MCP stdio servers"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"/connectors as alias for /mcp and R refresh shortcut in MCP browser"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"MergeFieldMetadata and annotated merge strategy helpers for config schemas"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"vibe.request_sent telemetry event fired before each LLM API call"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"Model alias to tool_call_finished telemetry event"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"Deferred heavy init in subagents and ACP sessions to background thread"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"Renamed request_sent telemetry fields and added nb_prompt_chars"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"Sorted connectors in /mcp menu by connection state then alphabetically"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"/debug command no longer throws"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"Race condition in banner initialization dropping initial state"}
+{"tag":"v2.8.0","date":"2026-04-21","section":null,"item":"/terminal-setup command"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"MergeStrategy enum and merge logic for configuration"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"call_source=vibe_code field in LLM request metadata"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"\"Other\" task type for non-code requests in CLI prompt"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"Parallelized git subprocess calls during startup"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"Extracted command registry and refactored skill resolution"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"1M context window and thinking budget max for opus"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"Updated default telemetry URL to api.mistral.ai"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"Markdown fence context loss causing streaming rendering problems"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"Proxy chain URLs in api_base parsing"}
+{"tag":"v2.7.6","date":"2026-04-16","section":null,"item":"Alt+Left / Alt+Right key bindings from chat input"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Display detected files and LLM risks in trust folder dialog"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Text-to-speech via the Mistral SDK with telemetry tracking"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Deferred MCP and git I/O to background thread for faster CLI startup"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Made telemetry URL configurable"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Bumped Textual to 8.2.1"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Encoding detection fallback in read_safe for non-UTF-8 files"}
+{"tag":"v2.7.5","date":"2026-04-14","section":null,"item":"Config saving logic cleanup"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Console View for enhanced debugging and monitoring"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"/mcp command to display MCP servers and their status"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Manual command output forwarding to agent context"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Improved web_fetch content truncation for better readability"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Lazily load heavy dependencies to improve startup time"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Optimized folder parsing at startup using scandir"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Include file name in search_replace result display"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Stale configurations from subagent switch"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"ValueError on OTEL context detach in agent_span"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Clipboard toast preview replaced with fixed text"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Only agents with type \"agent\" are loadable with --agent flag"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Made chat_url nullable in ChatAssistantPublicData"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Normalized OTEL span exporter endpoint"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Removed redundant permission prompts for parallel tool calls needing the same permission"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Removed bottom margin issue in UI"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Never crash before ACP server starts"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Use skill in recent commands via the up-arrow navigation"}
+{"tag":"v2.7.4","date":"2026-04-09","section":null,"item":"Fixed loading order issues in vibe initialization"}
+{"tag":"v2.7.3","date":"2026-04-03","section":null,"item":"/data-retention slash command to view Mistral AI's data retention notice and privacy settings"}
+{"tag":"v2.7.2","date":"2026-04-01","section":null,"item":"Alt+Left / Alt+Right keyboard shortcuts for word-wise cursor movement in chat input"}
+{"tag":"v2.7.2","date":"2026-04-01","section":null,"item":"Refactored narrator into a dedicated narrator manager"}
+{"tag":"v2.7.2","date":"2026-04-01","section":null,"item":"Broken build on Linux"}
+{"tag":"v2.7.2","date":"2026-04-01","section":null,"item":"Errored MCP servers are now excluded from the banner count"}
+{"tag":"v2.7.2","date":"2026-04-01","section":null,"item":"Improved bash denylist matching and error messages"}
+{"tag":"v2.7.2","date":"2026-04-01","section":null,"item":"Command messages are now skipped during rewind navigation"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"ACP message-id support for reliable message boundary identification"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Reasoning effort parameter for supported models"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Updated MistralAI SDK"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Updated ACP SDK dependency"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Refined system prompt wording and structure"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Reduced scroll sensitivity to 1 line per tick for smoother scrolling"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Non-standard HTTP 529 status codes now handled gracefully in error formatting and retried"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Text selection errors when copying from unmounting components"}
+{"tag":"v2.7.1","date":"2026-03-31","section":null,"item":"Excluded \"injected\" field from user messages in generic backend"}
+{"tag":"v2.7.0","date":"2026-03-26","section":null,"item":"Rewind mode to navigate and fork conversation history"}
+{"tag":"v2.7.0","date":"2026-03-26","section":null,"item":"Preserve message_id when aggregating streaming LLM chunks"}
+{"tag":"v2.7.0","date":"2026-03-26","section":null,"item":"Improved error handling for SDK response errors"}
+{"tag":"v2.6.2","date":"2026-03-23","section":null,"item":"Pinned agent-client-protocol dependency back to 0.8.1"}
+{"tag":"v2.6.2","date":"2026-03-23","section":null,"item":"Context usage updates via ACP"}
+{"tag":"v2.6.1","date":"2026-03-23","section":null,"item":"Loosened agent-client-protocol version constraint from pinned to minimum bound"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"OTEL tracing support for observability"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Skill tool for managing task lists and workflows"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Text-to-speech (TTS) functionality"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Standalone --resume command for session picker"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"BFS for vibe folders to improve startup performance"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"List-based model picker for /model command"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"is_user_prompt flag to Mistral metadata header"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Correlation ID in user feedback calls"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Current date added to system prompt in vibe-work"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"TypeScript type inference for large tool outputs in vibe-work-harness"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Updated agent-client-protocol to 0.9.0a1"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Changed inline code color from yellow to green"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Removed \"You have no internet access\" from CLI prompt"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Fine-grained permission system improvements"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Inject system certs into vibe-acp frozen binary via truststore"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Streaming for currently streamed message when switching agents"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Proper UI updates when tools switch current agents"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Space key functionality when holding shift"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Empty TextChunk not appended when reasoning has no text content"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Messages removed from user feedback event"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Bash allowlist/denylist activation on Windows"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Improved scrolling performance"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"ACP error handling in webview"}
+{"tag":"v2.6.0","date":"2026-03-23","section":null,"item":"Context usage updates sent via ACP"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Dedicated theorem proving agent powered by leanstral, setup with /leanstall"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"More advanced AGENTS.md support:"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"AGENTS.md in ~/.vibe/ folder for user-level agent instructions"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"AGENTS.md for subfolders and in parent folders"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Mistral Code API key info displayed in CLI banner"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Voice mode with real-time transcription support"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Parallel tool execution for improved performance"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Structured ACP error classes for better error handling"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Bash allowlist/denylist now active on Windows"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Auto-completion relevance improved with better filename and path matching"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"History navigation no longer filters by prefix"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Updated to Mistral SDK v2 import structure"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Removed find from bash default allowlist to prevent -exec abuse"}
+{"tag":"v2.5.0","date":"2026-03-16","section":null,"item":"Web search tool now infers server URL from provider config"}
+{"tag":"v2.4.2","date":"2026-03-12","section":null,"item":"Session ID included in telemetry events for better tracing"}
+{"tag":"v2.4.2","date":"2026-03-12","section":null,"item":"Skills now extract arguments when invoked, improving parameter handling"}
+{"tag":"v2.4.2","date":"2026-03-12","section":null,"item":"Auto-compact threshold falls back to global setting when not defined at model level"}
+{"tag":"v2.4.2","date":"2026-03-12","section":null,"item":"Update notification toast no longer times out, ensuring the user sees the restart prompt"}
+{"tag":"v2.4.2","date":"2026-03-12","section":null,"item":"Removed file_content_before from Vibe Code, reducing payload size"}
+{"tag":"v2.4.1","date":"2026-03-10","section":null,"item":"HarnessFilesManager for selective loading of harness files, enabling SDK usage without accessing the file system."}
+{"tag":"v2.4.1","date":"2026-03-10","section":null,"item":"Web search tool infers server URL from provider config instead of hardcoded production API"}
+{"tag":"v2.4.1","date":"2026-03-10","section":null,"item":"ask_user_questions tool disabled in prompt mode"}
+{"tag":"v2.4.1","date":"2026-03-10","section":null,"item":"Space key fix extended to all Input widgets (question prompts, proxy setup) in VS Code terminal"}
+{"tag":"v2.4.1","date":"2026-03-10","section":null,"item":"Ruff isort/formatter config conflict resolved (split-on-trailing-comma set to false)"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"User plan displayed in the CLI banner"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Reasoning effort configuration and thinking blocks adapter"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Auto-compact threshold is now per-model"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Removed expensive file scan from system prompt; cached git operations for faster agent switching"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Improved plan mode"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Updated whoami response handling with new plan type and name fields"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Space key works again in VSCode 1.110+"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Arrow-key history navigation at wrapped-line boundaries in chat input"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"UTF-8 encoding enforced when reading metadata files"}
+{"tag":"v2.4.0","date":"2026-03-09","section":null,"item":"Update notifier no longer crashes on unexpected response fields"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"/resume command to choose which session to resume"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Web search and web fetch tools for retrieving and searching web content"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"MCP sampling support: MCP servers can request LLM completions via the sampling protocol"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"MCP server discovery cache (MCPRegistry): survives agent switches without re-discovering unchanged servers"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Chat mode for ACP (session/set_config_options with mode=chat)"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"ACP session/set_config_options support for switching mode and model"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Tool call streaming: tool call arguments are now streamed incrementally in the UI"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Notification indicator in CLI: terminal bell and window title change on action required or completion"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Subagent traces saved in agents/ subfolder of parent session directory"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"IDE detection in new_session telemetry"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Discover agents, tools, and skills in subfolders of trusted directories (monorepo support)"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"E2E test infrastructure for CLI TUI"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"System prompts rewritten for improved model behavior (3-phase Orient/Plan/Execute workflow, brevity rules)"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Tool call display refactored with ToolCallDisplay/ToolResultDisplay models and per-tool UI customization"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Middleware pipeline replaces observer pattern for system message injections"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Improved permission handling for write_file, read_file, search_replace (allowlist/denylist globs, out-of-cwd detection)"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Proxy setup UI updated with guided bottom-panel wizard"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Smoother color transitions in CLI loader animation"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Dead tool state classes removed (Grep, ReadFile, WriteFile state)"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Agent switch (Shift+Tab) no longer freezes the UI (moved to thread worker)"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Empty assistant messages are no longer displayed"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Tool results returned to LLM in correct order matching tool calls"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Auto-scroll suspended when user has scrolled up; resumes at bottom"}
+{"tag":"v2.3.0","date":"2026-02-27","section":null,"item":"Retry and timeout handling in Mistral backend (backoff strategy, configurable timeout)"}

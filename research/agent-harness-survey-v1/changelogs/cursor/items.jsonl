@@ -1,0 +1,812 @@
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"What's New in Cursor — Latest Updates & Release Notes"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"Models →"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"Product →"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"Enterprise"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"Pricing"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"Resources →"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":null,"item":"Sign inContactContact salesDownload"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Changelog","item":"Sep 10, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Changelog","item":"Today we're launching Projects in Cursor. Projects lets you take on larger bodies of work, such as a feature, a migration, or a full app. It maintains context over months of work, delegates tasks to thousands of subagents, and performs recurring work without being prompted."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Changelog","item":"Access Projects from the left-hand nav. The coordinator agent in a project doesn't write code itself; it plans the work, delegates it to agents that implement it, and brings the finished work back to you to check. Coordinators create and manage agents on your behalf, running as many in parallel as the work needs."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Powered by Cloud Agents","item":"A Project runs on its own computer in the cloud, so closing your laptop doesn't stop it. When something needs testing on your machine, the coordinator spins up a local agent to run it there."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Shared context","item":"You shouldn't have to onboard an agent every time you start a task. Each Project maintains a set of files that sync across every cloud and local machine its agents use. Agents add research and artifacts, along with what they learn about the codebase and how you prefer work to be done. If one agent figures out how to test a service, for example, every future agent can use those instructions. The shared context grows with the Project, making the coordinator more effective over time."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Tell the coordinator agent to watch a Slack channel, run on a schedule, or follow all your PRs. This way it can take action based on signals it detects, without waiting for your prompt."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Connect Slack and point it at a bug-report channel, and it starts delegating each time a bug comes in."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Projects are available in beta and rolling out to all users starting today."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Sep 2, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor supports self-hosted machines, which let you keep tool execution entirely in your own network."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Your codebase, build outputs, and secrets all stay on internal machines running in your infrastructure, while the agent handles tool calls locally."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"My Machines connects a single laptop or VM to your account for personal workflows."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Team pools are named queues of workers for a team or enterprise. Capacity can grow as requests arrive and shrink when workers disconnect, so your self-hosted machines can scale with demand. Pools are not tied to one repository: name the pool, and any available worker can claim the request."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Pools can also hibernate idle machines, then restore within a reconnect window when a follow-up arrives, so you don't keep expensive capacity warm just for the next prompt."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Run on your sandboxes","item":"Cloud agents can now execute on infrastructure you already use, including from AWS Lambda, Coder, Cloudflare, Daytona, Modal, Namespace, Vercel, and E2B."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Self-hosted workers now support computer use on Linux and Mac. With the right desktop packages, an agent can click, type, take screenshots, and drive the browser. You can watch its desktop or take control from Cursor."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Aug 27, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Cloud Agents no longer require a connected GitHub or other third-party SCM provider to get started. Prompt from the get-go, then save your work to a Cursor Origin repo."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Get started","item":"Select Start from scratch in the repo picker, then prompt the agent. In the background, Cursor creates an Origin repo for you."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Turn it into a real repo, whenever you want","item":"Once the agent's build is to your liking, click the Create repo button to save your work in an Origin repo. Choose a custom name or pick one of the suggested ones, then set the visibility to private or internal. You'll get a fully scaffolded Origin repo, ready to share or keep building on. Navigate to the Codebase tab to find your repo and access your project."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"A live preview, right in the browser","item":"Cursor now port-forwards your cloud agent's live environment straight to your browser, so you can preview it and use tools like design mode."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"Connect a Vercel account and hit publish to get a live URL for what you built."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"A Vercel account is required to use the publish feature."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"Get started today."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"Aug 19, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"We're continuing to improve cloud agents and the Cursor harness so always-on agents can operate as a system, building and shipping software on their own without the need for intervention at each loop."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"With this release, cloud agents can automatically pick up work in response to events, hold a goal until it's met, and stay on course through long-running sessions."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor can now monitor your PRs, watch a Slack thread, or run scheduled tasks. Cursor Agent subscribes to an event source (a thread or conversation) and wakes when something happens. Subscriptions are available for cloud agents only, for now."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Cloud agents automatically subscribe to PRs they create and drive them to completion, fixing CI and addressing bot comments. In Slack, ask @cursor check back in an hour and keep going until that feedback is in."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Custom modes","item":"Use any skill as a Custom Mode: a skill that stays pinned in the chat. Custom modes keep agents focused on a skill - you can think about it like \"always on\" skills."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Custom modes","item":"From /, pick a skill and press ⌥⏎ (Mac) or Alt+Enter (Windows), or choose Use as Mode."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Subagents can now run on their own virtual machines. Each gets an isolated copy of the project with clean context in its own cloud environment."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Have subagents test the parent agent's changes in fresh environments or swarm independent fixes without collisions. Try run a swarm of subagents to test my app for bugs, each in its own environment."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"/goal","item":"Use /goal to give the agent a long-lived objective to work towards until it's fully complete."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"/goal","item":"Try /goal fix all flaky tests and make CI green in a new chat. Pair it with a custom mode to follow a playbook, or /loop for recurring check-ins."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"You can now send a message to steer the agent while it's working without interruption. Follow-ups wait for the next tool call instead of cutting the agent off mid-action."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Type a follow-up and hit Send now, or press ⏎ twice."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Aug 17, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Cursor can now host your code."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Origin begins rolling out today in early beta on all paid plans. We're starting with the essentials, designed for agent scale: repos, pull requests, code browsing, and GitHub sync. Agent-native features ship soon."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"The new Codebase tab is home for Origin repos."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"Click +New to create a new repo and name it. Once you do, a page shows you how to install the CLI, with commands for how to clone a repo or push a local project. Push, and your code is hosted on Origin."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"For Origin-hosted repos, Origin is the source of truth. Pushes land on Origin, and GitHub is not in the path."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"Name your codebase when you create your first repo. That name becomes part of every repo's URL: cursor.com/codebase/acme-corp."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Your GitHub repos can sit alongside the ones Cursor hosts. Connect GitHub to Cursor, pick your org, and you'll see the repos you can sync. Select one and Cursor pulls it in. You choose what gets synced and can disconnect a repo at any time. Anyone with read or write access to a synced repo can view it in Cursor too."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Synced repos update in real time. Browse, search, and pull from the copy in Origin. For synced repos, GitHub stays the source of truth: pushes keep going to GitHub, and Origin mirrors the result. Icons next to each repo name tell you which ones Cursor hosts and which came from GitHub."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Pull requests","item":"Every repo has pull requests. Open one to see the timeline, commits, checks, and files changed. Review the diff, leave comments, and merge."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Pull requests","item":"Pull requests on synced repos sync both ways: comment in Cursor and it posts to GitHub, react or reply on GitHub and it shows up in Cursor within seconds. Got a review assigned to you on GitHub? Review and merge it from Cursor."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Agents in every repo","item":"Your code, PRs, and agents are now in the same place. Ask Cursor questions about code you're browsing. It can answer, make changes, update PRs, or push a branch."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"We're building an app ecosystem so your whole stack works seamlessly with Origin. Integrations with Vercel, Depot, and Buildkite are already available, with more coming soon."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"Connect Vercel from a repo's Apps tab and every PR gets a preview deployment where you can test and make comments. Merge, and it ships to production. For CI, connect Depot or Buildkite. Both run your existing GitHub Actions workflows and Buildkite also runs its native pipelines."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Every repo has settings. Check sync status for GitHub repos, manage who has access, and see which apps are connected."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Origin is rolling out in early beta to all paid plan users starting today, except enterprise orgs whose admins opt out. Name your codebase and create your first repo."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Learn more in our docs or get started today."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Models →"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Product →"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Enterprise"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Pricing"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Resources →"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Sign inContactContact salesDownload"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Changelog","item":"Sep 10, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Changelog","item":"Today we're launching Projects in Cursor. Projects lets you take on larger bodies of work, such as a feature, a migration, or a full app. It maintains context over months of work, delegates tasks to thousands of subagents, and performs recurring work without being prompted."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Changelog","item":"Access Projects from the left-hand nav. The coordinator agent in a project doesn't write code itself; it plans the work, delegates it to agents that implement it, and brings the finished work back to you to check. Coordinators create and manage agents on your behalf, running as many in parallel as the work needs."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Powered by Cloud Agents","item":"A Project runs on its own computer in the cloud, so closing your laptop doesn't stop it. When something needs testing on your machine, the coordinator spins up a local agent to run it there."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Shared context","item":"You shouldn't have to onboard an agent every time you start a task. Each Project maintains a set of files that sync across every cloud and local machine its agents use. Agents add research and artifacts, along with what they learn about the codebase and how you prefer work to be done. If one agent figures out how to test a service, for example, every future agent can use those instructions. The shared context grows with the Project, making the coordinator more effective over time."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Tell the coordinator agent to watch a Slack channel, run on a schedule, or follow all your PRs. This way it can take action based on signals it detects, without waiting for your prompt."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Connect Slack and point it at a bug-report channel, and it starts delegating each time a bug comes in."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Projects are available in beta and rolling out to all users starting today."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Sep 2, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor supports self-hosted machines, which let you keep tool execution entirely in your own network."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Your codebase, build outputs, and secrets all stay on internal machines running in your infrastructure, while the agent handles tool calls locally."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"My Machines connects a single laptop or VM to your account for personal workflows."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Team pools are named queues of workers for a team or enterprise. Capacity can grow as requests arrive and shrink when workers disconnect, so your self-hosted machines can scale with demand. Pools are not tied to one repository: name the pool, and any available worker can claim the request."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Pools can also hibernate idle machines, then restore within a reconnect window when a follow-up arrives, so you don't keep expensive capacity warm just for the next prompt."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Run on your sandboxes","item":"Cloud agents can now execute on infrastructure you already use, including from AWS Lambda, Coder, Cloudflare, Daytona, Modal, Namespace, Vercel, and E2B."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Self-hosted workers now support computer use on Linux and Mac. With the right desktop packages, an agent can click, type, take screenshots, and drive the browser. You can watch its desktop or take control from Cursor."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Aug 27, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Cloud Agents no longer require a connected GitHub or other third-party SCM provider to get started. Prompt from the get-go, then save your work to a Cursor Origin repo."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Get started","item":"Select Start from scratch in the repo picker, then prompt the agent. In the background, Cursor creates an Origin repo for you."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Turn it into a real repo, whenever you want","item":"Once the agent's build is to your liking, click the Create repo button to save your work in an Origin repo. Choose a custom name or pick one of the suggested ones, then set the visibility to private or internal. You'll get a fully scaffolded Origin repo, ready to share or keep building on. Navigate to the Codebase tab to find your repo and access your project."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"A live preview, right in the browser","item":"Cursor now port-forwards your cloud agent's live environment straight to your browser, so you can preview it and use tools like design mode."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"Connect a Vercel account and hit publish to get a live URL for what you built."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"A Vercel account is required to use the publish feature."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"Get started today."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"Aug 19, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"We're continuing to improve cloud agents and the Cursor harness so always-on agents can operate as a system, building and shipping software on their own without the need for intervention at each loop."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Publish your work","item":"With this release, cloud agents can automatically pick up work in response to events, hold a goal until it's met, and stay on course through long-running sessions."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor can now monitor your PRs, watch a Slack thread, or run scheduled tasks. Cursor Agent subscribes to an event source (a thread or conversation) and wakes when something happens. Subscriptions are available for cloud agents only, for now."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subscriptions","item":"Cloud agents automatically subscribe to PRs they create and drive them to completion, fixing CI and addressing bot comments. In Slack, ask @cursor check back in an hour and keep going until that feedback is in."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Custom modes","item":"Use any skill as a Custom Mode: a skill that stays pinned in the chat. Custom modes keep agents focused on a skill - you can think about it like \"always on\" skills."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Custom modes","item":"From /, pick a skill and press ⌥⏎ (Mac) or Alt+Enter (Windows), or choose Use as Mode."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Subagents can now run on their own virtual machines. Each gets an isolated copy of the project with clean context in its own cloud environment."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Have subagents test the parent agent's changes in fresh environments or swarm independent fixes without collisions. Try run a swarm of subagents to test my app for bugs, each in its own environment."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"/goal","item":"Use /goal to give the agent a long-lived objective to work towards until it's fully complete."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"/goal","item":"Try /goal fix all flaky tests and make CI green in a new chat. Pair it with a custom mode to follow a playbook, or /loop for recurring check-ins."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"You can now send a message to steer the agent while it's working without interruption. Follow-ups wait for the next tool call instead of cutting the agent off mid-action."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Type a follow-up and hit Send now, or press ⏎ twice."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Aug 17, 2026 · Changelog"}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Cursor can now host your code."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Steering improvements","item":"Origin begins rolling out today in early beta on all paid plans. We're starting with the essentials, designed for agent scale: repos, pull requests, code browsing, and GitHub sync. Agent-native features ship soon."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"The new Codebase tab is home for Origin repos."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"Click +New to create a new repo and name it. Once you do, a page shows you how to install the CLI, with commands for how to clone a repo or push a local project. Push, and your code is hosted on Origin."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"For Origin-hosted repos, Origin is the source of truth. Pushes land on Origin, and GitHub is not in the path."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Origin Repos","item":"Name your codebase when you create your first repo. That name becomes part of every repo's URL: cursor.com/codebase/acme-corp."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Your GitHub repos can sit alongside the ones Cursor hosts. Connect GitHub to Cursor, pick your org, and you'll see the repos you can sync. Select one and Cursor pulls it in. You choose what gets synced and can disconnect a repo at any time. Anyone with read or write access to a synced repo can view it in Cursor too."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Synced repos update in real time. Browse, search, and pull from the copy in Origin. For synced repos, GitHub stays the source of truth: pushes keep going to GitHub, and Origin mirrors the result. Icons next to each repo name tell you which ones Cursor hosts and which came from GitHub."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Pull requests","item":"Every repo has pull requests. Open one to see the timeline, commits, checks, and files changed. Review the diff, leave comments, and merge."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Pull requests","item":"Pull requests on synced repos sync both ways: comment in Cursor and it posts to GitHub, react or reply on GitHub and it shows up in Cursor within seconds. Got a review assigned to you on GitHub? Review and merge it from Cursor."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Agents in every repo","item":"Your code, PRs, and agents are now in the same place. Ask Cursor questions about code you're browsing. It can answer, make changes, update PRs, or push a branch."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"We're building an app ecosystem so your whole stack works seamlessly with Origin. Integrations with Vercel, Depot, and Buildkite are already available, with more coming soon."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"Connect Vercel from a repo's Apps tab and every PR gets a preview deployment where you can test and make comments. Merge, and it ships to production. For CI, connect Depot or Buildkite. Both run your existing GitHub Actions workflows and Buildkite also runs its native pipelines."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Every repo has settings. Check sync status for GitHub repos, manage who has access, and see which apps are connected."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Origin is rolling out in early beta to all paid plan users starting today, except enterprise orgs whose admins opt out. Name your codebase and create your first repo."}
+{"file":"changelog-p1.html","version":null,"date":null,"section":"Settings","item":"Learn more in our docs or get started today."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"What's New in Cursor — Latest Updates & Release Notes"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Models →"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Product →"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Enterprise"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Pricing"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Resources →"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Sign inContactContact salesDownload"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Sep 10, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Today we're launching Projects in Cursor. Projects lets you take on larger bodies of work, such as a feature, a migration, or a full app. It maintains context over months of work, delegates tasks to thousands of subagents, and performs recurring work without being prompted."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Access Projects from the left-hand nav. The coordinator agent in a project doesn't write code itself; it plans the work, delegates it to agents that implement it, and brings the finished work back to you to check. Coordinators create and manage agents on your behalf, running as many in parallel as the work needs."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Powered by Cloud Agents","item":"A Project runs on its own computer in the cloud, so closing your laptop doesn't stop it. When something needs testing on your machine, the coordinator spins up a local agent to run it there."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Shared context","item":"You shouldn't have to onboard an agent every time you start a task. Each Project maintains a set of files that sync across every cloud and local machine its agents use. Agents add research and artifacts, along with what they learn about the codebase and how you prefer work to be done. If one agent figures out how to test a service, for example, every future agent can use those instructions. The shared context grows with the Project, making the coordinator more effective over time."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Tell the coordinator agent to watch a Slack channel, run on a schedule, or follow all your PRs. This way it can take action based on signals it detects, without waiting for your prompt."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Connect Slack and point it at a bug-report channel, and it starts delegating each time a bug comes in."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Projects are available in beta and rolling out to all users starting today."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Sep 2, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor supports self-hosted machines, which let you keep tool execution entirely in your own network."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Your codebase, build outputs, and secrets all stay on internal machines running in your infrastructure, while the agent handles tool calls locally."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"My Machines connects a single laptop or VM to your account for personal workflows."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Team pools are named queues of workers for a team or enterprise. Capacity can grow as requests arrive and shrink when workers disconnect, so your self-hosted machines can scale with demand. Pools are not tied to one repository: name the pool, and any available worker can claim the request."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Pools can also hibernate idle machines, then restore within a reconnect window when a follow-up arrives, so you don't keep expensive capacity warm just for the next prompt."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Run on your sandboxes","item":"Cloud agents can now execute on infrastructure you already use, including from AWS Lambda, Coder, Cloudflare, Daytona, Modal, Namespace, Vercel, and E2B."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Self-hosted workers now support computer use on Linux and Mac. With the right desktop packages, an agent can click, type, take screenshots, and drive the browser. You can watch its desktop or take control from Cursor."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Aug 27, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Cloud Agents no longer require a connected GitHub or other third-party SCM provider to get started. Prompt from the get-go, then save your work to a Cursor Origin repo."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Get started","item":"Select Start from scratch in the repo picker, then prompt the agent. In the background, Cursor creates an Origin repo for you."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Turn it into a real repo, whenever you want","item":"Once the agent's build is to your liking, click the Create repo button to save your work in an Origin repo. Choose a custom name or pick one of the suggested ones, then set the visibility to private or internal. You'll get a fully scaffolded Origin repo, ready to share or keep building on. Navigate to the Codebase tab to find your repo and access your project."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"A live preview, right in the browser","item":"Cursor now port-forwards your cloud agent's live environment straight to your browser, so you can preview it and use tools like design mode."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"Connect a Vercel account and hit publish to get a live URL for what you built."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"A Vercel account is required to use the publish feature."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"Get started today."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"Aug 19, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"We're continuing to improve cloud agents and the Cursor harness so always-on agents can operate as a system, building and shipping software on their own without the need for intervention at each loop."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"With this release, cloud agents can automatically pick up work in response to events, hold a goal until it's met, and stay on course through long-running sessions."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor can now monitor your PRs, watch a Slack thread, or run scheduled tasks. Cursor Agent subscribes to an event source (a thread or conversation) and wakes when something happens. Subscriptions are available for cloud agents only, for now."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Cloud agents automatically subscribe to PRs they create and drive them to completion, fixing CI and addressing bot comments. In Slack, ask @cursor check back in an hour and keep going until that feedback is in."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Custom modes","item":"Use any skill as a Custom Mode: a skill that stays pinned in the chat. Custom modes keep agents focused on a skill - you can think about it like \"always on\" skills."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Custom modes","item":"From /, pick a skill and press ⌥⏎ (Mac) or Alt+Enter (Windows), or choose Use as Mode."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Subagents can now run on their own virtual machines. Each gets an isolated copy of the project with clean context in its own cloud environment."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Have subagents test the parent agent's changes in fresh environments or swarm independent fixes without collisions. Try run a swarm of subagents to test my app for bugs, each in its own environment."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"/goal","item":"Use /goal to give the agent a long-lived objective to work towards until it's fully complete."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"/goal","item":"Try /goal fix all flaky tests and make CI green in a new chat. Pair it with a custom mode to follow a playbook, or /loop for recurring check-ins."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"You can now send a message to steer the agent while it's working without interruption. Follow-ups wait for the next tool call instead of cutting the agent off mid-action."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Type a follow-up and hit Send now, or press ⏎ twice."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Aug 17, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Cursor can now host your code."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Origin begins rolling out today in early beta on all paid plans. We're starting with the essentials, designed for agent scale: repos, pull requests, code browsing, and GitHub sync. Agent-native features ship soon."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"The new Codebase tab is home for Origin repos."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"Click +New to create a new repo and name it. Once you do, a page shows you how to install the CLI, with commands for how to clone a repo or push a local project. Push, and your code is hosted on Origin."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"For Origin-hosted repos, Origin is the source of truth. Pushes land on Origin, and GitHub is not in the path."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"Name your codebase when you create your first repo. That name becomes part of every repo's URL: cursor.com/codebase/acme-corp."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Your GitHub repos can sit alongside the ones Cursor hosts. Connect GitHub to Cursor, pick your org, and you'll see the repos you can sync. Select one and Cursor pulls it in. You choose what gets synced and can disconnect a repo at any time. Anyone with read or write access to a synced repo can view it in Cursor too."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Synced repos update in real time. Browse, search, and pull from the copy in Origin. For synced repos, GitHub stays the source of truth: pushes keep going to GitHub, and Origin mirrors the result. Icons next to each repo name tell you which ones Cursor hosts and which came from GitHub."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Pull requests","item":"Every repo has pull requests. Open one to see the timeline, commits, checks, and files changed. Review the diff, leave comments, and merge."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Pull requests","item":"Pull requests on synced repos sync both ways: comment in Cursor and it posts to GitHub, react or reply on GitHub and it shows up in Cursor within seconds. Got a review assigned to you on GitHub? Review and merge it from Cursor."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Agents in every repo","item":"Your code, PRs, and agents are now in the same place. Ask Cursor questions about code you're browsing. It can answer, make changes, update PRs, or push a branch."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"We're building an app ecosystem so your whole stack works seamlessly with Origin. Integrations with Vercel, Depot, and Buildkite are already available, with more coming soon."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"Connect Vercel from a repo's Apps tab and every PR gets a preview deployment where you can test and make comments. Merge, and it ships to production. For CI, connect Depot or Buildkite. Both run your existing GitHub Actions workflows and Buildkite also runs its native pipelines."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Every repo has settings. Check sync status for GitHub repos, manage who has access, and see which apps are connected."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Origin is rolling out in early beta to all paid plan users starting today, except enterprise orgs whose admins opt out. Name your codebase and create your first repo."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Learn more in our docs or get started today."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Models →"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Product →"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Enterprise"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Pricing"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Resources →"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Sign inContactContact salesDownload"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Sep 10, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Today we're launching Projects in Cursor. Projects lets you take on larger bodies of work, such as a feature, a migration, or a full app. It maintains context over months of work, delegates tasks to thousands of subagents, and performs recurring work without being prompted."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Access Projects from the left-hand nav. The coordinator agent in a project doesn't write code itself; it plans the work, delegates it to agents that implement it, and brings the finished work back to you to check. Coordinators create and manage agents on your behalf, running as many in parallel as the work needs."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Powered by Cloud Agents","item":"A Project runs on its own computer in the cloud, so closing your laptop doesn't stop it. When something needs testing on your machine, the coordinator spins up a local agent to run it there."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Shared context","item":"You shouldn't have to onboard an agent every time you start a task. Each Project maintains a set of files that sync across every cloud and local machine its agents use. Agents add research and artifacts, along with what they learn about the codebase and how you prefer work to be done. If one agent figures out how to test a service, for example, every future agent can use those instructions. The shared context grows with the Project, making the coordinator more effective over time."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Tell the coordinator agent to watch a Slack channel, run on a schedule, or follow all your PRs. This way it can take action based on signals it detects, without waiting for your prompt."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Connect Slack and point it at a bug-report channel, and it starts delegating each time a bug comes in."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Projects are available in beta and rolling out to all users starting today."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Sep 2, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor supports self-hosted machines, which let you keep tool execution entirely in your own network."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Your codebase, build outputs, and secrets all stay on internal machines running in your infrastructure, while the agent handles tool calls locally."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"My Machines connects a single laptop or VM to your account for personal workflows."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Team pools are named queues of workers for a team or enterprise. Capacity can grow as requests arrive and shrink when workers disconnect, so your self-hosted machines can scale with demand. Pools are not tied to one repository: name the pool, and any available worker can claim the request."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Dynamic pool scheduling","item":"Pools can also hibernate idle machines, then restore within a reconnect window when a follow-up arrives, so you don't keep expensive capacity warm just for the next prompt."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Run on your sandboxes","item":"Cloud agents can now execute on infrastructure you already use, including from AWS Lambda, Coder, Cloudflare, Daytona, Modal, Namespace, Vercel, and E2B."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Self-hosted workers now support computer use on Linux and Mac. With the right desktop packages, an agent can click, type, take screenshots, and drive the browser. You can watch its desktop or take control from Cursor."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Aug 27, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Computer use on Linux and Mac","item":"Cloud Agents no longer require a connected GitHub or other third-party SCM provider to get started. Prompt from the get-go, then save your work to a Cursor Origin repo."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Get started","item":"Select Start from scratch in the repo picker, then prompt the agent. In the background, Cursor creates an Origin repo for you."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Turn it into a real repo, whenever you want","item":"Once the agent's build is to your liking, click the Create repo button to save your work in an Origin repo. Choose a custom name or pick one of the suggested ones, then set the visibility to private or internal. You'll get a fully scaffolded Origin repo, ready to share or keep building on. Navigate to the Codebase tab to find your repo and access your project."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"A live preview, right in the browser","item":"Cursor now port-forwards your cloud agent's live environment straight to your browser, so you can preview it and use tools like design mode."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"Connect a Vercel account and hit publish to get a live URL for what you built."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"A Vercel account is required to use the publish feature."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"Get started today."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"Aug 19, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"We're continuing to improve cloud agents and the Cursor harness so always-on agents can operate as a system, building and shipping software on their own without the need for intervention at each loop."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Publish your work","item":"With this release, cloud agents can automatically pick up work in response to events, hold a goal until it's met, and stay on course through long-running sessions."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Cursor can now monitor your PRs, watch a Slack thread, or run scheduled tasks. Cursor Agent subscribes to an event source (a thread or conversation) and wakes when something happens. Subscriptions are available for cloud agents only, for now."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subscriptions","item":"Cloud agents automatically subscribe to PRs they create and drive them to completion, fixing CI and addressing bot comments. In Slack, ask @cursor check back in an hour and keep going until that feedback is in."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Custom modes","item":"Use any skill as a Custom Mode: a skill that stays pinned in the chat. Custom modes keep agents focused on a skill - you can think about it like \"always on\" skills."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Custom modes","item":"From /, pick a skill and press ⌥⏎ (Mac) or Alt+Enter (Windows), or choose Use as Mode."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Subagents can now run on their own virtual machines. Each gets an isolated copy of the project with clean context in its own cloud environment."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Subagents on their own machines","item":"Have subagents test the parent agent's changes in fresh environments or swarm independent fixes without collisions. Try run a swarm of subagents to test my app for bugs, each in its own environment."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"/goal","item":"Use /goal to give the agent a long-lived objective to work towards until it's fully complete."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"/goal","item":"Try /goal fix all flaky tests and make CI green in a new chat. Pair it with a custom mode to follow a playbook, or /loop for recurring check-ins."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"You can now send a message to steer the agent while it's working without interruption. Follow-ups wait for the next tool call instead of cutting the agent off mid-action."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Type a follow-up and hit Send now, or press ⏎ twice."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Aug 17, 2026 · Changelog"}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Cursor can now host your code."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Steering improvements","item":"Origin begins rolling out today in early beta on all paid plans. We're starting with the essentials, designed for agent scale: repos, pull requests, code browsing, and GitHub sync. Agent-native features ship soon."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"The new Codebase tab is home for Origin repos."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"Click +New to create a new repo and name it. Once you do, a page shows you how to install the CLI, with commands for how to clone a repo or push a local project. Push, and your code is hosted on Origin."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"For Origin-hosted repos, Origin is the source of truth. Pushes land on Origin, and GitHub is not in the path."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Origin Repos","item":"Name your codebase when you create your first repo. That name becomes part of every repo's URL: cursor.com/codebase/acme-corp."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Your GitHub repos can sit alongside the ones Cursor hosts. Connect GitHub to Cursor, pick your org, and you'll see the repos you can sync. Select one and Cursor pulls it in. You choose what gets synced and can disconnect a repo at any time. Anyone with read or write access to a synced repo can view it in Cursor too."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Bring your GitHub repos","item":"Synced repos update in real time. Browse, search, and pull from the copy in Origin. For synced repos, GitHub stays the source of truth: pushes keep going to GitHub, and Origin mirrors the result. Icons next to each repo name tell you which ones Cursor hosts and which came from GitHub."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Pull requests","item":"Every repo has pull requests. Open one to see the timeline, commits, checks, and files changed. Review the diff, leave comments, and merge."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Pull requests","item":"Pull requests on synced repos sync both ways: comment in Cursor and it posts to GitHub, react or reply on GitHub and it shows up in Cursor within seconds. Got a review assigned to you on GitHub? Review and merge it from Cursor."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Agents in every repo","item":"Your code, PRs, and agents are now in the same place. Ask Cursor questions about code you're browsing. It can answer, make changes, update PRs, or push a branch."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"We're building an app ecosystem so your whole stack works seamlessly with Origin. Integrations with Vercel, Depot, and Buildkite are already available, with more coming soon."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"App extensions for Cursor repos","item":"Connect Vercel from a repo's Apps tab and every PR gets a preview deployment where you can test and make comments. Merge, and it ships to production. For CI, connect Depot or Buildkite. Both run your existing GitHub Actions workflows and Buildkite also runs its native pipelines."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Every repo has settings. Check sync status for GitHub repos, manage who has access, and see which apps are connected."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Origin is rolling out in early beta to all paid plan users starting today, except enterprise orgs whose admins opt out. Name your codebase and create your first repo."}
+{"file":"cursor.com_changelog.html","version":null,"date":null,"section":"Settings","item":"Learn more in our docs or get started today."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":null,"item":"Cursor Docs — Agent, Rules, MCP, Skills & CLI"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Command Palette","item":"Search for a command to run..."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Get Started","item":"Welcome"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Get Started","item":"Quickstart"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Get Started","item":"Models & Pricing"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Agents Window"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Projects"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Agent Review"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Planning"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Prompting"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Debugging"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Design Mode"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Tools"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Get Started"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Use Cases"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Work with Grok Bot"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Teams and Enterprise"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Plugins"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Rules"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Skills"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Subagents"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Hooks"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Setup"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Builds"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Capabilities"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Best Practices"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Choose Where Cloud Agents Run"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Automations"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security Agents","item":"PR Routing & Approval"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security Agents","item":"Mobile"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security","item":"Self-Hosted Machines"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security","item":"Settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Create a repository"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Clone, Push & Pull"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"CloneKit in CI"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Mirror GitHub"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Pull requests"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Browse & Search"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Codebase settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Integrations"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Slack"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Microsoft Teams"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Jira"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Linear"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Notion"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitHub"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitLab"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Azure DevOps"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Bitbucket"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"JetBrains"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Xcode"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Deeplinks"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"SDK","item":"TypeScript"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"SDK","item":"Python"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"SDK","item":"Bridge"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"CLI","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"CLI","item":"Installation"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"CLI","item":"Capabilities"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Shell Mode"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Headless / CI"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Reference"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Teams"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Enterprise"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Get Started"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cursor Documentation","item":"Cursor is a coding agent for building ambitious software. Use it to understand your codebase, plan and build features, fix bugs, review changes, and work with the tools you already use."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Get started"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Go from install to your first useful change in Cursor"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Models & Pricing"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Compare models, usage pools, and plan pricing"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Stay up to date with the latest features and improvements"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Understand your code"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Trace how a repo fits together and find the right places to start"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Plan and build features"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Scope changes, use Plan Mode, and ship bigger work with confidence"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Find and fix bugs"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Reproduce issues, narrow the root cause, and verify the fix"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Review changes"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Inspect diffs, run checks, and catch problems before you merge"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Customize Cursor"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Add plugins, skills, MCPs, and rules from one place"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Connect your workflow"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Work with GitHub, GitLab, Azure DevOps, Bitbucket, JetBrains, Slack, Linear, and more"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"See all model attributes on the Models & Pricing page."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Name"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Default Context"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Max Context"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Capabilities"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Fable 5.1"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Opus 5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Sonnet 5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Composer 2.5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.1 Pro"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.8 Flash"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Luna"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Sol"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Terra"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.6"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Muse Spark 1.3"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Show more models"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Downloads"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Get Cursor for your computer"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Help"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Find answers to common questions and troubleshooting guides"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Support"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"For account and billing questions, contact our support team"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"简体中文"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Русский"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Português"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Español"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Command Palette","item":"Search for a command to run..."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Get Started","item":"Welcome"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Get Started","item":"Quickstart"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Get Started","item":"Models & Pricing"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Agents Window"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Projects"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Agent Review"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Planning"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Prompting"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Debugging"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Design Mode"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Agent","item":"Tools"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Get Started"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Use Cases"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Work with Grok Bot"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Teams and Enterprise"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Plugins"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Rules"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Skills"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Subagents"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Customize","item":"Hooks"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Setup"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Builds"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Capabilities"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Best Practices"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Choose Where Cloud Agents Run"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Automations"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security Agents","item":"PR Routing & Approval"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security Agents","item":"Mobile"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security","item":"Self-Hosted Machines"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Security","item":"Settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Create a repository"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Clone, Push & Pull"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"CloneKit in CI"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Mirror GitHub"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Pull requests"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Browse & Search"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Codebase settings"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Origin","item":"Integrations"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Slack"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Microsoft Teams"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Jira"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Linear"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Notion"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitHub"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitLab"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Azure DevOps"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Bitbucket"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"JetBrains"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Xcode"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Integrations","item":"Deeplinks"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"SDK","item":"TypeScript"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"SDK","item":"Python"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"SDK","item":"Bridge"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"CLI","item":"Overview"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"CLI","item":"Installation"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"CLI","item":"Capabilities"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Shell Mode"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Headless / CI"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Reference"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Teams"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Enterprise"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Get Started"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Cursor Documentation","item":"Cursor is a coding agent for building ambitious software. Use it to understand your codebase, plan and build features, fix bugs, review changes, and work with the tools you already use."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Get started"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Go from install to your first useful change in Cursor"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Models & Pricing"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Start here","item":"Compare models, usage pools, and plan pricing"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Changelog","item":"Stay up to date with the latest features and improvements"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Understand your code"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Trace how a repo fits together and find the right places to start"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Plan and build features"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Scope changes, use Plan Mode, and ship bigger work with confidence"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Find and fix bugs"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Reproduce issues, narrow the root cause, and verify the fix"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Review changes"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Inspect diffs, run checks, and catch problems before you merge"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Customize Cursor"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Add plugins, skills, MCPs, and rules from one place"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Connect your workflow"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Work with GitHub, GitLab, Azure DevOps, Bitbucket, JetBrains, Slack, Linear, and more"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"See all model attributes on the Models & Pricing page."}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Name"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Default Context"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Max Context"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Capabilities"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Fable 5.1"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Opus 5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Sonnet 5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Composer 2.5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.1 Pro"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.8 Flash"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Luna"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Sol"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Terra"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.5"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.6"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Muse Spark 1.3"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"Models","item":"Show more models"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Downloads"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Get Cursor for your computer"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Help"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Find answers to common questions and troubleshooting guides"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Support"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"For account and billing questions, contact our support team"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"简体中文"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Русский"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Português"}
+{"file":"docs.cursor.com_changelog.html","version":null,"date":null,"section":"More resources","item":"Español"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":null,"item":"Cursor Docs — Agent, Rules, MCP, Skills & CLI"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Command Palette","item":"Search for a command to run..."}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Get Started","item":"Welcome"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Get Started","item":"Quickstart"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Get Started","item":"Models & Pricing"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Agents Window"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Projects"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Agent Review"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Planning"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Prompting"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Debugging"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Design Mode"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Tools"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Get Started"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Use Cases"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Work with Grok Bot"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Teams and Enterprise"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Plugins"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Rules"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Skills"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Subagents"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Hooks"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Setup"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Builds"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Capabilities"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Best Practices"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Choose Where Cloud Agents Run"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Automations"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security Agents","item":"PR Routing & Approval"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security Agents","item":"Mobile"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security","item":"Self-Hosted Machines"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security","item":"Settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Create a repository"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Clone, Push & Pull"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"CloneKit in CI"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Mirror GitHub"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Pull requests"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Browse & Search"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Codebase settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Integrations"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Slack"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Microsoft Teams"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Jira"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Linear"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Notion"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitHub"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitLab"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Azure DevOps"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Bitbucket"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"JetBrains"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Xcode"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Deeplinks"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"SDK","item":"TypeScript"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"SDK","item":"Python"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"SDK","item":"Bridge"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"CLI","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"CLI","item":"Installation"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"CLI","item":"Capabilities"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Shell Mode"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Headless / CI"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Reference"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Teams"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Enterprise"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Get Started"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cursor Documentation","item":"Cursor is a coding agent for building ambitious software. Use it to understand your codebase, plan and build features, fix bugs, review changes, and work with the tools you already use."}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Get started"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Go from install to your first useful change in Cursor"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Models & Pricing"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Compare models, usage pools, and plan pricing"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Stay up to date with the latest features and improvements"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Understand your code"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Trace how a repo fits together and find the right places to start"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Plan and build features"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Scope changes, use Plan Mode, and ship bigger work with confidence"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Find and fix bugs"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Reproduce issues, narrow the root cause, and verify the fix"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Review changes"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Inspect diffs, run checks, and catch problems before you merge"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Customize Cursor"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Add plugins, skills, MCPs, and rules from one place"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Connect your workflow"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Work with GitHub, GitLab, Azure DevOps, Bitbucket, JetBrains, Slack, Linear, and more"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"See all model attributes on the Models & Pricing page."}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Name"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Default Context"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Max Context"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Capabilities"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Fable 5.1"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Opus 5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Sonnet 5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Composer 2.5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.1 Pro"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.8 Flash"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Luna"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Sol"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Terra"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.6"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Muse Spark 1.3"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Show more models"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Downloads"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Get Cursor for your computer"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Help"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Find answers to common questions and troubleshooting guides"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Support"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"For account and billing questions, contact our support team"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"简体中文"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Русский"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Português"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Español"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Command Palette","item":"Search for a command to run..."}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Get Started","item":"Welcome"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Get Started","item":"Quickstart"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Get Started","item":"Models & Pricing"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Agents Window"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Projects"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Agent Review"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Planning"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Prompting"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Debugging"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Design Mode"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Agent","item":"Tools"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Get Started"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Use Cases"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Work with Grok Bot"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Grok Bot","item":"Teams and Enterprise"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Plugins"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Rules"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Skills"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Subagents"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Customize","item":"Hooks"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Setup"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Builds"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Capabilities"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Best Practices"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Choose Where Cloud Agents Run"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cloud Agents","item":"Automations"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security Agents","item":"PR Routing & Approval"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security Agents","item":"Mobile"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security","item":"Self-Hosted Machines"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Security","item":"Settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Create a repository"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Clone, Push & Pull"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"CloneKit in CI"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Mirror GitHub"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Pull requests"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Browse & Search"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Codebase settings"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Origin","item":"Integrations"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Slack"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Microsoft Teams"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Jira"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Linear"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Notion"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitHub"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"GitLab"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Azure DevOps"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Bitbucket"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"JetBrains"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Xcode"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Integrations","item":"Deeplinks"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"SDK","item":"TypeScript"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"SDK","item":"Python"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"SDK","item":"Bridge"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"CLI","item":"Overview"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"CLI","item":"Installation"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"CLI","item":"Capabilities"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Shell Mode"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Headless / CI"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Reference"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Teams"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Enterprise"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Teams & Enterprise","item":"Get Started"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Cursor Documentation","item":"Cursor is a coding agent for building ambitious software. Use it to understand your codebase, plan and build features, fix bugs, review changes, and work with the tools you already use."}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Get started"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Go from install to your first useful change in Cursor"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Models & Pricing"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Start here","item":"Compare models, usage pools, and plan pricing"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Changelog","item":"Stay up to date with the latest features and improvements"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Understand your code"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Trace how a repo fits together and find the right places to start"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Plan and build features"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Scope changes, use Plan Mode, and ship bigger work with confidence"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Find and fix bugs"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Reproduce issues, narrow the root cause, and verify the fix"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Review changes"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Inspect diffs, run checks, and catch problems before you merge"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Customize Cursor"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Add plugins, skills, MCPs, and rules from one place"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Connect your workflow"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"What you can do with Cursor","item":"Work with GitHub, GitLab, Azure DevOps, Bitbucket, JetBrains, Slack, Linear, and more"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"See all model attributes on the Models & Pricing page."}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Name"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Default Context"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Max Context"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Capabilities"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Fable 5.1"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Opus 5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Claude Sonnet 5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Composer 2.5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.1 Pro"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Gemini 3.8 Flash"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"200k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Luna"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Sol"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"GPT-5.6 Terra"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"272k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.5"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Grok 4.6"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"256k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Muse Spark 1.3"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"300k"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"AgentThinking"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"Models","item":"Show more models"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Downloads"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Get Cursor for your computer"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Help"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Find answers to common questions and troubleshooting guides"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Support"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"For account and billing questions, contact our support team"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"English"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"简体中文"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Русский"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Português"}
+{"file":"docs.cursor.com_en_changelog.html","version":null,"date":null,"section":"More resources","item":"Español"}

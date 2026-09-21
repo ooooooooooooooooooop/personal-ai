@@ -1,0 +1,394 @@
+# Replit
+
+- [Features (220 pages)](https://docs.replit.com/_llms/en/features.md): Documentation for Features.
+
+## Home
+
+### Get started
+
+- [Welcome to Replit](https://docs.replit.com/welcome.md): Learn how Replit turns ideas, everyday work, and intelligence into useful outcomes.
+
+### Your journey
+
+- [Get started](https://docs.replit.com/home/get-started.md): Follow a coffee shop launch from an early idea to a published opening site with Replit.
+- [Understand your workspace](https://docs.replit.com/home/understand-your-workspace.md): Understand how your Replit Workspace brings together people, Projects, chats, Routines, data, integrations, and security.
+- [Start a chat](https://docs.replit.com/home/start-a-conversation.md): Start a chat with a simple question, web research, or connected context, then choose what to do next.
+- [Describe your idea](https://docs.replit.com/home/describe-your-idea.md): Use a chat to turn an early coffee shop idea into a focused concept and launch questions.
+- [Integrations](https://docs.replit.com/home/integrations.md): Connect your tools, add reusable Skills, and extend Replit with MCP.
+- [Integrate tools](https://docs.replit.com/home/integrate-tools.md): Connect the files and tools that give Replit the context to build a coffee shop launch plan.
+- [Watch the competition](https://docs.replit.com/home/watch-the-competition.md): Create a weekly Routine that returns useful local research and launch-plan updates to your coffee shop chat.
+- [Chats and projects](https://docs.replit.com/home/conversations-and-projects.md): Understand when to continue work in a chat and when to use a Project for substantial build or design work.
+- [Design an opening site](https://docs.replit.com/home/design-an-opening-site.md): Turn the coffee shop launch plan into a design for an opening-soon site.
+- [Publish the site](https://docs.replit.com/home/publish-the-site.md): Publish a coffee shop opening site and share a public link for people to discover it.
+
+### Contextual routes
+
+- [Chats](https://docs.replit.com/home/conversations.md): Use chats to ask questions, run routines, and turn ideas or information into useful outcomes.
+- [The prompt box](https://docs.replit.com/home/prompt-box.md): Understand how the prompt box brings together your request, context, interaction choices, and intended outcome.
+- [Projects](https://docs.replit.com/home/projects.md): Understand how a Project brings together the code, data, and artifacts for substantial build and design work.
+- [Routines](https://docs.replit.com/home/routines.md): Schedule recurring work from a chat and receive the results in the same thread.
+- [Schedule a routine](https://docs.replit.com/schedule-a-routine.md): Turn a recurring job into a routine that runs on a schedule and reports back to you.
+- [Cloud Services](https://docs.replit.com/category/cloud-services.md): Learn how to publish your Replit Apps and manage cloud storage and databases to build production-ready applications.
+- [Replit Apps](https://docs.replit.com/category/replit-apps.md): Replit Apps help you transform your ideas into apps anyone can access, anywhere.
+- [Google Authentication in Python and Flask](https://docs.replit.com/additional-resources/google-auth-in-flask.md): Learn how to implement Google OAuth authentication in a Flask app on Replit, including user login and Google Sheets API integration.
+- [Streaming native graphics using VNC](https://docs.replit.com/additional-resources/streaming-native-graphics-vnc.md): Replit offers virtual network computing (VNC) functionality. VNC is a mature virtual desktop protocol that allows your Replit App to stream a native desktop to your web browser. This protocol allows native applications (developed in Python, Java, C++, etc.) to open desktop windows as they would on a…
+- [Cloud Aug 2026 Pricing Updates](https://docs.replit.com/billing/aug-cloud-billing-updates.md)
+
+## Chat
+
+### Overview
+
+- [Chat](https://docs.replit.com/chat/overview.md): Learn how Chat helps you explore ideas, add context, turn chats into Projects, and tailor Replit to your needs.
+
+### Get started
+
+- [Chats](https://docs.replit.com/chat/conversations.md): Use chats to ask questions, run routines, and turn ideas or information into useful outcomes.
+- [Chats vs. Projects](https://docs.replit.com/chat/conversations-and-projects.md): Understand when to continue in a chat and when to turn substantial work into a Project.
+- [Prompting](https://docs.replit.com/chat/prompting.md): Give Replit clear direction in a chat and refine the result with useful follow-up requests.
+
+### Add more context
+
+- [Add context](https://docs.replit.com/chat/add-context.md): Give Replit the relevant files, sources, connected tools, and existing work needed to understand a chat.
+- [Integrate your tools](https://docs.replit.com/chat/integrate-your-tools.md): Connect supported services, identify the information or action a chat needs, and follow the authoritative integrations documentation for setup.
+- [Upload and use files](https://docs.replit.com/chat/upload-and-use-files.md): Add relevant documents, spreadsheets, images, or screenshots to a chat and tell Replit how the information should support your request.
+- [Work with Figma](https://docs.replit.com/chat/work-with-figma.md): Use a Figma frame as visual context, then follow the Replit Design import flow when you want to explore, refine, or build from it.
+
+### Turn a chat into a project
+
+- [Turn a chat into a project](https://docs.replit.com/chat/continue-or-create-a-project.md): Choose whether to continue in a chat or ask Replit to turn substantial build and design work into a Project.
+- [Import an existing Project](https://docs.replit.com/chat/import-a-project.md): Bring existing code or design work into Replit, understand how importing differs from attaching a file, and continue in the resulting Project.
+- [Use a design system](https://docs.replit.com/chat/use-a-design-system.md): Use a saved design system as context for colors, typography, spacing, and components when you want Replit to create consistent visual work.
+
+### More capabilities
+
+- [Create assets](https://docs.replit.com/chat/create-assets.md): Create images, video, vector graphics, animation, and audio assets, then follow the authoritative guides for each workflow.
+- [Routines](https://docs.replit.com/chat/routines.md): Schedule recurring work from a chat and receive the results in the same thread.
+
+### Customize Replit
+
+- [Select the right Agent Mode](https://docs.replit.com/chat/agent-modes.md): Choose Free Mode, Power Mode, or Max Mode based on the work you want to do, the capability you need, and your available allowance or credits.
+- [Get the most out of Free Mode](https://docs.replit.com/chat/free-mode.md): Learn how to get more from Free Mode for everyday chat, creation, and building.
+- [Use intelligent model routing](https://docs.replit.com/chat/auto-mode.md): Let Replit select an appropriate model for each task, then choose a model manually only when you need that control.
+- [Choose a model](https://docs.replit.com/chat/model-selector.md): Choose an available model and set its Effort when manual model selection is available for your mode and plan.
+- [Voice Mode](https://docs.replit.com/chat/voice-mode.md): Speak your prompts to Agent instead of typing. Voice Mode transcribes what you say into the chat box so you can review and send it.
+
+### Extend Replit
+
+- [Connect through MCP](https://docs.replit.com/chat/connect-through-mcp.md): Understand how MCP extends Replit with trusted external tools and how compatible MCP clients can connect to the Replit MCP Server.
+- [Use Skills](https://docs.replit.com/chat/agent-skills.md): Customize how Replit approaches repeatable work with reusable instructions and supporting material.
+- [Custom Instructions](https://docs.replit.com/chat/custom-instructions.md): Set workspace-wide guidance that helps Replit follow your team's conventions across Projects and sessions.
+- [Memories](https://docs.replit.com/chat/memories.md): Learn how Memories can help Replit retain useful context across chats and Projects.
+- [Memories, Custom Instructions, and Skills](https://docs.replit.com/chat/memories-custom-instructions-and-skills.md): Understand when to use Memories, Custom Instructions, or Skills to help Replit work with the right context and guidance.
+
+### Contextual routes
+
+- [Connectors](https://docs.replit.com/chat/connectors.md): Learn what integrations Agent supports and how they activate automatically based on your prompts.
+
+## Build
+
+### Web
+
+#### Quickstarts
+
+- [Build your first app](https://docs.replit.com/build/your-first-app.md): Start from a prompt, build a small app with Agent in Free Mode, test it in Preview, and improve it with a focused follow-up.
+- [Build and publish from a template](https://docs.replit.com/build/build-and-publish-from-template.md): Start from a Replit Design template, turn the selected frame into a functional website with Agent, test it in Preview, and publish a live URL.
+- [Build with Free Mode](https://docs.replit.com/build/build-with-free-mode.md): Use your included Free Mode allowance to turn an idea into a working app, one focused step at a time.
+- [Publish your app](https://docs.replit.com/build/publish-your-app.md): Choose release settings, publish your app, verify the live version, and monitor it after launch.
+
+#### Build paths
+
+- [Prototype a product idea](https://docs.replit.com/build/prototype-an-idea.md): Turn a product idea into a focused prototype, collaborate with others, and use feedback to decide what to build next.
+- [Launch a landing page](https://docs.replit.com/build/landing-page.md): Build and publish a landing page with one clear offer, one call to action, and a working form that captures responses.
+- [Build a Shopify storefront](https://docs.replit.com/build/ecommerce-store.md): Learn how to design and launch a custom Shopify storefront with Replit.
+- [Create a dashboard from data](https://docs.replit.com/build/dashboard.md): Turn a public CSV, spreadsheet, database, warehouse connector, or API into a dashboard that answers a clear question.
+- [Build a mobile app](https://docs.replit.com/build/mobile-app.md): Build a phone-first app with Agent, test it in a simulator and on your phone, and share it for feedback.
+
+#### Grow your app
+
+- [Add login](https://docs.replit.com/build/add-login.md): Let each Velocity customer sign in to see their own bookings and saved cars.
+- [Add a database](https://docs.replit.com/build/add-database.md): Make Velocity's cars, availability, and reservations stick around after refresh, restart, and publish.
+- [Add payments](https://docs.replit.com/build/add-payments.md): Take a refundable deposit when a customer reserves a Velocity car, then charge the balance on pickup.
+- [Add integrations](https://docs.replit.com/build/add-integrations.md): Send every Velocity booking to the customer's Google Calendar.
+- [Add a custom domain](https://docs.replit.com/build/add-custom-domain.md): Move Velocity from velocity.replit.app to velocityrentals.com.
+
+#### Publish and operate
+
+- [Purchase a domain](https://docs.replit.com/build/domain-purchasing.md): Learn how to purchase a domain and connect it to your published app directly from Replit.
+- [Enable Feedback Widget](https://docs.replit.com/build/enable-feedback.md): Learn how to collect feedback from visitors on your published app.
+- [Improve your app's SEO](https://docs.replit.com/build/improve-seo.md): Use Replit's SEO rating and Agent to make your published app rank higher in search engines.
+- [Troubleshoot publishing](https://docs.replit.com/build/troubleshooting.md): Diagnose common issues when a Replit app works in Preview, fails to publish, or behaves differently at its public URL.
+
+#### Connect & integrate
+
+- [Use Agent Skills](https://docs.replit.com/build/use-agent-skills.md): Give Agent specialized knowledge with Agent Skills — attach one to a message, install one in your project, or start a project from one.
+- [Connect via MCP](https://docs.replit.com/build/connect-via-mcp.md): Connect Replit Agent to external tools, data sources, and APIs through the Model Context Protocol (MCP) — sign in to a pre-listed server or add a custom one.
+
+#### Collaborate
+
+- [Invite teammates](https://docs.replit.com/build/invite-teammates.md): Invite teammates to your project and build together — each person can start new threads with Agent while working on the same project.
+- [Create a team workspace](https://docs.replit.com/build/create-a-team-workspace.md): Create a Team Workspace on Replit, invite members during setup, and manage who has access to your team's projects.
+
+#### Import
+
+- [Import from a provider](https://docs.replit.com/build/import-from-providers.md): Bring projects, code, and designs from another tool into Replit and continue building with Agent.
+
+### Mobile
+
+#### Quickstarts
+
+- [Start your first mobile app](https://docs.replit.com/build/mobile-first-app.md): Build PixelGames, a retro-style game app, as a native iOS and Android app with Agent.
+- [Preview and test on your phone](https://docs.replit.com/build/mobile-preview-testing.md): Test PixelGames on your own phone with Expo Go.
+
+#### Publish for iOS
+
+- [Set up your Apple Developer account](https://docs.replit.com/build/mobile-apple-account.md): Enroll in the Apple Developer Program before publishing to the App Store.
+- [Upload your app to App Store Connect](https://docs.replit.com/build/mobile-upload-ios.md): Use Replit's Launch feature to build, sign, and upload your app to App Store Connect.
+- [Beta test with TestFlight](https://docs.replit.com/build/mobile-testflight.md): Hand PixelGames to real testers with TestFlight, before it's public on the App Store.
+- [Submit to the App Store](https://docs.replit.com/build/mobile-publish-ios.md): Complete the App Store listing and send PixelGames for Apple's review.
+
+#### Add features and grow your app
+
+- [Add login](https://docs.replit.com/build/mobile-login.md): Let players sign in to PixelGames using Clerk.
+- [Add payments with RevenueCat](https://docs.replit.com/build/mobile-payments.md): Charge players for content in your app using RevenueCat.
+- [Store images in your mobile app](https://docs.replit.com/build/mobile-store-images.md): Save profile photos and other images to App Storage, linked to each player.
+- [Add haptics](https://docs.replit.com/build/mobile-haptics.md): Add haptic feedback to PixelGames' D-pad and buttons.
+- [Use iOS native components](https://docs.replit.com/build/mobile-native-components.md): Use alerts, action sheets, SF Symbols, and more native iOS components in PixelGames.
+- [Use the camera](https://docs.replit.com/build/mobile-camera.md): Let players take a profile photo in PixelGames.
+- [Access contacts](https://docs.replit.com/build/mobile-contacts.md): Let players see which friends are already playing PixelGames.
+- [Send push notifications](https://docs.replit.com/build/mobile-push-notifications.md): Notify players about new games and friend activity in PixelGames.
+- [Collect reviews and ratings](https://docs.replit.com/build/mobile-collect-reviews.md): Prompt happy players to rate PixelGames using each store's native review prompt.
+
+#### Design
+
+- [Design your app](https://docs.replit.com/build/mobile-design.md): Use Design mode to shape how your app looks, screen by screen.
+- [Generate an app icon](https://docs.replit.com/build/mobile-app-icon.md): Use Replit's built-in image generation to create PixelGames' app icon.
+- [Generate App Store screenshots](https://docs.replit.com/build/mobile-store-screenshots.md): Use Replit's built-in image generation to create PixelGames' store screenshots.
+
+#### Collaborate
+
+- [Build PixelGames with a team](https://docs.replit.com/build/mobile-invite-team.md): Invite teammates to build PixelGames in parallel, each with their own Agent task.
+
+## Design
+
+### Replit Design
+
+- [What is Replit Design](https://docs.replit.com/design/what-is-replit-design.md): Replit Design is a design suite to generate design frames from prompts, explore the AI's suggestions, and keep everything on brand with design systems.
+- [Design vs. Build](https://docs.replit.com/design/design-vs-build.md): Learn the difference between Design and Build in a Replit project, and when to start in each.
+
+### Quickstart
+
+- [Design your first screen](https://docs.replit.com/design/design-your-first-screen.md): Generate your first design frames from a prompt on Replit Design, explore the AI's suggestions, and keep iterating, no design experience needed.
+- [Start from a template](https://docs.replit.com/design/start-from-a-template.md): Remix a featured template into a project of your own, open it in Replit Design, and restyle it until it's yours.
+- [Import Figma designs into Replit Design](https://docs.replit.com/design/import-figma-designs-into-replit-design.md): Import a Figma frame into Replit Design, refine it with suggestions and chat, and build it into an interactive app.
+- [Import Claude designs into Replit Design](https://docs.replit.com/design/import-claude-designs-into-replit-design.md): Send a design from Claude to Replit, create a project from the static HTML, and let Agent turn it into an interactive app.
+- [Import a website into Replit Design](https://docs.replit.com/design/import-a-website-into-replit-design.md): Recreate a live website as a design frame in Replit Design, then refine it with suggestions and chat, and build it into an app.
+
+### Core components
+
+- [Replit Design components](https://docs.replit.com/design/core-components.md): Meet the building blocks of Replit Design: Canvas, frames, elements, chat, ambient intelligence, the toolbar, and the library panel, and how they fit together.
+- [Canvas](https://docs.replit.com/design/canvas.md): Open, navigate, and add to the canvas, the infinite surface where Replit Design displays your frames.
+- [Frames](https://docs.replit.com/design/frames.md): Frame kinds, the per-frame action bar, and the Build and Focus actions on Canvas.
+- [Elements](https://docs.replit.com/design/elements.md): Select and edit the individual pieces inside a frame on Canvas.
+- [Toolbar](https://docs.replit.com/design/toolbar.md): Reference for the Canvas toolbar: Interact, Pan, Chat, Draw, Edit, and Generate.
+- [Library panel](https://docs.replit.com/design/library-panel.md): Reference for the library panel: add starter templates to your design, browse Mobbin-curated inspiration, and reuse your own creations.
+
+### Explore
+
+- [Explore](https://docs.replit.com/design/explore.md): Go wide before you commit: follow suggestions, pull in templates and inspiration, and switch models, all landing as new frames.
+- [Explore suggestions](https://docs.replit.com/design/explore-suggestions.md): Select a design frame and Replit Design suggests what to design next; one click generates a new direction, and the winner can be applied to your app.
+- [Explore with different models](https://docs.replit.com/design/explore-with-different-models.md): Switch the model behind Replit Design to explore different directions: each model brings its own design sensibility and frontend strengths.
+- [Add templates and inspiration to your design](https://docs.replit.com/design/add-templates-and-inspiration.md): Use the library panel to add starter templates to your design, or pull in Mobbin-curated app screens as visual reference while you explore.
+
+### Refine
+
+- [Refine](https://docs.replit.com/design/refine.md): Shape the winning frame with precision: chat with Agent in your own words, or adjust elements directly with the Visual Editor.
+- [Chat about your design](https://docs.replit.com/design/chat-about-your-design.md): Chat with Agent about your design, from the main chat with a frame attached or with the Chat tool aimed at a single element.
+- [Visual Editor](https://docs.replit.com/design/visual-editor.md): Make direct visual edits to your designs and apps — adjust text, colors, layout, and images by clicking, without writing code.
+
+### Build
+
+- [Build your design](https://docs.replit.com/design/build-your-design.md): Turn the winning frame into real software: build it as a new app, or apply its look to an app you already have.
+
+### Design systems
+
+- [Design systems, explained](https://docs.replit.com/design/design-systems-explained.md): A design system captures your tokens, colors, typography, and components so every design you generate stays on brand.
+- [Create a design system](https://docs.replit.com/design/create-a-design-system.md): Create a design system from scratch with a prompt, or extract one from a mockup you already like — then save it to your workspace.
+- [Design system contents and DESIGN.md](https://docs.replit.com/design/design-md.md): What a generated design system contains — tokens, colors, typography, components — and how DESIGN.md represents it in your project.
+- [Apply a design system to an existing app](https://docs.replit.com/design/apply-design-system.md): Rebuild an existing artifact under your design system — from the canvas or the composer — and what the time and credits warning means.
+
+## Use cases
+
+- [Use cases](https://docs.replit.com/use-cases.md): Browse workflows that bring your context, connected tools, and an outcome together in Replit.
+
+### Research & analyze
+
+- [Prepare for a customer call](https://docs.replit.com/use-cases/prepare-for-a-customer-call.md): Research a question across connected tools, compare the evidence, and prepare a clear answer.
+- [Analyze customer feedback](https://docs.replit.com/use-cases/analyze-customer-feedback.md): Turn support tickets into themes, trends, and a dashboard the team can act on.
+- [Monitor brand mentions](https://docs.replit.com/use-cases/monitor-brand-mentions.md): Catch important conversations about your brand and send them where the team already works.
+- [Monitor competitors](https://docs.replit.com/use-cases/monitor-competitors.md): Detect pricing and feature changes, then keep a competitive intel page up to date.
+- [Monitor top ads](https://docs.replit.com/use-cases/monitor-top-ads.md): Centralize ad performance and see which creatives actually pay off.
+
+### Operations
+
+- [Generate a weekly sales report](https://docs.replit.com/use-cases/weekly-pipeline-report.md): Show sales pipeline changes and trends from HubSpot every week.
+- [Track subscriptions](https://docs.replit.com/use-cases/track-subscriptions.md): Find recurring payments in email and calculate what they cost each month.
+- [Catch up while away](https://docs.replit.com/use-cases/catch-up-while-away.md): Turn Slack, email, and calendar into a return-to-work briefing.
+- [Source candidates](https://docs.replit.com/use-cases/source-candidates.md): From a job description, find matching engineers on GitHub, skip anyone already in Ashby, and draft outreach.
+- [Generate release notes](https://docs.replit.com/use-cases/generate-release-notes.md): Every week, turn GitHub and Linear changes into release notes people can actually read.
+
+### Create & publish
+
+- [Build an investor pitch deck](https://docs.replit.com/use-cases/pitch-deck-from-website.md): From your site, Drive, and a finance Sheet, generate a 10–12 slide investor deck.
+- [Create social icons and banners](https://docs.replit.com/use-cases/create-social-kit.md): From your site and Drive, generate profile icons and cover banners for every network, in the right size.
+- [Design a landing page](https://docs.replit.com/use-cases/design-landing-page.md): From a Notion brief and brand files, design a waitlist or launch page in Replit Design.
+- [Go from Figma to a live App](https://docs.replit.com/use-cases/import-figma-design.md): Turn Figma frames into a publishable Replit app that matches layout, type, and color.
+- [Build an online store](https://docs.replit.com/use-cases/build-online-store.md): Import your catalog into Shopify and design the storefront in Replit.
+- [Build a live API dashboard](https://docs.replit.com/use-cases/live-api-dashboard.md): Turn a public API into a dashboard that stays up to date.
+- [Launch a paid event website](https://docs.replit.com/use-cases/launch-event-website.md): Ship a program, speakers, venue, and paid tickets from Notion.
+
+## Learn
+
+### Foundations
+
+- [What is an app?](https://docs.replit.com/learn/foundations/what-is-an-app.md): Learn what apps are, why they are useful, and how apps relate to the artifacts you can build and publish on Replit.
+- [Introduction to AI](https://docs.replit.com/learn/foundations/introduction-to-ai.md): Learn the practical AI concepts behind Replit Agent — large language models, tokens, variability — and how AI agents combine models with tools to build with you.
+- [Context management](https://docs.replit.com/learn/foundations/context-management.md): Learn how context windows work and how to give AI the right information when building with Replit Agent.
+- [Vibe coding 101](https://docs.replit.com/learn/foundations/vibe-coding-101.md): Learn the mindset for vibe coding: start with a goal, build in small slices, manage context, review results, and improve with feedback.
+
+### Projects & Artifacts
+
+- [Project Editor](https://docs.replit.com/learn/projects-and-artifacts/project-editor.md): Learn what the Project Editor is: your home base on Replit where you talk to Agent, see your app take shape, and manage everything.
+- [Projects & Artifacts](https://docs.replit.com/learn/projects-and-artifacts/projects-and-artifacts.md): Learn what projects and artifacts are on Replit, and decide when to keep artifacts in one project or create separate projects.
+- [Storage and Databases](https://docs.replit.com/learn/projects-and-artifacts/storage-and-databases.md): Learn about file storage and database options on Replit.
+- [Auth](https://docs.replit.com/learn/projects-and-artifacts/auth.md): Learn what Auth is on Replit — how user accounts let your app save preferences, gate features, and personalize the experience, and how to choose between Replit Auth and Clerk Auth.
+- [Version control](https://docs.replit.com/learn/projects-and-artifacts/version-control.md): Learn how to track changes and manage your code's history with Replit's version control tools.
+- [Publishing](https://docs.replit.com/learn/projects-and-artifacts/replit-deployments.md): Share your Replit Apps with the world in just a few clicks.
+
+### Work with Agent
+
+- [Build with Agent](https://docs.replit.com/learn/build-with-agent.md): Learn five practical habits for working with Agent: be specific, plan the work, add context, review and test, and use checkpoints.
+- [Plan vs. Build Mode](https://docs.replit.com/learn/plan-vs-build-mode.md): Learn the difference between Plan and Build modes in Replit, and how to combine them for more effective development.
+- [Effective prompting with Replit AI](https://docs.replit.com/learn/effective-prompting.md): Learn principles and see examples for writing effective prompts when using Replit Agent.
+- [Agent skills](https://docs.replit.com/learn/agent-skills.md): Understand when and how to use Agent Skills — proactive vs reactive patterns, being selective, security, and how skills differ from MCP servers.
+- [Model Context Protocol](https://docs.replit.com/learn/model-context-protocol.md): Understand the Model Context Protocol (MCP) — what it is, how it works, and why it matters for AI applications.
+
+### Power builder
+
+- [Task system](https://docs.replit.com/core-concepts/agent/task-system.md): Agent breaks work into tasks you can review, run in the background, and apply back to your main version.
+- [Build in parallel](https://docs.replit.com/learn/build-in-parallel.md): Learn how to build several features at once with parallel tasks: delegate safely, slice work small, and apply changes without surprises.
+
+### Build safely
+
+- [Development URLs](https://docs.replit.com/core-concepts/project-editor/app-setup/development-urls.md): Learn how to use development URLs to preview and share your in-progress app.
+- [Security checklist](https://docs.replit.com/learn/security-checklist.md): Follow this comprehensive security checklist to ensure your vibe coded applications follow best security practices.
+
+## Trust & Billing
+
+### Billing
+
+- [Billing](https://docs.replit.com/category/billing.md): Replit's billing system helps you optimize your spending on the platform.
+- [Replit AI Billing](https://docs.replit.com/billing/ai-billing.md): Learn how billing and credits work for Replit AI features including Agent usage, checkpoints, and managing your spend.
+- [Publishing costs](https://docs.replit.com/billing/deployment-pricing.md): Flexible publishing costs that scale with your app's needs. Pay only for what you use with transparent, credit-based billing.
+- [App Storage Billing](https://docs.replit.com/billing/object-storage-billing.md): Learn how Replit charges for App Storage.
+- [Publishing and Database Billing](https://docs.replit.com/billing/about-usage-based-billing.md): Learn how Replit bills for publishing and databases, including outbound data transfer, compute units, requests, and PostgreSQL usage metrics.
+- [Managing Your Spend](https://docs.replit.com/billing/managing-spend.md): Control AI costs and monitor spending with usage limits, budgets, Plan Mode, and Agent modes. Learn strategies to optimize your Replit usage and reduce unnecessary token consumption.
+
+### Plans
+
+- [Starter Plan](https://docs.replit.com/billing/plans/starter-plan.md): Learn about the Starter plan features, limitations, and what you can build for Free.
+- [Replit Core](https://docs.replit.com/billing/plans/replit-core.md): Learn about Replit Core membership features including powerful AI tools, high-performance development resources, and one-click publishing.
+- [Replit Pro](https://docs.replit.com/billing/plans/replit-pro.md): Learn about Replit Pro: our most powerful plan for serious teams—up to 15 builders, tiered credits with rollover, and priority support.
+- [Replit Enterprise](https://docs.replit.com/billing/plans/replit-enterprise.md): Replit Enterprise adds SSO/SCIM, governance, dedicated support, and unlimited seats. Upgrade from any plan without leaving Replit or contacting sales.
+- [Changing your plan](https://docs.replit.com/billing/plans/changing-your-plan.md): Learn how to change your Replit plan, what happens when a plan change takes effect, and how to cancel a scheduled downgrade.
+
+### Security
+
+- [Legal and Security](https://docs.replit.com/category/legal-and-security.md): Learn about Replit's policies on security, privacy, usage limits, and other legal matters to help you use the platform safely and effectively.
+- [Strike system FAQ](https://docs.replit.com/legal-and-security-info/strike-system-faq.md): Learn about warnings, banned community access, and site bans in Replit.
+- [Account Inactivity](https://docs.replit.com/legal-and-security-info/account-inactivity.md): Learn about Replit's account inactivity policy, when accounts may be terminated, and how paid subscriptions affect account status.
+- [Deleting your data](https://docs.replit.com/legal-and-security-info/deleting-your-data.md): Learn how to permanently delete your account and personal information from Replit using either the web browser or mobile app.
+- [Model improvement](https://docs.replit.com/legal-and-security-info/model-improvement.md)
+- [Security](https://docs.replit.com/legal-and-security-info/security.md): Your code, applications, and data are important. We're committed to protecting them—Replit's security is our security, too.
+
+### Abuse and takedown requests
+
+- [Reporting Abuse on Replit](https://docs.replit.com/legal-and-security-info/abuse-report.md): At Replit, we strive to maintain a safe and welcoming environment for all our users. If you encounter abusive, harmful, or inappropriate content, we encourage you to report it immediately. We have established multiple channels to address various types of concerns efficiently. Here's how you can help
+- [Copyright claims and takedown requests](https://docs.replit.com/legal-and-security-info/copyright-claims-takedown-requests.md): Learn how to submit DMCA takedown requests for copyrighted content or private information on Replit Apps and understand the required documentation process.
+
+### Support and accessibility
+
+- [Support Policy](https://docs.replit.com/legal-and-security-info/support-policy.md): Replit offers different support options for all Replit builders.
+- [Trust and Safety at Replit](https://docs.replit.com/legal-and-security-info/trust-and-safety.md): Replit strives to create a fun and creative community that is also trusted and safe. To achieve this goal, Replit has implemented rules and policies that promote positive behavior and protect builders. In this document, you will find a summary of key rules, tips on how to report any concerns, and in…
+- [Usage Quota & Limits](https://docs.replit.com/legal-and-security-info/usage.md): Learn about Replit's resource limits, including CPU, RAM, storage, and network restrictions that apply to Replit Apps based on your plan.
+- [Replit web accessibility statement](https://docs.replit.com/legal-and-security-info/web-accessibility.md): Learn about Replit's commitment to web accessibility, WCAG 2.1 compliance goals, current accessibility status, and how to provide feedback about accessibility features.
+
+## Enterprise
+
+### Overview
+
+- [Getting started](https://docs.replit.com/teams/welcome.md): Help your team turn ideas into outcomes: applications, designs, and slides. With the access controls, security, and governance controls your organization needs.
+
+### Workspace Essentials
+
+- [Create an account](https://docs.replit.com/teams/create-an-account.md): Get started with Replit Enterprise: create an account or sign in, choose the self-serve Enterprise plan, and complete signup before setting up your Workspace.
+- [Create your Workspace](https://docs.replit.com/teams/create-your-workspace.md): Create a team Workspace in Replit Enterprise, then open its overview to review your new shared space and personalize its name and logo.
+- [Configure single sign-on (SAML SSO)](https://docs.replit.com/teams/configure-saml-sso.md): Configure SAML single sign-on for Replit Enterprise: enable setup in Advanced settings, choose your identity provider, and complete your organization's configuration.
+- [Add collaborators](https://docs.replit.com/teams/add-collaborators.md): Invite collaborators to your Replit Workspace: open Workspace collaborators, choose a Member, Guest, or Viewer role, and send invitations to multiple email addresses.
+- [Manage connectors](https://docs.replit.com/replitai/managing-connectors.md): Set up and manage connectors on Core, Pro, and Enterprise plans. Centralized admin controls, scoped access, and audit tracking.
+- [Groups and permissions](https://docs.replit.com/teams/groups-and-permissions.md): Create Enterprise groups, add collaborators, and configure Workspace, group, and app permissions so each team has the access it needs to work in Replit.
+- [Privacy and deployment settings](https://docs.replit.com/teams/privacy-and-deployment-settings.md): Control how your team publishes applications, protects development previews, and selects deployment geographies with Enterprise privacy and deployment settings.
+- [Agent modes and models](https://docs.replit.com/teams/modes-and-model-providers.md): Choose approved models for your Enterprise Workspaces and control access to fast model variants and higher reasoning effort levels.
+- [Security](https://docs.replit.com/teams/security.md): Monitor Workspace vulnerabilities, prepare fixes with Replit, and configure account-wide security scans, Auto-Protect, and publishing severity policies.
+- [Observability](https://docs.replit.com/teams/observability.md): Monitor Replit Enterprise usage across Workspaces, explore consumption by user, project, or resource, and review audit logs for security-relevant activity.
+- [Standardization](https://docs.replit.com/teams/standardization.md): Standardize how your organization builds with reusable skills, remembered preferences, Workspace-wide instructions, and consistent design systems.
+- [Advanced settings](https://docs.replit.com/teams/advanced-settings.md): Review account seats, use the Enterprise Admin API, and configure access requests alongside your organization's other administrative settings.
+
+### Enterprise
+
+- [Replit Pro and Enterprise](https://docs.replit.com/category/teams.md): Have your team build production-ready customer apps and business tools faster with Replit.
+- [Information Security](https://docs.replit.com/teams/information-security/overview.md): Learn about Replit's security practices, data protection, and compliance standards
+- [Source control settings](https://docs.replit.com/teams/enterprise-privacy-settings.md): Require Git remotes and private repositories for apps in your organization.
+
+### Warehouse Connectors
+
+- [Warehouse Connectors](https://docs.replit.com/connectors/warehouses/overview.md): Connect Replit Agent to data warehouses (BigQuery, Databricks, Snowflake) and analytics platforms to build data-driven applications.
+- [Databricks Connectors](https://docs.replit.com/connectors/warehouses/databricks.md): Choose and set up a Databricks connector so Replit Agent can build applications backed by your Databricks workspace.
+- [Build Data Apps on Microsoft Fabric](https://docs.replit.com/connectors/warehouses/microsoft-fabric.md): Build and publish data apps on Microsoft Fabric with Replit Agent.
+- [Snowflake Connectors](https://docs.replit.com/connectors/warehouses/snowflake.md): Set up a Snowflake connector to build data-driven applications with Replit Agent.
+
+### Identity and Access Management
+
+- [Managing Members](https://docs.replit.com/teams/identity-and-access-management/managing-members.md): You can manage members on your Replit team to control access, collaboration, and permissions across your organization's apps and projects.
+- [Roles, Groups and Access](https://docs.replit.com/teams/identity-and-access-management/groups-and-permissions.md): Control member access with roles and groups. Roles provide default access levels (Admin, Member, Guest, Viewer), while custom groups—available exclusively on the Enterprise plan—offer fine-grained access control.
+- [Account and Workspace Admins](https://docs.replit.com/teams/identity-and-access-management/account-and-workspace-admins.md): Account admins and workspace admins are distinct roles. Account admins manage billing and every workspace under your account, while workspace admins manage only the workspaces they belong to.
+- [Access Management](https://docs.replit.com/teams/identity-and-access-management/repl-access-management.md): Learn how to control access and visibility settings for Replit Apps through the Project Editor interface, including group permissions and user roles.
+- [Single sign-on (SAML SSO)](https://docs.replit.com/teams/identity-and-access-management/saml.md): Set up SAML single sign-on for your Replit Enterprise Organization directly from your workspace settings, including IdP configuration and email domain claims.
+- [SCIM](https://docs.replit.com/teams/identity-and-access-management/scim.md): Set up SCIM to automate provisioning from your identity provider, then manage how synced groups map to your Replit workspaces, roles, and account admins.
+- [Audit Logs](https://docs.replit.com/teams/identity-and-access-management/audit-logs.md): Track and monitor security-relevant actions in your Replit Enterprise organization with comprehensive audit logs and SIEM integration.
+- [Compliance API](https://docs.replit.com/teams/identity-and-access-management/compliance-api.md): Retrieve retained customer prompt content to enrich Replit Enterprise audit logs for security and compliance workflows.
+- [Viewer Seats](https://docs.replit.com/teams/identity-and-access-management/viewer-seats.md): Learn how to set up and manage viewer seats for your Replit Team.
+- [Transfer App to Teams](https://docs.replit.com/teams/identity-and-access-management/transfer-app-to-teams.md): Move personal apps to team workspaces or projects between team workspaces
+- [Manually copy a project to another workspace](https://docs.replit.com/teams/identity-and-access-management/manually-copy-projects.md): Copy a live app to another workspace or account by hand: copy the code, set up the new app, point your users at it with minimal downtime, and know how to undo it
+
+### Billing for Enterprise
+
+- [Overview](https://docs.replit.com/billing/teams-billing/overview.md): Learn about billing for organizations on Replit Pro, including tiered credits, pooled usage, and migration from the former Teams plan.
+- [Managing Seats](https://docs.replit.com/billing/teams-billing/managing-seats.md): Learn how to add and remove seats in your organization, including prorated billing and scheduling changes for the next contracted period.
+- [Analytics Dashboard](https://docs.replit.com/billing/teams-billing/analytics-dashboard.md): View activity, resource usage, published apps, and costs with the Enterprise Analytics Dashboard.
+- [Cancellation](https://docs.replit.com/billing/teams-billing/cancellation.md): Learn how to cancel your organization subscription and understand what happens to your resources when you delete your organization.
+
+- [Other (1468 pages)](https://docs.replit.com/_llms/other.md): Documentation for Other.
+
+> The links below point to documentation indexes. Follow each `/_llms/` index recursively until you reach documentation pages.
+
+## Indexes
+
+- [English / Features (220 pages)](https://docs.replit.com/_llms/en/features.md): Documentation for English / Features.
+- [English / Features / Features (113 pages)](https://docs.replit.com/_llms/en/features/features.md): Documentation for English / Features / Features.
+- [French (126 pages)](https://docs.replit.com/_llms/fr.md): Documentation for French.
+- [Portuguese (126 pages)](https://docs.replit.com/_llms/pt.md): Documentation for Portuguese.
+- [Japanese (126 pages)](https://docs.replit.com/_llms/ja.md): Documentation for Japanese.
+- [Korean (126 pages)](https://docs.replit.com/_llms/ko.md): Documentation for Korean.
+- [Other (1468 pages)](https://docs.replit.com/_llms/other.md): Documentation for Other.
+- [Other / Fr (431 pages)](https://docs.replit.com/_llms/other/fr.md): Documentation under `/fr/`.
+- [Other / Pt (429 pages)](https://docs.replit.com/_llms/other/pt.md): Documentation under `/pt/`.
