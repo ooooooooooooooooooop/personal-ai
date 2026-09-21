@@ -1608,3 +1608,21 @@
 **M54–M147 全部裁定完毕。**唯一未裁项：M73 向量记忆——需 sqlite-vec/embedding 依赖决策（host 零依赖约束下只能挂 pi 侧）。
 
 测试基线：host 240 / pi 193+1skip / app 18+1skip 全绿。
+
+### 28.18 M73 向量记忆终裁（2026-09-21，外部仲裁会话 6aac8432）
+
+**终态：DEFERRED_BY_EVIDENCE**（外部裁决，非实现欠债）
+
+裁决要点：
+- 现状 SQLite+FTS5+scope+生命周期评分+注入面已落地；semantic rerank 定位为补召回不是主路
+- 无证据 FTS5 已成召回瓶颈（无 failure corpus）；sqlite-vec 稳定版仅 exact KNN，ANN 为 alpha 线
+- 语义 miss 的真实驱动是 recall failure rate 不是条目数——「几千条」不是开门条件
+
+**重开契约**：以下任一成立才重开
+1. 真实生产 ≥3 个独立「应召回但 FTS5 未召回」案例
+2. held-out recall eval 证明 semantic 稳定增益
+3. 查询延迟达阈值且词法搜索已证为瓶颈
+
+**重开后路径**：先做 B（embedding API + cosine 线性扫 + RRF 融合 + FTS-only 降级），B 实测延迟不足才准 A（sqlite-vec）。附带约束：embedding 是派生可重建数据不得成为写入前置；远程 embedding 需明确 provider policy（memory 含个人偏好是隐私面）；embedding_model_id/version/dim 必须随存（换模型=向量空间作废）。
+
+**M54–M147 收口：94/94 全部有终态**（落地 / 核查已有 / 部分 / 上游残余 / DEFERRED_BY_EVIDENCE）。
