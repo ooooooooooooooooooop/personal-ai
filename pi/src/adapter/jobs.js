@@ -223,6 +223,10 @@ export class JobExecutor {
       }
       const allowed =
         clean && simple && simple.context === 'top' && !simple.hasExpansion &&
+        // the unit's raw text must BE the whole command — any surviving shell
+        // syntax (input redirect, trailing &, comments, stray separators)
+        // lives outside the command node's text and fails this equality.
+        simple.raw.trim() === command.trim() &&
         prefixes.some((p) => simple.rawName === p || simple.raw.trim() === p || simple.raw.trim().startsWith(`${p} `));
       if (allowed) {
         sandboxProvider = false; // explicit-bypass sentinel — executeAttempt must not fall back to ambient

@@ -121,23 +121,31 @@ test('SSRF: link-local/metadata hosts refused even with no allowlist; explicit e
   assert.equal(domainAllowed('169.254.169.254', ['169.254.169.254']), true);
 });
 
-test('M63: manual redirect following — an allowed hop redirecting to a forbidden host is refused pre-request', async () => {
-  let forbiddenHit = false;
-  // "forbidden" target: link-local literal never leaves DNS-check stage; we
-  // also stand a local server up to prove an allowed→allowed redirect works.
-  const { server: okSrv, port: okPort } = await serve((req, res) => { res.end('landed'); });
+test('M63: manual redirect following — a forbidden hop is refused BEFORE its server is hit', async () => {
+  // Sentinel that proves ordering, not just refusal: stand a REAL forbidden
+  // server up on 127.0.0.2 (whole 127/8 is loopback), allowlist only
+  // 127.0.0.1 — if the check ran before the request, its hit counter is 0.
+  let forbiddenHits = 0;
+  let forbiddenSrv = null, forbiddenPort = null;
+  await new Promise((resolve) => {
+    const s = createServer((req, res) => { forbiddenHits += 1; res.end('nope'); });
+    s.once('error', () => resolve()); // 127.0.0.2 unbindable → fall back to unroutable target
+    s.listen(0, '127.0.0.2', () => { forbiddenSrv = s; forbiddenPort = s.address().port; resolve(); });
+  });
   const { server: redirSrv, port: redirPort } = await serve((req, res) => {
     res.statusCode = 302;
-    res.setHeader('location', 'http://169.254.169.254/latest/meta-data');
+    res.setHeader('location', forbiddenSrv
+      ? `http://127.0.0.2:${forbiddenPort}/meta`
+      : 'http://169.254.169.254/latest/meta-data');
     res.end();
   });
   try {
-    const t = webFetchTool();
+    const t = webFetchTool({ egressAllow: () => ['127.0.0.1'] });
     const r = await t.execute('c', { url: `http://127.0.0.1:${redirPort}/go` });
     assert.equal(r.isError, true);
     assert.match(r.content[0].text, /refused/);
-    assert.equal(forbiddenHit, false);
-    // relative redirect to an allowed hop still works
+    assert.equal(forbiddenHits, 0, 'forbidden server must never be hit');
+    // allowed → allowed redirect still works through the allowlist
     const { server: relSrv, port: relPort } = await serve((req, res) => {
       if (req.url === '/next') { res.end('hop2 ok'); return; }
       res.statusCode = 302; res.setHeader('location', '/next'); res.end();
@@ -149,17 +157,21 @@ test('M63: manual redirect following — an allowed hop redirecting to a forbidd
       relSrv.close();
     }
   } finally {
-    okSrv.close(); redirSrv.close();
+    redirSrv.close(); forbiddenSrv?.close();
   }
 });
 
-test('M66: DNS resolution is validated — a name resolving to a forbidden address is refused', async () => {
-  // 'localhost' resolves to ::1 (forbidden link-local/loopback-v6 in the
-  // restricted set) on typical Windows/Linux stacks → the resolved-address
-  // check must refuse even though the literal hostname passes domainAllowed.
-  // If a platform resolves localhost to 127.0.0.1 only, the fetch proceeds —
-  // accept either outcome but require the refusal PATH to exist when a bad
-  // address appears. A literal forbidden IP literal is checked directly.
+test('M66: DNS resolution is validated — IPv6 literals normalized, forbidden addresses refused', async () => {
+  const { resolveChecked } = await import('../src/adapter/web.js');
+  // R1 regression: URL.hostname keeps [] on IPv6 literals — they must be
+  // stripped before isIP(), else legit public v6 falls into a failing lookup
+  const pub = await resolveChecked('[2001:db8::1]', null);
+  assert.equal(pub.ok, true, 'public IPv6 literal must not be refused');
+  for (const h of ['[::1]', '[fe80::1]', '::ffff:169.254.169.254', '[::ffff:169.254.169.254]']) {
+    const r = await resolveChecked(h, null);
+    assert.equal(r.ok, false, `${h} must be refused`);
+  }
+  // end-to-end: literal forbidden IP is refused by the tool itself
   const t = webFetchTool();
   const r = await t.execute('c', { url: 'http://169.254.169.254/' });
   assert.equal(r.isError, true);

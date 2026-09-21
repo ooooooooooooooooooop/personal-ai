@@ -73,20 +73,40 @@ export function domainAllowed(host, allowlist) {
  * still resolve an allowed-looking name to a link-local/metadata address.
  * Resolve the host BEFORE connecting and refuse if ANY A/AAAA answer lands
  * in a forbidden range. Literal IPs skip the lookup (already checked).
+ * A DNS NAME (not a literal, not explicit localhost intent) that resolves to
+ * loopback/RFC1918 is refused too — that is the classic public-name→private-
+ * address pivot; the operator allowlist is the only override.
  * Residual: a hostile DNS server could theoretically rebind between check
  * and connect — full pinning needs a custom dispatcher; documented boundary.
  */
-async function resolveChecked(host, allowlist) {
-  if (isIP(host)) return { ok: domainAllowed(host, allowlist) };
+const PRIVATE_RESOLVED_RE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fe80::|fe[c-f][0-9a-f]:|fd[0-9a-f]{2}:)/i;
+
+const normalizeHostLiteral = (h) => {
+  const s = String(h ?? '').toLowerCase().replace(/^\[|\]$/g, '');
+  return s.startsWith('::ffff:') ? s.slice(7) : s;
+};
+
+export async function resolveChecked(host, allowlist) {
+  // URL.hostname keeps the brackets on IPv6 literals — strip them before
+  // isIP() or every legit public v6 literal would fall into a failing lookup.
+  const h = normalizeHostLiteral(host);
+  if (isIP(h)) return { ok: domainAllowed(h, allowlist) };
   let addrs;
   try {
-    addrs = await dnsLookup(host, { all: true });
+    addrs = await dnsLookup(h, { all: true });
   } catch (e) {
     return { ok: false, reason: `DNS resolution failed: ${e.code ?? e.message}` };
   }
   if (!addrs.length) return { ok: false, reason: 'DNS returned no addresses' };
-  const bad = addrs.find((a) => !domainAllowed(a.address, null));
+  const bad = addrs.find((a) => !domainAllowed(normalizeHostLiteral(a.address), null));
   if (bad) return { ok: false, reason: `'${host}' resolves to forbidden address ${bad.address}` };
+  // public name → private/loopback pivot: refused unless the operator either
+  // allowlisted the name or typed explicit localhost intent.
+  const localIntent = h === 'localhost' || h.endsWith('.localhost') || (allowlist?.length > 0);
+  if (!localIntent) {
+    const priv = addrs.find((a) => PRIVATE_RESOLVED_RE.test(normalizeHostLiteral(a.address)));
+    if (priv) return { ok: false, reason: `'${host}' resolves to private/loopback address ${priv.address}` };
+  }
   return { ok: true };
 }
 

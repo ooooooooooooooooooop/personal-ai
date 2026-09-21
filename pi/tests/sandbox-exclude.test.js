@@ -53,6 +53,8 @@ test('M80 regression: a compound command never escapes the sandbox via a leading
     'git status | sh',
     'git log $(whoami)',
     'git status > out.txt',
+    'git status < in.txt',   // input redirect: shell opens an fd the exclusion can't see
+    'git status &',          // background marker survives outside the command node
   ]) {
     specs.length = 0;
     const r = await executor.spawnCommandJob({ command, workdir: dir });
