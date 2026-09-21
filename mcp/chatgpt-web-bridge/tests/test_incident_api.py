@@ -8,7 +8,7 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from mcp.shared.memory import create_connected_server_and_client_session
 
-from chatgpt_web2api import mcp_server as mcp, send_receipts as receipts
+from chatgpt_web2api import mcp_server as mcp, runtime_info, send_receipts as receipts
 from chatgpt_web2api.api_server import APIServer
 from chatgpt_web2api.config import Config
 
@@ -31,7 +31,13 @@ async def test_mcp_receipt_and_duplicate_available_with_chrome_offline(monkeypat
     monkeypatch.setattr(mcp, "_config", config)
     async with create_connected_server_and_client_session(mcp.create_server()) as session:
         initialized = await session.initialize()
-        assert receipts.BUILD_ID in initialized.serverInfo.version
+        runtime = await session.call_tool("runtime_info", {})
+        assert runtime.isError is False
+        identity = runtime.structuredContent
+        assert initialized.serverInfo.version == identity["package_version"]
+        assert identity["startup_source_fingerprint"] == runtime_info.source_fingerprint()
+        assert identity["disk_source_fingerprint"] == identity["startup_source_fingerprint"]
+        assert identity["restart_required"] is False
         result = await session.call_tool("get_send_status", {"operation_id": args["operation_id"]})
         assert result.isError is False
         assert result.structuredContent["state"] == "dispatched"

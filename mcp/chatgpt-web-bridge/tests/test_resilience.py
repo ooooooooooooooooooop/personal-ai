@@ -52,7 +52,7 @@ async def test_retries_after_rate_limit_then_succeeds():
     async def factory():
         attempts.append(1)
         if len(attempts) == 1:
-            raise RateLimitError(retry_after=1)
+            raise RateLimitError(retry_after=1, delivery_stage="not_started")
         return "recovered"
 
     # Use a tiny backoff so the test is fast.
@@ -74,7 +74,7 @@ async def test_exhausts_retries_and_reraises():
 
     async def factory():
         attempts.append(1)
-        raise RateLimitError(retry_after=1)
+        raise RateLimitError(retry_after=1, delivery_stage="not_started")
 
     with pytest.raises(RateLimitError) as exc_info:
         await retry_on_rate_limit(driver, factory, max_attempts=3, backoff=0.01)
@@ -114,7 +114,7 @@ async def test_retry_continues_even_if_dismiss_fails():
     async def factory():
         attempts.append(1)
         if len(attempts) < 3:
-            raise RateLimitError(retry_after=1)
+            raise RateLimitError(retry_after=1, delivery_stage="not_started")
         return "ok"
 
     result = await retry_on_rate_limit(
@@ -139,7 +139,7 @@ async def test_backoff_uses_retry_after_when_smaller_than_cap(monkeypatch):
 
     async def factory():
         if len(slept) == 0:
-            raise RateLimitError(retry_after=5)
+            raise RateLimitError(retry_after=5, delivery_stage="not_started")
         return "ok"
 
     await retry_on_rate_limit(
@@ -157,7 +157,7 @@ async def test_max_attempts_one_means_no_retry():
 
     async def factory():
         attempts.append(1)
-        raise RateLimitError(retry_after=1)
+        raise RateLimitError(retry_after=1, delivery_stage="not_started")
 
     with pytest.raises(RateLimitError):
         await retry_on_rate_limit(driver, factory, max_attempts=1, backoff=0.01)

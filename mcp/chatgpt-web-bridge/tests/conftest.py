@@ -127,7 +127,7 @@ def event_loop():
 
 
 @pytest.fixture(autouse=True)
-def _isolate_shared_state_files(tmp_path, monkeypatch):
+def _isolate_shared_state_files(tmp_path, monkeypatch, request):
     """Point cross-process state files at a scratch dir for every test.
 
     conv_binding / generation_gate read+write JSON under the real runtime
@@ -138,9 +138,9 @@ def _isolate_shared_state_files(tmp_path, monkeypatch):
 
     monkeypatch.setattr(conv_binding, "BIND_PATH", tmp_path / "conv_bindings.json")
     monkeypatch.setattr(generation_gate, "GEN_PATH", tmp_path / "generating.json")
-    if not e2e_enabled():
-        # Unit tests must neither throttle the live account nor sleep between
-        # mocked browser requests. Pacing-specific tests set explicit intervals.
+    if request.node.get_closest_marker("e2e") is None:
+        # Offline driver tests must neither wait on nor modify the live
+        # account's cooldown. Real E2E tests keep account-wide pacing.
         monkeypatch.setattr(request_pace, "PACE_PATH", tmp_path / "request_pace.json")
         monkeypatch.setenv("W2A_PACE_READ_S", "0")
         monkeypatch.setenv("W2A_PACE_SEND_S", "0")

@@ -4,6 +4,13 @@ Source: <https://github.com/Octo-Lex/ChatGPT-Web2API> @ `497527d` (MIT, Elephant
 
 Local delta carried in this copy (applied on top of upstream):
 
+- **pre-submission timeout recovery** (`send_recovery.py`): a request may
+  reconnect to its original target once (15-second cap) only while submission
+  is known not to have started. Post-click transport failures check receipts
+  by captured message ID (8-second cap), never resend. Arbitrary CDP evaluate
+  and input commands are not replayed by the transport. Permission denial and
+  cancellation stop the operation; recovery does not reload or launch a browser.
+
 - **conv-affinity**: a tab's URL is its conversation identity — `/c/{id}` tabs are
   persistent shared resources adopted across sessions/processes; one tab per
   conversation; conv-bound tabs are never navigated away or closed by drivers.
@@ -41,30 +48,38 @@ Local delta carried in this copy (applied on top of upstream):
   verifier reads back.
 - `start.ps1`: persistent-Chrome topology launcher (Chrome standalone,
   daemons attach; restarting daemons never touches the browser/login).
-- **lazy Chrome bring-up in MCP**: both MCP driver paths (session-pool
-  `_create_driver`, singleton `run_mcp`) call `ChromeProcess.ensure_running()`
-  before connecting, so a stdio-registered server cold-launches Chrome on
-  first tool call — harness-bound lifecycle, zero resident daemons when the
-  tool is never invoked. `install.ps1` resolves the venv via `W2A_VENV`
-  (repo-external) else package-local `.venv`, matching `start.ps1`.
-- **reply-persistence reporting** (`chat_completion`, `chat_with_gpt`):
-  post-send tail check adds `reply_persisted` to the result —
-  true = assistant reply persisted; false = tail is still the caller's own
-  user message, i.e. the generation died mid-stream (the empirical recovery
-  is a short nudge like 「继续」 in the same conversation, not polling —
-  observed 2026-09-14: an agent hand-polled a dead generation for ~7 min);
-  null = inconclusive. Failed/ambiguous fetches can never crash a
-  successful send.
-- **`wait_reply` tool**: blocks until an assistant message persists,
-  `timeout_seconds` hits, or the tail stays the caller's user message past
-  `dead_after_seconds` (default 120) → `status:"dead"` early exit.
-  `since_total` accepts a prior `get_conversation` `total` to wait only for
-  a NEW reply. Replaces hand-rolled get_conversation+sleep polling loops.
+- **lazy Chrome bring-up in MCP**: the stdio MCP path may call
+  `ChromeProcess.ensure_running()` before its first tool call, giving it a
+  harness-bound lifecycle with no resident daemon when unused. The shared
+  SSE/REST daemon is managed by its launcher and health state; do not apply
+  daemon restart advice to a stdio process. `install.ps1` resolves the venv
+  via `W2A_VENV` (repo-external) else package-local `.venv`, matching
+  `start.ps1`.
+- **reply delivery reporting** (`chat_completion`, `chat_with_gpt`):
+  post-send results expose the conversation ID and a persistence/delivery
+  receipt when the bridge can establish one. `reply_persisted=true` means an
+  assistant node was observed, not necessarily that its turn is terminal;
+  tail `in_progress` still wins. A positive receipt is consumed as delivery
+  evidence; false, null, absent, or ambiguous state is not an instruction to
+  resend. A client timeout, cancellation, or transport error leaves delivery
+  unknown until the same conversation is checked once. Recovery never nudges
+  a conversation that is still generating; a retry needs explicit terminal
+  failure evidence and the same target.
+- **`wait_reply` tool**: waits for a terminal assistant message or returns
+  an evidence-bearing timeout (including `tail_status`, source and elapsed
+  time). A user tail or an early/dead-style status is not by itself proof that
+  a send was lost. `since_total` accepts a prior `get_conversation` `total` to
+  wait only for a NEW reply. It replaces hand-rolled unbounded polling loops.
 - **`get_conversation` disambiguation + file channel**: results now carry
   `reason` (`ok` / `empty` / `not_found` / `fetch_failed`) — 404s and fetch
   errors no longer masquerade as empty conversations — and `out_file`
   (absolute path) writes the page to disk so long replies never have to
-  cross the MCP tool-result budget.
+  cross the MCP tool-result budget. Callers consume an `out_file`, a
+  client-exposed overflow pointer or partial-page marker before issuing
+  another read; safe tail/DOM
+  observations remain explicitly marked as partial. A DOM `total` is only a
+  rendered lower bound; `paging_supported=false` means do not advance
+  `offset` as if the partial tail were a backend page.
 - **`wait_reply` terminal-status gate**: a persisted assistant node whose
   backend status is still `in_progress` no longer counts as "replied" —
   the early-intro false positive (observed 2026-09-15) that made callers
@@ -75,7 +90,7 @@ Local delta carried in this copy (applied on top of upstream):
   (type → click → send-ack), including client-side cancel, best-effort
   clears the composer — a failed send can no longer leave a draft that
   poisons the next send's canonical verification (observed 2026-09-15:
-  recovery previously required manual `evaluate_script` surgery).
+  recovery previously required manual browser-side cleanup).
 - **`wait_reply` lock scope** (pool mode): the leased slot's `call_lock` is
   held only around each fetch, not across the poll sleep. It ran on the
   shared utility slot inside the lock for up to `timeout_seconds`, so one
@@ -149,12 +164,23 @@ Local delta carried in this copy (applied on top of upstream):
   a live DOM probe (`is_generating`) covering manual browser sends.
   MutationLock is per-target and cannot cover same-conv/different-tab sends.
 - **conversation binding** (`conv_binding.py`): `conv_bindings.json` binds a
-  conversation to the session that confirmed it. EVERY first send — existing
-  conv or brand-new chat — returns `confirmation_required` (project + title +
-  occupant warning, or `is_new_conversation` for fresh chats);
-  `confirm=true` claims/takes over. Reconnect ⇒ new session key ⇒
-  re-confirm. `last_seen` TTL (30 min) + owner-pid liveness reclaim
-  abandoned/daemon-restarted bindings. Reads never touch the registry.
+  conversation to the target and the session that confirmed it. A first send
+  — existing conv or brand-new chat — can return `confirmation_required`
+  (Project + title + occupant warning, or `is_new_conversation` for fresh
+  chats); `confirm=true` claims/takes over. A reconnect alone does not
+  invalidate a still-valid explicit approval for the same target;
+  re-confirm only when the Project/conversation/permission scope changes, the
+  binding is stale, or the prior approval cannot be matched. `last_seen` TTL
+  (30 min) + a bounded, safe Windows owner-pid liveness probe reclaim
+  abandoned/daemon-restarted bindings.
+  Reads never touch the registry.
+
+- **runtime identity and bounded progress** (`runtime_info.py`, request
+  monitoring): the running instance reports its startup source fingerprint,
+  disk fingerprint, `started_at`, capabilities and `restart_required`, so a
+  source edit is not confused with a live deployment. Long requests emit
+  factual phase/elapsed progress with a bounded heartbeat; progress does not
+  extend the operation deadline and does not justify a retry.
 
 Runtime state is NOT vendored: `.venv`, `~/.chatgpt-web2api/` (config, tab
 registry, pace file, locks, diagnostics, chrome profile — consolidated from

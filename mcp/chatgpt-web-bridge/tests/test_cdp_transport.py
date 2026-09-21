@@ -155,9 +155,8 @@ async def test_reader_loop_consumes_driver_ws_recv_and_routes_to_pending():
 
 @pytest.mark.asyncio
 async def test_cdp_calls_driver_reconnect_on_socket_death_then_retries():
-    """On a socket-death send failure, _cdp must call back into
-    driver.reconnect() exactly once and retry once (the _retry guard). The
-    reader task resolves the retry attempt's future."""
+    """An explicitly allow-listed read-only call may retry once after a
+    socket-death send failure; mutating methods are covered separately."""
     transport, driver = _make_transport()
 
     send_calls = {"n": 0}
@@ -174,7 +173,7 @@ async def test_cdp_calls_driver_reconnect_on_socket_death_then_retries():
     driver._ws = ws
     driver._reader_task = asyncio.create_task(transport._reader_loop())
 
-    await transport._cdp("Test.A", {}, timeout=5, _retry=True)
+    await transport._cdp("Browser.getVersion", {}, timeout=5, _retry=True)
 
     driver._reader_task.cancel()
     try:
@@ -184,6 +183,71 @@ async def test_cdp_calls_driver_reconnect_on_socket_death_then_retries():
 
     driver.reconnect.assert_awaited_once()
     assert send_calls["n"] == 2  # failed once, retried once after reconnect
+
+
+# ── 2b. Reader socket pinning + recv-race poisoning (2026-09-19 wedge) ──
+
+
+@pytest.mark.asyncio
+async def test_reader_loop_pins_its_socket_against_ws_swap():
+    """Regression for the 2026-09-19 poisoned-session wedge: the reader must
+    recv on the socket it STARTED with, never follow driver._ws to the
+    replacement. A stale reader that followed driver._ws stole recv() from
+    the new socket, websockets' concurrent-recv ban killed the new reader,
+    and every later command timed out with no reader left to route
+    responses."""
+    transport, driver = _make_transport()
+
+    old_ws = FakeWebSocket()
+    new_ws = FakeWebSocket()
+    driver._ws = old_ws
+    reader = asyncio.create_task(transport._reader_loop())
+    await asyncio.sleep(0)  # let the reader park on old_ws.recv()
+
+    # A reconnect swaps the replacement socket into driver._ws.
+    driver._ws = new_ws
+    stolen_fut = asyncio.get_running_loop().create_future()
+    driver._pending[7] = stolen_fut
+    new_ws.enqueue(7, {"ok": "stolen"})
+    # The command frame that would let FakeWebSocket release the response.
+    new_ws.sent.append(json.dumps({"id": 7, "method": "Runtime.evaluate", "params": {}}))
+    await asyncio.sleep(0.2)
+
+    # The pinned reader never consumed from the new socket.
+    assert not stolen_fut.done()
+    reader.cancel()
+    try:
+        await reader
+    except asyncio.CancelledError:
+        pass
+
+
+@pytest.mark.asyncio
+async def test_reader_loop_concurrency_error_poisons_session():
+    """If recv() ever races another consumer on the same socket, frame
+    routing is dead while the socket still looks healthy — the reader must
+    poison the session so the next command reattaches a fresh session
+    instead of every call timing out one by one."""
+    from websockets.exceptions import ConcurrencyError
+
+    transport, driver = _make_transport()
+    driver._session_poisoned = False
+
+    parked = asyncio.get_running_loop().create_future()
+    driver._pending[11] = parked
+
+    class _RacedSocket:
+        async def recv(self):
+            raise ConcurrencyError(
+                "recv() called while another coroutine is already waiting "
+                "for the next message"
+            )
+
+    driver._ws = _RacedSocket()
+    await transport._reader_loop()
+
+    assert driver._session_poisoned is True
+    assert parked.done()  # pending callers failed, not left hanging
 
 
 # ── 3. JS wrappers reach the driver-facing _cdp / _js seam ────────────

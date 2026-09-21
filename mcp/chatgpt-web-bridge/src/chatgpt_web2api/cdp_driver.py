@@ -5,13 +5,15 @@ Provides typed primitives for:
   - Auth token management
   - JS evaluation
   - Page navigation
-  - Message input via CDP Input.insertText
+  - Message input via synthetic paste event on the ProseMirror composer
+    (execCommand fallback for the legacy textarea)
   - Response retrieval via conversation API
 """
 
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import re
@@ -20,6 +22,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from enum import Enum
 
 from .breakers import BreakerKind, BreakerRegistry
 from .diagnostics import diagnose
@@ -49,6 +52,32 @@ class StreamChunk:
 # number (it usually says "a few minutes"). Chosen to be long enough to let
 # a real cooldown clear but short enough that a transient blip recovers fast.
 RATE_LIMIT_DEFAULT_RETRY_AFTER = 60
+
+
+class DeliveryStage(str, Enum):
+    """How far a mutating web send got before it failed.
+
+    The distinction is deliberately conservative.  A rate-limit or transport
+    error is safe to retry automatically only while it is still known that no
+    submit action was attempted.  Once the click was dispatched, the bridge
+    must surface the ambiguity to the caller instead of risking a duplicate
+    user message.
+    """
+
+    NOT_STARTED = "not_started"
+    SUBMISSION_ATTEMPTED = "submission_attempted"
+    ACKNOWLEDGED = "acknowledged"
+    UNKNOWN = "unknown"
+
+
+def _delivery_stage_value(stage: str | DeliveryStage | None) -> str:
+    """Return a stable wire value for a delivery stage."""
+
+    if isinstance(stage, DeliveryStage):
+        return stage.value
+    if stage in {item.value for item in DeliveryStage}:
+        return str(stage)
+    return DeliveryStage.UNKNOWN.value
 
 # Re-exported from backend_client (Phase 5 PR1 extraction) for back-compat.
 # Canonical home is now backend_client.py.
@@ -164,11 +193,24 @@ class RateLimitError(RuntimeError):
         self,
         message: str | None = None,
         retry_after: int = RATE_LIMIT_DEFAULT_RETRY_AFTER,
+        *,
+        delivery_stage: str | DeliveryStage = DeliveryStage.UNKNOWN,
+        conversation_id: str | None = None,
+        user_message_id: str | None = None,
     ) -> None:
         if message is None:
             message = f"ChatGPT rate limit reached (Too many requests). Retry in {retry_after}s."
         super().__init__(message)
         self.retry_after = int(retry_after)
+        self.delivery_stage = _delivery_stage_value(delivery_stage)
+        self.conversation_id = conversation_id
+        self.user_message_id = user_message_id
+
+    @property
+    def retryable(self) -> bool:
+        """Whether retrying the whole operation is known to be safe."""
+
+        return self.delivery_stage == DeliveryStage.NOT_STARTED.value
 
     @classmethod
     def from_text(cls, text: str) -> RateLimitError:
@@ -272,6 +314,30 @@ class SendReadinessError(RuntimeError):
     rather than guessing from a string. Raised by ``_ensure_send_ready``,
     ``type_message``, and ``click_send``.
     """
+
+    def __init__(
+        self,
+        message: str = "",
+        *,
+        delivery_stage: str | DeliveryStage = DeliveryStage.NOT_STARTED,
+        conversation_id: str | None = None,
+        user_message_id: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.delivery_stage = _delivery_stage_value(delivery_stage)
+        self.conversation_id = conversation_id
+        self.user_message_id = user_message_id
+
+
+class ModelSelectionError(RuntimeError):
+    """Raised when a caller-requested model cannot be selected in the UI."""
+
+    def __init__(self, requested_model: str, message: str | None = None) -> None:
+        self.requested_model = requested_model
+        super().__init__(
+            message
+            or f"Requested model '{requested_model}' could not be selected in ChatGPT"
+        )
 
 
 class GenerationInProgressError(RuntimeError):
@@ -426,6 +492,17 @@ class CDPDriver:
         self._last_refresh_attempt_at: float = 0.0
         self._current_conv_id: str | None = None
         self._current_model: str | None = None
+        # Per-send delivery state.  This is reset at the beginning of every
+        # ``send_and_stream`` invocation so a retry or a later request can
+        # never inherit an ambiguous state from an earlier turn.
+        self._delivery_stage = DeliveryStage.NOT_STARTED.value
+        self._delivery_conversation_id: str | None = None
+        self._delivery_user_message_id: str | None = None
+        # ``True`` is set only after anchored final reconciliation proves that
+        # this turn persisted. ``None`` is retained for DOM-only/degraded
+        # paths where the browser showed a response but the backend could not
+        # attest persistence.
+        self._delivery_reply_persisted: bool | None = None
         # Account-level request pacing (shared file gate — see request_pace).
         # Sends and backend-api fetches both count toward ChatGPT's per-account
         # throttle; pacing here prevents the "请求过于频繁" interstitial instead
@@ -439,6 +516,16 @@ class CDPDriver:
         )
         # CDP response routing (#7): id-keyed futures + background reader
         self._pending: dict[int, asyncio.Future] = {}
+        # Forensic twin of _pending: id → (method, sent-at loop time).  The
+        # transport dumps it when a session is poisoned so a wedge report
+        # shows WHICH commands were in flight instead of just "timed out".
+        self._pending_meta: dict[int, tuple[str, float]] = {}
+        # Session-poison state (transport-owned): set when a command's
+        # response never arrives (possible head-of-line queue wedge); the
+        # next command reattaches a fresh session under _poison_lock before
+        # sending.  See CDPTransport._poison_session/_recover_poisoned_session.
+        self._session_poisoned: bool = False
+        self._poison_lock = asyncio.Lock()
         self._reader_task: asyncio.Task | None = None
         # A2: unsolicited CDP event dispatch table. The reader loop consults
         # this for events without an id (Network.requestWillBeSent, etc.).
@@ -494,6 +581,86 @@ class CDPDriver:
 
         self._completion = CompletionDetector(self)
 
+    def _reset_delivery_metadata(self) -> None:
+        """Reset delivery metadata before starting a new send attempt."""
+
+        self._delivery_stage = DeliveryStage.NOT_STARTED.value
+        self._delivery_conversation_id = self._current_conv_id
+        self._delivery_user_message_id = None
+        self._delivery_reply_persisted = None
+
+    def _set_delivery_stage(
+        self,
+        stage: str | DeliveryStage,
+        *,
+        conversation_id: str | None = None,
+        user_message_id: str | None = None,
+    ) -> None:
+        """Record the most conservative known delivery state for this send."""
+
+        self._delivery_stage = _delivery_stage_value(stage)
+        if conversation_id is not None:
+            self._delivery_conversation_id = conversation_id
+        if user_message_id is not None:
+            self._delivery_user_message_id = user_message_id
+
+    @property
+    def delivery_metadata(self) -> dict[str, str | bool | None]:
+        """Return the current send's delivery metadata for callers/diagnostics."""
+
+        return {
+            "delivery_stage": self._delivery_stage,
+            "conversation_id": self._delivery_conversation_id,
+            "user_message_id": self._delivery_user_message_id,
+            "reply_persisted": self._delivery_reply_persisted,
+        }
+
+    @property
+    def last_delivery(self) -> dict[str, str | bool | None]:
+        """Compatibility alias for transports exposing the latest receipt."""
+
+        return self.delivery_metadata
+
+    def _annotate_delivery_error(self, exc: Exception) -> None:
+        """Attach send state and IDs to an error without changing its type.
+
+        Existing exception classes and third-party errors remain usable by
+        callers.  The attributes are best-effort because a few extension
+        exceptions may use ``__slots__``; failure to annotate must never hide
+        the original error.
+        """
+
+        fields = {
+            "delivery_stage": self._delivery_stage,
+            "conversation_id": self._delivery_conversation_id or self._current_conv_id,
+            "user_message_id": self._delivery_user_message_id,
+        }
+        for name, value in fields.items():
+            try:
+                setattr(exc, name, value)
+            except Exception:
+                pass
+
+    async def _notify_send_progress(
+        self,
+        callback,
+        phase: str,
+    ) -> None:
+        """Best-effort phase notification for long pre-send operations."""
+
+        if callback is None:
+            return
+        try:
+            result = callback(phase)
+            if inspect.isawaitable(result):
+                await result
+        except asyncio.CancelledError:
+            # A caller cancellation must remain a cancellation, even if it
+            # arrives while a progress callback is running.
+            raise
+        except Exception:
+            logger.debug("send progress callback failed for phase=%s", phase, exc_info=True)
+
     async def _attach_identity_listener(self) -> None:
         """A2: attach (or re-attach) the identity listener on the current ws.
 
@@ -516,8 +683,113 @@ class CDPDriver:
         self._identity_listener.detach()
         try:
             await self._identity_listener.attach()
+        except PermissionError:
+            raise
         except Exception as e:
             logger.warning("identity_listener_attach_failed (will degrade to dual-anchor): %s", e)
+
+    async def _stop_cdp_session(
+        self,
+        *,
+        fail_pending: bool = True,
+        reset_poison: bool = False,
+        timeout: float = 2.0,
+    ) -> None:
+        """Stop the current reader/socket as one lifecycle transaction.
+
+        The ownership fields are cleared *before* closing the websocket.  A
+        cancellation-resistant reader can therefore finish on its pinned old
+        socket without touching a replacement socket's pending table or
+        poisoning the replacement session.  All lifecycle entry points use
+        this helper so connect, reconnect, send-recovery, and close cannot
+        drift into four subtly different teardown orders.
+        """
+
+        ws = self._ws
+        reader = self._reader_task
+        # Make the old reader stale before any await.  The transport checks
+        # this identity on both frame and exception paths.
+        self._ws = None
+        self._reader_task = None
+
+        # Cancel reader/pending state synchronously before the first await.
+        # If close() itself is cancelled, callers still cannot be left with a
+        # live reader or futures that wait on the old session forever.
+        if reader is not None and reader is not asyncio.current_task():
+            try:
+                if not reader.done():
+                    reader.cancel()
+            except Exception:
+                logger.debug("Could not synchronously cancel CDP reader", exc_info=True)
+        if fail_pending:
+            for future in list(self._pending.values()):
+                if not future.done():
+                    future.cancel()
+            self._pending.clear()
+            if getattr(self, "_pending_meta", None) is not None:
+                self._pending_meta.clear()
+
+        if ws is not None:
+            if timeout <= 0:
+                # Failure cleanup must not consume the already exhausted CDP
+                # command budget.  Schedule the normal websocket close and
+                # consume its result without blocking the caller.
+                try:
+                    close_result = ws.close()
+                    if inspect.isawaitable(close_result):
+                        close_task = asyncio.create_task(close_result)
+
+                        def _consume_close(task):
+                            try:
+                                task.result()
+                            except BaseException:
+                                pass
+
+                        close_task.add_done_callback(_consume_close)
+                except Exception:
+                    logger.debug("CDP websocket close scheduling failed", exc_info=True)
+            else:
+                try:
+                    await asyncio.wait_for(ws.close(), timeout=timeout)
+                except asyncio.CancelledError:
+                    raise
+                except asyncio.TimeoutError:
+                    logger.error("CDP websocket did not close within teardown budget")
+                except Exception:
+                    logger.debug("CDP websocket close failed during teardown", exc_info=True)
+
+        if reader is not None and reader is not asyncio.current_task():
+            try:
+                if not reader.done():
+                    if timeout > 0:
+                        try:
+                            await asyncio.wait_for(reader, timeout=timeout)
+                        except asyncio.CancelledError:
+                            if asyncio.current_task().cancelling():
+                                raise
+                        except asyncio.TimeoutError:
+                            logger.error("CDP reader did not stop within teardown budget")
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                raise
+            except Exception:
+                logger.debug("CDP reader teardown failed", exc_info=True)
+        if reset_poison:
+            self._session_poisoned = False
+
+    def _start_cdp_reader(self, ws) -> None:
+        """Start one reader bound to the exact websocket just installed."""
+
+        self._ws = ws
+        try:
+            # Passing ws at task creation is the important part: a reader that
+            # starts after reconnect must not resolve self._ws dynamically.
+            coroutine = self._reader_loop(ws)
+        except TypeError:
+            # A few offline tests replace the delegator with a legacy no-arg
+            # coroutine.  Keep that seam working; production CDPDriver uses
+            # the explicit-argument branch above.
+            coroutine = self._reader_loop()
+        self._reader_task = asyncio.create_task(coroutine)
 
     async def connect(self) -> None:
         """Connect to Chrome's CDP and authenticate.
@@ -529,17 +801,9 @@ class CDPDriver:
         If already connected (e.g. Service reconnects after login), reuses the
         existing owned tab instead of creating a new one.
         """
-        # If we already own a tab from a prior connect attempt, reuse it
-        if self._ws is not None:
-            await self._ws.close()
-            self._ws = None
-        if self._reader_task and not self._reader_task.done():
-            self._reader_task.cancel()
-            try:
-                await asyncio.wait_for(self._reader_task, timeout=2)
-            except (TimeoutError, asyncio.CancelledError):
-                pass
-            self._reader_task = None
+        # If we already own a tab from a prior connect attempt, reuse it.  The
+        # unified teardown marks the old socket stale before close/cancel.
+        await self._stop_cdp_session(fail_pending=True, reset_poison=True)
 
         # Resolve which tab to attach to, in priority order. The strategy is
         # governed by self.tab_mode:
@@ -620,7 +884,7 @@ class CDPDriver:
                         self._tab_registry.record(self._target_id)
                     except Exception as e:
                         logger.debug("Tab registry record failed: %s", e)
-            except OwnedTabRequiredError:
+            except (OwnedTabRequiredError, PermissionError):
                 # Never swallow the parallel-mode fail-closed signal — it must
                 # propagate as REST 503 / MCP isError, not become a login wait.
                 raise
@@ -655,26 +919,40 @@ class CDPDriver:
         # the post-idle survival test (130s idle, listener stayed alive) and
         # is tighter against transient stalls. Kept deliberately; see PR #39
         # review finding #4.
-        self._ws = await websockets.connect(
+        connected_ws = await websockets.connect(
             ws_url,
             max_size=100 * 1024 * 1024,
             ping_interval=20,
             ping_timeout=10,
         )
-        self._reader_task = asyncio.create_task(self._reader_loop())
+        self._start_cdp_reader(connected_ws)
         logger.info("CDP connected to Chrome")
         # A2: attach the identity listener now that the reader loop is running.
         # Persistent from connect — re-attached on reconnect. The listener
         # registers its Network.requestWillBeSent handler on the dispatch
         # table (Step 1) and enables the Network domain for POST-body capture.
-        await self._attach_identity_listener()
-        # Wait for the freshly-grabbed tab to actually be on chatgpt.com before
-        # fetching the token — see _wait_for_chatgpt_ready. Without this the
-        # fetch races the page load and returns an empty accessToken, killing
-        # the MCP process on startup. Best-effort: a False return falls through
-        # to _refresh_token, which has its own retry loop as a safety net.
-        await self._wait_for_chatgpt_ready()
-        await self._refresh_token()
+        try:
+            await self._attach_identity_listener()
+            # Wait for the freshly-grabbed tab to actually be on chatgpt.com before
+            # fetching the token — see _wait_for_chatgpt_ready. Without this the
+            # fetch races the page load and returns an empty accessToken, killing
+            # the MCP process on startup. Best-effort: a False return falls through
+            # to _refresh_token, which has its own retry loop as a safety net.
+            await self._wait_for_chatgpt_ready()
+            await self._refresh_token()
+        except BaseException:
+            # Do not leave a half-attached reader/socket behind when auth or
+            # identity setup fails.  The caller can retry connect cleanly.
+            try:
+                await self._stop_cdp_session(
+                    fail_pending=True,
+                    reset_poison=True,
+                    timeout=0 if asyncio.current_task().cancelling() else 2,
+                )
+            except asyncio.CancelledError:
+                if asyncio.current_task().cancelling():
+                    raise
+            raise
         # Establish the send-readiness invariant before connect() returns: a
         # connected driver must be able to type a message. connect() may have
         # attached to a chatgpt.com/ home/landing tab (or adopted an arbitrary
@@ -789,29 +1067,16 @@ class CDPDriver:
 
         Backoff: 3 attempts at 2s/5s/10s before giving up.
         """
-        # Stop the old reader if it's still running
-        if self._reader_task and not self._reader_task.done():
-            self._reader_task.cancel()
-            try:
-                await asyncio.wait_for(self._reader_task, timeout=2)
-            except (TimeoutError, asyncio.CancelledError):
-                pass
-        self._reader_task = None
-        # Close the dead socket if present
-        if self._ws:
-            try:
-                await self._ws.close()
-            except Exception:
-                pass
-            self._ws = None
+        # Close the old socket FIRST, then reap its pinned reader through the
+        # common lifecycle helper.  The old reader loses ownership before any
+        # await and cannot fail pending calls on the replacement session.
+        await self._stop_cdp_session(fail_pending=True, reset_poison=True)
         # Clear stale state (#18) — the page we reconnect to may be different
         self._current_conv_id = None
         # PR4: capture the pre-reconnect target so we can detect a target change
         # (drift) after a successful reconnect in parallel mode.
         _pre_reconnect_target_id = self._target_id
         self._current_model = None
-        self._pending.clear()
-
         # Reconnect with backoff
         for attempt, delay in enumerate([2, 5, 10], 1):
             try:
@@ -829,6 +1094,8 @@ class CDPDriver:
                     logger.info("No reusable tab — creating new one")
                     try:
                         ws_url = await self._create_owned_tab()
+                    except PermissionError:
+                        raise
                     except Exception as create_err:
                         if self._parallel_tabs:
                             # Ownership-invariant violation: parallel mode
@@ -869,13 +1136,13 @@ class CDPDriver:
                             "shared-tab fallback is disabled in owned mode"
                         )
                     ws_url = await self._find_page_ws()
-                self._ws = await websockets.connect(
+                connected_ws = await websockets.connect(
                     ws_url,
                     max_size=100 * 1024 * 1024,
                     ping_interval=20,
                     ping_timeout=10,
                 )
-                self._reader_task = asyncio.create_task(self._reader_loop())
+                self._start_cdp_reader(connected_ws)
                 # Same settle wait as connect() — the reconnected tab (re-found
                 # or re-created) may have just navigated. See _wait_for_chatgpt_ready.
                 await self._wait_for_chatgpt_ready()
@@ -892,9 +1159,15 @@ class CDPDriver:
                 # reconnect (parallel mode only). See _assert_reconnect_target_stable.
                 self._assert_reconnect_target_stable(_pre_reconnect_target_id)
                 return
-            except OwnedTabRequiredError:
+            except (OwnedTabRequiredError, PermissionError):
                 # Never let the parallel-mode fail-closed signal be swallowed by
                 # the reconnect retry loop / CDPReconnectError wrapping below.
+                await self._stop_cdp_session(fail_pending=True, reset_poison=True)
+                raise
+            except asyncio.CancelledError:
+                await self._stop_cdp_session(
+                    fail_pending=True, reset_poison=True, timeout=0
+                )
                 raise
             except Exception as e:
                 # Transient WS/auth/CDP errors still retry (parallel mode does
@@ -902,11 +1175,92 @@ class CDPDriver:
                 # only ownership-invariant violations raise OwnedTabRequiredError
                 # inside the try, above).
                 logger.warning("Reconnect attempt %d failed: %s", attempt, e)
+                await self._stop_cdp_session(fail_pending=True, reset_poison=True)
                 if attempt < 3:
                     await asyncio.sleep(delay)
         if self._breakers:
             self._breakers.record_failure(BreakerKind.CDP_RECONNECT)
         raise CDPReconnectError("CDP reconnect failed after 3 attempts")
+
+    async def reconnect_for_send_recovery(self, timeout: float | None = None) -> None:
+        """Reattach once to the same authorized target within one budget.
+
+        Unlike general lifecycle reconnect, this cannot create/adopt a tab,
+        navigate, reload, launch Chrome, or change browser permissions.
+        ``timeout`` is supplied by the transport so discovery, teardown,
+        handshake, and same-page sanity checks share the caller's remaining
+        command budget.  Direct callers retain the historic 15-second bound.
+        """
+        recovery_budget = 15.0 if timeout is None else max(0.0, float(timeout))
+        target_id = self._target_id
+        conv_id = self._current_conv_id
+        if not target_id:
+            raise OwnedTabRequiredError("Send recovery requires the original target")
+
+        def discover():
+            request = urllib.request.Request(f"http://127.0.0.1:{self.port}/json/list")
+            with urllib.request.urlopen(request, timeout=5) as response:
+                targets = json.loads(response.read())
+            for target in targets:
+                if target.get("id") != target_id or target.get("type") != "page":
+                    continue
+                page = urllib.parse.urlparse(target.get("url", ""))
+                ws_url = target.get("webSocketDebuggerUrl", "")
+                ws = urllib.parse.urlparse(ws_url)
+                if (page.scheme != "https" or page.hostname != "chatgpt.com"
+                        or ws.scheme != "ws" or ws.hostname not in {"127.0.0.1", "localhost"}
+                        or ws.port != self.port or ws.path != f"/devtools/page/{target_id}"):
+                    raise OwnedTabRequiredError("Recovery target identity/origin changed")
+                return ws_url
+            raise OwnedTabRequiredError("Original target unavailable; recovery will not adopt another tab")
+
+        try:
+            async with asyncio.timeout(recovery_budget):
+                ws_url = await asyncio.to_thread(discover)
+                if self._target_id != target_id:
+                    raise OwnedTabRequiredError("Recovery target changed during discovery")
+                # Mark the poisoned socket stale before close/cancel.  The
+                # common helper also cancels pending callers and clears their
+                # forensic metadata before a replacement reader starts.
+                await self._stop_cdp_session(fail_pending=True, reset_poison=False)
+                connected_ws = await websockets.connect(
+                    ws_url, max_size=100 * 1024 * 1024,
+                    ping_interval=20, ping_timeout=10, open_timeout=5, close_timeout=1,
+                )
+                self._start_cdp_reader(connected_ws)
+                # The transport recovery owner has already passed the poison
+                # gate.  Mark this newly attached session healthy before the
+                # sanity probe so the probe can use _cdp on the same task;
+                # any probe timeout will re-poison it conservatively.
+                self._session_poisoned = False
+                # Keep the sanity probe inside the same outer timeout.  The
+                # transport owner task remains the recovery owner because the
+                # transport uses asyncio.timeout rather than wait_for.
+                url = await self._js_strict("location.href", timeout=3)
+                parsed = urllib.parse.urlparse(url)
+                if parsed.scheme != "https" or parsed.hostname != "chatgpt.com":
+                    raise OwnedTabRequiredError("Recovery landed outside the authorized origin")
+                if conv_id and not self._is_url_at_conversation(url, conv_id):
+                    raise OwnedTabRequiredError("Conversation changed during send recovery")
+                # Keep model/route state: the same page was reattached, not reset.
+                # Re-arm network observation without the general reconnect's
+                # token refresh or alternate-target fallbacks.
+                if self._identity_listener is not None:
+                    self._identity_listener.detach()
+                    await self._identity_listener.attach()
+        except BaseException:
+            # If discovery, handshake, probe, or listener setup fails after a
+            # replacement socket was opened, leave no half-live reader behind.
+            # Cancellation/pending cleanup is synchronous; websocket close is
+            # scheduled without adding another multi-second wait to the
+            # already exhausted command budget.
+            try:
+                await self._stop_cdp_session(
+                    fail_pending=True, reset_poison=False, timeout=0
+                )
+            except BaseException:
+                logger.debug("send-recovery cleanup failed", exc_info=True)
+            raise
 
     async def _find_page_ws(self) -> str:
         """Find a suitable page's websocket URL."""
@@ -918,13 +1272,16 @@ class CDPDriver:
         if not pages:
             raise RuntimeError("No browser pages found — is Chrome running with chatgpt.com?")
 
-        # Prefer chatgpt.com page
+        # A fallback still needs the authorized ChatGPT origin. A title or
+        # query containing "chatgpt.com" does not make another site eligible.
         chatgpt = [
             t
             for t in pages
-            if "chatgpt.com" in t.get("url", "") or "chatgpt.com" in t.get("title", "")
+            if self._is_chatgpt_url(t.get("url", ""))
         ]
-        candidates = chatgpt if chatgpt else pages
+        if not chatgpt:
+            raise OwnedTabRequiredError("No page at the authorized ChatGPT origin")
+        candidates = chatgpt
 
         # #16: liveness check — skip targets whose WS URL is unreachable
         # (crashed tab, about:blank after recovery, etc.)
@@ -976,6 +1333,9 @@ class CDPDriver:
                 )
                 resp = json.loads(raw)
                 if resp.get("id") == mid:
+                    detail = json.dumps(resp.get("error", {}), ensure_ascii=False)
+                    if self._transport._is_permission_detail(detail):
+                        raise PermissionError(f"Browser CDP {method}: {detail}")
                     return resp
             raise TimeoutError(f"Browser CDP timeout: {method}")
 
@@ -1099,8 +1459,7 @@ class CDPDriver:
             if t.get("type") != "page":
                 continue
             url = t.get("url", "")
-            title = t.get("title", "")
-            if "chatgpt.com" not in url and "chatgpt.com" not in title:
+            if not self._is_chatgpt_url(url):
                 continue
             ws_url = t.get("webSocketDebuggerUrl")
             if not ws_url:
@@ -1136,7 +1495,7 @@ class CDPDriver:
         """
         for t in self._list_page_targets():
             url = t.get("url") or ""
-            if "chatgpt.com" not in url or "/c/" in url:
+            if not self._is_chatgpt_url(url) or "/c/" in url:
                 continue
             ws_url = t.get("webSocketDebuggerUrl")
             if not ws_url:
@@ -1178,10 +1537,9 @@ class CDPDriver:
         _conv_target=True (persistent conv-bound tab — never navigate it
         elsewhere). No-op sets nothing when absent. Never raises.
         """
-        needle = f"/c/{conv_id}"
         for t in self._list_page_targets():
             url = t.get("url", "")
-            if needle not in url:
+            if not self._is_url_at_conversation(url, conv_id):
                 continue
             ws_url = t.get("webSocketDebuggerUrl")
             if not ws_url:
@@ -1218,7 +1576,7 @@ class CDPDriver:
         # _current_conv_id was set; adopting ourselves just sets the flags).
         found_id = None
         for t in self._list_page_targets():
-            if f"/c/{conv_id}" in (t.get("url") or ""):
+            if self._is_url_at_conversation(t.get("url") or "", conv_id):
                 found_id = t.get("id")
                 break
         if not found_id:
@@ -1259,6 +1617,8 @@ class CDPDriver:
         await self._wait_for_chatgpt_ready()
         try:
             await self._ensure_send_ready()
+        except PermissionError:
+            raise
         except Exception as e:
             logger.warning("conv tab %s send-readiness failed: %s", conv_id, e)
         self._current_conv_id = conv_id
@@ -1378,14 +1738,14 @@ class CDPDriver:
 
     # ── CDP primitives ────────────────────────────────────────
 
-    async def _reader_loop(self) -> None:
+    async def _reader_loop(self, ws=None) -> None:
         """Background reader: sole consumer of self._ws.recv().
 
         Delegated to CDPTransport (Phase 5 PR2 extraction). Preserved exactly:
         sole ``_ws.recv()`` consumer, routes responses to ``_pending`` by id,
         fails all pending futures on socket close.
         """
-        await self._transport._reader_loop()
+        await self._transport._reader_loop(ws)
 
     async def _cdp(
         self, method: str, params: dict = None, timeout: float = 15, _retry: bool = True
@@ -1444,14 +1804,12 @@ class CDPDriver:
         finds the item matching *slug*, and clicks it.
 
         Returns True if the model was selected, False if it failed
-        (e.g. model not found, picker not available).  Failures are
-        non-fatal — the request proceeds with whatever model is active.
+        (e.g. model not found, picker not available).  The active-model
+        bookkeeping is updated only after the picker confirms the click; a
+        failed selection must never masquerade as a successful request.
         """
         if slug in ("auto", None, ""):
             return True  # auto is the default, no action needed
-
-        # Track the current model
-        self._current_model = slug
 
         # Click the model picker button
         picker_clicked = await self._js(
@@ -1467,7 +1825,7 @@ class CDPDriver:
         )
         if picker_clicked != "clicked":
             logger.warning(
-                "Model picker not found: %s — proceeding with active model", picker_clicked
+                "Model picker not found: %s — refusing requested model", picker_clicked
             )
             return False
 
@@ -1478,6 +1836,31 @@ class CDPDriver:
         # The dropdown renders model items as buttons or list items with the slug
         result = await self._js_with_data(
             "(function() {"
+            "  function norm(value) {"
+            "    return String(value || '').toLowerCase().trim()"
+            "      .replace(/[^a-z0-9]+/g, '-')"
+            "      .replace(/^-+|-+$/g, '');"
+            "  }"
+            "  function isDisabled(el) {"
+            "    return !!el.disabled"
+            "      || el.getAttribute('disabled') !== null"
+            "      || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true'"
+            "      || (el.getAttribute('data-disabled') || '').toLowerCase() === 'true';"
+            "  }"
+            "  function matches(el) {"
+            "    if (isDisabled(el)) return false;"
+            "    var target = norm(__D.slug);"
+            "    var attrs = ['data-slug', 'data-model-slug', 'data-value', 'value'];"
+            "    for (var i = 0; i < attrs.length; i++) {"
+            "      if (norm(el.getAttribute(attrs[i])) === target) return true;"
+            "    }"
+            "    var labels = [el.getAttribute('aria-label'),"
+            "      el.getAttribute('title'), el.textContent];"
+            "    for (var j = 0; j < labels.length; j++) {"
+            "      if (norm(labels[j]) === target) return true;"
+            "    }"
+            "    return false;"
+            "  }"
             "  var items = document.querySelectorAll("
             '    \'button[data-testid*="model"], '
             '    \'[class*="model-item"], '
@@ -1487,9 +1870,7 @@ class CDPDriver:
             "  );"
             "  for (var i = 0; i < items.length; i++) {"
             "    var el = items[i];"
-            "    var text = (el.textContent || '').toLowerCase();"
-            "    var dataSlug = (el.getAttribute('data-slug') || '').toLowerCase();"
-            "    if (dataSlug === __D.slug || text.indexOf(__D.slug) !== -1) {"
+            "    if (matches(el)) {"
             "      el.click();"
             "      return 'selected';"
             "    }"
@@ -1497,8 +1878,7 @@ class CDPDriver:
             "  // Fallback: try broader search in the dropdown"
             "  var allBtns = document.querySelectorAll('button, [role=\"menuitem\"]');"
             "  for (var j = 0; j < allBtns.length; j++) {"
-            "    var t = (allBtns[j].textContent || '').toLowerCase();"
-            "    if (t.indexOf(__D.slug) !== -1) {"
+            "    if (matches(allBtns[j])) {"
             "      allBtns[j].click();"
             "      return 'selected-fallback';"
             "    }"
@@ -1510,6 +1890,9 @@ class CDPDriver:
 
         if result in ("selected", "selected-fallback"):
             logger.info("Model selected: %s (%s)", slug, result)
+            # Do not set this optimistically before the UI operation succeeds:
+            # callers use the field for diagnostics and model-aware budgets.
+            self._current_model = slug
             await asyncio.sleep(0.5)  # Let UI settle
             return True
 
@@ -1521,7 +1904,7 @@ class CDPDriver:
             except Exception:
                 pass  # best-effort
         logger.warning(
-            "Model '%s' not found in picker: %s — proceeding with active model", slug, result
+            "Model '%s' not found in picker: %s — refusing requested model", slug, result
         )
         return False
 
@@ -1597,8 +1980,12 @@ class CDPDriver:
                 await self._ensure_send_ready()
                 self._current_conv_id = conversation_id
                 return
-            except Exception:
-                pass  # fall through to a full navigate
+            except Exception as exc:
+                from .send_recovery import is_recoverable_transport_error
+
+                if isinstance(exc, PermissionError) or is_recoverable_transport_error(exc):
+                    raise
+                # Other readiness failures retain the existing navigation path.
         url = f"https://chatgpt.com/c/{conversation_id}"
         logger.info("Navigate to conversation: %s", url)
         await self._cdp("Page.navigate", {"url": url})
@@ -1630,6 +2017,10 @@ class CDPDriver:
                 last_js_error = None  # successful probe clears the error
             except Exception as e:
                 # P2: log transient JS failures instead of silently swallowing.
+                from .send_recovery import is_recoverable_transport_error
+
+                if isinstance(e, PermissionError) or is_recoverable_transport_error(e):
+                    raise
                 # Distinguish "probe execution failed" from "stage failed" per
                 # ChatGPT review finding C.
                 last_js_error = str(e)
@@ -1696,6 +2087,14 @@ class CDPDriver:
         self._current_conv_id = conversation_id
 
     @staticmethod
+    def _is_chatgpt_url(url: str) -> bool:
+        try:
+            parsed = urllib.parse.urlparse(url)
+            return parsed.scheme == "https" and parsed.hostname == "chatgpt.com"
+        except ValueError:
+            return False
+
+    @staticmethod
     def _is_url_at_conversation(url: str, conversation_id: str) -> bool:
         """Exact path-segment match: is *url* at ``/c/{conversation_id}``?
 
@@ -1711,7 +2110,7 @@ class CDPDriver:
             parsed = urllib.parse.urlparse(url)
         except ValueError:
             return False
-        if "chatgpt.com" not in (parsed.netloc or "").lower():
+        if parsed.scheme != "https" or parsed.hostname != "chatgpt.com":
             return False
         parts = [p for p in parsed.path.split("/") if p]
         # Find the ("c", conversation_id) adjacent pair — the conversation
@@ -1799,9 +2198,9 @@ class CDPDriver:
         """Type text into the ChatGPT composer.
 
         Delegated to ChatGPTDom (Phase 5 PR3 extraction). Preserved exactly:
-        focus → platform-aware select-all → CDP insertText → canonical verify
-        with one retry; COMPOSER_SEND_READINESS breaker record_failure on
-        persistent failure (registry stays on driver).
+        focus → platform-aware select-all → paste-event insert → canonical
+        verify with one retry; COMPOSER_SEND_READINESS breaker record_failure
+        on persistent failure (registry stays on driver).
         """
         await self._dom.type_message(text)
 
@@ -1989,8 +2388,11 @@ class CDPDriver:
                 current_count = state.get("userCount", 0)
                 if current_count > pre_send_count and state.get("composerEmpty"):
                     return True
-            except Exception:
-                pass
+            except Exception as exc:
+                from .send_recovery import is_recoverable_transport_error
+
+                if isinstance(exc, PermissionError) or is_recoverable_transport_error(exc):
+                    raise
             await asyncio.sleep(0.5)
         # If we got valid probes but none showed acknowledgment, return False.
         # If no valid probe was ever obtained (all CDP errors), return None.
@@ -2059,7 +2461,9 @@ class CDPDriver:
             # Transient backend failure — degrade to wall-clock freshness.
             # AuthExpiredError propagates (caller's responsibility).
             from .cdp_driver import AuthExpiredError
-            if isinstance(e, AuthExpiredError):
+            from .send_recovery import is_recoverable_transport_error
+
+            if isinstance(e, (AuthExpiredError, PermissionError)) or is_recoverable_transport_error(e):
                 raise
             logger.warning(
                 "turn_anchor_degraded: backend anchor fetch failed for %s: %s — "
@@ -2072,13 +2476,91 @@ class CDPDriver:
                 conversation_id_at_capture=conv_id,
             )
 
+    async def _check_failed_send_receipt(self, capture_scope, anchor) -> dict:
+        """Bounded read-only reconciliation; absence is never proof of no send."""
+        from .backend_client import canonical_conversation_id_from_url
+        from .turn_anchor import select_text_for_turn
+
+        receipt = {"status": "unknown", "retry_safe": False}
+        if self._delivery_stage != DeliveryStage.ACKNOWLEDGED.value:
+            self._set_delivery_stage(DeliveryStage.UNKNOWN)
+        try:
+            async with asyncio.timeout(8):
+                # Check the observed POST first, allowing a queued network
+                # event one second to resolve within the SAME 8-second budget.
+                future = capture_scope.future if capture_scope is not None else None
+                captured_id = self._delivery_user_message_id
+                if future is not None and not future.done():
+                    try:
+                        await asyncio.wait_for(asyncio.shield(future), timeout=1)
+                    except TimeoutError:
+                        pass
+                if future is not None and future.done() and not future.cancelled():
+                    captured_id = future.result().uuid or captured_id
+                if captured_id:
+                    self._set_delivery_stage(DeliveryStage.ACKNOWLEDGED, user_message_id=captured_id)
+                    receipt["status"] = "post_observed"
+                conv_id = self._delivery_conversation_id
+                if not conv_id:
+                    conv_id = canonical_conversation_id_from_url(
+                        await self._js_strict("location.href", timeout=3)
+                    )
+                    if conv_id:
+                        self._delivery_conversation_id = conv_id
+                # Text equality, empty composer, or a missing tail node cannot
+                # identify a repeated prompt. Only an exact captured ID can
+                # upgrade persistence evidence during ambiguous delivery.
+                if not conv_id or not captured_id:
+                    receipt["reason"] = "exact_turn_identity_unavailable"
+                    return receipt
+                projection = await self._backend_client._fetch_recent_conversation_projection(conv_id)
+                nodes = projection.get("nodes") or {}
+                node = next((n for key, n in nodes.items()
+                             if (n.get("id") or key) == captured_id and n.get("role") == "user"), None)
+                if node is None:
+                    receipt["reason"] = "captured_node_not_visible_yet"
+                    return receipt
+                receipt["status"] = "user_message_persisted"
+                self._set_delivery_stage(DeliveryStage.ACKNOWLEDGED, conversation_id=conv_id)
+                result = select_text_for_turn(projection, anchor.with_captured_id(captured_id))
+                if result.status == "matched":
+                    self._delivery_reply_persisted = True
+                    receipt.update(status="reply_persisted", content=result.text)
+        except PermissionError:
+            # No alternate transport or browser-control path on denial.
+            receipt["reason"] = "permission_denied"
+        except Exception as exc:
+            receipt["reason"] = type(exc).__name__
+        return receipt
+
     async def send_and_stream(
+        self, text: str, timeout: float = 120, *, budgets=None,
+        model: str | None = None, on_progress=None,
+    ) -> AsyncIterator[StreamChunk]:
+        """Recover a proven pre-submission failure once, never replay a click."""
+        from .send_recovery import recovery_scope, recover_before_submission
+
+        with recovery_scope(self) as recovery_budget:
+            while True:
+                try:
+                    async for chunk in self._send_and_stream_once(
+                        text, timeout, budgets=budgets, model=model, on_progress=on_progress,
+                    ):
+                        yield chunk
+                    return
+                except Exception as exc:
+                    self._annotate_delivery_error(exc)
+                    if not await recover_before_submission(self, exc, recovery_budget, on_progress):
+                        raise
+
+    async def _send_and_stream_once(
         self,
         text: str,
         timeout: float = 120,
         *,
         budgets=None,
         model: str | None = None,
+        on_progress=None,
     ) -> AsyncIterator[StreamChunk]:
         """Send a message and yield streaming response chunks.
 
@@ -2100,9 +2582,14 @@ class CDPDriver:
         from .identity_listener import hash_sent_text
         from .turn_anchor import TurnReconciliationError
 
+        # Reset before any await so a later call can never inherit the prior
+        # request's acknowledged/unknown state and accidentally become
+        # retryable (or vice versa).
+        self._reset_delivery_metadata()
         # PR4 belt-and-suspenders: refuse to mutate the DOM in parallel mode.
         self._assert_owned_tab_required()
         # A1: count existing assistants BEFORE sending (fail-closed baseline).
+        await self._notify_send_progress(on_progress, "pre_send_baseline")
         initial_count = await self._read_assistant_count_baseline()
 
         # A2 Step 2: identity-listener health check.
@@ -2113,6 +2600,7 @@ class CDPDriver:
         # A2 Step 3+4: arm capture scope + build fallback anchor.
         # The fallback anchor captures pre-send state (backend node-ids/times
         # or wall-clock) for dual-anchor correlation if UUID capture fails.
+        await self._notify_send_progress(on_progress, "pre_send_anchor")
         fallback_anchor = await self._capture_pre_send_fallback_anchor(text)
         # Generation gate (per-conversation, cross-process): a second send
         # into a conversation that is mid-generation kills the streaming
@@ -2148,6 +2636,7 @@ class CDPDriver:
         try:
             # Account-level pace gate: sleep until the shared minimum send
             # interval / cooldown lets this POST through (cross-process).
+            await self._notify_send_progress(on_progress, "pace")
             await self._pace.pace("send")
             # Type and send. If anything between the composer insert and the
             # send-acknowledgment fails (verify mismatch, click miss, cancel),
@@ -2155,8 +2644,14 @@ class CDPDriver:
             # NEXT send's verification — field-observed 2026-09-15: a failed
             # nudge left a draft that needed manual evaluate_script surgery.
             # Best-effort clear, then let the real error propagate.
+            input_verified = False
             try:
+                await self._notify_send_progress(on_progress, "input")
                 await self.type_message(text)
+                input_verified = True
+                # click_send marks the boundary immediately BEFORE dispatch.
+                # Its read-only button-readiness probe can still recover.
+                await self._notify_send_progress(on_progress, "click")
                 # Commit BEFORE click: a crash/cancel after this point leaves
                 # delivery uncertain, never permission to submit again.
                 send_receipts.mark(
@@ -2165,9 +2660,15 @@ class CDPDriver:
                 await self.click_send()
 
                 # A2 Step 6: wait for the IdentityListener to capture the UUID.
+                await self._notify_send_progress(on_progress, "ack")
                 captured_uuid = None
                 if capture_scope is not None:
                     captured_uuid = await self._identity_listener.wait_for_captured_uuid(timeout=5.0)
+                if captured_uuid:
+                    self._set_delivery_stage(
+                        DeliveryStage.ACKNOWLEDGED,
+                        user_message_id=captured_uuid,
+                    )
 
                 # P0 send acknowledgment (ChatGPT review, conv 6a52f0f3):
                 # click_send dispatches synthetic mouse events — that proves the
@@ -2193,15 +2694,38 @@ class CDPDriver:
                                 "composer not cleared). The page may be overloaded or the "
                                 "send was rejected. Do NOT retry automatically."
                             )
+                        if acknowledged is True:
+                            self._set_delivery_stage(DeliveryStage.ACKNOWLEDGED)
+                        elif acknowledged is None:
+                            # A click happened but neither the listener nor the
+                            # DOM probe gave us a conclusive answer.
+                            self._set_delivery_stage(DeliveryStage.UNKNOWN)
                     except SendReadinessError:
                         raise
+                    except PermissionError:
+                        raise
                     except Exception as ack_err:
+                        from .send_recovery import is_recoverable_transport_error
+
+                        if is_recoverable_transport_error(ack_err):
+                            raise
                         # Probe failed (JS error, mock, unusual DOM). Don't block
                         # the send — let completion detection proceed. Log so the
                         # failure is traceable.
+                        self._set_delivery_stage(DeliveryStage.UNKNOWN)
                         logger.debug("Send acknowledgment probe failed (non-blocking): %s", ack_err)
-            except (Exception, asyncio.CancelledError):
-                await self._clear_composer()
+            except asyncio.CancelledError:
+                if self._delivery_stage != DeliveryStage.NOT_STARTED.value:
+                    self._set_delivery_stage(DeliveryStage.UNKNOWN)
+                raise
+            except Exception as exc:
+                from .send_recovery import is_recoverable_transport_error
+
+                if (input_verified
+                        and self._delivery_stage == DeliveryStage.NOT_STARTED.value
+                        and not is_recoverable_transport_error(exc)
+                        and not isinstance(exc, PermissionError)):
+                    await self._clear_composer()
                 raise
 
             # Send verified → this conv is now mid-generation on OUR watch.
@@ -2222,6 +2746,7 @@ class CDPDriver:
             # P1: pass budgets + model for the model-aware two-state phase-2
             # machine. When None (no config available), the detector uses the
             # legacy single PHASE_STALL_SECONDS behavior.
+            await self._notify_send_progress(on_progress, "generation")
             async for chunk in self._completion.stream_until_complete(
                 initial_count=initial_count,
                 timeout=timeout,
@@ -2252,6 +2777,7 @@ class CDPDriver:
             if conv_id:
                 logger.info("Conversation: %s", conv_id)
                 self._current_conv_id = conv_id
+                self._delivery_conversation_id = conv_id
                 last_dom_text = self._completion.last_dom_text
                 had_non_text_content = self._completion.had_non_text_content
                 # A2: anchored final-text reconciliation. The selector resolves
@@ -2265,6 +2791,11 @@ class CDPDriver:
                     last_status = result.status
                     last_diagnostic = result.diagnostic or {}
                     if result.status == "matched" and result.text:
+                        # The anchored backend projection found the terminal
+                        # assistant node for this exact user turn. This is
+                        # stronger evidence than the live DOM stream and lets
+                        # the MCP layer skip its redundant post-send read.
+                        self._delivery_reply_persisted = True
                         if len(result.text) > len(last_dom_text):
                             yield StreamChunk(delta=result.text[len(last_dom_text):])
                             last_dom_text = result.text
@@ -2302,6 +2833,13 @@ class CDPDriver:
                                 "last_fetch_diagnostic": last_diagnostic,
                             },
                         )
+                    # The bounded reconciliation loop observed the anchored
+                    # assistant as non-text on its final poll. Keep the
+                    # persistence evidence only when the DOM detector also
+                    # confirmed non-text content, which is the terminal guard
+                    # used by the placeholder path below.
+                    if had_non_text_content:
+                        self._delivery_reply_persisted = True
                 # Non-text placeholder (unchanged from pre-A2).
                 if not last_dom_text and had_non_text_content:
                     placeholder = (
@@ -2309,6 +2847,31 @@ class CDPDriver:
                         "use get_conversation to retrieve full content.]"
                     )
                     yield StreamChunk(delta=placeholder)
+            # A completed assistant turn is an implicit acknowledgment even
+            # when the listener/DOM probe was unavailable. This only runs on a
+            # successful observation path; rate-limit/timeout errors keep the
+            # earlier conservative stage and are never retried as a new send.
+            if self._delivery_stage in {
+                DeliveryStage.SUBMISSION_ATTEMPTED.value,
+                DeliveryStage.UNKNOWN.value,
+            }:
+                self._set_delivery_stage(DeliveryStage.ACKNOWLEDGED)
+        except asyncio.CancelledError:
+            # Keep cancellation observable to the caller. If cancellation
+            # happened after click dispatch, retain an unknown state for
+            # diagnostics, but never turn it into a retryable exception.
+            if self._delivery_stage != DeliveryStage.NOT_STARTED.value:
+                self._set_delivery_stage(DeliveryStage.UNKNOWN)
+            raise
+        except Exception as exc:
+            from .send_recovery import is_recoverable_transport_error
+
+            if (self._delivery_stage != DeliveryStage.NOT_STARTED.value
+                    and is_recoverable_transport_error(exc)):
+                await self._notify_send_progress(on_progress, "checking_submission_receipt (budget 8s; no resend)")
+                exc.receipt_check = await self._check_failed_send_receipt(capture_scope, fallback_anchor)
+            self._annotate_delivery_error(exc)
+            raise
         finally:
             # A2 Step 9: ALWAYS clear the capture scope (failure-mode E).
             if capture_scope is not None:
@@ -2579,14 +3142,11 @@ class CDPDriver:
     # ── Lifecycle ─────────────────────────────────────────────
 
     async def close(self) -> None:
-        # Stop the background reader first
-        if self._reader_task and not self._reader_task.done():
-            self._reader_task.cancel()
-            try:
-                await asyncio.wait_for(self._reader_task, timeout=2)
-            except (TimeoutError, asyncio.CancelledError):
-                pass
-        self._reader_task = None
+        # Stop the page session through the same ownership-safe transaction as
+        # connect, reconnect, and send recovery.  The helper cancels pending
+        # callers and closes the websocket after making stale readers
+        # non-current.
+        await self._stop_cdp_session(fail_pending=True, reset_poison=True)
         # Stop the heartbeat lease task and clear our registry entry so a
         # future restart of THIS instance creates fresh rather than reclaiming
         # a tab we just closed.
@@ -2605,14 +3165,6 @@ class CDPDriver:
                 self._tab_registry.clear_if_owner(self._target_id)
             except Exception as e:
                 logger.debug("Tab registry clear failed: %s", e)
-        # Fail any pending futures so callers don't hang
-        for mid, fut in list(self._pending.items()):
-            if not fut.done():
-                fut.cancel()
-        self._pending.clear()
-        if self._ws:
-            await self._ws.close()
-            self._ws = None
         # Only close the attached tab if WE created it. An adopted tab
         # (Chrome's launch tab, a leftover from a prior run, or a tab the
         # user opened) is left alone — closing it would accumulate negative

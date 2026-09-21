@@ -29,7 +29,7 @@ def mock_driver():
     driver.resolve_project_id = AsyncMock(side_effect=lambda p: p)
 
     # Wire send_and_stream to yield a simple response
-    async def _stream(text, timeout=120, *, budgets=None, model=None):
+    async def _stream(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         yield StreamChunk(delta="Hello!")
         yield StreamChunk(delta="", finish_reason="stop")
 
@@ -509,7 +509,7 @@ async def test_api_message_history_includes_assistant():
 
     captured_text = {}
 
-    async def _stream(text, timeout=120, *, budgets=None, model=None):
+    async def _stream(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         captured_text["value"] = text
         yield StreamChunk(delta="Response")
         yield StreamChunk(delta="", finish_reason="stop")
@@ -558,7 +558,7 @@ async def test_api_model_selection_called():
     driver._access_token = "test"
     driver.select_model = AsyncMock(return_value=True)
 
-    async def _stream(text, timeout=120, *, budgets=None, model=None):
+    async def _stream(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         yield StreamChunk(delta="OK")
         yield StreamChunk(delta="", finish_reason="stop")
 
@@ -666,7 +666,9 @@ async def test_verify_reply_persisted_true_when_tail_is_assistant():
     from chatgpt_web2api.mcp_server import _verify_reply_persisted
 
     d = _chain_driver([("user", "q"), ("assistant", "a")])
-    assert await _verify_reply_persisted(d, "c") is True
+    assert await _verify_reply_persisted(
+        d, "c", user_message_id="n0", sent_text="q"
+    ) is True
 
 
 @pytest.mark.asyncio
@@ -676,8 +678,10 @@ async def test_verify_reply_persisted_false_when_tail_is_own_message():
     from chatgpt_web2api.mcp_server import _verify_reply_persisted
 
     d = _chain_driver([("user", "q1"), ("assistant", "a1"), ("user", "q2")])
-    assert await _verify_reply_persisted(d, "c") is False
-    assert d.get_conversation.await_count == 3  # exhausted the grace retries
+    assert await _verify_reply_persisted(
+        d, "c", user_message_id="n2", sent_text="q2"
+    ) is None
+    assert d.get_conversation.await_count == 1  # one bounded best-effort check
 
 
 @pytest.mark.asyncio
@@ -706,16 +710,23 @@ async def test_verify_reply_persisted_dom_fallback_on_throttle():
     d.port = 9222
 
     with patch.object(
-        conv_dom_read, "conv_tail_state", new=AsyncMock(
-            return_value={"last_role": "assistant", "generating": False})
+        conv_dom_read, "conv_messages", new=AsyncMock(
+            return_value=[
+                {"role": "user", "content": "q"},
+                {"role": "assistant", "content": "a"},
+            ]
+        )
     ):
-        assert await _verify_reply_persisted(d, "c") is True
+        assert await _verify_reply_persisted(d, "c", sent_text="q") is None
+        conv_dom_read.conv_messages.assert_not_awaited()
 
     with patch.object(
-        conv_dom_read, "conv_tail_state", new=AsyncMock(
-            return_value={"last_role": "user", "generating": False})
+        conv_dom_read, "conv_messages", new=AsyncMock(
+            return_value=[{"role": "user", "content": "q"}]
+        )
     ):
-        assert await _verify_reply_persisted(d, "c") is None
+        assert await _verify_reply_persisted(d, "c", sent_text="q") is None
+        conv_dom_read.conv_messages.assert_not_awaited()
 
 
 # ── get_conversation reason + out_file ──────────────────────
@@ -844,9 +855,8 @@ async def test_wait_reply_timeout_reports_last_role():
 
 @pytest.mark.asyncio
 async def test_wait_reply_dead_when_user_tail_persists():
-    """A user tail that persists past dead_after_seconds exits early with
-    'dead' — the empirical dead-generation signature (QIFEI 2026-09-14:
-    reply never persisted, caller should nudge, not wait the timeout out)."""
+    """A user tail that persists past the hint remains unresolved until the
+    absolute timeout; a tail alone is not terminal failure evidence."""
     from chatgpt_web2api.mcp_server import do_wait_reply
 
     d = _chain_driver([("user", "q")])  # tail never becomes assistant
@@ -854,14 +864,28 @@ async def test_wait_reply_dead_when_user_tail_persists():
         d,
         {
             "conversation_id": "c",
-            "timeout_seconds": 600,
+            "timeout_seconds": 2,
             "poll_seconds": 8,
             "dead_after_seconds": 1,
         },
     )
-    assert result["status"] == "dead"
+    assert result["status"] == "timeout"
     assert result["last_role"] == "user"
-    assert result["waited_s"] < 30  # early exit — nowhere near the 600s timeout
+    assert result["observation"].startswith("user_tail_unresolved_")
+    assert result["waited_s"] >= 2
+
+
+@pytest.mark.asyncio
+async def test_wait_reply_reports_dead_only_for_explicit_terminal_failure():
+    """A backend failure marker is stronger than a user tail observation."""
+    from chatgpt_web2api.mcp_server import do_wait_reply
+
+    d = _chain_driver([("user", "q", {"status": "failed"})])
+    result = await do_wait_reply(
+        d, {"conversation_id": "c", "timeout_seconds": 30, "poll_seconds": 8}
+    )
+    assert result["status"] == "dead"
+    assert result["observation"] == "terminal_generation_failure"
 
 
 @pytest.mark.asyncio
@@ -1050,10 +1074,26 @@ async def test_verify_reply_persisted_bypasses_and_refreshes_cache(monkeypatch):
     ms._CONV_READ_CACHE["c"] = (_time.monotonic() + 60.0, stale)
 
     d = _chain_driver([("user", "q"), ("assistant", "a")])
-    assert await ms._verify_reply_persisted(d, "c") is True
+    assert await ms._verify_reply_persisted(
+        d, "c", user_message_id="n0", sent_text="q"
+    ) is True
     assert d.get_conversation.await_count == 1
     fresh = ms._CONV_READ_CACHE["c"][1]
     assert fresh is not stale and fresh.get("id") == "c"
+
+
+@pytest.mark.asyncio
+async def test_verify_reply_persisted_consumes_anchored_delivery_receipt():
+    from chatgpt_web2api.mcp_server import _verify_reply_persisted
+
+    d = _chain_driver([("user", "q"), ("assistant", "a")])
+    d.delivery_metadata = {
+        "reply_persisted": True,
+        "user_message_id": "n0",
+        "conversation_id": "c",
+    }
+    assert await _verify_reply_persisted(d, "c", sent_text="q") is True
+    d.get_conversation.assert_not_awaited()
 
 
 # ── read_throttled: actionable signal instead of a hang ────

@@ -99,7 +99,8 @@ async def test_dom_fallback_honors_export_without_claiming_complete(monkeypatch,
         args["out_file"] = str(tmp_path / "partial.md")
     result = await mcp.do_get_conversation(driver, args)
     assert result["partial"] is True and result["source"] == "dom"
-    assert result["has_more"] is True and "partial" in result["read_hint"]
+    assert result["has_more"] is None and result["paging_supported"] is False
+    assert "partial" in result["read_hint"]
     check_export(result, [text])
 
 

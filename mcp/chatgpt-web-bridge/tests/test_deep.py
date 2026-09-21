@@ -46,10 +46,10 @@ def test_config_from_dict():
 
 
 def test_tool_enum_values():
-    """ToolName enum has exactly 18 members."""
+    """ToolName enum includes the local runtime diagnostics tool."""
     from chatgpt_web2api.mcp_server import ToolName
 
-    assert len(ToolName) == 18
+    assert len(ToolName) == 19
 
 
 def test_tool_enum_unique():

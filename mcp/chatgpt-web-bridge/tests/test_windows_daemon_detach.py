@@ -113,7 +113,9 @@ def test_daemon_lifetime_after_owning_job_closes(tmp_path, mode, survives, allow
             [sys.executable, "-c", _DRIVER, str(Path(__file__).resolve()), name,
              str(ready), str(stop), mode],
             capture_output=True, text=True, timeout=30,
-            creationflags=subprocess.CREATE_NO_WINDOW | subprocess.CREATE_BREAKAWAY_FROM_JOB,
+            # Hosted CI may prohibit leaving its outer job. The disposable
+            # driver can join our nested job while remaining inside that job.
+            creationflags=subprocess.CREATE_NO_WINDOW,
         )
         assert driver.returncode == 0, driver.stderr
         child = json.loads(driver.stdout)

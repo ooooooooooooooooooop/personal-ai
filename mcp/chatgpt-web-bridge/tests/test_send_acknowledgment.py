@@ -24,7 +24,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from chatgpt_web2api.cdp_driver import CDPDriver, SendReadinessError
+from chatgpt_web2api.cdp_driver import CDPDriver, DeliveryStage, SendReadinessError
 from chatgpt_web2api.turn_anchor import TurnReconciliationError, TurnTextResult
 
 
@@ -54,7 +54,9 @@ async def test_send_not_acknowledged_raises_when_no_signals(monkeypatch):
     driver = _make_driver()
     # Mock the send path
     driver.type_message = AsyncMock()
-    driver.click_send = AsyncMock()
+    driver.click_send = AsyncMock(
+        side_effect=lambda: driver._set_delivery_stage(DeliveryStage.SUBMISSION_ATTEMPTED)
+    )
     driver._read_assistant_count_baseline = AsyncMock(return_value=0)
     driver._identity_listener = None  # no UUID capture possible
     driver._capture_pre_send_fallback_anchor = AsyncMock(return_value=MagicMock())
@@ -95,7 +97,9 @@ async def test_send_acknowledged_when_user_count_increases(monkeypatch):
     The bridge should proceed to completion detection normally."""
     driver = _make_driver()
     driver.type_message = AsyncMock()
-    driver.click_send = AsyncMock()
+    driver.click_send = AsyncMock(
+        side_effect=lambda: driver._set_delivery_stage(DeliveryStage.SUBMISSION_ATTEMPTED)
+    )
     driver._read_assistant_count_baseline = AsyncMock(return_value=0)
     driver._identity_listener = None
     driver._assert_owned_tab_required = MagicMock()
@@ -218,12 +222,14 @@ def _stub_send_prelude(driver):
 
 
 @pytest.mark.asyncio
-async def test_failed_type_clears_composer_draft():
-    """A send that fails after text was inserted leaves it in the composer
-    as a draft; the NEXT send's canonical verify then fails on the leftover
-    (observed live 2026-09-15 — clearing needed manual evaluate_script
-    surgery). Any failure inside the type→ack window must best-effort
-    clear the composer before the error propagates."""
+async def test_failed_type_does_not_outer_clear_user_draft():
+    """An input failure is still unverified ownership-wise.
+
+    ChatGPTDom owns any cleanup required by its own partial insertion. The
+    orchestration layer must not blindly clear the composer while input
+    verification failed, because the text may be a user draft the bridge never
+    owned.
+    """
     driver = _make_driver()
     _stub_send_prelude(driver)
     driver._clear_composer = AsyncMock(return_value=True)
@@ -238,19 +244,22 @@ async def test_failed_type_clears_composer_draft():
         async for _ in driver.send_and_stream("test message", timeout=10):
             pass
 
-    driver._clear_composer.assert_awaited()
+    driver._clear_composer.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_unacknowledged_send_clears_composer_draft():
-    """The exact incident case: send NOT acknowledged means the composer
-    still holds the typed text — it must be cleared before the
-    SendReadinessError propagates."""
+async def test_unacknowledged_send_preserves_composer_for_reconciliation():
+    """Missing acknowledgment cannot prove a click failed to submit.
+
+    Preserve the page for reconciliation; do not issue another mutation.
+    """
     driver = _make_driver()
     _stub_send_prelude(driver)
     driver._clear_composer = AsyncMock(return_value=True)
     driver.type_message = AsyncMock()
-    driver.click_send = AsyncMock()
+    driver.click_send = AsyncMock(
+        side_effect=lambda: driver._set_delivery_stage(DeliveryStage.SUBMISSION_ATTEMPTED)
+    )
     driver._pre_send_user_count = 2
 
     async def fake_js_strict(expr, timeout=15):
@@ -267,7 +276,7 @@ async def test_unacknowledged_send_clears_composer_draft():
         async for _ in driver.send_and_stream("test message", timeout=10):
             pass
 
-    driver._clear_composer.assert_awaited()
+    driver._clear_composer.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -278,7 +287,9 @@ async def test_successful_send_does_not_clear_composer():
     _stub_send_prelude(driver)
     driver._clear_composer = AsyncMock(return_value=True)
     driver.type_message = AsyncMock()
-    driver.click_send = AsyncMock()
+    driver.click_send = AsyncMock(
+        side_effect=lambda: driver._set_delivery_stage(DeliveryStage.SUBMISSION_ATTEMPTED)
+    )
     driver._pre_send_user_count = 0
 
     from chatgpt_web2api.turn_anchor import TurnAnchor

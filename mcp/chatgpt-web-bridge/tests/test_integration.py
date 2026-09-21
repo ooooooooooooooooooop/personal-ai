@@ -43,7 +43,7 @@ def make_mock_driver():
     driver.is_connected = True
     driver._access_token = "test-token"
 
-    async def _stream(text, timeout=120, *, budgets=None, model=None):
+    async def _stream(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         yield StreamChunk(delta="Mocked ChatGPT response")
         yield StreamChunk(delta="", finish_reason="stop")
 
@@ -90,6 +90,7 @@ async def test_client_sees_default_safe_surface(monkeypatch):
         names = {t.name for t in resp.tools}
 
         expected_safe = {
+            ToolName.RUNTIME_INFO.value,
             ToolName.CHAT_COMPLETION.value, ToolName.CHAT_WITH_GPT.value,
             ToolName.LIST_MODELS.value, ToolName.LIST_PROJECTS.value,
             ToolName.LIST_CONVERSATIONS.value, ToolName.GET_CONVERSATION.value,
@@ -107,7 +108,7 @@ async def test_client_sees_default_safe_surface(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_client_sees_full_surface_with_both_gates(monkeypatch):
-    """With both gate envs set, the client sees all 18 tools."""
+    """With both gate envs set, the client sees all 19 tools."""
     clear_gate_envs(monkeypatch)
     monkeypatch.setenv(WRITE_ENV, "1")
     monkeypatch.setenv(DESTRUCTIVE_ENV, "1")
@@ -119,7 +120,7 @@ async def test_client_sees_full_surface_with_both_gates(monkeypatch):
     try:
         resp = await session.list_tools()
         names = {t.name for t in resp.tools}
-        assert len(names) == 18
+        assert len(names) == 19
         assert ToolName.DELETE_MEMORY.value in names
         assert ToolName.CREATE_PROJECT.value in names
     finally:

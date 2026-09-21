@@ -165,6 +165,8 @@ class IdentityListener:
             self._ready = True
             self.reconnect_count += 1
             logger.info("identity_listener_ready (send_seq=%d)", self._send_sequence)
+        except PermissionError:
+            raise
         except Exception as e:
             self._ready = False
             logger.warning("identity_listener_attach_failed: %s", e)
@@ -202,6 +204,8 @@ class IdentityListener:
             self.reenabled_count += 1
             logger.info("identity_listener_reenabled")
             return True
+        except PermissionError:
+            raise
         except Exception as e:
             self._ready = False
             logger.warning("identity_listener_reenable_failed: %s", e)
@@ -252,7 +256,9 @@ class IdentityListener:
         if scope is None or scope.future is None:
             return None
         try:
-            result = await asyncio.wait_for(scope.future, timeout=timeout)
+            # Timing out local observation must not discard a late POST
+            # receipt; the send's finally block owns scope cleanup.
+            result = await asyncio.wait_for(asyncio.shield(scope.future), timeout=timeout)
             return result.uuid
         except TimeoutError:
             self.capture_missed_count += 1

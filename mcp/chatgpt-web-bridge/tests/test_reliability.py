@@ -766,7 +766,7 @@ async def test_mcp_auth_expired_returns_error_result():
     drv.route_chat_target = AsyncMock(return_value="new")
 
     # send_and_stream must be an async GENERATOR that raises on iteration.
-    async def _raising_stream(text, timeout=120, *, budgets=None, model=None):
+    async def _raising_stream(text, timeout=120, *, budgets=None, model=None, on_progress=None):
         raise AuthExpiredError()
         yield  # unreachable, makes this a generator
 

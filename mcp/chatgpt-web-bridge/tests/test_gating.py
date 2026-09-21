@@ -70,6 +70,7 @@ def test_default_surface_exact_name_set(monkeypatch):
     """The default visible surface is exactly this set — catches accidental exposure."""
     clear_gate_envs(monkeypatch)
     expected = {
+        ToolName.RUNTIME_INFO.value,
         ToolName.CHAT_COMPLETION.value,
         ToolName.CHAT_WITH_GPT.value,
         ToolName.LIST_MODELS.value,
@@ -116,12 +117,12 @@ def test_destructive_env_exposes_delete_tools(monkeypatch):
         assert tn.value in visible, f"{tn.value} should appear with {DESTRUCTIVE_ENV}=1"
 
 
-def test_both_gates_expose_all_eighteen(monkeypatch):
-    """With both gates on, the full 18-tool surface is restored."""
+def test_both_gates_expose_all_nineteen(monkeypatch):
+    """With both gates on, the full 19-tool surface is restored."""
     clear_gate_envs(monkeypatch)
     monkeypatch.setenv(WRITE_ENV, "1")
     monkeypatch.setenv(DESTRUCTIVE_ENV, "1")
-    assert len(build_tools()) == 18
+    assert len(build_tools()) == 19
 
 
 # ── Block-at-call: hidden tools refuse to execute ─────────────

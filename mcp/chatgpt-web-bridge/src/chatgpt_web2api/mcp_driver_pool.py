@@ -31,6 +31,14 @@ logger = logging.getLogger(__name__)
 # P1.5: cap for lease history records (prevents unbounded growth).
 _LEASE_HISTORY_LIMIT = 100
 
+# Sweeper health probe: an idle slot whose sanity evaluate fails this many
+# CONSECUTIVE sweeps is dead by definition — its own recovery probe failing
+# means in-band recovery cannot heal it (2026-09-19 incident: a poisoned
+# session whose reader leaked held its slot until process restart; the TTL
+# sweeper never reclaimed it). Force-reaping frees the slot so the next
+# acquire materializes a fresh driver — the bounded, automatic heal.
+_FORCE_REAP_PROBE_FAILURES = 2
+
 # Slot key shared by every non-chat (read/maintenance) tool. Its tab is an
 # owned scratch tab: sweeping it closes the tab, and the next read tool pays a
 # full chatgpt.com page load (unpaced backend traffic) to recreate it — so it
@@ -133,6 +141,10 @@ class DriverSlot:
     last_used_at: float = 0.0
     in_flight: int = 0
     closing: bool = False
+    probe_failures: int = 0
+    # A closing slot may overlap a replacement slot with the same key.
+    # Serialise close so the sweeper and shutdown cannot close it twice.
+    close_lock: asyncio.Lock | None = None
 
 
 # ── P1.5: Lease accounting records ────────────────────────────────────────
@@ -152,6 +164,9 @@ class LeaseRecord:
     released_at: float | None = None
     hold_duration_s: float | None = None
     release_reason: str | None = None  # "normal" | "exception" | "cancellation"
+    # Session keys can be rebound while an old slot is closing.  Use the
+    # physical slot identity when checking for stale in_flight counts.
+    slot_identity: int = 0
 
 
 
@@ -193,8 +208,26 @@ class _LeaseContext:
             reason = "cancellation"
         else:
             reason = "exception"
-        await self._pool._release(self._lease.slot, lease_id=self._lease.lease_id, release_reason=reason)
-        self._lease = None
+        release_task = asyncio.create_task(
+            self._pool._release(
+                self._lease.slot,
+                lease_id=self._lease.lease_id,
+                release_reason=reason,
+            )
+        )
+        try:
+            await asyncio.shield(release_task)
+        except asyncio.CancelledError:
+            # Context-manager cleanup must complete before propagating the
+            # request cancellation; otherwise the lease record and count can
+            # diverge and pin a pool slot indefinitely.
+            try:
+                await asyncio.shield(release_task)
+            except asyncio.CancelledError:
+                pass
+            raise
+        finally:
+            self._lease = None
 
 
 # ── Pool ──────────────────────────────────────────────────────────────────
@@ -230,6 +263,10 @@ class McpSessionDriverPool:
 
         self._slots: dict[str, DriverSlot] = {}
         self._active_keys: set[str] = set()
+        # _active_keys is a set of logical bindings.  A closing slot and its
+        # replacement can share a key, so physical capacity is tracked here
+        # separately to preserve the hard max-size invariant.
+        self._capacity_slots: dict[int, DriverSlot] = {}
         self._pool_lock = asyncio.Lock()
         self._capacity_available = asyncio.Condition(self._pool_lock)
         self._shutting_down = False
@@ -322,8 +359,15 @@ class McpSessionDriverPool:
         # run with zero resident daemons when the tool is never invoked.
         from .chrome import ChromeProcess
 
-        await ChromeProcess(cfg).ensure_running()
-        await driver.connect()
+        try:
+            await ChromeProcess(cfg).ensure_running()
+            await driver.connect()
+        except BaseException:
+            # CDPDriver.connect() may have created a websocket or owned tab
+            # before failing. The pool has not published the driver yet, so
+            # this is the last owner responsible for closing it.
+            await self._close_driver_instance(driver)
+            raise
         return driver
 
     async def _materialize_slot(self, slot: DriverSlot) -> None:
@@ -336,27 +380,108 @@ class McpSessionDriverPool:
           - It must not enumerate or attach to unrelated profile tabs.
         """
         logger.info("_materialize_slot entered: session_key=%s", slot.session_key)
+        driver: Any | None = None
         try:
             driver = await self._create_driver(slot)
-        except Exception:
-            # _create_driver is responsible for cleaning partial resources
-            # on failure (the CDPDriver.connect() path handles this).
+            async with slot.meta_lock:
+                # Cancellation can race the handoff between factory return
+                # and publication. Do not leave a driver that nobody owns.
+                if slot.closing:
+                    raise PoolSlotUnavailableError()
+                slot.driver = driver
+                driver = None
+        except BaseException:
+            # A factory may have completed before the task was cancelled, so
+            # the caller cannot assume _create_driver cleaned the object.
+            if driver is not None:
+                await self._close_driver_instance(driver)
             raise
-        async with slot.meta_lock:
-            slot.driver = driver
+
+    @staticmethod
+    async def _close_driver_instance(driver: Any) -> None:
+        """Close a driver even when the owning task is being cancelled."""
+        close_task = asyncio.create_task(driver.close())
+        try:
+            await asyncio.wait_for(asyncio.shield(close_task), timeout=5.0)
+        except asyncio.CancelledError:
+            # Keep the close running and wait for it before propagating the
+            # cancellation, but keep cleanup bounded.
+            try:
+                await asyncio.wait_for(asyncio.shield(close_task), timeout=5.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                close_task.cancel()
+            raise
+        except asyncio.TimeoutError:
+            logger.error("Driver close exceeded 5s; cancelling cleanup task")
+            close_task.cancel()
+            try:
+                await asyncio.wait_for(close_task, timeout=0.5)
+            except (asyncio.CancelledError, asyncio.TimeoutError, Exception):
+                pass
+        except Exception:
+            logger.exception("Error closing driver during pool cleanup")
+
+    async def _close_slot_driver(self, slot: DriverSlot) -> None:
+        """Detach and close one slot exactly once, then free its capacity."""
+        if slot.close_lock is None:
+            # All pool-created slots have this field. The fallback keeps the
+            # helper tolerant of old test fixtures constructed by hand.
+            slot.close_lock = asyncio.Lock()
+        async with slot.close_lock:
+            # Preserve the pool_lock → meta_lock ordering used by acquire and
+            # the sweeper. The potentially slow close happens after both are
+            # released.
+            async with self._pool_lock:
+                async with slot.meta_lock:
+                    driver = slot.driver
+                    slot.driver = None
+                    slot.closing = True
+                    slot.in_flight = 0
+            if driver is not None:
+                await self._close_driver_instance(driver)
+            async with self._pool_lock:
+                # Capacity is physical, so remove by slot identity.  A
+                # replacement with the same session key remains untouched.
+                self._capacity_slots.pop(id(slot), None)
+                if self._slots.get(slot.session_key) is slot:
+                    del self._slots[slot.session_key]
+                    self._active_keys.discard(slot.session_key)
+                self._capacity_available.notify_all()
 
     async def _abandon_pending_slot(self, slot: DriverSlot) -> None:
         """Clean up a PENDING slot that failed or was abandoned."""
+        driver_to_close: Any | None = None
         async with self._pool_lock:
             async with slot.meta_lock:
                 slot.in_flight = 0
                 slot.closing = True
+                driver_to_close = slot.driver
                 slot.driver = None
             if self._slots.get(slot.session_key) is slot:
                 del self._slots[slot.session_key]
-            self._active_keys.discard(slot.session_key)
             slot.ready_event.set()
-            self._capacity_available.notify_all()
+            # Keep the physical reservation until a partially materialised
+            # driver has actually closed. This prevents an immediate retry
+            # from exceeding the pool cap during cancellation cleanup.
+        if driver_to_close is not None:
+            try:
+                await self._close_driver_instance(driver_to_close)
+            finally:
+                async with self._pool_lock:
+                    self._capacity_slots.pop(id(slot), None)
+                    if self._slots.get(slot.session_key) is slot:
+                        del self._slots[slot.session_key]
+                    if slot.session_key not in self._slots:
+                        self._active_keys.discard(slot.session_key)
+                    self._capacity_available.notify_all()
+        else:
+            async with self._pool_lock:
+                self._capacity_slots.pop(id(slot), None)
+                if self._slots.get(slot.session_key) is slot:
+                    del self._slots[slot.session_key]
+                if slot.session_key not in self._slots:
+                    self._active_keys.discard(slot.session_key)
+                self._capacity_available.notify_all()
 
     async def _acquire_slot(self, session_key: str) -> DriverLease:
         """Race-free, bounded slot acquisition. See B1 §5 for full design.
@@ -396,7 +521,7 @@ class McpSessionDriverPool:
                 if pending_slot is None and (
                     slot is None or slot.closing or slot.driver is None
                 ):
-                    if len(self._active_keys) < self._max_size:
+                    if len(self._capacity_slots) < self._max_size:
                         now = time.monotonic()
                         new_slot = DriverSlot(
                             session_key=session_key,
@@ -409,9 +534,11 @@ class McpSessionDriverPool:
                             last_used_at=now,
                             in_flight=1,
                             closing=False,
+                            close_lock=asyncio.Lock(),
                         )
                         self._slots[session_key] = new_slot
                         self._active_keys.add(session_key)
+                        self._capacity_slots[id(new_slot)] = new_slot
                         materialize_slot = new_slot
                         break
 
@@ -423,7 +550,7 @@ class McpSessionDriverPool:
                         await asyncio.wait_for(
                             self._capacity_available.wait_for(
                                 lambda: (
-                                    len(self._active_keys) < self._max_size
+                                    len(self._capacity_slots) < self._max_size
                                     or self._shutting_down
                                 )
                             ),
@@ -456,7 +583,6 @@ class McpSessionDriverPool:
         try:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                await self._abandon_pending_slot(materialize_slot)
                 raise PoolExhaustedError(active_leases=self._active_session_keys())
 
             try:
@@ -465,48 +591,65 @@ class McpSessionDriverPool:
                 )
                 sem_acquired = True
             except TimeoutError:
-                await self._abandon_pending_slot(materialize_slot)
                 raise PoolExhaustedError(active_leases=self._active_session_keys())
 
             await self._materialize_slot(materialize_slot)
 
-        except Exception as e:
-            materialize_slot.materialize_error = e
-            await self._abandon_pending_slot(materialize_slot)
+            # Success: publish or disown if shutdown started during
+            # materialisation. The publish is inside the same cleanup scope
+            # so cancellation while waiting for pool_lock cannot strand the
+            # newly connected driver.
+            driver_to_close: Any | None = None
+            async with self._pool_lock:
+                if self._shutting_down:
+                    async with materialize_slot.meta_lock:
+                        driver_to_close = materialize_slot.driver
+                        materialize_slot.driver = None
+                        materialize_slot.in_flight = 0
+                        materialize_slot.closing = True
+                    if self._slots.get(materialize_slot.session_key) is materialize_slot:
+                        del self._slots[materialize_slot.session_key]
+                    self._active_keys.discard(materialize_slot.session_key)
+                    self._capacity_slots.pop(id(materialize_slot), None)
+                    materialize_slot.ready_event.set()
+                    self._capacity_available.notify_all()
+                else:
+                    materialize_slot.ready_event.set()
+
+            if driver_to_close is not None:
+                await self._close_driver_instance(driver_to_close)
+                raise PoolShuttingDownError()
+
+            # The slot is published with in_flight=1. Do not insert another
+            # await before lease creation: cancellation in that window would
+            # leave a count with no LeaseRecord.
+            if materialize_slot.driver is None:
+                raise PoolSlotUnavailableError()
+            return self._make_lease(materialize_slot)
+
+        except BaseException as e:
+            if isinstance(e, Exception):
+                materialize_slot.materialize_error = e
+            # Shield rollback from the cancellation that brought us here.
+            # _abandon_pending_slot also closes a driver assigned just before
+            # cancellation, so this covers the materialize/publish handoff.
+            cleanup_task = asyncio.create_task(
+                self._abandon_pending_slot(materialize_slot)
+            )
+            try:
+                await asyncio.shield(cleanup_task)
+            except asyncio.CancelledError:
+                # Preserve the original cancellation, but wait for the
+                # bounded cleanup before returning control to a retrying
+                # caller. Otherwise the retry could observe stale capacity.
+                try:
+                    await asyncio.shield(cleanup_task)
+                except asyncio.CancelledError:
+                    pass
             raise
         finally:
             if sem_acquired:
                 self._create_sem.release()
-
-        # Success: publish or disown if shutdown started during materialization.
-        driver_to_close: Any | None = None
-
-        async with self._pool_lock:
-            if self._shutting_down:
-                async with materialize_slot.meta_lock:
-                    driver_to_close = materialize_slot.driver
-                    materialize_slot.driver = None
-                    materialize_slot.in_flight = 0
-                    materialize_slot.closing = True
-                if self._slots.get(materialize_slot.session_key) is materialize_slot:
-                    del self._slots[materialize_slot.session_key]
-                self._active_keys.discard(materialize_slot.session_key)
-                materialize_slot.ready_event.set()
-                self._capacity_available.notify_all()
-            else:
-                materialize_slot.ready_event.set()
-
-        if driver_to_close is not None:
-            try:
-                await driver_to_close.close()
-            except Exception:
-                logger.exception("Error closing driver created during shutdown race")
-            raise PoolShuttingDownError()
-
-        async with materialize_slot.meta_lock:
-            if materialize_slot.driver is None:
-                raise PoolSlotUnavailableError()
-            return self._make_lease(materialize_slot)
 
     def _make_breakers(self):
         """Create a fresh BreakerRegistry for a slot."""
@@ -521,6 +664,7 @@ class McpSessionDriverPool:
             lease_id=lease_id,
             session_key=slot.session_key,
             acquired_at=time.monotonic(),
+            slot_identity=id(slot),
         )
         self._active_leases[lease_id] = record
         return DriverLease(
@@ -548,22 +692,14 @@ class McpSessionDriverPool:
         """
         # P1.5: lease tracking. For tracked leases (lease_id non-empty),
         # complete the record or detect double-release.
+        record = None
         skip_decrement = False
         if lease_id:
-            record = self._active_leases.pop(lease_id, None)
-            if record is not None:
-                record.released_at = time.monotonic()
-                record.hold_duration_s = record.released_at - record.acquired_at
-                record.release_reason = release_reason
-                logger.info(
-                    "lease released: session=%s held=%.1fs reason=%s",
-                    slot.session_key, record.hold_duration_s, release_reason,
-                )
-                self._lease_history.append(record)
-                # Cap history to prevent unbounded growth.
-                if len(self._lease_history) > _LEASE_HISTORY_LIMIT:
-                    self._lease_history = self._lease_history[-_LEASE_HISTORY_LIMIT:]
-            else:
+            # Do not remove the record until the slot lock has been acquired.
+            # If cancellation interrupts that await, the sweeper must still
+            # see a live lease and must not mistake it for a stale count.
+            record = self._active_leases.get(lease_id)
+            if record is None:
                 # Confirmed double-release: lease_id was provided but is not in
                 # active_leases. Log and do NOT re-decrement in_flight (review
                 # finding A — re-decrementing would undercount).
@@ -580,17 +716,73 @@ class McpSessionDriverPool:
             async with slot.meta_lock:
                 slot.in_flight = max(0, slot.in_flight - 1)
                 slot.last_used_at = time.monotonic()
+            if record is not None:
+                # Everything below is synchronous, so cancellation cannot
+                # interrupt the transition after the count was decremented.
+                self._active_leases.pop(lease_id, None)
+                record.released_at = time.monotonic()
+                record.hold_duration_s = record.released_at - record.acquired_at
+                record.release_reason = release_reason
+                logger.info(
+                    "lease released: session=%s held=%.1fs reason=%s",
+                    slot.session_key, record.hold_duration_s, release_reason,
+                )
+                self._lease_history.append(record)
+                # Cap history to prevent unbounded growth.
+                if len(self._lease_history) > _LEASE_HISTORY_LIMIT:
+                    self._lease_history = self._lease_history[-_LEASE_HISTORY_LIMIT:]
+
+    async def _probe_slot(self, slot: DriverSlot) -> bool:
+        """Sanity-probe one idle slot's driver under its call_lock.
+
+        Returns True when the driver answers a trivial evaluate. The probe
+        goes through the normal ``_cdp`` path, so a poisoned session first
+        attempts its in-band reattachment — the probe doubles as the
+        recovery trigger, and only a slot whose RECOVERY probe fails
+        accumulates a failure.
+
+        Test doubles (plain MagicMock drivers) have no real async ``_js``
+        and are reported healthy so injected fakes never trip the
+        force-reap. A slot whose call_lock is busy has live traffic — that
+        is its own health signal, so the probe skips this round.
+        """
+        driver = slot.driver
+        if driver is None:
+            return True
+        if not asyncio.iscoroutinefunction(getattr(driver, "_js", None)):
+            return True  # test double without a real evaluator — unprobeable
+        try:
+            await asyncio.wait_for(slot.call_lock.acquire(), timeout=1.0)
+        except TimeoutError:
+            return True  # busy with a real call — skip this round
+        try:
+            await driver._js("location.href", timeout=3)
+            return True
+        except Exception as e:
+            logger.warning(
+                "Pool health probe failed for slot %s: %s", slot.session_key, e
+            )
+            return False
+        finally:
+            slot.call_lock.release()
 
     async def _sweep_idle(self) -> None:
-        """Background loop: close idle slots past TTL.
+        """Background loop: close idle slots past TTL + force-reap wedged ones.
 
         Marks victims as closing=True but does NOT remove from _active_keys
         until driver.close() completes. This prevents transient N+1 live tabs.
+
+        Two victim classes:
+          1. idle past TTL (in_flight == 0, unpinned) — the original sweep;
+          2. health-probe failures >= _FORCE_REAP_PROBE_FAILURES (pinned
+             included) — a wedged driver that cannot heal in-band. Bounded
+             to ~2 sweep intervals instead of lingering until restart.
         """
         while True:
             await asyncio.sleep(self._sweep_interval)
             now = time.monotonic()
             victims: list[DriverSlot] = []
+            probe_candidates: list[DriverSlot] = []
 
             async with self._pool_lock:
                 if self._shutting_down:
@@ -600,56 +792,103 @@ class McpSessionDriverPool:
                     if slot is None:
                         self._active_keys.discard(key)
                         continue
-                    if key in PINNED_SLOT_KEYS:
-                        continue
+                    pinned = key in PINNED_SLOT_KEYS
                     async with slot.meta_lock:
+                        if slot.driver is None or slot.closing:
+                            continue
+                        # in_flight leak guard (2026-09-19): a slot idle past
+                        # TTL whose in_flight count never came back to zero
+                        # (leaked reference) would never be swept. Lease
+                        # records are the source of truth — no live lease for
+                        # this session means the count is stale; clamp it so
+                        # the slot can be reaped.
                         if (
-                            slot.driver is not None
-                            and not slot.closing
+                            slot.in_flight > 0
+                            and slot.ready_event.is_set()
+                            and now - slot.last_used_at > self._ttl
+                            and not any(
+                                r.slot_identity == id(slot)
+                                or (r.slot_identity == 0 and r.session_key == key)
+                                for r in self._active_leases.values()
+                            )
+                        ):
+                            logger.warning(
+                                "in_flight leak on slot %s (in_flight=%d, no live "
+                                "lease, idle past TTL) — clamping to 0",
+                                slot.session_key,
+                                slot.in_flight,
+                            )
+                            slot.in_flight = 0
+                        if (
+                            not pinned
                             and slot.in_flight == 0
                             and now - slot.last_used_at > self._ttl
                         ):
                             slot.closing = True
                             victims.append(slot)
+                            continue
+                        if slot.in_flight == 0:
+                            probe_candidates.append(slot)
                     # Do NOT discard active keys yet.
                     # Do NOT notify capacity yet.
 
-            for slot in victims:
-                driver_to_close: Any | None = None
-                async with slot.meta_lock:
-                    driver_to_close = slot.driver
-                    slot.driver = None
-
-                if driver_to_close is not None:
-                    try:
-                        await driver_to_close.close()
-                    except Exception:
-                        logger.exception("Error closing idle driver")
-
+            # Health probes run OUTSIDE the pool lock (CDP round-trips).
+            for slot in probe_candidates:
+                healthy = await self._probe_slot(slot)
                 async with self._pool_lock:
                     async with slot.meta_lock:
-                        slot.in_flight = 0
-                        slot.closing = True
-                    # Only delete the mapping and discard the active key if
-                    # this slot is STILL the current mapping for its session.
-                    # If a replacement was created while we were closing, the
-                    # identity check prevents us from deleting the replacement
-                    # OR discarding the key the replacement needs.
-                    # (ChatGPT review, conv 6a52a623 — closing-slot race.)
-                    if self._slots.get(slot.session_key) is slot:
-                        del self._slots[slot.session_key]
-                        self._active_keys.discard(slot.session_key)
-                    self._capacity_available.notify_all()
+                        # A slot may have been rebound or shut down while the
+                        # probe was outside the pool lock. Never write probe
+                        # state into a stale slot or reap a replacement.
+                        if (
+                            self._shutting_down
+                            or self._slots.get(slot.session_key) is not slot
+                        ):
+                            continue
+                        if healthy:
+                            slot.probe_failures = 0
+                            continue
+                        slot.probe_failures += 1
+                        if (
+                            slot.probe_failures >= _FORCE_REAP_PROBE_FAILURES
+                            and not slot.closing
+                            and slot.in_flight == 0
+                            and slot.driver is not None
+                        ):
+                            logger.error(
+                                "Slot %s failed %d consecutive health probes — "
+                                "force-reaping a wedged driver",
+                                slot.session_key,
+                                slot.probe_failures,
+                            )
+                            slot.closing = True
+                            victims.append(slot)
+
+            for slot in victims:
+                # _close_slot_driver owns the identity check and is shared by
+                # shutdown, so a slow close cannot free a replacement slot or
+                # run driver.close() twice.
+                try:
+                    await self._close_slot_driver(slot)
+                except asyncio.CancelledError:
+                    raise
+                except Exception:
+                    logger.exception("Error closing idle driver")
 
     async def close_all(self) -> None:
         """Shutdown: stop new creation, wake waiters, drain in-flight, close all."""
         async with self._pool_lock:
             self._shutting_down = True
-            slots = [
-                self._slots[key]
-                for key in list(self._active_keys)
-                if key in self._slots
-            ]
+            # Include retired closing slots as well as current mappings. A
+            # session rebind can replace the mapping before the old close has
+            # finished; shutdown still owns both physical drivers.
+            slots = list({
+                id(slot): slot for slot in self._capacity_slots.values()
+            }.values())
+            slots.extend(
+                slot for slot in self._slots.values()
+                if id(slot) not in {id(existing) for existing in slots}
+            )
             self._capacity_available.notify_all()
 
         # Cancel the sweeper.
@@ -691,24 +930,7 @@ class McpSessionDriverPool:
                     current_in_flight,
                 )
 
-            driver_to_close: Any | None = None
-            async with slot.meta_lock:
-                driver_to_close = slot.driver
-                slot.driver = None
-                slot.closing = True
-                slot.in_flight = 0
-
-            if driver_to_close is not None:
-                try:
-                    await driver_to_close.close()
-                except Exception:
-                    logger.exception("Error closing driver during shutdown")
-
-            async with self._pool_lock:
-                if self._slots.get(slot.session_key) is slot:
-                    del self._slots[slot.session_key]
-                self._active_keys.discard(slot.session_key)
-                self._capacity_available.notify_all()
+            await self._close_slot_driver(slot)
 
         await asyncio.gather(*(_close_one(slot) for slot in slots))
 
@@ -718,6 +940,7 @@ class McpSessionDriverPool:
             "enabled": True,
             "max_size": self._max_size,
             "active_keys": len(self._active_keys),
+            "capacity_slots": len(self._capacity_slots),
             "slots": {
                 key: {
                     "session_key": s.session_key,
@@ -725,6 +948,7 @@ class McpSessionDriverPool:
                     "ready": s.ready_event.is_set(),
                     "closing": s.closing,
                     "in_flight": s.in_flight,
+                    "probe_failures": s.probe_failures,
                     "created_at": s.created_at,
                     "last_used_at": s.last_used_at,
                 }
