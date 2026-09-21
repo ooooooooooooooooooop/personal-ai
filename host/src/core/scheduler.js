@@ -156,11 +156,28 @@ export class ScheduleStore {
    * the next slot strictly after now (missed slots collapse to one fire).
    */
   markFired(id, jobId = null) {
+    return this.#advance(id, (rec) => {
+      rec.lastFiredAt = new Date(this.now()).toISOString();
+      rec.lastJobId = jobId;
+    });
+  }
+
+  /**
+   * Skip an overdue entry without firing (skipMissedJobs analogue): a laptop
+   * that was off for days must not boot-storm every missed slot. Advances
+   * nextRunAt past now exactly like a fire, minus lastFiredAt/lastJobId.
+   */
+  markSkipped(id) {
+    return this.#advance(id, (rec) => {
+      rec.lastSkippedAt = new Date(this.now()).toISOString();
+    });
+  }
+
+  #advance(id, mutate) {
     const schedules = this.#load();
     const rec = schedules.find((s) => s.id === id);
     if (!rec) return { ok: false, error: `no schedule '${id}'` };
-    rec.lastFiredAt = new Date(this.now()).toISOString();
-    rec.lastJobId = jobId;
+    mutate(rec);
     if (rec.kind === 'once') {
       rec.enabled = false;
     } else {

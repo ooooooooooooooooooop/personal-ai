@@ -114,3 +114,19 @@ test('edit: patches command/interval/run_at with validation, identity preserved'
   now += 6000;
   assert.deepEqual(s.due().map((x) => x.id), [rec.id]);
 });
+
+test('markSkipped: overdue entry advances without firing (skipMissedJobs)', () => {
+  let now = 1_000_000;
+  const s = new ScheduleStore(rig(), () => now);
+  const rec = s.add({ command: 'echo hi', every_seconds: 60 });
+  // three days pass with the machine off — entry is massively overdue
+  now += 3 * 24 * 60 * 60 * 1000;
+  assert.deepEqual(s.due().map((x) => x.id), [rec.id]);
+  const r = s.markSkipped(rec.id);
+  assert.equal(r.ok, true);
+  const after = s.list().find((x) => x.id === rec.id);
+  assert.equal(after.lastFiredAt, null, 'skipped ≠ fired');
+  assert.ok(after.lastSkippedAt, 'skip is stamped');
+  assert.equal(s.due().length, 0, 'no longer due');
+  assert.ok(after.nextRunAt > now, 'advanced to the next slot');
+});

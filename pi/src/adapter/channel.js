@@ -5,11 +5,20 @@
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname } from 'node:path';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
+
+/** Atomic JSON write: tmp + rename — a torn write must not leave a half-file
+ * behind (credential/config corruption is unrecoverable by reload). */
+function writeJsonAtomic(file, doc) {
+  mkdirSync(dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+  renameSync(tmp, file);
+}
 
 /**
  * @param {object} deps
@@ -379,7 +388,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           })),
           jobs: (jobs?.list?.() ?? []).filter((j) => j.session_scope === scope || j.sessionId === scope),
         };
-        writeFileSync(out, JSON.stringify(bundle, null, 2));
+        writeJsonAtomic(out, bundle);
         return { file: out, format: 'debug', tasks: bundle.tasks.length };
       }
       const html = await box.s.exportToHtml?.();
@@ -424,7 +433,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
   const writeAliases = (doc) => {
     if (!aliasPath) throw new Error('instance root unavailable');
-    writeFileSync(aliasPath, JSON.stringify(doc, null, 2));
+    writeJsonAtomic(aliasPath, doc);
   };
 
   const modelsFacade = {
@@ -603,7 +612,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           maxTokens: spec.maxTokens ?? 8192,
         }],
       };
-      writeFileSync(file, `${JSON.stringify(cfg, null, 2)}\n`);
+      writeJsonAtomic(file, cfg);
       await box.s.modelRuntime.refresh?.().catch(() => {});
       return { provider: spec.provider, model: spec.model };
     },

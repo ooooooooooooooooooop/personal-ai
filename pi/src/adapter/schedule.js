@@ -22,7 +22,7 @@
  * @param {number} [deps.intervalMs=30000]
  * @returns {{tick: () => Promise<void>, dispose: () => void}}
  */
-export function startSchedulerPump({ store, executor, workdir, audit = null, getScope = null, intervalMs = 30_000, promptSink = null, goals = null, tasks = null, jobStore = null }) {
+export function startSchedulerPump({ store, executor, workdir, audit = null, getScope = null, intervalMs = 30_000, promptSink = null, goals = null, tasks = null, jobStore = null, missedWindowMs = 4 * 60 * 60 * 1000 }) {
   let inflight = null;
 
   // Monitor-skip fingerprint: scratchpad bytes + bound task/job states.
@@ -65,7 +65,17 @@ export function startSchedulerPump({ store, executor, workdir, audit = null, get
   // without it two overlapping ticks both see the same due entry and the
   // schedule double-fires
   const tick = () => inflight ??= (async () => {
+    const now = store.now?.() ?? Date.now();
     for (const s of store.due()) {
+      // skipMissedJobs analogue: an entry overdue beyond the window (machine
+      // was off) is skipped once, not fired — a 3-day-old "check email at
+      // 9am" must not fire at 9pm. Skips advance the slot exactly like a
+      // fire; lastSkippedAt + audit keep the miss visible.
+      if (Number.isFinite(s.nextRunAt) && now - s.nextRunAt > missedWindowMs) {
+        store.markSkipped(s.id);
+        audit?.write({ kind: 'SCHEDULE_MISSED_SKIP', data: { id: s.id, overdue_ms: now - s.nextRunAt } });
+        continue;
+      }
       if (s.target === 'prompt') {
         const goal = s.goal_id ? goals?.get(s.goal_id) : null;
         if (s.goal_id && !goal) {

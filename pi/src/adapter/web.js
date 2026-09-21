@@ -44,12 +44,24 @@ function errResult(text) {
  * means unrestricted (the governance ask is the baseline gate).
  */
 export function domainAllowed(host, allowlist) {
-  if (!allowlist?.length) return true;
-  const h = String(host ?? '').toLowerCase();
-  return allowlist.some((d) => {
-    const dom = String(d).toLowerCase().trim();
-    return dom.startsWith('.') ? (h === dom.slice(1) || h.endsWith(dom)) : h === dom;
-  });
+  let h = String(host ?? '').toLowerCase();
+  // normalize IPv6 bracket + v4-mapped forms so link-local checks can't be
+  // dodged as [::ffff:169.254.169.254] or [fe80::1]
+  h = h.replace(/^\[|\]$/g, '');
+  if (h.startsWith('::ffff:')) h = h.slice(7);
+  if (allowlist?.length) {
+    return allowlist.some((d) => {
+      const dom = String(d).toLowerCase().trim();
+      return dom.startsWith('.') ? (h === dom.slice(1) || h.endsWith(dom)) : h === dom;
+    });
+  }
+  // unrestricted baseline, minus link-local: cloud metadata endpoints
+  // (169.254.169.254 and friends) and link-local addresses are never a
+  // legitimate fetch target for a coding agent — explicit allowlist entry
+  // is the only way through. Loopback/RFC1918 stay reachable: this is a
+  // local single-user harness and local dev servers are a real use.
+  if (/^169\.254\.|^fe80::|^fe[c-f][0-9a-f]:|^fd[0-9a-f]{2}:|^::1$/.test(h)) return false;
+  return true;
 }
 
 export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAULT_MAX_CHARS, egressAllow = null } = {}) {
