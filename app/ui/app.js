@@ -834,6 +834,14 @@ function histPush(text) {
 /* notification drawer — bounded log behind the bell */
 const notifyLog = [];
 let unreadNotify = 0;
+// M69 notify policy (Codex/Goose analogue): how loud model→operator
+// notifications are. 'always' = toast+transcript+drawer; 'smart' = errors
+// toast, warns transcript-only, info drawer-silent; 'never' = drawer only.
+const NOTIFY_POLICY_KEY = 'pai.notifyPolicy';
+function notifyPolicy() {
+  const v = localStorage.getItem(NOTIFY_POLICY_KEY);
+  return ['always', 'smart', 'never'].includes(v) ? v : 'always';
+}
 function paintBell() {
   const bell = $('bell');
   if (!bell) return;
@@ -847,9 +855,15 @@ $('bell') && ($('bell').onclick = () => {
   if (d.classList.toggle('hidden')) return; // just closed — nothing to paint
   unreadNotify = 0;
   paintBell();
-  d.innerHTML = notifyLog.length
+  const policyRow = `<div class="bell-policy"><label class="dim">通知策略 </label><select id="notify-policy">
+    <option value="always">总是提醒</option><option value="smart">智能（仅错误提醒）</option><option value="never">静默入抽屉</option>
+  </select></div>`;
+  d.innerHTML = policyRow + (notifyLog.length
     ? notifyLog.map((n) => `<div class="bell-row ${n.level === 'err' ? 'err' : ''}"><span class="bell-time"></span><span class="bell-msg"></span></div>`).join('')
-    : '<div class="dim" style="padding:12px">暂无通知</div>';
+    : '<div class="dim" style="padding:12px">暂无通知</div>');
+  const sel = d.querySelector('#notify-policy');
+  sel.value = notifyPolicy();
+  sel.onchange = () => localStorage.setItem(NOTIFY_POLICY_KEY, sel.value);
   d.querySelectorAll('.bell-row').forEach((row, i) => {
     const n = notifyLog[i];
     row.querySelector('.bell-time').textContent = new Date(n.at).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
@@ -912,12 +926,20 @@ function onAgentEvent(ev) {
       break;
     }
     case 'notify': {
-      // notify_user: model→operator one-way notification (Kimi NotifyUser)
-      toast(ev.message, ev.level === 'err' ? 'err' : 'info');
-      addSys(`通知：${ev.message}`, ev.level === 'err');
+      // notify_user: model→operator one-way notification (Kimi NotifyUser).
+      // Policy gates the LOUDNESS, never the record — the drawer keeps every
+      // notification regardless of 'never'/'smart'.
+      const lvl = ev.level ?? 'info';
+      const pol = notifyPolicy();
+      if (pol === 'always' || (pol === 'smart' && lvl === 'err')) {
+        toast(ev.message, lvl === 'err' ? 'err' : 'info');
+        addSys(`通知：${ev.message}`, lvl === 'err');
+      } else if (pol === 'smart' && lvl === 'warn') {
+        addSys(`通知：${ev.message}`, false);
+      }
       // notification drawer (PI-Desktop notification center analogue):
       // toasts are transient — this keeps the last 50 for recall
-      notifyLog.unshift({ message: ev.message, level: ev.level ?? 'info', at: Date.now() });
+      notifyLog.unshift({ message: ev.message, level: lvl, at: Date.now() });
       if (notifyLog.length > 50) notifyLog.pop();
       unreadNotify += 1;
       paintBell();
@@ -2546,6 +2568,13 @@ const SLASH = [
         ? `\n批准卡结局：放行 ${a.allow ?? 0} · 总是允许 ${a.always ?? 0} · 本会话放行 ${a.allow_session ?? 0} · 拒绝 ${a.deny ?? 0} · 超时 ${a.timeout ?? 0}` : '';
       addSys(`累计 ${s.sessions ?? 0} 个会话 · ${s.messages ?? 0} 条消息（你发了 ${s.userMessages ?? 0} 条）· ${(s.tokens ?? 0).toLocaleString()} tok · $${s.cost ?? 0}`
         + (s.firstSession ? `——自 ${new Date(s.firstSession).toLocaleDateString()} 起` : '') + asksLine);
+      // M75 process telemetry rides the same report — honest RSS/heap/uptime
+      const m = await fetch('/api/metrics').then((x) => x.json()).catch(() => null);
+      if (m?.bridge) {
+        const mb = (b) => `${Math.round(b / 1048576)}MB`;
+        addSys(`进程 — 桥 pid ${m.bridge.pid} · 运行 ${m.bridge.uptime_s}s · RSS ${mb(m.bridge.rss_bytes)} · 堆 ${mb(m.bridge.heap_used_bytes)}/${mb(m.bridge.heap_total_bytes)}`
+          + (m.body ? ` · 身体 ${m.body.id} pid ${m.body.pid ?? '—'} ${m.body.alive ? '存活' : '已退出'}` : ''));
+      }
     },
   },
   {

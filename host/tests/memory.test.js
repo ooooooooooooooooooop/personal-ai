@@ -100,3 +100,26 @@ test('injection: pinned rows plus per-turn relevance hits, deduped and capped', 
   assert.ok(!withHint.some((m) => /postgres/.test(m.text)));
   s.close();
 });
+
+test('memory scopes: project rows bind to their workdir; user rows are global', () => {
+  const s = new MemoryStore(':memory:');
+  s.remember('global preference dark theme', { scope: 'user' });
+  s.remember('project api uses websockets', { scope: 'project', workdir: '/repo/a' });
+  s.remember('other project secret-sauce note', { scope: 'project', workdir: '/repo/b' });
+  // inside /repo/a: user + own project rows, NOT other project
+  const texts = ['websockets', 'theme', 'secret-sauce']
+    .map((q) => s.recall(q, { workdir: '/repo/a' }).map((r) => r.text).join('|')).join('|');
+  assert.match(texts, /websockets/);
+  assert.match(texts, /dark theme/);
+  assert.doesNotMatch(texts, /secret-sauce/);
+  // inside /repo/b: its own project row, not a's
+  assert.match(s.recall('secret-sauce', { workdir: '/repo/b' })[0]?.text ?? '', /secret-sauce/);
+  assert.equal(s.recall('websockets', { workdir: '/repo/b' }).length, 0);
+  // injection honors scope too: pinned project row invisible elsewhere
+  const pr = s.remember('pinned project fact', { scope: 'project', workdir: '/repo/a' });
+  s.pin(pr.id, true);
+  assert.ok(s.injection(12, '', '/repo/a').some((m) => m.text === 'pinned project fact'));
+  assert.ok(!s.injection(12, '', '/repo/b').some((m) => m.text === 'pinned project fact'));
+  // project scope without a workdir refuses
+  assert.equal(s.remember('orphan', { scope: 'project' }).refused != null, true);
+});

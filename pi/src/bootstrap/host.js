@@ -423,7 +423,7 @@ export async function startHost({
     // wsl/docker/ssh boundary — same command classification as bash
     jobSpawnTool(executor, { workdir, getScope: () => currentSession?.sessionId ?? null }),
     ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
-    ...memoryTools(memoryStore),
+    ...memoryTools(memoryStore, { workdir }),
     updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null),
     // structured operator questions — kind:'question' asks bypass session
     // auto-allow by design (a question can never answer itself)
@@ -535,7 +535,7 @@ export async function startHost({
         steering: process.env.PAI_STEERING_OFF ? null : loadSteering(workdir),
         // pinned + relevance-recalled memory rides the context envelope as
         // untrusted evidence — recalled claims, never an authority channel
-        memoryDigest: memoryStore.injection(12, hint),
+        memoryDigest: memoryStore.injection(12, hint, workdir),
         // /context add analogue — .pai/pins.json paths re-read live each
         // turn; .paiignore still wins over pinning (context exclusion holds)
         pins: loadPins(workdir, { isIgnored: (p) => new PaiIgnore(workdir).isIgnored(p) }),
@@ -1049,7 +1049,17 @@ export async function startHost({
       build: (subdir) => buildRepoMap(workdir, { isIgnored: repoMapIgnore(), subdir }),
     },
     workdir, // bash workspace-delta notices diff git status against this root
-    memory: memoryStore,
+    // scope-aware facade: operator recall sees this workdir's project rows
+    // plus user rows; operator saves may choose either scope explicitly.
+    memory: {
+      recall: (q, o = {}) => memoryStore.recall(q, { ...o, workdir }),
+      all: (n) => memoryStore.all(n),
+      remember: (t, o = {}) => memoryStore.remember(t, { ...o, scope: o.scope ?? 'user', workdir }),
+      pin: (id, v) => memoryStore.pin(id, v),
+      forget: (id) => memoryStore.forget(id),
+      stats: () => memoryStore.stats(),
+      distill: (o) => memoryStore.distill(o),
+    },
     // H-family microagents — .pai/microagents/*.md frontmatter triggers
     // inject topic-scoped knowledge into the matching prompt, this turn only.
     // TRUST-GATED (Pi project-trust analogue): repo-planted auto-inject

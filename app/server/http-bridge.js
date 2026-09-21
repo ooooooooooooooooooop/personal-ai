@@ -137,6 +137,30 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         res.end(JSON.stringify({ current: current.data ?? null, bodies: bodies.data ?? [] }));
         return;
       }
+      // /api/v1/metrics analogue (M75): honest process telemetry for the
+      // bridge + the live body. RSS/heap/uptime — no invented gauges.
+      if (req.method === 'GET' && url.pathname === '/api/metrics') {
+        const mu = process.memoryUsage();
+        const body = supervisor.active ?? null;
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({
+          bridge: {
+            pid: process.pid,
+            uptime_s: Math.round(process.uptime()),
+            rss_bytes: mu.rss,
+            heap_used_bytes: mu.heapUsed,
+            heap_total_bytes: mu.heapTotal,
+          },
+          body: body ? {
+            id: body.bodyId,
+            pid: body.child?.pid ?? null,
+            alive: !body.dead,
+            pending_calls: body.pending?.size ?? 0,
+          } : null,
+          workdir: supervisor.workdir ?? null,
+        }));
+        return;
+      }
       if (req.method === 'GET') {
         const rel = url.pathname === '/' ? 'index.html' : normalize(url.pathname).replace(/^([/\\])+/, '');
         const file = join(uiDir, rel);

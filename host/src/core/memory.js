@@ -47,17 +47,26 @@ export class MemoryStore {
     if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new DatabaseSync(dbPath);
     this.db.exec(SCHEMA);
+    // M65 scope columns — idempotent adds on existing stores. 'user' rows are
+    // global to the instance; 'project' rows bind to a workdir and recall
+    // only inside it (Claude Code project/user memory analogue).
+    for (const col of ["scope TEXT NOT NULL DEFAULT 'user'", 'workdir TEXT']) {
+      try { this.db.exec(`ALTER TABLE memory ADD COLUMN ${col}`); } catch { /* column exists */ }
+    }
   }
 
   /**
    * Write a memory. Refuses secret-looking text outright (memory recall is
    * injected into context — a stored secret would leak into every prompt);
    * exact normalized duplicates update `updated` instead of growing a row.
+   * scope 'project' requires the workdir it binds to.
    */
-  remember(text, { kind = 'fact', source = 'agent', confidence = 0.7 } = {}) {
+  remember(text, { kind = 'fact', source = 'agent', confidence = 0.7, scope = 'user', workdir = null } = {}) {
     const t = String(text ?? '').trim();
     if (!t) return { refused: 'empty memory' };
     if (t.length > 4000) return { refused: 'memory text too long (>4000)' };
+    if (!['user', 'project'].includes(scope)) return { refused: `unknown scope '${scope}'` };
+    if (scope === 'project' && !workdir) return { refused: "scope 'project' requires a workdir" };
     const secret = scanForSecrets(t);
     if (secret) return { refused: `secret-looking content (${secret}) — never persisted to memory` };
     const n = norm(t);
@@ -73,45 +82,55 @@ export class MemoryStore {
     }
     const id = `mem-${randomUUID().slice(0, 12)}`;
     this.db.prepare(
-      'INSERT INTO memory (id, kind, text, source, confidence, created, updated) VALUES (?,?,?,?,?,?,?)',
-    ).run(id, kind, t, source, confidence, nowIso(), nowIso());
+      'INSERT INTO memory (id, kind, text, source, confidence, scope, workdir, created, updated) VALUES (?,?,?,?,?,?,?,?,?)',
+    ).run(id, kind, t, source, confidence, scope, scope === 'project' ? workdir : null, nowIso(), nowIso());
     return { id };
   }
 
+  /** scope visibility: user rows always; project rows only inside their workdir. */
+  #scopeClause(workdir, alias = 'm') {
+    return workdir
+      ? { sql: `AND (${alias}.scope = 'user' OR (${alias}.scope = 'project' AND ${alias}.workdir = ?))`, arg: workdir }
+      : { sql: "AND m.scope = 'user'", arg: null };
+  }
+
   /** FTS5 recall — returns ranked rows; falls back to LIKE on query errors. */
-  recall(query, { limit = 8, includeArchived = false } = {}) {
+  recall(query, { limit = 8, includeArchived = false, workdir = null } = {}) {
     const q = String(query ?? '').trim();
     const arch = includeArchived ? '' : 'AND m.archived = 0';
-    if (!q) return this.pinned(limit);
+    const sc = this.#scopeClause(workdir);
+    if (!q) return this.pinned(limit, workdir);
     try {
       // quote the query — user text is not FTS syntax
       return this.db.prepare(
-        `SELECT m.id, m.kind, m.text, m.source, m.confidence, m.pinned, m.updated
+        `SELECT m.id, m.kind, m.text, m.source, m.confidence, m.pinned, m.scope, m.updated
          FROM memory_fts f JOIN memory m ON m.rowid = f.rowid
-         WHERE memory_fts MATCH ? ${arch}
+         WHERE memory_fts MATCH ? ${arch} ${sc.sql}
          ORDER BY rank LIMIT ?`,
-      ).all(`"${q.replace(/"/g, '""')}"`, limit);
+      ).all(`"${q.replace(/"/g, '""')}"`, ...(sc.arg != null ? [workdir] : []), limit);
     } catch {
       const like = `%${q.replace(/[%_]/g, '')}%`;
       return this.db.prepare(
-        `SELECT id, kind, text, source, confidence, pinned, updated FROM memory m
-         WHERE m.text LIKE ? ${arch} ORDER BY m.updated DESC LIMIT ?`,
-      ).all(like, limit);
+        `SELECT id, kind, text, source, confidence, pinned, scope, updated FROM memory m
+         WHERE m.text LIKE ? ${arch} ${sc.sql} ORDER BY m.updated DESC LIMIT ?`,
+      ).all(...(sc.arg != null ? [like, workdir, limit] : [like, limit]));
     }
   }
 
-  /** Newest-first listing for operator review surfaces. */
+  /** Newest-first listing for operator review surfaces (all scopes shown). */
   all(limit = 50) {
     return this.db.prepare(
-      'SELECT id, kind, text, source, confidence, pinned, archived, updated FROM memory WHERE archived = 0 ORDER BY updated DESC LIMIT ?',
+      'SELECT id, kind, text, source, confidence, pinned, archived, scope, workdir, updated FROM memory WHERE archived = 0 ORDER BY updated DESC LIMIT ?',
     ).all(limit);
   }
 
-  /** Pinned/core rows — the small set injected every turn. */
-  pinned(limit = 20) {
+  /** Pinned/core rows — the small set injected every turn (scope-filtered). */
+  pinned(limit = 20, workdir = null) {
+    const sc = this.#scopeClause(workdir);
     return this.db.prepare(
-      'SELECT id, kind, text, source, confidence, pinned, updated FROM memory WHERE pinned = 1 AND archived = 0 ORDER BY updated DESC LIMIT ?',
-    ).all(limit);
+      `SELECT id, kind, text, source, confidence, pinned, scope, updated FROM memory m
+       WHERE pinned = 1 AND archived = 0 ${sc.sql} ORDER BY updated DESC LIMIT ?`,
+    ).all(...(sc.arg != null ? [workdir, limit] : [limit]));
   }
 
   pin(id, on = true) {
@@ -152,9 +171,10 @@ export class MemoryStore {
    * current user text pull related unpinned rows into the same untrusted
    * <memory> evidence block. Deduped by id, capped at `limit` total.
    */
-  injection(limit = 12, hint = '') {
+  injection(limit = 12, hint = '', workdir = null) {
     const out = new Map();
-    for (const m of this.pinned(limit)) out.set(m.id, m);
+    for (const m of this.pinned(limit, workdir)) out.set(m.id, m);
+    const sc = this.#scopeClause(workdir);
     const tokens = String(hint ?? '')
       .match(/[\p{L}\p{N}_]{2,}/gu)?.slice(0, 12) ?? [];
     if (tokens.length) {
@@ -163,9 +183,9 @@ export class MemoryStore {
         const rows = this.db.prepare(
           `SELECT m.id, m.kind, m.text, m.source, m.confidence, m.pinned, m.updated
            FROM memory_fts f JOIN memory m ON m.rowid = f.rowid
-           WHERE memory_fts MATCH ? AND m.archived = 0
+           WHERE memory_fts MATCH ? AND m.archived = 0 ${sc.sql}
            ORDER BY rank LIMIT ?`,
-        ).all(q, limit);
+        ).all(q, ...(sc.arg != null ? [workdir] : []), limit);
         for (const m of rows) { if (!out.has(m.id) && out.size < limit) out.set(m.id, m); }
       } catch { /* relevance pull is best-effort — pinned rows still inject */ }
     }

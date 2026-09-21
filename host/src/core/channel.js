@@ -473,7 +473,7 @@ export class HostChannel {
         }
         case 'memory_save': {
           if (!this.memory) return reply(false, undefined, 'memory store unavailable');
-          const r = this.memory.remember(String(cmd.text ?? ''), { kind: cmd.kind ?? 'fact', source: 'operator' });
+          const r = this.memory.remember(String(cmd.text ?? ''), { kind: cmd.kind ?? 'fact', source: 'operator', scope: ['user', 'project'].includes(cmd.scope) ? cmd.scope : 'user' });
           if (r.refused) return reply(false, undefined, r.refused);
           return reply(true, r);
         }

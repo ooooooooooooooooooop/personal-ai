@@ -5,23 +5,25 @@
  */
 const txt = (t, extra = {}) => ({ content: [{ type: 'text', text: t }], ...extra });
 
-export function memoryTools(store) {
+export function memoryTools(store, { workdir = null } = {}) {
   return [
     {
       name: 'memory_save', label: 'Memory Save',
-      description: 'Persist a durable fact/preference/decision worth keeping across sessions. Secret-looking content is refused; exact duplicates merge.',
+      description: 'Persist a durable fact/preference/decision worth keeping across sessions. Secret-looking content is refused; exact duplicates merge. scope: project (this workspace only, default) or user (all workspaces).',
       parameters: {
         type: 'object',
         properties: {
           text: { type: 'string', description: 'the fact to remember, one clear statement' },
           kind: { type: 'string', enum: ['fact', 'preference', 'decision', 'note'], description: 'default: fact' },
+          scope: { type: 'string', enum: ['project', 'user'], description: 'project = this workspace only (default); user = all workspaces' },
         },
         required: ['text'],
       },
       async execute(_id, p) {
-        const r = store.remember(p.text, { kind: p.kind ?? 'fact', source: 'agent' });
+        const scope = p.scope === 'user' ? 'user' : 'project';
+        const r = store.remember(p.text, { kind: p.kind ?? 'fact', source: 'agent', scope, workdir });
         if (r.refused) return txt(`memory_save refused: ${r.refused}`, { isError: true });
-        return txt(r.deduped ? `already known — refreshed ${r.id}` : `remembered as ${r.id}`);
+        return txt(r.deduped ? `already known — refreshed ${r.id}` : `remembered as ${r.id} (${scope})`);
       },
     },
     {
@@ -36,7 +38,7 @@ export function memoryTools(store) {
         required: ['query'],
       },
       async execute(_id, p) {
-        const rows = store.recall(p.query, { limit: Math.min(Number(p.limit ?? 8), 20) });
+        const rows = store.recall(p.query, { limit: Math.min(Number(p.limit ?? 8), 20), workdir });
         if (!rows.length) return txt('no matching memory');
         return txt(rows.map((m) => `[${m.id}] (${m.kind}) ${m.text}`).join('\n'));
       },
