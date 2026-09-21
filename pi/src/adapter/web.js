@@ -42,17 +42,52 @@ function errResult(text) {
   return { content: [{ type: 'text', text }], isError: true };
 }
 
+const normalizeHostLiteral = (h) => {
+  const s = String(h ?? '').toLowerCase().replace(/^\[|\]$/g, '');
+  return s.startsWith('::ffff:') ? s.slice(7) : s;
+};
+
+const parseV4 = (h) => {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (!m) return null;
+  const o = m.slice(1).map(Number);
+  return o.every((n) => n <= 255) ? o : null;
+};
+
+const firstHextet = (h) => {
+  const g = h.split(':')[0];
+  return g ? parseInt(g, 16) : NaN;
+};
+
+/** Never-egress ranges: link-local/metadata, ULA, loopback-v6. */
+export function isForbiddenAddress(ip) {
+  const h = normalizeHostLiteral(ip);
+  const v4 = parseV4(h);
+  if (v4) return v4[0] === 169 && v4[1] === 254;
+  if (h === '::1' || /^0{1,4}(::?0{1,4}){6}:0{0,3}1$/.test(h)) return true; // ::1 canonical + expanded
+  const t = firstHextet(h);
+  return (t >= 0xfe80 && t <= 0xfebf)  // fe80::/10 link-local (fe80–febf, not just fe80)
+      || (t >= 0xfc00 && t <= 0xfdff); // fc00::/7 ULA (fc AND fd)
+}
+
+/** Resolved-address private pivot: superset of forbidden + loopback/RFC1918. */
+function isPrivateResolved(ip) {
+  const h = normalizeHostLiteral(ip);
+  if (isForbiddenAddress(h)) return true;
+  const v4 = parseV4(h);
+  if (!v4) return false;
+  const [a, b] = v4;
+  return a === 127 || a === 10 || a === 0
+      || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+}
+
 /**
  * Domain-match: exact host or leading-dot suffix (`example.com`,
  * `.example.com`). Caller supplies the operator-owned allowlist; null/empty
  * means unrestricted (the governance ask is the baseline gate).
  */
 export function domainAllowed(host, allowlist) {
-  let h = String(host ?? '').toLowerCase();
-  // normalize IPv6 bracket + v4-mapped forms so link-local checks can't be
-  // dodged as [::ffff:169.254.169.254] or [fe80::1]
-  h = h.replace(/^\[|\]$/g, '');
-  if (h.startsWith('::ffff:')) h = h.slice(7);
+  const h = normalizeHostLiteral(host);
   if (allowlist?.length) {
     return allowlist.some((d) => {
       const dom = String(d).toLowerCase().trim();
@@ -64,8 +99,7 @@ export function domainAllowed(host, allowlist) {
   // legitimate fetch target for a coding agent — explicit allowlist entry
   // is the only way through. Loopback/RFC1918 stay reachable: this is a
   // local single-user harness and local dev servers are a real use.
-  if (/^169\.254\.|^fe80::|^fe[c-f][0-9a-f]:|^fd[0-9a-f]{2}:|^::1$/.test(h)) return false;
-  return true;
+  return !isForbiddenAddress(h);
 }
 
 /**
@@ -79,13 +113,6 @@ export function domainAllowed(host, allowlist) {
  * Residual: a hostile DNS server could theoretically rebind between check
  * and connect — full pinning needs a custom dispatcher; documented boundary.
  */
-const PRIVATE_RESOLVED_RE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|fe80::|fe[c-f][0-9a-f]:|fd[0-9a-f]{2}:)/i;
-
-const normalizeHostLiteral = (h) => {
-  const s = String(h ?? '').toLowerCase().replace(/^\[|\]$/g, '');
-  return s.startsWith('::ffff:') ? s.slice(7) : s;
-};
-
 export async function resolveChecked(host, allowlist) {
   // URL.hostname keeps the brackets on IPv6 literals — strip them before
   // isIP() or every legit public v6 literal would fall into a failing lookup.
@@ -104,7 +131,7 @@ export async function resolveChecked(host, allowlist) {
   // allowlisted the name or typed explicit localhost intent.
   const localIntent = h === 'localhost' || h.endsWith('.localhost') || (allowlist?.length > 0);
   if (!localIntent) {
-    const priv = addrs.find((a) => PRIVATE_RESOLVED_RE.test(normalizeHostLiteral(a.address)));
+    const priv = addrs.find((a) => isPrivateResolved(a.address));
     if (priv) return { ok: false, reason: `'${host}' resolves to private/loopback address ${priv.address}` };
   }
   return { ok: true };

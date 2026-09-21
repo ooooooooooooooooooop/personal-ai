@@ -55,6 +55,8 @@ test('M80 regression: a compound command never escapes the sandbox via a leading
     'git status > out.txt',
     'git status < in.txt',   // input redirect: shell opens an fd the exclusion can't see
     'git status &',          // background marker survives outside the command node
+    "GIT_SSH_COMMAND='x' git fetch", // env-prefix escape: rawName is 'git' but helper runs unsandboxed
+    'PATH=/tmp/evil git status',     // env can redirect the executable itself
   ]) {
     specs.length = 0;
     const r = await executor.spawnCommandJob({ command, workdir: dir });

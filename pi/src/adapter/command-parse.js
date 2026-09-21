@@ -97,10 +97,12 @@ function collectCommands(node, units, redirects, dangerEnv, context) {
     const name = nameNode ? nameNode.text : '';
     const args = [];
     let hasExpansion = false;
+    let hasEnvAssignment = false;
     for (let i = 0; i < node.namedChildCount; i++) {
       const c = node.namedChild(i);
       if (c === nameNode || c.type === 'file_redirect') continue;
       if (c.type === 'variable_assignment') {
+        hasEnvAssignment = true;
         const v = (c.childForFieldName('name') ?? c.firstNamedChild)?.text?.trim();
         if (v && DANGER_ENV_RE.test(v)) dangerEnv.push(v);
         continue;
@@ -115,6 +117,7 @@ function collectCommands(node, units, redirects, dangerEnv, context) {
       raw: node.text,
       context, // 'top' | 'substitution' | 'subshell'
       hasExpansion,
+      hasEnvAssignment,
     });
     // a command's own substitution/expansion children still contain commands
     context = context === 'top' ? 'substitution' : context;

@@ -162,7 +162,7 @@ test('M63: manual redirect following — a forbidden hop is refused BEFORE its s
 });
 
 test('M66: DNS resolution is validated — IPv6 literals normalized, forbidden addresses refused', async () => {
-  const { resolveChecked } = await import('../src/adapter/web.js');
+  const { resolveChecked, isForbiddenAddress } = await import('../src/adapter/web.js');
   // R1 regression: URL.hostname keeps [] on IPv6 literals — they must be
   // stripped before isIP(), else legit public v6 falls into a failing lookup
   const pub = await resolveChecked('[2001:db8::1]', null);
@@ -170,6 +170,14 @@ test('M66: DNS resolution is validated — IPv6 literals normalized, forbidden a
   for (const h of ['[::1]', '[fe80::1]', '::ffff:169.254.169.254', '[::ffff:169.254.169.254]']) {
     const r = await resolveChecked(h, null);
     assert.equal(r.ok, false, `${h} must be refused`);
+  }
+  // R2 CIDR completeness — fe80::/10 is fe80–febf, ULA fc00::/7 is fc AND fd
+  for (const bad of ['fe80::1', 'fe90::1', 'fea0::1', 'feb0::1', 'fc00::1', 'fd12::1', '::1',
+                     '169.254.169.254', '0:0:0:0:0:0:0:1']) {
+    assert.equal(isForbiddenAddress(bad), true, bad);
+  }
+  for (const ok of ['2001:db8::1', 'fec0::1', '8.8.8.8', 'example.com']) {
+    assert.equal(isForbiddenAddress(ok), false, ok);
   }
   // end-to-end: literal forbidden IP is refused by the tool itself
   const t = webFetchTool();

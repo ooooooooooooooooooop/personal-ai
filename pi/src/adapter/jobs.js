@@ -223,11 +223,15 @@ export class JobExecutor {
       }
       const allowed =
         clean && simple && simple.context === 'top' && !simple.hasExpansion &&
+        !simple.hasEnvAssignment && // `GIT_SSH_COMMAND=x git …` must not ride the exclusion — env can redirect the executable itself
         // the unit's raw text must BE the whole command — any surviving shell
         // syntax (input redirect, trailing &, comments, stray separators)
         // lives outside the command node's text and fails this equality.
         simple.raw.trim() === command.trim() &&
-        prefixes.some((p) => simple.rawName === p || simple.raw.trim() === p || simple.raw.trim().startsWith(`${p} `));
+        // prefix semantics are literal: the COMMAND STRING starts with the
+        // excluded prefix — no rawName matching (that would let env-prefixed
+        // invocations slip through).
+        prefixes.some((p) => simple.raw.trim() === p || simple.raw.trim().startsWith(`${p} `));
       if (allowed) {
         sandboxProvider = false; // explicit-bypass sentinel — executeAttempt must not fall back to ambient
         this.audit?.write({ kind: 'SANDBOX_EXCLUDED', data: { command: command.slice(0, 200), parent_run_id: this.runId } });
