@@ -2355,6 +2355,31 @@ async function refreshBodies() {
     }
     grid.appendChild(card);
   }
+  // D6 capability matrix: when ≥2 bodies exist, align their verified
+  // capabilities into one comparison table — diffs are the decision surface.
+  if (bodiesCache.length > 1) {
+    const keys = [...new Set(bodiesCache.flatMap((b) => Object.keys(b.facts?.verified_capabilities ?? {})))];
+    if (keys.length) {
+      const tbl = document.createElement('table');
+      tbl.id = 'body-matrix';
+      tbl.className = 'data-table';
+      tbl.innerHTML = `<thead><tr><th>能力</th>${bodiesCache.map((b) => `<th></th>`).join('')}</tr></thead><tbody></tbody>`;
+      tbl.querySelectorAll('thead th:not(:first-child)').forEach((th, i) => { th.textContent = bodiesCache[i].label ?? bodiesCache[i].body_id; });
+      for (const k of keys) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td></td>${bodiesCache.map(() => '<td></td>').join('')}`;
+        tr.children[0].textContent = k.replaceAll('_', ' ');
+        bodiesCache.forEach((b, i) => {
+          const v = b.facts?.verified_capabilities?.[k];
+          const td = tr.children[i + 1];
+          td.textContent = v === true ? '✓' : v === false || v == null ? '—' : String(v);
+          td.className = v === true ? 'ok' : v ? 'warn' : 'dim';
+        });
+        tbl.querySelector('tbody').appendChild(tr);
+      }
+      grid.appendChild(tbl);
+    }
+  }
 }
 
 async function refreshState() {

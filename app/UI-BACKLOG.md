@@ -20,7 +20,8 @@
 - [x] **R3 行级工艺**：思考流式行、消息操作栏（复制/重发/重新生成）、元信息 chip（模型+tok+cost）、处理计时行、待发队列（排队/转向）、活动组折叠、工具动词分类、错误卡
 - [x] **R4/R6 混合**：`/` 指令菜单、用量/成本 chip、会话右键菜单（打开/重命名/复制路径/分支/导出）、审计筛选+展开、结构化输出（diff/表格/语言标签）、toast、侧栏折叠、治理 ASK 批准卡
 - [x] **会话生命周期批**（对标 harness 长处落地）：`/compact`（pi compact 压缩上下文）、`/rewind`（navigateTree 回到任一提问点，分支不删）、`/export`（exportToHtml）、`/restore`（FileOpsGuard 回执恢复删除/备份）、`session_stats`（真实总账含压缩前历史）、`policy_status`（治理姿态只读卡）、compaction/auto-retry/session-info 事件行
-- [ ] R5–R8 剩余见下（视觉/交互细节轮，按用户反馈排）
+- [x] R7 补齐：A11 minimap（右侧刻度条+点击跳转）、A12 分页（HISTORY_PAGE=50+"显示更早"）、A13 委派拓扑树（parent_task_id 缩进树）、D6 能力矩阵（≥2 身体时卡片下并排对照表）、D7 租约徽章（`lease_status` facade→statusline ✍/🔒 徽章）
+- [ ] R8 剩余：C12 provisioning 向导（setup 空态卡已覆盖引导主干；分步向导待定）
 
 ---
 

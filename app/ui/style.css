@@ -466,6 +466,12 @@ pre:hover .code-copy, .code-copy.copied { opacity: 1; }
   border-radius: var(--r-lg); padding: 18px 20px;
   display: flex; flex-direction: column; gap: 12px;
 }
+/* D6 capability matrix — capabilities × bodies comparison under the cards */
+#body-matrix { grid-column: 1 / -1; border-collapse: collapse; font-size: 12.5px; background: var(--tile); border: 1px solid var(--line-sub); border-radius: var(--r-lg); }
+#body-matrix th, #body-matrix td { padding: 6px 14px; border-bottom: 1px solid var(--line-sub); text-align: left; }
+#body-matrix td.ok { color: var(--green); }
+#body-matrix td.warn { color: var(--yellow); }
+#body-matrix td.dim { color: var(--text-4); }
 .body-card.current { border-color: var(--line-strong); background: var(--tile-hover); }
 .bc-head { display: flex; align-items: center; gap: 12px; }
 .bc-icon {
