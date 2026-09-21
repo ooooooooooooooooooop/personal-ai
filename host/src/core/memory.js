@@ -138,6 +138,33 @@ export class MemoryStore {
       .run(on ? 1 : 0, nowIso(), id).changes > 0;
   }
 
+  /**
+   * Atomic batch ops (M74): a multi-row save/forget/pin set commits as ONE
+   * transaction — a mid-batch failure must not leave half-applied state.
+   * @returns {{applied: number, results: Array}}
+   */
+  bulk(ops, { workdir = null } = {}) {
+    if (!Array.isArray(ops) || !ops.length) return { applied: 0, results: [] };
+    if (ops.length > 50) return { refused: 'bulk limited to 50 ops' };
+    const results = [];
+    this.db.exec('BEGIN');
+    try {
+      for (const op of ops) {
+        if (op.action === 'save') results.push(this.remember(op.text, { kind: op.kind ?? 'fact', source: op.source ?? 'agent', scope: op.scope ?? 'user', workdir }));
+        else if (op.action === 'forget') results.push({ ok: this.forget(String(op.id)) });
+        else if (op.action === 'pin') results.push({ ok: this.pin(String(op.id), op.pinned !== false) });
+        else results.push({ refused: `unknown bulk action '${op.action}'` });
+      }
+      const bad = results.find((r) => r.refused);
+      if (bad) { this.db.exec('ROLLBACK'); return { refused: bad.refused, applied: 0, results: [] }; }
+      this.db.exec('COMMIT');
+      return { applied: results.length, results };
+    } catch (e) {
+      try { this.db.exec('ROLLBACK'); } catch { /* already rolled back */ }
+      return { refused: `bulk aborted: ${e.message}`, applied: 0, results: [] };
+    }
+  }
+
   forget(id) {
     return this.db.prepare('UPDATE memory SET archived = 1, updated = ? WHERE id = ?')
       .run(nowIso(), id).changes > 0;

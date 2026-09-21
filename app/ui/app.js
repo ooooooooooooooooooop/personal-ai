@@ -2426,6 +2426,18 @@ const SLASH = [
   { cmd: '/new', label: '新建任务', hint: '开一个干净会话', run: () => $('new-task').click() },
   { cmd: '/abort', label: '中止运行', hint: '停止当前任务', run: async () => { await cmd('abort'); } },
   { cmd: '/model', label: '选择模型', hint: '弹出模型菜单', run: () => $('model-chip').click() },
+  {
+    cmd: '/discover', label: '发现本地模型', hint: '探测 Ollama/LM Studio/llama.cpp 本地节点',
+    run: async () => {
+      const r = await cmd('model_discover');
+      if (!r.success) { addSys(`探测失败：${r.error ?? '未知'}`, true); return; }
+      const nodes = r.data?.nodes ?? [];
+      if (!nodes.length) { addSys('未发现本地推理节点（Ollama :11434 / LM Studio :1234 / llama.cpp :8080）'); return; }
+      addSys(`发现 ${nodes.length} 个本地节点：\n` + nodes.map((n) =>
+        `· ${n.kind} ${n.url} — ${n.models.length ? n.models.slice(0, 8).join('、') + (n.models.length > 8 ? ` …共${n.models.length}个` : '') : '无模型'}`).join('\n')
+        + '\n接入方式：模型面板添加 provider，api=openai-completions，baseUrl 填 <节点>/v1');
+    },
+  },
   { cmd: '/think', label: '推理强度', hint: '设置思考等级', run: () => $('thinking-chip').click() },
   {
     cmd: '/rename', label: '重命名会话', hint: '/rename 新名字',

@@ -72,5 +72,34 @@ export function memoryTools(store, { workdir = null } = {}) {
         return txt(ok ? `${p.id} archived` : `memory '${p.id}' not found`, ok ? {} : { isError: true });
       },
     },
+    {
+      name: 'memory_bulk', label: 'Memory Bulk',
+      description: 'Atomic batch: ops = [{action:"save",text,kind?,scope?} | {action:"forget"|"pin",id}]. All-or-nothing — one refused op rolls the whole batch back.',
+      parameters: {
+        type: 'object',
+        properties: {
+          ops: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                action: { type: 'string', enum: ['save', 'forget', 'pin'] },
+                text: { type: 'string' }, kind: { type: 'string' },
+                scope: { type: 'string', enum: ['project', 'user'] },
+                id: { type: 'string' }, pinned: { type: 'boolean' },
+              },
+              required: ['action'],
+            },
+          },
+        },
+        required: ['ops'],
+      },
+      async execute(_id, p) {
+        const r = store.bulk?.(p.ops, { workdir });
+        if (!r) return txt('memory_bulk unavailable on this store', { isError: true });
+        if (r.refused) return txt(`memory_bulk refused: ${r.refused}`, { isError: true });
+        return txt(`bulk applied: ${r.applied} ops committed`);
+      },
+    },
   ];
 }

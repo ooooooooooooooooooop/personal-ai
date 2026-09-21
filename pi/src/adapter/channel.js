@@ -523,6 +523,26 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       if (target.thinking) await modelsFacade.setThinking(target.thinking).catch(() => {});
       return { provider: m.provider, id: m.id, name: m.name ?? m.id, alias: alias ?? null };
     },
+    // M95 local-inference discovery (Ollama/LM Studio/llama.cpp analogue):
+    // probe the well-known local endpoints, report reachable nodes + their
+    // model catalogs. Discovery only — nothing is configured implicitly.
+    discover: async () => {
+      const probes = [
+        { kind: 'ollama', url: 'http://localhost:11434', listPath: '/api/tags', pick: (b) => (b?.models ?? []).map((m) => m.name) },
+        { kind: 'lmstudio', url: 'http://localhost:1234', listPath: '/v1/models', pick: (b) => (b?.data ?? []).map((m) => m.id) },
+        { kind: 'llamacpp', url: 'http://localhost:8080', listPath: '/v1/models', pick: (b) => (b?.data ?? []).map((m) => m.id) },
+      ];
+      const nodes = [];
+      for (const p of probes) {
+        try {
+          const res = await fetch(`${p.url}${p.listPath}`, { signal: AbortSignal.timeout(2500) });
+          if (!res.ok) continue;
+          const body = await res.json().catch(() => null);
+          nodes.push({ kind: p.kind, url: p.url, models: p.pick(body) ?? [] });
+        } catch { /* node absent — discovery is best-effort */ }
+      }
+      return { nodes, hint: nodes.length ? 'add via provider panel: api=openai-completions, baseUrl=<node>/v1' : null };
+    },
     aliasList: () => Object.entries(readAliases()).map(([name, a]) => ({ name, ...a })),
     aliasSet: ({ name, provider, model, thinking }) => {
       if (!name || !provider || !model) throw new Error('alias requires {name, provider, model}');

@@ -236,6 +236,12 @@ export class HostChannel {
           if (!this.models?.aliasSet) return reply(false, undefined, 'models facade unavailable');
           return reply(true, this.models.aliasSet({ name: cmd.name, provider: cmd.provider, model: cmd.model, thinking: cmd.thinking }));
         }
+        case 'model_discover': {
+          // M95 — probe well-known local inference nodes (Ollama/LM Studio/
+          // llama.cpp). Read-only; configuration stays operator-chosen.
+          if (!this.models?.discover) return reply(false, undefined, 'discovery unavailable');
+          return reply(true, await this.models.discover());
+        }
         case 'model_alias_del': {
           if (!this.models?.aliasDel) return reply(false, undefined, 'models facade unavailable');
           return reply(true, this.models.aliasDel({ name: cmd.name }));

@@ -123,3 +123,25 @@ test('memory scopes: project rows bind to their workdir; user rows are global', 
   // project scope without a workdir refuses
   assert.equal(s.remember('orphan', { scope: 'project' }).refused != null, true);
 });
+
+test('bulk: all-or-nothing — a refused op rolls the whole batch back', () => {
+  const s = new MemoryStore(':memory:');
+  const ok = s.bulk([
+    { action: 'save', text: 'batch fact one' },
+    { action: 'save', text: 'batch fact two' },
+  ]);
+  assert.equal(ok.applied, 2);
+  assert.equal(s.all(10).length, 2);
+  // a secret-looking op inside the batch refuses everything
+  const before = s.all(10).length;
+  const bad = s.bulk([
+    { action: 'save', text: 'fine row' },
+    { action: 'save', text: 'key is AKIAIOSFODNN7EXAMPLE' },
+  ]);
+  assert.ok(bad.refused);
+  assert.equal(s.all(10).length, before, 'nothing partial landed');
+  // pin/forget ride the same transaction
+  const id = s.all(10)[0].id;
+  const r = s.bulk([{ action: 'pin', id }, { action: 'forget', id: 'mem-missing' }]);
+  assert.equal(r.applied, 2);
+});
