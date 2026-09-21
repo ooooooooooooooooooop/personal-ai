@@ -1525,3 +1525,28 @@
 | M59 /recap 会话回顾 | **落地**——session_switch 后抽取式一行回顾（首条 prompt + 末条用户 prompt + 消息数 + 更新时间），零模型调用 |
 
 测试基线：host 229 / pi 176+1skip / app 18+1skip。
+
+### 28.13 B 档薄件批次 3–5（2026-09-21，commits 8d007b2 / a56c05d）
+
+| 项 | 终态 |
+|---|---|
+| M58 glob/路径穿越 | **已有**——自有文件面全限定（file_read realpath+symlink 拒、files_list workdir 内、repomap subdir 拒逃逸）；glob 本体是 pi 上游工具 |
+| M60 /insights 用量 | **已有**——agent_stats + /stats（含批准卡结局分布） |
+| M61 占位凭证 | **落地**（前批） |
+| M62 request_permission | **落地**（前批） |
+| M65 记忆 scope | **落地**——project/user 双 scope，project 行只在绑定 workdir 召回/注入；memory_save 默认 project |
+| M66 web_fetch SSRF | **落地**——无白名单时链路本地/元数据面（169.254/16、fe80::/10、fd*、::1）一律拒，显式白名单可放；v4-mapped/IPv6 括号归一化防绕过 |
+| M69 notify 策略 | **落地**——抽屉头 select always/smart/never；响度闸不吞记录 |
+| M72 凭证原子写 | **落地**——writeJsonAtomic(tmp+rename) 覆盖 models.json/model-aliases/debug bundle |
+| M74 记忆批量 | **落地**——store.bulk 事务化，mid-batch 拒绝全回滚 |
+| M75 系统指标 | **落地**——GET /api/metrics（桥+身体 pid/uptime/RSS/heap）+ /stats 挂行 |
+| M79 错过任务 | **落地**——markSkipped + missedWindowMs(4h) 超窗跳过一次，不补火风暴 |
+| M85/M88 /add-dir | **已有**——workspace registry add/remove + trust 层按目录闸注入 |
+| M95 本地模型发现 | **落地**——models.discover 探测 Ollama/LM Studio/llama.cpp + /discover |
+| M96 allowlist 导入导出 | **落地**（前批） |
+| M97 消息点击编辑 | **已有**（编辑重发=rewind 分支） |
+| M98 bare /loop | **已有**——prompt 调度即裸循环；goal_tick 是自主变体 |
+| M134 危险环境变量 | **落地**（前批 env_injection） |
+| M138 字节嗅探+BMP | **落地**——magic 重分类 + BI_RGB BMP→PNG 零依赖转码 |
+
+**仍待中重型的**：M64 实际删除动作（预览底子在）、M71 免持久会话、M76 per-agent disallowedTools、M77 子 agent 实况窗格、M80 sandbox.excluded、M81 多 profile、M82 MCP prompts、M83 惰性工具目录、M86 ambient context、M90 workflow 生命周期页、M92 后台会话页、M94 per-agent 上下文预算、M99 workers 页、M100 provider fallback 链、M105 工具级 checkpoint、M38 占位回取、M135 动态调速、M73 向量记忆。
