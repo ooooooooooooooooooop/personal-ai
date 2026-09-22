@@ -152,13 +152,6 @@ export function rewriteSessionParent(destFile, originalAbs) {
 }
 
 /**
- * M90-R3: a restart must be audited under the SAME governance semantics a
- * first `job_spawn` call presents — canonical tool args, not the internal
- * restart_spec field names (a hook predicate on `args.sandbox === 'ssh'`
- * must hit identically on both paths). Execution still replays the raw
- * restart_spec; only the gate input is canonicalized.
- */
-/**
  * M89-R3: upstream forkFrom() writes the destination header BEFORE it can
  * return the manager — a mid-copy throw orphans a half-written file we
  * never captured. The orphan's provenance names OUR scratch (unique per
@@ -185,6 +178,13 @@ function findOrphanFork(sessionDir, scratch) {
   return null;
 }
 
+/**
+ * M90-R3: a restart must be audited under the SAME governance semantics a
+ * first `job_spawn` call presents — canonical tool args, not the internal
+ * restart_spec field names (a hook predicate on `args.sandbox === 'ssh'`
+ * must hit identically on both paths). Execution still replays the raw
+ * restart_spec; only the gate input is canonicalized.
+ */
 export function restartSpecToJobSpawnArgs(spec) {
   const s = spec?.sandbox ?? null;
   return {
