@@ -2911,6 +2911,17 @@ def _map_tool_exception_core(exc: Exception) -> object:
             "receipt_check": getattr(exc, "receipt_check", None),
             "send_hint": "Consume any existing result before recovery; do not resend after a possible submission.",
         }
+        if hasattr(exc, "readiness"):
+            details.update(
+                readiness=exc.readiness,
+                retry_recommended=False,
+                next_action="inspect_readiness_reason",
+                send_hint=("No submission occurred if delivery_stage=not_started. "
+                           "The bridge already applied its bounded recovery policy; "
+                           "do not repeat the send unchanged. Inspect readiness.reason. "
+                           "Permission, login and challenge barriers require resolution "
+                           "through the existing authorized browser session."),
+            )
         return mcp_types.CallToolResult(
             content=[mcp_types.TextContent(type="text", text=json.dumps(details))],
             structuredContent=details, isError=True,

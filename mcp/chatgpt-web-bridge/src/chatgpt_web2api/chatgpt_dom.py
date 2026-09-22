@@ -55,6 +55,16 @@ import time
 import unicodedata
 
 from .breakers import BreakerKind
+from .composer_surface import (
+    COMPOSER_ELEMENT_JS,
+    COMPOSER_FALLBACK_SELECTOR,
+    COMPOSER_PROBE_JS,
+    COMPOSER_SELECTOR,
+    ComposerReadinessError,
+    composer_element_js,
+    send_button_js,
+    wait_composer_ready,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +83,6 @@ logger = logging.getLogger(__name__)
 # is kept as a last-resort so the driver still works if ChatGPT rolls
 # the composer back (or on an A/B holdout that hasn't shipped the new
 # UI). Both are tried in preference order by the helpers below.
-COMPOSER_SELECTOR = 'div[role="textbox"]#prompt-textarea, div[role="textbox"].ProseMirror'
-COMPOSER_FALLBACK_SELECTOR = "textarea#prompt-textarea"
 
 # The send button. The new composer has no data-testid="send-button" —
 # its affordances are composer-plus-btn and dictation, plus a
@@ -99,6 +107,9 @@ SEND_BUTTON_FALLBACK_SELECTOR = 'button[data-testid="send-button"]'
 SEND_BUTTON_BROAD_SELECTOR = (
     'form:has(#prompt-textarea) button[type="submit"],'
     'form:has(.ProseMirror) button[type="submit"]'
+)
+SEND_BUTTON_JS = send_button_js(
+    f'{SEND_BUTTON_SELECTOR},{SEND_BUTTON_FALLBACK_SELECTOR},button[type="submit"]'
 )
 
 # Send-button readiness poll. After a prior send completes (or under parallel
@@ -142,12 +153,7 @@ class ChatGPTDom:
         d = self._driver
         try:
             result = await d._js(
-                "(function(){"
-                f"  return JSON.stringify({{"
-                f"    ready: !!document.querySelector('{COMPOSER_SELECTOR}')"
-                f"         || !!document.querySelector('{COMPOSER_FALLBACK_SELECTOR}')"
-                "  });"  # {{ opens the object literal; a single } closes it
-                "})()"
+                COMPOSER_PROBE_JS
             )
             return json.loads(result).get("ready") is True
         except (json.JSONDecodeError, TypeError, CDPJSError):
@@ -162,11 +168,16 @@ class ChatGPTDom:
         so a single probe races it; this wait absorbs that render delay.
         """
         d = self._driver
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            if await d._has_composer():
-                return True
-            await asyncio.sleep(0.5)
+        try:
+            async with asyncio.timeout(timeout):
+                while True:
+                    if await d._has_composer():
+                        return True
+                    await asyncio.sleep(0.5)
+        except TimeoutError as exc:
+            from .cdp_transport import CDPTimeoutError
+            if isinstance(exc, CDPTimeoutError):
+                raise
         return False
 
     async def _ensure_send_ready(self) -> None:
@@ -188,14 +199,10 @@ class ChatGPTDom:
         renders the real composer — see ``navigate_new_chat``) and re-check.
         """
         d = self._driver
-        if await d._wait_for_composer(timeout=8):
-            return
         if getattr(d, "_conv_target", False):
-            # Conv-bound tab: never navigate it to a new chat — it belongs to
-            # its conversation. The conv page's composer can lag the home
-            # shell's (history renders first); give it a longer window and
-            # then just leave — send_and_stream has its own defensive check.
-            await d._wait_for_composer(timeout=15)
+            await d._wait_for_send_composer()
+            return
+        if await d._wait_for_composer(timeout=8):
             return
         logger.info(
             "Attached tab has no composer after waiting; navigating to a new chat "
@@ -225,22 +232,23 @@ class ChatGPTDom:
         # Focus the composer. Try the ProseMirror textbox first, then the
         # legacy textarea fallback. Returns which one was focused (or
         # 'no composer') so the verify step reads the right element.
-        focus_result = await d._js(
+        focus_script = (
             "(function() {"
-            f"  var el = document.querySelector('{COMPOSER_SELECTOR}');"
-            "  if (el) { el.focus(); return 'composer'; }"
-            f"  var fb = document.querySelector('{COMPOSER_FALLBACK_SELECTOR}');"
-            "  if (fb) { fb.focus(); return 'fallback'; }"
+            f"  var el = {COMPOSER_ELEMENT_JS};"
+            "  if (el) { el.focus();"
+            "    if (document.activeElement !== el) return 'focus failed';"
+            "    return el.tagName === 'TEXTAREA' ? 'fallback' : 'composer'; }"
             "  return 'no composer';"
             "})()"
         )
+        focus_result = await d._js(focus_script)
         if focus_result == "no composer":
-            await d._capture_selector_diagnostic("composer (type_message)")
-            if d._breakers:
-                d._breakers.record_failure(BreakerKind.COMPOSER_SEND_READINESS)
-            from .cdp_driver import SendReadinessError
-
-            raise SendReadinessError("No composer found")
+            await wait_composer_ready(d)
+            focus_result = await d._js(focus_script)
+            if focus_result == "no composer":
+                # The page replaced the node between readiness and focus.
+                # Its state is unknown; don't authorize a reload from stale proof.
+                raise ComposerReadinessError({'reason': 'composer_replaced'})
         if focus_result not in {"composer", "fallback"}:
             # A soft evaluator can return an empty/unknown value after a
             # transport or page-context failure.  Treating every value other
@@ -371,7 +379,7 @@ class ChatGPTDom:
         if focused_target == "composer":
             raw = await d._js_strict(
                 "(function(){"
-                f"  var el = document.querySelector('{COMPOSER_SELECTOR}');"
+                f"  var el = {composer_element_js(COMPOSER_SELECTOR)};"
                 "  if (!el) return false;"
                 "  el.focus();"
                 # Do not rely solely on the preceding CDP Ctrl/Cmd+A.  A
@@ -405,7 +413,7 @@ class ChatGPTDom:
             return raw is True or str(raw).strip().lower() == "true"
         raw = await d._js_strict(
             "(function(){"
-            f"  var el = document.querySelector('{COMPOSER_FALLBACK_SELECTOR}');"
+            f"  var el = {composer_element_js(COMPOSER_FALLBACK_SELECTOR)};"
             "  if (!el) return false;"
             "  el.focus();"
             "  el.select();"
@@ -433,14 +441,7 @@ class ChatGPTDom:
         operation for a successful cleanup.
         """
         d = self._driver
-        find_el = (
-            f"document.querySelector('{selector}')"
-            if selector
-            else (
-                f"document.querySelector('{COMPOSER_SELECTOR}')"
-                f" || document.querySelector('{COMPOSER_FALLBACK_SELECTOR}')"
-            )
-        )
+        find_el = composer_element_js(selector)
         try:
             raw = await d._js_strict(
                 "(function(){"
@@ -543,8 +544,8 @@ class ChatGPTDom:
         try:
             actual = await d._js_strict(
                 "(function(){"
-                f"  var el = document.querySelector('{selector}');"
-                "  if (!el) return '';"
+                f"  var el = {composer_element_js(selector)};"
+                "  if (!el) return null;"
                 "  if (el.tagName === 'TEXTAREA') return el.value;"
                 # Recursive DOM extractor: walks all descendant nodes,
                 # emitting \n for <br> elements. Correctly handles
@@ -594,7 +595,7 @@ class ChatGPTDom:
             )
         except CDPJSError:
             return False
-        if not actual and expected:
+        if not isinstance(actual, str) or (not actual and expected):
             return False
         # NFC normalization: handles composed/decomposed Unicode sequences
         # (e.g., é as 'e'+U+0301 vs U+00E9). The turn-anchor matcher already
@@ -628,9 +629,7 @@ class ChatGPTDom:
         while time.monotonic() < deadline:
             has_btn = await d._js(
                 "(function() {"
-                f"  var btn = document.querySelector('{SEND_BUTTON_SELECTOR}')"
-                f"       || document.querySelector('{SEND_BUTTON_FALLBACK_SELECTOR}')"
-                f"       || document.querySelector('{SEND_BUTTON_BROAD_SELECTOR}');"
+                f"  var btn = {SEND_BUTTON_JS};"
                 "  return btn && !btn.disabled ? 'yes' : 'no';"
                 "})()"
             )
@@ -661,9 +660,7 @@ class ChatGPTDom:
         d._set_delivery_stage(DeliveryStage.SUBMISSION_ATTEMPTED)
         result = await d._js(
             "(function() {"
-            f"  var btn = document.querySelector('{SEND_BUTTON_SELECTOR}')"
-            f"       || document.querySelector('{SEND_BUTTON_FALLBACK_SELECTOR}')"
-            f"       || document.querySelector('{SEND_BUTTON_BROAD_SELECTOR}');"
+            f"  var btn = {SEND_BUTTON_JS};"
             "  if (!btn) return 'no send button';"
             "  if (btn.disabled) return 'button disabled';"
             "  var evts = ['pointerdown','mousedown','pointerup','mouseup','click'];"
@@ -881,8 +878,7 @@ class ChatGPTDom:
         try:
             snapshot = await d._js_strict(
                 "(function(){"
-                "  var composer = document.querySelector('" + COMPOSER_SELECTOR + "')"
-                "       || document.querySelector('" + COMPOSER_FALLBACK_SELECTOR + "');"
+                f"  var composer = {COMPOSER_ELEMENT_JS};"
                 "  var sendCandidates = document.querySelectorAll('button[type=\"submit\"], button[aria-label*=\"Send\" i], button[data-testid=\"send-button\"]');"
                 "  var enabledSend = Array.prototype.filter.call(sendCandidates, function(b){ return !b.disabled; });"
                 "  var stopBtn = document.querySelector('[data-testid=\"stop-button\"], button[aria-label*=\"Stop\" i]');"

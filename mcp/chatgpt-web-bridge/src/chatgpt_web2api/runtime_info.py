@@ -10,7 +10,7 @@ from . import __version__
 
 _SOURCE_ROOT = Path(__file__).resolve().parent
 _STARTED_AT = datetime.now(timezone.utc).isoformat()
-CONTRACT_VERSION = "2026-09-19.2"
+CONTRACT_VERSION = "2026-09-21.1"
 
 
 def source_fingerprint(root: Path = _SOURCE_ROOT) -> str | None:
@@ -51,5 +51,6 @@ def get_runtime_info() -> dict:
             "bounded_pre_submit_reconnect", "receipt_first_timeout_recovery",
             "shared_recovery_budget", "socket_bound_readers",
             "bounded_backend_reads", "typed_backend_failures",
+            "live_composer_readiness", "bounded_same_page_composer_recovery",
         ],
     }

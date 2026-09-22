@@ -18,7 +18,9 @@ import time
 
 from chatgpt_web2api.cdp_driver import CDPDriver
 from chatgpt_web2api.cdp_transport import CDPTimeoutError
+from chatgpt_web2api.composer_surface import COMPOSER_ELEMENT_JS, wait_composer_ready
 from chatgpt_web2api.runtime_info import get_runtime_info
+from chatgpt_web2api.send_recovery import run_with_send_recovery
 
 
 async def verify(port: int) -> dict:
@@ -51,6 +53,44 @@ async def verify(port: int) -> dict:
             assert await driver._js_strict("6 * 7", timeout=3) == 42
 
         await check("evaluate", probe)
+
+        async def delayed_composer():
+            # Only this verifier's empty, disposable page is modified.
+            await driver._js_strict(
+                '(() => { const el = ' + COMPOSER_ELEMENT_JS + ';'
+                ' if (!el || el.textContent.trim()) throw new Error("scratch not empty");'
+                ' const parent = el.parentNode; const next = el.nextSibling; el.remove();'
+                ' setTimeout(() => parent.insertBefore(el, next), 500); return true; })()'
+            )
+            await wait_composer_ready(driver, timeout=3)
+        await check("composer_delayed_mount", delayed_composer)
+
+        async def missing_composer_recovery():
+            await driver._js_strict(
+                '(() => { const el = ' + COMPOSER_ELEMENT_JS + ';'
+                ' if (!el || el.textContent.trim()) throw new Error("scratch not empty");'
+                ' el.remove(); return true; })()'
+            )
+            original_cdp = driver._cdp
+            reloads = []
+            async def observe(method, *args, **kwargs):
+                if method == 'Page.reload':
+                    reloads.append(driver._target_id)
+                return await original_cdp(method, *args, **kwargs)
+            driver._cdp = observe
+            try:
+                await run_with_send_recovery(driver, lambda: wait_composer_ready(driver, timeout=0.3))
+                assert reloads == [original_target]
+                assert driver._target_id == original_target
+            finally:
+                driver._cdp = original_cdp
+        await check("missing_composer_one_same_page_recovery", missing_composer_recovery, 20)
+
+        async def role_optional():
+            await driver._js_strict(f'(() => {{ ({COMPOSER_ELEMENT_JS}).removeAttribute("role"); return true; }})()')
+            await driver.type_message('role-optional test')
+            assert await driver._clear_composer()
+        await check("role_optional_real_editor_input", role_optional)
 
         # Public backend access has its own acceptance entrypoint:
         # verify_stdio.py --read. Do not duplicate account reads here or let
@@ -122,6 +162,8 @@ async def verify(port: int) -> dict:
     except Exception as exc:
         report["failed_check"] = report.get("current_check")
         report.update(ok=False, error=type(exc).__name__)
+        report['reason'] = getattr(exc, 'readiness', {}).get('reason')
+        report['recovery_attempts'] = getattr(exc, 'recovery_attempts', None)
     finally:
         if not permission_denied:
             try:

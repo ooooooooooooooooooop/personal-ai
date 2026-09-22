@@ -25,6 +25,7 @@ from chatgpt_web2api.turn_anchor import TurnEndResult, TurnTextResult
 
 def _make_driver():
     d = CDPDriver(cdp_port=9222)
+    d._wait_for_send_composer = AsyncMock()
     d._ws = MagicMock()
     d._access_token = "tok"
     d._token_fetched_at = time.time()

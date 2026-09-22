@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from websockets.exceptions import ConnectionClosed, InvalidState
 
 from .cdp_transport import CDPTimeoutError
+from .composer_surface import ComposerReadinessError, recover_composer
 
 
 @dataclass
@@ -65,21 +66,30 @@ def claim_transport_recovery(driver, method: str, timeout: float | None) -> None
 
 
 async def recover_before_submission(driver, exc, budget, on_progress=None) -> bool:
-    if not is_recoverable_transport_error(exc):
-        return False
     driver._annotate_delivery_error(exc)
     exc.recovery_attempts = budget.attempts
+    composer_failure = isinstance(exc, ComposerReadinessError) and exc.recovery_eligible
+    if not composer_failure and not is_recoverable_transport_error(exc):
+        return False
     if driver.delivery_metadata.get("delivery_stage") != "not_started" or budget.attempts:
         return False
     # Consume BEFORE awaiting; failed/cancelled recovery cannot get a second
     # allowance from an outer handler or rate-limit wrapper.
     budget.attempts += 1
-    await driver._notify_send_progress(on_progress, "reconnect_before_submission (attempt 1/1, budget 15s)")
+    phase = "restore_composer_before_submission" if composer_failure else "reconnect_before_submission"
+    await driver._notify_send_progress(on_progress, f"{phase} (attempt 1/1, budget 15s)")
     try:
-        await driver.reconnect_for_send_recovery()
+        if composer_failure:
+            await recover_composer(driver, exc)
+        else:
+            await driver.reconnect_for_send_recovery()
     except Exception as recovery_error:
         driver._annotate_delivery_error(recovery_error)
         recovery_error.recovery_attempts = budget.attempts
+        if composer_failure and not hasattr(recovery_error, "readiness"):
+            recovery_error.readiness = {
+                "reason": "permission_denied" if isinstance(recovery_error, PermissionError) else "recovery_failed",
+            }
         raise recovery_error from exc
     return True
 

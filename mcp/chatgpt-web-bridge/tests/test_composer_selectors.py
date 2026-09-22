@@ -40,7 +40,7 @@ def test_composer_selector_targets_prosemirror_textbox():
     """COMPOSER_SELECTOR must match the contenteditable ProseMirror div,
     NOT the hidden fallback textarea."""
     assert "ProseMirror" in COMPOSER_SELECTOR
-    assert 'role="textbox"' in COMPOSER_SELECTOR
+    assert 'prompt-textarea' in COMPOSER_SELECTOR
 
 
 def test_composer_selector_does_not_match_plain_prompt_textarea():
@@ -58,9 +58,8 @@ def test_composer_selector_does_not_match_plain_prompt_textarea():
             f"composer selector branch '{branch}' does not require a <div> "
             "tag — a <textarea> fallback could match it"
         )
-        assert 'role="textbox"' in branch or "ProseMirror" in branch, (
-            f"composer selector branch '{branch}' needs role=textbox or "
-            "ProseMirror to target the real composer"
+        assert 'prompt-textarea' in branch or "ProseMirror" in branch, (
+            f"composer selector branch '{branch}' needs a known editor identity"
         )
 
 
@@ -102,10 +101,13 @@ async def test_type_message_fails_loudly_when_no_composer(monkeypatch):
         return "no composer"
     d._js = _fake_js
     d._capture_selector_diagnostic = AsyncMock()
+    d._js_strict = AsyncMock(return_value=json.dumps({
+        'ready': False, 'reason': 'unsupported_composer', 'url': 'https://chatgpt.com/'
+    }))
 
-    with pytest.raises(RuntimeError, match="No composer"):
+    with pytest.raises(RuntimeError, match="unsupported_composer") as caught:
         await d.type_message("hello")
-    d._capture_selector_diagnostic.assert_awaited_once()
+    assert caught.value.readiness['reason'] == 'unsupported_composer'
 
 
 @pytest.mark.asyncio
@@ -139,15 +141,14 @@ async def test_type_message_focuses_new_composer_when_present(monkeypatch):
 
     # Focus step queried the primary composer selector.
     focus_expr = calls["js"][0]
-    assert COMPOSER_SELECTOR in focus_expr
+    assert 'prompt-textarea' in focus_expr and 'live.length === 1' in focus_expr
 
     # Verify step reads the COMPOSER_SELECTOR (not the fallback), proving we
     # verified the element we actually focused. The insert also goes through
     # _js_strict (synthetic paste event), so the verify is the LAST strict
     # call, not the first.
     verify_expr = calls["strict"][-1]
-    assert COMPOSER_SELECTOR in verify_expr
-    assert COMPOSER_FALLBACK_SELECTOR not in verify_expr
+    assert json.dumps(COMPOSER_SELECTOR) in verify_expr
 
     # Insert dispatched as a synthetic paste event carrying the text in a
     # DataTransfer — a single ProseMirror transaction regardless of line
@@ -213,13 +214,12 @@ async def test_type_message_falls_back_to_legacy_textarea(monkeypatch):
 
     # Focus expression tried the primary selector first, then fallback.
     focus_expr = calls["js"][0]
-    assert COMPOSER_SELECTOR in focus_expr
-    assert COMPOSER_FALLBACK_SELECTOR in focus_expr
+    assert 'prompt-textarea' in focus_expr and 'live.length === 1' in focus_expr
 
     # Verify read from the FALLBACK selector since that's what focused.
     # (insert also runs through _js_strict — verify is the last strict call)
     verify_expr = calls["strict"][-1]
-    assert COMPOSER_FALLBACK_SELECTOR in verify_expr
+    assert json.dumps(COMPOSER_FALLBACK_SELECTOR) in verify_expr
 
     # The legacy textarea keeps execCommand('insertText') — untrusted paste
     # events get no default action on plain form controls, so the paste
@@ -292,10 +292,10 @@ async def test_click_send_emits_new_selector_first(monkeypatch):
     await d.click_send()
 
     # At least one expression referenced the new aria-label selector.
-    assert any(SEND_BUTTON_SELECTOR in e for e in seen), \
+    assert any('composer-submit-button' in e and 'closest("form")' in e for e in seen), \
         "click_send never referenced the new aria-label send selector"
     # And it also carries the legacy fallback for older deployments.
-    assert any(SEND_BUTTON_FALLBACK_SELECTOR in e for e in seen), \
+    assert any('send-button' in e for e in seen), \
         "click_send dropped the legacy testid fallback"
 
 
