@@ -17,6 +17,13 @@ import { evaluateEvidence, renderGap } from './evidence.js';
  * Loop-breaker: identical gap sets repeating `noProgressLimit` times → blocked.
  * The ledger (<instance>/continuation.jsonl) is durable so a restart sees the
  * same budget position — continuation state is canonical-adjacent, not volatile.
+ *
+ * Budget scope is the TASK, not the instance lifetime: both counters walk back
+ * from the ledger tail and stop at the first terminal row (complete/blocked),
+ * so a finished task frees the budget while a mid-task restart keeps it (the
+ * anti-bypass property durability exists for). Counting ALL historical
+ * 'continue' rows instead would permanently brick evidence-gated tasks after
+ * the first few — the governor would become a lifetime blocker.
  */
 
 export class ContinuationGovernor {
@@ -36,12 +43,20 @@ export class ContinuationGovernor {
     this.noProgressLimit = noProgressLimit;
     mkdirSync(dirname(ledgerPath), { recursive: true });
     this.history = existsSync(ledgerPath)
-      ? readFileSync(ledgerPath, 'utf-8').split('\n').filter(Boolean).map(JSON.parse)
+      ? readFileSync(ledgerPath, 'utf-8').split('\n').filter(Boolean)
+          .map((l) => { try { return JSON.parse(l); } catch { return null; } }) // torn tail row (crash mid-append) must not brick bootstrap
+          .filter(Boolean)
       : [];
   }
 
+  /** Continuations spent on the CURRENT task — trailing 'continue' rows. */
   #continuations() {
-    return this.history.filter((h) => h.action === 'continue').length;
+    let n = 0;
+    for (let i = this.history.length - 1; i >= 0; i--) {
+      if (this.history[i].action !== 'continue') break; // terminal row = task boundary
+      n++;
+    }
+    return n;
   }
 
   #repeatCount(gaps) {

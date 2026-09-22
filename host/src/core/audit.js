@@ -1,6 +1,7 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
+import { redactSecrets } from './secrets.js';
 
 const SECRET_KEY = /authorization|api[-_]?key|token|secret|password|credential|cookie|bearer/i;
 
@@ -62,7 +63,12 @@ export class AuditWriter {
   write(event) {
     const safe = { ...this.annotations, ...event };
     if (safe.data !== undefined) safe.data = redact(safe.data);
-    const line = JSON.stringify({ ts: new Date().toISOString(), ...safe });
+    // Value-level backstop: key-name redaction can't see a bearer token inside
+    // an innocent field (args.command carrying `curl -H "Authorization: ..."`,
+    // a paste into a prompt preview). The ledger is the LONG-LIVED artifact —
+    // known credential shapes are span-redacted here regardless of caller
+    // discipline, same pattern set as the write-path scan (one source of truth).
+    const line = redactSecrets(JSON.stringify({ ts: new Date().toISOString(), ...safe }));
     appendFileSync(this._file(), line + '\n');
   }
 

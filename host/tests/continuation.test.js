@@ -1,7 +1,7 @@
 /**
  * M3 evidence gate + governed continuation — real temp ledger, restart durable.
  */
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -83,11 +83,43 @@ test('max continuations → BLOCKED; ledger survives restart', () => {
   const d = g.evaluate(t3);
   assert.equal(d.action, 'blocked');
   assert.equal(d.reason, 'max_continuations');
-
-  // simulated restart: new governor reads the same ledger — budget position kept
-  const g2 = governor(dir, { maxContinuations: 2 });
-  const d2 = g2.evaluate(t1);
-  assert.equal(d2.action, 'blocked');
   const lines = readFileSync(join(dir, 'continuation.jsonl'), 'utf-8').trim().split('\n');
-  assert.ok(lines.length >= 4);
+  assert.ok(lines.length >= 3);
+});
+
+test('budget is task-scoped but restart-durable: mid-task restart keeps position, terminal row frees it', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-cont-'));
+  const t1 = turn([{ name: 'write', isError: false }]);
+  const t2 = turn([{ name: 'read', isError: false }]);
+  const t3 = turn([{ name: 'ls', isError: false }]);
+
+  // mid-task restart: two continues on disk, no terminal row — the restarted
+  // governor must NOT get a fresh budget (restart is not a bypass)
+  const g = governor(dir, { maxContinuations: 2, noProgressLimit: 99 });
+  g.evaluate(t1);
+  g.evaluate(t2);
+  const g2 = governor(dir, { maxContinuations: 2, noProgressLimit: 99 });
+  const d = g2.evaluate(t3);
+  assert.equal(d.action, 'blocked');
+  assert.equal(d.reason, 'max_continuations');
+
+  // a terminal row ends the task — the NEXT task gets its own budget even
+  // though the ledger holds exhausted history (lifetime counting would brick
+  // every later task permanently)
+  const dir2 = mkdtempSync(join(tmpdir(), 'pai-cont-'));
+  const h = governor(dir2, { maxContinuations: 2, noProgressLimit: 99 });
+  h.evaluate(t1);
+  h.evaluate(t2);
+  assert.equal(h.evaluate(turn([{ name: 'write', isError: false }, { name: 'powershell', isError: false }])).action, 'complete');
+  const h2 = governor(dir2, { maxContinuations: 2, noProgressLimit: 99 }); // restart after completion
+  assert.equal(h2.evaluate(t1).action, 'continue');
+});
+
+test('a torn ledger tail row (crash mid-append) does not brick construction', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-cont-'));
+  const g = governor(dir);
+  g.evaluate(turn([{ name: 'write', isError: false }]));
+  appendFileSync(join(dir, 'continuation.jsonl'), '{"action":"cont');
+  const g2 = governor(dir);
+  assert.equal(g2.evaluate(turn([{ name: 'write', isError: false }])).action, 'continue');
 });
