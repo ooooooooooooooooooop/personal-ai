@@ -157,10 +157,10 @@ test('M89: session_import never mutates the source file', async () => {
   assert.ok(destFile && existsSync(destFile), `imported session file missing: ${JSON.stringify(r)}`);
   const header = JSON.parse(readFileSync(destFile, 'utf-8').split('\n')[0]);
   assert.equal(header.parentSession, resolve(src), 'imported header must name the original source, not the deleted scratch');
-  const scratchDir = join(dir, 'sessions', '.import-scratch');
+  const stageRoot = join(dir, 'sessions', '.import-stage');
   assert.ok(
-    !existsSync(scratchDir) || readdirSync(scratchDir).length === 0,
-    'scratch copy must be gone after import');
+    !existsSync(stageRoot) || readdirSync(stageRoot).length === 0,
+    'staging dir must be gone after import');
   host.leases.close();
 });
 
@@ -198,12 +198,12 @@ test('M89-R3: a post-fork failure also removes the half-imported session', async
   const postImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
   assert.deepEqual(postImport.sort(), preImport.sort(), 'failed import must not leave a session file behind');
   assert.deepEqual(readFileSync(src), before);
-  const scratchDir = join(sessionsDir, '.import-scratch');
-  assert.ok(!existsSync(scratchDir) || readdirSync(scratchDir).length === 0);
+  const stageRoot = join(sessionsDir, '.import-stage');
+  assert.ok(!existsSync(stageRoot) || readdirSync(stageRoot).length === 0);
   host.leases.close();
 });
 
-test('M89-R3: a mid-fork throw cleans the orphan destination by scratch provenance', async () => {
+test('M89-R3: a mid-fork throw leaves no orphan — staging sweep + atomic publish', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-import-orphan-'));
   mkdirSync(join(dir, 'canonical'), { recursive: true });
   writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
@@ -222,29 +222,31 @@ test('M89-R3: a mid-fork throw cleans the orphan destination by scratch provenan
   const before = readFileSync(src);
   const sessionsDir = join(dir, 'sessions');
   const preImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
-  // upstream forkFrom() writes the destination header BEFORE it can return
-  // the manager — simulate a mid-copy throw: header + partial entry exist,
-  // but no manager comes back, so destFile capture never runs
+  // upstream forkFrom() creates the destination BEFORE it can return the
+  // manager — simulate a mid-write throw leaving a PARTIAL HEADER orphan
+  // (unparseable, no newline): a provenance scan could never identify it,
+  // staging containment must sweep it regardless
   let orphanPath = null;
+  let stageUsed = null;
   await assert.rejects(
     host.channel.sessions.importSession(src, {
       fork: (scratch, _workdir, dir) => {
+        stageUsed = dir;
         orphanPath = join(dir, `2099-01-01T00-00-00-000_orphanid.jsonl`);
-        writeFileSync(orphanPath, JSON.stringify({
-          type: 'session', version: 3, id: 'orphanid',
-          timestamp: new Date().toISOString(), cwd: dir, parentSession: scratch,
-        }) + '\n' + JSON.stringify({ type: 'message', id: 'half' }) + '\n');
+        writeFileSync(orphanPath, '{"type":"session","version":3,"id":"orph'); // truncated mid-header
         throw new Error('simulated mid-copy I/O failure');
       },
     }),
     /simulated mid-copy I\/O failure/,
   );
   const postImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
-  assert.deepEqual(postImport.sort(), preImport.sort(), 'orphan destination must be removed by scratch-provenance scan');
-  assert.ok(!existsSync(orphanPath), 'half-written fork file is gone');
+  assert.deepEqual(postImport.sort(), preImport.sort(), 'nothing reaches the real sessions root until atomic publish');
+  assert.ok(!existsSync(orphanPath), 'partial-header orphan swept with the staging dir');
+  assert.ok(stageUsed && stageUsed.includes('.import-stage'), 'fork ran inside a staging dir');
+  assert.ok(!existsSync(stageUsed), 'staging dir removed after failure');
   assert.deepEqual(readFileSync(src), before);
-  const scratchDir = join(sessionsDir, '.import-scratch');
-  assert.ok(!existsSync(scratchDir) || readdirSync(scratchDir).length === 0);
+  const stageRoot = join(sessionsDir, '.import-stage');
+  assert.ok(!existsSync(stageRoot) || readdirSync(stageRoot).length === 0);
   host.leases.close();
 });
 
@@ -312,9 +314,9 @@ test('M89-R2: provenance rewrite failure fails the whole import — no dangling 
   const postImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
   assert.deepEqual(postImport.sort(), preImport.sort(), 'failed import must not leave a session file behind');
   assert.deepEqual(readFileSync(src), before, 'source bytes must be identical after failed import');
-  const scratchDir = join(sessionsDir, '.import-scratch');
+  const stageRoot = join(sessionsDir, '.import-stage');
   assert.ok(
-    !existsSync(scratchDir) || readdirSync(scratchDir).length === 0,
-    'scratch must be cleaned even on failure');
+    !existsSync(stageRoot) || readdirSync(stageRoot).length === 0,
+    'staging must be cleaned even on failure');
   host.leases.close();
 });
