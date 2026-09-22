@@ -203,6 +203,51 @@ test('M89-R3: a post-fork failure also removes the half-imported session', async
   host.leases.close();
 });
 
+test('M89-R3: a mid-fork throw cleans the orphan destination by scratch provenance', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-import-orphan-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  const src = join(dir, 'foreign4.jsonl');
+  const srcContent =
+    JSON.stringify({ type: 'session', version: 3, id: 'src-4', timestamp: new Date().toISOString(), cwd: dir }) + '\n' +
+    JSON.stringify({ type: 'message', id: 'm1', timestamp: new Date().toISOString(), message: { role: 'user', content: 'hi' } }) + '\n';
+  writeFileSync(src, srcContent);
+  const before = readFileSync(src);
+  const sessionsDir = join(dir, 'sessions');
+  const preImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
+  // upstream forkFrom() writes the destination header BEFORE it can return
+  // the manager — simulate a mid-copy throw: header + partial entry exist,
+  // but no manager comes back, so destFile capture never runs
+  let orphanPath = null;
+  await assert.rejects(
+    host.channel.sessions.importSession(src, {
+      fork: (scratch, _workdir, dir) => {
+        orphanPath = join(dir, `2099-01-01T00-00-00-000_orphanid.jsonl`);
+        writeFileSync(orphanPath, JSON.stringify({
+          type: 'session', version: 3, id: 'orphanid',
+          timestamp: new Date().toISOString(), cwd: dir, parentSession: scratch,
+        }) + '\n' + JSON.stringify({ type: 'message', id: 'half' }) + '\n');
+        throw new Error('simulated mid-copy I/O failure');
+      },
+    }),
+    /simulated mid-copy I\/O failure/,
+  );
+  const postImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
+  assert.deepEqual(postImport.sort(), preImport.sort(), 'orphan destination must be removed by scratch-provenance scan');
+  assert.ok(!existsSync(orphanPath), 'half-written fork file is gone');
+  assert.deepEqual(readFileSync(src), before);
+  const scratchDir = join(sessionsDir, '.import-scratch');
+  assert.ok(!existsSync(scratchDir) || readdirSync(scratchDir).length === 0);
+  host.leases.close();
+});
+
 test('M90-R3: restart gate args use the canonical job_spawn schema', () => {
   const args = restartSpecToJobSpawnArgs({
     command: 'npm test',

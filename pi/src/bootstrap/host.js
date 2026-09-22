@@ -1,7 +1,7 @@
 import { join, resolve, basename } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../adapter/paths.js';
 import { spawn, spawnSync } from 'node:child_process';
-import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, openSync, writeSync, closeSync } from 'node:fs';
+import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, openSync, readSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
@@ -158,6 +158,33 @@ export function rewriteSessionParent(destFile, originalAbs) {
  * must hit identically on both paths). Execution still replays the raw
  * restart_spec; only the gate input is canonicalized.
  */
+/**
+ * M89-R3: upstream forkFrom() writes the destination header BEFORE it can
+ * return the manager — a mid-copy throw orphans a half-written file we
+ * never captured. The orphan's provenance names OUR scratch (unique per
+ * import), so it can be found precisely without touching other sessions.
+ */
+function findOrphanFork(sessionDir, scratch) {
+  for (const f of readdirSync(sessionDir)) {
+    if (!f.endsWith('.jsonl')) continue;
+    const p = join(sessionDir, f);
+    try {
+      const fd = openSync(p, 'r');
+      try {
+        const buf = Buffer.alloc(4096);
+        const n = readSync(fd, buf, 0, 4096, 0);
+        const nl = buf.subarray(0, n).indexOf(0x0a);
+        if (nl <= 0) continue;
+        const hdr = JSON.parse(buf.subarray(0, nl).toString('utf-8'));
+        if (hdr?.type === 'session' && hdr.parentSession === scratch) return p;
+      } finally {
+        closeSync(fd);
+      }
+    } catch { /* unreadable candidate — skip */ }
+  }
+  return null;
+}
+
 export function restartSpecToJobSpawnArgs(spec) {
   const s = spec?.sandbox ?? null;
   return {
@@ -1042,7 +1069,7 @@ export async function startHost({
     // pi-format session file into the store WITHOUT switching to it — the
     // imported transcript lands in the drawer with a [导入] name marker and
     // forkFrom's parentSession header records the source path (provenance).
-    importSession: async (srcPath, { rewriteParent = rewriteSessionParent, afterFork = null } = {}) => {
+    importSession: async (srcPath, { rewriteParent = rewriteSessionParent, afterFork = null, fork = null } = {}) => {
       const abs = resolve(String(srcPath ?? ''));
       if (!existsSync(abs)) throw new Error(`session file not found: ${abs}`);
       // M89: upstream loadEntriesFromFile() APPENDS a newline to a source file
@@ -1054,7 +1081,7 @@ export async function startHost({
       let destFile = null;
       try {
         copyFileSync(abs, scratch); // inside try — a partial copy is cleaned too
-        const mgr = sessionManagers.forkFrom(scratch, workdir, sessionDir);
+        const mgr = (fork ?? sessionManagers.forkFrom)(scratch, workdir, sessionDir);
         // capture IMMEDIATELY after fork: any later step's failure (name,
         // appendSessionInfo, rewrite) must still remove the half-imported
         // destination — the store never carries a dangling-provenance header
@@ -1072,6 +1099,10 @@ export async function startHost({
         rewriteParent(destFile, abs);
         return { file: destFile, name: `[导入] ${srcName}`, importedFrom: abs };
       } catch (err) {
+        // M89-R3: forkFrom() writes the destination header BEFORE returning —
+        // a mid-copy throw orphans a file whose header names our scratch;
+        // recover it by provenance so the store keeps no half-import
+        if (!destFile) destFile = findOrphanFork(sessionDir, scratch);
         // fail-closed: remove the half-imported session + rewrite tmp so the
         // store never carries a dangling-provenance header
         try { if (destFile) unlinkSync(destFile); } catch { /* cleanup best-effort */ }
