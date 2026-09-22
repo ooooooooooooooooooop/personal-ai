@@ -220,7 +220,10 @@ async function egressCheck(url, egressAllow) {
   return null;
 }
 
-export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAULT_MAX_CHARS, egressAllow = null } = {}) {
+const SUMMARIZE_AT_CHARS = 15_000;
+const SUMMARY_INPUT_CAP = 60_000;
+
+export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAULT_MAX_CHARS, egressAllow = null, summarize = null } = {}) {
   return {
     name: 'web_fetch',
     label: 'Web Fetch',
@@ -287,6 +290,19 @@ export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAUL
         let text = /html|xml/.test(ctype) ? htmlToText(buf.toString('utf-8')) : buf.toString('utf-8');
         const cap = Number.isFinite(params.max_chars) ? Math.min(params.max_chars, maxChars * 4) : maxChars;
         const truncated = text.length > cap;
+        // M133: over the summary threshold an AI summary is worth more than a
+        // raw head-slice — but only when a summarizer is actually wired (no
+        // provider/auth → honest truncation, not a fake "summary").
+        let summarized = false;
+        if (truncated && summarize && text.length > SUMMARIZE_AT_CHARS) {
+          const summary = await summarize(text.slice(0, SUMMARY_INPUT_CAP), String(url)).catch(() => null);
+          if (typeof summary === 'string' && summary.trim()) {
+            return {
+              content: [{ type: 'text', text: `<web_fetch url="${url}" status="${res.status}" summarized="true" source_chars="${text.length}">\n${summary.trim()}\n</web_fetch>` }],
+              details: { url: String(url), status: res.status, truncated, summarized: true, sourceChars: text.length, contentType: ctype },
+            };
+          }
+        }
         if (truncated) text = text.slice(0, cap);
         return {
           content: [{ type: 'text', text: `<web_fetch url="${url}" status="${res.status}"${truncated ? ` truncated="${cap}"` : ''}>\n${text}\n</web_fetch>` }],

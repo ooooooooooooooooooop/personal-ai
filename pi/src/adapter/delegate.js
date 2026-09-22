@@ -116,6 +116,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // the child to workdir steering files via a dedicated bridge flag.
       let profileModel = null; let profileEffort = null; let steeringOff = false;
       let toolsDeny = null; // M76 — dedicated bridge flag, never --env-json
+      let mcpDeny = null;   // C3 — same dedicated-flag channel
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -135,6 +136,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (p.effort) profileEffort = p.effort;
         if (p.isolateSteering) steeringOff = true;
         if (p.toolsDeny?.length) toolsDeny = p.toolsDeny.join(',');
+        if (p.mcpDeny?.length) mcpDeny = p.mcpDeny.join(',');
         if (p.budget) profileBudget = p.budget;
       }
       if (!target) {
@@ -195,6 +197,19 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
               'a child tool surface — remove tools_deny or point the profile at a pai-channel body',
           }],
           details: { refused: true, reason: 'unenforceable_tools_deny', rule: 'tools_deny' },
+        };
+      }
+      // C3: identical fail-closed rule for mcp_deny — the mcp extension drops
+      // denied servers at connect time inside a pai-channel child; a foreign
+      // body ignores the stamp, so refuse pre-spawn rather than lie.
+      if (mcpDeny && !childEnforceable) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: profile '${params.profile}' declares mcp_deny, but target '${target}' cannot enforce ` +
+              'a child MCP subset — remove mcp_deny or point the profile at a pai-channel body',
+          }],
+          details: { refused: true, reason: 'unenforceable_mcp_deny', rule: 'mcp_deny' },
         };
       }
       const scope = getScope?.() ?? null;
@@ -310,7 +325,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       const envFlag = profileEnv
         ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
         : '';
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,

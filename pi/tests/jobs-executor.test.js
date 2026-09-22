@@ -948,6 +948,46 @@ test('M76: tools_deny on an enforceable pai-channel target still delegates', asy
   store.close();
 });
 
+// ─── C3: mcp_deny on an unenforceable target refuses pre-spawn ─────────────
+
+test('C3: profile mcp_deny + non-pai-channel target → refused, never spawned', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-md-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['narrow', { target: 'codex', mcpDeny: ['github'] }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: (t, task) => `echo "ext ${t}: ${task}"`, // foreign body — cannot honor PAI_MCP_DENY
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'narrow', task: 'x' });
+  assert.equal(res.details.refused, true);
+  assert.equal(res.details.reason, 'unenforceable_mcp_deny');
+  assert.match(res.content[0].text, /cannot enforce/);
+  assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn — no job record');
+  store.close();
+});
+
+test('C3: mcp_deny on an enforceable pai-channel target rides the bridge', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-mdok-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['narrow', { target: 'pi', mcpDeny: ['github', 'web-search'] }],
+  ]);
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'narrow', task: 'x' });
+  assert.equal(res.details.refused, undefined, `not refused: ${res.content[0].text}`);
+  assert.match(res.content[0].text, /--mcp-deny|delegated to/, 'mcp-deny flag rides the bridge command');
+  await new Promise((r) => setTimeout(r, 3000));
+  store.close();
+});
+
 // ─── M76/M94-R2: task-text cannot spoof enforceability ─────────────────────
 // The old `/pai-channel\.js/.test(inner)` sniffed the INTERPOLATED command —
 // `inner` carries model-controlled task text, so `task="inspect pai-channel.js"`

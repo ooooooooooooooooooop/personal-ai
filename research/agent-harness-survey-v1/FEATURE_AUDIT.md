@@ -1760,3 +1760,17 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | M124 运行时备份导入导出 | **REAL** | `pi/src/adapter/runtimexfer.js`：`runtime_export` 白名单打包（`.pai/` 选择集 + instance 运行态，**永不含治理配置/会话本体**），manifest 携带逐文件 sha256；`runtime_import` 先验签再落盘——篡改字节/非 bundle/workdir 逃逸一律拒写；导入需 operator ask（无通道 fail-closed）；逐文件走 `FileOpsGuard.write`（备份+收据→可回滚）；`.paiignore` 映射防工作区把 steering 文件塞回治理层。哨兵：export→import 往返/篡改拒收/逃逸拒收/operator 拒绝/无通道拒收（runtime-xfer.test.js） |
 
 修复位点说明：批2 为**新执行路径**（生成器源码），非文档声明；`runtimeXferTools` 因 `fileOps` 初始化时序从数组字面量移到 push（TDZ 回归已在 bootstrap.test.js 复现并修掉）。回归：host 293 / pi 296+1skip 全绿；validate_repo --strict 0 err；quality gate 22 skills PASS；diff --check 干净。
+
+### 28.26 批3：pi 工具面七项补建（2026-09-23，方向二残余清单实装）
+
+| 项 | 终态 | 证据/实现 |
+|---|---|---|
+| M144 unicode_mode | **REAL** | `host/src/core/charset.js` 零依赖输出归一器：`auto`（默认值不动）/`unicode`/`ascii`（降档：→↦ 等常见符映射 + 非 ASCII 剥离）；在 `HostChannel.#emit()` 事件边界对全部 session 事件文本统一应用；`config_get`/`config_set` 暴露 `unicode_mode`。输入侧既有不可见字符消毒保持不动（decide.js sanitizeArgs）。哨兵：channel.test.js +2（ascii 降档/auto 不动） |
+| C2 MCP output_token_limit | **REAL** | `pi/extensions/mcp/index.js`：server 级 `output_token_limit`（按 chars≈token×4 封顶）+ `tool_output_limits` 逐工具覆盖；超限文本截断并带显式 `truncated` 标记，untrusted envelope 完整保留。哨兵：mcp-ext.test.js +1（server 级截断 + 逐工具覆盖胜出） |
+| M133 web_fetch 超限摘要 | **REAL** | `webFetchTool` 注入 `summarize` 回调（bootstrap 复用 `judgeCall` 门控 LLM 面——走治理 fetch + 按量计费路由）；body >15K 且截断时先送 ≤60K 前缀给摘要器，产出 `<web_fetch summarized="true">` 包裹摘要；summarizer 缺位/失败回退诚实截断（不出伪摘要）。哨兵：web.test.js +1（摘要路由 + 无 summarizer 回退） |
+| M123 bash spawn hook | **REAL** | `bash_run` 走 exec facade 旁路了 session pump 的 hook 派发——在 `exec.run` 补发观测性 `tool_start`/`tool_end`（toolName=bash_run），沿用既有 HookRunner 治理/env 消毒。哨兵：bootstrap.test.js +1（真子进程钩子实证：写盘 marker 验证 PAI_HOOK_EVENT+toolName） |
+| M110 Skill Workshop | **REAL** | skilltools 补齐工坊回路：`skill_list`/`skill_read`/`skill_test`——`skill_test` 复用生产匹配谓词 `matchMicroagents()`（host/src/core/microagents.js）做触发器 dry-run，不写第二个解析器；写入仍走既有 skill_save 治理面。哨兵：skilltools.test.js +2（test 命中/不命中、list/read 巡检） |
+| M114 持久 js_repl | **REAL** | `jsrepl-worker.js`（持久 node 子进程 + vm context，`globalThis` 作 context——exec 类语义全量 node 全局，stdout/stderr 逐次捕获，JSONL 协议：stdout 仅响应包、诊断走 stderr）+ `jsrepl.js`（工具封装：懒启动/跨调用保态/Promise await/重启清空/输出有界/子进程 env 经 scrubHookEnv 剥密钥）。治理：governance `EXEC_BODY_TOOLS` 导出把 js_repl 归 exec 族（tool allow 不软化 risk class）；decide 列入 mutating 写租约面；host.js 注册+dispose。哨兵：jsrepl.test.js +2（声明持久/异步 await/restart 清空/子进程 env 密钥剥离实证） |
+| C3 MCP profile 限定 | **REAL** | 镜像 M76 tools_deny 范式：profile `mcp_deny` 字段（同信任闸——untrusted workdir 剥除）→ delegate `--mcp-deny` 专用桥旗（PAI_* 通道，env-json 永不携带）→ `PAI_MCP_DENY` env → mcp 扩展在连接前过滤 denied server（连握手都不发生），`/mcp` 状态明示 denied 名单；非 pai-channel 目标 fail-closed 拒派（unenforceable_mcp_deny）。哨兵：agentprofiles（信任闸）+jobs-executor（拒派+桥旗实证）+mcp-ext（连接级过滤+/mcp 可见） |
+
+修复位点说明：批3 全部落在**执行路径**（worker/工具/桥旗/扩展装载面），非文档声明；M114 排障中发现并修复两真 bug——裸 vm context 缺 node 全局（改 `globalThis`）+ restart 竞态（旧 child 的 exit 晚到误清新 child pending——exit 处理器只对当前 child 生效）。回归：host 294 / pi 313+1skip 全绿。

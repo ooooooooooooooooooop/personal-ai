@@ -182,6 +182,49 @@ test('mcp extension: registers mcp__srv__tool, untrusted wrap, failure hides too
   }
 });
 
+test('C3: PAI_MCP_DENY filters denied servers before connect', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, FAKE_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({
+      mcpServers: {
+        fake: { command: process.execPath, args: [serverPath] },
+        denied: { command: process.execPath, args: [serverPath] },
+      },
+    }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    const prevDeny = process.env.PAI_MCP_DENY;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    process.env.PAI_MCP_DENY = 'denied';
+    try {
+      const pi = fakePi();
+      const notices = [];
+      const ctx = { ui: { notify: (m, l) => notices.push([l, m]) } };
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__fake__echo') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(pi.tools.has('mcp__fake__echo'), 'allowed server connects');
+      assert.ok(!pi.tools.has('mcp__denied__echo'), 'denied server never connects');
+      await pi.handlers.get('session_shutdown')?.();
+      // /mcp status surfaces the denial honestly
+      await pi.commands.get('mcp').handler(ctx);
+      const status = notices.map(([, m]) => m).join('\n');
+      assert.match(status, /denied by profile.*denied/);
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+      if (prevDeny === undefined) delete process.env.PAI_MCP_DENY;
+      else process.env.PAI_MCP_DENY = prevDeny;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('M82: mcp prompts register as slash commands; get expands to a user message', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
   try {
@@ -514,6 +557,43 @@ test('A2 env sanitize: injection keys stripped at spawn; operator env + ordinary
       assert.equal(seen.p, 'set');                            // inherited operator PATH
     } finally {
       client.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('C2 output_token_limit: per-server cap tightens text results; per-tool override wins', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-cap-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, FAKE_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    // 10 tokens -> 40 char cap on every tool; echo pinned even lower (5 tok -> 20)
+    writeFileSync(cfgPath, JSON.stringify({
+      mcpServers: {
+        capped: { command: process.execPath, args: [serverPath], output_token_limit: 10, tool_output_limits: { echo: 5 } },
+      },
+    }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    try {
+      const pi = fakePi();
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__capped__echo') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      const tool = pi.tools.get('mcp__capped__echo');
+      assert.ok(tool, 'echo registered under capped server');
+      const res = await tool.execute('tc', { text: 'x'.repeat(500) });
+      assert.match(res.content[0].text, /truncated at 20 chars/, 'per-tool 5-token cap = 20 chars');
+      // the untrusted envelope still wraps the truncated body
+      assert.match(res.content[0].text, /<untrusted mcp_server="capped"/);
+      await pi.handlers.get('session_shutdown')?.();
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });

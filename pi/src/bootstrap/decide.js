@@ -1,6 +1,6 @@
 import { isLongRunningCommand } from '../adapter/jobs.js';
 import { hashOf } from '../../../host/src/core/audit.js';
-import { GIT_INTERNAL_RE, INSTRUCTION_PATH_RES } from '../../../host/src/core/governance.js';
+import { EXEC_BODY_TOOLS, GIT_INTERNAL_RE, INSTRUCTION_PATH_RES } from '../../../host/src/core/governance.js';
 import { scanForSecrets } from '../adapter/secrets.js';
 import { pathInsideRoot, pathInsideRootForWrite } from '../adapter/paths.js';
 import { readFileSync, realpathSync } from 'node:fs';
@@ -423,7 +423,7 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     // job_spawn writes nothing itself — the spawned job serializes via its
     // own `job:` lease inside spawnCommandJob (an fg lease here would make
     // every mutating job_spawn refuse against its own caller's hold).
-    let mutating = FILE_MUTATION_TOOLS.has(toolName) || toolName?.startsWith('mcp__');
+    let mutating = FILE_MUTATION_TOOLS.has(toolName) || toolName?.startsWith('mcp__') || EXEC_BODY_TOOLS.has(toolName);
     if (toolName === 'job_spawn') mutating = false;
     if (!mutating && typeof commandForLease === 'string' && classifier) {
       try {

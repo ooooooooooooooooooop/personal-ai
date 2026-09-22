@@ -345,3 +345,37 @@ test('M107: btw readonly posture — effectful tools denied at decide, reads pas
   decide.resetTurn();
   assert.ok(calls.includes('reset'));
 });
+
+test('M123: operator bash_run fires observational tool_start/tool_end hooks', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-bashhook-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: { bash: { action: 'allow' } }, riskActions: {},
+  }));
+  const marker = join(dir, 'hook-fires.jsonl');
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const hookScript = join(dir, 'hook.js');
+  writeFileSync(hookScript, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').appendFileSync(${JSON.stringify(marker)},JSON.stringify({ev:process.env.PAI_HOOK_EVENT,tool:JSON.parse(d).toolName})+String.fromCharCode(10));});`);
+  const hookCmd = `"${process.execPath}" ${JSON.stringify(hookScript)}`;
+  writeFileSync(join(dir, '.pai', 'hooks.json'), JSON.stringify({
+    hooks: { tool_start: [{ command: hookCmd }], tool_end: [{ command: hookCmd }] },
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  const r = await host.channel.handle({ type: 'bash_run', command: 'echo m123-ok' });
+  assert.equal(r.success, true, JSON.stringify(r));
+  // hooks are fired detached — give the child processes a moment to write
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    if (existsSync(marker) && readFileSync(marker, 'utf-8').trim().split('\n').length >= 2) break;
+    await new Promise((r2) => setTimeout(r2, 100));
+  }
+  assert.ok(existsSync(marker), 'hook marker file written');
+  const fired = readFileSync(marker, 'utf-8').trim().split('\n').map((l) => JSON.parse(l).ev);
+  assert.ok(fired.includes('tool_start'), `tool_start fired (got ${fired})`);
+  assert.ok(fired.includes('tool_end'), `tool_end fired (got ${fired})`);
+  host.leases.close();
+});

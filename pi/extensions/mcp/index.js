@@ -372,11 +372,22 @@ function loadConfig() {
   return { path: null, servers: {} };
 }
 
-function wrapUntrusted(server, tool, result) {
+// C2 per-tool output budget: spec.output_token_limit caps every tool on the
+// server; spec.tool_output_limits {toolName: tokens} overrides per tool.
+// Tokens ≈ chars/4 (no tokenizer at this layer — the cap is a context-
+// protection bound, not billing math). Can only tighten, never widen the
+// built-in MAX_RESULT_CHARS ceiling.
+function resultCharCap(spec, toolName) {
+  const tokens = spec?.tool_output_limits?.[toolName] ?? spec?.output_token_limit;
+  if (typeof tokens !== 'number' || !Number.isFinite(tokens) || tokens <= 0) return MAX_RESULT_CHARS;
+  return Math.min(MAX_RESULT_CHARS, Math.floor(tokens * 4));
+}
+
+function wrapUntrusted(server, tool, result, maxChars = MAX_RESULT_CHARS) {
   const content = (result?.content ?? []).map((c) => {
     if (c?.type === 'text' && typeof c.text === 'string') {
-      const text = c.text.length > MAX_RESULT_CHARS
-        ? `${c.text.slice(0, MAX_RESULT_CHARS)}\n[truncated at ${MAX_RESULT_CHARS} chars]`
+      const text = c.text.length > maxChars
+        ? `${c.text.slice(0, maxChars)}\n[truncated at ${maxChars} chars]`
         : c.text;
       return {
         type: 'text',
@@ -393,7 +404,15 @@ function wrapUntrusted(server, tool, result) {
 }
 
 export default function mcpExtension(pi) {
-  const { path: configPath, servers, error: configError } = loadConfig();
+  const { path: configPath, servers: allServers, error: configError } = loadConfig();
+  // C3 per-agent MCP subset: a delegate child stamped PAI_MCP_DENY (profile
+  // mcp_deny via the dedicated bridge flag) never connects to denied servers
+  // — filtering happens here, before any spawn/handshake, so a denied server
+  // cannot even be probed by the child's process.
+  const denied = new Set(
+    String(process.env.PAI_MCP_DENY ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  );
+  const servers = Object.fromEntries(Object.entries(allServers).filter(([name]) => !denied.has(name)));
   /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean, prompts?:object[], dead?:Set<string>, lastRefresh?:object}>} */
   const connected = new Map();
 
@@ -421,7 +440,7 @@ export default function mcpExtension(pi) {
         }
         try {
           const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
-          return wrapUntrusted(serverName, t.name, res);
+          return wrapUntrusted(serverName, t.name, res, resultCharCap(entry.spec, t.name));
         } catch (err) {
           return {
             content: [{ type: 'text', text: `mcp call failed (${serverName}/${t.name}): ${err?.message ?? err}` }],
@@ -591,6 +610,10 @@ export default function mcpExtension(pi) {
           const req = (p.args ?? []).filter((a) => a.required).map((a) => a.name);
           lines.push(`    /mcp-${name}-${p.name}`.replace(/[^a-zA-Z0-9_\-/]/g, '_') + (req.length ? ` (args: ${req.join(' ')})` : ''));
         }
+      }
+      if (denied.size) {
+        const hit = [...denied].filter((n) => n in allServers);
+        if (hit.length) lines.push(`  denied by profile (PAI_MCP_DENY): ${hit.join(', ')}`);
       }
       if (Object.keys(servers).length === 0 && configPath) lines.push('  (config has no servers)');
       ctx.ui?.notify?.(lines.join('\n'), 'info');

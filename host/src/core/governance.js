@@ -61,6 +61,12 @@ const GIT_INTERNAL_RE = /(?:^|\/)\.git(?:\/|$)/i;
 // regexes on the real path closes that lane without duplicating the tables.
 export { INSTRUCTION_PATH_RES, GIT_INTERNAL_RE };
 
+// M114 exec-body tools: the whole payload IS code, so there is no command
+// string for the shell classifier to inspect. They take the policy's
+// 'exec' risk-class action directly — the same posture `bash` gets (an
+// explicit tool rule still applies on top, matching command semantics).
+export const EXEC_BODY_TOOLS = new Set(['js_repl']);
+
 export class GovernanceKernel {
   /** Rejection-memory signature set — per kernel instance = per session
    * (CodeBuddy analogue): an identical call the operator already denied
@@ -383,6 +389,30 @@ export class GovernanceKernel {
         return this.#deny(ctx, `risk_${parsed.risk}`, {
           terminate: true,
           reason: `command risk class '${parsed.risk}' halts the batch by policy`,
+        });
+      }
+    }
+
+    // 4b. exec-body tools (js_repl): resolve the exec risk action exactly as
+    // a classified command would — unset exec class defaults to 'ask', so a
+    // code-execution surface never free-rides on an unconfigured policy.
+    if (EXEC_BODY_TOOLS.has(ctx.toolName)) {
+      const execAction = (this.policy.doc?.riskActions ?? {}).exec ?? 'ask';
+      if (execAction === 'terminate') {
+        return this.#deny(ctx, 'risk_exec', {
+          terminate: true,
+          reason: `exec-body tool '${ctx.toolName}' halts the batch by policy (exec=terminate)`,
+        });
+      }
+      if (execAction === 'deny') {
+        return this.#deny(ctx, 'risk_exec', {
+          reason: `exec-body tool '${ctx.toolName}' denied by policy (exec=deny)`,
+          repair: 'request elevation through the operator',
+        });
+      }
+      if (execAction === 'ask') {
+        return this.#ask(ctx, 'risk_exec', {
+          reason: `'${ctx.toolName}' executes arbitrary code — exec class requires operator approval by policy`,
         });
       }
     }

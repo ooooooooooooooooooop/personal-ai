@@ -26,6 +26,10 @@
  *   tools_deny: bash,deploy (child tool surface suppression — reaches the
  *                            child via PAI_TOOLS_DENY env; honored by our own
  *                            pai bodies, inert hint for foreign harnesses)
+ *   mcp_deny: github,web     (C3 — child connects to all configured MCP
+ *                            servers EXCEPT these; reaches the child via
+ *                            PAI_MCP_DENY, enforced by the mcp extension at
+ *                            connect time — pai-channel bodies only)
  *   budget_tokens: 50000    (M94 per-agent context budget — child is stamped
  *   budget_calls: 20         with a hard request-level cap; only enforceable
  *   budget_cost: 0.50        on pai-channel children, refused surface-wide else)
@@ -74,6 +78,12 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
   const toolsDeny = envCapable
     ? String(fields.tools_deny ?? '').split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 32)
     : [];
+  // C3 per-agent MCP server subset — same trust gate: a repo-planted profile
+  // must never shrink the child's MCP surface. Reaches the child via
+  // PAI_MCP_DENY; the mcp extension drops denied servers at connect time.
+  const mcpDeny = envCapable
+    ? String(fields.mcp_deny ?? '').split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w.-]*$/.test(t)).slice(0, 64)
+    : [];
   // M94 per-agent budget — numeric caps stamped into the child's env gate.
   const budget = {};
   if (envCapable) {
@@ -94,6 +104,7 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
     ...(envCapable && fields.effort ? { effort: fields.effort } : {}),
     ...(envCapable && /^(1|true|yes)$/i.test(fields.isolate_steering ?? '') ? { isolateSteering: true } : {}),
     ...(toolsDeny.length ? { toolsDeny } : {}),
+    ...(mcpDeny.length ? { mcpDeny } : {}),
     ...(Object.keys(budget).length ? { budget } : {}),
     maxMinutes: Number.isFinite(maxMin) && maxMin > 0 ? Math.min(maxMin, 24 * 60) : null,
   };

@@ -150,3 +150,29 @@ test('M91: missing required params ask the operator per-param; denial aborts hon
   assert.equal(r3.isError, true);
   assert.match(r3.content[0].text, /missing required params/);
 });
+
+test('M110 workshop: skill_test dry-runs triggers via the live matcher before save; list/read inspect the library', async () => {
+  const audits = [];
+  const workdir = mkdtempSync(join(tmpdir(), 'pai-skill-'));
+  const tools = skillTools({ workdir, audit: { write: (e) => audits.push(e) } });
+  const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
+
+  // draft trigger validation — same predicate as the live prompt path
+  const hit = await byName.skill_test.execute('t', { triggers: ['deploy', 'release'], sample: 'please deploy the service' });
+  assert.match(hit.content[0].text, /MATCH.*deploy/);
+  const miss = await byName.skill_test.execute('t', { triggers: ['k8s'], sample: 'run the tests' });
+  assert.match(miss.content[0].text, /NO MATCH/);
+  const bad = await byName.skill_test.execute('t', { sample: 'x' });
+  assert.equal(bad.isError, true, 'no name and no triggers refuses');
+
+  // save → list/read → test by name — the full workshop loop
+  await byName.skill_save.execute('t', { name: 'deploy-proc', triggers: ['deploy'], body: 'deploy steps body' });
+  const list = await byName.skill_list.execute('t', {});
+  assert.match(list.content[0].text, /deploy-proc.*\[deploy\]/);
+  const read = await byName.skill_read.execute('t', { name: 'deploy-proc' });
+  assert.match(read.content[0].text, /triggers: deploy/);
+  const named = await byName.skill_test.execute('t', { name: 'deploy-proc', sample: 'deploy now' });
+  assert.match(named.content[0].text, /MATCH/);
+  const missing = await byName.skill_test.execute('t', { name: 'ghost', sample: 'x' });
+  assert.equal(missing.isError, true);
+});

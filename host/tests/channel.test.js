@@ -607,3 +607,35 @@ test('provider_add/provider_models_add: cost declaration validated and passed th
   const mlBad = await ch.handle({ type: 'provider_models_add', provider: 'cpa', models: ['c'], cost: { input: NaN } });
   assert.equal(mlBad.success, false);
 });
+
+test('M144 unicode_mode: ascii tier degrades event symbols, auto/unicode pass through', async () => {
+  const session = fakeSession();
+  const ch = new HostChannel({ session });
+  const seen = [];
+  ch.subscribe((m) => seen.push(m));
+  const fire = (message) => session.listeners.forEach((l) => l({ type: 'notify', message }));
+
+  // default auto resolves unicode on this test env — symbols pass through
+  fire('── done → ok ✓');
+  assert.equal(seen.at(-1).event.message, '── done → ok ✓');
+
+  const bad = await ch.handle({ type: 'config_set', key: 'unicode_mode', value: 'emoji' });
+  assert.equal(bad.success, false);
+
+  const set = await ch.handle({ type: 'config_set', key: 'unicode_mode', value: 'ascii' });
+  assert.equal(set.success, true);
+  assert.equal(set.data.charset, 'ascii');
+  fire('── done → ok ✓');
+  assert.equal(seen.at(-1).event.message, '-- done -> ok ok');
+  // CJK content is never stripped — degrade covers chrome only
+  fire('完成 ──');
+  assert.equal(seen.at(-1).event.message, '完成 --');
+
+  const back = await ch.handle({ type: 'config_set', key: 'unicode_mode', value: 'unicode' });
+  assert.equal(back.success, true);
+  fire('── again ──');
+  assert.equal(seen.at(-1).event.message, '── again ──');
+
+  const g = await ch.handle({ type: 'config_get' });
+  assert.equal(g.data.unicode_mode, 'unicode');
+});

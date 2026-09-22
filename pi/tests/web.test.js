@@ -245,3 +245,38 @@ test('M66 checkResolvedHost: reviewer sentinels — allowlist/local/private orde
   assert.equal(checkResolvedHost('169.254.169.254', [], null).ok, false);
   assert.equal(checkResolvedHost('8.8.8.8', [], null).ok, true);
 });
+
+test('M133: >15K body routes to the summarizer; absent/failed summarizer falls back to honest truncation', async () => {
+  const big = 'data '.repeat(5000); // 25k chars
+  const { server, port } = await serve((req, res) => {
+    res.setHeader('content-type', 'text/plain');
+    res.end(big);
+  });
+  try {
+    // summarizer wired → summary returned, honestly flagged
+    const seen = [];
+    const t = webFetchTool({ summarize: async (text, url) => { seen.push([text.length, url]); return 'SUMMARY: page lists data rows'; } });
+    const r = await t.execute('c', { url: `http://127.0.0.1:${port}/big` });
+    assert.equal(r.details.summarized, true);
+    assert.equal(r.details.sourceChars, big.length);
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0][0], Math.min(big.length, 60_000), 'summarizer input bounded');
+    assert.match(r.content[0].text, /summarized="true"/);
+    assert.match(r.content[0].text, /SUMMARY: page lists data rows/);
+
+    // summarizer that fails → honest truncation, no fake summary
+    const t2 = webFetchTool({ summarize: async () => { throw new Error('provider down'); } });
+    const r2 = await t2.execute('c', { url: `http://127.0.0.1:${port}/big` });
+    assert.equal(r2.details.summarized, undefined);
+    assert.equal(r2.details.truncated, true);
+    assert.match(r2.content[0].text, /truncated="/);
+
+    // no summarizer → same honest truncation
+    const t3 = webFetchTool();
+    const r3 = await t3.execute('c', { url: `http://127.0.0.1:${port}/big` });
+    assert.equal(r3.details.summarized, undefined);
+    assert.equal(r3.details.truncated, true);
+  } finally {
+    server.close();
+  }
+});

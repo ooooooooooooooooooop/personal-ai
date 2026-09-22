@@ -16,6 +16,7 @@
 import { mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { curateLibrary } from '../../../host/src/core/curator.js';
+import { loadMicroagents, matchMicroagents } from '../../../host/src/core/microagents.js';
 
 const ok = (text) => ({ content: [{ type: 'text', text }] });
 const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
@@ -84,6 +85,78 @@ export function skillTools({ workdir, audit, getAsks = null, requestMode = null 
         rmSync(file);
         audit?.write({ kind: 'SKILL_DELETED', data: { name } });
         return ok(`skill '${name}' deleted`);
+      },
+    },
+    {
+      // M110 workshop surface: inspect + dry-run before a save goes live.
+      // skill_test runs the SAME matchMicroagents predicate the prompt
+      // pipeline uses, so a green test means the trigger really fires.
+      name: 'skill_list',
+      label: 'List Skills',
+      description: 'List agent-authored skills (.pai/microagents/): name, triggers, first line.',
+      parameters: { type: 'object', properties: {} },
+      async execute() {
+        const agents = loadMicroagents(workdir);
+        if (!agents.length) return ok('no skills (.pai/microagents/ is empty)');
+        return ok(agents.map((a) => `- ${a.name}  [${a.triggers.join(', ')}]  ${a.body.split('\n')[0].slice(0, 80)}`).join('\n'));
+      },
+    },
+    {
+      name: 'skill_read',
+      label: 'Read Skill',
+      description: 'Read one skill file in full (.pai/microagents/<name>.md).',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: 'skill name' } },
+        required: ['name'],
+      },
+      async execute(_id, p) {
+        const name = String(p?.name ?? '').trim();
+        if (!SLUG.test(name)) return err('skill_read: name must be kebab-case');
+        const file = join(dir('microagents'), `${name}.md`);
+        if (!existsSync(file)) return err(`skill '${name}' not found`);
+        return ok(readFileSync(file, 'utf-8'));
+      },
+    },
+    {
+      name: 'skill_test',
+      label: 'Test Skill Trigger',
+      description:
+        'Dry-run a skill trigger set against sample prompt text — reports which ' +
+        'trigger fires (or none) using the same matcher the live prompt path ' +
+        'uses. Pass `name` to test a saved skill, or `triggers` to test a draft ' +
+        'before saving it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'saved skill name' },
+          triggers: { anyOf: [{ type: 'array', items: { type: 'string' } }, { type: 'string' }], description: 'draft trigger set' },
+          sample: { type: 'string', description: 'sample prompt text to test against' },
+        },
+        required: ['sample'],
+      },
+      async execute(_id, p) {
+        const sample = String(p?.sample ?? '');
+        if (!sample.trim()) return err('skill_test: sample text is required');
+        let triggers = null;
+        const name = String(p?.name ?? '').trim();
+        if (name) {
+          const agent = loadMicroagents(workdir).find((a) => a.name === name);
+          if (!agent) return err(`skill '${name}' not found`);
+          triggers = agent.triggers;
+        } else {
+          triggers = (Array.isArray(p?.triggers) ? p.triggers : String(p?.triggers ?? '').split(','))
+            .map((t) => String(t).trim()).filter(Boolean);
+          if (!triggers.length) return err('skill_test: pass name or triggers');
+        }
+        const matched = matchMicroagents([{ name: name || '(draft)', triggers, body: 'x' }], sample).length > 0;
+        const hits = triggers.filter((t) => {
+          try { return new RegExp(t, 'i').test(sample.toLowerCase()); }
+          catch { return sample.toLowerCase().includes(t.toLowerCase()); }
+        });
+        return ok(matched
+          ? `MATCH — fires on: ${hits.join(', ')}`
+          : `NO MATCH — none of [${triggers.join(', ')}] fire on the sample`);
       },
     },
     {

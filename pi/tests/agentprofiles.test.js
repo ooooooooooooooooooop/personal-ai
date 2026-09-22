@@ -93,6 +93,20 @@ test('M76/M94: tools_deny + budget_* load under trust, strip without it', () => 
   assert.deepEqual(warm.get('gated').budget, { tokens: 50000, costUsd: 0.25 });
 });
 
+test('C3: mcp_deny loads under trust, strips without it', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-prof-c3-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-prof-c3-inst-'));
+  const rich = '---\nname: narrow\ntarget: pi\nmcp_deny: github, web-search, bad;name\n---\nwork\n';
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'agents', 'narrow.md'), rich);
+
+  const cold = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: false });
+  assert.equal(cold.get('narrow').mcpDeny, undefined, 'untrusted workdir profile cannot narrow the MCP surface');
+
+  const warm = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: true });
+  assert.deepEqual(warm.get('narrow').mcpDeny, ['github', 'web-search'], 'valid server names load; malformed entry dropped');
+});
+
 test('M94: profile budget stamps --budget-* flags; unenforceable target refused', async () => {
   const { delegateTool } = await import('../src/adapter/delegate.js');
   const dir = mkdtempSync(join(tmpdir(), 'pai-prof5-'));

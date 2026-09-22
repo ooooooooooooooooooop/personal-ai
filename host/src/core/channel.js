@@ -49,6 +49,8 @@
  * Events: whatever the body's event stream emits, re-tagged as
  * {type:'event', event} plus host-side {type:'audit', event} lines.
  */
+import { normalizeUnicodeMode, resolveCharset, toCharset } from './charset.js';
+
 /**
  * Validate an optional model-pricing declaration (USD per 1M tokens).
  * Custom providers register with zero pricing by default — without an
@@ -127,6 +129,9 @@ export class HostChannel {
     this.skills = skills;
     this.governance = governance;
     this.listeners = new Set();
+    // M144 unicode_mode: 'auto' resolves once from env; 'ascii' degrades the
+    // symbol layer of operator-visible event text (chrome, never content)
+    this.unicodeMode = 'auto';
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
     }
@@ -136,6 +141,15 @@ export class HostChannel {
   }
 
   #emit(msg) {
+    // M144 degrade: when the effective charset is ascii, transliterate the
+    // known text-carrying fields of session events. Cheap check — ascii mode
+    // is rare, and toCharset is identity on the unicode path.
+    if (this.unicodeMode !== 'unicode' && msg?.event && typeof msg.event === 'object') {
+      const ev = msg.event;
+      for (const k of ['message', 'text', 'delta', 'error']) {
+        if (typeof ev[k] === 'string') ev[k] = toCharset(ev[k], this.unicodeMode);
+      }
+    }
     for (const l of this.listeners) {
       try { l(msg); } catch { /* listener failure must not break the channel */ }
     }
@@ -771,6 +785,8 @@ export class HostChannel {
           }
           if (this.modes?.active) out.mode = this.modes.active();
           else if (this.modes?.get) out.mode = this.modes.get();
+          out.unicode_mode = this.unicodeMode;
+          out.charset = resolveCharset(this.unicodeMode);
           return reply(true, out);
         }
         case 'config_set': {
@@ -795,8 +811,14 @@ export class HostChannel {
               if (!out) return reply(false, undefined, `config_set: unknown mode '${value}'`);
               return reply(true, out);
             }
+            case 'unicode_mode': {
+              const v = normalizeUnicodeMode(value);
+              if (!v) return reply(false, undefined, `config_set: unicode_mode must be auto|unicode|ascii, got '${value}'`);
+              this.unicodeMode = v;
+              return reply(true, { unicode_mode: v, charset: resolveCharset(v) });
+            }
             default:
-              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode)`);
+              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode)`);
           }
         }
         case 'modes_read': {
