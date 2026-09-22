@@ -61,7 +61,9 @@ export class HandoffStore {
   }
 
   _write(rec) {
-    const tmp = `${this._file(rec.id)}.tmp`;
+    // pid-suffixed tmp: two live writers sharing the bare `.tmp` name could
+    // interleave — one renames the OTHER's half-written record
+    const tmp = `${this._file(rec.id)}.tmp-${process.pid}`;
     writeFileSync(tmp, JSON.stringify(rec, null, 2));
     renameSync(tmp, this._file(rec.id));
   }

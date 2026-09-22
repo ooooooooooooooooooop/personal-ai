@@ -18,6 +18,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { scrubSecretsDeep } from './secrets.js';
 
 export const JobState = Object.freeze({
   PENDING: 'PENDING', READY: 'READY', RUNNING: 'RUNNING',
@@ -108,9 +109,11 @@ export class JobStore {
   }
 
   #event(jobId, attemptId, type, payload) {
+    // M5 parity: payloads can carry failure reasons quoting stderr — scrub
+    // known credential shapes before the row lands in the durable ledger.
     this.db.prepare(
       'INSERT INTO events (job_id, attempt_id, timestamp, event_type, payload_json) VALUES (?,?,?,?,?)',
-    ).run(jobId, attemptId ?? null, nowIso(), type, JSON.stringify(payload ?? {}));
+    ).run(jobId, attemptId ?? null, nowIso(), type, JSON.stringify(scrubSecretsDeep(payload ?? {})));
   }
 
   createJob({ jobType, authorizedRoot = '', createdBy = 'system', recoveryPolicy, dependsOn = [] } = {}) {

@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
+import { redactSecrets, scrubSecretsDeep } from './secrets.js';
 
 /**
  * Prediction store — canonical world-model lifecycle.
@@ -34,8 +35,9 @@ export class PredictionStore {
   #persist() {
     // Atomic via tmp+rename (identity.js/handoff.js precedent): a crash mid-
     // write must not leave a truncated index — the constructor parses this
-    // file and a corrupt index would brick every later bootstrap.
-    const tmp = `${this.indexPath}.tmp`;
+    // file and a corrupt index would brick every later bootstrap. The pid
+    // suffix keeps two live writers from sharing one tmp name.
+    const tmp = `${this.indexPath}.tmp-${process.pid}`;
     writeFileSync(tmp, JSON.stringify(this.index, null, 2));
     renameSync(tmp, this.indexPath);
   }
@@ -45,7 +47,9 @@ export class PredictionStore {
     if (!claim) throw new Error('prediction requires a claim');
     const id = `pred-${randomUUID().slice(0, 12)}`;
     this.index[id] = {
-      id, claim, status: OPEN, horizon, confidence, actor, tags,
+      // M5 parity (goals.js): the claim is durable AND re-injected into every
+      // context envelope as openPredictions — scrub credential shapes first.
+      id, claim: redactSecrets(String(claim)), status: OPEN, horizon, confidence, actor, tags,
       createdAt: Date.now(), closedAt: null, outcome: null,
       bindingCount: 0,
     };
@@ -60,7 +64,7 @@ export class PredictionStore {
     if (TERMINAL.has(p.status)) return p;
     if (!TERMINAL.has(status)) throw new Error(`invalid terminal status ${status}`);
     p.status = status;
-    p.outcome = outcome ?? null;
+    p.outcome = scrubSecretsDeep(outcome) ?? null;
     p.closedAt = Date.now();
     this.#persist();
     return p;

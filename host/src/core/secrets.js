@@ -40,3 +40,20 @@ export function redactSecrets(content) {
   }
   return out;
 }
+
+/**
+ * Recursive variant for JSON-shaped values about to hit a DURABLE store
+ * (observation details, job event payloads, prediction outcomes) — every
+ * string leaf is span-scrubbed, structure preserved. M5 parity: a durable
+ * artifact must never become an unredacted on-disk secret store.
+ */
+export function scrubSecretsDeep(value) {
+  if (typeof value === 'string') return redactSecrets(value);
+  if (Array.isArray(value)) return value.map(scrubSecretsDeep);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = scrubSecretsDeep(v);
+    return out;
+  }
+  return value;
+}

@@ -46,3 +46,15 @@ test('a truncated index fails loud at construction (canonical state, never guess
   writeFileSync(idx, readFileSync(idx, 'utf-8').slice(0, 5) + '###'); // corrupt
   assert.throws(() => new PredictionStore(canonical));
 });
+
+test('M5 parity: claim + outcome are secret-scrubbed; persist leaves no tmp debris', () => {
+  const { canonical, predictions } = store();
+  const key = `sk-${'a'.repeat(24)}`;
+  const p = predictions.open({ claim: `deploy with ${key} stays up` });
+  assert.match(p.claim, /\[REDACTED:openai_key\]/);
+  predictions.close(p.id, `shipped; rotated ${key}`);
+  const raw = readFileSync(join(canonical, 'predictions', 'index.json'), 'utf-8');
+  assert.ok(!raw.includes(key), 'secret-shaped span must not reach disk');
+  const dirFiles = readdirSync(join(canonical, 'predictions'));
+  assert.ok(!dirFiles.some((f) => f.includes('.tmp')), `tmp debris: ${dirFiles}`);
+});

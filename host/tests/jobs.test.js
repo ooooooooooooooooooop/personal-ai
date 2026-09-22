@@ -168,3 +168,15 @@ test('multi-process posture: two handles on one file interleave writes without B
   assert.equal(b.getJob(ja.job_id)?.job_state, 'COMPLETED');
   a.close(); b.close();
 });
+
+test('M5 parity: event payloads are secret-scrubbed before landing in the durable ledger', () => {
+  const s = store();
+  const key = `sk-${'a'.repeat(24)}`;
+  const j = s.createJob({ jobType: 't' });
+  s.failJob(j.job_id, `stderr leaked ${key}`);
+  const evs = s.getEvents(j.job_id);
+  const failed = evs.find((e) => e.event_type === 'JOB_FAILED');
+  assert.ok(!failed.payload_json.includes(key), 'secret-shaped span must not reach the events table');
+  assert.match(failed.payload_json, /\[REDACTED:openai_key\]/);
+  s.close();
+});

@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -56,4 +56,16 @@ test('read-path cache invalidates on external append (cross-process writer) and 
   // a torn final row (crash mid-append) is skipped, not fatal
   appendFileSync(join(dir, 'observations', 'observations.jsonl'), '{"id":"obs-torn","kind":');
   assert.equal(observations.list().length, 2);
+});
+
+test('M5 parity: subject + detail are secret-scrubbed before landing in the durable JSONL', () => {
+  const { dir, observations } = store();
+  const key = `sk-${'a'.repeat(24)}`;
+  observations.record({ kind: 'tool_result', subject: `fetch with ${key}`, detail: { out: `token ${key}`, n: 1 } });
+  const raw = readFileSync(join(dir, 'observations', 'observations.jsonl'));
+  assert.ok(!raw.includes(key), 'secret-shaped span must not reach disk');
+  const row = observations.list().at(-1);
+  assert.match(row.subject, /\[REDACTED:openai_key\]/);
+  assert.match(row.detail.out, /\[REDACTED:openai_key\]/);
+  assert.equal(row.detail.n, 1); // structure preserved
 });

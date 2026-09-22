@@ -1,6 +1,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { redactSecrets, scrubSecretsDeep } from './secrets.js';
 
 /**
  * Observation store — canonical world-model observation lifecycle.
@@ -36,7 +37,9 @@ export class ObservationStore {
     if (!kind || !subject) throw new Error('observation requires kind and subject');
     const rec = {
       id: `obs-${randomUUID().slice(0, 12)}`,
-      kind, subject, detail, actor, at: Date.now(),
+      // M5 parity: details carry tool-result content into a durable append-only
+      // JSONL — scrub known credential shapes BEFORE the bytes land.
+      kind, subject: redactSecrets(String(subject)), detail: scrubSecretsDeep(detail), actor, at: Date.now(),
     };
     appendFileSync(this.path, `${JSON.stringify(rec)}\n`);
     return rec;
