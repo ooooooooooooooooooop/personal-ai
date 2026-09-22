@@ -357,6 +357,9 @@ export async function startHost({
   // {chain:[{provider, model}, ...]}. The object is shared by reference with
   // the loop extension and mutated in place by models_fallback_set.
   const fallbackCfg = { chain: [] };
+  // M137 image detail tier — shared mutable cell: config_set writes through
+  // the host channel, the pi attachment-carry path reads it per prompt.
+  const imageDetail = { current: 'high' };
   try {
     const fb = JSON.parse(readFileSync(join(instanceRoot, 'model-fallbacks.json'), 'utf-8'));
     if (Array.isArray(fb?.chain)) {
@@ -1473,6 +1476,7 @@ export async function startHost({
     // M100 — shared by reference with the loop extension; setFallbacks
     // mutates this object so the new chain applies on the next agent_end.
     fallbacks: fallbackCfg,
+    imageDetail,
     // /map — operator surface over the same builder repo_map wraps
     repoMap: {
       build: (subdir) => buildRepoMap(workdir, { isIgnored: repoMapIgnore(), subdir }),

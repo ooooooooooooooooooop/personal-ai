@@ -95,7 +95,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, instance = null, profiles = null, leases = null, governance = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -124,6 +124,7 @@ export class HostChannel {
     this.monitors = monitors;
     this.webhooks = webhooks;
     this.scan = scan;
+    this.imageDetail = imageDetail;
     this.profiles = profiles;
     this.leases = leases;
     this.instance = instance;
@@ -805,6 +806,7 @@ export class HostChannel {
           else if (this.modes?.get) out.mode = this.modes.get();
           out.unicode_mode = this.unicodeMode;
           out.charset = resolveCharset(this.unicodeMode);
+          if (this.imageDetail) out.image_detail = this.imageDetail.current ?? 'high';
           return reply(true, out);
         }
         case 'config_set': {
@@ -835,8 +837,19 @@ export class HostChannel {
               this.unicodeMode = v;
               return reply(true, { unicode_mode: v, charset: resolveCharset(v) });
             }
+            // M137: image detail tier — the cell is shared with the pi
+            // channel, which applies it to image attachments at carry time
+            case 'image_detail': {
+              if (!this.imageDetail) return reply(false, undefined, 'image detail tier unavailable');
+              const v = String(value ?? '').trim();
+              if (!['high', 'balanced', 'low'].includes(v)) {
+                return reply(false, undefined, `config_set: image_detail must be high|balanced|low, got '${value}'`);
+              }
+              this.imageDetail.current = v;
+              return reply(true, { image_detail: v });
+            }
             default:
-              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode)`);
+              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode, image_detail)`);
           }
         }
         case 'modes_read': {

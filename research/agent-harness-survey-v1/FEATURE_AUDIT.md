@@ -1806,3 +1806,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 接线：host.js 起 `webhooks.listen()`（无配置静默 no-op）+ `scan`/`webhooks` facade；pi channel 透传；host channel 加 `webhook_status`/`scan_run`/`scan_list` 三个 case；dispose 链路挂 `webhooks.close()`。`/scan` UI 菜单项归批4（app/ui 外来在途避让）。
 
 回归：pi 相关套件 46/46（含新哨兵 6）、host channel 30/30。
+
+### 28.29 批4 先落 pi/host 侧：M137 图片分档 + M139 附件落盘路径（2026-09-23）
+
+批4 的纯 UI 项（M109 选区入聊 / M126 草稿撤销 / M127 fuzzy 命令面板 / M128 滚动偏好 / M129 粘贴徽章 / C1 会话列表）全部落在 `app/ui/*`——外来会话在途，继续避让。pi/host 侧两项先落地：
+
+| 项 | 终态 | 证据/实现 |
+|---|---|---|
+| M137 图片压缩档 | **REAL（PNG 域，诚实边界）** | `attachments.js pngDownscale(buf, maxEdge)`：零依赖 PNG 解码（IHDR+IDAT→inflate→5 型 unfilter→RGBA）→ 2×2 box 折半至 ≤maxEdge → filter-0 重编码。config `image_detail`：`high`（默认不动）/`balanced` 1568px/`low` 512px（OpenAI 网格语义）；共享 cell 经 channel `config_set` 写入、附件搬运路径逐 prompt 读取；缩放写 IMAGE_DETAIL_SCALED 审计。**诚实边界**：interlaced/非8bit/非PNG 返回 null 原样透传——不假装会转码 JPEG。哨兵：channel-facade +3（64→32 IHDR 实证 / 已达标不缩 / JPEG 诚实跳过 / config_set 旋钮） |
+| M139 附件落盘路径 | **REAL** | path 源附件：`describeAttachment` 加 `path` 属性，模型拿到可编辑/可引用的真路径；inline（粘贴）源：`persistAttachment` 落盘 `<instance>/exports/attachments/` 并在 `<attachment>` 标签通告该路径。**顺手修真 bug**：path 源图片走 native 通道时 `source.data` 是 undefined——`materializeImageSource` 物化字节（BMP path 源照样过 bmpToPng），不可读则诚实降级进 degraded |
+
+回归：pi 335+1skip / host 312 全绿。

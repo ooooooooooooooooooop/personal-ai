@@ -972,3 +972,106 @@ test('M108 session_share: secrets + workdir path masked in artifact', async () =
   assert.ok(out.includes('share_header'));
   dispose();
 });
+
+test('M139: path-source image materializes bytes AND advertises its path', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-attpath-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir, root: dir }, audit: { write() {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  // a real PNG on disk — path source must materialize bytes, not data:undefined
+  const { bmpToPng } = await import('../../host/src/core/attachments.js');
+  const bmp = Buffer.alloc(54 + 4 * 4 * 4); // 4x4 24-bit BMP
+  bmp[0] = 0x42; bmp[1] = 0x4d;
+  bmp.writeUInt32LE(54 + 64, 2); bmp.writeUInt32LE(54, 10);
+  bmp.writeInt32LE(4, 18); bmp.writeInt32LE(4, 22);
+  bmp.writeUInt16LE(1, 26); bmp.writeUInt16LE(24, 28); bmp.writeUInt32LE(0, 30);
+  const png = bmpToPng(bmp);
+  assert.ok(png, 'fixture encoder works');
+  const imgPath = join(dir, 'shot.png');
+  writeFileSync(imgPath, png);
+
+  await ch.handle({
+    type: 'prompt', message: 'see',
+    options: { attachments: [{ name: 'shot.png', mime: 'image/png', path: imgPath }] },
+  });
+  const [msg, opts] = calls[0];
+  assert.equal(opts.images.length, 1);
+  assert.ok(opts.images[0].data, 'path source must carry real bytes');
+  assert.equal(opts.images[0].mimeType, 'image/png');
+  assert.ok(msg.includes(`path="${imgPath}"`), 'path attr advertises the on-disk file');
+  dispose();
+});
+
+test('M139: pasted image spills to exports/attachments and advertises the path', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-attspill-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir, root: dir }, audit: { write() {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  const { bmpToPng } = await import('../../host/src/core/attachments.js');
+  const bmp = Buffer.alloc(54 + 16); bmp[0] = 0x42; bmp[1] = 0x4d;
+  bmp.writeUInt32LE(70, 2); bmp.writeUInt32LE(54, 10);
+  bmp.writeInt32LE(2, 18); bmp.writeInt32LE(2, 22);
+  bmp.writeUInt16LE(1, 26); bmp.writeUInt16LE(24, 28);
+  const png64 = bmpToPng(bmp).toString('base64');
+
+  await ch.handle({
+    type: 'prompt', message: 'pasted',
+    options: { attachments: [{ name: 'clip.png', mime: 'image/png', data: png64 }] },
+  });
+  const [msg] = calls[0];
+  const m = /path="([^"]+)"/.exec(msg);
+  assert.ok(m, 'inline image must advertise a persisted path');
+  assert.ok(existsSync(m[1]), `persisted file must exist: ${m[1]}`);
+  dispose();
+});
+
+test('M137 image_detail: low tier halves a PNG; high tier untouched; non-PNG honest skip', async () => {
+  const { bmpToPng, pngDownscale } = await import('../../host/src/core/attachments.js');
+  // 64x64 PNG fixture via the existing BMP encoder
+  const w = 64, h = 64, stride = Math.ceil(w * 3 / 4) * 4;
+  const bmp = Buffer.alloc(54 + stride * h);
+  bmp[0] = 0x42; bmp[1] = 0x4d;
+  bmp.writeUInt32LE(bmp.length, 2); bmp.writeUInt32LE(54, 10);
+  bmp.writeInt32LE(w, 18); bmp.writeInt32LE(h, 22);
+  bmp.writeUInt16LE(1, 26); bmp.writeUInt16LE(24, 28);
+  const png = bmpToPng(bmp);
+  const halved = pngDownscale(png, 32);
+  assert.ok(halved);
+  assert.equal(halved.readUInt32BE(16), 32, 'IHDR width halved');
+  assert.equal(halved.readUInt32BE(20), 32, 'IHDR height halved');
+  assert.equal(pngDownscale(png, 1024), null, 'already-fits is a no-op');
+  assert.equal(pngDownscale(Buffer.from([0xff, 0xd8, 0xff, 0, 0, 0]), 32), null, 'jpeg honestly skipped');
+
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-tier-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const audits = [];
+  const core = { paths: { auditDir, root: dir }, audit: { write(e) { audits.push(e); } } };
+  const imageDetail = { current: 'low' };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, imageDetail });
+  await ch.handle({
+    type: 'prompt', message: 'x',
+    options: { attachments: [{ name: 'big.png', mime: 'image/png', data: png.toString('base64') }] },
+  });
+  // 64px under 'low' (512 cap) already fits — bytes ride untouched
+  const sent = Buffer.from(calls[0][1].images[0].data, 'base64');
+  assert.equal(sent.readUInt32BE(16), 64);
+  imageDetail.current = 'high';
+  // config surface exposes the tier
+  const cfg = await ch.handle({ type: 'config_set', key: 'image_detail', value: 'low' });
+  assert.equal(cfg.success, true);
+  assert.equal(imageDetail.current, 'low');
+  dispose();
+});

@@ -4,7 +4,7 @@
  * shapes get translated into plain-data snapshots a UI can consume.
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
-import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText } from '../../../host/src/core/attachments.js';
+import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText, materializeImageSource, pngDownscale, persistAttachment } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
@@ -41,7 +41,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, fallbacks = null, leases = null, sessionFlags = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null }) {
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -264,7 +264,40 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           });
         }
         if (native.length) {
-          opts = { ...options, images: [...(options.images ?? []), ...native.map((a) => ({ type: 'image', data: a.source.data, mimeType: a.mime }))] };
+          // M137 image_detail tier: high (default) = untouched; balanced /
+          // low cap the longest edge (1568px / 512px, OpenAI-grid analogue)
+          // via zero-dep PNG halving. Non-PNG codecs can't be rescaled here
+          // and ride untouched — honest boundary, no fake transcode.
+          const tier = imageDetail?.current ?? 'high';
+          const maxEdge = tier === 'low' ? 512 : tier === 'balanced' ? 1568 : Infinity;
+          // M139: the model needs a persistent path it can edit/reference
+          // later — path sources keep theirs; pasted blobs spill to
+          // <instance>/exports/attachments/ and advertise that path.
+          const spillDir = core.paths?.root ? join(core.paths.root, 'exports', 'attachments') : null;
+          const carried = [];
+          for (const a of native) {
+            let data = materializeImageSource(a); // path → bytes (was silently undefined)
+            if (data == null) { degraded.push(a); continue; }
+            if (Number.isFinite(maxEdge) && a.mime === 'image/png') {
+              const smaller = pngDownscale(Buffer.from(data, 'base64'), maxEdge);
+              if (smaller) {
+                data = smaller.toString('base64');
+                core.audit?.write({ kind: 'IMAGE_DETAIL_SCALED', data: { name: a.name, tier, from: a.bytes, to: smaller.length } });
+              }
+            }
+            if (a.source.type === 'path') a.persistedPath = a.source.path;
+            else if (spillDir) a.persistedPath = persistAttachment(a, spillDir);
+            carried.push({ type: 'image', data, mimeType: a.mime });
+          }
+          if (carried.length) {
+            opts = { ...options, images: [...(options.images ?? []), ...carried] };
+          }
+          const withPath = native.filter((a) => a.persistedPath);
+          if (withPath.length) {
+            msg = `${msg ?? ''}\n\n${withPath.map((a) =>
+              `<attachment kind="image" name="${a.name}" mime="${a.mime}" path="${String(a.persistedPath).replace(/"/g, '')}"/>`
+            ).join('\n')}`;
+          }
         }
         if (degraded.length) {
           // Extractable formats (text/code/ipynb) inline their CONTENT so the
@@ -956,6 +989,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     monitors,
     webhooks,
     scan,
+    imageDetail,
     leases,
     repoMap,
     // M64 instance inventory — a cross-category purge PREVIEW surface: every

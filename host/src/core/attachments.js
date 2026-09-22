@@ -13,7 +13,8 @@
  *     name: string, mime: string, bytes: number,
  *     source: { type: 'inline', data: <base64> } | { type: 'path', path } | { type: 'url', url } }
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import zlib from 'node:zlib';
 
 const KIND_PREFIX = {
@@ -200,7 +201,147 @@ export function partitionByCapability(attachments, caps = {}) {
 
 /** Truthful text reference for a degraded attachment — the model sees what it is, not a fake. */
 export function describeAttachment(a) {
-  return `<attachment kind="${a.kind}" name="${a.name}" mime="${a.mime}" bytes="${a.bytes}"/>`;
+  const p = a.persistedPath ?? (a.source?.type === 'path' ? a.source.path : null);
+  const pathAttr = p ? ` path="${String(p).replace(/"/g, '')}"` : '';
+  return `<attachment kind="${a.kind}" name="${a.name}" mime="${a.mime}" bytes="${a.bytes}"${pathAttr}/>`;
+}
+
+/**
+ * M139: give the model a durable on-disk path for an inline (pasted)
+ * attachment — a base64 blob in the transcript is unreferenceable; a spilled
+ * file under the instance exports dir can be read/edited by governed tools.
+ * Path-source attachments keep their own path (no copy). Returns the
+ * persisted absolute path or null on failure (never throws — the attachment
+ * itself still carries inline).
+ */
+export function persistAttachment(a, dir) {
+  if (a?.source?.type !== 'inline') return null;
+  try {
+    mkdirSync(dir, { recursive: true });
+    const safe = String(a.name ?? 'attachment').replace(/[^\w.\-]/g, '_').slice(-60);
+    const out = join(dir, `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safe}`);
+    writeFileSync(out, Buffer.from(a.source.data, 'base64'));
+    return out;
+  } catch { return null; }
+}
+
+/**
+ * M139 fix path: a path-source image must be materialized to bytes before it
+ * rides the vision surface — `source.data` is undefined for path sources
+ * (previously produced {type:'image', data:undefined} blocks). Returns the
+ * base64 payload (BMP still transcodes through bmpToPng) or null unreadable.
+ */
+export function materializeImageSource(a) {
+  if (a?.source?.type === 'inline') return a.source.data;
+  if (a?.source?.type !== 'path') return null;
+  let raw;
+  try { raw = readFileSync(a.source.path); } catch { return null; }
+  if (a.mime === 'image/bmp' || sniffMime(raw) === 'image/bmp') {
+    const png = bmpToPng(raw);
+    if (png) { a.mime = 'image/png'; return png.toString('base64'); }
+    return null; // unreadable BMP → honest degrade, never a fake image block
+  }
+  return raw.toString('base64');
+}
+
+/**
+ * M137 token-tier image scaling — zero-dependency PNG halving: decode
+ * (IHDR+IDAT concat → inflate → unfilter), box-sample 2×2 until the longest
+ * edge fits maxEdge, re-encode RGBA8 filter-0. Boundaries stay honest:
+ * interlaced PNG, non-8-bit depth, non-RGB/Gray/RGBA color types and every
+ * other codec return null — the caller leaves the original bytes untouched
+ * rather than shipping a half-decoded fake.
+ */
+export function pngDownscale(buf, maxEdge) {
+  if (!Buffer.isBuffer(buf) || buf.length < 33) return null;
+  if (!buf.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return null;
+  let pos = 8; let ihdr = null; const idat = [];
+  while (pos + 12 <= buf.length) {
+    const len = buf.readUInt32BE(pos);
+    const type = buf.subarray(pos + 4, pos + 8).toString('latin1');
+    const data = buf.subarray(pos + 8, pos + 8 + len);
+    if (data.length !== len) return null;
+    if (type === 'IHDR') ihdr = data;
+    else if (type === 'IDAT') idat.push(data);
+    else if (type === 'IEND') break;
+    pos += 12 + len;
+  }
+  if (!ihdr || !idat.length) return null;
+  const w0 = ihdr.readUInt32BE(0), h0 = ihdr.readUInt32BE(4);
+  const depth = ihdr[8], color = ihdr[9], interlace = ihdr[12];
+  const chMap = { 0: 1, 2: 3, 6: 4 }; // gray / rgb / rgba
+  const ch = chMap[color];
+  if (depth !== 8 || interlace !== 0 || !ch || w0 <= 0 || h0 <= 0) return null;
+  let raw;
+  try { raw = zlib.inflateSync(Buffer.concat(idat)); } catch { return null; }
+  const stride = w0 * ch + 1;
+  if (raw.length < stride * h0) return null;
+  // unfilter scanlines (filter types 0-4), then expand to RGBA rows
+  const px = Buffer.alloc(w0 * h0 * 4);
+  let prev = Buffer.alloc(w0 * ch);
+  for (let y = 0; y < h0; y++) {
+    const so = y * stride;
+    const f = raw[so];
+    const line = Buffer.from(raw.subarray(so + 1, so + stride));
+    for (let x = 0; x < line.length; x++) {
+      const left = x >= ch ? line[x - ch] : 0;
+      const up = prev[x];
+      const upLeft = x >= ch ? prev[x - ch] : 0;
+      let v = line[x];
+      if (f === 1) v = (v + left) & 0xff;
+      else if (f === 2) v = (v + up) & 0xff;
+      else if (f === 3) v = (v + ((left + up) >> 1)) & 0xff;
+      else if (f === 4) {
+        const p = left + up - upLeft;
+        const pa = Math.abs(p - left), pb = Math.abs(p - up), pc = Math.abs(p - upLeft);
+        v = (v + (pa <= pb && pa <= pc ? left : pb <= pc ? up : upLeft)) & 0xff;
+      } else if (f !== 0) return null;
+      line[x] = v;
+    }
+    prev = line;
+    for (let x = 0; x < w0; x++) {
+      const d = (y * w0 + x) * 4, s = x * ch;
+      if (ch === 4) { px[d] = line[s]; px[d + 1] = line[s + 1]; px[d + 2] = line[s + 2]; px[d + 3] = line[s + 3]; }
+      else if (ch === 3) { px[d] = line[s]; px[d + 1] = line[s + 1]; px[d + 2] = line[s + 2]; px[d + 3] = 255; }
+      else { px[d] = px[d + 1] = px[d + 2] = line[s]; px[d + 3] = 255; }
+    }
+  }
+  // box-halve until the longest edge fits
+  let w = w0, h = h0, cur = px;
+  while (Math.max(w, h) > maxEdge && w >= 2 && h >= 2) {
+    const nw = w >> 1, nh = h >> 1;
+    const next = Buffer.alloc(nw * nh * 4);
+    for (let y = 0; y < nh; y++) {
+      for (let x = 0; x < nw; x++) {
+        const d = (y * nw + x) * 4;
+        for (let c = 0; c < 4; c++) {
+          next[d + c] = (cur[((2 * y) * w + 2 * x) * 4 + c]
+            + cur[((2 * y) * w + 2 * x + 1) * 4 + c]
+            + cur[((2 * y + 1) * w + 2 * x) * 4 + c]
+            + cur[((2 * y + 1) * w + 2 * x + 1) * 4 + c]) >> 2;
+        }
+      }
+    }
+    w = nw; h = nh; cur = next;
+  }
+  if (w === w0) return null; // nothing to do
+  const out = Buffer.alloc((w * 4 + 1) * h); // filter-0 rows
+  for (let y = 0; y < h; y++) cur.copy(out, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4);
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type, 'latin1'), data]);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td) >>> 0);
+    return Buffer.concat([len, td, crc]);
+  };
+  const nh_ = Buffer.alloc(13);
+  nh_.writeUInt32BE(w, 0); nh_.writeUInt32BE(h, 4);
+  nh_[8] = 8; nh_[9] = 6;
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk('IHDR', nh_),
+    chunk('IDAT', zlib.deflateSync(out)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
 }
 
 const TEXT_EXTRACT_MAX = 24 * 1024;
