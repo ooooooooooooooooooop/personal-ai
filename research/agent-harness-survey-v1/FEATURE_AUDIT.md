@@ -1699,3 +1699,18 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 | M147 文件读取注入扫描 | **落地**（修复完成） | `injectionHygieneExtension` 挂 `tool_result` seam：read/grep/find/ls/output_read 结果含指令形态文本时前置 hygiene banner（数据非命令）+ `INJECTION_HYGIENE_HIT` 审计；幂等不重复打标；文件读取边界与 memory 写边界（M125）互补成链 |
 
 安全修补位点全部在生成器源码（kernel decide 链 / 扩展 seam / 写入边界），非事后补丁。
+
+### 28.22 MISSING 项补建（2026-09-22，本会话实装 + 哨兵）
+
+28.21 裁出的 6 条 MISSING 中，M130/M131/M132/M140/M143 实装落地；M136 以 advisory-curator 形态落地（评分/提案自动，破坏性动作仍走治理 ask——这是设计语义而非缩水）。
+
+| 项 | 终态 | 证据/实现 |
+|---|---|---|
+| M130 MCP list_changed | **REAL** | `notifications/tools/list_changed` 推送→`refreshTools` 重列：新工具即时注册，移除工具 tombstone 成诚实 fail-closed 错误（pi API 无 unregisterTool）；`/mcp` 报刷新状态。订阅提前到 connect 后立即挂（boot 期间到达的通知记 pendingRefresh 补刷——不再静默丢）。stdio 推送通道，HTTP 无推送面即不触发。哨兵：v1 注册→call 触发目录翻转→v2 新工具活+被删工具墓碑+存活工具仍可调（`9d4ad70`） |
+| M131 slash frontmatter mode | **REAL** | recipe frontmatter `mode:` 触发时经共享 `requestModeSwitch` 走治理 ask 链（与 mode_request 同链：catalog 校验→operator ask→applyMode），拒绝时如实附注不静默。哨兵：合法切换/未知模式/无 ask 通道三态（`9d4ad70`） |
+| M132 /config 会话内设置 | **REAL** | channel `config_get`/`config_set` + UI `/config`：key 白名单（model/thinking/mode）分发到现有治理 facade（models.set/setThinking/modes.setMode），非旁路持久化；未知 key 与缺失 facade 均 fail-closed。哨兵：快照读/slash 解析/未知键拒绝/裸 facade 拒绝（`9d4ad70`） |
+| M136 自治 Curator | **REAL (advisory)** | `curateLibrary`（host 纯函数）：staleness/thin/triggerless/overlap 评分+merge/prune/keep 提案；`curator_scan` 工具出报告——**提案永不自动执行**，修剪仍走 skill_delete 治理链（破坏性动作走 ask 是该条目的设计内语义）。哨兵：评分扣分项/重叠对合并取新者存活/低分修剪提案/扫描零副作用（curator.test.js） |
+| M140 Fast Context 子代理 | **REAL (deterministic variant)** | `fast_context` 工具：单次调用完成 walk+term 打分+行号摘录（文件名命中>>内容命中），有界（20k 文件/512KB/10 层/40 结果上限），只读零副作用，.paiignore 生效，subdir 不可逃逸 workdir。诚实变体：确定性检索替代 LLM 子代理循环（`pi/src/adapter/fastcontext.js`） |
+| M143 跨文件 multi-edit | **REAL** | `multi_edit` 工具：`edits[{path,old_string,new_string,replace_all}]` 全量 preflight（存在/唯一/workdir 内/未 ignore）任一失败整批拒绝零写入；应用期每文件经 fileOps.write 备份+同 toolCallId 收据→undoCall 整批回滚；中途失败对已写文件 best-effort restore。decide 链入 FILE_MUTATION_TOOLS（写租约）+U4 密钥预扫覆盖 edits[].new_string（堵批量工具绕过洞）。哨兵 5 态（multiedit.test.js） |
+
+未补建项（保持诚实记录）：M126/127/128/129/133/137/139/144 维持 PARTIAL 原裁（均有近端实现，差的是各自注明的完整语义）；M141 N/A-UPSTREAM 不变。

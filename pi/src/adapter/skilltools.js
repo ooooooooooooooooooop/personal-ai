@@ -15,6 +15,7 @@
  */
 import { mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { curateLibrary } from '../../../host/src/core/curator.js';
 
 const ok = (text) => ({ content: [{ type: 'text', text }] });
 const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
@@ -83,6 +84,31 @@ export function skillTools({ workdir, audit, getAsks = null, requestMode = null 
         rmSync(file);
         audit?.write({ kind: 'SKILL_DELETED', data: { name } });
         return ok(`skill '${name}' deleted`);
+      },
+    },
+    {
+      name: 'curator_scan',
+      label: 'Curate Library',
+      description:
+        'M136 autonomous curator: score .pai/microagents + .pai/plans and get ' +
+        'merge/prune proposals. Advisory only — it never deletes; a prune or ' +
+        'merge you agree with still goes through skill_delete (governed, ' +
+        'operator-visible) so a curator report cannot self-apply.',
+      parameters: { type: 'object', properties: {} },
+      async execute() {
+        const { entries, proposals } = curateLibrary(workdir);
+        if (!entries.length) return ok('curator: library empty (.pai/microagents, .pai/plans)');
+        const lines = proposals.map((p) => {
+          if (p.kind === 'merge') return `merge  ${p.drop} → ${p.keep}  (${p.reason})`;
+          if (p.kind === 'prune') return `prune  ${p.target}  (score ${p.score}: ${p.reason})`;
+          return `keep   ${p.target}  (score ${p.score})`;
+        });
+        const act = proposals.filter((p) => p.kind !== 'keep').length;
+        return ok(
+          `curator: ${entries.length} entries scanned — ${act} proposal(s)\n${lines.join('\n')}` +
+          (act ? '\n\nproposals are advisory: apply via skill_delete / skill_save — each rides the governed ask path' : ''),
+          // details rides the untrusted-result wrapper like every tool result
+        );
       },
     },
     {

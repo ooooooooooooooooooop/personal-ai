@@ -4,7 +4,7 @@ import { scanForSecrets } from '../adapter/secrets.js';
 import { readFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
-const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete']);
+const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete', 'multi_edit']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
 // Goose unicode-tag sanitization analogue — invisible format chars that can
 // hide instructions or spoof identifiers (zero-width, bidi controls, BOM).
@@ -271,10 +271,14 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     // U4 pre-write secret scan: credential-looking content being persisted is
     // an operator question, not a silent write (fixtures/templates are real —
     // the human decides; no ask channel fails closed)
-    if (toolName === 'write' || toolName === 'edit') {
+    if (toolName === 'write' || toolName === 'edit' || toolName === 'multi_edit') {
+      // multi_edit carries the payload as edits[].new_string — scan them all;
+      // without this the batch tool would be a silent bypass around U4.
       const contentToWrite = toolName === 'write'
         ? ctx.args?.content
-        : (ctx.args?.newText ?? ctx.args?.new_string);
+        : toolName === 'multi_edit'
+          ? (Array.isArray(ctx.args?.edits) ? ctx.args.edits.map((e) => e?.new_string ?? '').join('\n') : null)
+          : (ctx.args?.newText ?? ctx.args?.new_string);
       const hit = typeof contentToWrite === 'string' ? scanForSecrets(contentToWrite) : null;
       if (hit) {
         const filePath = ctx.args?.path ?? ctx.args?.file ?? ctx.args?.target;

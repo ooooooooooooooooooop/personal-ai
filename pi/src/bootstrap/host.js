@@ -93,6 +93,8 @@ import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
+import { multiEditTool } from '../adapter/multiedit.js';
+import { fastContextTool } from '../adapter/fastcontext.js';
 import { modeRequestTool, requestPermissionTool, requestModeSwitch } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
@@ -660,6 +662,9 @@ export async function startHost({
     requestPermissionTool({ asks }),
     // M38 — paged reader for externalized tool outputs (placeholder handle)
     outputReadTool(outputSpool),
+    // M140 — fast_context: read-only bounded retrieval (one call does the
+    // search+rank+excerpt a context subagent would, without model turns)
+    fastContextTool({ workdir, getIgnored: repoMapIgnore }),
     // M83 — lazy tool surface: deferred tools are discovered via tool_search
     // and claimed via tool_activate (catalog late-bound — session built below)
     toolActivateTool({ getSurface: () => toolSurface }),
@@ -697,6 +702,10 @@ export async function startHost({
     if (/^[a-zA-Z][\w*-]*$/.test(n) && !initialDeny.includes(n)) initialDeny.push(n);
   }
   const fileOps = new FileOpsGuard(core.paths.root);
+  // M143: batch exact-match edits across files — atomic preflight, per-file
+  // fileOps backup receipts under one call (batch-undoable). Registered here,
+  // not in the literal above, because fileOps doesn't exist yet there.
+  customTools.push(multiEditTool({ workdir, fileOps, getIgnored: repoMapIgnore }));
   let toolSurface = null; // assigned once the session exists — decide runs later
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
   let currentGovernor = null; // evidence contract governor — goals status source
