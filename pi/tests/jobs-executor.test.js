@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import { JobStore } from '../../host/src/core/jobs.js';
 import { BudgetGovernor } from '../../host/src/core/budget.js';
 import { JobExecutor, isLongRunningCommand, isWorkerAlive, validateCheckpoint, readCheckpoint } from '../src/adapter/jobs.js';
-import { delegateTool, jobStatusTool } from '../src/adapter/delegate.js';
+import { delegateTool, jobStatusTool, makeDelegationCommand } from '../src/adapter/delegate.js';
 import { WorkspaceWriteLease } from '../src/adapter/writelease.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -951,4 +951,41 @@ test('M94-R2: task text carrying "pai-channel.js" does NOT make a foreign target
   assert.equal(res.details.reason, 'unenforceable_child_budget');
   assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn — no job record');
   store.close();
+});
+
+// ─── M76/M94-R3: enforceability is per RESOLVED target ─────────────────────
+// A {target}-bearing template can branch between bodies — the template-global
+// pai-channel.js regex minted capability on the foreign branch too.
+
+test('M76-R3: branched template — enforceable only for operator-listed targets', () => {
+  const cmd = makeDelegationCommand(
+    'if [ "{target}" = "pai" ]; then node pai-channel.js --task "{task}"; else codex exec "{task}"; fi',
+    { enforceableTargets: new Set(['pai']) },
+  );
+  const pai = cmd('pai', 'do x');
+  const codex = cmd('codex', 'do x');
+  assert.equal(pai.enforceable, true, 'listed target on a pai-channel branch is enforceable');
+  assert.equal(codex.enforceable, false, 'foreign branch must NOT inherit the template regex hit');
+  // unlisted target on the branched template refuses enforcement even though
+  // the template contains pai-channel.js
+  assert.equal(cmd('gemini', 'do x').enforceable, false);
+});
+
+test('M76-R3: target-free template runs one fixed body — template text decides', () => {
+  const cmd = makeDelegationCommand('node pai-channel.js --task "{task}"');
+  assert.equal(cmd('pai', 'x').enforceable, true);
+  assert.equal(cmd('codex', 'x').enforceable, true, 'no {target} slot — same body every call');
+  const foreign = makeDelegationCommand('codex exec "{task}"');
+  assert.equal(foreign('codex', 'x').enforceable, false);
+});
+
+test('M76-R3: interpolated task text still cannot mint capability (branched template)', () => {
+  const cmd = makeDelegationCommand(
+    'if [ "{target}" = "pai" ]; then node pai-channel.js --task "{task}"; else codex exec "{task}"; fi',
+    { enforceableTargets: new Set(['pai']) },
+  );
+  // task smuggles the token AND the enforceable branch — resolved target is
+  // still codex → not enforceable
+  assert.equal(cmd('codex', 'inspect pai-channel.js').enforceable, false);
+  assert.match(cmd('codex', 'inspect pai-channel.js').command, /pai-channel\.js/, 'the smuggled text really is in the shell string');
 });

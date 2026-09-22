@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startHost } from '../src/bootstrap/host.js';
+import { startHost, restartSpecToJobSpawnArgs } from '../src/bootstrap/host.js';
 
 const stubModel = {
   id: 'stub', name: 'stub', api: 'openai-completions', provider: 'openai',
@@ -162,6 +162,79 @@ test('M89: session_import never mutates the source file', async () => {
     !existsSync(scratchDir) || readdirSync(scratchDir).length === 0,
     'scratch copy must be gone after import');
   host.leases.close();
+});
+
+test('M89-R3: a post-fork failure also removes the half-imported session', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-import-postfork-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  const src = join(dir, 'foreign3.jsonl');
+  const srcContent =
+    JSON.stringify({ type: 'session', version: 3, id: 'src-3', timestamp: new Date().toISOString(), cwd: dir }) + '\n' +
+    JSON.stringify({ type: 'message', id: 'm1', timestamp: new Date().toISOString(), message: { role: 'user', content: 'hi' } }) + '\n';
+  writeFileSync(src, srcContent);
+  const before = readFileSync(src);
+  const sessionsDir = join(dir, 'sessions');
+  const preImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
+  // the destination exists the moment forkFrom returns — a failure in ANY
+  // later step (here: post-fork, standing in for appendSessionInfo etc.)
+  // must still clean it up
+  await assert.rejects(
+    host.channel.sessions.importSession(src, {
+      afterFork: (mgr, destFile) => {
+        assert.ok(existsSync(destFile), 'destination already exists right after fork');
+        throw new Error('forced post-fork failure');
+      },
+    }),
+    /forced post-fork failure/,
+  );
+  const postImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
+  assert.deepEqual(postImport.sort(), preImport.sort(), 'failed import must not leave a session file behind');
+  assert.deepEqual(readFileSync(src), before);
+  const scratchDir = join(sessionsDir, '.import-scratch');
+  assert.ok(!existsSync(scratchDir) || readdirSync(scratchDir).length === 0);
+  host.leases.close();
+});
+
+test('M90-R3: restart gate args use the canonical job_spawn schema', () => {
+  const args = restartSpecToJobSpawnArgs({
+    command: 'npm test',
+    workdir: '/repo',
+    authorized_root: '/repo',
+    job_type: 'shell_command',
+    timeout_ms: 1_800_000,
+    worktree: true,
+    sandbox: { kind: 'ssh', target: 'me@box:22', dir: '/work', key: '/k' },
+    budget_scope: 'sess-1',
+    budget_committed: false,
+  });
+  assert.equal(args.command, 'npm test');
+  assert.equal(args.timeout_minutes, 30);                 // ms → canonical minutes
+  assert.equal(args.worktree, true);
+  assert.equal(args.sandbox, 'ssh');                      // kind string, not object
+  assert.equal(args.sandbox_target, 'me@box:22');
+  assert.equal(args.remote_dir, '/work');
+  assert.equal(args.sandbox_key, '/k');
+  // internal-only fields must NOT leak into the audit surface — a first
+  // job_spawn never presents them
+  assert.equal('workdir' in args, false);
+  assert.equal('authorized_root' in args, false);
+  assert.equal('job_type' in args, false);
+  assert.equal('budget_committed' in args, false);
+  assert.equal('budget_scope' in args, false);
+  assert.equal('timeout_ms' in args, false);
+  // unsandboxed replay → sandbox omitted entirely (first spawn parity)
+  const none = restartSpecToJobSpawnArgs({ command: 'x', sandbox: { kind: 'none' }, timeout_ms: null, worktree: false });
+  assert.equal(none.sandbox, undefined);
+  assert.equal(none.timeout_minutes, undefined);
+  assert.equal(none.worktree, false);
 });
 
 test('M89-R2: provenance rewrite failure fails the whole import — no dangling session', async () => {

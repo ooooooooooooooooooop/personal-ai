@@ -17,6 +17,7 @@
  */
 import { createInterface } from 'node:readline';
 import { startHost } from '../src/bootstrap/host.js';
+import { makeDelegationCommand } from '../src/adapter/delegate.js';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => {
@@ -31,6 +32,16 @@ if (!instanceRoot) {
 }
 const workdir = opt('workdir', process.cwd());
 const delegateCmd = opt('delegate-command', null);
+// M76/M94-R3: when the template can branch on {target}, the operator names
+// which resolved targets carry a real enforcement gate (repeatable or
+// comma-separated). A template without {target} runs one fixed body, so the
+// template text alone decides enforceability.
+const delegateEnforceable = new Set(
+  args
+    .flatMap((a, i) => (args[i - 1] === '--delegate-enforceable-target' ? String(a).split(',') : []))
+    .map((s) => s.trim())
+    .filter(Boolean),
+);
 
 // Planted-exe defense (Cline 4.1.19 analogue): on Windows, cmd.exe resolves
 // bare commands through the current directory first — a checkout containing
@@ -45,20 +56,11 @@ if (process.platform === 'win32') {
 const host = await startHost({
   instanceRoot,
   workdir,
+  // {model}/{effort}/{target}/{task} slots let an operator template consume
+  // profile hints and branch per body; enforceability is asserted per
+  // resolved target inside makeDelegationCommand.
   delegationCommand: delegateCmd
-    // {model}/{effort} slots let an operator template consume profile hints
-    // (e.g. `--model {model}`) — empty string when the profile declares none.
-    // `enforceable` is asserted against the OPERATOR-CONTROLLED template —
-    // never against the interpolated command, whose {task} slot carries
-    // model-controlled text that could smuggle the 'pai-channel.js' token.
-    ? (target, task, opts = {}) => ({
-      command: delegateCmd
-        .replaceAll('{target}', target)
-        .replaceAll('{task}', task.replaceAll('"', '\\"'))
-        .replaceAll('{model}', opts.model ?? '')
-        .replaceAll('{effort}', opts.effort ?? ''),
-      enforceable: /pai-channel\.js/.test(delegateCmd),
-    })
+    ? makeDelegationCommand(delegateCmd, { enforceableTargets: delegateEnforceable })
     : null,
 });
 

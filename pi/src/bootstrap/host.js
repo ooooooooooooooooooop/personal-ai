@@ -151,6 +151,28 @@ export function rewriteSessionParent(destFile, originalAbs) {
   renameSync(tmp, destFile);
 }
 
+/**
+ * M90-R3: a restart must be audited under the SAME governance semantics a
+ * first `job_spawn` call presents — canonical tool args, not the internal
+ * restart_spec field names (a hook predicate on `args.sandbox === 'ssh'`
+ * must hit identically on both paths). Execution still replays the raw
+ * restart_spec; only the gate input is canonicalized.
+ */
+export function restartSpecToJobSpawnArgs(spec) {
+  const s = spec?.sandbox ?? null;
+  return {
+    command: spec?.command,
+    timeout_minutes: spec?.timeout_ms == null ? undefined : spec.timeout_ms / 60_000,
+    worktree: spec?.worktree === true,
+    sandbox: s?.kind && s.kind !== 'none' ? s.kind : undefined,
+    sandbox_distro: s?.distro ?? undefined,
+    sandbox_image: s?.image ?? undefined,
+    sandbox_target: s?.target ?? undefined,
+    remote_dir: s?.dir ?? undefined,
+    sandbox_key: s?.key ?? undefined,
+  };
+}
+
 /** M86 ambient context — cheap per-turn grounding facts. Git probes are
  *  bounded (1.5s) and fail-soft: a non-repo workdir just reports no git. */
 function ambientInfo(workdir) {
@@ -439,16 +461,21 @@ export async function startHost({
     // `preToolGate` is initialized later in this scope — the closure only
     // dereferences it when a restart actually runs.
     preflightCommand: async (spec) => {
-      const command = String(spec?.command ?? '');
+      // M90-R3: gates see the CANONICAL job_spawn args (restart_spec → tool
+      // schema), not the internal spec fields — an operator hook predicate
+      // on args.sandbox==='ssh' must decide identically for a first spawn
+      // and for its restart.
+      const args = restartSpecToJobSpawnArgs(spec);
+      const command = String(args.command ?? '');
       const hit = commandDenyPrefixes(workdir).find((p) => command.trim().startsWith(p));
       if (hit) {
         return { block: true, rule: 'command_denylist', reason: `command matches .pai/commands.json denyPrefix '${hit}' — project-level deny` };
       }
-      const k = await core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args: spec });
+      const k = await core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args });
       if (k?.block) return k;
       if (preToolGate) {
         try {
-          const g = await preToolGate.fireGate('pre_tool', { tool: 'job_spawn', toolCallId: 'job_restart', args: spec });
+          const g = await preToolGate.fireGate('pre_tool', { tool: 'job_spawn', toolCallId: 'job_restart', args });
           if (g?.deny) return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook refused: ${g.deny}` };
         } catch (err) {
           return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook error (fail-closed): ${String(err?.message ?? err).slice(0, 200)}` };
@@ -1015,7 +1042,7 @@ export async function startHost({
     // pi-format session file into the store WITHOUT switching to it — the
     // imported transcript lands in the drawer with a [导入] name marker and
     // forkFrom's parentSession header records the source path (provenance).
-    importSession: async (srcPath, { rewriteParent = rewriteSessionParent } = {}) => {
+    importSession: async (srcPath, { rewriteParent = rewriteSessionParent, afterFork = null } = {}) => {
       const abs = resolve(String(srcPath ?? ''));
       if (!existsSync(abs)) throw new Error(`session file not found: ${abs}`);
       // M89: upstream loadEntriesFromFile() APPENDS a newline to a source file
@@ -1024,21 +1051,24 @@ export async function startHost({
       const scratchDir = join(sessionDir, '.import-scratch');
       mkdirSync(scratchDir, { recursive: true });
       const scratch = join(scratchDir, `import-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}.jsonl`);
-      copyFileSync(abs, scratch);
       let destFile = null;
       try {
+        copyFileSync(abs, scratch); // inside try — a partial copy is cleaned too
         const mgr = sessionManagers.forkFrom(scratch, workdir, sessionDir);
+        // capture IMMEDIATELY after fork: any later step's failure (name,
+        // appendSessionInfo, rewrite) must still remove the half-imported
+        // destination — the store never carries a dangling-provenance header
+        destFile = mgr.getSessionFile?.() ?? null;
+        if (!destFile || !existsSync(destFile)) {
+          throw new Error('import produced no destination session file');
+        }
+        afterFork?.(mgr, destFile); // test seam — exercises post-fork failure cleanup
         const srcName = mgr.getSessionName?.() ?? basename(abs);
         mgr.appendSessionInfo?.(`[导入] ${srcName}`);
         // M89-R2: provenance is PART of the contract — forkFrom stamps
         // parentSession=<scratch> which the finally below deletes; rewrite
         // the destination header to the ORIGINAL source, and fail the whole
-        // import when the rewrite cannot land (a dangling-provenance session
-        // must not enter the drawer).
-        destFile = mgr.getSessionFile?.() ?? null;
-        if (!destFile || !existsSync(destFile)) {
-          throw new Error('import produced no destination session file');
-        }
+        // import when the rewrite cannot land.
         rewriteParent(destFile, abs);
         return { file: destFile, name: `[导入] ${srcName}`, importedFrom: abs };
       } catch (err) {

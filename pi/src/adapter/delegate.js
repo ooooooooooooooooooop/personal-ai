@@ -18,6 +18,33 @@ import { fileURLToPath } from 'node:url';
 export const DELEGATE_BRIDGE = fileURLToPath(new URL('../../bin/delegate-bridge.js', import.meta.url));
 
 /**
+ * M76/M94-R3: production commandFor builder for `--delegate-command`
+ * templates. `{target}/{task}/{model}/{effort}` slots interpolate.
+ * `enforceable` is asserted per RESOLVED target, never sniffed from the
+ * interpolated command ({task} is model-controlled — `task="inspect
+ * pai-channel.js"` must not mint capability on a foreign body):
+ *
+ *   - template WITH a {target} slot can branch between bodies
+ *     (`if [ "{target}" = pai ]; then node pai-channel.js; else codex …`),
+ *     so a template-global regex is not evidence — the operator must name
+ *     the enforceable resolved targets (`enforceableTargets` set).
+ *   - template WITHOUT the slot runs the same body every call, so the
+ *     operator-controlled template text itself decides.
+ */
+export function makeDelegationCommand(template, { enforceableTargets = new Set() } = {}) {
+  const tpl = String(template);
+  const branches = tpl.includes('{target}');
+  return (target, task, opts = {}) => ({
+    command: tpl
+      .replaceAll('{target}', target)
+      .replaceAll('{task}', String(task).replaceAll('"', '\\"'))
+      .replaceAll('{model}', opts.model ?? '')
+      .replaceAll('{effort}', opts.effort ?? ''),
+    enforceable: branches ? enforceableTargets.has(target) : /pai-channel\.js/.test(tpl),
+  });
+}
+
+/**
  * Build the delegate_task customTool.
  * @param {JobExecutor} executor
  * @param {object} opts
