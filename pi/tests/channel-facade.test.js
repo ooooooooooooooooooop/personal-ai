@@ -2,7 +2,7 @@
  * M6 pi channel facade — real AgentSession subscribe + real audit file tail.
  * Asserts the facade translates Pi state into plain-data snapshots.
  */
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -39,7 +39,7 @@ test('facade exposes plain-data get_state and dispatches prompt/steer/abort', as
   assert.deepEqual(fakeSessionRef.calls[0], 'go');
 
   const tail = await ch.handle({ type: 'audit_tail', n: 1 });
-  assert.equal(tail.data[0].kind, 'TURN_ACCOUNTING');
+  assert.equal(tail.data.events[0].kind, 'TURN_ACCOUNTING');
   dispose();
 });
 
@@ -73,6 +73,79 @@ test('budget gate: over-limit prompt is refused and billed events emit budget_ex
   const r = await ch.handle({ type: 'prompt', message: 'again' });
   assert.equal(r.success, false);
   assert.match(r.error, /budget/);
+  dispose();
+});
+
+test('budget_set: operator dial hot-applies, persists, audits; invalid input refused', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-budgetset-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { BudgetGovernor } = await import('../../host/src/core/budget.js');
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const budget = new BudgetGovernor({
+    ledgerPath: join(dir, 'budget-ledger.jsonl'),
+    limits: { maxTokensPerSession: 100 },
+    audit,
+  });
+  const core = { paths: { auditDir, root: dir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, budget });
+  fakeSessionRef.sessionId = 's-set';
+  fakeSessionRef.sessionManager = { getSessionId: () => 's-set' };
+
+  // invalid: unknown key / negative value refused without mutation
+  let r = await ch.handle({ type: 'budget_set', limits: { nope: 5 } });
+  assert.equal(r.success, false);
+  assert.match(r.error, /unknown limit/);
+  r = await ch.handle({ type: 'budget_set', limits: { maxTokensPerSession: -1 } });
+  assert.equal(r.success, false);
+  assert.equal(budget.limits.maxTokensPerSession, 100, 'limit unchanged on refusal');
+
+  // valid: hot-applied to the live governor AND persisted for next boot
+  r = await ch.handle({ type: 'budget_set', limits: { maxTokensPerSession: 5000, maxCallsPerSession: 50 } });
+  assert.equal(r.success, true);
+  assert.equal(budget.limits.maxTokensPerSession, 5000, 'live governor sees the new cap immediately');
+  assert.equal(budget.limits.maxCallsPerSession, 50);
+  const persisted = JSON.parse(readFileSync(join(dir, 'budget-overrides.json'), 'utf-8'));
+  assert.equal(persisted.limits.maxCallsPerSession, 50);
+
+  // clearing removes the override file -> back to policy/env tier next boot
+  r = await ch.handle({ type: 'budget_set', limits: { maxTokensPerSession: null, maxCallsPerSession: null } });
+  assert.equal(r.success, true);
+  assert.equal(budget.limits, null);
+  assert.ok(!existsSync(join(dir, 'budget-overrides.json')), 'override file removed when limits cleared');
+
+  const tail = await ch.handle({ type: 'audit_tail', n: 5 });
+  assert.ok(tail.data.events.some((e) => e.kind === 'BUDGET_LIMITS_SET'), 'both mutations audited');
+  dispose();
+});
+
+test('audit_tail pages through full history with a lines-from-end cursor', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-auditpage-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  for (let i = 0; i < 12; i++) audit.write({ kind: `E${i}`, data: { i } });
+  // a previous day's file must be included too — history is cross-day
+  writeFileSync(join(auditDir, '2020-01-01.jsonl'), JSON.stringify({ kind: 'E_OLD', ts: '2020-01-01T00:00:00Z' }) + String.fromCharCode(10));
+  const core = { paths: { auditDir, root: dir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  let r = await ch.handle({ type: 'audit_tail', n: 5 });
+  assert.equal(r.data.events.length, 5);
+  assert.equal(r.data.hasMore, true);
+  assert.equal(r.data.total, 13);
+  assert.equal(r.data.events.at(-1).kind, 'E11', 'freshest page ends at the newest event');
+
+  r = await ch.handle({ type: 'audit_tail', n: 5, before: 5 });
+  assert.equal(r.data.events.at(-1).kind, 'E6', 'cursor walks back exactly one page');
+
+  r = await ch.handle({ type: 'audit_tail', n: 5, before: 10 });
+  assert.equal(r.data.hasMore, false);
+  assert.equal(r.data.events[0].kind, 'E_OLD', 'oldest page reaches prior-day files');
   dispose();
 });
 
@@ -731,4 +804,50 @@ test('skills_list and skill_allow_set dispatch to the knowledge facade; fail clo
   assert.equal(r.success, false);
   assert.match(r.error, /skills facade unavailable/);
   bare.dispose();
+});
+
+test('governance_dryrun: real kernel probe through the channel — verdicts without side effects', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-dryrun-'));
+  const auditDir = join(dir, 'audit');
+  const canonicalDir = join(dir, 'canonical');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(canonicalDir, { recursive: true });
+  writeFileSync(join(canonicalDir, 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: { write: { action: 'ask' } },
+    riskActions: { destructive: 'deny' },
+  }));
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const { AttestedPolicy } = await import('../../host/src/core/policy.js');
+  const { PredictionStore } = await import('../../host/src/core/prediction.js');
+  const { GovernanceKernel } = await import('../../host/src/core/governance.js');
+  const audit = new AuditWriter({ auditDir });
+  const kernel = new GovernanceKernel({
+    audit, policy: new AttestedPolicy(canonicalDir),
+    predictions: new PredictionStore(canonicalDir),
+    protectedRoots: [auditDir],
+    ask: async () => { throw new Error('probe must never reach the operator'); },
+  });
+  const core = { paths: { auditDir }, audit, kernel };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  const denied = await ch.handle({ type: 'governance_dryrun', tool: 'bash', args: {} });
+  // bash with no commandArg configured and no rules → allow
+  assert.equal(denied.data.action, 'allow');
+
+  const ask = await ch.handle({ type: 'governance_dryrun', tool: 'write', args: { path: 'a.txt' } });
+  assert.equal(ask.data.action, 'ask');
+  assert.equal(ask.data.rule, 'tool_ask');
+
+  const blocked = await ch.handle({ type: 'governance_dryrun', tool: 'write', args: { path: join(auditDir, 'x.jsonl') } });
+  // protected-root scan: instance internals are negative capabilities
+  assert.equal(blocked.data.action, 'deny');
+  assert.equal(blocked.data.rule, 'negative_capability');
+
+  // probe purity: the audit dir must hold zero events after three verdicts
+  const { readdirSync } = await import('node:fs');
+  const files = readdirSync(auditDir).filter((f) => f.endsWith('.jsonl'));
+  const lines = files.flatMap((f) => readFileSync(join(auditDir, f), 'utf-8').split('\n').filter(Boolean));
+  assert.equal(lines.length, 0, 'dry-runs wrote no audit events');
+  dispose();
 });

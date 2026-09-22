@@ -35,6 +35,25 @@ import { REQUIRED_BODY_CAPABILITIES } from '../../pi/src/bootstrap/facts.js';
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Zero-dep repo HEAD read: .git/HEAD → loose ref (packed-refs fallback).
+ * The operator's instance can run days-old code while the repo advances —
+ * version awareness is how "you are running stale code" becomes visible
+ * instead of silent. Returns a short hash or null when unreadable.
+ */
+function readRepoCommit(repoRoot) {
+  try {
+    const head = readFileSync(join(repoRoot, '.git', 'HEAD'), 'utf-8').trim();
+    if (!head.startsWith('ref:')) return head.slice(0, 12) || null; // detached
+    const ref = head.slice(4).trim();
+    const loose = join(repoRoot, '.git', ...ref.split('/'));
+    if (existsSync(loose)) return readFileSync(loose, 'utf-8').trim().slice(0, 12);
+    const packed = readFileSync(join(repoRoot, '.git', 'packed-refs'), 'utf-8');
+    const line = packed.split('\n').find((l) => l.endsWith(` ${ref}`));
+    return line ? line.slice(0, 12) : null;
+  } catch { return null; }
+}
+
 export class BodySupervisor {
   /**
    * @param {object} o
@@ -196,7 +215,8 @@ export class BodySupervisor {
       );
     }
     await this.spawnBody(chosen);
-    this.audit.write({ kind: 'SUPERVISOR_STARTED', data: { body: chosen, installed: this.installed } });
+    this.bootCommit = readRepoCommit(this.repoRoot);
+    this.audit.write({ kind: 'SUPERVISOR_STARTED', data: { body: chosen, installed: this.installed, commit: this.bootCommit } });
     return this;
   }
 
@@ -542,14 +562,22 @@ export class BodySupervisor {
           if (cmd.handoff_id) return reply(true, this.handoffs.status(cmd.handoff_id));
           return reply(true, { pending: this.handoffs.pending() });
         }
-        case 'supervisor_status':
+        case 'supervisor_status': {
+          const repoCommit = readRepoCommit(this.repoRoot);
           return reply(true, {
             instanceRoot: this.instanceRoot,
             workdir: this.workdir,
             active: this.active?.bodyId ?? null,
             switching: this.switching,
             installed: this.installed,
+            version: {
+              bootCommit: this.bootCommit ?? null,
+              repoCommit,
+              // repo moved after this process booted → running stale code
+              stale: Boolean(this.bootCommit && repoCommit && repoCommit !== this.bootCommit),
+            },
           });
+        }
         case 'set_workdir': {
           const dir = String(cmd.path ?? '').trim();
           if (!dir) return reply(false, undefined, 'set_workdir requires {path}');

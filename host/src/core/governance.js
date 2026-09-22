@@ -96,20 +96,26 @@ export class GovernanceKernel {
       actual: detail.actual ?? null,
       repair: detail.repair ?? null,
     };
-    this.audit.write({
-      kind: 'TOOL_CALL_DENIED',
-      toolName: ctx.toolName,
-      data: { toolCallId: ctx.toolCallId, rule, ...detail, reason: detail.reason },
-    });
+    // probe mode (governance_dryrun): the verdict is computed, the audit
+    // log stays untouched — a rehearsal must not look like a real refusal.
+    if (!ctx.probe) {
+      this.audit.write({
+        kind: 'TOOL_CALL_DENIED',
+        toolName: ctx.toolName,
+        data: { toolCallId: ctx.toolCallId, rule, ...detail, reason: detail.reason },
+      });
+    }
     return decision;
   }
 
   #allow(ctx, via) {
-    this.audit.write({
-      kind: 'TOOL_CALL_ADMITTED',
-      toolName: ctx.toolName,
-      data: { toolCallId: ctx.toolCallId, via },
-    });
+    if (!ctx.probe) {
+      this.audit.write({
+        kind: 'TOOL_CALL_ADMITTED',
+        toolName: ctx.toolName,
+        data: { toolCallId: ctx.toolCallId, via },
+      });
+    }
     return undefined;
   }
 
@@ -120,6 +126,50 @@ export class GovernanceKernel {
    */
   async #ask(ctx, rule, detail) {
     const summary = summarizeArgs(ctx.args);
+    // Probe mode note: the wouldAsk verdict is returned AFTER the allowlist
+    // and rejection-memory read-only checks so the rehearsal sees the same
+    // verdict a real call would get — an allowlisted command reports allow,
+    // a remembered rejection reports deny. The GOVERNANCE_ASK audit write,
+    // judge call, and operator suspension are what the probe skips.
+    // Roo command-allowlist analogue: an OPERATOR-owned prefix list (instance
+    // root, not the agent-writable workdir) pre-approves matching commands —
+    // the ask is skipped but every other deny layer already ran. Only ever
+    // consulted inside #ask, so it can soften an approval request, never a deny.
+    // The adapter gets the rule + parsed units: instruction-file asks are
+    // never prefix-softened, and a compound command is allowed only when
+    // EVERY unit matches a prefix (a `good && rm -rf ~` must not ride on
+    // the good prefix).
+    if (this.commandAllowlist?.(ctx, { rule, parsed: detail.parsed ?? null })) {
+      if (!ctx.probe) {
+        this.audit.write({
+          kind: 'COMMAND_ALLOWLIST_HIT', toolName: ctx.toolName,
+          data: { toolCallId: ctx.toolCallId, rule, summary },
+        });
+      }
+      return this.#allow(ctx, 'operator:command_allowlist');
+    }
+    // Rejection memory: identical signature already denied → auto-deny.
+    // (After the allowlist — an operator standing order outranks a prior
+    // one-off denial.)
+    const sig = `${ctx.toolName}:${hashOf(stableJson(ctx.args ?? {}))}`;
+    if (this.#rejections.has(sig)) {
+      if (!ctx.probe) {
+        this.audit.write({
+          kind: 'REJECTION_MEMORY_HIT', toolName: ctx.toolName,
+          data: { toolCallId: ctx.toolCallId, rule, summary },
+        });
+      }
+      return this.#deny(ctx, 'rejection_memory', {
+        reason: `identical call already denied this session — ${detail.reason}`,
+        actual: summary,
+        repair: 'do not retry the same call; change the action or wait for a new session',
+      });
+    }
+    // Probe mode: everything below suspends for a live operator — report the
+    // gate the call WOULD hit instead (rule + reason + risk + shown summary).
+    if (ctx.probe) {
+      return { block: null, wouldAsk: true, rule, reason: detail.reason ?? null, risk: detail.risk ?? null, summary };
+    }
     if (!this.ask) {
       return this.#deny(ctx, 'ask_unavailable', {
         reason: `policy requires operator approval for '${ctx.toolName}' but no ask channel is configured (fail-closed)`,
@@ -131,36 +181,6 @@ export class GovernanceKernel {
       kind: 'GOVERNANCE_ASK', toolName: ctx.toolName,
       data: { toolCallId: ctx.toolCallId, rule, summary },
     });
-    // Roo command-allowlist analogue: an OPERATOR-owned prefix list (instance
-    // root, not the agent-writable workdir) pre-approves matching commands —
-    // the ask is skipped but every other deny layer already ran. Only ever
-    // consulted inside #ask, so it can soften an approval request, never a deny.
-    // The adapter gets the rule + parsed units: instruction-file asks are
-    // never prefix-softened, and a compound command is allowed only when
-    // EVERY unit matches a prefix (a `good && rm -rf ~` must not ride on
-    // the good prefix).
-    if (this.commandAllowlist?.(ctx, { rule, parsed: detail.parsed ?? null })) {
-      this.audit.write({
-        kind: 'COMMAND_ALLOWLIST_HIT', toolName: ctx.toolName,
-        data: { toolCallId: ctx.toolCallId, rule, summary },
-      });
-      return this.#allow(ctx, 'operator:command_allowlist');
-    }
-    // Rejection memory: identical signature already denied → auto-deny.
-    // (After the allowlist — an operator standing order outranks a prior
-    // one-off denial.)
-    const sig = `${ctx.toolName}:${hashOf(stableJson(ctx.args ?? {}))}`;
-    if (this.#rejections.has(sig)) {
-      this.audit.write({
-        kind: 'REJECTION_MEMORY_HIT', toolName: ctx.toolName,
-        data: { toolCallId: ctx.toolCallId, rule, summary },
-      });
-      return this.#deny(ctx, 'rejection_memory', {
-        reason: `identical call already denied this session — ${detail.reason}`,
-        actual: summary,
-        repair: 'do not retry the same call; change the action or wait for a new session',
-      });
-    }
     // WYSIWYG contract: the operator must know whether the card shows the
     // complete payload or a clipped prefix — truncated args carry an explicit
     // flag + original size so the UI can say "you are approving N chars shown
@@ -379,6 +399,26 @@ export class GovernanceKernel {
           reason: 'prediction binding required but no PredictionStore is configured (fail-closed)',
         });
       }
+      if (ctx.probe) {
+        // Probe mode: verify the binding WOULD succeed (prediction exists and
+        // is open) without consuming it — bindMutation appends to
+        // bindings.jsonl, a real mutation a rehearsal must not perform.
+        const p = this.predictions.index?.[predId];
+        if (!p) {
+          return this.#deny(ctx, 'prediction_binding_failed', {
+            reason: `prediction binding failed: cannot bind to unknown prediction ${predId}`,
+            actual: predId,
+            repair: 'bind to an OPEN prediction',
+          });
+        }
+        if (p.status !== 'open') {
+          return this.#deny(ctx, 'prediction_binding_failed', {
+            reason: `prediction binding failed: cannot bind mutation to closed prediction ${predId}`,
+            actual: predId,
+            repair: 'bind to an OPEN prediction',
+          });
+        }
+      } else {
       try {
         this.predictions.bindMutation(predId, { toolName: ctx.toolName, toolCallId: ctx.toolCallId, args });
         this.audit.write({
@@ -391,6 +431,7 @@ export class GovernanceKernel {
           actual: predId,
           repair: 'bind to an OPEN prediction',
         });
+      }
       }
     }
 

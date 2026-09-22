@@ -56,7 +56,9 @@ function providerAuditExtension(audit) {
           data: { seq: requestCount, status: event.status },
         });
       });
-      // usage lives on assistant messages, not the provider event
+      // usage lives on assistant messages, not the provider event.
+      // model rides along so usage history can break down by model, not
+      // just by day — without it per-model cost attribution is impossible.
       pi.on('message_end', (event) => {
         const u = event.message?.usage;
         if (event.message?.role !== 'assistant' || !u) return;
@@ -64,6 +66,7 @@ function providerAuditExtension(audit) {
           kind: 'TURN_ACCOUNTING',
           data: {
             seq: requestCount,
+            model: event.message?.model ?? null,
             input: u.input ?? null,
             output: u.output ?? null,
             cacheRead: u.cacheRead ?? null,

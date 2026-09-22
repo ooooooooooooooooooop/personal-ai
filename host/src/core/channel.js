@@ -67,8 +67,10 @@ export class HostChannel {
    * @param {object} [facades.policy]  {status} — read-only policy posture for UIs
    * @param {object} [facades.budget]  {status} — bounded-autonomy spend posture
    * @param {object} [facades.modes]   {get,set} — session risk mode ('normal'|'plan')
+   * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
+   *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null, profiles = null, leases = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null, profiles = null, leases = null, governance = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -100,6 +102,7 @@ export class HostChannel {
     this.instance = instance;
     this.repoMap = repoMap;
     this.skills = skills;
+    this.governance = governance;
     this.listeners = new Set();
     if (typeof session.subscribe === 'function') {
       this.unsub = session.subscribe((event) => this.#emit({ type: 'event', event }));
@@ -213,7 +216,8 @@ export class HostChannel {
         }
         case 'audit_tail': {
           if (!this.audit) return reply(false, undefined, 'audit facade unavailable');
-          return reply(true, this.audit.tail(cmd.n ?? 20));
+          // before = lines-from-end cursor for paging back through history
+          return reply(true, this.audit.tail(cmd.n ?? 20, cmd.before ?? 0));
         }
         case 'job_list': {
           if (!this.jobs?.listRecent) return reply(false, undefined, 'jobs facade unavailable');
@@ -634,6 +638,32 @@ export class HostChannel {
         case 'budget_status': {
           if (!this.budget?.status) return reply(false, undefined, 'budget facade unavailable');
           return reply(true, await this.budget.status());
+        }
+        // Operator budget control surface: the spend dial was previously
+        // reachable ONLY by hand-editing policy.json — an operator wedged at
+        // a limit had no governed way out. Channel commands are operator-tier
+        // (the agent speaks tools, not this protocol), so the change itself
+        // needs no ask — but it is audited and persisted as an operator
+        // override (higher precedence than the policy doc, like the env tier).
+        case 'budget_set': {
+          if (!this.budget?.setLimits) return reply(false, undefined, 'budget facade unavailable');
+          const out = this.budget.setLimits(cmd.limits ?? {});
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
+        // Governance dry-run: "would this tool call be allowed, denied, or
+        // asked about?" The kernel decides with probe:true — no audit writes,
+        // no ask suspension, no prediction binding. Lets the operator (and
+        // tests) rehearse policy without touching canonical state.
+        case 'governance_dryrun': {
+          if (!this.governance?.dryRun) return reply(false, undefined, 'governance dry-run unavailable');
+          if (!cmd.tool) return reply(false, undefined, 'governance_dryrun requires {tool}');
+          let args = cmd.args ?? {};
+          if (typeof args === 'string') {
+            try { args = JSON.parse(args); }
+            catch { return reply(false, undefined, 'governance_dryrun: args string is not valid JSON'); }
+          }
+          return reply(true, await this.governance.dryRun(String(cmd.tool), args));
         }
         case 'risk_mode': {
           if (!this.modes?.get) return reply(false, undefined, 'modes facade unavailable');

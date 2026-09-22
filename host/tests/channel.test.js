@@ -486,3 +486,29 @@ test('D7: lease_status reports writer + workspace-write holders; absent fails cl
   const bare = new HostChannel({ session: fakeSession() });
   assert.equal((await bare.handle({ type: 'lease_status' })).success, false);
 });
+
+test('governance_dryrun routes to the governance facade; validates input', async () => {
+  const seen = [];
+  const governance = {
+    dryRun: async (tool, args) => { seen.push([tool, args]); return { action: 'ask', rule: 'risk_mutating', reason: 'x' }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), governance });
+  const r = await ch.handle({ type: 'governance_dryrun', tool: 'bash', args: { command: 'npm run build' } });
+  assert.equal(r.success, true);
+  assert.equal(r.data.action, 'ask');
+  assert.deepEqual(seen, [['bash', { command: 'npm run build' }]]);
+  // args may arrive as a JSON string (UI form) — parsed at the boundary
+  const r2 = await ch.handle({ type: 'governance_dryrun', tool: 'bash', args: '{"command":"ls"}' });
+  assert.equal(r2.success, true);
+  assert.deepEqual(seen[1], ['bash', { command: 'ls' }]);
+  const badJson = await ch.handle({ type: 'governance_dryrun', tool: 'bash', args: '{nope' });
+  assert.equal(badJson.success, false);
+  assert.match(badJson.error, /not valid JSON/);
+  const noTool = await ch.handle({ type: 'governance_dryrun' });
+  assert.equal(noTool.success, false);
+  assert.match(noTool.error, /requires \{tool\}/);
+  const noFacade = await new HostChannel({ session: fakeSession() })
+    .handle({ type: 'governance_dryrun', tool: 'bash' });
+  assert.equal(noFacade.success, false);
+  assert.match(noFacade.error, /unavailable/);
+});

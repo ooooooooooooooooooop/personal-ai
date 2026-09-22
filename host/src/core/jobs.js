@@ -80,6 +80,12 @@ export class JobStore {
     if (!cols.includes('recovery_count')) {
       this.db.exec('ALTER TABLE jobs ADD COLUMN recovery_count INTEGER NOT NULL DEFAULT 0');
     }
+    // Dependency chains: JSON array of job_ids that must ALL reach COMPLETED
+    // before this job may start. Edges point only at already-existing jobs
+    // (deps are fixed at creation), so the graph is a DAG by construction.
+    if (!cols.includes('depends_on')) {
+      this.db.exec("ALTER TABLE jobs ADD COLUMN depends_on TEXT NOT NULL DEFAULT '[]'");
+    }
     this.defaultTtl = defaultTtl;
   }
 
@@ -101,18 +107,54 @@ export class JobStore {
     ).run(jobId, attemptId ?? null, nowIso(), type, JSON.stringify(payload ?? {}));
   }
 
-  createJob({ jobType, authorizedRoot = '', createdBy = 'system', recoveryPolicy } = {}) {
+  createJob({ jobType, authorizedRoot = '', createdBy = 'system', recoveryPolicy, dependsOn = [] } = {}) {
     const jobId = `job-${randomUUID().slice(0, 12)}`;
     const t = nowIso();
+    const deps = JSON.stringify(dependsOn);
     this.#tx(() => {
       this.db.prepare(
         `INSERT INTO jobs (job_id, job_type, created_at, updated_at, job_state, orchestration_state,
-         validation_state, authorized_root, recovery_policy, created_by) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+         validation_state, authorized_root, recovery_policy, created_by, depends_on) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
       ).run(jobId, jobType, t, t, JobState.PENDING, 'RUNNING', 'NOT_STARTED',
-        authorizedRoot, recoveryPolicy ?? 'auto_resume_on_valid_checkpoint', createdBy);
-      this.#event(jobId, null, 'JOB_CREATED', { job_type: jobType });
+        authorizedRoot, recoveryPolicy ?? 'auto_resume_on_valid_checkpoint', createdBy, deps);
+      this.#event(jobId, null, 'JOB_CREATED', { job_type: jobType, depends_on: dependsOn });
     });
     return this.getJob(jobId);
+  }
+
+  /** Parsed dependency list for a job row (never throws — bad JSON → []). */
+  depsOf(job) {
+    try {
+      const d = JSON.parse(job?.depends_on ?? '[]');
+      return Array.isArray(d) ? d.filter((x) => typeof x === 'string') : [];
+    } catch { return []; }
+  }
+
+  /**
+   * Dependency state for a job: {deps, pending, failed, satisfied}.
+   * satisfied = every dep reached COMPLETED. failed = deps that reached
+   * FAILED/CANCELLED (the dependent can never run). Unknown dep ids land in
+   * failed — a dep that does not exist cannot complete.
+   */
+  dependencyState(jobId) {
+    const job = typeof jobId === 'object' ? jobId : this.getJob(jobId);
+    if (!job) return null;
+    const deps = this.depsOf(job);
+    const pending = []; const failed = [];
+    for (const d of deps) {
+      const row = this.getJob(d);
+      if (!row || row.job_state === JobState.FAILED || row.job_state === JobState.CANCELLED) failed.push(d);
+      else if (row.job_state !== JobState.COMPLETED) pending.push(d);
+    }
+    return { deps, pending, failed, satisfied: deps.length > 0 && pending.length === 0 && failed.length === 0 };
+  }
+
+  /** Unfinished, never-started jobs waiting on dependencies (the queue). */
+  listDepQueued() {
+    return this.db.prepare(
+      `SELECT * FROM jobs WHERE job_state NOT IN ('COMPLETED','FAILED','CANCELLED')
+       AND current_attempt_id IS NULL AND depends_on != '[]'`,
+    ).all();
   }
 
   getJob(jobId) {
@@ -312,6 +354,13 @@ export class JobStore {
   recoveryTick({ isWorkerAlive, validateCheckpoint, onRespawn, onAlive, now, readCheckpoint, maxRecoveries = 3 }) {
     const actions = [];
     for (const job of this.listUnfinished()) {
+      // Dependency-queued: never started, waiting on other jobs. There is no
+      // worker to recover and no checkpoint to validate — the executor's dep
+      // pump owns promotion, so recovery must not escalate these to review.
+      if (!job.current_attempt_id && this.depsOf(job).length > 0) {
+        actions.push({ job_id: job.job_id, action_type: 'NO_ACTION', reason: 'queued on dependencies — no attempt has ever run' });
+        continue;
+      }
       if (job.job_state === JobState.WAITING_EVENT) {
         actions.push({ job_id: job.job_id, action_type: 'NO_ACTION', reason: 'waiting external event/review' });
         continue;

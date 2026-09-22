@@ -118,6 +118,9 @@ export class JobExecutor {
       command, output_tail: outputTail, exit_code: exitCode, signal,
       restart_spec: restartSpec,
       running: this.running.has(jobId),
+      // dependency chains: what this job waits on / what cleared it
+      depends_on: this.store.dependencyState(job),
+      queued: !job.current_attempt_id && this.store.depsOf(job).length > 0,
       events: this.store.getEvents(jobId).slice(-10),
     };
   }
@@ -140,6 +143,8 @@ export class JobExecutor {
     }
     this.store.cancelJob(jobId, reason);
     this.audit?.write({ kind: 'JOB_CANCEL_REQUESTED', data: { job_id: jobId, reason, killed: killable, parent_run_id: this.runId } });
+    // a cancelled dep cascades to its queued dependents
+    this.#pumpDependents().catch(() => { /* best-effort */ });
     return { cancelled: true, killed: killable };
   }
 
@@ -220,8 +225,121 @@ export class JobExecutor {
    * or {refused:true, reason} when a mutating job can't take the workspace
    * write lease (another mutating job is running). Fail-closed on classify
    * errors: an unparseable mutating-capable command is treated as mutating.
+   *
+   * dependsOn: array of job_ids that must ALL reach COMPLETED before this job
+   * starts. Unsatisfied deps → the job is created as a durable QUEUED record
+   * ({job_id, queued:true, waiting_on}) plus a persisted queue spec; the dep
+   * pump (#pumpDependents) promotes it onto the SAME job id when the chain
+   * clears, and cascade-cancels it when any dep fails. Edges point only at
+   * pre-existing jobs, so the graph is a DAG by construction.
    */
-  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false, sandbox = null }) {
+  async spawnCommandJob({ command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false, sandbox = null, dependsOn = null }) {
+    if (dependsOn != null) {
+      const v = this.#validateDeps(dependsOn);
+      if (v.error) return { refused: true, reason: v.error };
+      if (v.unsatisfied) {
+        // Queue BEFORE any side effect (no sandbox resolution, no worktree,
+        // no lease) — a waiting job must hold nothing it cannot release.
+        // Validate the sandbox kind now: an unknown backend must refuse at
+        // admission, not queue and die at promotion days later.
+        if (sandbox != null && sandbox !== false && sandbox !== 'none') {
+          const kind = typeof sandbox === 'object' ? (sandbox.kind ?? 'none') : String(sandbox);
+          if (!['none', 'wsl', 'docker', 'ssh'].includes(kind)) {
+            return { refused: true, reason: `unknown sandbox backend '${kind}' — expected none|wsl|docker|ssh` };
+          }
+        }
+        const job = this.store.createJob({
+          jobType, authorizedRoot: authorizedRoot ?? workdir, createdBy: 'pi-executor', dependsOn: v.deps,
+        });
+        const spec = { command, workdir, jobType, authorizedRoot, budgetScope, budgetCommitted, timeoutMs, worktree, sandbox };
+        try {
+          writeFileSync(this.#queueSpecPath(job.job_id), JSON.stringify(spec, null, 2));
+        } catch (e) {
+          this.store.failJob(job.job_id, `queue spec could not be persisted: ${e.message}`);
+          return { refused: true, reason: `depends_on: queue spec write failed (${e.message})`, job_id: job.job_id };
+        }
+        this.audit?.write({ kind: 'JOB_QUEUED_DEPS', data: { job_id: job.job_id, waiting_on: v.waitingOn, command: command.slice(0, 200), parent_run_id: this.runId } });
+        return { job_id: job.job_id, attempt_id: null, queued: true, waiting_on: v.waitingOn };
+      }
+      // satisfied at birth — record the lineage on the row and run immediately
+      return this.#launch(null, { command, workdir, jobType, authorizedRoot, budgetScope, budgetCommitted, timeoutMs, worktree, sandbox, dependsOn: v.deps });
+    }
+    return this.#launch(null, { command, workdir, jobType, authorizedRoot, budgetScope, budgetCommitted, timeoutMs, worktree, sandbox, dependsOn: [] });
+  }
+
+  #queueSpecPath(jobId) { return join(this.jobsDir, `${jobId}.queued.json`); }
+
+  /**
+   * Validate a dependency list against the store. Unknown deps refuse (they
+   * can never complete); already-dead deps refuse at admission (fail fast
+   * beats queue-then-cascade); COMPLETED deps satisfy immediately.
+   */
+  #validateDeps(dependsOn) {
+    if (!Array.isArray(dependsOn)) return { error: 'depends_on must be an array of job ids' };
+    const deps = [...new Set(dependsOn.map((d) => String(d ?? '').trim()).filter(Boolean))];
+    if (!deps.length) return { deps: [], unsatisfied: false, waitingOn: [] };
+    if (deps.length > 16) return { error: `depends_on: too many dependencies (${deps.length} > 16)` };
+    const waitingOn = [];
+    for (const d of deps) {
+      const row = this.store.getJob(d);
+      if (!row) return { error: `depends_on: unknown job '${d}' — a dependency that does not exist can never complete` };
+      if (row.job_state === 'FAILED' || row.job_state === 'CANCELLED') {
+        return { error: `depends_on: job '${d}' is ${row.job_state} — a chain on a dead job can never run` };
+      }
+      if (row.job_state !== 'COMPLETED') waitingOn.push(d);
+    }
+    return { deps, unsatisfied: waitingOn.length > 0, waitingOn };
+  }
+
+  /**
+   * Dependency pump — promote queued jobs whose deps all COMPLETED, cascade-
+   * cancel those with a dead dep. Called on every terminal transition this
+   * process observes (exit handler, cancel), at the end of cold-start
+   * recovery, and when an adopted orphan worker dies. Idempotent.
+   */
+  async #pumpDependents() {
+    let queued;
+    try { queued = this.store.listDepQueued(); } catch { return; } // store closed
+    for (const job of queued) {
+      const st = this.store.dependencyState(job);
+      if (!st) continue;
+      if (st.failed.length) {
+        // cascade honestly: the dependent never ran → CANCELLED naming the
+        // dead deps, never FAILED (nothing executed to fail).
+        this.store.cancelJob(job.job_id, `dependency_failed:${st.failed.join(',')}`);
+        try { rmSync(this.#queueSpecPath(job.job_id), { force: true }); } catch { /* sweep is best-effort */ }
+        this.audit?.write({ kind: 'JOB_DEP_FAILED', data: { job_id: job.job_id, failed_deps: st.failed, parent_run_id: this.runId } });
+        continue;
+      }
+      if (!st.satisfied) continue; // still waiting
+      let spec = null;
+      try {
+        spec = JSON.parse(readFileSync(this.#queueSpecPath(job.job_id), 'utf-8'));
+      } catch (e) {
+        this.store.failJob(job.job_id, `queue spec unreadable: ${e.message}`);
+        this.audit?.write({ kind: 'JOB_DEP_FAILED', data: { job_id: job.job_id, reason: 'queue_spec_unreadable', parent_run_id: this.runId } });
+        continue;
+      }
+      this.audit?.write({ kind: 'JOB_DEP_PROMOTED', data: { job_id: job.job_id, deps: st.deps, parent_run_id: this.runId } });
+      // Promotion launches on the EXISTING job record — the id the model and
+      // the operator already poll — replaying the persisted spawn contract.
+      const r = await this.#launch(job, spec);
+      if (r?.refused && r.leaseHeld) {
+        // park: keep the queue spec so a later pump (when the lease holder
+        // finishes) retries — the deps stay satisfied, the slot is just busy.
+        this.audit?.write({ kind: 'JOB_PARKED', data: { job_id: job.job_id, reason: r.reason, parent_run_id: this.runId } });
+      } else if (r?.refused) {
+        this.store.failJob(job.job_id, r.reason);
+        this.audit?.write({ kind: 'JOB_DEP_FAILED', data: { job_id: job.job_id, reason: r.reason, parent_run_id: this.runId } });
+        try { rmSync(this.#queueSpecPath(job.job_id), { force: true }); } catch { /* best-effort */ }
+      } else {
+        try { rmSync(this.#queueSpecPath(job.job_id), { force: true }); } catch { /* best-effort */ }
+      }
+    }
+  }
+
+  /** The launch half of spawnCommandJob — promotedJob null creates the record. */
+  async #launch(promotedJob, { command, workdir, jobType = 'shell_command', authorizedRoot, budgetScope = null, budgetCommitted = false, timeoutMs = null, worktree = false, sandbox = null, dependsOn = [] }) {
     // Remote execution (P1, web-review GO): a per-job sandbox selector
     // overrides the global PAI_SANDBOX backend — 'wsl'/'docker'/'ssh' run the
     // command off the host shell entirely. Unknown kinds refuse BEFORE the
@@ -304,11 +422,14 @@ export class JobExecutor {
         mutating = true; // classifier failed on a job command → treat as mutating
       }
     }
-    const job = this.store.createJob({ jobType, authorizedRoot: authorizedRoot ?? workdir, createdBy: 'pi-executor' });
+    const job = promotedJob ?? this.store.createJob({ jobType, authorizedRoot: authorizedRoot ?? workdir, createdBy: 'pi-executor', dependsOn });
     if (mutating && this.writeLease) {
       const acq = this.writeLease.acquire(`job:${job.job_id}`, { command: command.slice(0, 200) });
       if (!acq.ok) {
         const reason = `workspace write lease held by '${acq.heldBy.holder}' — mutating durable jobs run one at a time; retry when it finishes or the lease expires`;
+        // a promoted (dep-queued) job PARKS instead of dying — the pump
+        // retries it when the lease holder finishes; a fresh spawn refuses.
+        if (promotedJob) return { refused: true, leaseHeld: true, reason, job_id: job.job_id };
         this.store.failJob(job.job_id, reason);
         this.audit?.write({ kind: 'JOB_REFUSED', data: { job_id: job.job_id, reason, heldBy: acq.heldBy.holder, parent_run_id: this.runId } });
         return { refused: true, reason, job_id: job.job_id };
@@ -537,6 +658,9 @@ export class JobExecutor {
           kind: 'JOB_FINISHED',
           data: { job_id: jobId, attempt_id: attemptId, exit_code: code, usage, parent_run_id: this.runId },
         });
+        // Dependency pump: this terminal transition may unblock queued
+        // dependents (or cascade-cancel them when this job died).
+        this.#pumpDependents().catch(() => { /* pump failure must not corrupt exit bookkeeping */ });
         // M14 (Hermes/CodeBuddy delivery analogue): scheduled jobs have no
         // operator watching — surface their completion as a UI event instead
         // of letting the output die inside the job detail view.
@@ -554,7 +678,7 @@ export class JobExecutor {
 
   /** Cold-start recovery: sweep unfinished jobs, respawn dead workers. */
   recover({ workdir } = {}) {
-    return this.store.recoveryTick({
+    const actions = this.store.recoveryTick({
       isWorkerAlive,
       validateCheckpoint,
       readCheckpoint: (p) => (existsSync(p) ? readCheckpoint(p) : null),
@@ -640,6 +764,10 @@ export class JobExecutor {
         });
       },
     });
+    // Dep pump after the sweep: deps may have completed while we were down —
+    // promote what cleared, cascade-cancel what can never run.
+    this.#pumpDependents().catch(() => { /* recovery pump is best-effort */ });
+    return actions;
   }
 }
 
@@ -677,10 +805,14 @@ export function jobSpawnTool(executor, { workdir, getScope = null } = {}) {
         remote_dir: { type: 'string', description: 'remote working directory for ssh (default ~)' },
         sandbox_key: { type: 'string', description: 'ssh identity file path' },
         worktree: { type: 'boolean', description: 'run inside a detached git worktree (local jobs only)' },
+        depends_on: {
+          type: 'array', items: { type: 'string' },
+          description: 'job ids that must ALL reach COMPLETED before this job starts — the job queues durably, promotes itself when the chain clears, and is cancelled if any dependency fails',
+        },
       },
       required: ['command'],
     },
-    promptSnippet: 'job_spawn(command, [sandbox]): run a command as a durable job — wsl/docker/ssh execution boundary optional',
+    promptSnippet: 'job_spawn(command, [sandbox], [depends_on]): run a command as a durable job — wsl/docker/ssh execution boundary optional, depends_on queues until those jobs COMPLETE',
     async execute(_toolCallId, params) {
       const command = String(params.command ?? '').trim();
       if (!command) return jobText('job_spawn requires a command', { isError: true });
@@ -692,6 +824,7 @@ export function jobSpawnTool(executor, { workdir, getScope = null } = {}) {
         budgetScope: getScope?.() ?? null,
         timeoutMs: Number.isFinite(timeoutMin) && timeoutMin > 0 ? Math.round(Math.min(timeoutMin, 24 * 60) * 60_000) : null,
         worktree: params.worktree === true,
+        dependsOn: Array.isArray(params.depends_on) ? params.depends_on : null,
         sandbox: params.sandbox
           ? {
               kind: String(params.sandbox),
@@ -704,6 +837,13 @@ export function jobSpawnTool(executor, { workdir, getScope = null } = {}) {
           : null,
       });
       if (r.refused) return jobText(`job_spawn refused: ${r.reason}`, { isError: true });
+      if (r.queued) {
+        return jobText(
+          `job ${r.job_id} QUEUED — waiting on ${r.waiting_on.join(', ')} to COMPLETE. ` +
+          'It starts itself when the chain clears and is cancelled if a dependency fails; poll job_status as usual.',
+          { job_id: r.job_id, queued: true, waiting_on: r.waiting_on },
+        );
+      }
       return jobText(
         `job ${r.job_id} spawned (attempt ${r.attempt_id})` +
         `${params.sandbox ? ` under ${params.sandbox}` : ''} — ` +

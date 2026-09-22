@@ -41,8 +41,6 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
 export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, fallbacks = null, leases = null, sessionFlags = null }) {
-  const auditPath = () => core.audit?.file
-    ?? join(core.paths.auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`);
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -749,10 +747,26 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
 
   const auditFacade = {
-    tail: (n) => {
-      if (!existsSync(auditPath())) return [];
-      const lines = readFileSync(auditPath(), 'utf-8').trim().split('\n').filter(Boolean);
-      return lines.slice(-n).map((l) => JSON.parse(l));
+    // Paged tail over the WHOLE audit history (all daily files, oldest first),
+    // not just today. before = lines-from-end cursor (0 = freshest page).
+    // Returns {events, total, hasMore} so the UI can page back — the audit
+    // log is the governance record; an 80-line window is not oversight.
+    tail: (n, before = 0) => {
+      let lines = [];
+      try {
+        const files = readdirSync(core.paths.auditDir).filter((f) => f.endsWith('.jsonl')).sort();
+        for (const f of files) {
+          lines.push(...readFileSync(join(core.paths.auditDir, f), 'utf-8').split('\n'));
+        }
+      } catch { return { events: [], total: 0, hasMore: false }; }
+      lines = lines.filter(Boolean);
+      const end = Math.max(0, lines.length - Math.max(0, Number(before) || 0));
+      const start = Math.max(0, end - n);
+      return {
+        events: lines.slice(start, end).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean),
+        total: lines.length,
+        hasMore: start > 0,
+      };
     },
   };
   const channel = new HostChannel({
@@ -768,6 +782,34 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     fileops,
     budget: budget ? {
       status: async () => budget.status(box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown'),
+      // Operator-tier budget dial: hot-mutates the live governor AND persists
+      // an override file the bootstrap reads with top precedence (overrides >
+      // policy doc > env). The canonical policy.json checksum is untouched —
+      // no attestation drift, no body restart needed. Audited both ways.
+      setLimits: (limits) => {
+        const KEYS = ['maxTokensPerSession', 'maxCostPerSessionUsd', 'maxCallsPerSession'];
+        const next = {};
+        for (const [k, v] of Object.entries(limits ?? {})) {
+          if (!KEYS.includes(k)) return { error: `budget_set: unknown limit '${k}' (known: ${KEYS.join(', ')})` };
+          if (v === null || v === 0) continue; // null/0 clears that limit
+          if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) {
+            return { error: `budget_set: ${k} must be a non-negative number (0/null clears)` };
+          }
+          next[k] = v;
+        }
+        const before = budget.limits ?? null;
+        budget.limits = Object.keys(next).length ? next : null;
+        const file = join(core.paths.root, 'budget-overrides.json');
+        try {
+          if (budget.limits) writeJsonAtomic(file, { limits: budget.limits, setAt: new Date().toISOString() });
+          else if (existsSync(file)) unlinkSync(file); // cleared back to policy/env tier
+        } catch (e) {
+          budget.limits = before; // persistence failed → roll the hot change back
+          return { error: `budget_set: cannot persist override (${e?.message ?? e}) — limit unchanged` };
+        }
+        core.audit?.write({ kind: 'BUDGET_LIMITS_SET', data: { before, after: budget.limits } });
+        return { limits: budget.limits, persisted: Boolean(budget.limits) };
+      },
     } : null,
     policy: {
       // Read-only posture for UIs — the canonical block itself is only
@@ -784,6 +826,24 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           .filter(([, r]) => r?.action === 'deny').map(([t]) => t),
       }),
     },
+    governance: core.kernel?.decideToolCall ? {
+      // Dry-run probe: run the REAL decideToolCall chain with probe:true so
+      // the verdict (allow / deny / would-ask) is exactly what a live call
+      // would get — minus audit writes, ask suspension, prediction binding.
+      dryRun: async (toolName, args = {}) => {
+        const d = await core.kernel.decideToolCall({
+          toolName,
+          toolCallId: 'probe',
+          args: typeof args === 'object' && args !== null ? args : {},
+          probe: true,
+        });
+        if (!d) return { action: 'allow' };
+        if (d.wouldAsk) {
+          return { action: 'ask', rule: d.rule, reason: d.reason, risk: d.risk, summary: d.summary };
+        }
+        return { action: 'deny', rule: d.rule, reason: d.reason, terminate: d.terminate === true, repair: d.repair ?? null };
+      },
+    } : null,
     modes,
     turns,
     tasks,

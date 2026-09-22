@@ -449,13 +449,25 @@ export async function startHost({
     baseDir: PI_ROOT,
   });
 
-  // Bounded autonomy: cumulative spend gate. Limits come from the attested
-  // policy doc (policy.doc.budget) or the operator env — never from anything
-  // the agent can reach. The ledger is append-only so session rewind can
-  // never un-spend tokens.
+  // Bounded autonomy: cumulative spend gate. Limit precedence (highest first):
+  // operator override file (budget_set control surface) > attested policy doc
+  // > operator env — never from anything the agent can reach. The ledger is
+  // append-only so session rewind can never un-spend tokens.
+  const budgetOverridePath = join(core.paths.root, 'budget-overrides.json');
+  let budgetOverrides = null;
+  try {
+    if (existsSync(budgetOverridePath)) {
+      const doc = JSON.parse(readFileSync(budgetOverridePath, 'utf-8'));
+      if (doc?.limits && typeof doc.limits === 'object') budgetOverrides = doc.limits;
+    }
+  } catch {
+    // a corrupt override file must not silently un-limit the run: fall
+    // through to policy/env AND leave a trace in the audit log
+    core.audit.write({ kind: 'BUDGET_LIMITS_SET', data: { error: 'budget-overrides.json unreadable — ignored' } });
+  }
   const budget = new BudgetGovernor({
     ledgerPath: join(core.paths.root, 'budget-ledger.jsonl'),
-    limits: core.policy.doc?.budget ?? {
+    limits: budgetOverrides ?? core.policy.doc?.budget ?? {
       maxTokensPerSession: numEnv('PAI_BUDGET_MAX_TOKENS'),
       maxCostPerSessionUsd: numEnv('PAI_BUDGET_MAX_COST_USD'),
       maxCallsPerSession: numEnv('PAI_BUDGET_MAX_CALLS'),

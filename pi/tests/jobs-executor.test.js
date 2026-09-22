@@ -989,3 +989,125 @@ test('M76-R3: interpolated task text still cannot mint capability (branched temp
   assert.equal(cmd('codex', 'inspect pai-channel.js').enforceable, false);
   assert.match(cmd('codex', 'inspect pai-channel.js').command, /pai-channel\.js/, 'the smuggled text really is in the shell string');
 });
+
+/* ---- dependency chains: depends_on queue → promote / cascade-cancel ---- */
+
+const waitFor = async (fn, ms = 8000, step = 150) => {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    const v = fn();
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, step));
+  }
+  return null;
+};
+
+test('depends_on: queued job promotes onto the SAME id when the dep completes', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-dep-promote-'));
+  const { store, executor } = rig(dir);
+  const a = await executor.spawnCommandJob({ command: 'echo DEP_A', workdir: tmpdir() });
+  const b = await executor.spawnCommandJob({
+    command: 'echo DEP_B', workdir: tmpdir(), dependsOn: [a.job_id],
+  });
+  assert.equal(b.queued, true);
+  assert.deepEqual(b.waiting_on, [a.job_id]);
+  assert.equal(b.attempt_id, null, 'no attempt while queued');
+  assert.ok(existsSync(join(dir, 'jobs', `${b.job_id}.queued.json`)), 'queue spec persisted');
+  assert.equal(store.getJob(b.job_id).job_state, 'PENDING');
+  const depState = store.dependencyState(b.job_id);
+  assert.deepEqual(depState.pending, [a.job_id]);
+
+  const done = await waitFor(() => store.getJob(b.job_id).job_state === 'COMPLETED');
+  assert.ok(done, 'dependent promoted and completed after the dep finished');
+  assert.ok(store.getAttempts(b.job_id).length >= 1, 'promotion started a real attempt on the same job id');
+  assert.ok(!existsSync(join(dir, 'jobs', `${b.job_id}.queued.json`)), 'queue spec consumed');
+  store.close();
+});
+
+test('depends_on: a failed dep cascade-CANCELS the queued dependent (never runs)', { timeout: 20_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-dep-cascade-'));
+  const { store, executor } = rig(dir);
+  const a = await executor.spawnCommandJob({ command: 'exit 3', workdir: tmpdir() });
+  const b = await executor.spawnCommandJob({
+    command: 'echo SHOULD_NEVER_RUN', workdir: tmpdir(), dependsOn: [a.job_id],
+  });
+  assert.equal(b.queued, true);
+  const dead = await waitFor(() => store.getJob(b.job_id).job_state === 'CANCELLED');
+  assert.ok(dead, 'dependent cancelled after the dep failed');
+  assert.equal(store.getAttempts(b.job_id).length, 0, 'cancelled dependent never ran an attempt');
+  assert.ok(!existsSync(join(dir, 'jobs', `${b.job_id}.queued.json`)), 'queue spec swept');
+  const evs = store.getEvents(b.job_id).map((e) => e.event_type);
+  assert.ok(evs.includes('JOB_CANCELLED'));
+  assert.ok(!evs.includes('ATTEMPT_STARTED'));
+  store.close();
+});
+
+test('depends_on: admission refusals — unknown dep, dead dep, bad shape', { timeout: 10_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-dep-refuse-'));
+  const { store, executor } = rig(dir);
+  let r = await executor.spawnCommandJob({ command: 'echo X', workdir: tmpdir(), dependsOn: ['job-does-not-exist'] });
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /unknown job/);
+
+  const a = await executor.spawnCommandJob({ command: 'exit 1', workdir: tmpdir() });
+  await waitFor(() => store.getJob(a.job_id).job_state === 'FAILED');
+  r = await executor.spawnCommandJob({ command: 'echo X', workdir: tmpdir(), dependsOn: [a.job_id] });
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /can never run/);
+
+  r = await executor.spawnCommandJob({ command: 'echo X', workdir: tmpdir(), dependsOn: 'not-an-array' });
+  assert.equal(r.refused, true);
+  assert.match(r.reason, /array of job ids/);
+  store.close();
+});
+
+test('depends_on: satisfied at birth runs immediately and records lineage', { timeout: 15_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-dep-satisfied-'));
+  const { store, executor } = rig(dir);
+  const a = await executor.spawnCommandJob({ command: 'echo FAST_A', workdir: tmpdir() });
+  await waitFor(() => store.getJob(a.job_id).job_state === 'COMPLETED');
+  const b = await executor.spawnCommandJob({ command: 'echo FAST_B', workdir: tmpdir(), dependsOn: [a.job_id] });
+  assert.equal(b.queued, undefined, 'no queueing when deps already complete');
+  assert.ok(b.attempt_id, 'attempt started immediately');
+  assert.deepEqual(store.depsOf(store.getJob(b.job_id)), [a.job_id], 'dep lineage recorded on the row');
+  await waitFor(() => store.getJob(b.job_id).job_state === 'COMPLETED');
+  store.close();
+});
+
+test('depends_on: cold restart — recover() pumps a queue whose deps finished while down', { timeout: 15_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-dep-recover-'));
+  const { store, executor } = rig(dir);
+  // dep that never really ran: complete it directly (store authority) to
+  // simulate "dep finished while the host was down"
+  const dep = store.createJob({ jobType: 'shell_command', authorizedRoot: tmpdir() });
+  const b = await executor.spawnCommandJob({ command: 'echo COLD_B', workdir: tmpdir(), dependsOn: [dep.job_id] });
+  assert.equal(b.queued, true);
+  store.completeJob(dep.job_id); // dep finished while "down"
+  store.close(); executor.running.clear(); // simulate process death
+
+  const { store: store2, executor: ex2 } = rig(dir);
+  const actions = ex2.recover({ workdir: tmpdir() });
+  const skip = actions.find((a) => a.job_id === b.job_id);
+  assert.equal(skip?.action_type, 'NO_ACTION', 'recoveryTick does not escalate queued jobs');
+  assert.match(skip?.reason ?? '', /queued on dependencies/);
+  const done = await waitFor(() => store2.getJob(b.job_id).job_state === 'COMPLETED');
+  assert.ok(done, 'recover pump promoted the queued job whose dep completed while down');
+  store2.close();
+});
+
+test('depends_on: dep-queued jobs survive recoveryTick untouched while deps still run', { timeout: 10_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-dep-skip-'));
+  const { store, executor } = rig(dir);
+  const a = await executor.spawnCommandJob({ command: sleepCmd(30_000), workdir: tmpdir() });
+  const b = await executor.spawnCommandJob({ command: 'echo B', workdir: tmpdir(), dependsOn: [a.job_id] });
+  assert.equal(b.queued, true);
+  const actions = executor.recover({ workdir: tmpdir() });
+  const row = actions.find((x) => x.job_id === b.job_id);
+  assert.equal(row?.action_type, 'NO_ACTION');
+  assert.match(row?.reason ?? '', /queued/);
+  assert.equal(store.getJob(b.job_id).job_state, 'PENDING', 'still queued, not escalated to review');
+  executor.cancel(a.job_id); // cleanup: cancel → cascade-cancels b
+  const dead = await waitFor(() => store.getJob(b.job_id).job_state === 'CANCELLED', 4000);
+  assert.ok(dead, 'operator-cancel of a dep cascades to the queued dependent');
+  store.close();
+});

@@ -87,6 +87,10 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         name: { type: 'string', description: 'optional teammate name — makes the task a named, persistent member of the teammate pool (addressable via teammate_msg)' },
         max_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes — the job is killed at the deadline and reported as timed out' },
         worktree: { type: 'boolean', description: 'run inside a detached git worktree — parallel delegates cannot collide on the real checkout; dirty worktrees are kept and reported' },
+        depends_on: {
+          type: 'array', items: { type: 'string' },
+          description: 'job ids that must ALL reach COMPLETED before this delegation starts — the job queues durably and is cancelled if a dependency fails. NOTE: a profile budget slice is charged at admission even while queued.',
+        },
       },
       required: ['task'],
     },
@@ -288,6 +292,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         budgetCommitted: committedSlice != null,
         timeoutMs: maxMin != null ? Math.round(maxMin * 60_000) : null,
         worktree: params.worktree === true,
+        dependsOn: Array.isArray(params.depends_on) ? params.depends_on : null,
       });
       if (r.refused) {
         // spawn never happened — roll the committed slice back out
@@ -301,6 +306,20 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       }
       const { job_id, attempt_id } = r;
       if (agentTask) taskStore.bindJob(agentTask.task_id, job_id);
+      if (r.queued) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation QUEUED as durable job ${job_id} — waiting on ${r.waiting_on.join(', ')} to COMPLETE. ` +
+              'It starts itself when the chain clears and is cancelled if a dependency fails.' +
+              (agentTask ? ` AgentTask ${agentTask.task_id} is bound already.` : ''),
+          }],
+          details: {
+            job_id, queued: true, waiting_on: r.waiting_on, target, profile: params.profile ?? null,
+            ...(agentTask ? { task_id: agentTask.task_id } : {}),
+          },
+        };
+      }
       return {
         content: [{
           type: 'text',

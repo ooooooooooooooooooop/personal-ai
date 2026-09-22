@@ -2,7 +2,7 @@
  * M2 governance kernel semantics — real AttestedPolicy + PredictionStore on a
  * real temp filesystem. The classifier is injected (host stays neutral).
  */
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -566,4 +566,127 @@ test('env injection: inline dangerous env assignment escalates an otherwise-allo
   const r = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'LD_PRELOAD=/tmp/x.so ls' } }));
   assert.equal(r.block, true);
   assert.deepEqual(asked, ['env_injection']);
+});
+
+/* ---- probe mode (governance_dryrun): verdicts without side effects ---- */
+
+const auditEvents = (paths) => {
+  const files = readdirSync(paths.auditDir).filter((f) => f.endsWith('.jsonl'));
+  return files.flatMap((f) =>
+    readFileSync(join(paths.auditDir, f), 'utf-8').split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean));
+};
+
+test('probe: deny verdict computed, audit log untouched', async () => {
+  const { paths, audit, policy, predictions } = fixture({
+    tools: { dangerous: { action: 'deny' } },
+  });
+  const kernel = new GovernanceKernel({ audit, policy, predictions });
+  const d = await kernel.decideToolCall(ctx({ toolName: 'dangerous', probe: true }));
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'tool_denied');
+  assert.equal(auditEvents(paths).length, 0, 'probe wrote no audit events');
+});
+
+test('probe: allow verdict computed, audit log untouched', async () => {
+  const { paths, audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({ audit, policy, predictions });
+  const d = await kernel.decideToolCall(ctx({ probe: true }));
+  assert.equal(d, undefined, 'allow still surfaces as undefined');
+  assert.equal(auditEvents(paths).length, 0);
+});
+
+test('probe: prediction-store-missing path denies without side effects', async () => {
+  const { paths, audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    ask: async () => { throw new Error('probe must never reach the operator'); },
+  });
+  const d = await kernel.decideToolCall({
+    toolName: 'write', toolCallId: 'tc-p2', args: { path: 'worktree/a.txt', predictionId: 'pred-x' },
+    probe: true,
+  });
+  // prediction required but store has no pred-x → deny verdict, still no audit
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'prediction_binding_failed');
+  assert.equal(auditEvents(paths).length, 0);
+});
+
+test('probe: tool_ask rule yields wouldAsk with rule+reason, no suspension', async () => {
+  const { paths, audit, policy, predictions } = fixture({
+    tools: { write: { action: 'ask' } },
+  });
+  let asked = 0;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    ask: async () => { asked += 1; return 'deny'; },
+  });
+  const d = await kernel.decideToolCall(ctx({ probe: true }));
+  assert.equal(d.wouldAsk, true);
+  assert.equal(d.rule, 'tool_ask');
+  assert.match(d.reason, /write/);
+  assert.equal(asked, 0, 'operator was never asked');
+  assert.equal(auditEvents(paths).length, 0);
+});
+
+test('probe: prediction binding is validated, never consumed', async () => {
+  const { paths, audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({ audit, policy, predictions });
+  const pred = predictions.open({ claim: 'probe target' });
+  const d = await kernel.decideToolCall(ctx({
+    args: { path: 'worktree/a.txt', predictionId: pred.id }, probe: true,
+  }));
+  assert.equal(d, undefined, 'open prediction binds cleanly in probe');
+  assert.equal(predictions.bindings().length, 0, 'probe appended no binding records');
+  // and a real bind still works afterwards — the probe did not consume it
+  const real = await kernel.decideToolCall(ctx({ args: { path: 'worktree/a.txt', predictionId: pred.id } }));
+  assert.equal(real, undefined);
+  assert.equal(predictions.bindings().length, 1);
+});
+
+test('probe: closed prediction still fails the rehearsal', async () => {
+  const { audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({ audit, policy, predictions });
+  const pred = predictions.open({ claim: 'will close' });
+  predictions.close(pred.id, 'done', 'confirmed');
+  const d = await kernel.decideToolCall(ctx({
+    args: { path: 'worktree/a.txt', predictionId: pred.id }, probe: true,
+  }));
+  assert.equal(d.block, true);
+  assert.equal(d.rule, 'prediction_binding_failed');
+});
+
+test('probe: allowlisted command reports allow, matching the live verdict', async () => {
+  const { audit, policy, predictions } = fixture({
+    riskActions: { mutating: 'ask' }, // force the ask path so the allowlist decides
+  });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: src }], parseError: null,
+      risk: 'mutating', writeTargets: [], dangerEnv: [],
+    }),
+    commandAllowlist: () => true, // operator standing order matches
+    ask: async () => { throw new Error('allowlist must absorb before ask'); },
+  });
+  const live = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'npm run build' } }));
+  assert.equal(live, undefined, 'live call allowlisted to admit');
+  const probe = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'npm run build' }, probe: true }));
+  assert.equal(probe, undefined, 'probe reports the same allow verdict');
+});
+
+test('probe: rejection memory still applies — remembered denial surfaces in rehearsal', async () => {
+  const { audit, policy, predictions } = fixture({
+    tools: { write: { action: 'ask' } },
+  });
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    ask: async () => 'deny', // operator denies once → signature remembered
+  });
+  const first = await kernel.decideToolCall(ctx());
+  assert.equal(first.rule, 'ask_deny');
+  const probe = await kernel.decideToolCall(ctx({ probe: true }));
+  assert.equal(probe.block, true);
+  assert.equal(probe.rule, 'rejection_memory');
 });

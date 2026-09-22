@@ -11,6 +11,12 @@
     "test": "node --test \"tests/*.test.js\""
   },
   "devDependencies": {
-    "electron": "44.3.0"
+    "axe-core": "^4.13.0",
+    "colord": "^2.10.0",
+    "electron": "44.3.0",
+    "html-validate": "^11.16.0",
+    "lucide": "^1.47.0",
+    "stylelint": "^17.15.0",
+    "stylelint-config-standard": "^40.0.0"
   }
 }

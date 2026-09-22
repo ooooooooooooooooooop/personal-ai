@@ -611,10 +611,30 @@ function ensureAskTick() {
   }, 1000);
 }
 
+/**
+ * Unattended escalation: ask timeout is auto-deny, so a missed ask = stalled
+ * work. The in-window beep dies with focus; an OS notification reaches the
+ * operator when the app is minimized. Best-effort — never blocks the card.
+ */
+function notifyAsk(ask) {
+  try {
+    if (!('Notification' in window)) return;
+    if (!document.hidden) return; // focused: card + beep already has them
+    if (Notification.permission === 'default') { Notification.requestPermission(); return; }
+    if (Notification.permission !== 'granted') return;
+    const n = new Notification('需要审批（超时将自动拒绝）', {
+      body: `${ask.toolName ?? '工具'}：${String(ask.summary ?? '').slice(0, 140)}`,
+      silent: true, // the beep already rang
+    });
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch { /* notification is an escalation nicety, not a gate */ }
+}
+
 function addAskCard(ask) {
   if (!ask?.id || askCards.has(ask.id)) return;
   noteMessage();
   beep(1040, 0.15); // approval gate = attention request — ring even when focused
+  notifyAsk(ask);
   actGroup = null; // an approval gate breaks any running tool group
   const kind = toolKind(ask.toolName);
   const div = document.createElement('div');
@@ -1078,7 +1098,7 @@ function onAgentEvent(ev) {
       break;
     case 'budget_exceeded':
       addSys(`预算超限——会话已停止：${ev.rule} ${ev.consumed} ≥ ${ev.limit}（上限来自规范策略/操作员环境，模型不能自行放宽）
-恢复：左侧「新建任务」开新会话即重置本会话用量；要更高上限改 policy 的 budget 段`, true);
+恢复：左侧「新建任务」开新会话即重置本会话用量；要更高上限去「设置 → 预算上限」调`, true);
       toast('预算超限，运行已中止');
       setStatus('预算超限', 'err');
       refreshState();
@@ -1656,10 +1676,54 @@ async function refreshModels() {
   // first-run tour: model configured + never dismissed + no messages yet
   $('tour-card')?.classList.toggle('hidden',
     sawMessage || noModel || localStorage.getItem('pai.onboarded') === '1');
-  if (!sawMessage && noModel) $('empty-state')?.classList.add('hidden');
-  else $('empty-state')?.classList.remove('hidden');
+  $('empty-state')?.classList.toggle('hidden', sawMessage || noModel);
   updateChips();
+  refreshFallbacks(list.data ?? []);
 }
+
+/* 故障转移链接线（model_fallbacks/model_fallback_set）：链存实例级
+ * model-fallbacks.json，loop 扩展在当前模型失败时按序回退。 */
+let fallbackChain = [];
+async function refreshFallbacks(models) {
+  const list = $('fallback-list');
+  if (!list) return;
+  const r = await cmd('model_fallbacks');
+  fallbackChain = r.success ? (r.data?.chain ?? []) : [];
+  list.innerHTML = fallbackChain.length
+    ? fallbackChain.map((e, i) => `<div class="set-row"><span class="pill">${i + 1}</span><code class="path-code" style="flex:1">${escHtml(e.provider)}/${escHtml(e.model)}</code><button class="ghost-btn fb-del" data-i="${i}">移除</button></div>`).join('')
+    : '<div class="set-sub">未配置——当前模型失败时无回退</div>';
+  for (const b of list.querySelectorAll('.fb-del')) {
+    b.onclick = async () => {
+      fallbackChain.splice(Number(b.dataset.i), 1);
+      await cmd('model_fallback_set', { chain: fallbackChain });
+      refreshFallbacks(models);
+    };
+  }
+  const sel = $('fb-model');
+  if (sel && !sel.dataset.dirty) {
+    const opts = (models ?? []).map((m) => {
+      const id = typeof m === 'string' ? m : (m.id ?? '');
+      const prov = typeof m === 'object' ? (m.provider ?? '') : '';
+      return id ? `<option value="${escHtml(prov)}|${escHtml(id)}">${escHtml(prov ? `${prov}/` : '')}${escHtml(id)}</option>` : '';
+    }).filter(Boolean);
+    sel.innerHTML = opts.join('') || '<option value="">（无可用模型）</option>';
+  }
+}
+$('fb-model')?.addEventListener('focus', () => { $('fb-model').dataset.dirty = '1'; });
+$('fb-add').onclick = async () => {
+  const msg = $('fb-msg');
+  const v = $('fb-model').value ?? '';
+  const [provider, model] = v.split('|');
+  if (!provider || !model) { msg.textContent = '先选一个模型'; msg.className = 'setup-msg err'; return; }
+  fallbackChain.push({ provider, model });
+  const r = await cmd('model_fallback_set', { chain: fallbackChain });
+  if (!r.success) { msg.textContent = `保存失败：${r.error ?? '未知'}`; msg.className = 'setup-msg err'; return; }
+  fallbackChain = r.data?.chain ?? fallbackChain;
+  msg.textContent = `已保存（${fallbackChain.length} 级）`;
+  msg.className = 'setup-msg ok';
+  delete $('fb-model').dataset.dirty;
+  refreshFallbacks();
+};
 function updateChips() {
   const cur = modelStatus?.current;
   $('model-chip').textContent = cur ? `${cur.name ?? cur.id} ▾` : '选择模型 ▾';
@@ -1794,6 +1858,25 @@ $('command-allow-save') && ($('command-allow-save').onclick = async () => {
 for (const id of ['modes-json', 'commands-json', 'command-allow-json']) {
   $(id)?.addEventListener('input', () => { $(id).dataset.dirty = '1'; });
 }
+// 白名单可移植性（command_allow_export/import 接线）：导出=实例目录里落一个
+// 双清单 json；导入=从实例目录里的 json 恢复两张清单。路径被后端收进实例根。
+$('allow-export') && ($('allow-export').onclick = async () => {
+  const msg = $('allow-xfer-msg');
+  const r = await cmd('command_allow_export', {});
+  if (!r.success) { msg.textContent = `导出失败：${r.error}`; msg.className = 'setup-msg err'; return; }
+  msg.textContent = `已导出：${r.data?.path ?? ''}`;
+  msg.className = 'setup-msg ok';
+});
+$('allow-import') && ($('allow-import').onclick = async () => {
+  const msg = $('allow-xfer-msg');
+  const name = await askText('导入清单', '实例目录里的文件名', 'command-allow-export.json');
+  if (!name?.trim()) return;
+  const r = await cmd('command_allow_import', { path: name.trim() });
+  if (!r.success) { msg.textContent = `导入失败：${r.error}`; msg.className = 'setup-msg err'; return; }
+  msg.textContent = `已导入：白名单 ${r.data?.allow ?? 0} 条 · 禁表 ${r.data?.deny ?? 0} 条`;
+  msg.className = 'setup-msg ok';
+  refreshCommandsCard();
+});
 $('set-save-key').onclick = () => saveKey('set-provider', 'set-key', 'set-model-msg');
 // provider doctor — real GET {baseUrl}/models through the resolved credential
 $('set-ping').onclick = async () => {
@@ -1902,10 +1985,64 @@ async function refreshSettings() {
   const s = r.data ?? {};
   $('set-workdir').textContent = s.workdir ?? '';
   $('set-instance').textContent = s.instanceRoot ?? '';
+  const v = s.version;
+  if (v && $('set-version')) {
+    $('set-version').textContent = v.bootCommit ? `运行 ${v.bootCommit}${v.repoCommit && v.repoCommit !== v.bootCommit ? ` · 仓库已到 ${v.repoCommit}` : ''}` : '（无 git 信息）';
+    const stale = $('version-stale');
+    if (stale) stale.style.display = v.stale ? '' : 'none';
+  }
   const pol = await cmd('policy_status');
   if (pol.success) renderGovCard(pol.data);
+  refreshBudgetCard();
   refreshWorkspaces();
 }
+
+/* Budget control surface: operator-tier limits, hot-applied via budget_set.
+ * Dirty-guarded like the JSON editors — a refresh never clobbers typing. */
+async function refreshBudgetCard() {
+  const b = await cmd('budget_status');
+  const msg = $('budget-msg');
+  if (!b.success || !b.data) { if (msg) { msg.textContent = '预算门面不可用'; msg.className = 'setup-msg err'; } return; }
+  const d = b.data;
+  if ($('budget-src')) $('budget-src').textContent = d.configured ? '已设限' : '未设限';
+  const fill = (id, v) => { const el = $(id); if (el && !el.dataset.dirty) el.value = v ?? ''; };
+  fill('budget-tokens', d.limits?.maxTokensPerSession);
+  fill('budget-cost', d.limits?.maxCostPerSessionUsd);
+  fill('budget-calls', d.limits?.maxCallsPerSession);
+  if (msg && !msg.textContent) {
+    const c = d.consumed ?? {};
+    msg.textContent = `本会话已用：${c.tokens ?? 0} tok · $${(c.cost ?? 0).toFixed(4)} · ${c.calls ?? 0} 次调用`;
+    msg.className = 'setup-msg';
+  }
+}
+for (const id of ['budget-tokens', 'budget-cost', 'budget-calls']) {
+  const el = $(id);
+  if (el) el.addEventListener('input', () => { el.dataset.dirty = '1'; });
+}
+$('budget-save').onclick = async () => {
+  const num = (id) => {
+    const v = $(id).value.trim();
+    if (v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : undefined; // undefined = client-side invalid
+  };
+  const t = num('budget-tokens'), c = num('budget-cost'), k = num('budget-calls');
+  const msg = $('budget-msg');
+  if (t === undefined || c === undefined || k === undefined) {
+    msg.textContent = '数值须为非负数字（留空清除该项）';
+    msg.className = 'setup-msg err';
+    return;
+  }
+  const r = await cmd('budget_set', { limits: { maxTokensPerSession: t, maxCostPerSessionUsd: c, maxCallsPerSession: k } });
+  if (!r.success) { msg.textContent = `保存失败：${r.error ?? '未知'}`; msg.className = 'setup-msg err'; return; }
+  for (const id of ['budget-tokens', 'budget-cost', 'budget-calls']) delete $(id).dataset.dirty;
+  msg.textContent = t === null && c === null && k === null
+    ? '已清除全部覆盖——回到 policy/env 层'
+    : '已保存并即时生效（已审计）';
+  msg.className = 'setup-msg ok';
+  refreshGovSoon();
+};
+function refreshGovSoon() { setTimeout(() => { refreshBudgetCard(); }, 300); }
 const RISK_LABEL = { benign: '常规', mutating: '改文件', destructive: '删改', network: '网络', privilege: '提权', exec: '执行', unknown: '未知' };
 const ACTION_LABEL = { allow: '放行', deny: '拒绝', ask: '询问' };
 function renderGovCard(p) {
@@ -1917,11 +2054,47 @@ function renderGovCard(p) {
   $('gov-denied').textContent = denied.length ? `禁用工具：${denied.join('、')}` : '无显式禁用工具';
   $('gov-sum').textContent = `${rows.length} 条规则`;
   $('gov-checksum').textContent = (p.checksum ?? '').slice(0, 16);
+  // Dry-run tool hints: every tool the policy names, plus the usual suspects —
+  // datalist suggests, the input still accepts any tool name.
+  const dl = $('dryrun-tools');
+  if (dl && !dl.dataset.filled) {
+    const names = new Set(['bash', 'read', 'write', 'edit', 'ls', 'grep', 'find',
+      ...Object.keys(p.toolRules ?? {})]);
+    dl.innerHTML = [...names].map((t) => `<option value="${escHtml(t)}"></option>`).join('');
+    dl.dataset.filled = '1';
+  }
   const b = p.budget;
   $('gov-denied').textContent += (b && (b.maxTokensPerSession || b.maxCostPerSessionUsd || b.maxCallsPerSession))
     ? `；预算上限：${[b.maxTokensPerSession && `${b.maxTokensPerSession} tok`, b.maxCostPerSessionUsd && `$${b.maxCostPerSessionUsd}`, b.maxCallsPerSession && `${b.maxCallsPerSession} 次调用`].filter(Boolean).join(' · ')}`
     : '；无预算上限（所有用量仍记 append-only 账）';
 }
+/* Governance dry-run: rehearse a tool call against the real decide chain.
+ * Verdict rendering mirrors the gov-card vocabulary (放行/拒绝/询问). */
+$('dryrun-run').onclick = async () => {
+  const out = $('dryrun-result');
+  const tool = $('dryrun-tool').value.trim();
+  if (!tool) { out.textContent = '先填工具名'; out.className = 'setup-msg err'; return; }
+  const raw = $('dryrun-args').value.trim();
+  let args = {};
+  if (raw) {
+    try { args = JSON.parse(raw); }
+    catch { out.textContent = '参数不是合法 JSON'; out.className = 'setup-msg err'; return; }
+  }
+  out.textContent = '判定中…'; out.className = 'setup-msg';
+  const r = await cmd('governance_dryrun', { tool, args });
+  if (!r.success) { out.textContent = `预演失败：${r.error ?? '未知'}`; out.className = 'setup-msg err'; return; }
+  const d = r.data ?? {};
+  if (d.action === 'allow') {
+    out.textContent = '放行 — 该调用会通过全部治理检查';
+    out.className = 'setup-msg ok';
+  } else if (d.action === 'ask') {
+    out.textContent = `询问 — 会弹出批准卡（规则 ${d.rule ?? '?'}）${d.reason ? `：${d.reason}` : ''}`;
+    out.className = 'setup-msg warn';
+  } else {
+    out.textContent = `拒绝 — 规则 ${d.rule ?? '?'}${d.terminate ? '（终止会话）' : ''}${d.reason ? `：${d.reason}` : ''}`;
+    out.className = 'setup-msg err';
+  }
+};
 $('set-pick-dir').onclick = async () => {
   const res = await fetch('/api/pick-dir', { method: 'POST' }).then((r) => r.json()).catch(() => ({}));
   // No native picker (dev server): fall back to a manual path prompt.
@@ -1990,6 +2163,8 @@ const AUDIT_GROUPS = {
 };
 let auditCache = [];
 let auditFilter = '全部';
+let auditSeen = 0;    // lines-from-end cursor: how much history we've pulled
+let auditMore = false; // server says older events exist
 
 function auditKindClass(kind) {
   if (/DENIED|FAIL|ERROR|DRIFT|LOST/.test(kind)) return 'bad';
@@ -2020,7 +2195,7 @@ function renderAuditList() {
     div.className = 'audit-row';
     div.innerHTML = `<span class="a-kind ${auditKindClass(kind)}"></span><span class="a-ts"></span><span class="a-run"></span><div class="a-detail hidden"></div>`;
     div.querySelector('.a-kind').textContent = kind;
-    div.querySelector('.a-ts').textContent = (e.ts ?? e.time ?? '').slice(11, 19);
+    div.querySelector('.a-ts').textContent = (e.ts ?? e.time ?? '').slice(5, 19).replace('T', ' ');
     div.querySelector('.a-run').textContent = e.toolName ?? (e.runId ? `run ${String(e.runId).slice(0, 8)}` : '');
     const detail = div.querySelector('.a-detail');
     const payload = { ...(e.data ?? {}) };
@@ -2028,10 +2203,27 @@ function renderAuditList() {
     div.onclick = () => detail.classList.toggle('hidden');
     list.appendChild(div);
   }
+  // Full-history paging: the audit log is the governance record — an
+  // 80-event window is not oversight. "load earlier" walks the cursor back.
+  if (auditMore) {
+    const more = document.createElement('button');
+    more.className = 'btn ghost sm';
+    more.style.margin = '8px auto';
+    more.style.display = 'block';
+    more.textContent = '加载更早的事件…';
+    more.onclick = () => refreshAudit(true);
+    list.appendChild(more);
+  }
 }
-async function refreshAudit() {
-  const r = await cmd('audit_tail', { n: 80 });
-  auditCache = (r.data ?? []).slice().reverse();
+async function refreshAudit(older = false) {
+  if (!older) { auditCache = []; auditSeen = 0; auditMore = false; }
+  const r = await cmd('audit_tail', { n: 200, before: auditSeen });
+  const d = r.data ?? {};
+  const events = Array.isArray(d) ? d : (d.events ?? []);
+  auditMore = Array.isArray(d) ? false : Boolean(d.hasMore);
+  // oldest-first from server; cache keeps newest-first for display
+  auditCache = [...auditCache, ...events.slice().reverse()];
+  auditSeen += events.length;
   renderAuditFilters();
   renderAuditList();
 }
@@ -2065,13 +2257,17 @@ async function refreshJobs() {
   const tbody = $('jobs').querySelector('tbody');
   tbody.innerHTML = '';
   const jobs = r.data ?? [];
+  if ($('badge-jobs')) $('badge-jobs').textContent = jobs.length;
   if (!jobs.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-4);padding:28px">暂无持久任务</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">当前无持久运行的后台任务</td></tr>';
     return;
   }
   for (const j of jobs) {
     const tr = document.createElement('tr');
-    const cells = [j.job_id?.slice(0, 12) ?? '', j.job_type ?? '', j.job_state ?? '', (j.updated_at ?? '').slice(0, 19).replace('T', ' ')];
+    // dep-queued: never started, waiting on other jobs — say so, don't show a bare PENDING
+    let queued = false;
+    try { queued = !j.current_attempt_id && JSON.parse(j.depends_on ?? '[]').length > 0; } catch { /* bad JSON → not queued */ }
+    const cells = [j.job_id?.slice(0, 12) ?? '', j.job_type ?? '', queued ? '排队·等依赖' : (j.job_state ?? ''), (j.updated_at ?? '').slice(0, 19).replace('T', ' ')];
     tr.innerHTML = cells.map(() => '<td></td>').join('');
     tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
     tr.classList.add('clickable');
@@ -2082,6 +2278,7 @@ async function refreshJobs() {
   refreshSchedules();
   refreshGoals();
   refreshTasks();
+  refreshMonitors();
   paintStatusline(); // workspace-write lease rides job lifecycle
 }
 
@@ -2091,9 +2288,10 @@ async function refreshGoals() {
   if (!tbody) return;
   const r = await cmd('goal_list');
   const rows = r.success ? (r.data ?? []) : [];
+  if ($('badge-goals')) $('badge-goals').textContent = rows.length;
   tbody.innerHTML = '';
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-4);padding:16px">暂无长期目标——goal_coordinator 创建后在此可见</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">当前无追踪的长期目标</td></tr>';
     return;
   }
   for (const g of rows) {
@@ -2126,9 +2324,10 @@ async function refreshSchedules() {
   if (!tbody) return;
   const r = await cmd('schedule_list');
   const rows = r.success ? (r.data ?? []) : [];
+  if ($('badge-schedules')) $('badge-schedules').textContent = rows.length;
   tbody.innerHTML = '';
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-4);padding:16px">暂无定时任务</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">当前无排程的定时调度</td></tr>';
     return;
   }
   for (const s of rows) {
@@ -2154,6 +2353,47 @@ async function refreshSchedules() {
   }
 }
 
+/* ---------- monitors (event-driven watch → prompt sink) ---------- */
+async function refreshMonitors() {
+  const tbody = $('monitors')?.querySelector('tbody');
+  if (!tbody) return;
+  const r = await cmd('monitor_list');
+  const rows = r.success ? (r.data ?? []) : [];
+  if ($('badge-monitors')) $('badge-monitors').textContent = rows.length;
+  tbody.innerHTML = '';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">暂无值守监视——盯住一个路径，变化时自动执行指令</td></tr>';
+    return;
+  }
+  for (const m of rows) {
+    const tr = document.createElement('tr');
+    const cells = [
+      m.id, m.path, (m.prompt ?? '').slice(0, 60),
+      String(m.fires ?? 0),
+      m.lastFired ? new Date(m.lastFired).toLocaleString() : '从未',
+    ];
+    tr.innerHTML = cells.map(() => '<td></td>').join('') + '<td><button class="ghost-btn warn">移除</button></td>';
+    tr.querySelectorAll('td').forEach((td, i) => { if (i < cells.length) td.textContent = cells[i]; });
+    tr.querySelector('button').onclick = async () => {
+      await cmd('monitor_remove', { id: m.id });
+      refreshMonitors();
+    };
+    tbody.appendChild(tr);
+  }
+}
+$('mon-add').onclick = async () => {
+  const msg = $('mon-msg');
+  const path = $('mon-path').value.trim();
+  const prompt = $('mon-prompt').value.trim();
+  if (!path || !prompt) { msg.textContent = '路径和指令都要填'; msg.className = 'setup-msg err'; return; }
+  const r = await cmd('monitor_add', { path, prompt });
+  if (!r.success) { msg.textContent = `添加失败：${r.error ?? '未知'}`; msg.className = 'setup-msg err'; return; }
+  msg.textContent = `已添加 ${r.data?.id ?? ''}`;
+  msg.className = 'setup-msg ok';
+  $('mon-path').value = ''; $('mon-prompt').value = '';
+  refreshMonitors();
+};
+
 /* ---------- AgentTask mailbox center (F-family) ---------- */
 let activeTask = null;
 
@@ -2162,8 +2402,9 @@ async function refreshTasks() {
   tbody.innerHTML = '';
   const r = await cmd('task_list');
   const tasks = r.success ? (r.data ?? []) : [];
+  if ($('badge-tasks')) $('badge-tasks').textContent = tasks.length;
   if (!tasks.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-4);padding:20px">暂无协作任务——delegate_task 委派自动建档</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">当前无子任务协作信箱</td></tr>';
     return;
   }
   // 委派拓扑：parent_task_id 指向可见任务时按父子树缩进，孤儿/根并列
@@ -2279,9 +2520,17 @@ async function refreshArtifacts() {
   if (!tbody) return;
   const r = await fetch('/api/artifacts').then((x) => x.json()).catch(() => ({}));
   const rows = r.artifacts ?? [];
+  if ($('badge-artifacts')) $('badge-artifacts').textContent = rows.length;
   tbody.innerHTML = '';
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-4);padding:20px">暂无产物</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="empty-cell">
+          <svg class="empty-cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          <div class="empty-cell-title">暂无导出产物</div>
+          <div class="empty-cell-sub">通过 /export 命令导出的 Markdown、JSONL 记录或调试归档将保存在此处，可点击直接打开。</div>
+        </td>
+      </tr>`;
     return;
   }
   for (const a of rows) {
@@ -2302,12 +2551,20 @@ async function refreshChanges() {
   const tbody = $('changes').querySelector('tbody');
   tbody.innerHTML = '';
   const ops = r.data ?? [];
+  if ($('badge-changes')) $('badge-changes').textContent = ops.length;
   if (!r.success) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-4);padding:28px">此身体不支持变更回执（fileops 不可用）</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-cell"><div class="empty-cell-title">此身体不支持变更回执</div><div class="empty-cell-sub">当前运行身体未提供 fileops 协议支持。</div></td></tr>';
     return;
   }
   if (!ops.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-4);padding:28px">暂无文件变更</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" class="empty-cell">
+          <svg class="empty-cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
+          <div class="empty-cell-title">暂无文件改动回执</div>
+          <div class="empty-cell-sub">当智能体执行 write、edit、delete 工具时，此处将实时记录每次改动并提供差异比对与一键回滚能力。</div>
+        </td>
+      </tr>`;
     return;
   }
   for (const op of ops) {
@@ -2404,6 +2661,7 @@ async function openJobDetail(jobId) {
       <div><span class="jd-k">尝试</span><span class="jd-v"></span></div>
       <div><span class="jd-k">写租约</span><span class="jd-v"></span></div>
       <div><span class="jd-k">退出码</span><span class="jd-v"></span></div>
+      <div class="jd-full jd-deps-row hidden"><span class="jd-k">依赖</span><span class="jd-deps"></span></div>
       <div class="jd-full"><span class="jd-k">命令</span><pre class="jd-cmd"></pre></div>
     </div>
     <div class="jd-out-label">输出尾部</div>
@@ -2418,6 +2676,18 @@ async function openJobDetail(jobId) {
   vs[3].textContent = lease?.writer_id ? `持有：${lease.writer_id}` : '空闲';
   vs[4].textContent = detail?.exit_code ?? detail?.signal ?? '—';
   panel.querySelector('.jd-cmd').textContent = detail?.command ?? job?.job_type ?? '—';
+  // Dependency chains: show what the job waits/waited on with per-dep verdicts
+  const depRow = panel.querySelector('.jd-deps-row');
+  const deps = detail?.depends_on;
+  if (deps?.deps?.length) {
+    depRow.classList.remove('hidden');
+    const tag = (id) => deps.failed.includes(id) ? `${id}✗` : deps.pending.includes(id) ? `${id}…` : `${id}✓`;
+    panel.querySelector('.jd-deps').textContent =
+      deps.deps.map(tag).join('  ') +
+      (detail.queued ? '（排队中——全部完成后自动启动；任一失败则取消）' : '');
+  } else {
+    depRow.classList.add('hidden');
+  }
   panel.querySelector('.jd-out').textContent = detail?.output_tail || '（暂无输出）';
   const evLines = (detail?.events ?? []).map((e) => `${(e.timestamp ?? '').slice(11, 19)}  ${e.event_type}`).join('\n');
   panel.querySelector('.jd-events').textContent = evLines || '（无事件）';
@@ -2619,6 +2889,24 @@ function switchView(v) {
   if (v === 'settings') { refreshSettings(); refreshModels(); refreshMemory(); refreshModesCard(); refreshCommandsCard(); }
 }
 for (const item of document.querySelectorAll('.nav-item')) item.onclick = () => switchView(item.dataset.view);
+for (const tab of document.querySelectorAll('.jtab')) {
+  tab.onclick = () => {
+    for (const t of document.querySelectorAll('.jtab')) t.classList.remove('active');
+    tab.classList.add('active');
+    const target = tab.dataset.jtab;
+    for (const p of document.querySelectorAll('.jobs-panel')) p.classList.add('hidden');
+    $(`panel-${target}`)?.classList.remove('hidden');
+  };
+}
+for (const tab of document.querySelectorAll('.ctab')) {
+  tab.onclick = () => {
+    for (const t of document.querySelectorAll('.ctab')) t.classList.remove('active');
+    tab.classList.add('active');
+    const target = tab.dataset.ctab;
+    for (const p of document.querySelectorAll('.changes-panel')) p.classList.add('hidden');
+    $(`panel-${target}`)?.classList.remove('hidden');
+  };
+}
 
 /* about view — every claim on this page is backed by a live facade read,
    so the evidence grid can never drift ahead of the runtime */
@@ -3184,15 +3472,38 @@ const SLASH = [
         if (bd.limits?.maxCostPerSessionUsd) parts.push(`$${(bd.consumed?.cost ?? 0).toFixed(4)}/$${bd.limits.maxCostPerSessionUsd}`);
         if (bd.limits?.maxCallsPerSession) parts.push(`calls ${bd.consumed?.calls ?? 0}/${bd.limits.maxCallsPerSession}`);
         lines.push(`预算：${parts.join(' · ') || '已配置'}`);
-      } else lines.push('预算：未配置限额（policy.json budget 段可配）');
+      } else lines.push('预算：未配置限额（设置 → 预算上限 可配）');
+      // 历史趋势：TURN_ACCOUNTING 事件跨日聚合（按天 + 按模型）。
+      // 审计日志是计费的唯一权威账本——会话 rewind 不会抹掉已花掉的 token。
+      const hist = await cmd('audit_tail', { n: 5000 });
+      const evs = Array.isArray(hist.data) ? hist.data : (hist.data?.events ?? []);
+      const accts = evs.filter((e) => e.kind === 'TURN_ACCOUNTING');
+      if (accts.length) {
+        const byDay = new Map(); const byModel = new Map();
+        for (const e of accts) {
+          const day = String(e.ts ?? e.time ?? '').slice(0, 10) || '未知日期';
+          const tok = e.data?.totalTokens ?? ((e.data?.input ?? 0) + (e.data?.output ?? 0));
+          const cost = e.data?.cost?.total ?? e.data?.cost ?? 0;
+          const d = byDay.get(day) ?? { tok: 0, cost: 0, n: 0 };
+          d.tok += tok; d.cost += cost; d.n += 1; byDay.set(day, d);
+          const m = e.data?.model ?? '（旧记录无模型字段）';
+          const mm = byModel.get(m) ?? { tok: 0, cost: 0 };
+          mm.tok += tok; mm.cost += cost; byModel.set(m, mm);
+        }
+        const days = [...byDay.entries()].sort().slice(-7);
+        lines.push('近 ' + days.length + ' 天：' + days.map(([day, d]) => `${day.slice(5)} ${d.tok}tok/$${d.cost.toFixed(4)}`).join(' · '));
+        const models = [...byModel.entries()].sort((a, b) => b[1].cost - a[1].cost).slice(0, 4);
+        lines.push('按模型：' + models.map(([m, d]) => `${m} $${d.cost.toFixed(4)}`).join(' · '));
+        if (hist.data?.hasMore) lines.push('（还有更早的账本——审计页可继续向前翻）');
+      }
       addSys(lines.join('\n'));
     },
   },
   {
     cmd: '/doctor', label: '配置检视', hint: '有效姿态一览——模式/政策/记忆/目标/自动化配置（agent debug 对等）',
     run: async () => {
-      const [st, pol, modes, mem, aliases] = await Promise.all([
-        cmd('get_state'), cmd('policy_status'), cmd('mode_list'), cmd('memory_stats'), cmd('model_alias_list'),
+      const [st, pol, modes, mem, aliases, ver] = await Promise.all([
+        cmd('get_state'), cmd('policy_status'), cmd('mode_list'), cmd('memory_stats'), cmd('model_alias_list'), cmd('verify_status'),
       ]);
       const s = st.data ?? {};
       const p = pol.data ?? {};
@@ -3209,6 +3520,7 @@ const SLASH = [
         g?.requirements?.length ? `目标契约：${g.requirements.length} 项 · 续 ${g.continuations}/${g.maxContinuations} · 最近：${g.lastAction ?? '—'}` : '目标契约：未挂',
         `.pai 面：steering×${counts.steering} microagents×${counts.microagents} recipes×${counts.recipes} plans×${counts.plans} agents×${counts.agents}`,
         `别名：${(aliases.data ?? []).length} 个 · 会话：${s.session?.name ?? '（未开）'} · 上下文：${s.contextUsage?.tokens ?? '?'}/${s.contextUsage?.contextWindow ?? '?'}`,
+        `验证回路：${ver.success ? (ver.data?.configured === false ? '未配 verify.json' : `已配置 · ${ver.data?.lastResult ?? ver.data?.status ?? '就绪'}`) : '不可用'}`,
       ].join('\n'));
     },
   },
@@ -3277,6 +3589,19 @@ $('mem-add-btn').onclick = async () => {
   const r = await cmd('memory_save', { text: text.trim() });
   if (r.success) { toast('已记住'); refreshMemory(); }
   else toast(`写入被拒：${r.error ?? '未知'}`, 'err');
+};
+// 记忆整理回路（memory_distill 接线）：确定性维护——合并重复、降权陈旧、
+// 归档古老低置信条目；不做任何 LLM 发明或提升。
+$('mem-distill-btn').onclick = async () => {
+  const msg = $('mem-distill-msg');
+  const r = await cmd('memory_distill');
+  if (!r.success) { if (msg) { msg.textContent = `整理失败：${r.error ?? '未知'}`; msg.className = 'setup-msg err'; } return; }
+  const d = r.data ?? {};
+  if (msg) {
+    msg.textContent = `整理完成：归档 ${d.archived ?? 0} · 降权 ${d.demoted ?? 0} · 合并 ${d.merged ?? 0}`;
+    msg.className = 'setup-msg ok';
+  }
+  refreshMemory();
 };
 $('mem-query')?.addEventListener('input', () => {
   clearTimeout($('mem-query')._t);
@@ -3718,7 +4043,7 @@ async function send() {
   const r = await cmd('prompt', { message: ex.text, ...(attachments.length ? { options: { attachments } } : {}) });
   if (!r.success) {
     const err = r.error ?? '未知';
-    addSys(`发送失败：${err}${/budget/i.test(err) ? '——预算是按会话计的：「新建任务」开新会话即恢复，或调高 policy budget 上限' : ''}`, true);
+    addSys(`发送失败：${err}${/budget/i.test(err) ? '——预算是按会话计的：「新建任务」开新会话即恢复，或去「设置 → 预算上限」调高限额' : ''}`, true);
   }
 }
 async function steer() {
@@ -3747,6 +4072,9 @@ es.onmessage = (m) => {
 };
 let auditTimer = null;
 function refreshAuditSoon() {
+  // While the operator is paging back through history, a live event must not
+  // yank the view back to page one — they can return via the view switch.
+  if (auditSeen > 200) return;
   clearTimeout(auditTimer);
   auditTimer = setTimeout(refreshAudit, 400);
 }
