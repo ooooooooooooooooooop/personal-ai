@@ -168,3 +168,28 @@ test('M94 regression: delegation reserves only the EFFECTIVE child slice, not al
   assert.equal(r3.details.refused, true);
   assert.match(String(r3.details.reason), /budget|headroom/i);
 });
+
+// G6: model-authored task text interpolates verbatim into the child argv
+// AND the durable job checkpoint — a credential embedded there leaks to the
+// foreign body's logs and our persisted records. Scan-and-refuse, same
+// posture as the memory write path.
+test('delegate_task refuses task text carrying a credential pattern', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-profsec-'));
+  const spawned = [];
+  const executor = { spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j1', attempt_id: 'a1' }; } };
+  const tool = delegateTool(executor, {
+    commandFor: () => ({ command: 'node pai-channel.js --serve', enforceable: true }),
+    workdir: dir,
+  });
+  const secret = `sk-${'a'.repeat(20)}`;
+  const r = await tool.execute('c1', { target: 'pai', task: `use this key ${secret} to check` });
+  assert.equal(r.isError, true);
+  assert.equal(r.details.refused, true);
+  assert.equal(r.details.reason, 'secret_in_task_text');
+  assert.equal(spawned.length, 0, 'refused before spawn');
+  // a clean task still spawns
+  const ok = await tool.execute('c2', { target: 'pai', task: 'summarize the diff' });
+  assert.ok(!ok.isError, JSON.stringify(ok));
+  assert.equal(spawned.length, 1);
+});

@@ -1774,3 +1774,22 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | C3 MCP profile 限定 | **REAL** | 镜像 M76 tools_deny 范式：profile `mcp_deny` 字段（同信任闸——untrusted workdir 剥除）→ delegate `--mcp-deny` 专用桥旗（PAI_* 通道，env-json 永不携带）→ `PAI_MCP_DENY` env → mcp 扩展在连接前过滤 denied server（连握手都不发生），`/mcp` 状态明示 denied 名单；非 pai-channel 目标 fail-closed 拒派（unenforceable_mcp_deny）。哨兵：agentprofiles（信任闸）+jobs-executor（拒派+桥旗实证）+mcp-ext（连接级过滤+/mcp 可见） |
 
 修复位点说明：批3 全部落在**执行路径**（worker/工具/桥旗/扩展装载面），非文档声明；M114 排障中发现并修复两真 bug——裸 vm context 缺 node 全局（改 `globalThis`）+ restart 竞态（旧 child 的 exit 晚到误清新 child pending——exit 处理器只对当前 child 生效）。回归：host 294 / pi 313+1skip 全绿。
+
+### 28.27 复审核销批：G1-G8 真洞实修（2026-09-23，[verify] 项全量核销）
+
+全量语料复审（18,405 条逐条）产出的 ~40 条 `[verify]` 项逐条取得代码级证据后，确认 8 个真洞并全部修复在**执行路径**（非文档/非测试补丁），其余核销为已覆盖/variant/记录档。修复清单：
+
+| # | 洞 | 修复（生成器源码位点） | 哨兵 |
+|---|---|---|---|
+| G1 | `schedule_task` 不在 kernel `commandArgs` 也不在 decide `COMMAND_ARG_KEYS`——排程 `rm -rf` 静默创建，触发时 hardPolicyGate 只拒 deny 级，**ask 级规避通道** | host.js `commandArgs` + decide.js `COMMAND_ARG_KEYS` 同步加 `schedule_task:'command'`——创建时分类=批准时刻 | schedule.test.js：kernel 分类断言 + denyPrefix 在创建时拦截 |
+| G2 | FILE_MUTATION_TOOLS 只查 lexical containment——`write link/config`（link→.git）realpath 在界内但命中保护文件 | decide.js 写闸新增 realTarget 发散重查（resolved≠lexical 才重问，kernel 已裁的同路径不双问） | writeboundary：symlink→.git=git_internal ask / symlink→.pai=instruction_file / 同路径不双问 |
+| G3 | MCP connect 失败泄漏 stdio 子进程 | connect catch 内 `transport.close()` | mcp-ext：refusing server 场景断言 pid 落盘后进程死亡 |
+| G4 | browser click 无落地重查、read/screenshot 无 host 闸 | click 加 NAV_SETTLE 后落地重查+退回 about:blank；read/screenshot 加 currentHost 闸 | browser.test：click→blocked 退回 / read+screenshot 拒 |
+| G5 | http-bridge 只查 POST 的 Origin——GET /events SSE 流无 Host 校验，DNS rebinding 同源读遥测 | `badHost` 全请求闸：非字面 loopback Host 一律 403 | bridge.test：4 端点全拒 + 字面 loopback 通过 |
+| G6 | delegate task 文本无密钥扫描——secret 落 argv+checkpoint | task 文本 `scanForSecrets`→命中直拒 | agentprofiles：credential pattern 任务文本拒派 |
+| G7 | MCP stdio close 只 kill 单进程，孙进程孤儿 | close 改 `taskkill /T /F`（Win）/`SIGKILL`（POSIX），与 jobs/hooks 进程树范式对齐 | 同 G3（close 路径即清理路径） |
+| G8 | MCP 非文本结果块不打 untrusted 标，畸形块原样透传 | wrapUntrusted 归一：已知类型透传、未知/畸形→`unsupported content block dropped` 文本桩+details.droppedBlocks | mcp-ext：4 类混合块断言归一形态 |
+
+核销为**已覆盖**的代表项：换行注入/反斜杠续行（tree-sitter 结构层）、包装命令 EXEC/UNKNOWN fail-closed、Unicode 不可见字符严格键 block、hooks 罩 mcp__*、断线 in-flight 拒、hook 进程树回收、compact/subagent/notification 事件、policy attestation+drift、session fork provenance、torn JSONL 容错、memory 规范化去重+注入拒、browser navigate 落地重查、扩展零发现+sha256 manifest、delegate enforceability/budget 原子预留。记录档：#1435 MCP 无 reconnect 面（v1 候选缺口）、hooks 文件存在即开关、PS 命令走 bash grammar 的 fail-closed 误拒方向。
+
+回归：pi 323+1skip / host 309 / app bridge 4 全绿。

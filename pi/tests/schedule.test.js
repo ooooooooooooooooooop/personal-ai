@@ -2,7 +2,7 @@
  * schedule_task tool + scheduler pump — the tool writes the store; the pump
  * fires due entries as durable jobs and only consumes successful spawns.
  */
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import { ScheduleStore } from '../../host/src/core/scheduler.js';
 import { scheduleTool, startSchedulerPump } from '../src/adapter/schedule.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
+import { makeDecide } from '../src/bootstrap/decide.js';
+import { FileOpsGuard } from '../src/adapter/fileops.js';
 
 const rig = () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-sched-'));
@@ -258,4 +260,32 @@ test('monitor registry: fs.watch fires governed promptSink, debounced, removable
   reg.remove(r.id);
   assert.equal(reg.list().length, 0);
   reg.dispose();
+});
+
+// G1: a scheduled command fires unattended — the create call is the ONLY
+// approval moment, so schedule_task's `command` arg must face the same
+// classification a bash call gets. Two sentinels: the kernel wiring in
+// host.js, and the project denyPrefix list reaching schedule_task in
+// the decide chain.
+test('wiring: kernel commandArgs classifies schedule_task.command', () => {
+  const src = readFileSync(new URL('../src/bootstrap/host.js', import.meta.url), 'utf-8');
+  const m = src.match(/commandArgs:\s*\{([^}]*)\}/);
+  assert.ok(m, 'commandArgs map found in host.js');
+  assert.match(m[1], /schedule_task:\s*'command'/, 'schedule_task is a classified command carrier');
+});
+
+test('decide: .pai/commands.json denyPrefix gates schedule_task.command at create', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-sched-deny-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'commands.json'), JSON.stringify({ denyPrefixes: ['rm -rf'] }));
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const decide = makeDecide({
+    core: { audit, kernel: { decideToolCall: async () => null } },
+    executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null,
+    workdir: dir, asks: null,
+  });
+  const r = await decide({ toolCall: { name: 'schedule_task', id: 't1' }, args: { action: 'create', command: 'rm -rf /', every_seconds: 3600 } });
+  assert.equal(r?.block, true);
+  assert.equal(r?.rule, 'command_denylist');
 });

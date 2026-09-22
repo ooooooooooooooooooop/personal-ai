@@ -209,6 +209,12 @@ export class BrowserSession {
   }
 
   async read(selector = null, maxChars = READ_CAP) {
+    // Reading is a content exfil path too — a page sitting on a blocked
+    // host (delivered by an earlier pre-check bypass or a click-driven
+    // navigation) must not have its content pulled into the transcript.
+    const host = await this.currentHost();
+    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    if (blocked) throw new Error(blocked);
     const expr = selector
       ? `(document.querySelector(${JSON.stringify(selector)})?.innerText ?? '')`
       : `(document.body?.innerText ?? '')`;
@@ -231,6 +237,21 @@ export class BrowserSession {
       `if(!el)return null;el.scrollIntoView({block:'center'});el.click();` +
       `return (el.tagName||'?')+' '+(el.innerText||el.value||'').slice(0,80)})()`);
     if (r == null) throw new Error(`no element matches '${selector}'`);
+    // Post-click landing check — a click can navigate the main frame, and
+    // the destination host is only knowable after the navigation settles.
+    // Same contract as navigate(): a blocked landing backs out to
+    // about:blank so no further action (or read) runs on that page.
+    await new Promise((res) => setTimeout(res, NAV_SETTLE_MS));
+    const landed = await this.currentHost();
+    const landedBlocked = landed ? this.#checkHost(`https://${landed}`) : null;
+    if (landedBlocked) {
+      if (this.sessionId) {
+        await this.cdp.call('Page.navigate', { url: 'about:blank' }, this.sessionId)
+          .catch(() => { /* backing out is best-effort */ });
+      }
+      this.audit?.write({ kind: 'BROWSER_CLICK_REFUSED', data: { selector, landed_host: landed } });
+      throw new Error(landedBlocked);
+    }
     this.audit?.write({ kind: 'BROWSER_CLICK', data: { selector, target: r } });
     return r;
   }
@@ -261,6 +282,9 @@ export class BrowserSession {
   }
 
   async screenshot(outPath) {
+    const host = await this.currentHost();
+    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    if (blocked) throw new Error(blocked);
     const sid = await this.#ensure();
     const { data } = await this.cdp.call('Page.captureScreenshot', { format: 'png' }, sid);
     writeFileSync(outPath, Buffer.from(data, 'base64'));

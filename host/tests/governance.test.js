@@ -86,6 +86,32 @@ test('command classification maps risk classes onto policy actions', async () =>
   assert.equal(ok, undefined);
 });
 
+test('schedule_task command arg faces the same classifier (create = approval moment)', async () => {
+  // A scheduled command fires UNATTENDED under hardPolicyGate (ask-level is
+  // not raised there — nobody is watching at 3am). The create call must
+  // therefore face the same risk classification bash does: the operator's
+  // consent at create IS the approval for the later fire.
+  const { audit, policy, predictions } = fixture();
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { schedule_task: 'command' },
+    commandClassifier: async (source) => source.includes('rm -rf')
+      ? { units: [{ raw: source }], parseError: null, risk: 'destructive' }
+      : { units: [{ raw: source }], parseError: null, risk: 'benign' },
+  });
+  const denied = await kernel.decideToolCall(ctx({
+    toolName: 'schedule_task',
+    args: { action: 'create', command: 'rm -rf /', every_seconds: 3600 },
+  }));
+  assert.equal(denied.block, true);
+  assert.equal(denied.rule, 'risk_destructive');
+  // non-command actions (list/cancel) carry no command — never classified
+  const ok = await kernel.decideToolCall(ctx({
+    toolName: 'schedule_task', args: { action: 'list' },
+  }));
+  assert.equal(ok, undefined);
+});
+
 test('unparseable commands are unverifiable — denied', async () => {
   const { audit, policy, predictions } = fixture();
   const kernel = new GovernanceKernel({

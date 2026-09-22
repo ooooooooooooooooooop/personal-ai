@@ -120,3 +120,34 @@ test('M9: cross-origin POST /cmd refused; same-origin and non-browser pass', asy
     assert.equal(bare.status, 200);
   } finally { await bridge.close(); }
 });
+
+// G5 (DNS-rebinding): the Origin/SFS checks only run on POST, but a rebound
+// hostname makes a hostile page same-origin with this listener — GET /events
+// would stream live session telemetry to it. Every request is now gated on
+// the Host header: only literal loopback authorities may talk to the bridge.
+test('non-loopback Host header refused on every endpoint (DNS rebinding)', async () => {
+  const { request } = await import('node:http');
+  const sup = stubSupervisor();
+  const bridge = createHttpBridge({ supervisor: sup });
+  const port = await bridge.listen(0);
+  const req = (path, host, method = 'GET') => new Promise((resolve, reject) => {
+    const headers = { Host: host, Connection: 'close' };
+    if (method === 'POST') headers['Content-Length'] = 2;
+    const r = request({ host: '127.0.0.1', port, path, method, headers }, (res) => {
+      res.resume();
+      res.on('end', () => resolve(res.statusCode));
+    });
+    r.on('error', reject);
+    r.end(method === 'POST' ? '{}' : undefined);
+  });
+  try {
+    // a rebound hostname reaching us — refused on SSE, state, static, POST
+    for (const [path, method] of [['/events', 'GET'], ['/api/state', 'GET'], ['/', 'GET'], ['/cmd', 'POST']]) {
+      const status = await req(path, 'rebound.attacker.example', method);
+      assert.equal(status, 403, `${method} ${path} with foreign Host must refuse`);
+    }
+    // literal loopback Hosts pass — the real UI and local tooling
+    assert.equal(await req('/api/state', `127.0.0.1:${port}`), 200);
+    assert.equal(await req('/api/state', `localhost:${port}`), 200);
+  } finally { await bridge.close(); }
+});

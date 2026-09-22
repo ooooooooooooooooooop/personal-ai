@@ -42,6 +42,19 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
     return false;
   };
   const refuse = (res) => { res.writeHead(403); res.end('cross-origin POST refused'); };
+  // DNS-rebinding guard: the Origin/Section-Fetch checks above only run on
+  // POSTs, but a rebound hostname makes a browser page same-origin with this
+  // listener — GET /events would then stream the live session telemetry to a
+  // hostile page (EventSource sends no Origin). Gate EVERY request on the
+  // Host header: only literal loopback authorities may talk to the bridge.
+  const badHost = (req) => {
+    const host = req.headers.host;
+    if (!host) return false; // HTTP/1.0 clients carry no Host
+    try {
+      const h = new URL(`http://${host}`).hostname;
+      return !(h === '127.0.0.1' || h === 'localhost' || h === '[::1]');
+    } catch { return true; }
+  };
   const sseClients = new Set();
   const unsub = supervisor.subscribe((msg) => {
     const frame = `data: ${JSON.stringify(msg)}\n\n`;
@@ -53,6 +66,7 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1');
     try {
+      if (badHost(req)) { res.writeHead(403); res.end('non-loopback Host refused'); return; }
       if (req.method === 'GET' && url.pathname === '/events') {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',

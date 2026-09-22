@@ -45,7 +45,7 @@ const READ_PATH_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search',
 // Tools whose args carry a shell command string — prefix lists apply here.
 // GATE-COMPOSITION-01: job_spawn's command arg is a shell command too — a
 // project denyPrefix must gate normal spawns exactly as it gates restarts.
-const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'command', cmd: 'command', job_spawn: 'command' };
+const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'command', cmd: 'command', job_spawn: 'command', schedule_task: 'command' };
 
 /**
  * Roo command deny-list analogue: `.pai/commands.json` `{denyPrefixes:[]}` —
@@ -277,6 +277,44 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           if (answer === 'allow_session' || answer === 'always') writeOutside = 'allowed';
         }
       }
+      // Resolved-path recheck for file tools — the kernel matched the
+      // instruction/.git regexes on the LEXICAL arg inside decideToolCall,
+      // but `write link/config` where link -> .git carries no '.git' in its
+      // string form while the filesystem writes .git/config. The same
+      // realTarget walk the shell writeTargets block uses closes the lane
+      // here: a realpath hit re-asks because the lexical approval was for
+      // a different file than the filesystem will write.
+      if (writePaths.length) {
+        // Only re-ask when the resolved target DIFFERS from the lexical arg
+        // — same-path hits were already adjudicated by the kernel's lexical
+        // check, and re-asking them would double-prompt every .pai/ write.
+        const realHit = writePaths
+          .filter((p) => String(realTarget(p)).toLowerCase() !== String(absFor(p)).toLowerCase())
+          .map(realTarget)
+          .find((t) => {
+            const norm = String(t).replace(/\\/g, '/');
+            return GIT_INTERNAL_RE.test(norm) || INSTRUCTION_PATH_RES.some((re) => re.test(norm));
+          });
+        if (realHit) {
+          const rule = GIT_INTERNAL_RE.test(String(realHit).replace(/\\/g, '/')) ? 'git_internal' : 'instruction_file';
+          const answer = asks?.ask
+            ? await asks.ask({
+                toolName,
+                toolCallId: ctx.toolCall?.id ?? null,
+                rule,
+                summary: `write target resolves into ${rule === 'git_internal' ? '.git internals' : 'an agent instruction file'}: ${String(realHit).slice(0, 300)}`,
+                detail: `文件工具写目标的真实路径命中 ${rule === 'git_internal' ? '.git 内部（hooks/config/refs 是持久化执行面）' : 'agent 指令文件（standing orders）'}——lexical 路径未命中，是符号链接/别名逃逸。`,
+                args: { path: String(realHit).slice(0, 300), requested: writePaths.slice(0, 10) },
+                argsTruncated: false,
+                argsTotalChars: null,
+              }, signal)
+            : 'deny';
+          core.audit.write({ kind: 'WRITE_OUTSIDE_RESOLVED', toolName, data: { target: String(realHit).slice(0, 300), rule, answer } });
+          if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+            return { block: true, rule, reason: `operator refused this write target — '${realHit}' blocked` };
+          }
+        }
+      }
     }
     // Operator veto hooks (Claude Code PreToolUse analogue): <instance>/
     // hooks.json is operator-private — the agent cannot reach it, so this is
@@ -440,8 +478,14 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         // no '.git' in its string form, and `> ../out` escapes the worktree
         // without tripping any instruction regex. Device sinks are exempt.
         const wt = (parsed.writeTargets ?? []).filter((t) => !DEVICE_TARGET_RE.test(String(t).trim()));
-        const realGit = wt.map(realTarget).find((t) => GIT_INTERNAL_RE.test(String(t).replace(/\\/g, '/')));
-        const realInstr = wt.map(realTarget).find((t) => INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
+        // Resolved-vs-lexical divergence filter: when realTarget == the
+        // lexical abs path, the kernel's decideToolCall already adjudicated
+        // that exact target (its instr/git regexes ran on the same string).
+        // Only DIVERGING resolutions are fresh evidence — re-checking a
+        // same-path target here would double-ask every approved .git write.
+        const diverging = wt.filter((t) => String(realTarget(t)).toLowerCase() !== String(absFor(t)).toLowerCase());
+        const realGit = diverging.map(realTarget).find((t) => GIT_INTERNAL_RE.test(String(t).replace(/\\/g, '/')));
+        const realInstr = diverging.map(realTarget).find((t) => INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
         const outTarget = wt.find((t) => outsideWriteTarget(t));
         // Resolved-path hits on protected files are their own ask — the
         // write_outside latch must not swallow them (different rule, no latch).

@@ -141,3 +141,37 @@ test('device sinks (> NUL) do not trip the boundary', async () => {
   const r = await decide({ toolCall: { name: 'bash', id: 't1' }, args: { command: 'echo hi > NUL' } });
   assert.notEqual(r?.rule, 'write_outside');
 });
+
+// G2: file-mutation tools carried only a containment check — `write
+// link/config` where link -> .git resolved INSIDE the workdir (contained)
+// while the lexical string never tripped the kernel's GIT_INTERNAL_RE.
+// The resolved-path recheck closes the lane for file tools too.
+test('write through a symlink into .git raises git_internal (file tool)', async (t) => {
+  const { dir, decide, seen } = rig2({}, 'deny');
+  mkdirSync(join(dir, '.git'), { recursive: true });
+  try { symlinkSync(join(dir, '.git'), join(dir, 'gitlink'), 'junction'); } catch { t.skip('no symlink privilege'); return; }
+  const r = await decide({ toolCall: { name: 'write', id: 't1' }, args: { path: join(dir, 'gitlink', 'config'), content: 'x' } });
+  assert.equal(r?.block, true);
+  assert.equal(r?.rule, 'git_internal');
+  assert.deepEqual(seen, ['git_internal']);
+});
+
+test('write through a symlink into .pai raises instruction_file (file tool)', async (t) => {
+  const { dir, decide, seen } = rig2({}, 'deny');
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  try { symlinkSync(join(dir, '.pai'), join(dir, 'pailink'), 'junction'); } catch { t.skip('no symlink privilege'); return; }
+  const r = await decide({ toolCall: { name: 'write', id: 't1' }, args: { path: join(dir, 'pailink', 'hooks.json'), content: '{}' } });
+  assert.equal(r?.block, true);
+  assert.equal(r?.rule, 'instruction_file');
+});
+
+test('same-path writes do NOT double-ask (kernel already adjudicated them)', async (t) => {
+  const { dir, decide, seen } = rig2({}, 'deny');
+  // kernel stub admits everything — a non-diverging .pai/ path must never
+  // reach our recheck at all, or every approved standing-order write would
+  // prompt twice (lexical .pai hit is the kernel's job, already done).
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const r = await decide({ toolCall: { name: 'write', id: 't1' }, args: { path: join(dir, '.pai', 'plan.md'), content: 'x' } });
+  assert.equal(r, undefined);
+  assert.equal(seen.length, 0);
+});

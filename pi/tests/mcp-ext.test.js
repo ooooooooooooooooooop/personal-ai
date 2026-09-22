@@ -9,7 +9,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
@@ -590,6 +590,119 @@ test('C2 output_token_limit: per-server cap tightens text results; per-tool over
       assert.match(res.content[0].text, /truncated at 20 chars/, 'per-tool 5-token cap = 20 chars');
       // the untrusted envelope still wraps the truncated body
       assert.match(res.content[0].text, /<untrusted mcp_server="capped"/);
+      await pi.handlers.get('session_shutdown')?.();
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// G3: a failed handshake used to orphan the spawned stdio child — connect
+// propagated the initialize error without closing the transport. The child
+// must be killed before connect rejects.
+const REFUSING_SERVER_JS = `
+const fs = require('node:fs');
+fs.writeFileSync(process.argv[2], String(process.pid));
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      // handshake refused AFTER the pid file is on disk — the child is provably running
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: 'handshake refused' } }) + '\\n');
+
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('connect failure kills the spawned stdio child (no orphan server)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-leak-'));
+  try {
+    const serverPath = join(dir, 'refusing.js');
+    const pidFile = join(dir, 'pid.txt');
+    writeFileSync(serverPath, REFUSING_SERVER_JS);
+    await assert.rejects(
+      () => McpClient.connect({ command: process.execPath, args: [serverPath, pidFile] }, { timeoutMs: 3000 }),
+      /handshake refused|timed out|abort/i,
+    );
+    const pid = Number(readFileSync(pidFile, 'utf-8'));
+    assert.ok(pid > 0);
+    // taskkill /T is spawned detached — give it a moment to land
+    const deadline = Date.now() + 5000;
+    let alive = true;
+    while (alive && Date.now() < deadline) {
+      try { process.kill(pid, 0); } catch { alive = false; }
+      if (alive) await new Promise((r) => setTimeout(r, 50));
+    }
+    assert.equal(alive, false, 'failed connect must kill the spawned child');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// G8: non-text content blocks are normalized — known types (image/audio/
+// resource/resource_link) pass through; unknown or malformed blocks become
+// an honest text stub instead of smuggling arbitrary shapes into context.
+const WEIRD_SERVER_JS = `
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'weird' }, capabilities: { tools: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/call') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [
+        { type: 'text', text: 'fine' },
+        { type: 'image', data: 'QUJD', mimeType: 'image/png' },
+        { type: 'mind_control', payload: { do: 'evil' } },
+        'a bare string is not a content block',
+      ] } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [{ name: 'x', inputSchema: { type: 'object' } }] } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('non-text MCP blocks: known types pass, malformed blocks become stub text', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-weird-'));
+  try {
+    const serverPath = join(dir, 'weird.js');
+    writeFileSync(serverPath, WEIRD_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { w: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    try {
+      const pi = fakePi();
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__w__x') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      const res = await pi.tools.get('mcp__w__x').execute('tc', {});
+      const types = res.content.map((c) => c.type);
+      assert.deepEqual(types, ['text', 'image', 'text', 'text'], 'image passes; unknown + non-object become text stubs');
+      assert.match(res.content[2].text, /unsupported content block 'mind_control' dropped/);
+      assert.match(res.content[3].text, /unsupported content block 'string' dropped/);
+      assert.equal(res.details.droppedBlocks, 2);
       await pi.handlers.get('session_shutdown')?.();
     } finally {
       if (prev === undefined) delete process.env.PAI_MCP_CONFIG;

@@ -373,7 +373,10 @@ export async function startHost({
     governance: {
       // pi body supplies the real shell parser; host never imports pi code
       commandClassifier: parseShellCommand,
-      commandArgs: { powershell: 'command', bash: 'command', shell: 'command', job_spawn: 'command' },
+      // schedule_task carries a shell command too — the create call IS the
+      // approval moment for a command that fires unattended later, so it
+      // must face the same classifier a bash call would.
+      commandArgs: { powershell: 'command', bash: 'command', shell: 'command', job_spawn: 'command', schedule_task: 'command' },
       // no responder yet = fail-closed deny, never crash-open
       ask: (pending, signal) => (asks ? asks.ask(pending, signal) : Promise.resolve('deny')),
       // session risk mode — 'plan' turns the session read-only (mutating

@@ -13,6 +13,7 @@
  */
 import { JobExecutor } from './jobs.js';
 import { resolveRoute } from './modelroutes.js';
+import { scanForSecrets } from './secrets.js';
 import { fileURLToPath } from 'node:url';
 
 /** The real usage producer every delegation rides through. */
@@ -162,6 +163,23 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           profileEffort = profileEffort ?? route.effort;
           routedVia = route.via;
         }
+      }
+      // Secret scan on the task text BEFORE interpolation — model-authored
+      // task text lands verbatim in the child process argv AND the durable
+      // job checkpoint; a credential embedded here leaks to both the foreign
+      // body's logs and our own persisted records. Same posture as the
+      // memory write path: refuse outright, don't launder it onward.
+      const secretHit = scanForSecrets(task);
+      if (secretHit) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: task text matches credential pattern '${secretHit}' — ` +
+              'a secret in the task lands in the child argv and the durable checkpoint; remove it and reference the secret by name instead',
+          }],
+          details: { refused: true, reason: 'secret_in_task_text', rule: 'secret_scan' },
+          isError: true,
+        };
       }
       const innerSpec = commandFor(target, task, { model: profileModel, effort: profileEffort });
       const inner = typeof innerSpec === 'string' ? innerSpec : String(innerSpec?.command ?? '');

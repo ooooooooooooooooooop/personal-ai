@@ -112,7 +112,16 @@ function stdioTransport(spec) {
     },
     onMessage: (fn) => { pending.onMessage = fn; },
     onExit: (fn) => { pending.onExit = fn; },
-    close: () => { try { child.kill('SIGKILL'); } catch { /* already gone */ } },
+    // Killing only the direct child orphans its grandchildren — same tree
+    // kill the hook/job runners use: taskkill /T on Windows.
+    close: () => {
+      if (process.platform === 'win32') {
+        try { spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true }).unref(); }
+        catch { try { child.kill('SIGKILL'); } catch { /* already gone */ } }
+      } else {
+        try { child.kill('SIGKILL'); } catch { /* already gone */ }
+      }
+    },
     strippedEnv: stripped,
   };
 }
@@ -194,7 +203,14 @@ export class McpClient {
     const transport = spec.url ? httpTransport(spec) : stdioTransport(spec);
     const client = new McpClient(transport);
     client.strippedEnv = transport.strippedEnv ?? [];
-    await client.initialize({ timeoutMs });
+    try {
+      await client.initialize({ timeoutMs });
+    } catch (err) {
+      // a stdio child was already spawned — a failed handshake must not
+      // orphan the server process just because initialize never resolved
+      try { transport.close(); } catch { /* best effort */ }
+      throw err;
+    }
     return client;
   }
 
@@ -383,7 +399,14 @@ function resultCharCap(spec, toolName) {
   return Math.min(MAX_RESULT_CHARS, Math.floor(tokens * 4));
 }
 
+// Content-block types a well-formed MCP result may carry. Anything outside
+// this set (missing type, unknown type, non-object) is normalized into a
+// text stub — a hostile or buggy server must not smuggle arbitrary block
+// shapes into the context serializer.
+const KNOWN_NONTEXT = new Set(['image', 'audio', 'resource', 'resource_link']);
+
 function wrapUntrusted(server, tool, result, maxChars = MAX_RESULT_CHARS) {
+  let dropped = 0;
   const content = (result?.content ?? []).map((c) => {
     if (c?.type === 'text' && typeof c.text === 'string') {
       const text = c.text.length > maxChars
@@ -394,12 +417,21 @@ function wrapUntrusted(server, tool, result, maxChars = MAX_RESULT_CHARS) {
         text: `<untrusted mcp_server="${server}" mcp_tool="${tool}">\n${text}\n</untrusted>`,
       };
     }
-    return c; // image/resource payloads pass through untouched
+    if (c && typeof c === 'object' && KNOWN_NONTEXT.has(c.type)) return c;
+    dropped += 1;
+    return {
+      type: 'text',
+      text: `<untrusted mcp_server="${server}" mcp_tool="${tool}">[unsupported content block '${String(c?.type ?? typeof c)}' dropped]</untrusted>`,
+    };
   });
   return {
     content,
     isError: result?.isError === true,
-    details: { mcpServer: server, mcpTool: tool, structured: result?.structuredContent ?? null },
+    details: {
+      mcpServer: server, mcpTool: tool,
+      structured: result?.structuredContent ?? null,
+      ...(dropped ? { droppedBlocks: dropped } : {}),
+    },
   };
 }
 

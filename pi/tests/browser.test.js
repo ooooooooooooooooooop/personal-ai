@@ -83,3 +83,56 @@ test('redirect onto a blocked host is refused AFTER landing — the page is back
   assert.ok(audits.some((e) => e.kind === 'BROWSER_NAVIGATE_REFUSED' && e.data.landed_host === 'evil.test'));
   assert.ok(!audits.some((e) => e.kind === 'BROWSER_NAVIGATE'), 'a refused landing is not audited as a successful navigation');
 });
+
+// G4: click-driven navigation bypassed the blocklist — the pre-click check
+// saw the SOURCE page; a link click could land the frame on a blocked host.
+// The click now re-checks the landed host (same contract as navigate) and
+// backs out to about:blank.
+test('click that navigates onto a blocked host is refused and backed out', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const audits = [];
+  const s = new BrowserSession({
+    exe: 'fake', profileDir: join(dir, 'prof'),
+    audit: { write: (e) => audits.push(e) }, blockedHosts: ['evil.test'],
+  });
+  const navigations = [];
+  let host = 'ok.example';
+  s.proc = { killed: false };
+  s.sessionId = 'sid';
+  s.cdp = {
+    waitEvent: () => Promise.resolve({}),
+    call: async (method, params) => {
+      if (method === 'Page.navigate') { navigations.push(params.url); return {}; }
+      if (method === 'Runtime.evaluate') {
+        if (params.expression === 'location.hostname') return { result: { value: host } };
+        if (params.expression.includes('el.click')) { host = 'evil.test'; return { result: { value: 'A link' } }; }
+        return { result: { value: null } };
+      }
+      return {};
+    },
+  };
+  await assert.rejects(() => s.click('a'), /blocklist/);
+  assert.ok(navigations.includes('about:blank'), 'click landing on a blocked host backs out');
+  assert.ok(audits.some((e) => e.kind === 'BROWSER_CLICK_REFUSED' && e.data.landed_host === 'evil.test'));
+  assert.ok(!audits.some((e) => e.kind === 'BROWSER_CLICK'), 'a refused click is not audited as successful');
+});
+
+test('read/screenshot refuse while the page sits on a blocked host', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const s = new BrowserSession({
+    exe: 'fake', profileDir: join(dir, 'prof'), blockedHosts: ['evil.test'],
+  });
+  s.proc = { killed: false };
+  s.sessionId = 'sid';
+  s.cdp = {
+    call: async (method, params) => {
+      if (method === 'Runtime.evaluate' && params.expression === 'location.hostname') {
+        return { result: { value: 'evil.test' } };
+      }
+      return { result: { value: 'page text' } };
+    },
+    waitEvent: () => Promise.resolve({}),
+  };
+  await assert.rejects(() => s.read(), /blocklist/);
+  await assert.rejects(() => s.screenshot(join(dir, 's.png')), /blocklist/);
+});
