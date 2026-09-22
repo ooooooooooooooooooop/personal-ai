@@ -1,8 +1,10 @@
 import { isLongRunningCommand } from '../adapter/jobs.js';
 import { hashOf } from '../../../host/src/core/audit.js';
+import { GIT_INTERNAL_RE, INSTRUCTION_PATH_RES } from '../../../host/src/core/governance.js';
 import { scanForSecrets } from '../adapter/secrets.js';
-import { readFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
+import { pathInsideRoot, pathInsideRootForWrite } from '../adapter/paths.js';
+import { readFileSync, realpathSync } from 'node:fs';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 
 const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete', 'multi_edit']);
 const MUTATING_RISK = new Set(['mutating', 'destructive', 'exec', 'unknown']);
@@ -78,10 +80,51 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
   // CC blockReadsOutsideWorkingDirectories analogue — session latch:
   // null=not asked yet · 'allowed'=operator permitted all · 'blocked'=deny all.
   let readOutside = null;
+  let writeOutside = null;
+  const absFor = (p) => resolve(workdir, String(p));
+  // Realpath-resolved workdir root, computed lazily — a workdir that itself
+  // sits under a symlink/junction must compare real-to-real, or every path
+  // would read as "outside".
+  let realRoot = null;
+  const realWorkdir = () => {
+    if (realRoot === null) {
+      try { realRoot = realpathSync(resolve(workdir)); } catch { realRoot = resolve(workdir); }
+    }
+    return realRoot;
+  };
+  // Read boundary, realpath-aware: lexical resolve alone cannot see an
+  // in-workdir symlink pointing outside (`link -> C:\other` makes
+  // `link/secret.txt` lexically inside). Existing targets are compared on
+  // their real path; nonexistent ones stand on the lexical check.
   const outsideWorkdir = (p) => {
-    const root = resolve(workdir);
-    const abs = resolve(root, String(p));
-    return abs !== root && !abs.startsWith(root + sep);
+    const abs = absFor(p);
+    if (!pathInsideRoot(workdir, abs)) return true;
+    try { return !pathInsideRoot(realWorkdir(), realpathSync(abs)); } catch { return false; }
+  };
+  // Write boundary: parent-dir realpath + (existing) target realpath inside
+  // realpath(root) — defeats symlinked parents and 8.3 aliases that lexical
+  // checks cannot see.
+  const outsideWriteTarget = (p) => !pathInsideRootForWrite(realWorkdir(), absFor(p));
+  // Redirect/device sinks that legitimately resolve outside the worktree —
+  // `> NUL`, `> /dev/null` are not file mutations.
+  const DEVICE_TARGET_RE = /^(?:nul|con|prn|aux|com\d|lpt\d)(?:\.|:|$)|^\/dev\/(null|zero|stdout|stderr|stdin|tty)/i;
+  // Resolve a write target to the path the filesystem will actually write:
+  // the target itself may not exist yet, so walk up to the deepest existing
+  // ancestor (a symlinked parent is exactly the evasion lane) and rejoin the
+  // unresolved tail.
+  const realTarget = (p) => {
+    const abs = absFor(p);
+    const tail = [];
+    let cur = abs;
+    for (let i = 0; i < 40; i++) {
+      try { return join(realpathSync(cur), ...tail); } catch {
+        const parent = dirname(cur);
+        if (parent === cur) return abs;
+        tail.unshift(basename(cur));
+        cur = parent;
+      }
+    }
+    return abs;
   };
   const inner = async (ctx, signal) => {
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
@@ -197,6 +240,42 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         }
         if (answer === 'allow_session' || answer === 'always') readOutside = 'allowed';
         // 'allow' = this call proceeds; the next outside read asks again
+      }
+    }
+    // Write-outside-workspace boundary — the missing half of the read gate:
+    // file-mutation tools had NO workdir check (protectedRoots only cover
+    // instance internals), so `write C:\other\x` or a symlinked parent could
+    // persist bytes anywhere without a boundary question. Same latch shape
+    // as read_outside; fail-closed when no operator channel exists.
+    if (FILE_MUTATION_TOOLS.has(toolName)) {
+      const writePaths = toolName === 'multi_edit'
+        ? (Array.isArray(ctx.args?.edits) ? ctx.args.edits.map((e) => e?.path).filter(Boolean) : [])
+        : [ctx.args?.path ?? ctx.args?.file ?? ctx.args?.target].filter((x) => typeof x === 'string');
+      const badWrite = writePaths.find((p) => outsideWriteTarget(p));
+      if (badWrite) {
+        if (writeOutside === 'blocked') {
+          return { block: true, rule: 'write_outside', reason: `writes outside the workspace are blocked this session (operator choice) — '${badWrite}' is outside ${workdir}` };
+        }
+        if (writeOutside !== 'allowed') {
+          const answer = asks?.ask
+            ? await asks.ask({
+                toolName,
+                toolCallId: ctx.toolCall?.id ?? null,
+                rule: 'write_outside',
+                summary: `write outside workspace: ${String(badWrite).slice(0, 300)}`,
+                detail: `工具 ${toolName} 要写入工作目录之外的路径（含符号链接逃逸）。允许一次=仅本次；本会话允许=此后越界写不再询问；拒绝=本会话所有越界写直接拦下。`,
+                args: { path: badWrite, paths: writePaths.slice(0, 10) },
+                argsTruncated: writePaths.length > 10,
+                argsTotalChars: null,
+              }, signal)
+            : 'deny';
+          core.audit.write({ kind: 'WRITE_OUTSIDE_RESOLVED', toolName, data: { path: String(badWrite).slice(0, 300), answer } });
+          if (answer === 'deny') {
+            writeOutside = 'blocked';
+            return { block: true, rule: 'write_outside', reason: `operator refused writes outside the workspace — '${badWrite}' blocked` };
+          }
+          if (answer === 'allow_session' || answer === 'always') writeOutside = 'allowed';
+        }
       }
     }
     // Operator veto hooks (Claude Code PreToolUse analogue): <instance>/
@@ -355,7 +434,66 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         // matching the trust level the kernel already grants them.
         mutating = MUTATING_RISK.has(parsed.risk)
           || (parsed.hasUnknown === true && />>?/.test(commandForLease));
-      } catch { mutating = true; }
+        // writeTargets boundary + resolved-path recheck. The kernel matched
+        // instruction/.git regexes on the LEXICAL target; the filesystem
+        // resolves the real one — `> link/config` where link -> .git carries
+        // no '.git' in its string form, and `> ../out` escapes the worktree
+        // without tripping any instruction regex. Device sinks are exempt.
+        const wt = (parsed.writeTargets ?? []).filter((t) => !DEVICE_TARGET_RE.test(String(t).trim()));
+        const realGit = wt.map(realTarget).find((t) => GIT_INTERNAL_RE.test(String(t).replace(/\\/g, '/')));
+        const realInstr = wt.map(realTarget).find((t) => INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
+        const outTarget = wt.find((t) => outsideWriteTarget(t));
+        // Resolved-path hits on protected files are their own ask — the
+        // write_outside latch must not swallow them (different rule, no latch).
+        const protectedHit = realGit ?? realInstr;
+        if (protectedHit) {
+          const rule = realGit ? 'git_internal' : 'instruction_file';
+          const answer = asks?.ask
+            ? await asks.ask({
+                toolName,
+                toolCallId: ctx.toolCall?.id ?? null,
+                rule,
+                summary: `shell write target resolves into ${realGit ? '.git internals' : 'an agent instruction file'}: ${String(protectedHit).slice(0, 300)}`,
+                detail: `命令写目标的真实路径命中 ${realGit ? '.git 内部（hooks/config/refs 是持久化执行面）' : 'agent 指令文件（standing orders）'}——lexical 路径未命中，是符号链接/别名逃逸。`,
+                args: { command: commandForLease.slice(0, 300), target: String(protectedHit).slice(0, 300) },
+                argsTruncated: false,
+                argsTotalChars: null,
+              }, signal)
+            : 'deny';
+          core.audit.write({ kind: 'WRITE_OUTSIDE_RESOLVED', toolName, data: { target: String(protectedHit).slice(0, 300), rule, answer } });
+          if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+            return { block: true, rule, reason: `operator refused this write target — '${protectedHit}' blocked` };
+          }
+        }
+        if (outTarget && writeOutside !== 'allowed') {
+          if (writeOutside === 'blocked') {
+            return { block: true, rule: 'write_outside', reason: `writes outside the workspace are blocked this session (operator choice) — '${outTarget}' is outside ${workdir}` };
+          }
+          const answer = asks?.ask
+            ? await asks.ask({
+                toolName,
+                toolCallId: ctx.toolCall?.id ?? null,
+                rule: 'write_outside',
+                summary: `shell write target outside workspace: ${String(outTarget).slice(0, 300)}`,
+                detail: `命令的重定向/写目标落在工作目录之外（含符号链接逃逸）。允许一次=仅本次；本会话允许=此后越界写不再询问；拒绝=本会话所有越界写直接拦下。`,
+                args: { command: commandForLease.slice(0, 300), target: String(outTarget).slice(0, 300) },
+                argsTruncated: false,
+                argsTotalChars: null,
+              }, signal)
+            : 'deny';
+          core.audit.write({ kind: 'WRITE_OUTSIDE_RESOLVED', toolName, data: { target: String(outTarget).slice(0, 300), rule: 'write_outside', answer } });
+          if (answer === 'deny') {
+            writeOutside = 'blocked';
+            return { block: true, rule: 'write_outside', reason: `operator refused this write target — '${outTarget}' blocked` };
+          }
+          if (answer === 'allow_session' || answer === 'always') writeOutside = 'allowed';
+        }
+      } catch (err) {
+        // an aborted ask must propagate — swallowing it would let an
+        // interrupted call proceed to lease acquisition and execute.
+        if (signal?.aborted || err?.name === 'AbortError') throw err;
+        mutating = true;
+      }
     }
     const fgHolder = `fg:${ctx.toolCall?.id ?? 'unknown'}`;
     let fgHeld = false;

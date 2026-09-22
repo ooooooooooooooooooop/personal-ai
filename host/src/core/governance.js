@@ -54,6 +54,13 @@ const INSTRUCTION_PATH_RES = [
  */
 const GIT_INTERNAL_RE = /(?:^|\/)\.git(?:\/|$)/i;
 
+// Exported so adapters can re-check RESOLVED paths: the kernel matches these
+// on the lexical argument, but the filesystem resolves a different target when
+// an in-workdir symlink (or an 8.3 alias) stands between — `link/hooks` where
+// `link -> .git` carries no '.git' in its lexical form. Re-running the same
+// regexes on the real path closes that lane without duplicating the tables.
+export { INSTRUCTION_PATH_RES, GIT_INTERNAL_RE };
+
 export class GovernanceKernel {
   /** Rejection-memory signature set — per kernel instance = per session
    * (CodeBuddy analogue): an identical call the operator already denied

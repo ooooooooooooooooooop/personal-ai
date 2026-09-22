@@ -1714,3 +1714,19 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 | M143 跨文件 multi-edit | **REAL** | `multi_edit` 工具：`edits[{path,old_string,new_string,replace_all}]` 全量 preflight（存在/唯一/workdir 内/未 ignore）任一失败整批拒绝零写入；应用期每文件经 fileOps.write 备份+同 toolCallId 收据→undoCall 整批回滚；中途失败对已写文件 best-effort restore。decide 链入 FILE_MUTATION_TOOLS（写租约）+U4 密钥预扫覆盖 edits[].new_string（堵批量工具绕过洞）。哨兵 5 态（multiedit.test.js） |
 
 未补建项（保持诚实记录）：M126/127/128/129/133/137/139/144 维持 PARTIAL 原裁（均有近端实现，差的是各自注明的完整语义）；M141 N/A-UPSTREAM 不变。
+
+### 28.23 A1 边界硬化（2026-09-22，方向二全量复审取证实修）
+
+业界采集复审（Gemini v0.60 NTFS 8.3/symlink 专项）触发的边界自查，确认三处真洞并修复在生成器层（`pi/src/bootstrap/decide.js` + `host/src/core/governance.js` 正则导出）：
+
+| 洞 | 原状态 | 修复 |
+|---|---|---|
+| 读侧 symlink 逃逸 | `outsideWorkdir` 纯 lexical `resolve()`，`workdir/link→外部` 下 `read link/x` 静默放行 | realpath-aware：realWorkdir 缓存 + 实对实比较，非常驻目标回退 lexical |
+| 写侧零边界 | write/edit/delete/multi_edit **完全不在**边界检查面（protectedRoots 只护 instance 内部），`write C:\任意` 无边界闸 | 新增 `write_outside` 闸：read_outside 同构闩锁（一次/会话/拒绝锁定），无 operator 通道 fail-closed；multi_edit 逐 path 查 |
+| shell 写目标逃逸 | `writeTargets` 只过 instruction/.git 字符串正则，`> ../out` 或 `> link/x`（link→.git）lexical 看不到真路径 | classifier 块内：①越界 writeTarget 升 ask②最深已存在祖先 realpath 后用导出正则重查（`link/config`→`.git/config` 命中 git_internal）；设备槽（NUL//dev/null）豁免 |
+
+附带修复：writeTarget ask 原先落在 `catch{mutating=true}` 内会吞掉 AbortError 放行被中断调用——改为重抛。
+
+哨兵 `pi/tests/writeboundary.test.js` 9/9：绝对路径越界写/闩锁单次询问/内部写不误伤/读侧 symlink/写侧 symlink 父目录/`> ../`重定向/`.git` symlink 逃逸/multi_edit 越界批拒/设备槽豁免。pi 全套 270+1skip、host 281 全绿。
+
+同批取证排除项：#4279 bash 注入检测**已覆盖**（`command-parse.js` tree-sitter 递归 `$(...)`/subshell/管道/循环体全部进 units 归并风险）。
