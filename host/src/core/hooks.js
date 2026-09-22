@@ -14,6 +14,18 @@
  * gatekeeping. Gate hooks re-read the file per fire (operator edits apply
  * live) and fail CLOSED: timeout/spawn error denies the call.
  *
+ * Trust asymmetry between the two configs:
+ *  - the observational file is agent-REACHABLE (a .pai/ write escalates to one
+ *    operator ask — an approval under prompt-injection pressure is plausible),
+ *    so it is treated as untrusted input: (a) hook processes get a SCRUBBED
+ *    environment — keys matching KEY/TOKEN/SECRET/PASSWORD/CREDENTIAL/AUTH are
+ *    removed, because an approved hook has no legitimate need for provider
+ *    credentials and a full-env spawn is an exfiltration channel; (b) a
+ *    malformed/unrecognized config is audited (HOOK_CONFIG_ERROR) and skipped,
+ *    never thrown — one approved bad write must not brick the next bootstrap.
+ *  - the gate file is operator-private: full environment, malformed config
+ *    throws loud at load and fails closed per fire.
+ *
  * Config: <workdir>/.pai/hooks.json  (observational)
  *         <instance>/hooks.json      (gate, operator-private)
  *   { "hooks": { "session_start": [{ "command": "...", "timeoutMs": 8000 }],
@@ -40,6 +52,22 @@ export const GATE_EVENTS = new Set(['pre_tool']);
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_CHARS = 4000;
 
+// Secret-looking environment keys withheld from OBSERVATIONAL hook processes.
+// The workdir config is agent-reachable (one approved .pai/ write away); a
+// full-env spawn turns it into a credential-exfiltration channel. Gate hooks
+// (operator-private file) keep the full environment — the operator owns both
+// the config and the consequences. GIT_AUTHOR_* survives: 'AUTHOR' is not
+// matched by the AUTH alternative (requires _ or end after AUTH).
+const SECRET_ENV_RE = /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|(?:^|_)AUTH(?:_|$)/i;
+
+export function scrubHookEnv(env) {
+  const out = {};
+  for (const [k, v] of Object.entries(env ?? {})) {
+    if (!SECRET_ENV_RE.test(k)) out[k] = v;
+  }
+  return out;
+}
+
 export class HookRunner {
   /**
    * @param {string} workdir
@@ -60,13 +88,28 @@ export class HookRunner {
 
   #load() {
     if (!existsSync(this.configPath)) return {};
-    const doc = JSON.parse(readFileSync(this.configPath, 'utf-8')); // throws = loud, operator's file
+    let doc;
+    try {
+      doc = JSON.parse(readFileSync(this.configPath, 'utf-8'));
+    } catch (err) {
+      if (this.gate) throw err; // operator's own file — loud at load
+      // Agent-reachable config is untrusted input: a bad write must not
+      // brick the next bootstrap. Audit and run with no hooks.
+      this.audit?.write({ kind: 'HOOK_CONFIG_ERROR', data: { error: String(err?.message ?? err).slice(0, 300), ignored: true } });
+      return {};
+    }
     const hooks = doc?.hooks ?? {};
     const allowed = this.gate ? new Set([...HOOK_EVENTS, ...GATE_EVENTS]) : HOOK_EVENTS;
-    for (const name of Object.keys(hooks)) {
-      if (!allowed.has(name)) {
-        throw new Error(`hooks.json: unknown lifecycle event '${name}' — valid: ${[...allowed].join(', ')}`);
+    const bad = Object.keys(hooks).filter((name) => !allowed.has(name));
+    if (bad.length) {
+      if (this.gate) {
+        throw new Error(`hooks.json: unknown lifecycle event '${bad[0]}' — valid: ${[...allowed].join(', ')}`);
       }
+      // Untrusted config: reject the unknown events (a 'pre_tool' entry here
+      // is an agent trying to veto itself), keep the valid ones, stay loud
+      // in the audit trail instead of crashing the lifecycle.
+      this.audit?.write({ kind: 'HOOK_CONFIG_ERROR', data: { rejectedEvents: bad, valid: [...HOOK_EVENTS].join(',') } });
+      for (const name of bad) delete hooks[name];
     }
     return hooks;
   }
@@ -142,7 +185,7 @@ export class HookRunner {
         cwd: this.workdir,
         shell: true,
         windowsHide: true,
-        env: { ...this.env, PAI_HOOK_EVENT: payload.event ?? '' },
+        env: { ...(this.gate ? this.env : scrubHookEnv(this.env)), PAI_HOOK_EVENT: payload.event ?? '' },
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       this.#children.add(child);

@@ -151,7 +151,7 @@ export class HandoffStore {
   pending() {
     return readdirSync(this.dir)
       .filter((f) => f.endsWith('.json'))
-      .map((f) => JSON.parse(readFileSync(join(this.dir, f), 'utf-8')))
-      .filter((r) => !['verified', 'failed'].includes(r.state));
+      .map((f) => { try { return JSON.parse(readFileSync(join(this.dir, f), 'utf-8')); } catch { return null; } })
+      .filter((r) => r && !['verified', 'failed'].includes(r.state));
   }
 }

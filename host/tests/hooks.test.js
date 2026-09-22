@@ -22,10 +22,30 @@ test('absent config → no-op runner', async () => {
   assert.equal(await h.fire('session_start'), 0);
 });
 
-test('unknown event name refuses at load (typo must be loud)', () => {
+test('unknown event name: gate refuses loud; observational audits + skips (agent-reachable file must not brick bootstrap)', () => {
   const w = dir();
-  cfg(w, { hooks: { promt_submit: [{ command: 'echo hi' }] } });
-  assert.throws(() => new HookRunner(w), /unknown lifecycle event/);
+  cfg(w, { hooks: { promt_submit: [{ command: 'echo hi' }], session_start: [{ command: 'echo ok' }] } });
+  // gate (operator-private) stays loud
+  assert.throws(() => new HookRunner(w, { gate: true }), /unknown lifecycle event/);
+  // observational: no throw, bad event rejected, valid event kept
+  const audit = fakeAudit();
+  const h = new HookRunner(w, { audit });
+  assert.deepEqual(h.events, ['session_start']);
+  const err = audit.events.find((e) => e.kind === 'HOOK_CONFIG_ERROR');
+  assert.deepEqual(err.data.rejectedEvents, ['promt_submit']);
+});
+
+test('observational malformed JSON is audited and skipped, never thrown', async () => {
+  const w = dir();
+  mkdirSync(join(w, '.pai'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'hooks.json'), '{ not json');
+  const audit = fakeAudit();
+  const h = new HookRunner(w, { audit });
+  assert.deepEqual(h.events, []);
+  assert.equal(await h.fire('session_start'), 0);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_CONFIG_ERROR' && e.data.ignored));
+  // gate mode with the same file still throws loud
+  assert.throws(() => new HookRunner(w, { gate: true, configPath: join(w, '.pai', 'hooks.json') }));
 });
 
 test('hook receives event payload on stdin and env; audit trail written', async () => {
@@ -70,10 +90,14 @@ test('timeout kills a hung hook; close() kills in-flight', async () => {
 
 /* ---- gate mode: operator-private pre_tool veto ---- */
 
-test('non-gate runner refuses pre_tool at load (agent cannot veto itself)', () => {
+test('non-gate runner rejects pre_tool entries with audit (agent cannot veto itself)', () => {
   const w = dir();
   cfg(w, { hooks: { pre_tool: [{ command: 'echo no' }] } });
-  assert.throws(() => new HookRunner(w), /unknown lifecycle event/);
+  const audit = fakeAudit();
+  const h = new HookRunner(w, { audit });
+  assert.deepEqual(h.events, []); // pre_tool never registered on a non-gate runner
+  const err = audit.events.find((e) => e.kind === 'HOOK_CONFIG_ERROR');
+  assert.deepEqual(err.data.rejectedEvents, ['pre_tool']);
 });
 
 test('gate: absent file → allow; exit≠0 → deny; {"deny"} JSON → deny with reason', async () => {
@@ -122,6 +146,36 @@ test('gate: match prefix filters tools; exit 0 → allow; broken hook fails clos
 test('fireGate on a non-gate runner throws', async () => {
   const h = new HookRunner(dir());
   await assert.rejects(() => h.fireGate('pre_tool', {}), /non-gate/);
+});
+
+test('observational hooks get a scrubbed env; gate hooks keep the full env', async () => {
+  const w = dir();
+  const outFile = join(w, 'env-out.json');
+  const script = join(w, 'dump-env.js');
+  writeFileSync(script, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').writeFileSync(${JSON.stringify(outFile)},JSON.stringify({k:process.env.FAKE_PROVIDER_API_KEY??null,t:process.env.GH_TOKEN??null,p:process.env.PAI_PLAIN??null,g:process.env.GIT_AUTHOR_NAME??null}));});`);
+  const env = {
+    ...process.env,
+    FAKE_PROVIDER_API_KEY: 'sk-secret',
+    GH_TOKEN: 'ghp_secret',
+    PAI_PLAIN: 'visible',
+    GIT_AUTHOR_NAME: 'Operator',
+  };
+
+  cfg(w, { hooks: { prompt_submit: [{ command: `node ${JSON.stringify(script)}` }] } });
+  const h = new HookRunner(w, { env });
+  await h.fire('prompt_submit');
+  const seen = JSON.parse(readFileSync(outFile, 'utf-8'));
+  assert.equal(seen.k, null);        // *_KEY scrubbed — no credential exfil channel
+  assert.equal(seen.t, null);        // *TOKEN scrubbed
+  assert.equal(seen.p, 'visible');   // ordinary vars pass through
+  assert.equal(seen.g, 'Operator');  // GIT_AUTHOR_* is not a secret — survives
+
+  const gateFile = join(w, 'gate-hooks.json');
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ command: `node ${JSON.stringify(script)}` }] } }));
+  const g = new HookRunner(w, { env, configPath: gateFile, gate: true });
+  assert.equal(await g.fireGate('pre_tool', { tool: 'bash' }), null); // exit 0 → allow
+  const gateSeen = JSON.parse(readFileSync(outFile, 'utf-8'));
+  assert.equal(gateSeen.k, 'sk-secret'); // operator-private gate keeps full env
 });
 
 test('expanded event family: tool_start/agent_stop/compact_* accepted at load', () => {

@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, appendFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -40,4 +40,20 @@ test('context envelope renders observation subjects into the channel text', () =
   const text = renderContext(env);
   assert.ok(text.includes('<observations>'));
   assert.ok(text.includes('[tool_result] edit'));
+});
+
+test('read-path cache invalidates on external append (cross-process writer) and tolerates a torn tail row', () => {
+  const { dir, observations } = store();
+  observations.record({ kind: 'tool_result', subject: 'first' });
+  assert.equal(observations.list().length, 1); // populates the cache
+  assert.equal(observations.list().length, 1); // cache hit
+  // a delegate child (separate process) appends directly to the shared file
+  appendFileSync(join(dir, 'observations', 'observations.jsonl'),
+    `${JSON.stringify({ id: 'obs-ext', kind: 'tool_result', subject: 'external', at: 1 })}\n`);
+  const rows = observations.list();
+  assert.equal(rows.length, 2);
+  assert.equal(rows.at(-1).subject, 'external');
+  // a torn final row (crash mid-append) is skipped, not fatal
+  appendFileSync(join(dir, 'observations', 'observations.jsonl'), '{"id":"obs-torn","kind":');
+  assert.equal(observations.list().length, 2);
 });

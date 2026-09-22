@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 
@@ -32,7 +32,12 @@ export class PredictionStore {
   }
 
   #persist() {
-    writeFileSync(this.indexPath, JSON.stringify(this.index, null, 2));
+    // Atomic via tmp+rename (identity.js/handoff.js precedent): a crash mid-
+    // write must not leave a truncated index — the constructor parses this
+    // file and a corrupt index would brick every later bootstrap.
+    const tmp = `${this.indexPath}.tmp`;
+    writeFileSync(tmp, JSON.stringify(this.index, null, 2));
+    renameSync(tmp, this.indexPath);
   }
 
   /** Open a prediction. Mutations against the world model bind to its id. */
@@ -97,7 +102,8 @@ export class PredictionStore {
   bindings(predictionId = null) {
     if (!existsSync(this.bindingsPath)) return [];
     return readFileSync(this.bindingsPath, 'utf-8')
-      .split('\n').filter(Boolean).map((l) => JSON.parse(l))
-      .filter((b) => !predictionId || b.predictionId === predictionId);
+      .split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } }) // one torn tail row must not hide the ledger
+      .filter((b) => b && (!predictionId || b.predictionId === predictionId));
   }
 }

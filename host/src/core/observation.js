@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -13,12 +13,22 @@ import { randomUUID } from 'node:crypto';
  *
  * Layout inside the canonical dir:
  *   observations/observations.jsonl — append-only observation records
+ *
+ * Read-path discipline (budget.js precedent): the context provider calls
+ * recent() EVERY turn, and the loop extension records one row per tool
+ * result — an uncached full-file scan per turn turns a long-lived instance
+ * into a synchronous read of an ever-larger JSONL on the hot path. The file
+ * is append-only, so (size, mtimeMs) is a sound fingerprint: every append
+ * grows size; external rewrite/truncate changes both. Cross-process writers
+ * (delegate children share the instance) are caught by the same stat check.
  */
 export class ObservationStore {
   constructor(canonicalDir) {
     this.dir = join(canonicalDir, 'observations');
     mkdirSync(this.dir, { recursive: true });
     this.path = join(this.dir, 'observations.jsonl');
+    this._cacheFp = null;
+    this._cacheRows = null;
   }
 
   /** Append an observation. Returns the stored record. */
@@ -34,8 +44,16 @@ export class ObservationStore {
 
   list() {
     if (!existsSync(this.path)) return [];
-    return readFileSync(this.path, 'utf-8')
-      .split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    const st = statSync(this.path);
+    const fp = `${st.size}:${st.mtimeMs}`;
+    if (this._cacheFp === fp && this._cacheRows) return this._cacheRows;
+    const rows = readFileSync(this.path, 'utf-8')
+      .split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(Boolean);
+    this._cacheFp = fp;
+    this._cacheRows = rows;
+    return rows;
   }
 
   /** The context projection window — most recent N observations. */
