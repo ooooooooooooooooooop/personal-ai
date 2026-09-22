@@ -50,3 +50,46 @@ test('budget truncation marks truncated and stays under cap', () => {
   assert.equal(r.truncated, true);
   assert.ok(r.text.length < 1200);
 });
+
+test('PageRank: the heavily-imported hub survives the budget cut; unreferenced leaves drop', () => {
+  const w = dir();
+  // a/ alphabetically first but a dead leaf — nobody imports it.
+  // zzz_hub is alphabetically LAST but the whole repo depends on it.
+  // Alphabetical tail-cutting kept the leaf and dropped the hub; rank
+  // filtering must do the opposite.
+  writeFileSync(join(w, 'aaa_leaf.ts'), 'export function leafA() {}\n');
+  writeFileSync(join(w, 'aab_leaf.ts'), 'export function leafB() {}\n');
+  writeFileSync(join(w, 'zzz_hub.ts'),
+    'export function hubCore() {}\nexport class HubService {}\nexport const hubConfig = () => {}\n');
+  for (let i = 0; i < 6; i++) {
+    writeFileSync(join(w, `m${i}_user.ts`),
+      `import { hubCore } from './zzz_hub';\nexport function user${i}() { return hubCore; }\n`);
+  }
+  // budget: enough for the hub + a couple of users, not for everything
+  const r = buildRepoMap(w, { maxChars: 100 });
+  assert.equal(r.truncated, true);
+  assert.match(r.text, /zzz_hub\.ts/, 'the import hub survived the cut');
+  assert.match(r.text, /rank-filtered/, 'the notice says selection was rank-based');
+  assert.ok(!/aaa_leaf\.ts: /.test(r.text) || !/aab_leaf\.ts: /.test(r.text),
+    'at least one unreferenced leaf lost ground to the hub');
+});
+
+test('PageRank: no-edge repo degrades to uniform scores — full map when budget allows', () => {
+  const w = dir(); seed(w);
+  const r = buildRepoMap(w); // no imports in the fixture → uniform ranks
+  assert.equal(r.truncated, false);
+  assert.match(r.text, /a\.ts/);
+  assert.match(r.text, /b\.py/);
+});
+
+test('PageRank: python dotted imports and C includes form edges too', () => {
+  const w = dir();
+  writeFileSync(join(w, 'aaa_unused.py'), 'def lonely():\n    pass\n');
+  writeFileSync(join(w, 'zutil.py'), 'def helper():\n    pass\nclass ZUtil:\n    pass\n');
+  writeFileSync(join(w, 'worker1.py'), 'import zutil\ndef w1():\n    pass\n');
+  writeFileSync(join(w, 'worker2.py'), 'from zutil import helper\ndef w2():\n    pass\n');
+  const r = buildRepoMap(w, { maxChars: 100 });
+  assert.match(r.text, /zutil\.py/, 'dotted-import hub survives');
+  const leafLine = r.text.split('\n').find((l) => l.startsWith('aaa_unused.py'));
+  assert.ok(!leafLine || !leafLine.includes(':'), 'unreferenced leaf dropped or lost its symbol detail');
+});
