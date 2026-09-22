@@ -130,6 +130,27 @@ const WRITER_TTL_SECONDS = 8;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * M89-R2: rewrite an imported session file's header `parentSession` to the
+ * ORIGINAL source path (upstream forkFrom stamps the scratch copy's path,
+ * which import deletes right after — dangling provenance). Atomic
+ * tmp+rename on the DESTINATION only; the source is never touched. Throws
+ * on any failure — provenance is part of the import contract, so callers
+ * must fail the import rather than land a dangling-header session.
+ */
+export function rewriteSessionParent(destFile, originalAbs) {
+  const raw = readFileSync(destFile, 'utf-8');
+  const nl = raw.indexOf('\n');
+  const header = nl > 0 ? JSON.parse(raw.slice(0, nl)) : null;
+  if (header?.type !== 'session') {
+    throw new Error('imported session file has no session header');
+  }
+  header.parentSession = originalAbs;
+  const tmp = `${destFile}.rewrite-${process.pid}`;
+  writeFileSync(tmp, JSON.stringify(header) + raw.slice(nl));
+  renameSync(tmp, destFile);
+}
+
 /** M86 ambient context — cheap per-turn grounding facts. Git probes are
  *  bounded (1.5s) and fail-soft: a non-repo workdir just reports no git. */
 function ambientInfo(workdir) {
@@ -406,8 +427,10 @@ export async function startHost({
         return Array.isArray(doc?.exclude) ? doc.exclude.map(String) : [];
       } catch { return []; }
     },
-    // M90-R2: restart replays a persisted command — re-run the SAME gates a
-    // fresh job_spawn tool call would face, not just the kernel slice:
+    // M90-R2: restart replays a persisted contract — re-run the SAME gates a
+    // fresh job_spawn tool call would face, on the FULL replay spec (not just
+    // the command — protected-root scanning recurses into sandbox.target /
+    // workdir, and the pre_tool hook receives the complete arg set):
     //   1. .pai/commands.json denyPrefix (project-side tightening, re-read live)
     //   2. kernel hardPolicyGate (freshness, tool deny, protected roots,
     //      parse validity, risk deny/terminate)
@@ -415,16 +438,17 @@ export async function startHost({
     // Ask-level outcomes are covered by the operator's restart click.
     // `preToolGate` is initialized later in this scope — the closure only
     // dereferences it when a restart actually runs.
-    preflightCommand: async (command) => {
+    preflightCommand: async (spec) => {
+      const command = String(spec?.command ?? '');
       const hit = commandDenyPrefixes(workdir).find((p) => command.trim().startsWith(p));
       if (hit) {
         return { block: true, rule: 'command_denylist', reason: `command matches .pai/commands.json denyPrefix '${hit}' — project-level deny` };
       }
-      const k = await core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args: { command } });
+      const k = await core.kernel.hardPolicyGate({ toolName: 'job_spawn', toolCallId: 'job_restart', args: spec });
       if (k?.block) return k;
       if (preToolGate) {
         try {
-          const g = await preToolGate.fireGate('pre_tool', { tool: 'job_spawn', toolCallId: 'job_restart', args: { command } });
+          const g = await preToolGate.fireGate('pre_tool', { tool: 'job_spawn', toolCallId: 'job_restart', args: spec });
           if (g?.deny) return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook refused: ${g.deny}` };
         } catch (err) {
           return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook error (fail-closed): ${String(err?.message ?? err).slice(0, 200)}` };
@@ -991,7 +1015,7 @@ export async function startHost({
     // pi-format session file into the store WITHOUT switching to it — the
     // imported transcript lands in the drawer with a [导入] name marker and
     // forkFrom's parentSession header records the source path (provenance).
-    importSession: async (srcPath) => {
+    importSession: async (srcPath, { rewriteParent = rewriteSessionParent } = {}) => {
       const abs = resolve(String(srcPath ?? ''));
       if (!existsSync(abs)) throw new Error(`session file not found: ${abs}`);
       // M89: upstream loadEntriesFromFile() APPENDS a newline to a source file
@@ -1001,29 +1025,28 @@ export async function startHost({
       mkdirSync(scratchDir, { recursive: true });
       const scratch = join(scratchDir, `import-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}.jsonl`);
       copyFileSync(abs, scratch);
+      let destFile = null;
       try {
         const mgr = sessionManagers.forkFrom(scratch, workdir, sessionDir);
         const srcName = mgr.getSessionName?.() ?? basename(abs);
         mgr.appendSessionInfo?.(`[导入] ${srcName}`);
-        // M89-R2: forkFrom stamps `parentSession: <scratch path>` — after the
-        // scratch is deleted that provenance dangles. Rewrite the DESTINATION
-        // header so it names the original source (atomic tmp+rename; the
-        // source file itself is never touched).
-        const destFile = mgr.getSessionFile?.() ?? null;
-        if (destFile && existsSync(destFile)) {
-          try {
-            const raw = readFileSync(destFile, 'utf-8');
-            const nl = raw.indexOf('\n');
-            const header = nl > 0 ? JSON.parse(raw.slice(0, nl)) : null;
-            if (header?.type === 'session' && header.parentSession) {
-              header.parentSession = abs;
-              const tmp = `${destFile}.rewrite-${process.pid}`;
-              writeFileSync(tmp, JSON.stringify(header) + raw.slice(nl));
-              renameSync(tmp, destFile);
-            }
-          } catch { /* provenance rewrite is best-effort — import itself stands */ }
+        // M89-R2: provenance is PART of the contract — forkFrom stamps
+        // parentSession=<scratch> which the finally below deletes; rewrite
+        // the destination header to the ORIGINAL source, and fail the whole
+        // import when the rewrite cannot land (a dangling-provenance session
+        // must not enter the drawer).
+        destFile = mgr.getSessionFile?.() ?? null;
+        if (!destFile || !existsSync(destFile)) {
+          throw new Error('import produced no destination session file');
         }
+        rewriteParent(destFile, abs);
         return { file: destFile, name: `[导入] ${srcName}`, importedFrom: abs };
+      } catch (err) {
+        // fail-closed: remove the half-imported session + rewrite tmp so the
+        // store never carries a dangling-provenance header
+        try { if (destFile) unlinkSync(destFile); } catch { /* cleanup best-effort */ }
+        try { if (destFile) unlinkSync(`${destFile}.rewrite-${process.pid}`); } catch { /* tmp may not exist */ }
+        throw err;
       } finally {
         try { unlinkSync(scratch); } catch { /* leftover scratch is cosmetic */ }
       }

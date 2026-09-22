@@ -163,3 +163,40 @@ test('M89: session_import never mutates the source file', async () => {
     'scratch copy must be gone after import');
   host.leases.close();
 });
+
+test('M89-R2: provenance rewrite failure fails the whole import — no dangling session', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-import-fail-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  const src = join(dir, 'foreign2.jsonl');
+  const srcContent =
+    JSON.stringify({ type: 'session', version: 3, id: 'src-2', timestamp: new Date().toISOString(), cwd: dir }) + '\n' +
+    JSON.stringify({ type: 'message', id: 'm1', timestamp: new Date().toISOString(), message: { role: 'user', content: 'hi' } }) + '\n';
+  writeFileSync(src, srcContent);
+  const before = readFileSync(src);
+  const sessionsDir = join(dir, 'sessions');
+  const preImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
+  // force the provenance rewrite to fail — the import must NOT land a
+  // session whose parentSession dangles on the deleted scratch
+  await assert.rejects(
+    host.channel.sessions.importSession(src, {
+      rewriteParent: () => { throw new Error('forced rewrite failure'); },
+    }),
+    /forced rewrite failure/,
+  );
+  const postImport = readdirSync(sessionsDir).filter((f) => f.endsWith('.jsonl'));
+  assert.deepEqual(postImport.sort(), preImport.sort(), 'failed import must not leave a session file behind');
+  assert.deepEqual(readFileSync(src), before, 'source bytes must be identical after failed import');
+  const scratchDir = join(sessionsDir, '.import-scratch');
+  assert.ok(
+    !existsSync(scratchDir) || readdirSync(scratchDir).length === 0,
+    'scratch must be cleaned even on failure');
+  host.leases.close();
+});

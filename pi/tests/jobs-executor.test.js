@@ -779,7 +779,7 @@ test('M90-R2: restart proceeds when the hard-policy gate passes', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-restart-polok-'));
   let calls = 0;
   const { store, executor } = rig(dir, {
-    preflightCommand: async (cmd) => { calls++; assert.equal(cmd, 'echo STILL_OK'); return undefined; },
+    preflightCommand: async (spec) => { calls++; assert.equal(spec?.command, 'echo STILL_OK'); return undefined; },
   });
   const { job_id } = await executor.spawnCommandJob({ command: 'echo STILL_OK', workdir: tmpdir() });
   await new Promise((r) => setTimeout(r, 1500));
@@ -788,6 +788,42 @@ test('M90-R2: restart proceeds when the hard-policy gate passes', async () => {
   assert.equal(calls, 1, 'gate consulted exactly once before re-spawn');
   await new Promise((res) => setTimeout(res, 1200));
   assert.equal(store.getJob(r.job_id).job_state, 'COMPLETED');
+  store.close();
+});
+
+test('M90-R2: the gate receives the FULL replay spec, not just the command', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-restart-fullspec-'));
+  let seen = null;
+  const { store, executor } = rig(dir, {
+    preflightCommand: async (spec) => {
+      seen = spec;
+      // governance input parity with a fresh job_spawn: the whole persisted
+      // contract is visible — command, workdir, sandbox, timeout, scope
+      return spec?.sandbox?.kind === 'banned-backend'
+        ? { block: true, rule: 'negative_capability', reason: 'sandbox target protected' }
+        : undefined;
+    },
+  });
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo SPEC', workdir: tmpdir(), timeoutMs: 30_000 });
+  await new Promise((r) => setTimeout(r, 1500));
+  const r = await executor.restart(job_id);
+  assert.equal(r.refused, undefined, `restart refused: ${r.reason}`);
+  assert.ok(seen, 'gate never consulted');
+  assert.equal(seen.command, 'echo SPEC');
+  assert.equal(seen.workdir, tmpdir());
+  assert.equal(seen.timeout_ms, 30_000);
+  assert.equal(seen.sandbox?.kind, 'none');
+  assert.equal('budget_committed' in seen, true, 'spec carries the full contract fields');
+  // and a spec-level verdict can still refuse — sandbox field governance works
+  await new Promise((res) => setTimeout(res, 1200));
+  assert.equal(store.getJob(r.job_id).job_state, 'COMPLETED');
+  const attempt = store.getAttempts(r.job_id)[0];
+  const spec2 = readCheckpoint(attempt.checkpoint_ref).restart_spec;
+  spec2.sandbox = { kind: 'banned-backend' };
+  writeFileSync(attempt.checkpoint_ref, JSON.stringify({ ...readCheckpoint(attempt.checkpoint_ref), restart_spec: spec2 }));
+  const r2 = await executor.restart(r.job_id);
+  assert.equal(r2.refused, true);
+  assert.match(r2.reason, /negative_capability/);
   store.close();
 });
 

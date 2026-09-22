@@ -41,7 +41,9 @@ const FILE_ACCESS_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search
 // Read-family tools whose path arg is checked against the workspace boundary.
 const READ_PATH_TOOLS = new Set(['read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files']);
 // Tools whose args carry a shell command string — prefix lists apply here.
-const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'command', cmd: 'command' };
+// GATE-COMPOSITION-01: job_spawn's command arg is a shell command too — a
+// project denyPrefix must gate normal spawns exactly as it gates restarts.
+const COMMAND_ARG_KEYS = { bash: 'command', shell: 'command', powershell: 'command', cmd: 'command', job_spawn: 'command' };
 
 /**
  * Roo command deny-list analogue: `.pai/commands.json` `{denyPrefixes:[]}` —

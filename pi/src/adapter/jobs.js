@@ -78,8 +78,8 @@ export class JobExecutor {
     // M80 sandbox exclusions — () => string[] of command prefixes that bypass
     // the AMBIENT sandbox only (an explicit per-job sandbox request stands).
     this.sandboxExcludes = sandboxExcludes;
-    // M90-R2: restart re-runs CURRENT hard policy on the persisted command —
-    // (command) => Promise<decision|undefined>; a decision with .block refuses.
+    // M90-R2: restart re-runs CURRENT hard policy on the persisted replay
+    // spec — (spec) => Promise<decision|undefined>; .block refuses.
     this.preflightCommand = preflightCommand;
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
@@ -165,11 +165,15 @@ export class JobExecutor {
       // reservation. The operator must delegate again.
       return { refused: true, reason: `job '${jobId}' ran on a committed budget slice — restart cannot re-admit it; delegate again` };
     }
-    // M90-R2: restart replays a PERSISTED command — it must clear today's
+    // M90-R2: restart replays a PERSISTED contract — it must clear today's
     // hard policy, not the policy that admitted the original run (policy may
-    // have tightened since). The operator's restart click is the ask-level
-    // approval; deny/terminate/drift/unparseable refuse outright.
-    const gate = await this.preflightCommand?.(spec.command);
+    // have tightened since). The gate sees the WHOLE replay spec, not just
+    // the command: protected-root scanning recurses into sandbox.target /
+    // workdir, and operator pre_tool hooks receive the full arg set — same
+    // governance input a fresh job_spawn call would carry. The operator's
+    // restart click is the ask-level approval; deny/terminate/drift/
+    // unparseable refuse outright.
+    const gate = await this.preflightCommand?.(spec);
     if (gate?.block) {
       this.audit?.write({ kind: 'JOB_RESTART_REFUSED', data: { job_id: jobId, rule: gate.rule, reason: gate.reason, parent_run_id: this.runId } });
       return { refused: true, reason: `restart refused by current policy (${gate.rule}): ${gate.reason}` };

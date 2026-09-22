@@ -370,6 +370,20 @@ test('command denylist: .pai/commands.json denyPrefix blocks before kernel admit
   assert.equal(ok, undefined); // non-matching passes through to kernel admit
 });
 
+test('GATE-COMPOSITION-01: job_spawn command args face the same denyPrefix as bash', async () => {
+  const { dir, decide } = rig();
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'commands.json'), JSON.stringify({ denyPrefixes: ['rm -rf'] }));
+  // a durable-job spawn must not bypass the project deny file just because
+  // it is a different tool — restart already enforces it; parity demands the
+  // original path enforce it too
+  const blocked = await decide({ toolCall: { name: 'job_spawn', id: 'c1' }, args: { command: 'rm -rf /' } });
+  assert.equal(blocked.block, true);
+  assert.equal(blocked.rule, 'command_denylist');
+  const ok = await decide({ toolCall: { name: 'job_spawn', id: 'c2' }, args: { command: 'npm test' } });
+  assert.equal(ok, undefined);
+});
+
 test('operator pre_tool gate vetoes an admitted call (fail-closed on error)', async () => {
   const { dir, decide: base } = rig();
   void base;
