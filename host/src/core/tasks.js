@@ -18,7 +18,7 @@
  * seq/ack: per-stream monotonically increasing line numbers; acks live in
  * task.json so a reader (model wait / UI) tracks its own cursor.
  */
-import { mkdirSync, readFileSync, appendFileSync, existsSync, readdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, appendFileSync, existsSync, readdirSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
@@ -40,7 +40,13 @@ export class TaskStore {
   }
 
   #writeMeta(taskId, meta) {
-    writeFileSync(join(this.#taskDir(taskId), 'task.json'), JSON.stringify(meta, null, 2));
+    // atomic tmp+rename: a torn task.json reads as null and the whole mailbox
+    // bricks (posts refused, waitOutbox 'missing') while its streams survive
+    // on disk — pid suffix so two writers never share the tmp name
+    const f = join(this.#taskDir(taskId), 'task.json');
+    const tmp = `${f}.tmp-${process.pid}`;
+    writeFileSync(tmp, JSON.stringify(meta, null, 2));
+    renameSync(tmp, f);
   }
 
   create({ label = '', jobId = null, parent = null, kind = 'delegation', name = null, spawnSpec = null } = {}) {

@@ -35,7 +35,7 @@ export function writeRuntimeIdentity(paths, {
     started_at: new Date().toISOString(),
   };
   const file = join(paths.root, 'runtime.json');
-  const tmp = `${file}.tmp`;
+  const tmp = `${file}.tmp-${process.pid}`; // pid-suffixed: a shared bare .tmp races a second writer
   writeFileSync(tmp, JSON.stringify(identity, null, 2));
   renameSync(tmp, file);
   return identity;

@@ -236,3 +236,19 @@ test('multi-process posture: two handles on one memory.db interleave writes + re
   assert.equal(a.recall('delegated run').length, 1);
   a.close(); b.close();
 });
+
+test('remember commits row + FTS index atomically; bulk nesting never double-BEGINs', () => {
+  const s = new MemoryStore(':memory:');
+  const { id } = s.remember('atomic write marker — release checklist lives in docs/release.md');
+  // immediately recallable — the index row landed in the same commit
+  const hits = s.recall('atomic write marker');
+  assert.ok(hits.some((h) => h.id === id), 'recall finds the row right after remember');
+  // bulk path (outer BEGIN) + per-remember tx guard must not error on nesting
+  assert.equal(s.bulk([]).applied, 0); // empty bulk is a no-op
+  const r2 = s.bulk([
+    { action: 'save', text: 'bulk row one — release checklist' },
+    { action: 'save', text: 'bulk row two — release checklist' },
+  ]);
+  assert.equal(r2.applied, 2);
+  assert.ok(s.recall('bulk row one').length >= 1);
+});

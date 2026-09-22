@@ -160,10 +160,25 @@ export class MemoryStore {
       return { id: dupe.id, deduped: true };
     }
     const id = `mem-${randomUUID().slice(0, 12)}`;
-    this.db.prepare(
-      'INSERT INTO memory (id, kind, text, source, confidence, scope, workdir, created, updated) VALUES (?,?,?,?,?,?,?,?,?)',
-    ).run(id, kind, t, source, confidence, scope, scope === 'project' ? workdir : null, nowIso(), nowIso());
-    this.#indexRow(id);
+    // row + FTS entry commit as ONE transaction — a crash between them left
+    // a memory that exists (all()/pinned() see it) but recall() can never
+    // find (no index row), an invisible-write lie. bulk() already holds a
+    // transaction — never nest BEGIN.
+    const ownTx = !this._txDepth;
+    if (ownTx) this.db.exec('BEGIN');
+    this._txDepth = (this._txDepth ?? 0) + 1;
+    try {
+      this.db.prepare(
+        'INSERT INTO memory (id, kind, text, source, confidence, scope, workdir, created, updated) VALUES (?,?,?,?,?,?,?,?,?)',
+      ).run(id, kind, t, source, confidence, scope, scope === 'project' ? workdir : null, nowIso(), nowIso());
+      this.#indexRow(id);
+      if (ownTx) this.db.exec('COMMIT');
+    } catch (e) {
+      if (ownTx) { try { this.db.exec('ROLLBACK'); } catch { /* already rolled back */ } }
+      throw e;
+    } finally {
+      this._txDepth -= 1;
+    }
     return { id };
   }
 
@@ -229,6 +244,7 @@ export class MemoryStore {
     if (ops.length > 50) return { refused: 'bulk limited to 50 ops' };
     const results = [];
     this.db.exec('BEGIN');
+    this._txDepth = 1; // remember() joins this transaction instead of nesting BEGIN
     try {
       for (const op of ops) {
         if (op.action === 'save') results.push(this.remember(op.text, { kind: op.kind ?? 'fact', source: op.source ?? 'agent', scope: op.scope ?? 'user', workdir }));
@@ -243,6 +259,8 @@ export class MemoryStore {
     } catch (e) {
       try { this.db.exec('ROLLBACK'); } catch { /* already rolled back */ }
       return { refused: `bulk aborted: ${e.message}`, applied: 0, results: [] };
+    } finally {
+      this._txDepth = 0;
     }
   }
 

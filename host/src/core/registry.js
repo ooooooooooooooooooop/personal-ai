@@ -11,9 +11,20 @@ export class BodyRegistry {
   /** @param {import('./contracts.js').InstancePaths} paths */
   constructor(paths) {
     this.file = join(paths.root, 'registry.json');
-    this.data = existsSync(this.file)
-      ? JSON.parse(readFileSync(this.file, 'utf-8'))
-      : { version: 1, bodies: {} };
+    // torn store (crash mid-write before the atomic tmp+rename landed, or
+    // disk failure) must not brick bootstrap — bodies re-register at boot,
+    // so degrading to an empty map loses nothing durable. A HARD throw here
+    // is the batch-5 deny-memory brick class.
+    try {
+      this.data = existsSync(this.file)
+        ? JSON.parse(readFileSync(this.file, 'utf-8'))
+        : { version: 1, bodies: {} };
+      if (typeof this.data !== 'object' || this.data === null || typeof this.data.bodies !== 'object') {
+        this.data = { version: 1, bodies: {} };
+      }
+    } catch {
+      this.data = { version: 1, bodies: {} };
+    }
   }
 
   /**
@@ -55,7 +66,8 @@ export class BodyRegistry {
   list() { return Object.values(this.data.bodies); }
 
   _save() {
-    const tmp = `${this.file}.tmp`;
+    // pid-suffixed: a shared bare .tmp races a second writer (app + CLI)
+    const tmp = `${this.file}.tmp-${process.pid}`;
     writeFileSync(tmp, JSON.stringify(this.data, null, 2));
     renameSync(tmp, this.file);
   }

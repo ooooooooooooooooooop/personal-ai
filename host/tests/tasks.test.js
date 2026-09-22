@@ -1,7 +1,7 @@
 /**
  * AgentTask mailbox (F-family) — seq/ack streams, state machine, wait.
  */
-import { mkdtempSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -124,4 +124,17 @@ test('bindJob accumulates job_ids; job_id tracks the last bound', () => {
   g = s.get(t.task_id);
   assert.equal(g.job_id, 'job-1');
   assert.deepEqual(g.job_ids, ['job-1', 'job-2']);
+});
+
+test('task.json writes are atomic — meta survives with no tmp debris', () => {
+  const { store: s } = mk();
+  const t = s.create({ label: 'x' });
+  s.bindJob(t.task_id, 'job-9');
+  s.ack(t.task_id, 'inbox', 3);
+  // every meta rewrite went through tmp+rename: no debris, meta parses whole
+  const files = readdirSync(join(s.dir, t.task_id));
+  assert.ok(!files.some((f) => f.includes('.tmp')), `tmp debris: ${files}`);
+  const meta = JSON.parse(readFileSync(join(s.dir, t.task_id, 'task.json'), 'utf-8'));
+  assert.equal(meta.job_id, 'job-9');
+  assert.equal(meta.acks.inbox, 3);
 });

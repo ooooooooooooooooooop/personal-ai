@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -55,4 +55,15 @@ test('facts only: no selection state is stored', () => {
   const raw = JSON.parse(readFileSync(r.file, 'utf-8'));
   assert.equal(raw.bodies.pi.default, undefined);
   assert.equal(raw.bodies.pi.role, undefined);
+});
+
+test('torn registry.json degrades to empty instead of bricking bootstrap', () => {
+  const root = mkdtempSync(join(tmpdir(), 'pai-reg-'));
+  writeFileSync(join(root, 'registry.json'), '{"version":1,"bodies":{"pi":'); // torn mid-write
+  const r = new BodyRegistry({ root });
+  assert.deepEqual(r.list(), []); // bodies re-register at boot — nothing durable lost
+  r.register(PI_FACTS); // store recovers and persists again
+  assert.equal(new BodyRegistry({ root }).get('pi').adapter_version, '0.85.1');
+  // atomic persist: no tmp debris beside the store
+  assert.ok(!readdirSync(root).some((f) => f.includes('.tmp')));
 });

@@ -9,7 +9,7 @@
  * <instance>/project-trust.json (operator-private — the project can never
  * write its own trust grant). Fail-closed: absent/malformed = untrusted.
  */
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const file = (instanceRoot) => join(instanceRoot, 'project-trust.json');
@@ -32,7 +32,12 @@ export function setTrust(instanceRoot, workdir, trusted) {
   const key = resolve(workdir);
   if (trusted) map[key] = true; else delete map[key];
   mkdirSync(instanceRoot, { recursive: true });
-  writeFileSync(file(instanceRoot), JSON.stringify({ workdirs: map }, null, 2));
+  // atomic: a torn store fails closed (all workdirs untrusted) but silently
+  // drops every recorded grant — tmp+rename keeps the last good map
+  const f = file(instanceRoot);
+  const tmp = `${f}.tmp-${process.pid}`;
+  writeFileSync(tmp, JSON.stringify({ workdirs: map }, null, 2));
+  renameSync(tmp, f);
   return { workdir: key, trusted: map[key] === true };
 }
 

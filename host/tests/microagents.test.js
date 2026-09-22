@@ -48,3 +48,13 @@ test('renderKnowledge wraps in <knowledge name> blocks', () => {
 test('missing .pai/microagents dir → empty, never throws', () => {
   assert.deepEqual(loadMicroagents(mkdtempSync(join(tmpdir(), 'pai-none-'))), []);
 });
+
+test('oversized body is capped with a visible marker — never injected whole, never cut silently', () => {
+  const dir = mkDir({
+    'huge.md': `---\ntriggers: big\n---\n${'x'.repeat(20 * 1024)}`,
+  });
+  const agents = loadMicroagents(dir);
+  assert.equal(agents.length, 1);
+  assert.ok(agents[0].body.length < 17 * 1024);
+  assert.match(agents[0].body, /\[truncated: file exceeds the 16KB per-microagent cap\]/);
+});

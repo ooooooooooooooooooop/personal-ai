@@ -8,6 +8,11 @@
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+// Same visible-truncation contract as steering/pins: an uncapped body would
+// inject whole into the prompt (context blowout), and a SILENTLY cut body
+// reads as intact guidance. Cap with an explicit marker.
+const PER_FILE_MAX = 16 * 1024;
+
 /** Parse `---\ntriggers: a, b\n---\nbody` — missing frontmatter = no triggers. */
 export function loadMicroagents(workdir) {
   const dir = join(workdir, '.pai', 'microagents');
@@ -21,14 +26,17 @@ export function loadMicroagents(workdir) {
     try { raw = readFileSync(join(dir, f), 'utf-8'); } catch { continue; }
     const fm = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
     const meta = fm ? fm[1] : '';
-    const body = fm ? raw.slice(fm[0].length) : raw;
+    let body = (fm ? raw.slice(fm[0].length) : raw).trim();
     const trigLine = meta.match(/^triggers:\s*(.+)$/m)?.[1] ?? '';
     const triggers = trigLine.split(',').map((t) => t.trim()).filter(Boolean);
-    if (!triggers.length || !body.trim()) continue;
+    if (!triggers.length || !body) continue;
+    if (body.length > PER_FILE_MAX) {
+      body = `${body.slice(0, PER_FILE_MAX)}\n[truncated: file exceeds the 16KB per-microagent cap]`;
+    }
     agents.push({
       name: f.replace(/\.md$/, ''),
       triggers,
-      body: body.trim(),
+      body,
     });
   }
   return agents;

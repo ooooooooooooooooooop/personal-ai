@@ -58,7 +58,9 @@ export class ScheduleStore {
   }
 
   #save(schedules) {
-    const tmp = `${this.file}.tmp`;
+    // pid-suffixed tmp: two live writers (app + CLI) sharing the bare `.tmp`
+    // name could interleave — one renames the OTHER's half-written content
+    const tmp = `${this.file}.tmp-${process.pid}`;
     writeFileSync(tmp, JSON.stringify({ schedules }, null, 2));
     renameSync(tmp, this.file); // atomic replace — a crash never halves the file
   }
