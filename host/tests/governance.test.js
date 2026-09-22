@@ -498,6 +498,38 @@ test('shell redirect into an instruction file escalates a benign command to ask'
   assert.equal(asked.length, 1);
 });
 
+test('M145 git-internal gate: .git writes ask in every mode; reads stay free', async () => {
+  const { audit, policy, predictions } = fixture();
+  const asked = [];
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    mutatingTools: ['write', 'edit', 'delete'],
+    commandArgs: { shell: 'command' },
+    commandClassifier: async (src) => ({
+      units: [{ raw: src }], parseError: null, risk: 'benign',
+      writeTargets: src.match(/>\s*(\S+)/)?.slice(1) ?? [],
+    }),
+    ask: async (pending) => { asked.push(pending.rule); return 'deny'; },
+  });
+  // file-tool write into .git internals → operator card
+  const d1 = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: '.git/hooks/post-commit' } }));
+  assert.equal(d1.block, true);
+  const d2 = await kernel.decideToolCall(ctx({ toolName: 'edit', args: { path: 'repo/.git/config' } }));
+  assert.equal(d2.block, true);
+  // shell redirect into .git → same gate even though command class is benign
+  const d3 = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'echo x > .git/hooks/pre-commit' } }));
+  assert.equal(d3.block, true);
+  assert.deepEqual(asked, ['git_internal', 'git_internal', 'git_internal']);
+  // reads of .git and ordinary writes are untouched
+  const r = await kernel.decideToolCall(ctx({ toolName: 'read', args: { path: '.git/HEAD' } }));
+  assert.equal(r, undefined, 'read .git is not gated');
+  const w = await kernel.decideToolCall(ctx({ toolName: 'write', args: { path: 'src/.gitkeep' } }));
+  assert.equal(w, undefined, '.gitkeep is not a .git internal');
+  const g = await kernel.decideToolCall(ctx({ toolName: 'shell', args: { command: 'git status' } }));
+  assert.equal(g, undefined, 'git read commands stay free');
+  assert.equal(asked.length, 3);
+});
+
 test('command allowlist gets rule+parsed: instruction-file asks are never prefix-softened', async () => {
   const { audit, policy, predictions } = fixture();
   const seen = [];

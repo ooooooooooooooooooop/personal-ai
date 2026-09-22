@@ -7,6 +7,7 @@ import { installCompositeGuard } from './session.js';
 import { createRevalidator } from './revalidate.js';
 import { loopGovernanceExtension } from './loop.js';
 import { outputSpoolExtension } from './outspool.js';
+import { injectionHygieneExtension } from './injectionhygiene.js';
 import { withRenderedReason } from './errors.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { renderContext, renderInstruction } from '../../../host/src/core/envelopes.js';
@@ -158,6 +159,7 @@ export async function createPiSession({
         ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]
         : []),
       ...(outputSpool ? [outputSpoolExtension({ spool: outputSpool, audit })] : []),
+      injectionHygieneExtension({ audit }),
     ],
     noSkills: true,
     noPromptTemplates: true,

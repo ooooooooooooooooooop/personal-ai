@@ -44,6 +44,16 @@ const INSTRUCTION_PATH_RES = [
   /(?:^|\/)\.github\/copilot-instructions\.md$/i,
 ];
 
+/**
+ * M145: `.git` is read-only for agent mutations (Codex sandbox .git analogue).
+ * Repo internals — hooks, config, refs — are a code-exec persistence surface:
+ * a write into .git/hooks turns any later `git commit` into arbitrary command
+ * execution. Reads stay free (`read .git/HEAD`, `git log` are legitimate);
+ * writes via file tools AND shell writeTargets escalate to an operator ask
+ * under rule 'git_internal' in every mode.
+ */
+const GIT_INTERNAL_RE = /(?:^|\/)\.git(?:\/|$)/i;
+
 export class GovernanceKernel {
   /** Rejection-memory signature set — per kernel instance = per session
    * (CodeBuddy analogue): an identical call the operator already denied
@@ -311,6 +321,8 @@ export class GovernanceKernel {
       // standing orders just because the command itself is allowed.
       const instrWrite = (parsed.writeTargets ?? []).find((t) =>
         INSTRUCTION_PATH_RES.some((re) => re.test(String(t).replace(/\\/g, '/'))));
+      const gitWrite = (parsed.writeTargets ?? []).find((t) =>
+        GIT_INTERNAL_RE.test(String(t).replace(/\\/g, '/')));
       // inline env injection (`LD_PRELOAD=x cmd`, `MAVEN_OPTS=... mvn test`):
       // loader/agent flags ride an otherwise-benign unit — always escalate.
       const envInjection = (parsed.dangerEnv ?? [])[0] ?? null;
@@ -326,6 +338,13 @@ export class GovernanceKernel {
       if (instrWrite && (action === 'allow' || action === 'ask')) {
         return this.#ask(ctx, 'instruction_file', {
           reason: `command writes agent instruction file '${instrWrite}' — standing orders always need operator approval`,
+          risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
+          parsed,
+        });
+      }
+      if (gitWrite && (action === 'allow' || action === 'ask')) {
+        return this.#ask(ctx, 'git_internal', {
+          reason: `command writes inside .git ('${gitWrite}') — repo internals (hooks/config/refs) always need operator approval`,
           risk: { class: parsed.risk, units: (parsed.units ?? []).map((u) => u.raw).slice(0, 20) },
           parsed,
         });
@@ -380,6 +399,12 @@ export class GovernanceKernel {
       if (hit) {
         return this.#ask(ctx, 'instruction_file', {
           reason: `'${ctx.toolName}' targets agent instruction file '${hit}' — standing orders always need operator approval`,
+        });
+      }
+      const gitHit = this.#gitPath(args);
+      if (gitHit) {
+        return this.#ask(ctx, 'git_internal', {
+          reason: `'${ctx.toolName}' targets .git internals '${gitHit}' — repo internals (hooks/config/refs) always need operator approval`,
         });
       }
     }
@@ -606,6 +631,16 @@ export class GovernanceKernel {
       if (typeof p !== 'string') continue;
       const norm = p.replace(/\\/g, '/');
       for (const re of INSTRUCTION_PATH_RES) if (re.test(norm)) return p;
+    }
+    return null;
+  }
+
+  /** First path-like arg reaching into .git internals, else null. */
+  #gitPath(args) {
+    const candidates = [args.path, args.file, args.target, args.from, args.to];
+    for (const p of candidates) {
+      if (typeof p !== 'string') continue;
+      if (GIT_INTERNAL_RE.test(p.replace(/\\/g, '/'))) return p;
     }
     return null;
   }

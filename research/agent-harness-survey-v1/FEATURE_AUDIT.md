@@ -1670,3 +1670,32 @@
 | M124 运行时备份导入 | **MISSING** | fileops backup/restore + 离线耐久脚本 ≠ runtime backup import；无外部备份导入面 |
 
 测试基线：host 260 / pi 233+1skip / app 23+1skip 全绿（含 M135-R1 四态哨兵与 M115 媒体描述符哨兵）。
+
+### 28.21 M125–M147 自查终裁 + 安全补缺（2026-09-22，本会话对定义逐条取证）
+
+M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相关缺口当场修复，功能缺失如实降级，不凑数实装。
+
+| 项 | 终态 | 证据/修复 |
+|---|---|---|
+| M125 memory 注入拒收 | **落地**（修复完成） | `remember()` 原只扫 secret——recall 注入每轮 context，存一句 "ignore all previous instructions" 即成跨会话持久攻击。现 `scanForInjection()` 在写入边界拒收指令覆写/角色劫持形态（角色通道标记行锚定，"file system:" 类普通行文不误杀）；哨兵测拒收+不可 recall+误杀豁免三态（`095c373`） |
+| M126 输入框 Ctrl+Z | **PARTIAL / BROWSER-NATIVE** | 无自实现 undo 栈；原生 textarea Ctrl+Z 覆盖基础文本撤销，无草稿级撤销 |
+| M127 全局命令面板 | **PARTIAL / VARIANT** | Ctrl+K→slash 前缀过滤（非 fuzzy，不含会话跳转）；Ctrl+R 历史倒序子串搜索（含历史排序但非 fuzzy 子序列） |
+| M128 autoscroll 偏好 | **PARTIAL** | near-bottom 行为+jump-latest 按钮存在；无 near-bottom/always/off 三档持久化偏好 |
+| M129 粘贴徽章 | **PARTIAL** | >1500 字长粘贴→附件 chip 存在；无"文件路径+行号"徽章识别 |
+| M130 MCP list_changed | **MISSING** | pi/host 源码无 tools/list_changed 接线（venv 命中不算） |
+| M131 slash frontmatter mode | **MISSING** | recipe frontmatter 只有 `params:`；microagents 只有 `triggers:`；无 mode 字段触发切模式 |
+| M132 /config 会话内设置 | **MISSING** | 无 /config key=value 命令面 |
+| M133 web_fetch 超限摘要 | **PARTIAL** | 24K 截断存在；无 >15K 触发 AI 摘要 |
+| M136 自治 Curator | **MISSING** | 无 skill 库评分/修剪/合并代理 |
+| M137 图片压缩档 | **PARTIAL** | BMP→PNG 零依赖转码存在；无 token-efficient/balanced/high-detail 模型感知分档 |
+| M139 附件落盘路径 | **PARTIAL** | path 源附件可读+内联；模型拿不到持久落盘路径供后续编辑/引用 |
+| M140 Fast Context 子代理 | **MISSING** | 无专用高速检索代理 |
+| M141 apply_patch 拒 Add | **N/A-UPSTREAM** | 本仓无自有 apply_patch 工具（write/edit 为上游 pi-coding-agent 工具，fileops 备援层兜底回滚）；Codex 专属语义不适用 |
+| M142 写后 lint | **REAL** | `.pai/verify.json` `{onWrite}` 武装写后反射循环（Aider lint/test 类比），`/verify` 手动触发 |
+| M143 跨文件 multi-edit | **MISSING** | 无单调用多区域/跨文件 search_and_replace 工具 |
+| M144 unicode_mode | **PARTIAL** | decide.js 有不可见 unicode 剥离（Goose 类比）；无 auto/unicode/ascii 输出降级档 |
+| M145 .git 只读 | **落地**（修复完成） | `protectedRoots` 机制存在但从无调用方传 `.git`。现 `GIT_INTERNAL_RE` 双覆盖：文件工具（write/edit/delete mutatingTools 闸）+ shell writeTargets 均升 `git_internal` ask；`.git` 读与 `git status` 等读命令不受影响；哨兵测四态（写拦/读放/普通文件不误伤/git 命令自由） |
+| M146 持久 always 授权 | **REAL** | `always` 答 → `{tool,command}` 精确对持久化 `<instance>/always-allow.json` 跨重启生效；截断 args 拒绝持久化；`ASK_ALWAYS_PERSIST` 审计；instance inventory 可查可清 |
+| M147 文件读取注入扫描 | **落地**（修复完成） | `injectionHygieneExtension` 挂 `tool_result` seam：read/grep/find/ls/output_read 结果含指令形态文本时前置 hygiene banner（数据非命令）+ `INJECTION_HYGIENE_HIT` 审计；幂等不重复打标；文件读取边界与 memory 写边界（M125）互补成链 |
+
+安全修补位点全部在生成器源码（kernel decide 链 / 扩展 seam / 写入边界），非事后补丁。
