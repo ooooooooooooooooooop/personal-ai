@@ -50,6 +50,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     for (const l of uiListeners) {
       try { l(ev); } catch { /* a dead UI listener must not break the pump */ }
     }
+    if (ev?.type === 'notify') hooks?.fire('notification', { message: String(ev.message ?? '').slice(0, 300), level: ev.level ?? 'info' });
   };
   // Bounded autonomy: bill every usage-bearing event onto the append-only
   // ledger, and on breach refuse further spend — emit + abort + audit.
@@ -140,6 +141,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // the separate pre_tool hook on the decide path)
       if (ev?.type === 'tool_execution_start') {
         hooks?.fire('tool_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
+        if (ev.toolName?.startsWith('delegate')) hooks?.fire('subagent_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
         if (EXEC_TOOLS.has(ev.toolName) && ev.toolCallId) pendingDelta.set(ev.toolCallId, gitDirty());
       } else if (ev?.type === 'tool_execution_end') {
         // bashEditDiff analogue: report which files the command newly dirtied.
@@ -159,6 +161,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           }).catch(() => {});
         }
         hooks?.fire('tool_end', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
+        if (ev.toolName?.startsWith('delegate')) hooks?.fire('subagent_stop', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
       } else if (ev?.type === 'agent_end') {
         hooks?.fire('agent_stop', {});
       } else if (ev?.type === 'compaction_start') {

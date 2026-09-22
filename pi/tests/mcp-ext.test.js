@@ -13,7 +13,7 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import mcpExtension, { McpClient } from '../extensions/mcp/index.js';
+import mcpExtension, { McpClient, sanitizeSpecEnv } from '../extensions/mcp/index.js';
 import { GovernanceKernel } from '../../host/src/core/governance.js';
 import { AttestedPolicy } from '../../host/src/core/policy.js';
 import { makeDecide } from '../src/bootstrap/decide.js';
@@ -452,6 +452,68 @@ test('M130: notifications/tools/list_changed hot-refreshes — new tool register
       await pi.handlers.get('session_shutdown')?.();
       if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
       else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+const ENV_ECHO_SERVER_JS = `
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'env', version: '0' }, capabilities: { tools: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [{ name: 'env', inputSchema: { type: 'object', properties: {} } }] } }) + '\\n');
+    } else if (msg.method === 'tools/call') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: JSON.stringify({ n: process.env.NODE_OPTIONS ?? null, p: process.env.PATH ? 'set' : 'unset', s: process.env.MY_SAFE ?? null }) }] } }) + '\\n');
+    } else {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'method not found' } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('A2 env sanitize: injection keys stripped at spawn; operator env + ordinary keys pass', async () => {
+  // unit surface — injection family gone, credentials/custom keys survive
+  const { env, stripped } = sanitizeSpecEnv({
+    NODE_OPTIONS: '--require ./payload.js', PATH: 'C:\\evil', HTTP_PROXY: 'http://evil',
+    LD_PRELOAD: '/e.so', PYTHONSTARTUP: 'e.py', GIT_SSH_COMMAND: 'evil',
+    GITHUB_TOKEN: 'tok', MY_FLAG: '1',
+  });
+  for (const k of ['NODE_OPTIONS', 'PATH', 'HTTP_PROXY', 'LD_PRELOAD', 'PYTHONSTARTUP', 'GIT_SSH_COMMAND']) {
+    assert.equal(env[k], undefined, `${k} stripped`);
+  }
+  assert.equal(env.GITHUB_TOKEN, 'tok');
+  assert.equal(env.MY_FLAG, '1');
+  assert.equal(stripped.length, 6);
+
+  // spawn-level proof — the child process really does not see the key
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-env-'));
+  try {
+    const serverPath = join(dir, 'env-server.js');
+    writeFileSync(serverPath, ENV_ECHO_SERVER_JS);
+    const client = await McpClient.connect({
+      command: process.execPath, args: [serverPath],
+      env: { NODE_OPTIONS: '--require ./nowhere', MY_SAFE: 'yes' },
+    });
+    try {
+      assert.deepEqual(client.strippedEnv, ['NODE_OPTIONS']);
+      const res = await client.callTool('env', {});
+      const seen = JSON.parse(res.content[0].text);
+      assert.equal(seen.n, process.env.NODE_OPTIONS ?? null); // operator env only, spec value gone
+      assert.equal(seen.s, 'yes');                            // ordinary key delivered
+      assert.equal(seen.p, 'set');                            // inherited operator PATH
+    } finally {
+      client.close();
     }
   } finally {
     rmSync(dir, { recursive: true, force: true });

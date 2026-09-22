@@ -31,8 +31,9 @@
  *   { "hooks": { "session_start": [{ "command": "...", "timeoutMs": 8000 }],
  *                "prompt_submit": [...], "tool_end": [...], "session_end": [...],
  *                "pre_tool": [{ "command": "...", "match": "bash", "timeoutMs": 5000 }] } }
- *   'match' (gate only): optional tool-name prefix filter — hook only runs
- *   for tools whose name starts with it.
+ *   'match': optional tool-name prefix filter — the hook only runs for
+ *   tool events whose name starts with it (payload.toolName). On the gate
+ *   runner it narrows vetoes; on observational runners it narrows noise.
  *
  * Each fire: spawn via the platform shell in the workdir, JSON event payload
  * on stdin, timeout, audit HOOK_FIRE / HOOK_RESULT / HOOK_ERROR. Unknown
@@ -47,6 +48,7 @@ export const HOOK_EVENTS = new Set([
   'session_start', 'prompt_submit', 'session_end',
   'tool_start', 'tool_end', 'agent_stop',
   'compact_start', 'compact_end',
+  'subagent_start', 'subagent_stop', 'notification',
 ]);
 export const GATE_EVENTS = new Set(['pre_tool']);
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -122,11 +124,12 @@ export class HookRunner {
    * @returns {Promise<number>} how many hook commands ran
    */
   async fire(event, payload = {}) {
-    const entries = this.hooks[event] ?? [];
+    const entries = (this.hooks[event] ?? []).filter((h) =>
+      typeof h?.command === 'string' && h.command.trim()
+      && (typeof h.match !== 'string' || String(payload.toolName ?? '').startsWith(h.match)));
     if (!entries.length || this.#closed) return 0;
     let ran = 0;
     for (const h of entries) {
-      if (typeof h?.command !== 'string' || !h.command.trim()) continue;
       ran++;
       const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       this.audit?.write({ kind: 'HOOK_FIRE', data: { event, command: h.command.slice(0, 200) } });

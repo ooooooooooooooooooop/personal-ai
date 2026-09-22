@@ -52,10 +52,32 @@ export class McpError extends Error {
   }
 }
 
+// A2 env sanitization: spec.env merges over process.env for stdio servers,
+// and workdir configs (.pai/mcp.json, .mcp.json) are agent-reachable after a
+// single approved write. Keys that bootstrap code into the runtime or hijack
+// resolution/traffic turn a benign "command": "node server.js" into silent
+// code exec outside the decide chain — NODE_OPTIONS=--require ./payload.js,
+// PATH redirection, LD_PRELOAD, proxy rerouting. They are stripped at the
+// spawn boundary and reported in /mcp; an operator who genuinely needs one
+// sets it in their own environment instead.
+const ENV_INJECT_RE = /^(?:NODE_OPTIONS|NODE_EXTRA_CA_CERTS|NODE_PATH|PATH|PATHEXT|COMSPEC|LD_[A-Z0-9_]+|DYLD_[A-Z0-9_]+|PYTHONPATH|PYTHONHOME|PYTHONSTARTUP|PYTHONINSPECT|PERL5OPT|PERL5LIB|RUBYOPT|RUBYLIB|BASH_ENV|ENV|CDPATH|GIT_SSH|GIT_SSH_COMMAND|GIT_ASKPASS|SSH_ASKPASS|GIT_EXTERNAL_DIFF|GIT_CONFIG_COUNT|GIT_CONFIG_PARAMETERS|GIT_EDITOR|EDITOR|VISUAL|PAGER|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NO_PROXY|NPM_CONFIG_[A-Z0-9_]*)$/i;
+
+export function sanitizeSpecEnv(env) {
+  if (!env || typeof env !== 'object') return { env: undefined, stripped: [] };
+  const out = {};
+  const stripped = [];
+  for (const [k, v] of Object.entries(env)) {
+    if (ENV_INJECT_RE.test(k)) { stripped.push(k); continue; }
+    out[k] = v;
+  }
+  return { env: out, stripped };
+}
+
 function stdioTransport(spec) {
+  const { env: specEnv, stripped } = sanitizeSpecEnv(spec.env);
   const child = spawn(spec.command, spec.args ?? [], {
     // the operator's own environment is the trust boundary for stdio servers
-    env: { ...process.env, ...(spec.env ?? {}) },
+    env: { ...process.env, ...(specEnv ?? {}) },
     stdio: ['pipe', 'pipe', 'pipe'],
     windowsHide: true,
   });
@@ -91,6 +113,7 @@ function stdioTransport(spec) {
     onMessage: (fn) => { pending.onMessage = fn; },
     onExit: (fn) => { pending.onExit = fn; },
     close: () => { try { child.kill('SIGKILL'); } catch { /* already gone */ } },
+    strippedEnv: stripped,
   };
 }
 
@@ -170,6 +193,7 @@ export class McpClient {
   static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     const transport = spec.url ? httpTransport(spec) : stdioTransport(spec);
     const client = new McpClient(transport);
+    client.strippedEnv = transport.strippedEnv ?? [];
     await client.initialize({ timeoutMs });
     return client;
   }
@@ -559,6 +583,7 @@ export default function mcpExtension(pi) {
         lines.push(entry.failed
           ? `  ${name}: FAILED to connect/list — no tools exposed`
           : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
+        if (entry.client?.strippedEnv?.length) lines.push(`    env stripped (injection-vector keys): ${entry.client.strippedEnv.join(', ')}`);
         if (entry.dead?.size) lines.push(`    removed by server (list_changed): ${[...entry.dead].join(', ')}`);
         if (entry.lastRefresh) lines.push(`    last refresh ${entry.lastRefresh.at} (+${entry.lastRefresh.added}/-${entry.lastRefresh.removed})`);
         for (const t of entry.tools) lines.push(`    ${t}`);

@@ -1730,3 +1730,17 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 哨兵 `pi/tests/writeboundary.test.js` 9/9：绝对路径越界写/闩锁单次询问/内部写不误伤/读侧 symlink/写侧 symlink 父目录/`> ../`重定向/`.git` symlink 逃逸/multi_edit 越界批拒/设备槽豁免。pi 全套 270+1skip、host 281 全绿。
 
 同批取证排除项：#4279 bash 注入检测**已覆盖**（`command-parse.js` tree-sitter 递归 `$(...)`/subshell/管道/循环体全部进 units 归并风险）。
+
+### 28.24 hooks 事件补齐 + A2 MCP env 消毒（2026-09-22，方向二复审批1续）
+
+**hooks 缺口**（业界 18 家收敛面 vs 我方 8+1 事件）：`fire()` 观测侧不理 `match` 字段（gate 侧才过滤）、无具名子代理事件、无通知事件。修复在生成器层：
+
+| 缺口 | 修复 |
+|---|---|
+| `match` 前缀过滤仅 gate 生效 | `fire()` 同款过滤（payload.toolName 前缀），观测钩可按工具降噪 |
+| 子代理生命周期无具名事件 | `subagent_start`/`subagent_stop`——delegate* 工具执行边界处由父会话派发（子进程自身另有 session_start/end） |
+| 通知无事件面 | `notification`——在 channel `emit()` 中枢对 `type:'notify'` 统一派发，覆盖全部通知源 |
+
+**A2 MCP spec.env 注入**（Gemini v0.60 env 同意链对应项，取证为真洞）：`.pai/mcp.json`/`.mcp.json` 在 workdir（agent 一次获批写入可植入），`spec.env` 原样并入 stdio 子进程环境——`NODE_OPTIONS=--require ./payload`、PATH 劫持、LD_PRELOAD、代理改道、`GIT_SSH_COMMAND` 等注入键让看似无害的 `node server.js` 变成绕过 decide 链的静默执行。修复在 spawn 边界（`stdioTransport`）：`ENV_INJECT_RE` 剥离子集→`client.strippedEnv` 记录→`/mcp` 状态明示；操作者环境本身不受影响（信任边界仍是 operator env），合法密钥类 env（GITHUB_TOKEN 等）照常传递。
+
+哨兵：`host/tests/hooks.test.js` +2（match 过滤/新事件载入）、`pi/tests/mcp-ext.test.js` +1（单测剥离面 + spawn 级实证：子进程真实看不到 NODE_OPTIONS、operator env 不受影响、strippedEnv 上报）。

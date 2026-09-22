@@ -189,3 +189,29 @@ test('expanded event family: tool_start/agent_stop/compact_* accepted at load', 
   const h = new HookRunner(w);
   assert.deepEqual(h.events.sort(), ['agent_stop', 'compact_end', 'compact_start', 'tool_start']);
 });
+
+test('observational fire honors match prefix filter (tool-name scoping)', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  cfg(w, { hooks: { tool_start: [
+    { command: 'echo any' },                          // no match → always
+    { command: 'echo bash-only', match: 'bash' },     // scoped
+  ] } });
+  const h = new HookRunner(w, { audit });
+  // non-tool payload toolName → only the unscoped entry runs
+  assert.equal(await h.fire('tool_start', { toolName: 'write' }), 1);
+  assert.equal(await h.fire('tool_start', { toolName: 'bash' }), 2);
+  // a non-tool event with no toolName → match entries never fire
+  assert.equal(await h.fire('notification', { message: 'x' }), 0);
+});
+
+test('subagent_*/notification events accepted at load', () => {
+  const w = dir();
+  cfg(w, { hooks: {
+    subagent_start: [{ command: 'echo ss' }],
+    subagent_stop: [{ command: 'echo se' }],
+    notification: [{ command: 'echo n' }],
+  } });
+  const h = new HookRunner(w);
+  assert.deepEqual(h.events.sort(), ['notification', 'subagent_start', 'subagent_stop']);
+});
