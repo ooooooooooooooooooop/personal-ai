@@ -1793,3 +1793,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 核销为**已覆盖**的代表项：换行注入/反斜杠续行（tree-sitter 结构层）、包装命令 EXEC/UNKNOWN fail-closed、Unicode 不可见字符严格键 block、hooks 罩 mcp__*、断线 in-flight 拒、hook 进程树回收、compact/subagent/notification 事件、policy attestation+drift、session fork provenance、torn JSONL 容错、memory 规范化去重+注入拒、browser navigate 落地重查、扩展零发现+sha256 manifest、delegate enforceability/budget 原子预留。记录档：#1435 MCP 无 reconnect 面（v1 候选缺口）、hooks 文件存在即开关、PS 命令走 bash grammar 的 fail-closed 误拒方向。
 
 回归：pi 323+1skip / host 309 / app bridge 4 全绿。
+
+### 28.28 批5：编排族收口（2026-09-23，M112 + B1/B2/B5）
+
+| 项 | 终态 | 证据/实现 |
+|---|---|---|
+| M112 webhook 入站 | **REAL** | `pi/src/adapter/webhook.js` `WebhookReceiver`：`<instance>/webhooks.json`（operator-private，workdir 不可植）声明 `{enabled, port, bind, endpoints[]}`——**默认拒绝：无配置=监听器根本不起**；端点 shared-secret（`Bearer`/`x-pai-secret`，支持 `secretSha256` 免存原文）timingSafeEqual 比对；仅 loopback bind（显式宽绑会审计 WEBHOOK_BIND_WIDE）；32KB body 帽 + JSON-only + 端点级滑动窗口速率帽（默认30/h，硬帽240）；sink 忙 → 202 诚实拒绝。**CommandAuthorized 语义**：secret 认证的是事件来源不是权限——fired prompt 走正常 channel prompt 路径，每个工具调用仍过 decide 链（meta.webhook 只记溯源）。哨兵：webhook.test.js ×4（无配置不起听/认证+审计面/sha256/速率帽+busy 拒绝） |
+| B1 `/scan` map-reduce | **REAL（v1 诚实边界）** | channel `scan_run {goal, subdir?}`：先经 fileOps 预建 `.pai/scans/scan-<ts>.md` 骨架（治理写入路径）→ 结构化 scan prompt 走 promptSink（map：repo_map/fast_context/grep/read 调查、大域可 delegate_task 分片；reduce：findings 落 artifact，file:line 引证，空结果优先于噪声）；`scan_list` 列 artifact。sub-dir 逃逸 lexical+realpath 拒。模型侧无 scan 工具——扫描是决策不是动词。**v1 不做**：自动开 PR（git 域外，越界）。哨兵：bootstrap.test.js +1（stub 落盘+prompt 路由+校验拒绝） |
+| B2 文件/事件触发器 | **REAL（已建+本轮补全事件面）** | MonitorRegistry 早已覆盖文件触发（operator-armed fs.watch→governed promptSink、速率帽、durable restore、agent 不可自臂）；本轮 webhook 补齐外部事件触发；scheduler 覆盖时间触发。三个唤醒面全部同走治理 promptSink |
+| B5 项目共享上下文 | **REAL（治理变体，#3323 路线）** | project-scope memory（`memory_save scope:project` 绑 workdir + `memory_recall` 检索-only，同 workdir 跨会话共享，untrusted 证据位）+ `.pai/` 知识文件（microagents/plans/recipes 本就在 workdir 跨会话共享）+ `session_share` 脱敏导出。**明示不做**：跨机同步（sync 属 sync 域）、auto-recall 注入（检索-only 是刻意安全边界） |
+
+接线：host.js 起 `webhooks.listen()`（无配置静默 no-op）+ `scan`/`webhooks` facade；pi channel 透传；host channel 加 `webhook_status`/`scan_run`/`scan_list` 三个 case；dispose 链路挂 `webhooks.close()`。`/scan` UI 菜单项归批4（app/ui 外来在途避让）。
+
+回归：pi 相关套件 46/46（含新哨兵 6）、host channel 30/30。

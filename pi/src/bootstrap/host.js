@@ -105,6 +105,7 @@ import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
 import { MonitorRegistry } from '../adapter/monitor.js';
+import { WebhookReceiver } from '../adapter/webhook.js';
 import { goalCoordinatorTool } from '../adapter/goals.js';
 import { GoalStore } from '../../../host/src/core/goals.js';
 import { sessionSearchTool, sessionReadTool } from '../adapter/sessionsearch.js';
@@ -607,6 +608,22 @@ export async function startHost({
     },
   });
   monitors.restore(); // promptSink reads channelHandle lazily — safe pre-channel
+
+  // M112 inbound webhooks: operator-declared endpoints at <instance>/
+  // webhooks.json turn authenticated POSTs into governed prompts. Absent or
+  // disabled config = the listener never starts — no inbound surface exists
+  // by default. The shared secret authenticates the EVENT, not authority:
+  // the fired prompt faces the full decide chain like any session prompt.
+  const webhooks = new WebhookReceiver({
+    audit: core.audit,
+    configPath: join(core.paths.root, 'webhooks.json'),
+    promptSink: async (msg, meta) => {
+      if (!channelHandle || currentSession?.isStreaming) return { refused: 'busy' };
+      const r = await channelHandle.channel.handle({ type: 'prompt', message: msg, meta: { webhook: meta?.webhook ?? null } });
+      return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
+    },
+  });
+  webhooks.listen().catch((e) => core.audit.write({ kind: 'WEBHOOK_LISTEN_FAILED', data: { error: String(e?.message ?? e) } }));
 
   // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
   // into every context envelope as untrusted evidence.
@@ -1415,6 +1432,44 @@ export async function startHost({
       remove: (id) => monitors.remove(id),
       list: () => monitors.list(),
     },
+    // M112 webhook receiver status (operator visibility into the inbound
+    // surface — endpoints, fire counts, config errors)
+    webhooks: {
+      status: () => webhooks.status(),
+    },
+    // B1 /scan: goal-driven repo scan — drops a governed scan prompt onto
+    // the session sink (map: investigate via repo_map/fast_context/read;
+    // reduce: write findings into the pre-created artifact). Operator-facing
+    // only; the model has no scan tool — a scan is a decision, not a verb.
+    scan: {
+      run: async ({ goal, subdir }) => {
+        const g = String(goal ?? '').trim();
+        if (!g) return { error: 'scan_run requires {goal}' };
+        if (subdir && !pathInsideRootForWrite(workdir, resolve(workdir, String(subdir)))) {
+          return { error: 'scan subdir must stay inside the workdir' };
+        }
+        const id = `scan-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+        const rel = `.pai/scans/${id}.md`;
+        try {
+          await fileOps.write(join(workdir, rel),
+            `# Scan ${id}\n\n- goal: ${g}\n- subdir: ${subdir ?? '(workdir)'}\n- status: RUNNING\n\n## Findings\n\n(pending)\n`);
+        } catch (e) { return { error: `artifact stub failed: ${e?.message ?? e}` }; }
+        const prompt =
+          `[scan ${id}] Investigate this workdir for the goal below and write findings to ${rel} (overwrite the stub; keep the header block, set status: DONE).\n\n` +
+          `Goal: ${g}\nScope: ${subdir ?? 'entire workdir'}\n\n` +
+          `Map: use repo_map / fast_context / grep / glob / read to survey ${subdir ? `'${subdir}'` : 'the workdir'} — shard large scopes across delegate_task if warranted.\n` +
+          `Reduce: rank findings by evidence strength; each finding cites file:line. Honest empty result beats noise.`;
+        if (!channelHandle || currentSession?.isStreaming) return { id, artifact: rel, fired: false, refused: 'busy' };
+        const r = await channelHandle.channel.handle({ type: 'prompt', message: prompt, meta: { scan: id } });
+        return r?.success ? { id, artifact: rel, fired: true } : { id, artifact: rel, fired: false, refused: r?.error ?? 'prompt refused' };
+      },
+      list: () => {
+        try {
+          return readdirSync(join(workdir, '.pai', 'scans'))
+            .filter((f) => f.startsWith('scan-') && f.endsWith('.md')).sort().slice(-50);
+        } catch { return []; }
+      },
+    },
     // M100 — shared by reference with the loop extension; setFallbacks
     // mutates this object so the new chain applies on the next agent_end.
     fallbacks: fallbackCfg,
@@ -1705,6 +1760,7 @@ export async function startHost({
     ungateFetch();
     schedulerPump.dispose();
     monitors.dispose();
+    webhooks.close();
     releaseWriter();
     asks.dispose();
     channelHandle.dispose();

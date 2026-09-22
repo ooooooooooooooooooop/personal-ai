@@ -3,7 +3,7 @@
  * No model contact — stub model satisfies construction; the guard chain and
  * host artifacts are what matter here.
  */
-import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -378,4 +378,55 @@ test('M123: operator bash_run fires observational tool_start/tool_end hooks', as
   assert.ok(fired.includes('tool_start'), `tool_start fired (got ${fired})`);
   assert.ok(fired.includes('tool_end'), `tool_end fired (got ${fired})`);
   host.leases.close();
+});
+
+test('B1 scan_run: artifact stub + governed prompt fire (or honest refusal)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-scan-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  try {
+    // validation: empty goal + subdir escape refuse before any prompt
+    assert.equal((await host.channel.handle({ type: 'scan_run', goal: '  ' })).success, false);
+    assert.equal((await host.channel.handle({ type: 'scan_run', goal: 'x', subdir: '../outside' })).success, false);
+
+    const r = await host.channel.handle({ type: 'scan_run', goal: 'find all TODO markers' });
+    assert.equal(r.success, true, JSON.stringify(r));
+    assert.match(r.data.id, /^scan-/);
+    // the findings artifact is pre-created for the model to fill
+    const artifact = readFileSync(join(dir, r.data.artifact), 'utf-8');
+    assert.match(artifact, /status: RUNNING/);
+    assert.match(artifact, /find all TODO markers/);
+    // stub model is dead — either the prompt fired (turn attempted) or it
+    // refused honestly; never a silent fake success
+    if (!r.data.fired) assert.ok(r.data.refused);
+    // scan_list surfaces the artifact
+    const listed = await host.channel.handle({ type: 'scan_list' });
+    assert.ok(listed.data.some((f) => f === `${r.data.id}.md`));
+  } finally { host.dispose(); }
+});
+
+test('M112 webhook_status facade: no config → not listening, zero endpoints', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-wh-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  try {
+    const r = await host.channel.handle({ type: 'webhook_status' });
+    assert.equal(r.success, true);
+    assert.equal(r.data.listening, false);
+    assert.equal(r.data.endpoints.length, 0);
+  } finally { host.dispose(); }
 });

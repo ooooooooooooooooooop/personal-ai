@@ -95,7 +95,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, instance = null, profiles = null, leases = null, governance = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, instance = null, profiles = null, leases = null, governance = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -122,6 +122,8 @@ export class HostChannel {
     this.schedules = schedules;
     this.goalStore = goalStore;
     this.monitors = monitors;
+    this.webhooks = webhooks;
+    this.scan = scan;
     this.profiles = profiles;
     this.leases = leases;
     this.instance = instance;
@@ -420,6 +422,22 @@ export class HostChannel {
         case 'monitor_list': {
           if (!this.monitors?.list) return reply(false, undefined, 'monitors unavailable');
           return reply(true, this.monitors.list());
+        }
+        // M112: inbound webhook surface status (endpoints + fire counts)
+        case 'webhook_status': {
+          if (!this.webhooks?.status) return reply(false, undefined, 'webhooks unavailable');
+          return reply(true, this.webhooks.status());
+        }
+        // B1: operator-fired goal scan — the facade composes the governed
+        // prompt + pre-creates the findings artifact under .pai/scans/
+        case 'scan_run': {
+          if (!this.scan?.run) return reply(false, undefined, 'scan unavailable');
+          const r = await this.scan.run({ goal: cmd.goal, subdir: cmd.subdir });
+          return r?.error ? reply(false, undefined, r.error) : reply(true, r);
+        }
+        case 'scan_list': {
+          if (!this.scan?.list) return reply(false, undefined, 'scan unavailable');
+          return reply(true, this.scan.list());
         }
         // M81 named profiles: snapshot/apply {model, thinking, mode} packs
         case 'profile_list': {
