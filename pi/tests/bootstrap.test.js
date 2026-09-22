@@ -8,7 +8,7 @@ import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startHost, restartSpecToJobSpawnArgs } from '../src/bootstrap/host.js';
+import { startHost, restartSpecToJobSpawnArgs, btwReadonlyDecide } from '../src/bootstrap/host.js';
 
 const stubModel = {
   id: 'stub', name: 'stub', api: 'openai-completions', provider: 'openai',
@@ -319,4 +319,29 @@ test('M89-R2: provenance rewrite failure fails the whole import — no dangling 
     !existsSync(stageRoot) || readdirSync(stageRoot).length === 0,
     'staging must be cleaned even on failure');
   host.leases.close();
+});
+
+test('M107: btw readonly posture — effectful tools denied at decide, reads pass through', async () => {
+  const calls = [];
+  const inner = async (ctx) => { calls.push(ctx.toolCall?.name ?? ctx.toolName); return undefined; };
+  inner.resetTurn = () => calls.push('reset');
+  const decide = btwReadonlyDecide(inner, 'btw-readonly');
+  for (const t of ['write', 'edit', 'delete', 'apply_patch', 'bash', 'shell', 'powershell',
+    'job_spawn', 'delegate_task', 'request_permission', 'tool_activate',
+    'mcp__filesystem_write', 'browser_click', 'memory_save', 'schedule_task',
+    'mode_request', 'ask_user', 'notify_user', 'update_todos', 'task_send']) {
+    const d = await decide({ toolCall: { name: t, id: 'x' }, args: {} });
+    assert.equal(d?.block, true, `${t} must be denied on a btw fork`);
+    assert.equal(d.rule, 'btw_readonly');
+  }
+  for (const t of ['read', 'grep', 'repo_map', 'session_search', 'web_fetch', 'tool_search']) {
+    const d = await decide({ toolCall: { name: t, id: 'x' }, args: {} });
+    assert.equal(d, undefined, `${t} should pass through to inner decide`);
+  }
+  // ctx.toolName fallback shape also covered
+  assert.equal((await decide({ toolName: 'bash', args: {} }))?.block, true);
+  // no posture → wrapper is a pass-through (normal sessions unaffected)
+  assert.equal(btwReadonlyDecide(inner, undefined), inner);
+  decide.resetTurn();
+  assert.ok(calls.includes('reset'));
 });

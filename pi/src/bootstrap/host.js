@@ -173,6 +173,41 @@ export function restartSpecToJobSpawnArgs(spec) {
   };
 }
 
+/**
+ * M107: /btw is a READ-ONLY side question. "Read-only by operator intent"
+ * was a claim, not a mechanism — the fork previously built a full effect
+ * surface and write/bash/job_spawn/delegate executed for real before the
+ * transcript was discarded. The posture is an allowlist enforced at BOTH
+ * layers: setModeDenied hides every non-listed tool for the fork session
+ * only (never persisted to shared deny-memory), and this decide wrapper
+ * hard-denies anything not listed — unknown, future, mcp__* and
+ * privilege-escalation tools (request_permission, tool_activate) are
+ * unreachable by construction.
+ */
+export const BTW_READONLY_TOOLS = new Set([
+  'read', 'ls', 'grep', 'glob', 'find', 'search', 'search_files',
+  'repo_map', 'output_read', 'session_search', 'session_read',
+  'task_list', 'job_status', 'memory_recall', 'plan_list', 'spec_status',
+  'web_fetch', 'web_search', 'tool_search', 'browser_read', 'browser_screenshot',
+]);
+
+export function btwReadonlyDecide(inner, posture) {
+  if (posture !== 'btw-readonly') return inner;
+  const wrapped = async (ctx, signal) => {
+    const name = ctx.toolCall?.name ?? ctx.toolName;
+    if (!BTW_READONLY_TOOLS.has(name)) {
+      return {
+        block: true, rule: 'btw_readonly',
+        reason: `/btw is a read-only side question — '${name}' cannot run on this fork`,
+        repair: 'answer with read/search tools here; run mutations in the main session',
+      };
+    }
+    return inner(ctx, signal);
+  };
+  wrapped.resetTurn = inner.resetTurn?.bind(inner);
+  return wrapped;
+}
+
 /** M86 ambient context — cheap per-turn grounding facts. Git probes are
  *  bounded (1.5s) and fail-soft: a non-repo workdir just reports no git. */
 function ambientInfo(workdir) {
@@ -656,9 +691,12 @@ export async function startHost({
     gate: true,
   });
 
+  // M107: /btw posture pieces live at module level (btwReadonlyDecide /
+  // BTW_READONLY_TOOLS) so tests can exercise the wrapper directly.
+
   // Session construction is a closure because session_new/session_switch
   // rebuild it in-process: same guard + envelopes + tools, new SessionManager.
-  const buildSession = async (sessionManager) => {
+  const buildSession = async (sessionManager, { posture } = {}) => {
     const built = await createPiSession({
       workdir,
       sessionOptions: { agentDir, ...sessionOptions, sessionManager },
@@ -703,7 +741,7 @@ export async function startHost({
       // revalidate defaults to the session's own tool registry via pi-ai
       // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
       // ctx.toolName — translate at the boundary, don't leak Pi shape inward.
-      decide: (currentDecide = makeDecide({
+      decide: (currentDecide = btwReadonlyDecide(makeDecide({
         core, executor, fileOps,
         getSurface: () => toolSurface,
         workdir,
@@ -720,7 +758,7 @@ export async function startHost({
         paiignore: new PaiIgnore(workdir),
         // operator-private pre_tool veto hooks (gate HookRunner below)
         preToolGate,
-      })),
+      }), posture)),
       writeLease,
       // M100 provider fallback: the chain object is shared so the channel's
       // models_fallback_set mutates the SAME object the extension reads —
@@ -751,6 +789,12 @@ export async function startHost({
       initialDeny,
     });
     toolSurface.reconcile();
+    if (posture === 'btw-readonly') {
+      // hide everything not on the readonly allowlist — session-scoped,
+      // never written to deny-memory (main session unaffected)
+      const all = built.session.getActiveToolNames?.() ?? [];
+      toolSurface.setModeDenied(all.filter((n) => !BTW_READONLY_TOOLS.has(n)));
+    }
     // M83 deferred surface — <instance>/defer-tools.json {defer:[names]}
     // hides tools without denying them; tool_activate claims them back.
     // Session-scoped by design: a restart re-reads the file.
@@ -1079,16 +1123,16 @@ export async function startHost({
       }
     },
     // /btw — a side question on an EPHEMERAL fork: same context, answer never
-    // lands in the live transcript. The fork is a real governed session
-    // (same guard/lease/audit) — read-only is enforced by the operator's
-    // intent, not by faking a restricted tool surface. Fork file deleted
-    // after; the live session never rebinds.
+    // lands in the live transcript. M107: the fork runs under 'btw-readonly'
+    // posture — allowlisted read/search tools only, enforced at decide time
+    // (write/bash/job_spawn/delegate/request_permission/mcp__* all blocked).
+    // Fork file deleted after; the live session never rebinds.
     btw: async (message) => {
       const liveFile = currentSession?.sessionManager?.getSessionFile?.();
       if (!liveFile) throw new Error('no live session to fork for btw');
       const forkMgr = sessionManagers.forkFrom(liveFile, workdir, sessionDir);
       const forkFile = forkMgr?.getSessionFile?.() ?? forkMgr?.path ?? null;
-      const built = await buildSession(forkMgr);
+      const built = await buildSession(forkMgr, { posture: 'btw-readonly' });
       const s = built.session;
       try {
         core.audit.write({ kind: 'BTW_FORK', runId, data: { preview: String(message).slice(0, 120) } });

@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS jobs (
   validation_state TEXT NOT NULL, current_attempt_id TEXT,
   authorized_root TEXT NOT NULL, checkpoint_ref TEXT,
   recovery_policy TEXT NOT NULL DEFAULT 'auto_resume_on_valid_checkpoint',
+  recovery_count INTEGER NOT NULL DEFAULT 0,
   created_by TEXT NOT NULL DEFAULT 'system', cancel_requested INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS attempts (
@@ -73,6 +74,12 @@ export class JobStore {
     if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new DatabaseSync(dbPath);
     this.db.exec(SCHEMA);
+    // M103: existing DBs created before recovery_count existed — idempotent
+    // column add so the bounded-recovery gate applies to old stores too.
+    const cols = this.db.prepare("PRAGMA table_info(jobs)").all().map((c) => c.name);
+    if (!cols.includes('recovery_count')) {
+      this.db.exec('ALTER TABLE jobs ADD COLUMN recovery_count INTEGER NOT NULL DEFAULT 0');
+    }
     this.defaultTtl = defaultTtl;
   }
 
@@ -302,7 +309,7 @@ export class JobStore {
    * @param {(checkpoint:object)=>{valid:boolean,reason?:string}} validateCheckpoint
    * @param {(job,attempt,checkpoint)=>void} [onRespawn]
    */
-  recoveryTick({ isWorkerAlive, validateCheckpoint, onRespawn, onAlive, now, readCheckpoint }) {
+  recoveryTick({ isWorkerAlive, validateCheckpoint, onRespawn, onAlive, now, readCheckpoint, maxRecoveries = 3 }) {
     const actions = [];
     for (const job of this.listUnfinished()) {
       if (job.job_state === JobState.WAITING_EVENT) {
@@ -334,6 +341,22 @@ export class JobStore {
         } catch (e) { reason = `checkpoint corrupted: ${e.message}`; }
       }
       this.revokeLease(job.job_id, valid ? 'dead_worker_recovered' : 'dead_worker_invalid_checkpoint');
+      // M103: recovery is bounded. A job whose worker keeps dying across
+      // reboots must not respawn forever — after maxRecoveries it escalates
+      // to operator review instead of another attempt. recovery_count counts
+      // crash-recoveries only; manual restarts/attempts are not the same
+      // event and do not consume this budget.
+      if (valid && checkpoint && (job.recovery_count ?? 0) >= maxRecoveries) {
+        this.#tx(() => {
+          this.db.prepare('UPDATE jobs SET job_state = ?, validation_state = ? WHERE job_id = ?')
+            .run(JobState.WAITING_EVENT, 'REVIEW_REQUIRED', job.job_id);
+        });
+        actions.push({
+          job_id: job.job_id, action_type: 'REVIEW_REQUIRED',
+          reason: `recovery budget exhausted (${job.recovery_count}/${maxRecoveries}) — worker keeps dying; operator review required`,
+        });
+        continue;
+      }
       if (valid && checkpoint) {
         const { attempt_id } = this.startAttempt({
           jobId: job.job_id,
@@ -343,6 +366,9 @@ export class JobStore {
           workspaceRef: attempt?.workspace_ref ?? null,
           ttl: undefined,
           now,
+        });
+        this.#tx(() => {
+          this.db.prepare('UPDATE jobs SET recovery_count = recovery_count + 1 WHERE job_id = ?').run(job.job_id);
         });
         this.recordCheckpoint(job.job_id, attempt_id, job.checkpoint_ref);
         actions.push({

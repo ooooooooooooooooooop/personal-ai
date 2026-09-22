@@ -843,7 +843,7 @@
 |---|---|---|
 | U1 DSH 身体投影 | **已有** | 会话通道/审批桥/审计 parity + `session/jobs` 帧进 `job_list` + `session/projection` 帧→goal-line/`get_state.projection`；job_cancel 保持 fail-closed（不伪装能杀 DSH 侧任务） |
 | U2 不可信内容封套 | **已有** | `host/src/core/envelopes.js` 不可信封套 + unicode 隐形字符消毒（strict 拒/free-text 剥） |
-| U3 rewind 强化 | **已有** | `/undo` 回执组回滚+聚合 `/diff`+`/btw` 只读分叉+Vibe"rewind 默认 fork"等价达成且更强：pi `navigateTree` 是**树 rewind**——弃走分支整棵留在会话文件，`session_entries` 列全树用户消息（跨分支），`session_rewind` 可导航回弃走分支任一点；fork 要防的丢时间线问题结构性不存在 |
+| U3 rewind 强化 | **已有** | `/undo` 回执组回滚+聚合 `/diff`+`/btw` 只读旁路（M107 外部审查后落实为机制：fork 以 `btw-readonly` posture 构建——decide 层白名单硬拒写/bash/job_spawn/delegate/request_permission/tool_activate/mcp__*，面经 setModeDenied 会话级隐藏不污染 deny-memory）+Vibe"rewind 默认 fork"等价达成且更强：pi `navigateTree` 是**树 rewind**——弃走分支整棵留在会话文件，`session_entries` 列全树用户消息（跨分支），`session_rewind` 可导航回弃走分支任一点；fork 要防的丢时间线问题结构性不存在 |
 | U4 写前 secret 扫描 | **已有** | `host/src/core/secrets.js`（写前问/失败关闭） |
 | U5 自定义 mode | **已有** | Policy Preset Overlay（只收紧）+mode chip+Settings→模式 校验编辑（`modes_read`/`modes_save`）+`pathAsk`/`pathDeny` path glob 规则——Roo fileRegex×工具组粒度的语义等价（按路径模式对工具组收紧） |
 | U6 编辑重发 | **已有** | 消息操作栏"编辑"=rewind 到该 entry+原文回填输入框 |
@@ -1626,3 +1626,27 @@
 **重开后路径**：先做 B（embedding API + cosine 线性扫 + RRF 融合 + FTS-only 降级），B 实测延迟不足才准 A（sqlite-vec）。附带约束：embedding 是派生可重建数据不得成为写入前置；远程 embedding 需明确 provider policy（memory 含个人偏好是隐私面）；embedding_model_id/version/dim 必须随存（换模型=向量空间作废）。
 
 **M54–M147 收口：94/94 全部有终态**（落地 / 核查已有 / 部分 / 上游残余 / DEFERRED_BY_EVIDENCE）。
+
+### 28.19 外部复审批次：M101–M114 重裁 + 安全补缺（2026-09-22，外部审查会话 6aac8432）
+
+外部审查在 `e011d5d` 固定 ref 上对 M54–M147 做深审。Batch-3~7 的 12 项安全/接线修复整体冻结（M63/66/71/76/77/80/82/83/89/90/94/96 FROZEN；M92/M99 PARTIAL/VARIANT 为诚实终裁）。本轮新增：
+
+| 项 | 终态 | 证据/修复 |
+|---|---|---|
+| M116 审批卡 secret 泄漏 | **落地**（修复完成） | `sanitizeAskArgs` 原只做长度截断——args 中的 API key/token 原样进审批卡 DOM + 影子裁判。现在生成点统一脱敏：凭据字段名（key/token/secret/password/credential/authorization 等）整体置 `[REDACTED]`；串内模式（Bearer/sk-*/gh[pousr]_*/github_pat_*/xox*/AKIA*/AIza*/JWT/PEM/KEY=value 赋值）掩码；`argsRedacted` 标志随卡下发，UI 明示"凭据已遮蔽"；执行仍用原始 ctx.args |
+| M107 `/btw` 只读旁路 | **落地**（原 FALSE_POSITIVE 修复） | 原裁定"等价达成"为假阳性——fork 构建的是完整 session，只读仅靠操作者意图。现 `buildSession(forkMgr,{posture:'btw-readonly'})`：白名单双闸（decide 硬拒非只读工具 + setModeDenied 会话级隐藏），request_permission/tool_activate 不可达杜绝提权回写；哨兵测试覆盖写/bash/job_spawn/delegate/mcp__* 拒止 |
+| M103 孤儿恢复有界化 | **落地**（原 PARTIAL 补全） | `jobs.recovery_count` 持久列（含旧库幂等迁移）；recoveryTick 达到 `maxRecoveries=3` 后不再 respawn，转 WAITING_EVENT+REVIEW_REQUIRED；只计崩溃恢复，人工 restart 不占额度 |
+| M104 turn 导航协议 | **REAL / 超集同构**（外部上调） | `session_entries`+`session_rewind{entryId,scope}`+UI 任意 entry picker+navigateTree = prev/next turn 协议严格超集 |
+| M102 `/rename` | **REAL** | `app/ui/app.js` → `session_rename` |
+| M105 工具级 checkpoint→rewind | **REAL / FROZEN** | `fileOps.undoCall/undoFrom` + 回归测试，前轮已验 |
+| M111 skill 根目录热更新 | **PARTIAL / 收窄变体** | `.pai/microagents` 每次 prompt match 实时重载；但非通用 skill runtime root watcher |
+| M113 插件安装治理 | **PARTIAL / 准入门径变体** | `noExtensions:true`+manifest 校验路径是供应链准入，非 install→review→rollback 工作流 |
+| M101 后台会话 attach/detach | **MISSING** | 无 `session_attach/detach` 面；task/job 协调不等于后台会话挂接 |
+| M106 `/context` map+ring | **MISSING** | 有 contextUsage 数字/pins/compact，无 composition map/ring |
+| M108 消毒会话分享 | **MISSING** | export 为直接 copy，无 share 专用 sanitizer/token/link |
+| M109 选区"Add to chat" | **MISSING** | — |
+| M110 Skill Workshop | **MISSING** | runtime 无 skill 创建/修改工具面 |
+| M112 webhook 入站 | **MISSING** | 无 inbound endpoint/trigger router |
+| M114 持久 `js_repl` | **MISSING** | Pi body 无持久 JS REPL（他 harness 的 node_repl 不外借） |
+
+测试基线：host 250 / pi 229+1skip 全绿（含 M116/M107/M103 哨兵）。M115 tool-result 媒体可视性、schedule adaptive edit invariant、profile scope drift 仍在审。

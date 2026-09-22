@@ -88,6 +88,33 @@ test('recoveryTick: dead worker + valid checkpoint → RESUME_ATTEMPT', () => {
   assert.equal(s.getJob(job.job_id).job_state, JobState.CHECKPOINTED);
 });
 
+test('recoveryTick: M103 bounded recovery — budget exhausted → REVIEW_REQUIRED, no infinite respawn', () => {
+  const s = store();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-ck-'));
+  const ckPath = join(dir, 'ck.json');
+  const job = s.createJob({ jobType: 't' });
+  const { attempt_id } = s.startAttempt({ jobId: job.job_id, writerId: 'w', workerType: 'p', workerIdentity: { pid: 1 } });
+  writeFileSync(ckPath, JSON.stringify(validCkpt(job.job_id, attempt_id)));
+  s.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  const tick = () => s.recoveryTick({
+    isWorkerAlive: () => false,
+    validateCheckpoint: () => ({ valid: true }),
+    readCheckpoint: () => validCkpt(job.job_id, attempt_id),
+    maxRecoveries: 3,
+  });
+  // a valid checkpoint may respawn at most maxRecoveries times across reboots
+  assert.equal(tick()[0].action_type, 'RESUME_ATTEMPT');
+  assert.equal(tick()[0].action_type, 'RESUME_ATTEMPT');
+  assert.equal(tick()[0].action_type, 'RESUME_ATTEMPT');
+  const fourth = tick()[0];
+  assert.equal(fourth.action_type, 'REVIEW_REQUIRED');
+  const j = s.getJob(job.job_id);
+  assert.equal(j.job_state, JobState.WAITING_EVENT);
+  assert.equal(j.validation_state, 'REVIEW_REQUIRED');
+  assert.equal(j.recovery_count, 3);
+  assert.equal(s.getAttempts(job.job_id).length, 4); // original + 3 recoveries — no 4th attempt
+});
+
 test('recoveryTick: dead worker + invalid checkpoint → WAITING_EVENT + REVIEW_REQUIRED, no blind restart', () => {
   const s = store();
   const job = s.createJob({ jobType: 't' });
