@@ -1744,3 +1744,19 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 **A2 MCP spec.env 注入**（Gemini v0.60 env 同意链对应项，取证为真洞）：`.pai/mcp.json`/`.mcp.json` 在 workdir（agent 一次获批写入可植入），`spec.env` 原样并入 stdio 子进程环境——`NODE_OPTIONS=--require ./payload`、PATH 劫持、LD_PRELOAD、代理改道、`GIT_SSH_COMMAND` 等注入键让看似无害的 `node server.js` 变成绕过 decide 链的静默执行。修复在 spawn 边界（`stdioTransport`）：`ENV_INJECT_RE` 剥离子集→`client.strippedEnv` 记录→`/mcp` 状态明示；操作者环境本身不受影响（信任边界仍是 operator env），合法密钥类 env（GITHUB_TOKEN 等）照常传递。
 
 哨兵：`host/tests/hooks.test.js` +2（match 过滤/新事件载入）、`pi/tests/mcp-ext.test.js` +1（单测剥离面 + spawn 级实证：子进程真实看不到 NODE_OPTIONS、operator env 不受影响、strippedEnv 上报）。
+
+### 28.25 批2：host 核心七项补建（2026-09-23，方向二残余清单实装）
+
+MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回归：
+
+| 项 | 终态 | 证据/实现 |
+|---|---|---|
+| M101 会话 attach/detach | **REAL** | sessions facade `attach(path)`：open 持久会话 + 实况报告（isStreaming、taskStore 中 run_scope 命中的在跑子任务、尾部回放），语义区别于 resume——重连进行中的会话而非换皮打开。`detach()`：审计 SESSION_DETACHED + 返回流态（jobs/hooks 是进程级不随 UI 走）。channel `session_attach`/`session_detach` 双侧接线。哨兵：detach 报流态+审计（channel-facade.test.js） |
+| M106 /context map | **REAL** | facade `contextMap()`：按 role/kind 分段的构成图（count/chars/estTokens≈chars/4 标注为估计）+ `getContextUsage` 权威总量；ring = compact 后存活的尾窗。channel `context_map` 分发。哨兵：分段+权威用量合并（channel-facade.test.js） |
+| M108 消毒分享 | **REAL** | facade `share()`：会话 jsonl 逐行 `redactSecrets` + workdir 路径掩码 `[WORKDIR]`（正/反斜杠双形态），头部行带 provenance+脱敏计数；产物写 `sessions/exports/share-*.jsonl`，不自动上传。channel `session_share` 接线。哨兵：secrets+路径掩码落盘实证 |
+| M120 doctor | **REAL** | `host/src/core/doctor.js` 可插拔体检注册表 + `doctor` 工具：provider 可达性/HTTP 状态/延迟/auth 配置来源（无凭据材料出进程）、policy/manifest/ignore 完整性项。零依赖可测 |
+| M121 会话 env 注入 | **REAL** | `host/src/core/sessionenv.js`：会话级 env overlay——注入向量键（NODE_OPTIONS/PATH/LD_PRELOAD/DYLD_*/GIT_SSH_COMMAND/代理族等）硬拒+审计；overlay 经 `env_set`/`env_unset`/`env_list`（密钥类值掩码）治理面进入，分发到全部自产 spawn 点：jobs executor、HookRunner（scrub 后合入——操作者显式设定的键有意让子进程看到）、verify、delegate profileEnv。哨兵：env_set 拒绝注入键/overlay 真实到达 hook 子进程环境（envtools.test.js spawn 级实证） |
+| M122 env 快照 | **REAL** | `env_snapshot` 工具 + `captureEnvSnapshot`：base∪overlay 有效视图、操作者密钥掩码、overlay 键标旗、`redacted` 清单区分 "unset" vs "set-but-hidden"；可选持久化到 `<instance>/env-snapshots/` |
+| M124 运行时备份导入导出 | **REAL** | `pi/src/adapter/runtimexfer.js`：`runtime_export` 白名单打包（`.pai/` 选择集 + instance 运行态，**永不含治理配置/会话本体**），manifest 携带逐文件 sha256；`runtime_import` 先验签再落盘——篡改字节/非 bundle/workdir 逃逸一律拒写；导入需 operator ask（无通道 fail-closed）；逐文件走 `FileOpsGuard.write`（备份+收据→可回滚）；`.paiignore` 映射防工作区把 steering 文件塞回治理层。哨兵：export→import 往返/篡改拒收/逃逸拒收/operator 拒绝/无通道拒收（runtime-xfer.test.js） |
+
+修复位点说明：批2 为**新执行路径**（生成器源码），非文档声明；`runtimeXferTools` 因 `fileOps` 初始化时序从数组字面量移到 push（TDZ 回归已在 bootstrap.test.js 复现并修掉）。回归：host 293 / pi 296+1skip 全绿；validate_repo --strict 0 err；quality gate 22 skills PASS；diff --check 干净。

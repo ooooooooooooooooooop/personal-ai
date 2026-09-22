@@ -71,7 +71,7 @@ export function makeDelegationCommand(template, { enforceableTargets = new Set()
  *        delegation creates a task record and the bridge binds --task-dir,
  *        upgrading the one-shot job to a bidirectional AgentTask.
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null, envOverlay = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -299,6 +299,14 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // the profile's is the default, the tool call's is the override
       const maxMinParam = Number(params.max_minutes);
       if (Number.isFinite(maxMinParam) && maxMinParam > 0) maxMin = Math.min(maxMinParam, 24 * 60);
+      // M121 session env overlay rides the delegate bridge into the child.
+      // Operator-authored profile env wins on conflict; envDeny strips
+      // downstream as before. Injection-vector keys never got this far —
+      // SessionEnv.set refused them.
+      const sessionOverlay = envOverlay?.() ?? {};
+      if (Object.keys(sessionOverlay).length || profileEnv) {
+        profileEnv = { set: { ...sessionOverlay, ...(profileEnv?.set ?? {}) }, deny: profileEnv?.deny ?? [] };
+      }
       const envFlag = profileEnv
         ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
         : '';

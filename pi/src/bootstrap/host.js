@@ -95,6 +95,9 @@ import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
 import { multiEditTool } from '../adapter/multiedit.js';
 import { fastContextTool } from '../adapter/fastcontext.js';
+import { envTools, doctorTool } from '../adapter/envtools.js';
+import { runtimeXferTools } from '../adapter/runtimexfer.js';
+import { SessionEnv } from '../../../host/src/core/sessionenv.js';
 import { modeRequestTool, requestPermissionTool, requestModeSwitch } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
@@ -492,12 +495,19 @@ export async function startHost({
   // mutating calls are refused while held. Closes the fore/background race.
   const writeLease = new WorkspaceWriteLease(join(core.paths.root, 'workspace-write-lease.json'));
 
+  // M121/M122: session env overlay — consulted by every child WE spawn
+  // (jobs, hooks, verifier, delegate bridge); engine-internal tool spawns
+  // are outside its reach by design.
+  const sessionEnv = new SessionEnv({ audit: core.audit });
+  const envOverlay = () => sessionEnv.view();
+
   // M4: durable jobs — state machine in host, executor in the body.
   const jobStore = new JobStore(join(core.paths.root, 'jobs', 'durable_jobs.db'));
   const executor = new JobExecutor(jobStore, join(core.paths.root, 'jobs'), {
     audit: core.audit,
     runId,
     writeLease,
+    envOverlay,
     classifier: parseShellCommand,
     budget, // child PAI_USAGE bills into the spawning session's scope
     sandbox: SandboxProvider.fromEnv(), // PAI_SANDBOX=none|wsl — durable-job surface only
@@ -676,6 +686,15 @@ export async function startHost({
     // M140 — fast_context: read-only bounded retrieval (one call does the
     // search+rank+excerpt a context subagent would, without model turns)
     fastContextTool({ workdir, getIgnored: repoMapIgnore }),
+    // M121/M122 — session env overlay tools: set/unset/list/snapshot; the
+    // overlay reaches only the children we spawn (jobs/hooks/verify/delegate)
+    ...envTools(sessionEnv, { snapshotDir: join(core.paths.root, 'env-snapshots') }),
+    // M120 — doctor: environment health battery (read-only, advisory)
+    doctorTool({
+      paths: core.paths, workdir, policy: core.policy,
+      extRoot: join(PI_ROOT, 'extensions'),
+      ignored: repoMapIgnore, sessionEnv,
+    }),
     // M83 — lazy tool surface: deferred tools are discovered via tool_search
     // and claimed via tool_activate (catalog late-bound — session built below)
     toolActivateTool({ getSurface: () => toolSurface }),
@@ -688,6 +707,7 @@ export async function startHost({
   if (delegationCommand) customTools.push(delegateTool(executor, {
     commandFor: delegationCommand,
     workdir,
+    envOverlay,
     getScope: () => currentSession?.sessionId ?? null,
     budget,
     // frontmatter subagent personas: project .pai/agents + instance agents/
@@ -721,6 +741,12 @@ export async function startHost({
   // fileOps backup receipts under one call (batch-undoable). Registered here,
   // not in the literal above, because fileOps doesn't exist yet there.
   customTools.push(multiEditTool({ workdir, fileOps, getIgnored: repoMapIgnore }));
+  // M124 — runtime state bundles: whitelisted export + manifest-verified,
+  // operator-asked import (never governance config, never sessions)
+  customTools.push(...runtimeXferTools({
+    workdir, instanceRoot: core.paths.root, fileOps, audit: core.audit,
+    getAsks: () => asks,
+  }));
   let toolSurface = null; // assigned once the session exists — decide runs later
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
   let currentGovernor = null; // evidence contract governor — goals status source
@@ -739,6 +765,7 @@ export async function startHost({
     audit: core.audit,
     configPath: join(core.paths.root, 'hooks.json'),
     gate: true,
+    envOverlay,
   });
 
   // M107: /btw posture pieces live at module level (btwReadonlyDecide /
@@ -1072,6 +1099,30 @@ export async function startHost({
         name: s.sessionManager?.getSessionName?.() ?? null,
       };
     },
+    // M101 attach: rejoin a persisted session with a LIVE-STATE report —
+    // what resume cannot tell you: is a run still streaming, are jobs still
+    // executing under its scope, and the tail of what happened while you
+    // were away. tmux-attach analogue: the answer is the current screen,
+    // not just the scrollback.
+    attach: async (path) => {
+      const s = await rebuildSession(sessionManagers.open(path, sessionDir), 'attach');
+      const sid = s.sessionId ?? null;
+      // session-bound live work = AgentTasks whose run_scope is this session
+      // (delegate/spawned children) still in a non-terminal state
+      const liveTasks = taskStore.list()
+        .filter((t) => t.run_scope === sid && !/COMPLETED|FAILED|CANCELLED|DONE/i.test(String(t.state ?? '')));
+      const messageCount = (() => { try { return (currentSession?.messages ?? []).length; } catch { return 0; } })();
+      core.audit.write({ kind: 'SESSION_ATTACHED', data: { sessionId: sid, liveTasks: liveTasks.length, streaming: Boolean(currentSession?.isStreaming) } });
+      return {
+        id: sid,
+        file: s.sessionManager?.getSessionFile?.() ?? null,
+        name: s.sessionManager?.getSessionName?.() ?? null,
+        attached: true,
+        streaming: Boolean(currentSession?.isStreaming),
+        liveTasks: liveTasks.map((t) => ({ id: t.task_id, kind: t.kind, state: t.state, label: t.label ?? t.name ?? null })),
+        messageCount,
+      };
+    },
     rename: async (name) => {
       currentSession.setSessionName?.(name);
       return { name };
@@ -1291,7 +1342,7 @@ export async function startHost({
   // (hook config is agent-writable workdir state; a veto there would let the
   // agent gate itself). Absent .pai/hooks.json → no-op; malformed config
   // throws at boot so the operator hears about it.
-  const hooks = new HookRunner(workdir, { audit: core.audit });
+  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   channelHandle = createChannelHost({
@@ -1414,6 +1465,7 @@ export async function startHost({
       audit: core.audit,
       emit: (ev) => channelHandle?.channel.emitEvent(ev),
       observations: core.observations,
+      envOverlay,
     }),
     // Roo command allow/deny lists, split by who owns the file:
     //   .pai/commands.json (workdir) — denyPrefixes only; the project file can

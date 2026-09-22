@@ -1,0 +1,95 @@
+/**
+ * M121 session env overlay + M122 env snapshot — the overlay reaches only
+ * children WE spawn (jobs/hooks/verify/delegate); injection-vector keys are
+ * refused at set-time inside SessionEnv; snapshots mask secret values.
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { SessionEnv, captureEnvSnapshot } from '../../host/src/core/sessionenv.js';
+import { envTools } from '../src/adapter/envtools.js';
+import { HookRunner } from '../../host/src/core/hooks.js';
+
+function fakeAudit() { const events = []; return { events, write: (e) => events.push(e) }; }
+
+test('env_set: ordinary keys accepted; injection-vector keys hard-refused + audited', async () => {
+  const audit = fakeAudit();
+  const env = new SessionEnv({ audit });
+  const [set, , list] = envTools(env);
+  const ok = await set.execute('t1', { key: 'MY_FLAG', value: 'on' });
+  assert.equal(ok.isError, undefined);
+  assert.equal(env.view().MY_FLAG, 'on');
+
+  for (const bad of ['NODE_OPTIONS', 'PATH', 'LD_PRELOAD', 'HTTP_PROXY', 'GIT_SSH_COMMAND', 'PYTHONSTARTUP']) {
+    const r = await set.execute('t2', { key: bad, value: 'x' });
+    assert.equal(r.isError, true, `${bad} refused`);
+    assert.match(r.content[0].text, /injection/);
+  }
+  assert.ok(audit.events.filter((e) => e.kind === 'ENV_SET_REFUSED').length >= 6);
+  assert.deepEqual(Object.keys(env.view()), ['MY_FLAG']);
+
+  const bad2 = await set.execute('t3', { key: '1BAD KEY!', value: 'x' });
+  assert.equal(bad2.isError, true);
+});
+
+test('env_list masks secret-looking values; view() carries them for spawn', async () => {
+  const env = new SessionEnv({});
+  env.set('CHILD_API_TOKEN', 'sekrit');
+  env.set('PLAIN_VAR', 'v');
+  const [, , list] = envTools(env);
+  const r = await list.execute('t4', {});
+  assert.match(r.content[0].text, /CHILD_API_TOKEN=\[REDACTED\]/);
+  assert.match(r.content[0].text, /PLAIN_VAR=v/);
+  assert.equal(env.view().CHILD_API_TOKEN, 'sekrit'); // real value intact for spawn merge
+});
+
+test('env overlay reaches hook child process env (post-scrub merge)', async () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-env-'));
+  writeFileSync(join(w, 'x'), '');
+  const { mkdirSync } = await import('node:fs');
+  mkdirSync(join(w, '.pai'), { recursive: true });
+  const outFile = join(w, 'out.json');
+  const script = join(w, 'dump.js');
+  writeFileSync(script, `require('fs').writeFileSync(${JSON.stringify(outFile)}, JSON.stringify({o:process.env.MY_OVERLAY??null,t:process.env.HOOK_TOKEN??null}));`);
+  writeFileSync(join(w, '.pai', 'hooks.json'), JSON.stringify({ hooks: { session_start: [{ command: `node ${JSON.stringify(script)}` }] } }));
+
+  const env = new SessionEnv({});
+  env.set('MY_OVERLAY', 'from-session');
+  env.set('HOOK_TOKEN', 'tok-123'); // secret-looking but operator/session-set → survives scrub
+  const h = new HookRunner(w, { env: { PATH: process.env.PATH }, envOverlay: () => env.view() });
+  await h.fire('session_start');
+  const seen = JSON.parse(readFileSync(outFile, 'utf-8'));
+  assert.equal(seen.o, 'from-session');
+  assert.equal(seen.t, 'tok-123');
+});
+
+test('env_snapshot masks operator secrets; overlay keys flagged; persist writes file', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-snap-'));
+  const env = new SessionEnv({});
+  env.set('SESSION_FLAG', 'y');
+  const [, , , snapTool] = envTools(env, { snapshotDir: dir });
+  const prev = process.env.FAKE_SNAP_KEY;
+  process.env.FAKE_SNAP_KEY = 'sk-live';
+  try {
+    const r = await snapTool.execute('t5', { persist: true });
+    const snap = r.details.snapshot;
+    assert.equal(snap.vars.FAKE_SNAP_KEY, '[REDACTED]');
+    assert.ok(snap.redacted.includes('FAKE_SNAP_KEY'));
+    assert.equal(snap.vars.SESSION_FLAG, 'y');
+    assert.deepEqual(snap.overlayKeys, ['SESSION_FLAG']);
+    assert.ok(existsSync(r.details.file));
+    const persisted = JSON.parse(readFileSync(r.details.file, 'utf-8'));
+    assert.equal(persisted.vars.FAKE_SNAP_KEY, '[REDACTED]'); // disk copy is masked too
+  } finally {
+    if (prev === undefined) delete process.env.FAKE_SNAP_KEY; else process.env.FAKE_SNAP_KEY = prev;
+  }
+});
+
+test('captureEnvSnapshot unit: overlay wins over base env', () => {
+  const s = captureEnvSnapshot({ env: { A: 'base', B: 'b' }, overlay: { A: 'over' }, at: 't' });
+  assert.equal(s.vars.A, 'over');
+  assert.equal(s.vars.B, 'b');
+  assert.deepEqual(s.overlayKeys, ['A']);
+});

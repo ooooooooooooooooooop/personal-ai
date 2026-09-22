@@ -79,11 +79,15 @@ export class HookRunner {
    *                                   point at the operator-private instance file)
    * @param {boolean} [deps.gate]      enable the 'pre_tool' veto event
    */
-  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false } = {}) {
+  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null } = {}) {
     this.workdir = workdir;
     this.audit = audit;
     this.env = env;
     this.gate = gate;
+    // M121 session env overlay — () => plain object, consulted per spawn.
+    // Applied AFTER the secret scrub: an operator (or governed env_set) that
+    // deliberately sets a key intends the child to see it.
+    this.envOverlay = envOverlay;
     this.configPath = configPath ?? join(workdir, '.pai', 'hooks.json');
     this.hooks = this.#load();
   }
@@ -188,7 +192,7 @@ export class HookRunner {
         cwd: this.workdir,
         shell: true,
         windowsHide: true,
-        env: { ...(this.gate ? this.env : scrubHookEnv(this.env)), PAI_HOOK_EVENT: payload.event ?? '' },
+        env: { ...(this.gate ? this.env : scrubHookEnv(this.env)), ...(this.envOverlay?.() ?? {}), PAI_HOOK_EVENT: payload.event ?? '' },
         stdio: ['pipe', 'pipe', 'pipe'],
       });
       this.#children.add(child);

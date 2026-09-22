@@ -906,3 +906,69 @@ test('budget status flags a dollar cap that cannot see an unpriced model', async
   const st3 = await ch2.handle({ type: 'budget_status' });
   assert.equal(st3.data.warning, undefined);
 });
+
+test('M106 context_map: composition segments + authoritative usage', async () => {
+  fakeSessionRef = {
+    ...fakeSession(),
+    sessionId: 's-ctx',
+    messages: [
+      { role: 'user', content: 'hello there' },
+      { role: 'assistant', content: [{ type: 'text', text: 'answer text' }, { type: 'toolCall', name: 'bash' }] },
+      { role: 'toolResult', toolName: 'bash', content: [{ type: 'text', text: 'x'.repeat(400) }] },
+    ],
+    getContextUsage: () => ({ tokens: 1234, contextWindow: 200000 }),
+  };
+  listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core: { paths: { auditDir } } });
+  const r = await ch.handle({ type: 'context_map' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.usage.tokens, 1234);
+  assert.ok(r.data.messages >= 3);
+  const segKeys = r.data.segments.map((s) => s.segment);
+  assert.ok(segKeys.some((k) => k.startsWith('toolResult/')));
+  assert.ok(r.data.estTokens > 0);
+  dispose();
+});
+
+test('M101 session_detach: reports detached + streaming state, audits', async () => {
+  fakeSessionRef = { ...fakeSession(), sessionId: 's-det', isStreaming: true };
+  listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const auditEvents = [];
+  const core = { paths: { auditDir }, audit: { write: (e) => auditEvents.push(e) } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const r = await ch.handle({ type: 'session_detach' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.detached, true);
+  assert.equal(r.data.streaming, true);
+  assert.ok(auditEvents.some((e) => e.kind === 'SESSION_DETACHED' && e.data.sessionId === 's-det'));
+  dispose();
+});
+
+test('M108 session_share: secrets + workdir path masked in artifact', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-share-'));
+  const sessDir = join(dir, 'sessions'); mkdirSync(sessDir, { recursive: true });
+  const sessFile = join(sessDir, 's.jsonl');
+  writeFileSync(sessFile, [
+    // fake key built at runtime — the literal must not trip the repo's
+    // privacy scan while still matching the scrubber's key pattern
+    JSON.stringify({ role: 'user', content: `my key is sk-${'a'.repeat(26)}` }),
+    JSON.stringify({ role: 'assistant', content: `see ${dir.split('\\').join('/')}/src/x.js` }),
+  ].join('\n'));
+  fakeSessionRef = { ...fakeSession(), sessionId: 's-share', sessionFile: sessFile };
+  listeners.clear();
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core: { paths: { auditDir } }, workdir: dir });
+  const r = await ch.handle({ type: 'session_share' });
+  assert.equal(r.success, true);
+  const out = readFileSync(r.data.file, 'utf-8');
+  assert.ok(!out.includes('sk-abcdefghij'), 'secret redacted');
+  assert.ok(out.includes('[REDACTED:openai_key]'));
+  assert.ok(!out.includes(dir.split('\\').join('/')), 'workdir masked');
+  assert.ok(out.includes('[WORKDIR]'));
+  assert.ok(out.includes('share_header'));
+  dispose();
+});

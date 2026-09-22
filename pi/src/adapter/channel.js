@@ -9,6 +9,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renam
 import { execFile } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from './paths.js';
+import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
 
@@ -409,9 +410,43 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       const html = await box.s.exportToHtml?.();
       return { file: html ?? null, format: 'html' };
     },
+    // M108 sanitized share: export the session for handing to someone else —
+    // every line passes the secret scrubber, the workdir path is masked to
+    // [WORKDIR] (a share must not leak the operator's local layout), and a
+    // header line carries provenance + the redaction count. The output is a
+    // file the operator posts themselves — nothing here auto-uploads.
+    share: async () => {
+      const src = box.s.sessionFile;
+      if (!src || !existsSync(src)) return { file: null, error: 'no session file' };
+      const dir = join(dirname(src), 'exports');
+      mkdirSync(dir, { recursive: true });
+      const out = join(dir, `share-${Date.now()}.jsonl`);
+      const wdir = String(workdir ?? '').replace(/\\/g, '/');
+      let redactions = 0;
+      const lines = readFileSync(src, 'utf-8').split('\n').filter(Boolean).map((line) => {
+        let l = redactSecrets(line);
+        if (wdir) l = l.split(wdir).join('[WORKDIR]').split(wdir.replace(/\//g, '\\')).join('[WORKDIR]');
+        if (l !== line) redactions++;
+        return l;
+      });
+      const header = JSON.stringify({ type: 'share_header', sharedAt: new Date().toISOString(), sessionId: box.s.sessionId ?? null, redactedLines: redactions, sanitizer: 'secrets+workdir-path' });
+      writeFileSync(out, [header, ...lines].join('\n') + '\n');
+      core.audit?.write({ kind: 'SESSION_SHARE', data: { file: out, lines: lines.length, redactedLines: redactions } });
+      return { file: out, lines: lines.length, redactedLines: redactions };
+    },
     subscribe: (listener) => {
       uiListeners.add(listener);
       return () => uiListeners.delete(listener);
+    },
+    // M101 detach: the operator-facing end of attach/detach — the session
+    // itself keeps running (jobs/hooks/schedules are process-level, not UI-
+    // bound); detach is the explicit marker + audit so "I walked away" is a
+    // recorded state, not an inferred disconnect.
+    detach: () => {
+      const sid = box.s.sessionId ?? null;
+      const streaming = Boolean(box.s.isStreaming);
+      core.audit?.write({ kind: 'SESSION_DETACHED', data: { sessionId: sid, streaming } });
+      return { detached: true, sessionId: sid, streaming };
     },
     // Plain-data replay of the current session — what a UI needs to redraw
     // the transcript after a session_switch without knowing Pi message shapes.
@@ -444,6 +479,44 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         error: m.errorMessage ?? null,
       };
     }),
+    // M106 /context map: composition breakdown of the live context — what
+    // occupies the window, not just how much. Segments are grouped by
+    // role/kind with char counts (est tokens ≈ chars/4 — the engine reports
+    // authoritative totals via getContextUsage; per-message token counts
+    // exist on assistant usage rows only, so segment sizes are estimates
+    // and labeled as such). Ring = the tail-window that survives a compact.
+    contextMap: () => {
+      const msgs = box.s.messages ?? [];
+      const segs = new Map(); // key → {count, chars, estTokens}
+      const bump = (key, chars) => {
+        const s = segs.get(key) ?? { count: 0, chars: 0 };
+        s.count += 1; s.chars += chars; segs.set(key, s);
+      };
+      for (const m of msgs) {
+        const role = m.role ?? 'unknown';
+        const blocks = Array.isArray(m.content) ? m.content : [];
+        if (typeof m.content === 'string') bump(`${role}/text`, m.content.length);
+        for (const b of blocks) {
+          const t = b?.type ?? 'unknown';
+          const len = (b?.text ?? b?.thinking ?? JSON.stringify(b ?? '')).length;
+          bump(`${role}/${t}`, len);
+        }
+      }
+      const usage = (() => { try { return box.s.getContextUsage?.() ?? null; } catch { return null; } })();
+      const totalChars = [...segs.values()].reduce((a, s) => a + s.chars, 0);
+      const segments = [...segs.entries()]
+        .map(([segment, s]) => ({ segment, count: s.count, chars: s.chars, estTokens: Math.round(s.chars / 4) }))
+        .sort((a, b) => b.chars - a.chars);
+      return {
+        sessionId: box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? null,
+        usage,                                   // authoritative {tokens, contextWindow} when the engine reports it
+        messages: msgs.length,
+        totalChars,
+        estTokens: Math.round(totalChars / 4),   // estimate label — see above
+        segments,
+        compacted: autoCompacted,
+      };
+    },
   };
 
   // Model/auth surface — the body's ModelRuntime owns models.json + auth.json

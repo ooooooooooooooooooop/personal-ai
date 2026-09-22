@@ -244,7 +244,14 @@ export class HostChannel {
         }
         case 'job_list': {
           if (!this.jobs?.listRecent) return reply(false, undefined, 'jobs facade unavailable');
-          return reply(true, this.jobs.listRecent(cmd.n ?? 20));
+          const rows = this.jobs.listRecent(cmd.n ?? 20);
+          if (this.jobDetail?.describe) {
+            return reply(true, rows.map((j) => {
+              const desc = this.jobDetail.describe(j.job_id);
+              return desc?.command ? { ...j, command: desc.command } : j;
+            }));
+          }
+          return reply(true, rows);
         }
         case 'body_info': {
           if (!this.bodies?.current) return reply(false, undefined, 'bodies facade unavailable');
@@ -530,6 +537,25 @@ export class HostChannel {
         case 'session_export': {
           if (!this.session?.export) return reply(false, undefined, 'export unavailable');
           return reply(true, await this.session.export({ format: ['jsonl', 'debug'].includes(cmd.format) ? cmd.format : 'html' }));
+        }
+        // M108: sanitized share artifact — secrets + workdir path masked
+        case 'session_share': {
+          if (!this.session?.share) return reply(false, undefined, 'share unavailable');
+          const r = await this.session.share();
+          if (r?.error) return reply(false, undefined, r.error);
+          return reply(true, r);
+        }
+        // M101: attach/detach — rejoin a persisted session with a live-state
+        // report (streaming? session-scoped tasks still running?) / mark the
+        // current session detached while its durable work continues
+        case 'session_attach': {
+          if (!this.sessions?.attach) return reply(false, undefined, 'attach unavailable');
+          if (!cmd.path) return reply(false, undefined, 'session_attach requires {path}');
+          return reply(true, await this.sessions.attach(String(cmd.path)));
+        }
+        case 'session_detach': {
+          if (!this.session?.detach) return reply(false, undefined, 'detach unavailable');
+          return reply(true, this.session.detach());
         }
         case 'session_save': {
           // Gemini /chat save: named snapshot of the live transcript the
@@ -892,6 +918,11 @@ export class HostChannel {
           const out = this.skills.allowSet(cmd.names === null ? null : (cmd.names ?? []).map(String));
           if (out?.error) return reply(false, undefined, out.error);
           return reply(true, out);
+        }
+        // M106 /context — composition map of the live context window
+        case 'context_map': {
+          if (!this.session?.contextMap) return reply(false, undefined, 'context map unavailable');
+          return reply(true, this.session.contextMap());
         }
         case 'pins_add': {
           if (!this.pins?.add) return reply(false, undefined, 'pins facade unavailable');
