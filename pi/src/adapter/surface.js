@@ -13,7 +13,7 @@
  * whole tool batch (Crush semantics) — the kernel sets terminate; this module
  * only handles surface visibility.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 export class ToolSurface {
@@ -28,10 +28,17 @@ export class ToolSurface {
     this.session = session;
     this.denyMemoryPath = denyMemoryPath;
     mkdirSync(dirname(denyMemoryPath), { recursive: true });
-    this.denied = new Set([
-      ...initialDeny,
-      ...(existsSync(denyMemoryPath) ? JSON.parse(readFileSync(denyMemoryPath, 'utf-8')) : []),
-    ]);
+    // torn/invalid deny-memory must not brick bootstrap — an unreadable store
+    // degrades to the initial deny set (fail-open on VISIBILITY only; the
+    // kernel's per-call decide still gates execution underneath)
+    let persisted = [];
+    if (existsSync(denyMemoryPath)) {
+      try {
+        const parsed = JSON.parse(readFileSync(denyMemoryPath, 'utf-8'));
+        if (Array.isArray(parsed)) persisted = parsed.filter((n) => typeof n === 'string');
+      } catch { /* corrupt store — start from initialDeny */ }
+    }
+    this.denied = new Set([...initialDeny, ...persisted]);
     this.modeDenied = new Set();
     // M83 deferred tools — session-scoped lazy surface. Unlike denied, lazy
     // tools are NOT persisted and NOT governance denials: they are hidden to
@@ -129,7 +136,12 @@ export class ToolSurface {
   }
 
   #persist() {
-    writeFileSync(this.denyMemoryPath, JSON.stringify([...this.denied].sort()));
+    // atomic: a crash mid-write must not leave a torn store that bricks the
+    // NEXT bootstrap (the constructor tolerates it, but durability of the
+    // deny set is the whole point of this file)
+    const tmp = `${this.denyMemoryPath}.tmp-${process.pid}`;
+    writeFileSync(tmp, JSON.stringify([...this.denied].sort()));
+    renameSync(tmp, this.denyMemoryPath);
   }
 
   #apply() {

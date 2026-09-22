@@ -11,7 +11,7 @@ import { injectionHygieneExtension } from './injectionhygiene.js';
 import { withRenderedReason } from './errors.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { renderContext, renderInstruction } from '../../../host/src/core/envelopes.js';
-import { unlinkSync } from 'node:fs';
+import { realpathSync, unlinkSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 
 /**
@@ -108,6 +108,23 @@ export function contextEnvelopeExtension(contextEnvelope) {
 }
 
 /** Persisted-session lifecycle — the only @earendil-works seam bootstrap needs. */
+// A1 parity: confinement must hold on the REAL path. A junction/symlink
+// inside sessionDir passes a lexical startsWith yet makes an outside file
+// the live session store (open) or the unlink target (remove). realpath
+// failure fails closed — open/remove only ever touch existing files.
+const confinedSessionPath = (path, sessionDir) => {
+  const abs = resolve(path);
+  if (!abs.startsWith(resolve(sessionDir) + sep)) throw new Error('session path outside sessionDir');
+  let realAbs;
+  try { realAbs = realpathSync(abs); } catch { throw new Error('session path unresolvable'); }
+  let realDir;
+  try { realDir = realpathSync(sessionDir); } catch { realDir = resolve(sessionDir); }
+  if (realAbs !== realDir && !realAbs.startsWith(realDir + sep)) {
+    throw new Error('session path outside sessionDir (via symlink)');
+  }
+  return abs;
+};
+
 export const sessionManagers = {
   create: (cwd, sessionDir) => SessionManager.create(cwd, sessionDir),
   // M71: in-memory session — never touches sessionDir; nothing to purge
@@ -115,18 +132,13 @@ export const sessionManagers = {
   // Open = adopt the file as the live session — future turns APPEND to it.
   // Same confinement as remove: a crafted path ('../../etc/passwd') must not
   // become the session store, or the next prompt writes JSONL anywhere.
-  open: (path, sessionDir) => {
-    const abs = resolve(path);
-    if (!abs.startsWith(resolve(sessionDir) + sep)) throw new Error('session path outside sessionDir');
-    return SessionManager.open(abs, sessionDir);
-  },
+  open: (path, sessionDir) => SessionManager.open(confinedSessionPath(path, sessionDir), sessionDir),
   list: (cwd, sessionDir) => SessionManager.list(cwd, sessionDir),
   forkFrom: (sourcePath, cwd, sessionDir) => SessionManager.forkFrom(sourcePath, cwd, sessionDir),
   // Delete = unlink the session file — contained to sessionDir so a crafted
   // path cannot reach outside the session store.
   remove: (path, sessionDir) => {
-    const abs = resolve(path);
-    if (!abs.startsWith(resolve(sessionDir) + sep)) throw new Error('session path outside sessionDir');
+    const abs = confinedSessionPath(path, sessionDir);
     unlinkSync(abs);
     return { removed: abs };
   },

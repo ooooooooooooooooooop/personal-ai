@@ -7,7 +7,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, readdirSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fastContextTool } from '../src/adapter/fastcontext.js';
@@ -57,6 +57,18 @@ test('M140: subdir confines the scan; escaping subdir refuses', async () => {
   const esc = await tool.execute('t', { query: 'kernel', subdir: '..' });
   assert.equal(esc.isError, true);
   assert.match(esc.content[0].text, /escapes the workspace/);
+});
+
+test('M140: a junction/symlink subdir pointing outside the workdir refuses (A1 realpath parity)', async (t) => {
+  const dir = setup();
+  const outside = mkdtempSync(join(tmpdir(), 'pai-fastctx-out-'));
+  writeFileSync(join(outside, 'leak.js'), '// kernel secrets outside the workdir\n');
+  const link = join(dir, 'linked-out');
+  try { symlinkSync(outside, link, 'junction'); } catch { t.skip('no symlink privilege'); return; }
+  const tool = fastContextTool({ workdir: dir });
+  const r = await tool.execute('t', { query: 'kernel', subdir: 'linked-out' });
+  assert.equal(r.isError, true, 'lexically-inside junction must not escape the scan root');
+  assert.match(r.content[0].text, /escapes the workspace/);
 });
 
 test('M140: honest miss + no files created (read-only contract)', async () => {

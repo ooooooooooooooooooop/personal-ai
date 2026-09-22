@@ -16,7 +16,7 @@
  *  - POLICY-RESPECTING: .paiignore exclusions hold (same predicate the
  *    repo_map tool uses) and subdir cannot escape the workdir.
  */
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { extname, join, relative, resolve, sep } from 'node:path';
 
 const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', 'coverage', '.taskflow', '.grepai', '.claude', '__pycache__']);
@@ -67,6 +67,16 @@ export function fastContextTool({ workdir, getIgnored = null }) {
       const base = params?.subdir ? resolve(root, params.subdir) : root;
       if (params?.subdir && base !== root && !base.startsWith(root + sep)) {
         return err(`fast_context: subdir '${params.subdir}' escapes the workspace`);
+      }
+      // A1 parity: the walk's confinement must hold on the REAL path — a
+      // symlink/junction named as subdir must not turn a read-only scan into
+      // an out-of-workdir read. realpath failure fails closed.
+      let realBase;
+      try { realBase = realpathSync(base); } catch { return err(`fast_context: not found: ${params?.subdir ?? workdir}`); }
+      let realRoot;
+      try { realRoot = realpathSync(root); } catch { realRoot = root; }
+      if (realBase !== realRoot && !realBase.startsWith(realRoot + sep)) {
+        return err(`fast_context: subdir '${params.subdir}' escapes the workspace (via symlink)`);
       }
       if (!existsSync(base)) return err(`fast_context: not found: ${params?.subdir ?? workdir}`);
 
