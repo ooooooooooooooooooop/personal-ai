@@ -64,6 +64,20 @@ const host = await startHost({
     : null,
 });
 
+// Fatal-error forensics: Node's default for an unhandled rejection or
+// exception is an opaque death — the stack prints to stderr and the process
+// is gone. The supervisor persists the stderr tail into <instance>/crashes/
+// (BODY_EXITED audit + crash report), so write the FULL stack to stderr
+// first, dispose what we can, then exit non-zero. Fail closed with evidence;
+// never limp on in a possibly-corrupt state.
+for (const evt of ['uncaughtException', 'unhandledRejection']) {
+  process.on(evt, (err) => {
+    process.stderr.write(`pai-channel: FATAL ${evt}: ${err?.stack ?? err}\n`);
+    try { host.dispose?.(); } catch { /* already dying */ }
+    process.exit(1);
+  });
+}
+
 const write = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);
 host.channel.subscribe(write);
 
