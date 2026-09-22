@@ -18,7 +18,7 @@
 import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
@@ -216,13 +216,27 @@ export class BodySupervisor {
       stderrTail.push(String(d));
       if (stderrTail.length > 40) stderrTail.shift();
     });
-    const active = { bodyId, child, pending, seq: 0, stderrTail, info: null, dead: false };
-    child.on('exit', () => {
+    // stdin EPIPE: a write racing a body death must not throw an unhandled
+    // stream error and take the supervisor down with the body.
+    child.stdin.on('error', () => { /* body already gone; exit path reports it */ });
+    const active = { bodyId, child, pending, seq: 0, stderrTail, info: null, dead: false, bornAt: Date.now(), expectedExit: false };
+    const onExit = (code, signal) => {
+      if (active.dead) return;
       active.dead = true;
+      this.#recordCrash(active, code, signal);
       for (const [, p] of pending) p({ type: 'response', success: false, error: 'body process exited' });
       pending.clear();
-      this.#emitSupervisor('body_exited', { body: bodyId });
+      this.#emitSupervisor('body_exited', { body: bodyId, exitCode: code, signal });
+      this.#maybeRespawn(active);
+    };
+    // Spawn failure (ENOENT/EACCES): an unhandled 'error' event THROWS and
+    // crashes the whole supervisor — and 'exit' may never follow, so drive
+    // the same exit path from here.
+    child.on('error', (e) => {
+      stderrTail.push(`spawn error: ${e.message}\n`);
+      onExit(-1, null);
     });
+    child.on('exit', (code, signal) => onExit(code, signal));
     const rl = createInterface({ input: child.stdout, terminal: false });
     rl.on('line', (line) => {
       const t = line.trim();
@@ -244,16 +258,80 @@ export class BodySupervisor {
     // run/session identity the supervisor needs for lease claims later.
     const info = await this.sendToBody({ type: 'body_info' }, 45_000);
     if (!info.success) {
-      throw new Error(`body '${bodyId}' channel did not come up: ${info.error ?? stderrTail.join('').slice(-400)}`);
+      // The body's own stderr usually carries the real reason (lease conflict,
+      // missing dependency, config error) — 'body process exited' alone is a
+      // dead end for the operator. Always append the tail.
+      const tail = stderrTail.join('').trim().slice(-400);
+      throw new Error(`body '${bodyId}' channel did not come up: ${info.error ?? 'no response'}${tail ? `\n${tail}` : ''}`);
     }
     active.info = info.data;
     this.#emitSupervisor('body_started', { body: bodyId, runId: info.data?.runId });
+  }
+
+  /**
+   * Crash forensics: a body exit without evidence makes root-cause analysis
+   * impossible by construction — the stderr tail lives only in this process's
+   * memory and dies with the event loop. Every exit is audited; an
+   * UNEXPECTED exit additionally drops a full report (exit code, signal,
+   * uptime, in-flight command count, stderr tail) into <instance>/crashes/
+   * so the next session can see WHY the body died, not just that it did.
+   */
+  #recordCrash(active, code, signal) {
+    const record = {
+      at: new Date().toISOString(),
+      body: active.bodyId,
+      pid: active.child.pid ?? null,
+      exitCode: code,
+      signal,
+      expected: active.expectedExit,
+      uptimeMs: Date.now() - active.bornAt,
+      inFlightCommands: active.pending.size,
+      stderrTail: active.stderrTail.join('').trim().slice(-4000),
+    };
+    try {
+      this.audit.write({
+        kind: 'BODY_EXITED',
+        data: { ...record, stderrTail: record.stderrTail.slice(-800) },
+      });
+    } catch { /* audit failure must not mask the exit itself */ }
+    if (record.expected) return;
+    try {
+      const dir = join(this.instanceRoot, 'crashes');
+      mkdirSync(dir, { recursive: true });
+      const stamp = record.at.replace(/[:.]/g, '-');
+      writeFileSync(join(dir, `${stamp}-${active.bodyId}.json`), JSON.stringify(record, null, 2));
+    } catch { /* forensics must never take the supervisor down */ }
+  }
+
+  /**
+   * Crash resilience: an unexpected body exit respawns the same body with
+   * backoff (1s, 2s, 4s — then we stop and leave the dead-body error surface).
+   * Superseded actives (a switch already replaced us) and deliberate
+   * shutdowns never respawn. A body that survives 30s resets the budget.
+   */
+  #maybeRespawn(active) {
+    if (active.expectedExit) return;
+    if (this.active !== active || this.switching || this._disposing) return;
+    const attempt = (Date.now() - active.bornAt > 30_000 ? 0 : active.respawnAttempt ?? 0) + 1;
+    if (attempt > 3) return;
+    this.#emitSupervisor('body_respawn_wait', { body: active.bodyId, attempt, inMs: attempt * 1000 });
+    setTimeout(async () => {
+      if (this.active !== active || this.switching || this._disposing) return;
+      try {
+        await this.spawnBody(active.bodyId);
+        this.active.respawnAttempt = attempt;
+        this.#emitSupervisor('body_respawned', { body: active.bodyId, attempt });
+      } catch (e) {
+        this.#emitSupervisor('body_respawn_failed', { body: active.bodyId, attempt, error: e?.message ?? String(e) });
+      }
+    }, attempt * 1000);
   }
 
   /** Graceful channel shutdown: close stdin → body disposes → lease released. */
   async gracefulShutdown() {
     const active = this.active;
     if (!active || active.dead) return;
+    active.expectedExit = true; // operator-driven exit: audited, but no crash report, no respawn
     active.child.stdin.end();
     const exited = await Promise.race([
       new Promise((r) => active.child.on('exit', () => r(true))),
@@ -524,7 +602,10 @@ export class BodySupervisor {
             try { ents = readdirSync(dir, { withFileTypes: true }); } catch { return; }
             for (const e of ents) {
               if (out.length >= 500) return;
-              if (e.name.startsWith('.') && e.name !== '.') continue;
+              // Dotfiles stay hidden from the picker — except .pai, the
+              // project's own config tree: /recipe, /plans and @.pai mentions
+              // all resolve through this listing.
+              if (e.name.startsWith('.') && e.name !== '.pai') continue;
               const r = rel ? `${rel}/${e.name}` : e.name;
               if (ignore.isIgnored(join(this.workdir, r))) continue;
               if (e.isDirectory()) { if (!skip.has(e.name)) walk(join(dir, e.name), r); }
@@ -641,7 +722,12 @@ export class BodySupervisor {
           ].includes(cmd?.type)) {
             return reply(false, undefined, 'body switch in progress — try again after it completes');
           }
-          const r = await this.sendToBody(cmd);
+          // Turn-scoped commands block until the run ends — the default 60s
+          // body timeout would falsely report "timed out" on any long turn
+          // while the run is actually still going. Progress streams via
+          // events; abort is always available. 10min is the ceiling.
+          const SLOW = new Set(['prompt', 'steer', 'session_compact']);
+          const r = await this.sendToBody(cmd, SLOW.has(cmd?.type) ? 600_000 : 60_000);
           // Workdir is supervisor-owned state — the body's get_state doesn't
           // know it, so inject it for statusline/settings consumers.
           if (cmd?.type === 'get_state' && r.success && r.data && typeof r.data === 'object') {
@@ -656,6 +742,7 @@ export class BodySupervisor {
   }
 
   async dispose() {
+    this._disposing = true;
     await this.gracefulShutdown();
     this.leases?.close();
     this.listeners.clear();

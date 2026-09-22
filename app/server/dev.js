@@ -40,3 +40,11 @@ try {
 
 process.on('SIGINT', async () => { await supervisor.dispose(); process.exit(0); });
 process.on('SIGTERM', async () => { await supervisor.dispose(); process.exit(0); });
+// Same discipline as the body channel: a fatal error must leave its stack
+// on stderr (and this process's exit in the audit trail), not vanish silently.
+for (const evt of ['uncaughtException', 'unhandledRejection']) {
+  process.on(evt, (err) => {
+    process.stderr.write(`dev: FATAL ${evt}: ${err?.stack ?? err}\n`);
+    process.exit(1);
+  });
+}

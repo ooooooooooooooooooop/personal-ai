@@ -498,6 +498,78 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         return { ok: false, reachable: false, configured, error: String(e?.message ?? e), ms: Date.now() - t0 };
       }
     },
+    // Remote catalog probe: same request as ping, but KEEP the body — the
+    // /models response is the provider's real model list, and throwing it
+    // away forced users to hand-type model IDs. Returns parsed ids only;
+    // registration stays an explicit operator act (provider_models_add).
+    fetchModels: async (providerId) => {
+      const rt = box.s.modelRuntime;
+      const pid = String(providerId ?? '').trim()
+        || (box.s.model?.provider ?? rt.getProviders()[0]?.id);
+      const p = rt.getProvider(pid);
+      if (!p) return { ok: false, error: `unknown provider '${pid}'` };
+      const auth = await rt.getAuth(pid).catch(() => undefined);
+      const base = auth?.auth?.baseUrl ?? p.baseUrl;
+      if (!base) return { ok: false, error: 'provider has no baseUrl' };
+      try {
+        const headers = { ...(p.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
+        if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
+        const res = await fetch(`${String(base).replace(/\/+$/, '')}/models`, {
+          headers, signal: AbortSignal.timeout(10000),
+        });
+        if (!res.ok) return { ok: false, httpStatus: res.status, error: `HTTP ${res.status}` };
+        const body = await res.json().catch(() => null);
+        // OpenAI shape: {data:[{id}]}; Ollama native: {models:[{name}]}
+        const rows = body?.data ?? body?.models ?? [];
+        const ids = rows.map((m) => m?.id ?? m?.name).filter((x) => typeof x === 'string' && x);
+        return { ok: true, provider: pid, models: [...new Set(ids)] };
+      } catch (e) {
+        return { ok: false, error: String(e?.message ?? e) };
+      }
+    },
+    // Merge fetched model ids into models.json. Built-in providers keep their
+    // catalog (models.json merge semantics upsert by id); custom providers
+    // must already exist (provider_add owns creation). Model entries get the
+    // same conservative defaults as provider_add.
+    addModels: async ({ provider, modelIds }) => {
+      const file = join(core.paths.root, 'pi-agent', 'models.json');
+      let cfg = { providers: {} };
+      if (existsSync(file)) {
+        try { cfg = JSON.parse(readFileSync(file, 'utf-8')); } catch { /* rewrite below */ }
+      }
+      cfg.providers = cfg.providers ?? {};
+      const prov = cfg.providers[provider];
+      // No models.json entry yet: allowed only for runtime-known (built-in)
+      // providers — models.json merges by id and keeps the built-in catalog.
+      // Seed baseUrl/api from the runtime provider so the partial entry can't
+      // shadow the built-in connection config. Unknown ids must go through
+      // provider_add (they need a real baseUrl/api from the operator).
+      const rtProv = box.s.modelRuntime.getProvider(provider);
+      if (!prov && !rtProv) {
+        return { ok: false, error: `provider '${provider}' not in models.json and not built-in — use provider_add first` };
+      }
+      const entry = prov ?? {
+        ...(rtProv?.baseUrl ? { baseUrl: rtProv.baseUrl } : {}),
+        ...(rtProv?.api ? { api: typeof rtProv.api === 'string' ? rtProv.api : undefined } : {}),
+      };
+      entry.models = entry.models ?? [];
+      const existing = new Set(entry.models.map((m) => m.id));
+      const added = [];
+      for (const id of modelIds) {
+        if (existing.has(id)) continue;
+        entry.models.push({
+          id, name: id, reasoning: false,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 128000, maxTokens: 8192,
+        });
+        added.push(id);
+      }
+      if (!prov) cfg.providers[provider] = entry;
+      writeJsonAtomic(file, cfg);
+      await box.s.modelRuntime.refresh?.().catch(() => {});
+      return { ok: true, provider, added, total: entry.models.length };
+    },
     list: async () => {
       const available = await box.s.modelRuntime.getAvailable();
       return available.map((m) => ({
@@ -583,6 +655,11 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       const s = box.s;
       const lvl = String(level).toLowerCase();
       if (!THINKING_LEVELS.has(lvl)) throw new Error(`unknown thinking level '${level}'`);
+      // Capability gate: a non-reasoning model accepts only 'off' — otherwise
+      // the UI writes a setting the provider silently ignores.
+      if (lvl !== 'off' && s.model && !s.model.reasoning) {
+        throw new Error(`model '${s.model.provider}/${s.model.id}' has no reasoning capability — thinking stays off`);
+      }
       s.setThinkingLevel(lvl);
       if (s.model) s.settingsManager?.setModelThinkingLevel?.(s.model.provider, s.model.id, lvl);
       return { thinkingLevel: s.thinkingLevel ?? lvl };

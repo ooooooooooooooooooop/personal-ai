@@ -159,6 +159,8 @@
       <div class="page-head">
         <h1>任务</h1>
         <p class="page-sub">持久化任务——跨重启、跨身体存活。</p>
+        <span class="spacer"></span>
+        <button id="jobs-stop-all" class="btn ghost sm" title="中止当前运行并取消所有未完成的持久任务">全部停止</button>
       </div>
       <div id="goal-line" class="goal-line hidden"></div>
       <div class="table-wrap">
@@ -282,7 +284,9 @@
           <span id="set-provider-auth" class="pill"></span>
           <button id="set-ping" class="btn ghost">测试连接</button>
           <span id="set-ping-result" class="pill"></span>
+          <button id="set-fetch-models" class="btn ghost">拉取模型列表</button>
         </div>
+        <div id="set-remote-models" class="hidden"></div>
         <div class="set-row">
           <label>API Key</label>
           <input id="set-key" type="password" placeholder="sk-…" autocomplete="off" />

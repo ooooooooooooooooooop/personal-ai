@@ -3,7 +3,7 @@
  * switch path are exercised end-to-end: discovery, eligibility, passthrough,
  * cold swap, and the seven-phase handoff with a real lease baton.
  */
-import { mkdtempSync, existsSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, readdirSync, writeFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -375,4 +375,99 @@ test('session purge: deletes archived unpinned sessions; pinned and live survive
     const meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
     assert.equal(meta[path], undefined, 'meta entry cleared');
   } finally { await sup.dispose(); }
+});
+
+test('body crash auto-respawns the same body (backoff), events emitted', async () => {
+  const { sup } = await boot();
+  try {
+    const events = [];
+    sup.subscribe((m) => { if (m.type === 'supervisor') events.push(m.event.kind); });
+    const before = sup.active;
+    const beforePid = before.child.pid;
+    before.child.kill(); // simulate crash — exit handler fires
+    // respawn waits 1s on attempt 1; give it room
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      if (sup.active !== before && !sup.active.dead && sup.active.info) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    assert.notEqual(sup.active, before, 'a new active replaced the crashed body');
+    assert.notEqual(sup.active.child.pid, beforePid);
+    assert.ok(sup.active.info?.runId, 'respawned body answered body_info');
+    assert.ok(events.includes('body_exited'));
+    assert.ok(events.includes('body_respawned'));
+    // channel serves commands again after respawn
+    const r = await sup.handle({ type: 'body_current' });
+    assert.equal(r.data.body_id, 'fake-a');
+  } finally { await sup.dispose(); }
+});
+
+test('deliberate shutdown does NOT respawn', async () => {
+  const { sup } = await boot();
+  try {
+    const before = sup.active;
+    await sup.gracefulShutdown();
+    await new Promise((r) => setTimeout(r, 1600)); // longer than attempt-1 backoff
+    assert.equal(sup.active, null, 'no respawn after graceful shutdown');
+  } finally { await sup.dispose(); }
+});
+
+test('unexpected crash leaves forensic evidence: crash report file + BODY_EXITED audit', async () => {
+  const { sup, dir } = await boot();
+  try {
+    sup.active.child.kill(); // simulate crash
+    const crashDir = join(dir, 'crashes');
+    const deadline = Date.now() + 5000;
+    while (Date.now() < deadline && !existsSync(crashDir)) await new Promise((r) => setTimeout(r, 50));
+    assert.ok(existsSync(crashDir), 'crashes/ dir created on unexpected exit');
+    const files = readdirSync(crashDir).filter((f) => f.endsWith('.json'));
+    assert.equal(files.length, 1, 'exactly one crash report');
+    const report = JSON.parse(readFileSync(join(crashDir, files[0]), 'utf-8'));
+    assert.equal(report.body, 'fake-a');
+    assert.equal(report.expected, false, 'unexplained exit marked unexpected');
+    assert.ok('exitCode' in report && 'signal' in report && 'uptimeMs' in report);
+    assert.ok('stderrTail' in report && 'inFlightCommands' in report);
+    // audit trail carries the exit as well
+    const auditFile = readdirSync(join(dir, 'audit')).find((f) => f.endsWith('.jsonl'));
+    const events = readFileSync(join(dir, 'audit', auditFile), 'utf-8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    const exited = events.find((e) => e.kind === 'BODY_EXITED');
+    assert.ok(exited, 'BODY_EXITED audited');
+    assert.equal(exited.data.expected, false);
+    assert.equal(exited.data.body, 'fake-a');
+  } finally { await sup.dispose(); }
+});
+
+test('graceful shutdown is audited as expected — no crash report, no respawn', async () => {
+  const { sup, dir } = await boot();
+  try {
+    await sup.gracefulShutdown();
+    await new Promise((r) => setTimeout(r, 1600)); // longer than attempt-1 backoff
+    assert.equal(sup.active, null, 'no respawn after graceful shutdown');
+    assert.equal(existsSync(join(dir, 'crashes')), false, 'expected exit writes no crash report');
+    const auditFile = readdirSync(join(dir, 'audit')).find((f) => f.endsWith('.jsonl'));
+    const events = readFileSync(join(dir, 'audit', auditFile), 'utf-8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    const exited = events.find((e) => e.kind === 'BODY_EXITED');
+    assert.ok(exited, 'expected exit still audited');
+    assert.equal(exited.data.expected, true);
+  } finally { await sup.dispose(); }
+});
+
+test('spawn failure (missing binary) rejects start without crashing the supervisor', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-app-'));
+  const badCatalog = {
+    'fake-missing': {
+      id: 'fake-missing', label: 'fake-missing',
+      facts: () => fakeFacts('fake-missing'),
+      installed: () => true,
+      channel: () => ({ command: 'pai-definitely-not-a-real-binary-xyz', args: [] }),
+    },
+  };
+  const sup = new BodySupervisor({
+    instanceRoot: dir, workdir: dir, repoRoot: REPO,
+    catalog: badCatalog, env: { ...process.env },
+  });
+  // Without a child 'error' handler this spawn would throw an unhandled
+  // EventEmitter error and kill the whole test process.
+  await assert.rejects(() => sup.start(), /did not come up/);
+  await sup.dispose();
 });

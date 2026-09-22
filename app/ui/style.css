@@ -28,6 +28,21 @@
   --green: #4ade80; --green-tile: color-mix(in oklab, #4ade80 14%, transparent);
   --yellow: #f0bb4e; --red: #f47067;
 
+  /* Semantic aliases — previously used only as var() fallbacks, which leaked
+     light-theme literals into dark mode (e.g. .ask-advice rendered near-white
+     background with white text). Define them per-theme instead. */
+  --accent: #7aa2f7;
+  --warn: var(--yellow); --amber: var(--yellow);
+  --err: var(--red); --ok: var(--green);
+  --panel2: var(--tile);
+  --muted: var(--text-3);
+  /* Structural tokens — previously referenced with NO fallback (var(--panel)
+     etc.), which invalidates the whole declaration: todo panel / job detail /
+     statusline / starters / attach chips rendered borderless + backgroundless. */
+  --border: var(--line-strong);
+  --panel: var(--bg-elev-opaque);
+  --panel-2: var(--field);
+
   --r-xs: 5px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-xxl: 24px;
   --font: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
   --mono: "Cascadia Code", Consolas, "JetBrains Mono", monospace;
@@ -45,6 +60,7 @@
   --bg-side: #ececee;
   --green: #1d9e4b; --green-tile: color-mix(in oklab, #1d9e4b 12%, transparent);
   --yellow: #a06a00; --red: #d0342c;
+  --accent: #3457d0;
   --line: color-mix(in oklab, var(--g0) 12%, transparent);
   --line-sub: color-mix(in oklab, var(--g0) 8%, transparent);
   --line-strong: color-mix(in oklab, var(--g0) 20%, transparent);
@@ -1116,3 +1132,15 @@ tr.clickable:hover td { background: var(--field); }
 .ev-v { font-size: 12.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .link-btn { background: none; border: none; padding: 0; font: inherit; color: var(--accent, #7aa2f7); cursor: pointer; font-size: 12.5px; }
 .link-btn:hover { text-decoration: underline; }
+
+/* modal — DOM replacement for window.prompt() (Electron renderers throw on it) */
+.modal-ov { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 900; }
+.modal { width: min(440px, 92vw); background: var(--bg-elev-opaque); border: 1px solid var(--line-strong); border-radius: 10px; padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+.modal-title { font-weight: 600; margin-bottom: 10px; color: var(--text); }
+.modal-input { width: 100%; box-sizing: border-box; background: var(--field); border: 1px solid var(--line-strong); color: var(--text); border-radius: 6px; padding: 8px 10px; font: inherit; }
+.modal-input:focus { outline: 1px solid var(--accent); }
+.modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+/* jobs header row hosts the global kill switch */
+#view-jobs > .page-head:first-child { display: flex; align-items: baseline; gap: 10px; }
+#view-jobs > .page-head:first-child h1 { margin-bottom: 0; }
+#view-jobs > .page-head:first-child .page-sub { margin: 0; }

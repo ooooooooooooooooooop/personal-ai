@@ -108,7 +108,14 @@ export const sessionManagers = {
   create: (cwd, sessionDir) => SessionManager.create(cwd, sessionDir),
   // M71: in-memory session — never touches sessionDir; nothing to purge
   inMemory: (cwd) => SessionManager.inMemory(cwd),
-  open: (path, sessionDir) => SessionManager.open(path, sessionDir),
+  // Open = adopt the file as the live session — future turns APPEND to it.
+  // Same confinement as remove: a crafted path ('../../etc/passwd') must not
+  // become the session store, or the next prompt writes JSONL anywhere.
+  open: (path, sessionDir) => {
+    const abs = resolve(path);
+    if (!abs.startsWith(resolve(sessionDir) + sep)) throw new Error('session path outside sessionDir');
+    return SessionManager.open(abs, sessionDir);
+  },
   list: (cwd, sessionDir) => SessionManager.list(cwd, sessionDir),
   forkFrom: (sourcePath, cwd, sessionDir) => SessionManager.forkFrom(sourcePath, cwd, sessionDir),
   // Delete = unlink the session file — contained to sessionDir so a crafted

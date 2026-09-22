@@ -130,10 +130,17 @@ export class HostChannel {
       ({ id, type: 'response', command: cmd?.type, success, ...(data !== undefined ? { data } : {}), ...(error ? { error } : {}) });
     try {
       switch (cmd?.type) {
-        case 'prompt':
+        case 'prompt': {
+          // Empty-message admission: an empty prompt with no attachments still
+          // runs a full provider turn (real token spend, ghost transcript
+          // entries). Reject at the gate — never reach the model.
+          const msg = String(cmd.message ?? '');
+          const hasAttach = Array.isArray(cmd.options?.attachments) && cmd.options.attachments.length > 0;
+          if (!msg.trim() && !hasAttach) return reply(false, undefined, 'prompt requires a non-empty message or attachments');
           this.turns?.reset(); // a user message starts a fresh tool-call budget
-          await this.session.prompt(String(cmd.message ?? ''), cmd.options);
+          await this.session.prompt(msg, cmd.options);
           return reply(true);
+        }
         case 'steer':
           this.turns?.reset();
           await this.session.steer(String(cmd.message ?? ''));
@@ -313,6 +320,17 @@ export class HostChannel {
             return reply(false, undefined, 'provider_add requires {provider, baseUrl, api, model}');
           }
           return reply(true, await this.models.addProvider(spec));
+        }
+        case 'provider_models_fetch': {
+          if (!this.models?.fetchModels) return reply(false, undefined, 'models facade unavailable');
+          return reply(true, await this.models.fetchModels(cmd.provider));
+        }
+        case 'provider_models_add': {
+          if (!this.models?.addModels) return reply(false, undefined, 'models facade unavailable');
+          const provider = String(cmd.provider ?? '').trim();
+          const modelIds = Array.isArray(cmd.models) ? cmd.models.map(String).filter(Boolean) : [];
+          if (!provider || !modelIds.length) return reply(false, undefined, 'provider_models_add requires {provider, models[]}');
+          return reply(true, await this.models.addModels({ provider, modelIds }));
         }
         case 'session_list': {
           if (!this.sessions?.list) return reply(false, undefined, 'sessions facade unavailable');
