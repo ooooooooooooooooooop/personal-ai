@@ -24,6 +24,10 @@
  * capability is never advertised (deny→hide consistent). Per-capability
  * failures are NOT fatal: tools/list and prompts/list discover independently
  * so prompt-only and tools-only servers both expose what they have.
+ * notifications/tools|prompts/list_changed hot-refresh the surface (stdio
+ * only — HTTP transport carries no push channel); newly listed tools register
+ * live, removed tools tombstone into honest errors since pi has no
+ * unregisterTool.
  *
  * The client below is zero-dependency. stdio framing is newline-delimited
  * JSON-RPC 2.0; Streamable HTTP is one POST per request answered as JSON or
@@ -147,12 +151,21 @@ export class McpClient {
   #nextId = 1;
   #pending = new Map();
   #closed = false;
+  #notifyHandlers = [];
 
   constructor(transport) {
     this.#transport = transport;
     transport.onMessage?.((msg) => this.#dispatch(msg));
     transport.onExit?.(() => this.#failAll(new McpError('mcp server process exited', { code: 'MCP_EXIT' })));
   }
+
+  /**
+   * M130: subscribe to server→client notifications (tools/list_changed,
+   * prompts/list_changed). stdio carries them as id-less JSON-RPC frames;
+   * the HTTP transport has no push channel in v1 so no notifications ever
+   * arrive there — handlers just never fire.
+   */
+  onNotification(fn) { this.#notifyHandlers.push(fn); }
 
   static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     const transport = spec.url ? httpTransport(spec) : stdioTransport(spec);
@@ -162,7 +175,18 @@ export class McpClient {
   }
 
   #dispatch(msg) {
-    if (msg == null || typeof msg !== 'object' || msg.id == null) return;
+    if (msg == null || typeof msg !== 'object') return;
+    // Server→client notification: has method, no id. Server requests
+    // (method + id) are unsupported — we carry no server->client request
+    // handlers, so dropping them is the honest no-op.
+    if (msg.id == null) {
+      if (typeof msg.method === 'string') {
+        for (const fn of this.#notifyHandlers) {
+          try { fn(msg); } catch { /* a bad handler must not kill the pump */ }
+        }
+      }
+      return;
+    }
     const entry = this.#pending.get(msg.id);
     if (!entry) return;
     this.#pending.delete(msg.id);
@@ -346,8 +370,62 @@ function wrapUntrusted(server, tool, result) {
 
 export default function mcpExtension(pi) {
   const { path: configPath, servers, error: configError } = loadConfig();
-  /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean, prompts?:object[]}>} */
+  /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean, prompts?:object[], dead?:Set<string>, lastRefresh?:object}>} */
   const connected = new Map();
+
+  // M130 tools/list_changed: a server that hot-swaps its catalog re-lists.
+  // New tools register live; REMOVED tools cannot be unregistered through the
+  // pi API — they tombstone into an honest fail-closed error instead of
+  // silently calling a tool the server no longer advertises.
+  const registerMcpTool = (serverName, client, entry, t) => {
+    const toolName = `mcp__${serverName}__${t.name}`;
+    pi.registerTool({
+      name: toolName,
+      label: `MCP ${serverName}: ${t.name}`,
+      description: `[mcp:${serverName}] ${t.description ?? t.name}`,
+      // MCP inputSchema is JSON Schema — the same shape pi-ai validates
+      // for our other custom tools.
+      parameters: t.inputSchema && typeof t.inputSchema === 'object'
+        ? t.inputSchema
+        : { type: 'object', properties: {} },
+      async execute(toolCallId, params, signal) {
+        if (entry.dead?.has(toolName)) {
+          return {
+            content: [{ type: 'text', text: `mcp tool removed by server '${serverName}' (list_changed) — restart the session or re-check /mcp` }],
+            isError: true,
+          };
+        }
+        try {
+          const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
+          return wrapUntrusted(serverName, t.name, res);
+        } catch (err) {
+          return {
+            content: [{ type: 'text', text: `mcp call failed (${serverName}/${t.name}): ${err?.message ?? err}` }],
+            isError: true,
+          };
+        }
+      },
+    });
+    return toolName;
+  };
+
+  const refreshTools = async (name, entry) => {
+    if (!entry?.client) return;
+    try {
+      const fresh = await entry.client.listTools();
+      const freshNames = new Set(fresh.map((t) => `mcp__${name}__${t.name}`));
+      const before = new Set(entry.tools);
+      const added = [];
+      for (const t of fresh) {
+        const tn = `mcp__${name}__${t.name}`;
+        if (!before.has(tn)) added.push(registerMcpTool(name, entry.client, entry, t));
+      }
+      const removed = [...before].filter((tn) => !freshNames.has(tn));
+      entry.dead = new Set(removed);
+      entry.tools = [...freshNames];
+      entry.lastRefresh = { at: new Date().toISOString(), added: added.length, removed: removed.length };
+    } catch { /* refresh failure keeps the last-known catalog */ }
+  };
 
   // M82: an MCP prompt is an operator-invoked slash command that expands to
   // the server-supplied messages as a user turn. The operator asked for it
@@ -395,7 +473,31 @@ export default function mcpExtension(pi) {
       if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) continue;
       try {
         const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS });
-        const entry = { client, tools: [], spec, prompts: [] };
+        const entry = { client, tools: [], spec, prompts: [], booted: false };
+        connected.set(name, entry);
+        // M130: subscribe BEFORE family discovery — a list_changed pushed
+        // while tools/list or prompts/list is still in flight (or hung on a
+        // server that silently drops unknown methods) must not be lost.
+        client.onNotification((msg) => {
+          const refresh = async () => {
+            if (!entry.booted) { entry.pendingRefresh = true; return; }
+            await refreshTools(name, entry);
+          };
+          const refreshPrompts = async () => {
+            if (!entry.booted) { entry.pendingPromptRefresh = true; return; }
+            try {
+              const prompts = await client.listPrompts();
+              const known = new Set((entry.prompts ?? []).map((p) => p.name));
+              for (const p of prompts) {
+                if (known.has(p.name)) continue;
+                entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
+                registerPromptCommand(name, p, client);
+              }
+            } catch { /* refresh failure keeps the last-known catalog */ }
+          };
+          if (msg?.method === 'notifications/tools/list_changed') void refresh();
+          if (msg?.method === 'notifications/prompts/list_changed') void refreshPrompts();
+        });
         // M82: capability families discover independently — a prompt-only
         // server answers Method-not-found on tools/list and that must NOT
         // kill prompts/list (and vice versa). A connect/handshake failure is
@@ -403,31 +505,7 @@ export default function mcpExtension(pi) {
         const names = [];
         try {
           const tools = await client.listTools();
-          for (const t of tools) {
-            const toolName = `mcp__${name}__${t.name}`;
-            pi.registerTool({
-              name: toolName,
-              label: `MCP ${name}: ${t.name}`,
-              description: `[mcp:${name}] ${t.description ?? t.name}`,
-              // MCP inputSchema is JSON Schema — the same shape pi-ai validates
-              // for our other custom tools.
-              parameters: t.inputSchema && typeof t.inputSchema === 'object'
-                ? t.inputSchema
-                : { type: 'object', properties: {} },
-              async execute(toolCallId, params, signal) {
-                try {
-                  const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
-                  return wrapUntrusted(name, t.name, res);
-                } catch (err) {
-                  return {
-                    content: [{ type: 'text', text: `mcp call failed (${name}/${t.name}): ${err?.message ?? err}` }],
-                    isError: true,
-                  };
-                }
-              },
-            });
-            names.push(toolName);
-          }
+          for (const t of tools) names.push(registerMcpTool(name, client, entry, t));
           entry.tools = names;
         } catch { /* no tools capability */ }
         try {
@@ -437,7 +515,23 @@ export default function mcpExtension(pi) {
             registerPromptCommand(name, p, client);
           }
         } catch { /* no prompts capability */ }
-        connected.set(name, entry);
+        // discovery done — flush any list_changed that arrived mid-boot
+        entry.booted = true;
+        if (entry.pendingRefresh) { entry.pendingRefresh = false; void refreshTools(name, entry); }
+        if (entry.pendingPromptRefresh) {
+          entry.pendingPromptRefresh = false;
+          void (async () => {
+            try {
+              const prompts = await client.listPrompts();
+              const known = new Set((entry.prompts ?? []).map((p) => p.name));
+              for (const p of prompts) {
+                if (known.has(p.name)) continue;
+                entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
+                registerPromptCommand(name, p, client);
+              }
+            } catch { /* refresh failure keeps the last-known catalog */ }
+          })();
+        }
       } catch {
         // connect/handshake failure → this server contributes no tools;
         // /mcp reports it as failed so the operator can see why
@@ -465,6 +559,8 @@ export default function mcpExtension(pi) {
         lines.push(entry.failed
           ? `  ${name}: FAILED to connect/list — no tools exposed`
           : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
+        if (entry.dead?.size) lines.push(`    removed by server (list_changed): ${[...entry.dead].join(', ')}`);
+        if (entry.lastRefresh) lines.push(`    last refresh ${entry.lastRefresh.at} (+${entry.lastRefresh.added}/-${entry.lastRefresh.removed})`);
         for (const t of entry.tools) lines.push(`    ${t}`);
         for (const p of entry.prompts ?? []) {
           const req = (p.args ?? []).filter((a) => a.required).map((a) => a.name);

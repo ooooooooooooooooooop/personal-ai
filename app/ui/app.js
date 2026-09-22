@@ -3125,6 +3125,25 @@ const SLASH = [
     },
   },
   {
+    cmd: '/config', label: '会话设置', hint: '/config 查看；/config key=value 设置（model/thinking/mode）',
+    run: async (arg) => {
+      const text = String(arg ?? '').trim();
+      if (!text) {
+        const r = await cmd('config_get');
+        if (!r.success) { addSys(`读取失败：${r.error ?? '未知'}`, true); return; }
+        const s = r.data ?? {};
+        addSys(`当前设置 — 模型：${s.model?.id ?? s.model ?? '—'} · 思考：${s.thinking ?? '—'} · 模式：${s.mode ?? '—'}`);
+        return;
+      }
+      const m = text.match(/^(\w+)\s*=\s*(.+)$/);
+      if (!m) { addSys('用法：/config model=<provider/id 或别名> | thinking=<off|low|medium|high> | mode=<名>', true); return; }
+      const r = await cmd('config_set', { key: m[1], value: m[2].trim() });
+      if (!r.success) { addSys(`设置失败：${r.error ?? '未知'}`, true); return; }
+      toast(`已设置 ${m[1]} = ${m[2].trim()}`);
+      refreshState();
+    },
+  },
+  {
     cmd: '/undo', label: '撤销上轮改动', hint: '恢复最近一次提问以来的全部文件操作',
     run: async () => {
       const [ops, ent] = await Promise.all([cmd('fileops_list'), cmd('session_entries')]);

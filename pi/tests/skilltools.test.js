@@ -70,6 +70,47 @@ test('recipe_run expands {{param}} placeholders; missing required refused', asyn
   assert.equal(miss.isError, true);
 });
 
+test('M131: recipe frontmatter mode: requests a governed switch on trigger', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-recipe-mode-'));
+  mkdirSync(join(dir, '.pai', 'recipes'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'recipes', 'review-first.md'),
+    '---\nmode: review\n---\nReview the diff before touching anything.');
+  const calls = [];
+  const tools = skillTools({
+    workdir: dir, audit: { write: (e) => calls.push(e) },
+    // host.js wires this to requestModeSwitch — the ask→applyMode chain.
+    requestMode: async (name) => name === 'review'
+      ? { ok: true, text: `mode switched to 'review'` }
+      : { ok: false, text: `unknown mode '${name}'` },
+  });
+  const recipe = tools.find((t) => t.name === 'recipe_run');
+  const r = await recipe.execute('t1', { name: 'review-first' });
+  assert.equal(r.isError, undefined);
+  assert.match(r.content[0].text, /<recipe name="review-first">/);
+  assert.match(r.content[0].text, /mode 'review': mode switched to 'review'/);
+  assert.ok(calls.some((e) => e.kind === 'RECIPE_MODE' && e.data.mode === 'review' && e.data.ok === true));
+
+  // refusal is reported honestly — the recipe still expands
+  const toolsDeny = skillTools({
+    workdir: dir, audit: null,
+    requestMode: async () => ({ ok: false, text: "mode 'plan' refused (deny) — continue under the current mode" }),
+  });
+  writeFileSync(join(dir, '.pai', 'recipes', 'plan-mode.md'), '---\nmode: plan\n---\nPlan only.');
+  const r2 = await toolsDeny.find((t) => t.name === 'recipe_run').execute('t2', { name: 'plan-mode' });
+  assert.equal(r2.isError, undefined);
+  assert.match(r2.content[0].text, /refused \(deny\)/);
+
+  // no mode channel → honest note, never silent
+  const bare = skillTools({ workdir: dir, audit: null });
+  const r3 = await bare.find((t) => t.name === 'recipe_run').execute('t3', { name: 'plan-mode' });
+  assert.match(r3.content[0].text, /no mode channel/);
+
+  // recipes without mode: unchanged output shape
+  writeFileSync(join(dir, '.pai', 'recipes', 'plain.md'), 'Just do it.');
+  const r4 = await bare.find((t) => t.name === 'recipe_run').execute('t4', { name: 'plain' });
+  assert.doesNotMatch(r4.content[0].text, /mode/);
+});
+
 test('skill_delete removes only .pai/microagents files, audited', async () => {
   const { workdir, audits, byName } = fixture();
   await byName.skill_save.execute('t', { name: 'deploy-notes', triggers: ['deploy'], body: 'ship it' });

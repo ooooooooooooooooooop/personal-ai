@@ -21,7 +21,7 @@ const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,60}$/i;
 const BODY_CAP = 32 * 1024;
 
-export function skillTools({ workdir, audit, getAsks = null }) {
+export function skillTools({ workdir, audit, getAsks = null, requestMode = null }) {
   const dir = (kind) => join(workdir, '.pai', kind);
   const write = (kind, name, content) => {
     mkdirSync(dir(kind), { recursive: true });
@@ -137,7 +137,9 @@ export function skillTools({ workdir, audit, getAsks = null }) {
       description:
         'Expand a parameterised task package (.pai/recipes/<name>.md) and receive ' +
         'its instructions to execute (Roo run_slash_command analogue). Pass ' +
-        'args as {k: v}; {{k}} placeholders in the recipe body are substituted.',
+        'args as {k: v}; {{k}} placeholders in the recipe body are substituted. ' +
+        'Frontmatter fields: `params:` (required/(default=)) and `mode:` — a ' +
+        'mode value requests an operator-approved mode switch when the recipe runs.',
       parameters: {
         type: 'object',
         properties: {
@@ -189,9 +191,24 @@ export function skillTools({ workdir, audit, getAsks = null }) {
         const values = Object.fromEntries(params.map((x) => [x.name, String(args[x.name] ?? x.default ?? '')]));
         const expanded = body.replace(/\{\{(\w+)\}\}/g, (all, k) => values[k] ?? all);
         audit?.write({ kind: 'RECIPE_RUN', data: { name, params: Object.keys(values).length } });
+        // M131: frontmatter `mode: <name>` requests a governed mode switch on
+        // trigger (Claude command frontmatter analogue). The switch goes
+        // through the operator ask card — a recipe file can never force a
+        // posture change; refusal is reported honestly alongside the recipe.
+        const wantedMode = (meta.match(/^mode:\s*(\S+)\s*$/m)?.[1] ?? '').trim();
+        let modeNote = '';
+        if (wantedMode) {
+          if (!requestMode) {
+            modeNote = `\n[recipe requested mode '${wantedMode}' — no mode channel on this body]`;
+          } else {
+            const r = await requestMode(wantedMode, _id);
+            audit?.write({ kind: 'RECIPE_MODE', data: { name, mode: wantedMode, ok: r.ok } });
+            modeNote = `\n[mode '${wantedMode}': ${r.text}]`;
+          }
+        }
         // instructions arrive as untrusted recipe content — the model follows
         // them inside the normal governance chain like any microagent body
-        return ok(`<recipe name="${name}">\n${expanded}\n</recipe>`);
+        return ok(`<recipe name="${name}">\n${expanded}\n</recipe>${modeNote}`);
       },
     },
   ];

@@ -93,7 +93,7 @@ import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
-import { modeRequestTool, requestPermissionTool } from '../adapter/modetools.js';
+import { modeRequestTool, requestPermissionTool, requestModeSwitch } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
@@ -570,12 +570,16 @@ export async function startHost({
   // governed promptSink as schedule ticks — a busy session refuses.
   const monitors = new MonitorRegistry({
     audit: core.audit,
+    storePath: join(core.paths.root, 'monitors.json'),
     promptSink: async (msg) => {
       if (!channelHandle || currentSession?.isStreaming) return { refused: 'busy' };
       const r = await channelHandle.channel.handle({ type: 'prompt', message: msg, meta: { monitor_wake: true } });
       return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
     },
   });
+  // re-arm persisted watches — promptSink reads channelHandle lazily, so this
+  // is safe before the channel exists. dispose() at shutdown keeps the store.
+  monitors.restore();
 
   // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
   // into every context envelope as untrusted evidence.
@@ -587,6 +591,9 @@ export async function startHost({
   // repo_map builds scan hundreds of files — one PaiIgnore instance per
   // build (fresh .paiignore each call, not per file and not boot-stale)
   const repoMapIgnore = () => { const ig = new PaiIgnore(workdir); return (rel) => ig.isIgnored(rel); };
+  // M131: recipe frontmatter `mode:` and mode_request share the mode catalog —
+  // declared outside the array literal below since `const` can't live inside it.
+  const catalogModes = () => ['normal', 'plan', 'review', ...loadModePresets().list().map((m) => m.name)];
   const customTools = [
     jobStatusTool(jobStore),
     // remote execution (P1): durable command jobs under an optional
@@ -630,13 +637,20 @@ export async function startHost({
     // docs via governed write/edit; these tools only scaffold + report
     ...specTools({ getWorkdir: () => workdir }),
     // self-authored skills (triggered knowledge) + durable plan library —
-    // agent writes .pai/microagents|plans, governed like every other call
-    ...skillTools({ workdir, audit: core.audit, getAsks: () => asks }),
+    // agent writes .pai/microagents|plans, governed like every other call.
+    // M131: recipe frontmatter `mode:` rides the same governed switch path.
+    ...skillTools({
+      workdir, audit: core.audit, getAsks: () => asks,
+      requestMode: (name, toolCallId) => requestModeSwitch({
+        catalogModes, applyMode, asks, name,
+        reason: `recipe frontmatter requests mode '${name}'`, toolCallId,
+      }),
+    }),
     // Claude ExitPlanMode analogue: the model REQUESTS a mode switch; the
     // operator approves on an ask card. Never self-applies — a model asking
     // to leave plan mode is exactly the escalation the mode exists for.
     modeRequestTool({
-      catalogModes: () => ['normal', 'plan', 'review', ...loadModePresets().list().map((m) => m.name)],
+      catalogModes,
       applyMode,
       asks,
     }),
@@ -1303,7 +1317,7 @@ export async function startHost({
     // event-driven monitors — operator arms/disarms fs watchers that wake
     // the session through the governed prompt path
     monitors: {
-      add: ({ path, prompt }) => monitors.add({ path, prompt }),
+      add: ({ path, prompt, maxPerHour }) => monitors.add({ path, prompt, maxPerHour }),
       remove: (id) => monitors.remove(id),
       list: () => monitors.list(),
     },

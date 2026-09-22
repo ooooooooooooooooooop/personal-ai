@@ -155,6 +155,43 @@ test('risk_mode get/set roundtrip; invalid mode refused', async () => {
   assert.equal(bad.success, false);
 });
 
+test('M132: config_get snapshots; config_set dispatches allowlisted keys to governed facades', async () => {
+  const calls = [];
+  const models = {
+    status: async () => ({ model: { provider: 'anthropic', id: 'claude-x' }, thinkingLevel: 'medium' }),
+    set: async (t) => { calls.push(['model.set', t]); return { provider: t.provider ?? 'via-alias', id: t.model ?? t.alias }; },
+    setThinking: async (lvl) => { calls.push(['setThinking', lvl]); return { thinkingLevel: lvl }; },
+  };
+  const modes = { get: () => 'normal', setMode: (n) => (n === 'plan' ? { mode: 'plan' } : null) };
+  const ch = new HostChannel({ session: fakeSession(), models, modes });
+
+  const g = await ch.handle({ type: 'config_get' });
+  assert.equal(g.success, true);
+  assert.equal(g.data.model.id, 'claude-x');
+  assert.equal(g.data.thinking, 'medium');
+  assert.equal(g.data.mode, 'normal');
+
+  // provider/model splits on the slash; bare words resolve as aliases
+  const s1 = await ch.handle({ type: 'config_set', key: 'model', value: 'openai/gpt-x' });
+  assert.deepEqual(calls.at(-1), ['model.set', { provider: 'openai', model: 'gpt-x' }]);
+  await ch.handle({ type: 'config_set', key: 'model', value: 'fast' });
+  assert.deepEqual(calls.at(-1), ['model.set', { alias: 'fast' }]);
+  await ch.handle({ type: 'config_set', key: 'thinking', value: 'high' });
+  assert.deepEqual(calls.at(-1), ['setThinking', 'high']);
+  const s3 = await ch.handle({ type: 'config_set', key: 'mode', value: 'plan' });
+  assert.equal(s3.data.mode, 'plan');
+
+  // unknown key + unknown mode refuse honestly
+  const bad = await ch.handle({ type: 'config_set', key: 'shell_access', value: 'root' });
+  assert.equal(bad.success, false);
+  assert.match(bad.error, /unknown key/);
+  const badMode = await ch.handle({ type: 'config_set', key: 'mode', value: 'yolo' });
+  assert.equal(badMode.success, false);
+  // missing facades fail closed
+  const bare = new HostChannel({ session: fakeSession() });
+  assert.equal((await bare.handle({ type: 'config_set', key: 'model', value: 'x' })).success, false);
+});
+
 test('session_rewind restoreFiles undoes receipts newer than the anchor', async () => {
   const session = fakeSession();
   session.entries = async () => [

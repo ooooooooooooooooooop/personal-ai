@@ -361,7 +361,7 @@ export class HostChannel {
         case 'monitor_add': {
           if (!this.monitors?.add) return reply(false, undefined, 'monitors unavailable');
           if (!cmd.path || !cmd.prompt) return reply(false, undefined, 'monitor_add requires {path, prompt}');
-          const r = this.monitors.add({ path: String(cmd.path), prompt: String(cmd.prompt) });
+          const r = this.monitors.add({ path: String(cmd.path), prompt: String(cmd.prompt), maxPerHour: cmd.max_per_hour ?? null });
           return r.error ? reply(false, undefined, r.error) : reply(true, r);
         }
         case 'monitor_remove': {
@@ -685,6 +685,47 @@ export class HostChannel {
           const out = this.modes.setMode(name);
           if (!out) return reply(false, undefined, `mode_set: unknown mode '${name}'`);
           return reply(true, out);
+        }
+        // M132: /config key=value — operator session-settings surface (Codex
+        // /config analogue). An allowlisted key set dispatches to the owning
+        // facade, so each change rides the existing governed/audited path —
+        // this is a convenience front, not a bypass. Unknown keys refuse.
+        case 'config_get': {
+          const out = {};
+          if (this.models?.status) {
+            const s = await this.models.status();
+            out.model = s?.model ?? s?.current ?? null;
+            out.thinking = s?.thinkingLevel ?? s?.thinking ?? null;
+          }
+          if (this.modes?.active) out.mode = this.modes.active();
+          else if (this.modes?.get) out.mode = this.modes.get();
+          return reply(true, out);
+        }
+        case 'config_set': {
+          const key = String(cmd.key ?? '').trim();
+          const value = cmd.value;
+          if (!key) return reply(false, undefined, 'config_set requires {key, value}');
+          switch (key) {
+            case 'model': {
+              if (!this.models?.set) return reply(false, undefined, 'models facade unavailable');
+              const v = String(value ?? '').trim();
+              const slash = v.match(/^([a-z0-9_.-]+)\/(\S+)$/i);
+              if (slash) return reply(true, await this.models.set({ provider: slash[1], model: slash[2] }));
+              return reply(true, await this.models.set({ alias: v }));
+            }
+            case 'thinking': {
+              if (!this.models?.setThinking) return reply(false, undefined, 'thinking facade unavailable');
+              return reply(true, await this.models.setThinking(String(value)));
+            }
+            case 'mode': {
+              if (!this.modes?.setMode) return reply(false, undefined, 'modes facade unavailable');
+              const out = this.modes.setMode(String(value ?? ''));
+              if (!out) return reply(false, undefined, `config_set mode: unknown mode '${value}'`);
+              return reply(true, out);
+            }
+            default:
+              return reply(false, undefined, `config_set: unknown key '${key}' (allowlist: model, thinking, mode)`);
+          }
         }
         case 'modes_read': {
           if (!this.modes?.readProject) return reply(false, undefined, 'modes editor facade unavailable');

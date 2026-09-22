@@ -376,3 +376,84 @@ test('M82: tools-only server connects — prompts/list failure does not block to
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// M130: server pushes notifications/tools/list_changed; the surface hot-
+// refreshes — new tools register, removed tools tombstone to honest errors.
+const LISTCHANGED_SERVER_JS = `
+let buf = ''; let version = 1;
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'lc', version: '0' }, capabilities: { tools: { listChanged: true } } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      const tools = version === 1
+        ? [{ name: 'echo', inputSchema: { type: 'object', properties: {} } }, { name: 'gone', inputSchema: { type: 'object', properties: {} } }]
+        : [{ name: 'echo', inputSchema: { type: 'object', properties: {} } }, { name: 'fresh', inputSchema: { type: 'object', properties: {} } }];
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools } }) + '\\n');
+    } else if (msg.method === 'tools/call') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: 'ok:' + msg.params?.name }] } }) + '\\n');
+      // deterministic trigger: the first tools/call flips the catalog and
+      // pushes list_changed AFTER the response, so the client refresh races nothing
+      if (version === 1) {
+        version = 2;
+        setTimeout(() => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' }) + '\\n'), 30);
+      }
+    } else if (msg.id != null) {
+      // a real MCP server answers unknown methods with Method-not-found —
+      // silence would just hang the client's request until timeout
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32601, message: 'method not found: ' + msg.method } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('M130: notifications/tools/list_changed hot-refreshes — new tool registers, removed tool tombstones', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-lc-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, LISTCHANGED_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { lc: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    const pi = fakePi();
+    try {
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__lc__gone') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(pi.tools.has('mcp__lc__echo') && pi.tools.has('mcp__lc__gone'), 'v1 catalog registered');
+      // trigger the server-side catalog swap deterministically via a tool call
+      const kick = await pi.tools.get('mcp__lc__echo').execute('t0', {}, null);
+      assert.match(kick.content[0].text, /ok:echo/);
+      // wait for the pushed notification → refresh → v2 catalog
+      while (!pi.tools.has('mcp__lc__fresh') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(pi.tools.has('mcp__lc__fresh'), 'new tool registered after list_changed');
+      // 'gone' stays registered (pi has no unregister) but fails closed
+      const gone = await pi.tools.get('mcp__lc__gone').execute('t1', {}, null);
+      assert.equal(gone.isError, true);
+      assert.match(gone.content[0].text, /removed by server/);
+      // surviving tool still calls through
+      const ok = await pi.tools.get('mcp__lc__echo').execute('t2', {}, null);
+      assert.match(ok.content[0].text, /ok:echo/);
+    } finally {
+      // always shut the client down — a failed assertion must not leave the
+      // fake server's keepalive interval holding the child process open
+      await pi.handlers.get('session_shutdown')?.();
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

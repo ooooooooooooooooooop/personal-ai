@@ -1,4 +1,36 @@
 /**
+ * Shared governed mode switch (M131): one ask-card → applyMode path used by
+ * both the mode_request tool and recipe frontmatter `mode:` fields. Returns
+ * { ok, text } — callers render the outcome into their own tool result.
+ */
+export async function requestModeSwitch({ catalogModes, applyMode, asks, name, reason = '', toolCallId = null }) {
+  const catalog = catalogModes();
+  if (!catalog.includes(name)) {
+    return { ok: false, text: `unknown mode '${name}' — available: ${catalog.join(', ')}` };
+  }
+  if (!asks?.ask) {
+    return { ok: false, text: 'no operator channel — mode switch unavailable' };
+  }
+  const answer = await asks.ask({
+    toolName: 'mode_request',
+    toolCallId,
+    rule: 'mode_request',
+    summary: `agent 请求切换到 '${name}' 模式`,
+    detail: String(reason ?? '').slice(0, 500) || null,
+    args: { name },
+    argsTruncated: false,
+    argsTotalChars: null,
+  });
+  if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+    return { ok: false, text: `mode '${name}' refused (${answer}) — continue under the current mode` };
+  }
+  const r = applyMode(name);
+  return r
+    ? { ok: true, text: `mode switched to '${r.mode}'` }
+    : { ok: false, text: `mode '${name}' failed to apply` };
+}
+
+/**
  * mode_request — model-side governed mode transition (Claude ExitPlanMode
  * analogue). The model may REQUEST a switch; the operator approves it on an
  * ask card and applyMode performs it through the same audited path as the
@@ -28,30 +60,13 @@ export function modeRequestTool({ catalogModes, applyMode, asks }) {
     },
     async execute(_id, p) {
       const name = String(p?.name ?? '').trim();
-      const catalog = catalogModes();
-      if (!catalog.includes(name)) {
-        return { content: [{ type: 'text', text: `mode_request: unknown mode '${name}' — available: ${catalog.join(', ')}` }], isError: true };
-      }
-      if (!asks?.ask) {
-        return { content: [{ type: 'text', text: 'mode_request unavailable: no operator channel' }], isError: true };
-      }
-      const answer = await asks.ask({
-        toolName: 'mode_request',
-        toolCallId: _id,
-        rule: 'mode_request',
-        summary: `agent 请求切换到 '${name}' 模式`,
-        detail: String(p?.reason ?? '').slice(0, 500) || null,
-        args: { name },
-        argsTruncated: false,
-        argsTotalChars: null,
+      const r = await requestModeSwitch({
+        catalogModes, applyMode, asks, name,
+        reason: String(p?.reason ?? ''), toolCallId: _id,
       });
-      if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
-        return { content: [{ type: 'text', text: `mode_request '${name}' refused (${answer}) — continue under the current mode` }], isError: true };
-      }
-      const r = applyMode(name);
-      return r
-        ? { content: [{ type: 'text', text: `mode switched to '${r.mode}'` }] }
-        : { content: [{ type: 'text', text: `mode_request '${name}' failed to apply` }], isError: true };
+      return r.ok
+        ? { content: [{ type: 'text', text: r.text }] }
+        : { content: [{ type: 'text', text: `mode_request: ${r.text}` }], isError: true };
     },
   };
 }
