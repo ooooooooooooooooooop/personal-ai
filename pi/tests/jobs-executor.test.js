@@ -3,7 +3,7 @@
  * cold-start a new executor over the same db, recoveryTick must RESUME it
  * under a new attempt. Plus long-command classifier + delegate tool surface.
  */
-import { mkdtempSync, existsSync, writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, existsSync, writeFileSync, readFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
@@ -450,6 +450,44 @@ test('sandbox provider wraps the spawned command via argv spec and audits it', {
   }
   assert.ok(existsSync(marker), 'sandbox spec was spawned instead of the bare command');
   assert.ok(auditEvents.some((e) => e.kind === 'JOB_SANDBOXED' && e.data.provider === 'test-wrap'));
+});
+
+test('canonical artifacts are written atomically — no tmp debris, clean parse', { timeout: 15_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-atomic-'));
+  const { store, executor } = rig(dir);
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo ATOMIC_OK', workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 1500));
+  assert.equal(store.getJob(job_id).job_state, 'COMPLETED');
+  const files = readdirSync(join(dir, 'jobs'));
+  assert.ok(!files.some((f) => f.includes('.tmp-')), `tmp debris left behind: ${files.join(', ')}`);
+  // both artifacts are whole, parseable JSON (a torn write would break the
+  // checkpoint's only consumer: recovery → REVIEW_REQUIRED)
+  const attempt = store.getAttempts(job_id)[0];
+  JSON.parse(readFileSync(attempt.checkpoint_ref, 'utf-8'));
+  JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
+  store.close();
+});
+
+test('a torn checkpoint (legacy non-atomic crash) escalates to REVIEW_REQUIRED, never crashes recovery', { timeout: 15_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-tornck-'));
+  const { store } = rig(dir);
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: tmpdir() });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'dead_host', workerType: 'child_process',
+    workerIdentity: { pid: 999999, host: 'local' }, workspaceRef: tmpdir(),
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, '{"checkpoint_version":1,"job_id":"'); // torn tail of an interrupted write
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  store.close(); // "host died" mid-window
+
+  const { store: store2, executor: ex2 } = rig(dir);
+  const actions = ex2.recover({ workdir: tmpdir() });
+  const act = actions.find((a) => a.job_id === job.job_id);
+  assert.equal(act?.action_type, 'REVIEW_REQUIRED');
+  assert.match(act?.reason ?? '', /checkpoint corrupted/);
+  assert.equal(store2.getJob(job.job_id).job_state, 'WAITING_EVENT');
+  store2.close();
 });
 
 // ─── F-family AgentTask mailbox — real two-way bridge streams ───────────

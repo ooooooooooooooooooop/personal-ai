@@ -76,6 +76,38 @@ test('refused spawn does not consume the fire — retried next tick', async () =
   }
 });
 
+test('fire-time policy gate (M90-R2 parity): a command denied by CURRENT policy is consumed + audited, never spawned', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const store = new ScheduleStore(dir, () => now);
+  const spawned = [];
+  const executor = {
+    preflightCommand: async (spec) => {
+      assert.equal(spec.command, 'old-command');
+      assert.equal(spec.job_type, 'scheduled');
+      return { block: true, rule: 'risk_dangerous', reason: 'policy tightened since create' };
+    },
+    spawnCommandJob: async (spec) => { spawned.push(spec); return { job_id: 'never' }; },
+  };
+  store.add({ command: 'old-command', run_at: now - 1000 });
+  const auditRows = [];
+  const pump = startSchedulerPump({
+    store, executor, workdir: dir, intervalMs: 60_000,
+    audit: { write: (e) => auditRows.push(e) },
+  });
+  try {
+    await pump.tick();
+    assert.equal(spawned.length, 0, 'denied command never reaches the executor');
+    assert.equal(store.due().length, 0, 'policy refusal consumes the fire — no infinite retry storm');
+    assert.ok(auditRows.some((e) => e.kind === 'SCHEDULE_REFUSED_POLICY' && e.data.rule === 'risk_dangerous'));
+    // and the next tick does NOT retry it (stable denial, not a storm)
+    await pump.tick();
+    assert.equal(spawned.length, 0);
+  } finally {
+    pump.dispose();
+  }
+});
+
 test('prompt schedules fire through the governed sink with goal context', async () => {
   const { dir, audit } = rig();
   let now = 1_000_000;

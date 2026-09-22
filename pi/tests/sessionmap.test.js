@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { sessionReadTool } from '../src/adapter/sessionsearch.js';
@@ -32,6 +32,19 @@ test('session_read returns bounded tail, untrusted-wrapped, dir-confined', async
     const bad = await tool.execute('t', { path: p });
     assert.equal(bad.isError, true, p);
   }
+});
+
+test('session_read: a symlink inside the session dir pointing outside is refused (A1 realpath parity)', async (t) => {
+  const sd = dir();
+  const outside = dir();
+  writeFileSync(join(outside, 'secret.jsonl'), JSON.stringify({ message: { role: 'user', content: 'outside-secret' } }));
+  const linkDir = join(sd, 'linked');
+  // junction works without admin on Windows — same pattern as writeboundary tests
+  try { symlinkSync(outside, linkDir, 'junction'); } catch { t.skip('no symlink privilege'); return; }
+  const tool = sessionReadTool({ sessionDir: sd });
+  const r = await tool.execute('t', { path: join(linkDir, 'secret.jsonl') });
+  assert.equal(r.isError, true, 'lexically-inside symlink must not escape confinement');
+  assert.ok(!JSON.stringify(r).includes('outside-secret'));
 });
 
 test('repo_map tool wraps the builder; subdir traversal refused', async () => {

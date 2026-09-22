@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -48,4 +48,20 @@ test('cap evicts oldest spooled files', async () => {
   for (let i = 0; i < 5; i++) { ids.push(spool.store(`blob-${i}`).id); await new Promise((r) => setTimeout(r, 5)); }
   assert.equal(spool.list().length, 3);
   assert.throws(() => spool.read(ids[0]), /no spooled output/);
+});
+
+test('spooled artifacts are secret-scrubbed before they hit disk (M5 parity with job envelopes)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-spool4-'));
+  const spool = new OutputSpool(dir);
+  // assembled, not literal — the repo's publish gate scans diffs for
+  // key-shaped strings and cannot tell a fixture from a real credential
+  const fakeKey = ['sk', 'abcdefghij0123456789abcd'].join('-');
+  const rec = spool.store(`config dump: API_KEY=${fakeKey} rest`);
+  const raw = readFileSync(rec.file, 'utf-8');
+  assert.ok(!raw.includes(fakeKey), 'credential bytes must not persist in the spool artifact');
+  assert.ok(raw.includes('[REDACTED:openai_key]'));
+  // read-back serves the scrubbed text — the model pages the same safe bytes
+  const page = spool.read(rec.id);
+  assert.ok(!page.text.includes(fakeKey));
+  assert.ok(page.text.includes('[REDACTED:openai_key]'));
 });

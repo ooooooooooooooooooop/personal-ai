@@ -113,6 +113,20 @@ export function startSchedulerPump({ store, executor, workdir, audit = null, get
         audit?.write({ kind: 'GOAL_TICK_FIRED', data: { id: s.id, goal_id: s.goal_id } });
         continue;
       }
+      // M90-R2 parity with job restart: a persisted schedule fires under
+      // TODAY'S hard policy, not the policy that admitted it at create time —
+      // policy may have tightened while the entry sat in the store. A policy
+      // refusal CONSUMES the fire (markFired + loud audit): the denial is
+      // stable until policy changes, and leaving the entry due would retry
+      // the same denied command every tick forever.
+      const gate = await executor.preflightCommand?.({
+        command: s.command, workdir, job_type: 'scheduled', budget_scope: getScope?.() ?? null,
+      });
+      if (gate?.block) {
+        store.markFired(s.id, null);
+        audit?.write({ kind: 'SCHEDULE_REFUSED_POLICY', data: { id: s.id, rule: gate.rule, reason: gate.reason } });
+        continue;
+      }
       const r = await executor.spawnCommandJob({
         command: s.command,
         workdir,

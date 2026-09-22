@@ -42,6 +42,27 @@ function errResult(text) {
   return { content: [{ type: 'text', text }], isError: true };
 }
 
+/**
+ * Bounded body reader — the size cap must be enforced DURING the read, not
+ * after: `res.arrayBuffer()` buffers the whole response first, so a hostile
+ * or buggy server streaming gigabytes would OOM the host before the cap ever
+ * fired (the timeout bounds seconds, not bytes — a fast link fills RAM in
+ * one window). Content-length is checked up front; the stream itself is cut
+ * at cap+1 byte for chunked/no-length responses.
+ */
+async function readBodyCapped(res, cap) {
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > cap) return { overflow: true, bytes: declared };
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of res.body) {
+    total += chunk.length;
+    if (total > cap) return { overflow: true, bytes: total };
+    chunks.push(chunk);
+  }
+  return { buf: Buffer.concat(chunks) };
+}
+
 const normalizeHostLiteral = (h) =>
   String(h ?? '').toLowerCase().replace(/^\[|\]$/g, '');
 
@@ -255,10 +276,12 @@ export function webFetchTool({ timeoutMs = DEFAULT_TIMEOUT_MS, maxChars = DEFAUL
             return errResult(`web_fetch refused: more than ${MAX_REDIRECT_HOPS} redirects`);
           }
         }
-        const buf = Buffer.from(await res.arrayBuffer());
-        if (buf.length > MAX_BODY_BYTES) {
-          return errResult(`response too large (${buf.length} bytes > ${MAX_BODY_BYTES}) — fetch a narrower resource`);
+        const body = await readBodyCapped(res, MAX_BODY_BYTES);
+        if (body.overflow) {
+          ctrl.abort(); // sever the stream — do not let the socket dribble on
+          return errResult(`response too large (> ${MAX_BODY_BYTES} bytes) — fetch a narrower resource`);
         }
+        const buf = body.buf;
         const ctype = res.headers.get('content-type') ?? '';
         if (!res.ok) return errResult(`HTTP ${res.status} ${res.statusText} — ${htmlToText(buf.toString('utf-8')).slice(0, 500)}`);
         let text = /html|xml/.test(ctype) ? htmlToText(buf.toString('utf-8')) : buf.toString('utf-8');

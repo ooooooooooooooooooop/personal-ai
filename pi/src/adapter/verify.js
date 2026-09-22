@@ -18,18 +18,27 @@ import { join } from 'node:path';
 const BURST_MS = 5_000;
 const OUT_CAP = 64 * 1024;
 
-function runBounded(command, cwd, timeoutMs) {
+function runBounded(command, cwd, timeoutMs, envOverlay) {
   return new Promise((resolveP) => {
     let child;
     try {
-      child = spawn(command, { shell: true, cwd, windowsHide: true });
+      child = spawn(command, { shell: true, cwd, windowsHide: true, env: { ...process.env, ...(envOverlay?.() ?? {}) } });
     } catch (e) {
       resolveP({ code: -1, output: String(e?.message ?? e) });
       return;
     }
     let out = '';
     let killed = false;
-    const timer = setTimeout(() => { killed = true; child.kill('SIGTERM'); }, timeoutMs);
+    const timer = setTimeout(() => {
+      killed = true;
+      // shell:true → the tracked pid is the cmd.exe wrapper; killing it alone
+      // orphans the real verifier (a hung `npm run lint` would live on past
+      // the timeout). Same tree-kill discipline as the durable-job executor.
+      if (process.platform === 'win32') {
+        try { spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true, stdio: 'ignore' }); }
+        catch { child.kill(); }
+      } else child.kill('SIGTERM');
+    }, timeoutMs);
     const eat = (d) => { if (out.length < OUT_CAP) out += d.toString('utf-8'); };
     child.stdout.on('data', eat);
     child.stderr.on('data', eat);
@@ -41,7 +50,7 @@ function runBounded(command, cwd, timeoutMs) {
   });
 }
 
-export function createVerifier({ workdir, classify, riskActions, audit = null, emit = null, observations = null }) {
+export function createVerifier({ workdir, classify, riskActions, audit = null, emit = null, observations = null, envOverlay = null }) {
   const configPath = join(workdir, '.pai', 'verify.json');
   let lastRun = 0;
 
@@ -89,7 +98,7 @@ export function createVerifier({ workdir, classify, riskActions, audit = null, e
 
       lastRun = now;
       const timeoutMs = Number(cfg.timeoutMs) > 0 ? Math.min(Number(cfg.timeoutMs), 300_000) : 60_000;
-      const r = await runBounded(command, workdir, timeoutMs);
+      const r = await runBounded(command, workdir, timeoutMs, envOverlay);
       audit?.write({ kind: 'VERIFY_RUN', data: { command: command.slice(0, 200), code: r.code, origin } });
       emit?.({ type: 'verify_result', command, ok: r.code === 0 });
       if (r.code !== 0) {

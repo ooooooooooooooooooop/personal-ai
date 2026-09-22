@@ -191,6 +191,18 @@ export class BrowserSession {
     await this.cdp.call('Page.navigate', { url: String(u) }, sid);
     await loaded;
     await new Promise((r) => setTimeout(r, NAV_SETTLE_MS));
+    // Post-landing blocklist check: the pre-flight check saw the REQUESTED
+    // url, but a redirect chain can land the page on a blocked host — the
+    // documented contract is "the current page's host, not just the
+    // requested URL". Back out to about:blank so click/type/eval never run
+    // against a blocked page that navigate itself delivered.
+    const landed = await this.currentHost();
+    const landedBlocked = landed ? this.#checkHost(`https://${landed}`) : null;
+    if (landedBlocked) {
+      await this.cdp.call('Page.navigate', { url: 'about:blank' }, sid).catch(() => { /* backing out is best-effort */ });
+      this.audit?.write({ kind: 'BROWSER_NAVIGATE_REFUSED', data: { url: String(u), landed_host: landed } });
+      throw new Error(landedBlocked);
+    }
     this.audit?.write({ kind: 'BROWSER_NAVIGATE', data: { url: String(u) } });
     return this.#eval('JSON.stringify({url:location.href,title:document.title})')
       .then((s) => JSON.parse(s ?? '{}'));

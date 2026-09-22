@@ -95,3 +95,20 @@ test('runNow: unconfigured reports cleanly; gated command still refused', async 
   const r1 = await v2.verify.runNow();
   assert.equal(r1.refused, true);
 });
+
+test('timeout tree-kills the verifier — the grandchild process does not outlive it', { timeout: 20_000 }, async () => {
+  const { workdir, verify, arm, emitted } = fixture();
+  // the verifier's child records its OWN pid (the grandchild of our process,
+  // behind the shell wrapper) then hangs — a wrapper-only kill orphans it
+  arm({ onWrite: `node -e "require('fs').writeFileSync('verify-grandchild.pid',String(process.pid));setTimeout(()=>{},30000)"`, timeoutMs: 800 });
+  const r = await verify.runNow();
+  assert.equal(r.ok, false);
+  assert.equal(emitted.at(-1).ok, false);
+  const { readFileSync, existsSync } = await import('node:fs');
+  const pidFile = join(workdir, 'verify-grandchild.pid');
+  assert.ok(existsSync(pidFile), 'grandchild started and recorded its pid');
+  const pid = Number(readFileSync(pidFile, 'utf-8'));
+  let alive = true;
+  try { process.kill(pid, 0); } catch { alive = false; }
+  assert.equal(alive, false, `grandchild pid ${pid} must be tree-killed, not orphaned`);
+});

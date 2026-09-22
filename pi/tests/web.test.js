@@ -20,6 +20,41 @@ test('web_fetch refuses non-http protocols and bad URLs', async () => {
   assert.match((await t.execute('c', { url: 'not a url' })).content[0].text, /valid URL/);
 });
 
+test('web_fetch enforces the body cap DURING the read — declared and streamed overflow both refused', async () => {
+  // declared overflow: content-length alone must refuse before the body streams
+  const big1 = await serve((req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain', 'content-length': 5 * 1024 * 1024 });
+    res.write('x'.repeat(1024)); // only a sliver sent — refusal must not wait for 5MB
+    // deliberately never end: if the client waited for the body, it would hang
+    setTimeout(() => { try { res.end(); } catch { /* aborted */ } }, 5000);
+  });
+  try {
+    const t = webFetchTool({ timeoutMs: 8000 });
+    const r = await t.execute('c', { url: `http://127.0.0.1:${big1.port}/huge` });
+    assert.equal(r.isError, true);
+    assert.match(r.content[0].text, /too large/, 'declared length refused pre-read');
+  } finally { big1.server.close(); }
+
+  // streamed overflow: no content-length — the cap must cut the stream mid-flight
+  const big2 = await serve((req, res) => {
+    res.writeHead(200, { 'content-type': 'text/plain' }); // chunked — no length
+    const chunk = Buffer.alloc(64 * 1024, 'y');
+    let sent = 0;
+    const push = () => {
+      if (sent >= 2 * 1024 * 1024 || !res.writable) { try { res.end(); } catch { /* gone */ } return; }
+      sent += chunk.length;
+      res.write(chunk, push);
+    };
+    push();
+  });
+  try {
+    const t = webFetchTool({ timeoutMs: 8000 });
+    const r = await t.execute('c', { url: `http://127.0.0.1:${big2.port}/stream` });
+    assert.equal(r.isError, true);
+    assert.match(r.content[0].text, /too large/, 'mid-stream overflow cut at the cap');
+  } finally { big2.server.close(); }
+});
+
 test('web_fetch strips markup and reports status', async () => {
   const { server, port } = await serve((req, res) => {
     res.setHeader('content-type', 'text/html');

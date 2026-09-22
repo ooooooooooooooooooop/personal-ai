@@ -10,7 +10,7 @@
  * These wrappers wrap the tool call args the kernel already admitted — they do
  * NOT replace the guard; they make admitted mutations recoverable.
  */
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { appendFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { withFileMutationQueue } from '@earendil-works/pi-coding-agent';
@@ -20,13 +20,52 @@ import { createHash, randomUUID } from 'node:crypto';
 export class FileOpsGuard {
   /**
    * @param {string} instanceRoot — recycle/ backups/ ops-log live here
+   * @param {object} [opts]
+   * @param {number} [opts.artifactCap=200] — retained artifacts PER store
+   *        (backups/, recycle/); oldest evicted first. Unbounded growth would
+   *        eventually fill the disk on a long-lived instance; undo surfaces
+   *        already degrade honestly when an artifact is gone (recoverable:false
+   *        in list(), 'artifact gone' in diff()), so eviction is safe.
    */
-  constructor(instanceRoot) {
+  constructor(instanceRoot, { artifactCap = 200 } = {}) {
     this.root = instanceRoot;
     this.recycleDir = join(instanceRoot, 'recycle');
     this.backupDir = join(instanceRoot, 'backups');
     this.opsLog = join(instanceRoot, 'fileops.jsonl');
+    this.artifactCap = artifactCap;
     for (const d of [this.recycleDir, this.backupDir]) mkdirSync(d, { recursive: true });
+  }
+
+  /**
+   * Move a file OR directory into an artifact store. renameSync fails with
+   * EXDEV when the workspace and the instance root sit on different volumes
+   * (a multi-drive Windows box is the norm, not the edge) — fall back to
+   * copy+remove so a cross-volume delete/restore-displace still works.
+   */
+  #moveTree(src, dest) {
+    try {
+      renameSync(src, dest);
+    } catch (e) {
+      if (e?.code !== 'EXDEV') throw e;
+      cpSync(src, dest, { recursive: true });
+      rmSync(src, { recursive: true, force: true });
+    }
+  }
+
+  /** Evict oldest artifacts beyond the cap; receipted as purge (invisible to undo). */
+  #sweep(dirPath) {
+    let files;
+    try {
+      files = readdirSync(dirPath)
+        .map((f) => ({ p: join(dirPath, f), m: statSync(join(dirPath, f)).mtimeMs }))
+        .sort((a, b) => a.m - b.m);
+    } catch { return; } // store unreadable — sweep is best-effort
+    for (const f of files.slice(0, Math.max(0, files.length - this.artifactCap))) {
+      try {
+        rmSync(f.p, { recursive: true, force: true });
+        this.#log({ op: 'purge', target: f.p, swept: true });
+      } catch { /* locked artifact — next sweep retries */ }
+    }
   }
 
   /**
@@ -38,9 +77,13 @@ export class FileOpsGuard {
     return withFileMutationQueue(abs, async () => {
       if (!existsSync(abs)) throw new Error(`delete target missing: ${abs}`);
       const receiptId = `fo-${randomUUID().slice(0, 8)}`;
-      const dest = join(this.recycleDir, `${Date.now()}-${basename(abs)}`);
-      renameSync(abs, dest);
+      // receiptId in the artifact name: same-basename files mutated within the
+      // same millisecond (multi_edit across dirs) must not overwrite each
+      // other's backups — a silent clobber here corrupts a LATER restore.
+      const dest = join(this.recycleDir, `${Date.now()}-${receiptId}-${basename(abs)}`);
+      this.#moveTree(abs, dest);
       this.#log({ receiptId, op: 'delete', target: abs, recycledTo: dest, toolCallId });
+      this.#sweep(this.recycleDir);
       return { recycled: dest, receiptId };
     });
   }
@@ -61,9 +104,10 @@ export class FileOpsGuard {
         return { backup: null, receiptId };
       }
       const preSha = createHash('sha256').update(readFileSync(abs)).digest('hex');
-      const backup = join(this.backupDir, `${Date.now()}-${basename(abs)}`);
+      const backup = join(this.backupDir, `${Date.now()}-${receiptId}-${basename(abs)}`);
       copyFileSync(abs, backup);
       this.#log({ receiptId, op: 'backup', target: abs, backup, preSha, toolCallId });
+      this.#sweep(this.backupDir);
       return { backup, receiptId };
     });
   }
@@ -80,12 +124,13 @@ export class FileOpsGuard {
       let preSha = null;
       if (existsSync(abs)) {
         preSha = createHash('sha256').update(readFileSync(abs)).digest('hex');
-        backup = join(this.backupDir, `${Date.now()}-${basename(abs)}`);
+        backup = join(this.backupDir, `${Date.now()}-${receiptId}-${basename(abs)}`);
         copyFileSync(abs, backup);
       }
       mkdirSync(dirname(abs), { recursive: true });
       writeFileSync(abs, content);
       this.#log({ receiptId, op: 'write', target: abs, backup, preSha, toolCallId });
+      if (backup) this.#sweep(this.backupDir);
       return { backup, receiptId };
     });
   }
@@ -106,9 +151,11 @@ export class FileOpsGuard {
         throw new Error(`receipt ${receiptId} has no recoverable artifact`);
       }
       if (existsSync(op.target)) {
-        const dest = join(this.recycleDir, `${Date.now()}-${basename(op.target)}`);
-        renameSync(op.target, dest);
-        this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore', target: op.target, removedTo: dest });
+        const rid = `fo-${randomUUID().slice(0, 8)}`;
+        const dest = join(this.recycleDir, `${Date.now()}-${rid}-${basename(op.target)}`);
+        this.#moveTree(op.target, dest);
+        this.#log({ receiptId: rid, op: 'restore', target: op.target, removedTo: dest });
+        this.#sweep(this.recycleDir);
       }
       return op.target;
     }
@@ -118,9 +165,11 @@ export class FileOpsGuard {
     // they are recycled before the overwrite, so a restore is itself
     // recoverable instead of destroying un-receipted work.
     if (existsSync(op.target)) {
-      const dest = join(this.recycleDir, `${Date.now()}-${basename(op.target)}`);
-      renameSync(op.target, dest);
-      this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore-displace', target: op.target, removedTo: dest });
+      const rid = `fo-${randomUUID().slice(0, 8)}`;
+      const dest = join(this.recycleDir, `${Date.now()}-${rid}-${basename(op.target)}`);
+      this.#moveTree(op.target, dest);
+      this.#log({ receiptId: rid, op: 'restore-displace', target: op.target, removedTo: dest });
+      this.#sweep(this.recycleDir);
     }
     copyFileSync(source, op.target);
     this.#log({ receiptId: `fo-${randomUUID().slice(0, 8)}`, op: 'restore', target: op.target, from: source });
@@ -187,7 +236,11 @@ export class FileOpsGuard {
 
   #ops() {
     if (!existsSync(this.opsLog)) return [];
-    return readFileSync(this.opsLog, 'utf-8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    // per-line tolerance: a torn tail row (crash mid-append) must not kill the
+    // ENTIRE undo surface — restore/undoFrom/diff all parse through here.
+    return readFileSync(this.opsLog, 'utf-8').split('\n').filter(Boolean)
+      .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .filter(Boolean);
   }
 
   /** Receipted ops newest-first, plain data for the channel's fileops facade. */

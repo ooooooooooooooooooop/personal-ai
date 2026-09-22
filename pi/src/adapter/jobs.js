@@ -11,10 +11,23 @@
  * and the job continues across process restarts via recoveryTick.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 import { SandboxProvider, SandboxUnavailableError } from '../../../host/src/core/sandbox.js';
+
+/**
+ * Crash-safe artifact write: tmp + rename (same discipline as host
+ * prediction.js #persist). Checkpoints, result envelopes, and queue specs are
+ * read back by recovery/restart/pump code whose only torn-write defence is
+ * "degrade to REVIEW_REQUIRED / fail the job" — a single unlucky crash window
+ * must not cost a job its resumability or fail a queued job that never ran.
+ */
+function writeJsonAtomic(path, obj) {
+  const tmp = `${path}.tmp-${process.pid}`;
+  writeFileSync(tmp, JSON.stringify(obj, null, 2));
+  renameSync(tmp, path);
+}
 
 /** PID liveness probe — the injected worker-alive check for recoveryTick. */
 export function isWorkerAlive(identity) {
@@ -65,7 +78,7 @@ export class JobExecutor {
    *        covers the durable-job surface only — foreground tool calls execute
    *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null, preflightCommand = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null, preflightCommand = null, envOverlay = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -81,6 +94,9 @@ export class JobExecutor {
     // M90-R2: restart re-runs CURRENT hard policy on the persisted replay
     // spec — (spec) => Promise<decision|undefined>; .block refuses.
     this.preflightCommand = preflightCommand;
+    // M121: () => plain-object session env overlay — consulted per spawn so
+    // env_set edits reach the next child without rebuilding the executor.
+    this.envOverlay = envOverlay;
     this.running = new Map(); // jobId → live child process (in-proc attempts only)
     mkdirSync(jobsDir, { recursive: true });
   }
@@ -253,7 +269,7 @@ export class JobExecutor {
         });
         const spec = { command, workdir, jobType, authorizedRoot, budgetScope, budgetCommitted, timeoutMs, worktree, sandbox };
         try {
-          writeFileSync(this.#queueSpecPath(job.job_id), JSON.stringify(spec, null, 2));
+          writeJsonAtomic(this.#queueSpecPath(job.job_id), spec);
         } catch (e) {
           this.store.failJob(job.job_id, `queue spec could not be persisted: ${e.message}`);
           return { refused: true, reason: `depends_on: queue spec write failed (${e.message})`, job_id: job.job_id };
@@ -480,16 +496,23 @@ export class JobExecutor {
       this.audit?.write({ kind: 'JOB_SANDBOX_REFUSED', data: { job_id: jobId, attempt_id: attemptId, reason, parent_run_id: this.runId } });
       return null;
     }
+    // M121 session env overlay: merges over the operator env at spawn time —
+    // later env_set edits reach the next job without a rebuild. Injection
+    // keys were refused at set-time inside SessionEnv itself.
+    const envOverlay = this.envOverlay?.() ?? {};
+    const spawnOpts = { cwd: spec.cwd, windowsHide: true, env: { ...process.env, ...envOverlay } };
     const child = spec.shell
-      ? spawn(spec.file, { cwd: spec.cwd, windowsHide: true, shell: true })
-      : spawn(spec.file, spec.args, { cwd: spec.cwd, windowsHide: true });
+      ? spawn(spec.file, { ...spawnOpts, shell: true })
+      : spawn(spec.file, spec.args, spawnOpts);
     if (provider?.kind && provider.kind !== 'none') {
       this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: provider.kind, container: spec.containerName ?? null } });
     }
     this.running.set(jobId, child);
 
-    // machine checkpoint — the resumability contract
-    writeFileSync(checkpointPath, JSON.stringify({
+    // machine checkpoint — the resumability contract (atomic: recovery has no
+    // fallback for a torn checkpoint — it would escalate a healthy job to
+    // REVIEW_REQUIRED instead of resuming it)
+    writeJsonAtomic(checkpointPath, {
       checkpoint_version: 1,
       job_id: jobId,
       attempt_id: attemptId,
@@ -526,7 +549,7 @@ export class JobExecutor {
         budget_scope: budgetScope,
         budget_committed: budgetCommitted,
       },
-    }, null, 2));
+    });
     this.store.recordCheckpoint(jobId, attemptId, checkpointPath);
 
     // worker identity now knows the real pid
@@ -629,7 +652,7 @@ export class JobExecutor {
             this.audit?.write({ kind: 'JOB_WORKTREE_KEPT', data: { job_id: jobId, attempt_id: attemptId, path: worktreeKept, parent_run_id: this.runId } });
           }
         }
-        writeFileSync(resultPath, JSON.stringify({
+        writeJsonAtomic(resultPath, {
           attempt_id: attemptId, job_id: jobId,
           exit_code: code, signal,
           // scrub before persist (M5): child stdout/stderr may echo
@@ -640,7 +663,7 @@ export class JobExecutor {
           ...(provider?.kind && provider.kind !== 'none' ? { sandbox: provider.kind } : {}),
           parent_run_id: this.runId, // usage attribution: child work bills to parent
           finished_at: new Date().toISOString(),
-        }, null, 2));
+        });
         this.store.recordResult(jobId, attemptId, resultPath);
         this.store.releaseLease(jobId, this.store.getLease(jobId)?.lease_id);
         // CANCELLED is terminal — a cancelled worker's exit must NOT overwrite

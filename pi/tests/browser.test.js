@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { browserTools } from '../src/adapter/browser.js';
+import { browserTools, BrowserSession } from '../src/adapter/browser.js';
 
 const NAMES = ['browser_navigate', 'browser_read', 'browser_click', 'browser_type', 'browser_eval', 'browser_screenshot'];
 
@@ -53,4 +53,33 @@ test('blocklist refuses navigation to blocked hosts before any launch', async ()
   assert.equal(r2.isError, true);
   assert.match(r2.content[0].text, /http\/https/);
   tools.dispose();
+});
+
+test('redirect onto a blocked host is refused AFTER landing — the page is backed out to about:blank', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const audits = [];
+  const s = new BrowserSession({
+    exe: 'fake', profileDir: join(dir, 'prof'),
+    audit: { write: (e) => audits.push(e) }, blockedHosts: ['evil.test'],
+  });
+  // stub the live-session state — no real browser launch
+  const navigations = [];
+  s.proc = { killed: false };
+  s.sessionId = 'sid';
+  s.cdp = {
+    waitEvent: () => Promise.resolve({}),
+    call: async (method, params) => {
+      if (method === 'Page.navigate') { navigations.push(params.url); return {}; }
+      if (method === 'Runtime.evaluate') {
+        // the requested URL passed pre-flight; the redirect chain landed on evil.test
+        if (params.expression === 'location.hostname') return { result: { value: 'evil.test' } };
+        return { result: { value: null } };
+      }
+      return {};
+    },
+  };
+  await assert.rejects(() => s.navigate('https://ok.example/'), /blocklist/);
+  assert.ok(navigations.includes('about:blank'), 'blocked landing page backed out');
+  assert.ok(audits.some((e) => e.kind === 'BROWSER_NAVIGATE_REFUSED' && e.data.landed_host === 'evil.test'));
+  assert.ok(!audits.some((e) => e.kind === 'BROWSER_NAVIGATE'), 'a refused landing is not audited as a successful navigation');
 });

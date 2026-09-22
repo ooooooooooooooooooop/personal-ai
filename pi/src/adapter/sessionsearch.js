@@ -15,7 +15,7 @@
  * the session directory (the path comes from a search hit, not the model's
  * imagination).
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, realpathSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 
 export function sessionReadTool({ sessionDir }) {
@@ -37,7 +37,18 @@ export function sessionReadTool({ sessionDir }) {
     async execute(_id, p) {
       const file = resolve(String(p?.path ?? ''));
       const root = resolve(sessionDir);
-      if (!file.startsWith(root + sep) || !file.endsWith('.jsonl')) {
+      // A1 parity: confinement is checked on the REAL path, not the lexical
+      // one — a symlink inside the session dir pointing outside must not turn
+      // this tool into an arbitrary-file read. realpath failure (dangling
+      // link, missing file) fails closed.
+      let realFile; let realRoot;
+      try {
+        realRoot = realpathSync(root);
+        realFile = realpathSync(file);
+      } catch {
+        return { content: [{ type: 'text', text: 'session_read: cannot read session file' }], isError: true };
+      }
+      if (!realFile.startsWith(realRoot + sep) || !file.endsWith('.jsonl')) {
         return { content: [{ type: 'text', text: 'session_read: path must be a .jsonl inside the session directory' }], isError: true };
       }
       const last = Math.min(Math.max(1, Number(p?.last) || 20), 60);

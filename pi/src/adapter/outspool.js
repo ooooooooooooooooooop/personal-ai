@@ -15,6 +15,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 const DEFAULT_THRESHOLD = 64 * 1024; // bytes — above this a text block externalizes
 const SPOOL_CAP = 50;                // retained files; oldest evicted first
@@ -33,7 +34,10 @@ export class OutputSpool {
     const id = `out-${randomUUID().slice(0, 12)}`;
     const file = join(this.dir, `${id}.txt`);
     const header = `# tool=${toolName} call=${toolCallId ?? '-'} at=${new Date().toISOString()}\n`;
-    writeFileSync(file, header + text);
+    // M5 parity with job result envelopes: the spool file is a long-lived
+    // artifact on disk — tool output may echo credentials, so known secret
+    // shapes are scrubbed before the bytes land (artifact ≠ secret store).
+    writeFileSync(file, header + redactSecrets(text));
     this.#evict();
     return { id, bytes: Buffer.byteLength(text), file };
   }
