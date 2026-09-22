@@ -55,3 +55,16 @@ test('corrupt lease file → held() null, never throws', async () => {
   assert.equal(l.held(), null);
   assert.equal(l.acquire('job:a').ok, true);
 });
+
+test('acquire/renew/release are atomic — no tmp or claim debris beside the lease file', async () => {
+  const l = rig({ ttlMs: 30 });
+  l.acquire('job:a');
+  l.renew('job:a');
+  await new Promise((r) => setTimeout(r, 50)); // expire -> stale-claim path (unlink+link)
+  assert.equal(l.acquire('job:b').ok, true);
+  l.release('job:b');
+  const { readdirSync } = await import('node:fs');
+  const dir = l.file.slice(0, -'lease.json'.length);
+  const debris = readdirSync(dir).filter((f) => f.includes('.tmp') || f.includes('.claim-'));
+  assert.deepEqual(debris, []);
+});

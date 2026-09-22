@@ -1189,3 +1189,90 @@ test('depends_on: dep-queued jobs survive recoveryTick untouched while deps stil
   assert.ok(dead, 'operator-cancel of a dep cascades to the queued dependent');
   store.close();
 });
+
+test('PARK-UNWIND: a lease-blocked resume leaves NO phantom attempt carrying our own pid', { timeout: 30_000 }, async () => {
+  // Regression: recoveryTick's startAttempt stamps OUR pid as placeholder
+  // worker identity before onRespawn runs. A parked resume left it standing —
+  // the next sweep probed that pid (alive: it's the host), took the orphan
+  // path, saw the lease held elsewhere, and KILLED THE HOST PROCESS.
+  const dir = mkdtempSync(join(tmpdir(), 'pai-park-'));
+  const { store } = rig(dir);
+  const workdir = tmpdir();
+  const leasePath = join(dir, 'ws-lease.json');
+  // a rival mutating job holds the workspace lease
+  const rival = new WorkspaceWriteLease(leasePath, { ttlMs: 60_000 });
+  rival.acquire('job:rival', { command: 'other work' });
+
+  const sleeper = spawn('node', ['-e', 'setTimeout(()=>{},60000)'], { windowsHide: true });
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: workdir });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'dead_host', workerType: 'child_process',
+    workerIdentity: { pid: sleeper.pid, host: 'local' }, workspaceRef: workdir,
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, JSON.stringify({
+    checkpoint_version: 1, job_id: job.job_id, attempt_id,
+    input_identity: `sha256:${sleepCmd(60_000)}`, authorized_root: workdir,
+    algorithm_version: '1.0.0', next_operation: 'await_exit',
+    created_at: new Date().toISOString(), pid: sleeper.pid, mutating: true,
+  }));
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  sleeper.kill();
+  await new Promise((r) => setTimeout(r, 400));
+
+  const store2 = new JobStore(join(dir, 'durable_jobs.db'));
+  const lease2 = new WorkspaceWriteLease(leasePath, { ttlMs: 60_000 });
+  const auditRows = [];
+  const executor2 = new JobExecutor(store2, join(dir, 'jobs'), {
+    writeLease: lease2, audit: { write: (r) => auditRows.push(r) },
+  });
+  const actions = executor2.recover({ workdir });
+  assert.equal(actions.find((a) => a.job_id === job.job_id).action_type, 'RESUME_ATTEMPT');
+  assert.ok(auditRows.some((r) => r.kind === 'JOB_PARKED'), 'park audited');
+  // the phantom attempt is unwound: dead, and carrying NO pid (never ours)
+  const attempts = store2.getAttempts(job.job_id);
+  const parked = attempts.at(-1);
+  assert.equal(parked.worker_state, 'EXITED_ERROR');
+  assert.equal(JSON.parse(parked.worker_identity).pid, undefined);
+  // job returned to CHECKPOINTED so a later sweep retries the resume
+  assert.equal(store2.getJob(job.job_id).job_state, 'CHECKPOINTED');
+  // a second sweep retries (and parks again) instead of probing our own pid —
+  // this test process surviving the call is the assertion that matters
+  const again = executor2.recover({ workdir });
+  assert.equal(again.find((a) => a.job_id === job.job_id).action_type, 'RESUME_ATTEMPT');
+  rival.release('job:rival');
+  store.close(); store2.close();
+});
+
+test('resume carries the original wall-clock ceiling — a timed job does not lose its timeout after recovery', { timeout: 30_000 }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-resumeto-'));
+  const { store } = rig(dir);
+  const workdir = tmpdir();
+  const sleeper = spawn('node', ['-e', 'setTimeout(()=>{},60000)'], { windowsHide: true });
+  const job = store.createJob({ jobType: 'shell_command', authorizedRoot: workdir });
+  const { attempt_id } = store.startAttempt({
+    jobId: job.job_id, writerId: 'dead_host', workerType: 'child_process',
+    workerIdentity: { pid: sleeper.pid, host: 'local' }, workspaceRef: workdir,
+  });
+  const ckPath = join(dir, 'jobs', `${attempt_id}.checkpoint.json`);
+  writeFileSync(ckPath, JSON.stringify({
+    checkpoint_version: 1, job_id: job.job_id, attempt_id,
+    input_identity: `sha256:${sleepCmd(60_000)}`, authorized_root: workdir,
+    algorithm_version: '1.0.0', next_operation: 'await_exit',
+    created_at: new Date().toISOString(), pid: sleeper.pid, mutating: false,
+    restart_spec: { command: sleepCmd(60_000), workdir, timeout_ms: 400, worktree: false, sandbox: { kind: 'none' } },
+  }));
+  store.recordCheckpoint(job.job_id, attempt_id, ckPath);
+  sleeper.kill();
+  await new Promise((r) => setTimeout(r, 400));
+
+  const store2 = new JobStore(join(dir, 'durable_jobs.db'));
+  const executor2 = new JobExecutor(store2, join(dir, 'jobs'));
+  executor2.recover({ workdir });
+  await new Promise((r) => setTimeout(r, 1800)); // past the 400ms ceiling
+  assert.equal(store2.getJob(job.job_id).job_state, 'FAILED');
+  const evs = store2.getEvents(job.job_id);
+  assert.ok(evs.some((e) => e.event_type === 'JOB_FAILED' && e.payload_json.includes('timeout')),
+    'failure reason names the wall-clock timeout');
+  store.close(); store2.close();
+});

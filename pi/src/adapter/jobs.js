@@ -716,12 +716,38 @@ export class JobExecutor {
         if (this.writeLease) {
           const acq = this.writeLease.acquire(leaseHolder, { attemptId, resumed: true });
           if (!acq.ok) {
+            // UNWIND the phantom attempt: recoveryTick already ran startAttempt
+            // for this resume, recording OUR OWN pid as the placeholder worker
+            // identity. Left standing, the next sweep probes that pid (alive —
+            // it's us), takes the onAlive orphan path, sees the lease held by
+            // another job, and KILLS OUR OWN PROCESS. Mark the attempt dead and
+            // hand the job back to CHECKPOINTED so the next sweep retries the
+            // resume once the lease holder finishes.
+            try {
+              this.store.db.prepare('UPDATE attempts SET worker_identity = ? WHERE attempt_id = ?')
+                .run('{}', attemptId);
+              this.store.updateWorkerState(attemptId, 'EXITED_ERROR', -1);
+              if (job.checkpoint_ref) this.store.recordCheckpoint(job.job_id, attemptId, job.checkpoint_ref);
+            } catch { /* store closed — next boot's sweep retries anyway */ }
             this.audit?.write({
               kind: 'JOB_PARKED',
               data: { job_id: job.job_id, attempt_id: attemptId, reason: `workspace write lease held by '${acq.heldBy.holder}'`, parent_run_id: this.runId },
             });
             return;
           }
+        }
+        // Resume under the ORIGINAL execution contract: a docker/wsl/ssh job
+        // that crashes and recovers must not silently drop to the host shell,
+        // and a timed job must not lose its wall-clock ceiling. Both ride the
+        // restart_spec persisted at first launch (legacy checkpoints without
+        // one fall back to ambient — historical behavior).
+        const rs = checkpoint?.restart_spec ?? null;
+        let resumedProvider = null;
+        const sb = rs?.sandbox;
+        if (sb && typeof sb === 'object' && sb.kind && sb.kind !== 'none') {
+          try { resumedProvider = new SandboxProvider(sb.kind, sb); } catch { resumedProvider = null; }
+        } else if (sb && typeof sb === 'object' && sb.kind === 'none') {
+          resumedProvider = false; // explicit unsandboxed contract — never adopt a changed ambient
         }
         this.executeAttempt(job.job_id, attemptId, {
           command: cmd,
@@ -730,7 +756,9 @@ export class JobExecutor {
           mutating: true,
           budgetScope: checkpoint?.budget_scope ?? null,
           budgetCommitted: checkpoint?.budget_committed === true,
-          restartSpecCarry: checkpoint?.restart_spec ?? null,
+          timeoutMs: rs?.timeout_ms ?? null,
+          sandboxProvider: resumedProvider,
+          restartSpecCarry: rs,
         });
         this.audit?.write({
           kind: 'JOB_RECOVERED',
@@ -748,6 +776,11 @@ export class JobExecutor {
         const holder = `job:${job.job_id}`;
         let workerPid = null;
         try { workerPid = JSON.parse(attempt.worker_identity)?.pid ?? null; } catch { /* fallthrough */ }
+        // Our own pid here is a RESPAWN PLACEHOLDER (recoveryTick stamps it
+        // before the real child exists), not an orphan worker — adopting it
+        // would renew a lease for a worker that doesn't exist, and the kill
+        // branch below would terminate the host itself.
+        if (!workerPid || workerPid === process.pid) return;
         // was this job mutating? the checkpoint remembers (missing field on
         // pre-lease-era jobs → conservative: treat as mutating)
         let mutating = true;
