@@ -22,6 +22,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomInt } from 'node:crypto';
+import { resolveChecked } from './web.js';
 
 const CMD_TIMEOUT_MS = 20_000;
 const NAV_SETTLE_MS = 900;
@@ -99,12 +100,16 @@ class Cdp {
 }
 
 export class BrowserSession {
-  /** @param {object} o {exe, profileDir, audit, blockedHosts[]} */
-  constructor({ exe, profileDir, audit = null, blockedHosts = [] }) {
+  /** @param {object} o {exe, profileDir, audit, blockedHosts[], resolveHost?}
+   *  resolveHost(host, allowlist) → Promise<{ok, reason?}> — the M63/M66 DNS
+   *  boundary, same as web_fetch (injectable for tests; default is the real
+   *  resolver). */
+  constructor({ exe, profileDir, audit = null, blockedHosts = [], resolveHost = resolveChecked }) {
     this.exe = exe;
     this.profileDir = profileDir;
     this.audit = audit;
     this.blocked = blockedHosts;
+    this.resolveHost = resolveHost;
     this.proc = null;
     this.cdp = null;
     this.sessionId = null;
@@ -133,26 +138,37 @@ export class BrowserSession {
       'about:blank',
     ], { windowsHide: true, stdio: 'ignore' });
     this.proc.on('exit', () => { this.sessionId = null; this.targetId = null; });
-    // DevTools endpoint is reachable once /json/version answers
-    const versionUrl = `http://127.0.0.1:${port}/json/version`;
-    let wsUrl = null;
-    for (let i = 0; i < 60 && !wsUrl; i++) {
-      try {
-        const r = await fetch(versionUrl, { signal: AbortSignal.timeout(1000) });
-        if (r.ok) wsUrl = (await r.json()).webSocketDebuggerUrl;
-      } catch { /* not up yet */ }
-      if (!wsUrl) await new Promise((r) => setTimeout(r, 400));
+    try {
+      // DevTools endpoint is reachable once /json/version answers
+      const versionUrl = `http://127.0.0.1:${port}/json/version`;
+      let wsUrl = null;
+      for (let i = 0; i < 60 && !wsUrl; i++) {
+        try {
+          const r = await fetch(versionUrl, { signal: AbortSignal.timeout(1000) });
+          if (r.ok) wsUrl = (await r.json()).webSocketDebuggerUrl;
+        } catch { /* not up yet */ }
+        if (!wsUrl) await new Promise((r) => setTimeout(r, 400));
+      }
+      if (!wsUrl) throw new Error('browser devtools endpoint never came up');
+      this.cdp = await Cdp.connect(wsUrl);
+      const { targetId } = await this.cdp.call('Target.createTarget', { url: 'about:blank' });
+      this.targetId = targetId;
+      const { sessionId } = await this.cdp.call('Target.attachToTarget', { targetId, flatten: true });
+      this.sessionId = sessionId;
+      await this.cdp.call('Page.enable', {}, sessionId);
+      await this.cdp.call('Runtime.enable', {}, sessionId);
+      this.audit?.write({ kind: 'BROWSER_LAUNCH', data: { exe: this.exe, port } });
+      return sessionId;
+    } catch (e) {
+      // A failed attach must not orphan the browser process — the next call
+      // would spawn ANOTHER instance on a fresh port while this one idles
+      // forever holding its profile dir.
+      try { this.proc?.kill(); } catch { /* already dead */ }
+      this.proc = null;
+      try { this.cdp?.close(); } catch { /* */ }
+      this.cdp = null;
+      throw e;
     }
-    if (!wsUrl) throw new Error('browser devtools endpoint never came up');
-    this.cdp = await Cdp.connect(wsUrl);
-    const { targetId } = await this.cdp.call('Target.createTarget', { url: 'about:blank' });
-    this.targetId = targetId;
-    const { sessionId } = await this.cdp.call('Target.attachToTarget', { targetId, flatten: true });
-    this.sessionId = sessionId;
-    await this.cdp.call('Page.enable', {}, sessionId);
-    await this.cdp.call('Runtime.enable', {}, sessionId);
-    this.audit?.write({ kind: 'BROWSER_LAUNCH', data: { exe: this.exe, port } });
-    return sessionId;
   }
 
   #checkHost(urlish) {
@@ -161,6 +177,24 @@ export class BrowserSession {
     if (host && this.blocked.some((b) => host === b || host.endsWith(`.${b}`))) {
       return `host '${host}' is on the operator blocklist (PAI_BROWSER_BLOCKED)`;
     }
+    return null;
+  }
+
+  /**
+   * Full per-host gate: operator blocklist FIRST (cheap, no DNS), then the
+   * M63/M66 DNS boundary — without it the browser was the SSRF bypass around
+   * web_fetch: navigate to http://169.254.169.254/latest/meta-data (or a
+   * public name resolving private) and browser_read pulls instance
+   * credentials straight into the transcript. Local dev stays usable:
+   * localhost / *.localhost names and private-range LITERALS pass, exactly
+   * like web_fetch's local-harness baseline. Fail-closed on resolver error.
+   */
+  async #hostGate(host) {
+    const blocked = this.#checkHost(`https://${host}`);
+    if (blocked) return blocked;
+    const r = await this.resolveHost(host, null)
+      .catch((e) => ({ ok: false, reason: `DNS check error: ${e?.message ?? e}` }));
+    if (!r.ok) return `host '${host}' refused at the DNS boundary: ${r.reason ?? 'unresolvable'}`;
     return null;
   }
 
@@ -184,20 +218,24 @@ export class BrowserSession {
     if (u.protocol !== 'http:' && u.protocol !== 'https:') {
       throw new Error(`browser_navigate only handles http/https (got ${u.protocol})`);
     }
-    const blocked = this.#checkHost(String(u));
-    if (blocked) throw new Error(blocked);
+    // Pre-flight gate BEFORE any launch: blocklist + DNS boundary.
+    const preflight = await this.#hostGate(u.hostname);
+    if (preflight) {
+      this.audit?.write({ kind: 'BROWSER_NAVIGATE_REFUSED', data: { url: String(u), reason: preflight.slice(0, 200) } });
+      throw new Error(preflight);
+    }
     const sid = await this.#ensure();
     const loaded = this.cdp.waitEvent('Page.loadEventFired', sid, CMD_TIMEOUT_MS);
     await this.cdp.call('Page.navigate', { url: String(u) }, sid);
     await loaded;
     await new Promise((r) => setTimeout(r, NAV_SETTLE_MS));
-    // Post-landing blocklist check: the pre-flight check saw the REQUESTED
-    // url, but a redirect chain can land the page on a blocked host — the
-    // documented contract is "the current page's host, not just the
-    // requested URL". Back out to about:blank so click/type/eval never run
-    // against a blocked page that navigate itself delivered.
+    // Post-landing gate: the pre-flight check saw the REQUESTED url, but a
+    // redirect chain can land the page on a blocked host OR a name resolving
+    // to a forbidden address — the documented contract is "the current page's
+    // host, not just the requested URL". Back out to about:blank so
+    // click/type/eval never run against a refused page navigate delivered.
     const landed = await this.currentHost();
-    const landedBlocked = landed ? this.#checkHost(`https://${landed}`) : null;
+    const landedBlocked = landed ? await this.#hostGate(landed) : null;
     if (landedBlocked) {
       await this.cdp.call('Page.navigate', { url: 'about:blank' }, sid).catch(() => { /* backing out is best-effort */ });
       this.audit?.write({ kind: 'BROWSER_NAVIGATE_REFUSED', data: { url: String(u), landed_host: landed } });
@@ -209,11 +247,11 @@ export class BrowserSession {
   }
 
   async read(selector = null, maxChars = READ_CAP) {
-    // Reading is a content exfil path too — a page sitting on a blocked
-    // host (delivered by an earlier pre-check bypass or a click-driven
-    // navigation) must not have its content pulled into the transcript.
+    // Reading is a content exfil path too — a page sitting on a refused host
+    // (JS/meta-refresh navigation no tool call saw) must not have its content
+    // pulled into the transcript.
     const host = await this.currentHost();
-    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    const blocked = host ? await this.#hostGate(host) : null;
     if (blocked) throw new Error(blocked);
     const expr = selector
       ? `(document.querySelector(${JSON.stringify(selector)})?.innerText ?? '')`
@@ -230,7 +268,7 @@ export class BrowserSession {
 
   async click(selector) {
     const host = await this.currentHost();
-    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    const blocked = host ? await this.#hostGate(host) : null;
     if (blocked) throw new Error(blocked);
     const r = await this.#eval(
       `(()=>{const el=document.querySelector(${JSON.stringify(selector)});` +
@@ -243,7 +281,7 @@ export class BrowserSession {
     // about:blank so no further action (or read) runs on that page.
     await new Promise((res) => setTimeout(res, NAV_SETTLE_MS));
     const landed = await this.currentHost();
-    const landedBlocked = landed ? this.#checkHost(`https://${landed}`) : null;
+    const landedBlocked = landed ? await this.#hostGate(landed) : null;
     if (landedBlocked) {
       if (this.sessionId) {
         await this.cdp.call('Page.navigate', { url: 'about:blank' }, this.sessionId)
@@ -258,7 +296,7 @@ export class BrowserSession {
 
   async type(selector, text) {
     const host = await this.currentHost();
-    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    const blocked = host ? await this.#hostGate(host) : null;
     if (blocked) throw new Error(blocked);
     const sid = await this.#ensure();
     const focused = await this.#eval(
@@ -272,7 +310,7 @@ export class BrowserSession {
 
   async evaluate(expression) {
     const host = await this.currentHost();
-    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    const blocked = host ? await this.#hostGate(host) : null;
     if (blocked) throw new Error(blocked);
     const v = await this.#eval(`(${expression})`);
     this.audit?.write({ kind: 'BROWSER_EVAL', data: { preview: String(expression).slice(0, 120) } });
@@ -283,7 +321,7 @@ export class BrowserSession {
 
   async screenshot(outPath) {
     const host = await this.currentHost();
-    const blocked = host ? this.#checkHost(`https://${host}`) : null;
+    const blocked = host ? await this.#hostGate(host) : null;
     if (blocked) throw new Error(blocked);
     const sid = await this.#ensure();
     const { data } = await this.cdp.call('Page.captureScreenshot', { format: 'png' }, sid);

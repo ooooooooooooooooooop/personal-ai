@@ -11,6 +11,9 @@ import { tmpdir } from 'node:os';
 import { browserTools, BrowserSession } from '../src/adapter/browser.js';
 
 const NAMES = ['browser_navigate', 'browser_read', 'browser_click', 'browser_type', 'browser_eval', 'browser_screenshot'];
+// Fake hosts (ok.example, evil.test) never resolve — tests inject an
+// always-pass resolver and exercise the REAL DNS boundary separately.
+const passResolve = async () => ({ ok: true });
 
 test('no browser binary → no tools registered (unconfigured = not advertised)', () => {
   const tools = browserTools({
@@ -61,6 +64,7 @@ test('redirect onto a blocked host is refused AFTER landing — the page is back
   const s = new BrowserSession({
     exe: 'fake', profileDir: join(dir, 'prof'),
     audit: { write: (e) => audits.push(e) }, blockedHosts: ['evil.test'],
+    resolveHost: passResolve,
   });
   // stub the live-session state — no real browser launch
   const navigations = [];
@@ -94,6 +98,7 @@ test('click that navigates onto a blocked host is refused and backed out', async
   const s = new BrowserSession({
     exe: 'fake', profileDir: join(dir, 'prof'),
     audit: { write: (e) => audits.push(e) }, blockedHosts: ['evil.test'],
+    resolveHost: passResolve,
   });
   const navigations = [];
   let host = 'ok.example';
@@ -121,6 +126,7 @@ test('read/screenshot refuse while the page sits on a blocked host', async () =>
   const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
   const s = new BrowserSession({
     exe: 'fake', profileDir: join(dir, 'prof'), blockedHosts: ['evil.test'],
+    resolveHost: passResolve,
   });
   s.proc = { killed: false };
   s.sessionId = 'sid';
@@ -135,4 +141,54 @@ test('read/screenshot refuse while the page sits on a blocked host', async () =>
   };
   await assert.rejects(() => s.read(), /blocklist/);
   await assert.rejects(() => s.screenshot(join(dir, 's.png')), /blocklist/);
+});
+
+// M63/M66 parity: the browser was the SSRF bypass around web_fetch — the
+// metadata endpoint (a link-local LITERAL, no DNS needed) must be refused
+// pre-flight, before any browser launch.
+test('navigate to the link-local metadata address is refused at the DNS boundary', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const audits = [];
+  const s = new BrowserSession({
+    exe: 'fake', profileDir: join(dir, 'prof'),
+    audit: { write: (e) => audits.push(e) },
+    // real resolver — a literal IP needs no DNS and works offline
+  });
+  await assert.rejects(() => s.navigate('http://169.254.169.254/latest/meta-data'), /DNS boundary|forbidden/);
+  assert.ok(audits.some((e) => e.kind === 'BROWSER_NAVIGATE_REFUSED'));
+  assert.ok(!s.proc, 'refused pre-flight — no browser launched');
+});
+
+test('a public name resolving to a private address is refused (DNS pivot)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const s = new BrowserSession({
+    exe: 'fake', profileDir: join(dir, 'prof'),
+    resolveHost: async () => ({ ok: false, reason: `'evil-corp.com' resolves to private/loopback address 10.1.2.3` }),
+  });
+  await assert.rejects(() => s.navigate('https://evil-corp.com/'), /DNS boundary/);
+  assert.ok(!s.proc, 'refused pre-flight — no browser launched');
+});
+
+test('localhost names stay navigable (local dev baseline)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const s = new BrowserSession({
+    exe: 'fake', profileDir: join(dir, 'prof'),
+    resolveHost: passResolve,
+  });
+  s.proc = { killed: false };
+  s.sessionId = 'sid';
+  s.cdp = {
+    waitEvent: () => Promise.resolve({}),
+    call: async (method, params) => {
+      if (method === 'Page.navigate') return {};
+      if (method === 'Runtime.evaluate') {
+        if (params.expression === 'location.hostname') return { result: { value: 'localhost' } };
+        if (params.expression.startsWith('JSON.stringify')) return { result: { value: '{"url":"http://localhost:3000/","title":"dev"}' } };
+        return { result: { value: null } };
+      }
+      return {};
+    },
+  };
+  const r = await s.navigate('http://localhost:3000/');
+  assert.equal(r.title, 'dev');
 });

@@ -12,7 +12,7 @@
  *                           for placeholders (returns ToolResultEventResult)
  *  - outputReadTool     — model-facing slice reader
  */
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
@@ -21,6 +21,11 @@ const DEFAULT_THRESHOLD = 64 * 1024; // bytes — above this a text block extern
 const SPOOL_CAP = 50;                // retained files; oldest evicted first
 const HEAD_BYTES = 2048;             // preview kept inline in the placeholder
 const READ_CAP = 32 * 1024;          // max bytes per output_read slice
+
+/** stat that tolerates the file racing away (returns null instead of throwing). */
+const statOr = (f, pick) => { try { return pick(statSync(f)); } catch { return null; } };
+const statSize = (f) => statOr(f, (s) => s.size);
+const statMtime = (f) => statOr(f, (s) => s.mtimeMs);
 
 export class OutputSpool {
   constructor(dir, { cap = SPOOL_CAP } = {}) {
@@ -37,7 +42,12 @@ export class OutputSpool {
     // M5 parity with job result envelopes: the spool file is a long-lived
     // artifact on disk — tool output may echo credentials, so known secret
     // shapes are scrubbed before the bytes land (artifact ≠ secret store).
-    writeFileSync(file, header + redactSecrets(text));
+    // tmp+rename: a crash mid-write must not leave a truncated file reading
+    // as a VALID spool record (the placeholder says "the full text is on
+    // disk, not lost" — a torn write makes that a lie).
+    const tmp = `${file}.tmp-${process.pid}`;
+    writeFileSync(tmp, header + redactSecrets(text));
+    renameSync(tmp, file);
     this.#evict();
     return { id, bytes: Buffer.byteLength(text), file };
   }
@@ -62,14 +72,19 @@ export class OutputSpool {
 
   list() {
     return readdirSync(this.dir).filter((f) => f.endsWith('.txt'))
-      .map((f) => ({ id: f.slice(0, -4), bytes: statSync(join(this.dir, f)).size }))
+      .map((f) => ({ id: f.slice(0, -4), bytes: statSize(join(this.dir, f)) }))
+      .filter((x) => x.bytes != null)
       .sort((a, b) => b.bytes - a.bytes);
   }
 
   #evict() {
+    // statSync can ENOENT between readdir and stat when another writer (or our
+    // own eviction) raced the file away — tolerate, never throw out of store().
     const files = readdirSync(this.dir).filter((f) => f.endsWith('.txt'))
-      .map((f) => join(this.dir, f))
-      .sort((a, b) => statSync(a).mtimeMs - statSync(b).mtimeMs);
+      .map((f) => ({ f: join(this.dir, f), mtime: statMtime(join(this.dir, f)) }))
+      .filter((x) => x.mtime != null)
+      .sort((a, b) => a.mtime - b.mtime)
+      .map((x) => x.f);
     for (const f of files.slice(0, Math.max(0, files.length - this.cap))) {
       try { unlinkSync(f); } catch { /* eviction best-effort */ }
     }

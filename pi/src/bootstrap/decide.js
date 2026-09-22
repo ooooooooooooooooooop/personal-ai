@@ -374,7 +374,10 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           argsTotalChars: null,
         }, signal);
         core.audit.write({ kind: 'LOOP_DETECT_RESOLVED', toolName, data: { toolCallId: ctx.toolCall?.id, answer } });
-        if (answer === 'allow' || answer === 'allow_session') {
+        // 'always' must count as a grant HERE (batch-9 class): PendingAsks
+        // already persisted the pattern — treating it as a refusal kills this
+        // call while the next identical one auto-allows.
+        if (answer === 'allow' || answer === 'allow_session' || answer === 'always') {
           loopwatch.forgive(v.signature); // operator's allow = scored fresh
         } else {
           return {
@@ -417,7 +420,9 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           argsTotalChars: null,
         }, signal);
         core.audit.write({ kind: 'SECRET_SCAN_RESOLVED', toolName, data: { toolCallId: ctx.toolCall?.id, pattern: hit, answer } });
-        if (answer !== 'allow' && answer !== 'allow_session') {
+        // 'always' is a grant (persisted host-side by PendingAsks) — refusing
+        // it here would be the batch-9 incoherence: grant recorded, call dead.
+        if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
           return {
             block: true,
             rule: 'secret_scan',
@@ -578,7 +583,23 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           // target already gone — let the tool report it
         }
       } else {
-        const { backup, receiptId } = await fileOps.backup(filePath, { toolCallId: ctx.toolCall?.id ?? null });
+        // A failed backup means the mutation would be UNRECOVERABLE — fail
+        // closed. And release the lease FIRST: an uncaught throw here used to
+        // strand the fg hold until TTL (180s), wedging every foreground
+        // mutation behind one transient backup hiccup (locked file, EBUSY).
+        let bk;
+        try {
+          bk = await fileOps.backup(filePath, { toolCallId: ctx.toolCall?.id ?? null });
+        } catch (err) {
+          if (fgHeld) { writeLease.release(fgHolder); fgHeld = false; }
+          core.audit.write({ kind: 'FILEOP_BACKUP_FAILED', toolName, data: { pathHash: hashOf(filePath), error: String(err?.message ?? err).slice(0, 200) } });
+          return {
+            block: true,
+            rule: 'fileops_backup',
+            reason: `pre-write backup failed (${String(err?.message ?? err).slice(0, 200)}) — refusing to mutate without a recoverable snapshot`,
+          };
+        }
+        const { backup, receiptId } = bk;
         if (backup) {
           core.audit.write({ kind: 'FILEOP_BACKUP', toolName, data: { receiptId, pathHash: hashOf(filePath) } });
         } else if (receiptId) {

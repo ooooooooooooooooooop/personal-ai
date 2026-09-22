@@ -60,7 +60,7 @@ export class MonitorRegistry {
         id: r.id, path: r.path, prompt: r.prompt, maxPerHour: r.maxPerHour, createdAt: r.createdAt,
       })),
     };
-    const tmp = `${this.storePath}.tmp`;
+    const tmp = `${this.storePath}.tmp-${process.pid}`; // pid-suffixed: two live writers sharing the bare `.tmp` race (batch-7/8 class)
     try {
       writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
       renameSync(tmp, this.storePath);
@@ -75,7 +75,10 @@ export class MonitorRegistry {
     if (!this.storePath || !existsSync(this.storePath)) return { restored: 0, skipped: 0 };
     let doc;
     try { doc = JSON.parse(readFileSync(this.storePath, 'utf-8')); }
-    catch { return { restored: 0, skipped: 0, error: 'store unreadable' }; }
+    catch (e) {
+      this.audit?.write({ kind: 'MONITOR_RESTORE_FAILED', data: { error: String(e?.message ?? e).slice(0, 120) } });
+      return { restored: 0, skipped: 0, error: 'store unreadable' };
+    }
     let restored = 0; let skipped = 0;
     for (const m of Array.isArray(doc?.monitors) ? doc.monitors : []) {
       if (!m?.path || !m?.prompt) { skipped += 1; continue; }
@@ -92,10 +95,13 @@ export class MonitorRegistry {
     if (!existsSync(abs)) return { error: `watch path not found: ${abs}` };
     if (!String(prompt ?? '').trim()) return { error: 'monitor requires a prompt' };
     const mid = id && !this.monitors.has(id) ? String(id) : `mon-${++this.seq}-${this.now().toString(36)}`;
+    let isDir;
+    try { isDir = statSync(abs).isDirectory(); }
+    catch { return { error: `watch path vanished between check and stat: ${abs}` }; } // existsSync→statSync TOCTOU
     const rec = {
       id: mid, path: abs, prompt: String(prompt).trim().slice(0, 2000),
       maxPerHour: clampCap(maxPerHour),
-      dir: statSync(abs).isDirectory(),
+      dir: isDir,
       watcher: null, firedAt: [], fires: 0, capped: false, _timer: null,
       createdAt: this.now(),
     };

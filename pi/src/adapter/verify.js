@@ -14,6 +14,7 @@
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { scrubHookEnv } from '../../../host/src/core/hooks.js';
 
 const BURST_MS = 5_000;
 const OUT_CAP = 64 * 1024;
@@ -22,7 +23,13 @@ function runBounded(command, cwd, timeoutMs, envOverlay) {
   return new Promise((resolveP) => {
     let child;
     try {
-      child = spawn(command, { shell: true, cwd, windowsHide: true, env: { ...process.env, ...(envOverlay?.() ?? {}) } });
+      // Scrub FIRST, overlay second (M121, same discipline as js_repl and the
+      // observational hooks): the verifier command comes from an AGENT-
+      // WRITABLE config (.pai/verify.json) — a full process.env passthrough
+      // would let `onWrite: "printenv"` lift operator credentials into the
+      // transcript. Policy classification gates the command SHAPE; env
+      // scrubbing closes what shape-classification cannot see.
+      child = spawn(command, { shell: true, cwd, windowsHide: true, env: { ...scrubHookEnv(process.env), ...(envOverlay?.() ?? {}) } });
     } catch (e) {
       resolveP({ code: -1, output: String(e?.message ?? e) });
       return;

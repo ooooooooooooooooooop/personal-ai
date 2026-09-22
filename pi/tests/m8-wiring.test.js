@@ -2,7 +2,7 @@
  * M8 acceptance-gap closure: ToolSurface + FileOpsGuard must be wired into the
  * REAL production decide chain (makeDecide), not just exist as modules.
  */
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -672,4 +672,44 @@ test('stale agent_end: a duplicated end-of-run event without a new start is drop
   events.agent_start();
   await events.agent_end(errMsg, ctx);
   assert.equal(sent.length, 2, 'fresh run is not silenced by the latch');
+});
+
+test("loop escalation answered 'always' is a GRANT (PendingAsks already persisted it)", async () => {
+  const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-loop-always-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const fileOps = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  // batch-9 class: refusing 'always' here kills THIS call while PendingAsks
+  // has already recorded the pattern grant — the next identical call would
+  // auto-allow. 'always' must admit like any other grant.
+  const asks = { ask: async () => 'always' };
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, loopwatch: new LoopDetector({ warnAt: 2, blockAt: 3, escalateAfter: 1 }), asks });
+  const call = () => decide({ toolCall: { name: 'read' }, args: { path: 'a' } });
+  await call(); await call();
+  assert.equal((await call()).block, true); // 3rd → block
+  const r = await call();                    // retried → escalate
+  assert.equal(r, undefined, "'always' must admit the call, not refuse it");
+});
+
+test('a failing pre-write backup blocks the mutation AND releases the fg lease', async () => {
+  const { WorkspaceWriteLease } = await import('../src/adapter/writelease.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-bakfail-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  // backup throws (locked file / EBUSY) — the mutation must fail CLOSED (no
+  // recoverable snapshot, no write) and the lease must NOT strand until TTL:
+  // one transient hiccup used to wedge every foreground mutation for 180s.
+  const fileOps = { backup: async () => { throw new Error('EBUSY: locked'); } };
+  const writeLease = new WorkspaceWriteLease(join(dir, 'lease.json'));
+  const decide = makeDecide({ core, executor: null, fileOps, getSurface: () => null, workdir: dir, writeLease });
+  const r = await decide({ toolCall: { name: 'write', id: 'tcB1' }, args: { path: 'x.txt', content: 'hi' } });
+  assert.equal(r.block, true);
+  assert.equal(r.rule, 'fileops_backup');
+  assert.match(r.reason, /backup failed/);
+  assert.equal(writeLease.held(), null, 'lease released — the mutex is not wedged');
+  const auditRows = readFileSync(join(dir, 'audit', readdirSync(join(dir, 'audit'))[0]), 'utf-8');
+  assert.ok(auditRows.includes('FILEOP_BACKUP_FAILED'));
 });

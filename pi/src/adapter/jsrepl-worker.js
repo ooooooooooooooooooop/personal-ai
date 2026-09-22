@@ -26,7 +26,17 @@ const ctx = vm.createContext(globalThis);
 const cap = (s) => (s.length > OUT_CAP ? s.slice(0, OUT_CAP) + `\n[output capped at ${OUT_CAP} chars]` : s);
 
 const rl = readline.createInterface({ input: process.stdin, terminal: false });
-rl.on('line', async (line) => {
+// STRICTLY SERIAL: the parent allows concurrent js_repl calls (parallel tool
+// calls in one turn), and the stdout/stderr capture below monkey-patches
+// process streams — two interleaved evals would capture each other's patched
+// writer as their "original", then one restore leaves the reply JSON written
+// into a dead buffer: the reply never reaches the parent, the call hangs to
+// timeout, and every later eval's output vanishes. A promise chain forces
+// one eval at a time (the REPL context is shared state anyway).
+let queue = Promise.resolve();
+rl.on('line', (line) => { queue = queue.then(() => evalLine(line)).catch(() => {}); });
+
+async function evalLine(line) {
   let msg;
   try { msg = JSON.parse(line); } catch { return; }
   const { id, code } = msg;
@@ -58,4 +68,4 @@ rl.on('line', async (line) => {
     catch { return String(v); }
   };
   origWrite(JSON.stringify({ id, ok, result: render(result), stdout: cap(stdout), stderr: cap(stderr) }) + '\n');
-});
+}

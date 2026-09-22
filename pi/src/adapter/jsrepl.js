@@ -55,6 +55,11 @@ export function jsReplTool({ workdir, env = process.env, envOverlay = null } = {
       }
     });
     c.stderr.on('data', () => {});
+    // An unhandled 'error' on the child or its stdin CRASHES THE HOST (Node
+    // throws unhandled EventEmitter errors) — a spawn failure (EACCES) or an
+    // EPIPE writing to a dying worker must degrade to a dead-REPL respawn.
+    c.on('error', () => {});
+    c.stdin.on('error', () => {});
     c.on('exit', () => {
       // fail-closed per call: every in-flight eval answers an honest error
       // instead of hanging; the next call respawns the worker fresh.
@@ -89,8 +94,11 @@ export function jsReplTool({ workdir, env = process.env, envOverlay = null } = {
       const code = String(params?.code ?? '');
       if (!code.trim()) return err('js_repl: code is required');
       if (params?.restart === true && child) { child.kill(); child = null; }
-      const c = child ?? spawnWorker();
-      if (child == null) restarts++;
+      // spawnWorker() sets `child` as a side effect, so `child ?? spawnWorker()`
+      // followed by `if (child == null) restarts++` could never count — test
+      // BEFORE spawning.
+      let c = child;
+      if (!c) { restarts++; c = spawnWorker(); }
       const id = ++seq;
       const reply = await new Promise((resolve) => {
         const timer = setTimeout(() => {

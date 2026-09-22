@@ -353,8 +353,21 @@ export function webSearchTool(cfg, { timeoutMs = DEFAULT_TIMEOUT_MS, maxResults 
           },
           body: JSON.stringify({ q, count: Math.min(params.count ?? maxResults, maxResults) }),
         });
-        const body = await res.json().catch(() => null);
+        // Bounded read, same class as web_fetch: res.json() buffers the WHOLE
+        // body first, so a hostile/buggy endpoint streaming gigabytes would
+        // OOM the host — the timeout bounds seconds, not bytes. The endpoint
+        // relays internet content; it is not trusted just because it is
+        // operator-configured.
+        const raw = await readBodyCapped(res, MAX_BODY_BYTES);
+        if (raw.overflow) {
+          ctrl.abort();
+          return errResult(`search response too large (> ${MAX_BODY_BYTES} bytes)`);
+        }
         if (!res.ok) return errResult(`search endpoint HTTP ${res.status} ${res.statusText}`);
+        let body = null;
+        try { body = JSON.parse(raw.buf.toString('utf-8') || 'null'); }
+        catch { return errResult('search endpoint returned invalid JSON'); }
+        if (body == null) return errResult('search endpoint returned no JSON body');
         const rows = (Array.isArray(body) ? body : body?.results ?? body?.items ?? body?.data ?? [])
           .slice(0, maxResults)
           .map((r) => ({
