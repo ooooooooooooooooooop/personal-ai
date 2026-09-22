@@ -1650,3 +1650,23 @@
 | M114 持久 `js_repl` | **MISSING** | Pi body 无持久 JS REPL（他 harness 的 node_repl 不外借） |
 
 测试基线：host 250 / pi 229+1skip 全绿（含 M116/M107/M103 哨兵）。M115 tool-result 媒体可视性、schedule adaptive edit invariant、profile scope drift 仍在审。
+
+### 28.20 外部复审：M115–M124 终裁 + M135/M81 收口（2026-09-22，外部审查会话 6aac8432）
+
+外部审查在 `e011d5d` 上完成 M115–M124 深审并复核 M135/M81 措辞。本轮修复与终裁：
+
+| 项 | 终态 | 证据/修复 |
+|---|---|---|
+| M135 adaptive 调度 edit 漏验 | **落地**（修复完成） | `edit()` 原不重验 min≤every≤max——可把 base 改出 bracket。现抽共享 `validateAdaptive()` 供 add/edit 同用；edit 对最终态重验、拒绝时记录字节不变；once 态边界休眠保留，once→interval 切回时必过闸（哨兵测试覆盖四态） |
+| M115 tool-result 媒体可视性 | **落地**（原 UI CONSUMPTION GAP 修复） | 媒体块此前可到模型但在两个面静默丢失：`session_history` 只抽 text/thinking，`resultText()` 只拼 text 否则 JSON dump。现 history 契约保留受限 `media` 描述符 `{type,mimeType,name}`（不带原始 data/URI，egress 边界不外移）；UI live 结果渲染 `[type mime: name]` 描述符行、replay 在 assistant/toolResult 行输出媒体标签——URI 仅作文本展示绝不自动加载 |
+| M81 命名 profile | **PARTIAL / NAMED RUNTIME PRESET**（外部下调） | 实测快照仅 `{model,thinking,mode,savedAt}`——原「凭证/权限/export/import 预设包」口径未实现。凭据值永不入 profiles.json；若日后扩展只存非密引用（auth ref id / policy preset id / model+thinking） |
+| M117 ignore 兼容族 | **PARTIAL / COMPAT GAP**（诚实终裁） | `.paiignore` 机制真实，但未实现 `.aiignore`/`.clineignore` 兼容；兼容需单调递增的并集限制 + 正确处理否定语义，未有产品要求前不实装、不凑数 |
+| M118 持久 job stdio 生命周期 | **REAL / 限定 durable-job 路径** | `pi/src/adapter/jobs.js` 有真实 child exit/stdin 清理；不外推为全部子进程语义 |
+| M119 live 工具输出 | **REAL** | 实况输出有真执行链；与 replay/history 保真分开记录 |
+| M120 doctor 诊断子系统 | **PARTIAL / VARIANT** | debug/trajectory export 是近邻变体，非完整 doctor（环境体检+修复建议） |
+| M121 会话级 env 注入 | **PARTIAL** | env 注入仅存在于 delegate 子进程路径；无 session-wide env 注入面 |
+| M122 shell 环境快照 | **MISSING** | 无 shell env snapshot；普通 env 处理不构成等价 |
+| M123 bash spawn hook | **MISSING** | PAI body 无内置 bash spawn-hook 接线 |
+| M124 运行时备份导入 | **MISSING** | fileops backup/restore + 离线耐久脚本 ≠ runtime backup import；无外部备份导入面 |
+
+测试基线：host 260 / pi 233+1skip / app 23+1skip 全绿（含 M135-R1 四态哨兵与 M115 媒体描述符哨兵）。

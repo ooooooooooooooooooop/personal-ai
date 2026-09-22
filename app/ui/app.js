@@ -363,10 +363,25 @@ function resultText(result) {
   if (typeof result === 'string') return result;
   const blocks = result?.content;
   if (Array.isArray(blocks)) {
+    const parts = [];
     const t = blocks.filter((b) => b?.type === 'text').map((b) => b.text ?? '').join('\n');
-    if (t) return t;
+    if (t) parts.push(t);
+    // M115: non-text blocks (image/resource) reach the model but used to
+    // silently vanish here. Render a bounded descriptor instead — the URI is
+    // shown as text, never auto-loaded.
+    for (const b of blocks) {
+      if (!b || b.type === 'text') continue;
+      const mime = b.mimeType ?? b.resource?.mimeType ?? '';
+      const label = b.name ?? b.resource?.name ?? b.resource?.uri ?? '';
+      parts.push(`[${b.type}${mime ? ` ${mime}` : ''}${label ? `: ${label}` : ''}]`);
+    }
+    if (parts.length) return parts.join('\n');
   }
   try { return JSON.stringify(result, null, 2); } catch { return String(result); }
+}
+/* media descriptor → one-line label for replayed history (M115) */
+function mediaLabel(md) {
+  return `[${md.type}${md.mimeType ? ` ${md.mimeType}` : ''}${md.name ? `: ${md.name}` : ''}]`;
 }
 const toolRows = new Map();
 let actGroup = null; // .act-group element collecting consecutive tool rows
@@ -788,6 +803,7 @@ function renderHistoryMsg(m) {
     if (m.thinking) addThinking(m.thinking);
     if (m.text) addMsg('assistant', m.text);
     for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
+    for (const md of m.media ?? []) addSys(`媒体块 ${mediaLabel(md)}`);
     if (m.error) addSys(`模型错误：${m.error}`, true);
   } else if (m.role === 'toolResult' || m.role === 'tool_result') {
     // Replayed tool results render as completed tool rows with output.
@@ -804,7 +820,8 @@ function renderHistoryMsg(m) {
       </button>
       <div class="tool-body"><div class="tb-label">输出</div><pre></pre></div>`;
     div.querySelector('.t-name').textContent = `${kind.verb} · ${m.toolName ?? 'tool'}`;
-    const out = (m.text ?? '');
+    const mediaTail = (m.media ?? []).map(mediaLabel).join('\n');
+    const out = (m.text ?? '') + (mediaTail ? `${m.text ? '\n' : ''}${mediaTail}` : '');
     div.querySelector('.tool-body pre').textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
     div.querySelector('.tool-head').onclick = () => div.classList.toggle('open');
     transcript.appendChild(div);

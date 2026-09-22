@@ -170,6 +170,34 @@ test('M135 adaptive validation: partial bounds, non-interval, out-of-range all r
   assert.throws(() => s.add({ command: 'x', every_seconds: 120, min_seconds: 60, max_seconds: 90 }), /min_seconds ≤ every_seconds ≤ max_seconds/);
 });
 
+test('M135-R1: edit re-validates adaptive bounds — out-of-bracket base refused, record unchanged', () => {
+  const s = new ScheduleStore(rig());
+  const rec = s.add({ command: 'x', every_seconds: 120, min_seconds: 60, max_seconds: 960 });
+  // edit base above the max bound → refused, stored record byte-identical
+  const before = JSON.stringify(s.list().find((x) => x.id === rec.id));
+  const bad = s.edit(rec.id, { every_seconds: 2000 });
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /min_seconds ≤ every_seconds ≤ max_seconds/);
+  const after = JSON.stringify(s.list().find((x) => x.id === rec.id));
+  assert.equal(after, before, 'refused edit must not mutate the record');
+  // in-bracket edit still lands
+  const ok = s.edit(rec.id, { every_seconds: 240 });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.rec.every_seconds, 240);
+  // interval → once keeps bounds dormant; editing the once entry is not blocked
+  const once = s.edit(rec.id, { run_at: Date.now() + 60000 });
+  assert.equal(once.ok, true);
+  assert.equal(once.rec.kind, 'once');
+  const lbl = s.edit(rec.id, { label: 'renamed' });
+  assert.equal(lbl.ok, true, 'dormant bounds must not block unrelated edits');
+  // once → interval re-validates: stale bracket incompatible with new base → refuse
+  const back = s.edit(rec.id, { every_seconds: 2000 });
+  assert.equal(back.ok, false, 'switching back to interval must re-validate bounds');
+  const okBack = s.edit(rec.id, { every_seconds: 480 });
+  assert.equal(okBack.ok, true);
+  assert.equal(okBack.rec.kind, 'interval');
+});
+
 test('M135: static entries ignore markQuiet (no adaptive bounds configured)', () => {
   let now = 1_000_000;
   const s = new ScheduleStore(rig(), () => now);

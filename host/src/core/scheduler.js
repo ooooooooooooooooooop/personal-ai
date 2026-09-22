@@ -17,6 +17,25 @@ import { randomUUID } from 'node:crypto';
 export const MIN_INTERVAL_SECONDS = 60;
 export const MAX_SCHEDULES = 50;
 
+/**
+ * M135-R1: single adaptive-rate validator shared by add and edit — the
+ * bounds invariant is min_seconds ≤ every_seconds ≤ max_seconds, both
+ * bounds required together, min ≥ floor. Returns an error string or null.
+ * Only meaningful for interval records; a 'once' record's bounds are
+ * dormant config (validated again if it ever switches back).
+ */
+export function validateAdaptive(rec) {
+  const minS = rec.min_seconds ?? null;
+  const maxS = rec.max_seconds ?? null;
+  if (minS == null && maxS == null) return null;
+  if (rec.every_seconds == null) return 'adaptive rate (min/max_seconds) requires every_seconds';
+  if (minS == null || maxS == null
+      || !(minS >= MIN_INTERVAL_SECONDS && minS <= rec.every_seconds && rec.every_seconds <= maxS)) {
+    return `adaptive rate needs min_seconds ≤ every_seconds ≤ max_seconds (min ≥ ${MIN_INTERVAL_SECONDS})`;
+  }
+  return null;
+}
+
 export class ScheduleStore {
   /**
    * @param {string} instanceRoot
@@ -80,13 +99,8 @@ export class ScheduleStore {
     // silently ignored.
     const minS = min_seconds != null ? Math.floor(Number(min_seconds)) : null;
     const maxS = max_seconds != null ? Math.floor(Number(max_seconds)) : null;
-    const adaptive = minS != null || maxS != null;
-    if (adaptive) {
-      if (interval == null) throw new Error('adaptive rate (min/max_seconds) requires every_seconds');
-      if (minS == null || maxS == null || !(minS >= MIN_INTERVAL_SECONDS && minS <= interval && interval <= maxS)) {
-        throw new Error(`adaptive rate needs min_seconds ≤ every_seconds ≤ max_seconds (min ≥ ${MIN_INTERVAL_SECONDS})`);
-      }
-    }
+    const aerr = validateAdaptive({ kind: interval != null ? 'interval' : 'once', every_seconds: interval, min_seconds: minS, max_seconds: maxS });
+    if (aerr) throw new Error(aerr);
     const rec = {
       id: `sch-${randomUUID().slice(0, 8)}`,
       target: cmd ? 'command' : 'prompt',
@@ -164,6 +178,15 @@ export class ScheduleStore {
     }
     if (rec.target === 'command' && !rec.command) return { ok: false, error: 'command schedule requires a command' };
     if (rec.target === 'prompt' && !rec.prompt) return { ok: false, error: 'prompt schedule requires a prompt' };
+    // M135-R1: edits must re-validate adaptive bounds against the FINAL
+    // record — editing every_seconds outside the min/max bracket used to be
+    // accepted, producing a quiet-tick interval shorter than the new base.
+    // A once-kind entry keeps its bounds dormant; switching back to interval
+    // is exactly when this check fires.
+    if (rec.kind === 'interval') {
+      const aerr = validateAdaptive(rec);
+      if (aerr) return { ok: false, error: aerr };
+    }
     this.#save(schedules);
     return { ok: true, rec };
   }

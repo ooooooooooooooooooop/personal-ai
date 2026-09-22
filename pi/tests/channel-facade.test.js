@@ -76,6 +76,39 @@ test('budget gate: over-limit prompt is refused and billed events emit budget_ex
   dispose();
 });
 
+test('M115: session_history preserves media descriptors — non-text blocks are not dropped', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.messages = [
+    { role: 'user', content: [{ type: 'text', text: 'look' }] },
+    { role: 'toolResult', toolName: 'shot', content: [
+      { type: 'text', text: 'screenshot attached' },
+      { type: 'image', mimeType: 'image/png', data: 'AAAA' },
+      { type: 'resource', resource: { uri: 'mcp://srv/doc', mimeType: 'text/csv', name: 'data.csv' } },
+    ] },
+    { role: 'assistant', content: [{ type: 'text', text: 'done' }] },
+  ];
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-media-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir, root: dir } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  const r = await ch.handle({ type: 'session_history' });
+  const msgs = r.data?.messages ?? r.data;
+  const tr = msgs.find((m) => m.role === 'toolResult');
+  assert.ok(tr, 'toolResult message present');
+  assert.equal(tr.text, 'screenshot attached');
+  assert.deepEqual(tr.media, [
+    { type: 'image', mimeType: 'image/png', name: null },
+    { type: 'resource', mimeType: 'text/csv', name: 'data.csv' },
+  ], 'image/resource blocks survive as bounded descriptors — no raw data/uri');
+  assert.ok(!JSON.stringify(tr.media).includes('AAAA'), 'blob payload never crosses the wire');
+  assert.ok(!JSON.stringify(tr.media).includes('mcp://'), 'resource URI stays in the body');
+  const plain = msgs.find((m) => m.role === 'assistant');
+  assert.equal(plain.media, null, 'text-only messages carry no media field noise');
+  dispose();
+});
+
 test('M71: ephemeral session refuses session_export in every format', async () => {
   fakeSessionRef = fakeSession(); listeners.clear();
   // in-memory session: no file, and exportToHtml WOULD still write one —

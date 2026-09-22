@@ -412,11 +412,22 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       const blocks = Array.isArray(m.content) ? m.content : [];
       const textOf = (type) => blocks.filter((b) => b?.type === type)
         .map((b) => b.text ?? b.thinking ?? '').join('');
+      // M115: media/resource blocks used to be dropped silently from replay.
+      // Preserve bounded descriptors (type + mime + name) so a UI can render
+      // "there was an image" without the body shipping raw URIs across the
+      // egress boundary — consumers decide whether to fetch anything.
+      const media = blocks.filter((b) => b && !['text', 'thinking', 'toolCall', 'tool_use'].includes(b.type))
+        .map((b) => ({
+          type: b.type,
+          mimeType: b.mimeType ?? b.resource?.mimeType ?? null,
+          name: b.name ?? b.resource?.name ?? null,
+        }));
       return {
         role: m.role ?? 'unknown',
         text: textOf('text') || (typeof m.content === 'string' ? m.content : ''),
         thinking: textOf('thinking') || null,
         toolName: m.toolName ?? m.name ?? null,
+        media: media.length ? media : null,
         tools: blocks.filter((b) => b?.type === 'toolCall' || b?.type === 'tool_use')
           .map((b) => b.name ?? b.toolName ?? 'tool'),
         model: m.role === 'assistant' && m.model
