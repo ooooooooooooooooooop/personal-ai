@@ -109,6 +109,7 @@ import { buildRepoMap } from '../../../host/src/core/repomap.js';
 import { specTools } from '../adapter/specs.js';
 import { ScheduleStore } from '../../../host/src/core/scheduler.js';
 import { loadAgentProfiles } from '../adapter/agentprofiles.js';
+import { loadModelRoutes } from '../adapter/modelroutes.js';
 import { createChannelHost } from '../adapter/channel.js';
 import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
@@ -410,7 +411,17 @@ export async function startHost({
     },
   });
 
-  asks = new PendingAsks({ audit: core.audit }, join(core.paths.root, 'always-allow.json'));
+  // PAI_ASK_TIMEOUT_MS — operator lever on the ask auto-deny clock (default
+  // 120s). The timeout is the fail-closed guarantee; how LONG the operator
+  // gets to answer is a policy preference, and env is the same tier the other
+  // budget/governance levers live at. policy.json is NOT used: the attested
+  // checksum would drift on every tweak.
+  const askTimeoutMs = numEnv('PAI_ASK_TIMEOUT_MS');
+  asks = new PendingAsks(
+    { audit: core.audit, ...(askTimeoutMs ? { timeoutMs: askTimeoutMs } : {}) },
+    join(core.paths.root, 'always-allow.json'),
+  );
+  if (askTimeoutMs) core.audit.write({ kind: 'ASK_TIMEOUT_CONFIGURED', data: { timeoutMs: askTimeoutMs } });
 
   // Skill allow-list lives in the INSTANCE root (operator-private), never in
   // .pai/ — a repo-planted file must not decide which repo-planted knowledge
@@ -572,6 +583,8 @@ export async function startHost({
   // governed promptSink as schedule ticks — a busy session refuses.
   const monitors = new MonitorRegistry({
     audit: core.audit,
+    // durable specs: <instance>/monitors.json — restore() re-arms at boot;
+    // a restart used to silently wipe every operator watch
     storePath: join(core.paths.root, 'monitors.json'),
     promptSink: async (msg) => {
       if (!channelHandle || currentSession?.isStreaming) return { refused: 'busy' };
@@ -579,9 +592,7 @@ export async function startHost({
       return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
     },
   });
-  // re-arm persisted watches — promptSink reads channelHandle lazily, so this
-  // is safe before the channel exists. dispose() at shutdown keeps the store.
-  monitors.restore();
+  monitors.restore(); // promptSink reads channelHandle lazily — safe pre-channel
 
   // G-family canonical memory — SQLite + FTS5 recall; pinned rows inject
   // into every context envelope as untrusted evidence.
@@ -683,6 +694,10 @@ export async function startHost({
     // profile env fields only load under the same trust gate as microagents —
     // a repo-planted profile must never steer the delegate child's environment
     profiles: loadAgentProfiles({ workdir, instanceRoot: core.paths.root, workdirTrusted: isTrusted(core.paths.root, workdir) }),
+    // operator-declared model routing (instance-private <instance>/
+    // model-routes.json): fills profile-open model/effort slots — deterministic
+    // rules, never an LLM judge; workdir cannot plant it (spend steering)
+    routes: loadModelRoutes(core.paths.root),
     // every delegation becomes a mailbox-backed AgentTask — the bridge
     // binds --task-dir for real two-way coordination
     taskStore,
@@ -1326,7 +1341,7 @@ export async function startHost({
     // event-driven monitors — operator arms/disarms fs watchers that wake
     // the session through the governed prompt path
     monitors: {
-      add: ({ path, prompt, maxPerHour }) => monitors.add({ path, prompt, maxPerHour }),
+      add: ({ path, prompt }) => monitors.add({ path, prompt }),
       remove: (id) => monitors.remove(id),
       list: () => monitors.list(),
     },

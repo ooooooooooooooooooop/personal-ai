@@ -274,6 +274,12 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           core.audit?.write({ kind: 'ATTACHMENT_REJECTED', data: { rejected } });
         }
       }
+      // Busy-session queueing: AgentSession.prompt THROWS when streaming and
+      // no streamingBehavior is given (SDK contract). An operator prompt sent
+      // mid-run must not bounce — queue it as a follow-up (runs after the
+      // current run stops, SDK-side, so it survives beyond any volatile
+      // client-side queue). Steering is a separate verb (channel 'steer').
+      if (box.s.isStreaming) opts = { ...(opts ?? {}), streamingBehavior: 'followUp' };
       return box.s.prompt(msg, opts);
     },
     steer: (message) => { admitSpend(); return box.s.steer(message); },
@@ -540,7 +546,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     // catalog (models.json merge semantics upsert by id); custom providers
     // must already exist (provider_add owns creation). Model entries get the
     // same conservative defaults as provider_add.
-    addModels: async ({ provider, modelIds }) => {
+    addModels: async ({ provider, modelIds, cost = null }) => {
       const file = join(core.paths.root, 'pi-agent', 'models.json');
       let cfg = { providers: {} };
       if (existsSync(file)) {
@@ -569,7 +575,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         entry.models.push({
           id, name: id, reasoning: false,
           input: ['text'],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(cost ?? {}) },
           contextWindow: 128000, maxTokens: 8192,
         });
         added.push(id);
@@ -735,7 +741,9 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           name: spec.modelName ?? spec.model,
           reasoning: false,
           input: ['text'],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          // zero pricing = dollar budget caps cannot see this traffic; the
+          // operator may declare per-1M-token rates at registration time
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(spec.cost ?? {}) },
           contextWindow: spec.contextWindow ?? 128000,
           maxTokens: spec.maxTokens ?? 8192,
         }],
@@ -781,7 +789,21 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     asks,
     fileops,
     budget: budget ? {
-      status: async () => budget.status(box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown'),
+      status: async () => {
+        const st = budget.status(box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown');
+        // Metering honesty: a dollar cap against a zero-priced model is a
+        // dead limit — custom providers register with cost 0 unless the
+        // operator declares rates. Say so instead of letting the cap look armed.
+        const mc = box.s.model?.cost;
+        const costMetered = Boolean(mc && (mc.input || mc.output || mc.cacheRead || mc.cacheWrite));
+        const warning = st.limits?.maxCostPerSessionUsd && !costMetered
+          ? '配置了美元上限，但当前模型没有定价数据（自定义提供商注册时 cost 默认为 0）——成本上限对这部分流量不可见；token/次数上限仍然有效。可在 provider_add/provider_models_add 用 cost 声明每百万 token 价格'
+          : null;
+        return { ...st, costMetered, ...(warning ? { warning } : {}) };
+      },
+      // cross-scope spend rollup over a window ({since?, until?} epoch ms) —
+      // the operator's "what did the instance burn today" answer
+      rollup: (opts = {}) => budget.rollup(opts),
       // Operator-tier budget dial: hot-mutates the live governor AND persists
       // an override file the bootstrap reads with top precedence (overrides >
       // policy doc > env). The canonical policy.json checksum is untouched —

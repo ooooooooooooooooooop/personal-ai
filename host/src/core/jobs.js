@@ -73,6 +73,12 @@ export class JobStore {
   constructor(dbPath, { defaultTtl = 300 } = {}) {
     if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new DatabaseSync(dbPath);
+    // Multi-process posture: delegated children open the SAME instance store
+    // (delegate bridge passes --instance through). WAL lets readers coexist
+    // with a writer; busy_timeout waits out a sibling's write transaction
+    // instead of failing instantly with SQLITE_BUSY (lease.js precedent).
+    if (dbPath !== ':memory:') this.db.exec('PRAGMA journal_mode = WAL');
+    this.db.exec('PRAGMA busy_timeout = 2000');
     this.db.exec(SCHEMA);
     // M103: existing DBs created before recovery_count existed — idempotent
     // column add so the bounded-recovery gate applies to old stores too.

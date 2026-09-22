@@ -31,6 +31,31 @@ import { dirname, resolve, relative, sep } from 'node:path';
 const PATH_TOOLS = new Set(['read', 'ls', 'edit', 'write', 'delete', 'grep', 'glob']);
 const HINT_CAP = 30;
 
+/**
+ * M100 fallback gate — error-class discrimination. Walking the chain is only
+ * rational when the NEXT provider might succeed where this one failed:
+ * rate limits (429), 5xx/overload, network resets, auth failures (the next
+ * entry carries its OWN credentials), and context overflow (the operator-
+ * ordered chain may hold a bigger-window model — chain order is the
+ * operator's capacity preference, so we honor it).
+ *
+ * A REQUEST-INVARIANT error is different: the provider parsed our envelope
+ * and rejected its SHAPE (400 invalid_request, 422, validation/schema
+ * errors). That envelope is ours — the next provider fails on it identically,
+ * so falling back just burns a hop, silently switches the session model, and
+ * confuses the operator. Skipped with an audit row; the chain stays armed
+ * for real faults.
+ */
+export function isRequestInvariantError(message) {
+  const m = String(message ?? '');
+  return /\binvalid[_ -]?request/i.test(m)
+    || /\bmalformed\b/i.test(m)
+    || /\bstatus(?:\s*code)?\s*4(?:00|22)\b/i.test(m)
+    || /\b4(?:00|22)\s*[(:–-]?\s*(bad request|unprocessable)/i.test(m)
+    || /\b(?:payload|request|body)\b[^.]{0,80}\b(?:fails?|failed)?\s*validation\b/i.test(m)
+    || /\bvalidation (?:error|failed)\b/i.test(m);
+}
+
 export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit, workdir = null, fallbacks = null }) {
   return {
     name: 'pai-loop-governance',
@@ -143,6 +168,19 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
         if (!chain.length || !ctx?.modelRegistry?.find || typeof pi.setModel !== 'function') return;
         const last = [...(event?.messages ?? [])].reverse().find((m) => m?.role === 'assistant');
         if (last?.stopReason !== 'error') return;
+        // request-invariant errors (our envelope's shape, not the provider's
+        // health) fail identically at every chain entry — don't walk
+        if (isRequestInvariantError(last.errorMessage)) {
+          audit.write({
+            kind: 'MODEL_FALLBACK_SKIPPED',
+            data: {
+              from: `${ctx.model?.provider}/${ctx.model?.id}`,
+              reason: 'request-invariant error — the next provider rejects this envelope identically',
+              error: String(last.errorMessage ?? '').slice(0, 300),
+            },
+          });
+          return;
+        }
         const cur = ctx.model;
         const idx = chain.findIndex((e) => e.provider === cur?.provider && e.model === cur?.id);
         for (let i = idx >= 0 ? idx + 1 : 0; i < chain.length && fallbackHops < chain.length; i += 1) {

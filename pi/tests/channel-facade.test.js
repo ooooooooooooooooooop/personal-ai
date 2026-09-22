@@ -851,3 +851,58 @@ test('governance_dryrun: real kernel probe through the channel — verdicts with
   assert.equal(lines.length, 0, 'dry-runs wrote no audit events');
   dispose();
 });
+
+test('busy-session prompt queues as followUp instead of throwing (SDK contract)', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-q-'));
+  const core = { paths: { auditDir: join(dir, 'audit') } };
+  mkdirSync(core.paths.auditDir, { recursive: true });
+  const seen = [];
+  fakeSessionRef.prompt = async (m, o) => {
+    seen.push([m, o]);
+    // the real SDK throws when streaming without streamingBehavior
+    if (fakeSessionRef.isStreaming && !o?.streamingBehavior) throw new Error('streaming and no streamingBehavior specified');
+  };
+  const { channel: ch } = createChannelHost({ session: fakeSessionRef, core });
+
+  const idle = await ch.handle({ type: 'prompt', message: 'first' });
+  assert.equal(idle.success, true);
+  assert.equal(seen.at(-1)[1]?.streamingBehavior, undefined, 'idle prompt carries no queueing override');
+
+  fakeSessionRef.isStreaming = true;
+  const busy = await ch.handle({ type: 'prompt', message: 'while you work' });
+  assert.equal(busy.success, true, 'busy prompt is queued, not bounced');
+  assert.equal(seen.at(-1)[1].streamingBehavior, 'followUp');
+});
+
+test('budget status flags a dollar cap that cannot see an unpriced model', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-b-'));
+  const core = { paths: { auditDir: join(dir, 'audit'), root: dir } };
+  mkdirSync(core.paths.auditDir, { recursive: true });
+  const { BudgetGovernor } = await import('../../host/src/core/budget.js');
+  const budget = new BudgetGovernor({
+    ledgerPath: join(dir, 'budget-ledger.jsonl'),
+    limits: { maxCostPerSessionUsd: 5 },
+  });
+  // custom-provider posture: model carries zero pricing
+  fakeSessionRef.model = { provider: 'cpa', id: 'local-x', cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } };
+  const { channel: ch } = createChannelHost({ session: fakeSessionRef, core, budget });
+  const st = await ch.handle({ type: 'budget_status' });
+  assert.equal(st.success, true);
+  assert.equal(st.data.costMetered, false);
+  assert.match(st.data.warning, /成本上限对这部分流量不可见/, 'dead dollar cap is surfaced, not silent');
+
+  // priced model → cap is real, no warning
+  fakeSessionRef.model = { provider: 'openai', id: 'gpt-5', cost: { input: 2.5, output: 10, cacheRead: 0, cacheWrite: 0 } };
+  const st2 = await ch.handle({ type: 'budget_status' });
+  assert.equal(st2.data.costMetered, true);
+  assert.equal(st2.data.warning, undefined);
+
+  // unpriced model but no dollar cap configured → nothing to warn about
+  const budget2 = new BudgetGovernor({ ledgerPath: join(dir, 'l2.jsonl'), limits: { maxTokensPerSession: 1000 } });
+  const { channel: ch2 } = createChannelHost({ session: fakeSessionRef, core, budget: budget2 });
+  fakeSessionRef.model = { provider: 'cpa', id: 'local-x', cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } };
+  const st3 = await ch2.handle({ type: 'budget_status' });
+  assert.equal(st3.data.warning, undefined);
+});

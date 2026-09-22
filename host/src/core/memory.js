@@ -2,7 +2,11 @@
  * MemoryStore (G-family) — canonical SQLite memory for the instance.
  *
  * Design contract (external ruling + OpenClaw/Hermes references):
- *  - canonical store is SQLite: `memory` table + FTS5 recall index
+ *  - canonical store is SQLite: `memory` table + FTS5 recall index.
+ *    The FTS index is JS-managed (no content triggers) because unicode61
+ *    treats an unbroken CJK run as ONE token — indexing space-joined CJK
+ *    bigrams (the Elasticsearch cjk-analyzer approach) restores substring
+ *    recall for Chinese/Japanese/Korean text; see segmentForFts.
  *  - write path is scanned for secrets BEFORE the row lands (shared
  *    scanForSecrets pattern set) and deduped on normalized text
  *  - pinned/core rows are injected into the context envelope as UNTRUSTED
@@ -25,21 +29,21 @@ CREATE TABLE IF NOT EXISTS memory (
   pinned INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0,
   created TEXT NOT NULL, updated TEXT NOT NULL
 );
-CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(text, content='memory', content_rowid='rowid');
-CREATE TRIGGER IF NOT EXISTS memory_ai AFTER INSERT ON memory BEGIN
-  INSERT INTO memory_fts(rowid, text) VALUES (new.rowid, new.text);
-END;
-CREATE TRIGGER IF NOT EXISTS memory_ad AFTER DELETE ON memory BEGIN
-  INSERT INTO memory_fts(memory_fts, rowid, text) VALUES('delete', old.rowid, old.text);
-END;
-CREATE TRIGGER IF NOT EXISTS memory_au AFTER UPDATE ON memory BEGIN
-  INSERT INTO memory_fts(memory_fts, rowid, text) VALUES('delete', old.rowid, old.text);
-  INSERT INTO memory_fts(rowid, text) VALUES (new.rowid, new.text);
-END;
+CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(text);
 `;
+// memory_fts is a STANDALONE table populated by #indexRow with segmented
+// text — legacy stores carried a content-linked table + triggers indexing
+// raw text; the constructor migrates those by rebuilding the index.
 
-const nowIso = () => new Date().toISOString();
-const norm = (t) => String(t ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+/**
+ * CJK segmentation for FTS5. unicode61 has no CJK word breaking: the run
+ * 「预算上限是五千」indexes as a single token, so the query「预算上限」can
+ * never match it (token inequality). Splitting each CJK run into overlapping
+ * bigrams makes every 2-char window a searchable token — applied identically
+ * at index time and query time so tokens line up. Single-char runs index
+ * as-is (single-char queries stay miss-prone — search with a real word).
+ */
+const CJK_RUN = /[\u2E80-\u9FFF\uF900-\uFAFF\uAC00-\uD7AF\u3040-\u30FF]+/gu;
 
 /**
  * M125: injection-shaped text refused at the write boundary. Memory recall
@@ -62,12 +66,36 @@ export function scanForInjection(text) {
   const t = String(text ?? '');
   return INJECTION_PATTERNS.some((p) => p.test(t)) ? 'injection-shaped content' : null;
 }
+export function segmentForFts(text) {
+  return String(text ?? '').replace(CJK_RUN, (run) => {
+    if (run.length === 1) return run;
+    const out = [];
+    for (let i = 0; i < run.length - 1; i++) out.push(run.slice(i, i + 2));
+    return out.join(' ');
+  });
+}
+
+/** Build an FTS5 MATCH expression from user text: segmented, quoted, ANDed. */
+function ftsAndQuery(text) {
+  return segmentForFts(text).trim().split(/\s+/)
+    .filter(Boolean)
+    .map((t) => `"${t.replace(/"/g, '""')}"`)
+    .join(' ');
+}
+
+const nowIso = () => new Date().toISOString();
+const norm = (t) => String(t ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
 export class MemoryStore {
   /** @param {string} dbPath <instance>/memory.db */
   constructor(dbPath) {
     if (dbPath !== ':memory:') mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new DatabaseSync(dbPath);
+    // Multi-process posture: delegated children share the instance root and
+    // open this same file. WAL + busy_timeout (lease.js precedent) — readers
+    // never block the writer; a sibling's write waits instead of erroring.
+    if (dbPath !== ':memory:') this.db.exec('PRAGMA journal_mode = WAL');
+    this.db.exec('PRAGMA busy_timeout = 2000');
     this.db.exec(SCHEMA);
     // M65 scope columns — idempotent adds on existing stores. 'user' rows are
     // global to the instance; 'project' rows bind to a workdir and recall
@@ -75,6 +103,30 @@ export class MemoryStore {
     for (const col of ["scope TEXT NOT NULL DEFAULT 'user'", 'workdir TEXT']) {
       try { this.db.exec(`ALTER TABLE memory ADD COLUMN ${col}`); } catch { /* column exists */ }
     }
+    // Legacy stores: content-linked memory_fts + triggers indexed RAW text,
+    // which unicode61 cannot tokenize for CJK. Drop the trigger-managed
+    // table and rebuild as the standalone segmented index.
+    if (this.db.prepare("SELECT 1 FROM sqlite_master WHERE type='trigger' AND name='memory_ai'").get()) {
+      this.db.exec('DROP TRIGGER memory_ai; DROP TRIGGER memory_ad; DROP TRIGGER memory_au; DROP TABLE memory_fts;');
+      this.db.exec("CREATE VIRTUAL TABLE memory_fts USING fts5(text)");
+      this.#rebuildFts();
+    }
+  }
+
+  /** Repopulate the FTS index from memory rows (segmented). */
+  #rebuildFts() {
+    this.db.exec('DELETE FROM memory_fts');
+    const ins = this.db.prepare('INSERT INTO memory_fts(rowid, text) VALUES (?, ?)');
+    for (const r of this.db.prepare('SELECT rowid, text FROM memory').all()) {
+      ins.run(r.rowid, segmentForFts(r.text));
+    }
+  }
+
+  /** Index one memory row (text never mutates after insert, so no updates). */
+  #indexRow(id) {
+    const r = this.db.prepare('SELECT rowid, text FROM memory WHERE id = ?').get(id);
+    if (r) this.db.prepare('INSERT INTO memory_fts(rowid, text) VALUES (?, ?)')
+      .run(r.rowid, segmentForFts(r.text));
   }
 
   /**
@@ -111,6 +163,7 @@ export class MemoryStore {
     this.db.prepare(
       'INSERT INTO memory (id, kind, text, source, confidence, scope, workdir, created, updated) VALUES (?,?,?,?,?,?,?,?,?)',
     ).run(id, kind, t, source, confidence, scope, scope === 'project' ? workdir : null, nowIso(), nowIso());
+    this.#indexRow(id);
     return { id };
   }
 
@@ -128,13 +181,14 @@ export class MemoryStore {
     const sc = this.#scopeClause(workdir);
     if (!q) return this.pinned(limit, workdir);
     try {
-      // quote the query — user text is not FTS syntax
+      // segment CJK the same way the index does, quote every token — user
+      // text is not FTS syntax; space-joining gives AND semantics.
       return this.db.prepare(
         `SELECT m.id, m.kind, m.text, m.source, m.confidence, m.pinned, m.scope, m.updated
          FROM memory_fts f JOIN memory m ON m.rowid = f.rowid
          WHERE memory_fts MATCH ? ${arch} ${sc.sql}
          ORDER BY rank LIMIT ?`,
-      ).all(`"${q.replace(/"/g, '""')}"`, ...(sc.arg != null ? [workdir] : []), limit);
+      ).all(ftsAndQuery(q), ...(sc.arg != null ? [workdir] : []), limit);
     } catch {
       const like = `%${q.replace(/[%_]/g, '')}%`;
       return this.db.prepare(
@@ -233,7 +287,11 @@ export class MemoryStore {
       .match(/[\p{L}\p{N}_]{2,}/gu)?.slice(0, 12) ?? [];
     if (tokens.length) {
       try {
-        const q = tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(' OR ');
+        // hint-side recall is best-effort: any shared (bi)gram earns the row
+        // a BM25-ranked slot — phrase-strictness would empty the pull on
+        // CJK hints whose exact run never appears in a memory.
+        const terms = [...new Set(tokens.flatMap((t) => segmentForFts(t).split(/\s+/).filter(Boolean)))].slice(0, 24);
+        const q = terms.map((t) => `"${t.replace(/"/g, '""')}"`).join(' OR ');
         const rows = this.db.prepare(
           `SELECT m.id, m.kind, m.text, m.source, m.confidence, m.pinned, m.updated
            FROM memory_fts f JOIN memory m ON m.rowid = f.rowid

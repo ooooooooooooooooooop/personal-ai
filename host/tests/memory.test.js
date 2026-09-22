@@ -5,6 +5,7 @@
 import { mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MemoryStore } from '../src/core/memory.js';
@@ -170,4 +171,68 @@ test('bulk: all-or-nothing — a refused op rolls the whole batch back', () => {
   assert.ok(r.refused, 'missing target must refuse the batch');
   assert.equal(r.applied, 0);
   assert.equal(s.all(10).find((m) => m.id === id).pinned, pinned0, 'pin rolled back too');
+});
+
+test('CJK recall: partial Chinese queries match (unicode61 bigram segmentation)', () => {
+  const s = mk();
+  s.remember('把预算上限设为五千美元，别超');
+  s.remember('the budget cap discussion happened on Tuesday');
+  // THE defect: unicode61 indexes「预算上限是五千美元」as ONE token — a query
+  // for its substring could never match. Bigram segmentation restores it.
+  assert.equal(s.recall('预算上限')[0]?.text, '把预算上限设为五千美元，别超');
+  assert.equal(s.recall('上限')[0]?.text, '把预算上限设为五千美元，别超');
+  // Latin recall unaffected, no cross-talk between the two rows
+  const latin = s.recall('budget');
+  assert.equal(latin.length, 1);
+  assert.match(latin[0].text, /Tuesday/);
+  s.close();
+});
+
+test('CJK injection: a Chinese hint pulls the related unpinned row', () => {
+  const s = mk();
+  s.remember('把预算上限设为五千美元，别超');
+  const inj = s.injection(12, '现在的预算还够吗？');
+  assert.ok(inj.some((m) => m.text === '把预算上限设为五千美元，别超'));
+  s.close();
+});
+
+test('CJK migration: legacy trigger-managed stores rebuild into the segmented index', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mem-legacy-'));
+  const p = join(dir, 'memory.db');
+  // hand-build the pre-CJK-fix schema: content-linked FTS + raw-text triggers
+  const raw = new DatabaseSync(p);
+  raw.exec(`
+    CREATE TABLE memory (id TEXT PRIMARY KEY, kind TEXT NOT NULL DEFAULT 'fact', text TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'agent', confidence REAL NOT NULL DEFAULT 0.7,
+      pinned INTEGER NOT NULL DEFAULT 0, archived INTEGER NOT NULL DEFAULT 0,
+      created TEXT NOT NULL, updated TEXT NOT NULL);
+    CREATE VIRTUAL TABLE memory_fts USING fts5(text, content='memory', content_rowid='rowid');
+    CREATE TRIGGER memory_ai AFTER INSERT ON memory BEGIN
+      INSERT INTO memory_fts(rowid, text) VALUES (new.rowid, new.text); END;
+    CREATE TRIGGER memory_ad AFTER DELETE ON memory BEGIN
+      INSERT INTO memory_fts(memory_fts, rowid, text) VALUES('delete', old.rowid, old.text); END;
+    CREATE TRIGGER memory_au AFTER UPDATE ON memory BEGIN
+      INSERT INTO memory_fts(memory_fts, rowid, text) VALUES('delete', old.rowid, old.text);
+      INSERT INTO memory_fts(rowid, text) VALUES (new.rowid, new.text); END;
+    INSERT INTO memory (id, text, created, updated)
+      VALUES ('mem-legacy1', '把预算上限设为五千美元', '2026-01-01', '2026-01-01');
+  `);
+  raw.close();
+  const s = new MemoryStore(p); // constructor must detect + migrate
+  assert.equal(s.recall('预算上限')[0]?.id, 'mem-legacy1', 'pre-existing CJK row recallable after rebuild');
+  s.remember('新的中文记忆关于模型路由');
+  assert.equal(s.recall('模型路由').length, 1, 'new rows index correctly post-migration');
+  s.close();
+});
+
+test('multi-process posture: two handles on one memory.db interleave writes + recall', () => {
+  const p = join(mkdtempSync(join(tmpdir(), 'pai-mem-mp-')), 'memory.db');
+  const a = new MemoryStore(p);
+  const b = new MemoryStore(p); // delegate-child view of the same file
+  a.remember('把预算上限设为五千美元');
+  b.remember('child wrote this from a delegated run');
+  // WAL readers see each other's committed rows; CJK recall survives too
+  assert.equal(b.recall('预算上限').length, 1);
+  assert.equal(a.recall('delegated run').length, 1);
+  a.close(); b.close();
 });

@@ -584,6 +584,61 @@ test('M100: terminal provider error walks the fallback chain; aborts never do', 
   assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.exhausted));
 });
 
+test('M100 error classes: request-invariant errors skip the chain; provider faults walk it', async () => {
+  const { loopGovernanceExtension, isRequestInvariantError } = await import('../src/adapter/loop.js');
+
+  // classifier truth table
+  for (const invariant of [
+    'HTTP 400: invalid_request_error — messages.2: role is required',
+    'Error: status code 422 from provider',
+    '400 Bad Request',
+    'malformed request body: trailing comma',
+    'request failed validation: input_schema',
+  ]) assert.ok(isRequestInvariantError(invariant), `invariant: ${invariant}`);
+  for (const transient of [
+    'HTTP 429 rate limited',
+    'status code 500 internal server error',
+    '401 unauthorized: invalid api key',   // next chain entry has its OWN credentials
+    'fetch failed: ECONNRESET',
+    'prompt is too long: 210000 tokens > 200000 context window', // bigger-window entry may take it
+    'overloaded_error: try again later',
+  ]) assert.ok(!isRequestInvariantError(transient), `walks: ${transient}`);
+
+  // gate behavior: a 400 ends the run WITHOUT a model switch or steer
+  const events = {};
+  const sent = [];
+  const models = { 'anthropic/claude-b': { provider: 'anthropic', id: 'claude-b' } };
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    setModel: async () => true,
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const auditEvents = [];
+  loopGovernanceExtension({
+    audit: { write: (e) => auditEvents.push(e) },
+    fallbacks: { chain: [{ provider: 'anthropic', model: 'claude-b' }] },
+  }).factory(pi);
+
+  events.agent_start();
+  await events.agent_end(
+    { messages: [{ role: 'assistant', stopReason: 'error', errorMessage: 'status code 400: invalid_request_error' }] },
+    { model: { provider: 'openai', id: 'gpt-5' }, modelRegistry: { find: (p, id) => models[`${p}/${id}`] }, sendUserMessage: (t) => sent.push(t) },
+  );
+  assert.equal(sent.length, 0, 'no fallback steer for a request-invariant error');
+  const skipped = auditEvents.find((e) => e.kind === 'MODEL_FALLBACK_SKIPPED');
+  assert.ok(skipped, 'skip is audited');
+  assert.match(skipped.data.reason, /request-invariant/);
+  assert.ok(!auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && !e.data.exhausted), 'chain never walked');
+
+  // and a transient error on the same rig still walks the chain
+  events.agent_start();
+  await events.agent_end(
+    { messages: [{ role: 'assistant', stopReason: 'error', errorMessage: 'HTTP 429 rate limited' }] },
+    { model: { provider: 'openai', id: 'gpt-5' }, modelRegistry: { find: (p, id) => models[`${p}/${id}`] }, sendUserMessage: (t) => sent.push(t) },
+  );
+  assert.equal(sent.length, 1, 'transient error falls back as before');
+});
+
 test('stale agent_end: a duplicated end-of-run event without a new start is dropped + audited', async () => {
   const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
   const events = {};

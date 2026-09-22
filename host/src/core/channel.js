@@ -49,6 +49,29 @@
  * Events: whatever the body's event stream emits, re-tagged as
  * {type:'event', event} plus host-side {type:'audit', event} lines.
  */
+/**
+ * Validate an optional model-pricing declaration (USD per 1M tokens).
+ * Custom providers register with zero pricing by default — without an
+ * operator-declared rate, dollar-denominated budget caps cannot see that
+ * traffic at all. Returns a clean cost object, null (absent), or {error}.
+ */
+function parseCostDecl(raw, cmdName) {
+  if (raw == null) return null;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    return { error: `${cmdName}: cost must be an object {input, output, cacheRead, cacheWrite} — USD per 1M tokens` };
+  }
+  const out = {};
+  for (const k of ['input', 'output', 'cacheRead', 'cacheWrite']) {
+    if (raw[k] == null) continue;
+    const v = Number(raw[k]);
+    if (!Number.isFinite(v) || v < 0) {
+      return { error: `${cmdName}: cost.${k} must be a non-negative number (USD per 1M tokens)` };
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
 export class HostChannel {
   /**
    * @param {object} facades
@@ -272,8 +295,7 @@ export class HostChannel {
           return reply(true, await this.models.discover());
         }
         case 'model_fallbacks': {
-          if (!this.models?.fallbacks) return reply(false, undefined, 'fallback chain unavailable');
-          return reply(true, await this.models.fallbacks());
+          if (!this.models?.fallbacks) return reply(false, undefined, 'fallback chain unavailable');          return reply(true, await this.models.fallbacks());
         }
         case 'model_fallback_set': {
           if (!this.models?.setFallbacks) return reply(false, undefined, 'fallback chain unavailable');
@@ -308,6 +330,8 @@ export class HostChannel {
         }
         case 'provider_add': {
           if (!this.models?.addProvider) return reply(false, undefined, 'models facade unavailable');
+          const cost = parseCostDecl(cmd.cost, 'provider_add');
+          if (cost?.error) return reply(false, undefined, cost.error);
           const spec = {
             // 'provider', not 'id' — cmd.id is the envelope id and gets
             // rewritten to a seq number when a supervisor proxies the command
@@ -319,6 +343,7 @@ export class HostChannel {
             contextWindow: cmd.contextWindow ? Number(cmd.contextWindow) : undefined,
             maxTokens: cmd.maxTokens ? Number(cmd.maxTokens) : undefined,
             apiKeyEnv: cmd.apiKeyEnv ? String(cmd.apiKeyEnv).replace(/^\$/, '') : undefined,
+            ...(cost ? { cost } : {}),
           };
           if (!spec.provider || !spec.baseUrl || !spec.api || !spec.model) {
             return reply(false, undefined, 'provider_add requires {provider, baseUrl, api, model}');
@@ -334,7 +359,9 @@ export class HostChannel {
           const provider = String(cmd.provider ?? '').trim();
           const modelIds = Array.isArray(cmd.models) ? cmd.models.map(String).filter(Boolean) : [];
           if (!provider || !modelIds.length) return reply(false, undefined, 'provider_models_add requires {provider, models[]}');
-          return reply(true, await this.models.addModels({ provider, modelIds }));
+          const cost = parseCostDecl(cmd.cost, 'provider_models_add');
+          if (cost?.error) return reply(false, undefined, cost.error);
+          return reply(true, await this.models.addModels({ provider, modelIds, ...(cost ? { cost } : {}) }));
         }
         case 'session_list': {
           if (!this.sessions?.list) return reply(false, undefined, 'sessions facade unavailable');
@@ -639,6 +666,25 @@ export class HostChannel {
           if (!this.budget?.status) return reply(false, undefined, 'budget facade unavailable');
           return reply(true, await this.budget.status());
         }
+        // Aggregate spend across ALL scopes over a window — consumed() is
+        // per-scope; the operator's actual question is "what did the whole
+        // instance burn today?". Accepts {since?, until?} epoch ms, or the
+        // convenience {hours} (e.g. 24 = last day).
+        case 'budget_rollup': {
+          if (!this.budget?.rollup) return reply(false, undefined, 'budget rollup unavailable');
+          const opts = {};
+          if (cmd.since != null) opts.since = Number(cmd.since);
+          if (cmd.until != null) opts.until = Number(cmd.until);
+          if (cmd.hours != null) {
+            const h = Number(cmd.hours);
+            if (!Number.isFinite(h) || h <= 0) return reply(false, undefined, 'budget_rollup: hours must be positive');
+            opts.since = Date.now() - h * 3_600_000;
+          }
+          if ((opts.since != null && !Number.isFinite(opts.since)) || (opts.until != null && !Number.isFinite(opts.until))) {
+            return reply(false, undefined, 'budget_rollup: since/until must be epoch-ms numbers');
+          }
+          return reply(true, this.budget.rollup(opts));
+        }
         // Operator budget control surface: the spend dial was previously
         // reachable ONLY by hand-editing policy.json — an operator wedged at
         // a limit had no governed way out. Channel commands are operator-tier
@@ -719,12 +765,12 @@ export class HostChannel {
             }
             case 'mode': {
               if (!this.modes?.setMode) return reply(false, undefined, 'modes facade unavailable');
-              const out = this.modes.setMode(String(value ?? ''));
-              if (!out) return reply(false, undefined, `config_set mode: unknown mode '${value}'`);
+              const out = this.modes.setMode(String(value));
+              if (!out) return reply(false, undefined, `config_set: unknown mode '${value}'`);
               return reply(true, out);
             }
             default:
-              return reply(false, undefined, `config_set: unknown key '${key}' (allowlist: model, thinking, mode)`);
+              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode)`);
           }
         }
         case 'modes_read': {

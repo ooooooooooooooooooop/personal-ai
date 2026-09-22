@@ -148,3 +148,23 @@ test('deleteJob: terminal-only hard delete removes all rows; live jobs refuse', 
   assert.equal(s.getLease(job.job_id), null);
   assert.equal(s.deleteJob('job-nope').ok, false);
 });
+
+test('multi-process posture: two handles on one file interleave writes without BUSY', () => {
+  // Delegate children open the SAME instance store as the parent (the bridge
+  // passes --instance through). Without WAL + busy_timeout a sibling's write
+  // during an open read/write transaction fails instantly with SQLITE_BUSY.
+  const p = join(mkdtempSync(join(tmpdir(), 'pai-jobs-mp-')), 'jobs.db');
+  const a = new JobStore(p);
+  const b = new JobStore(p); // second connection, same file — same lock path as a child process
+  const ja = a.createJob({ jobType: 'parent' });
+  const jb = b.createJob({ jobType: 'child' });
+  // cross-visibility after each writer commits (WAL readers see siblings)
+  assert.equal(a.getJob(jb.job_id)?.job_type, 'child');
+  assert.equal(b.getJob(ja.job_id)?.job_type, 'parent');
+  // interleaved state transitions from both handles
+  a.startAttempt({ jobId: ja.job_id, writerId: 'wa', workerType: 'p', workerIdentity: { pid: 1 } });
+  b.completeJob(jb.job_id);
+  a.completeJob(ja.job_id);
+  assert.equal(b.getJob(ja.job_id)?.job_state, 'COMPLETED');
+  a.close(); b.close();
+});

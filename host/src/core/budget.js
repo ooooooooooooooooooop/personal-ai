@@ -13,7 +13,7 @@
  *  - unknown/misconfigured gate = fail-closed deny; the agent cannot extend
  *    its own budget (limits come from the attested policy or operator env)
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 export const BUDGET_SOURCES = ['turn', 'retry', 'compaction', 'subagent', 'job'];
@@ -30,6 +30,15 @@ export class BudgetGovernor {
     this.limits = limits && typeof limits === 'object' ? limits : null;
     this.audit = audit;
     this.broken = false;
+    // read-path cache: admit() runs on EVERY provider request, and the ledger
+    // only ever grows — an uncached full-file scan per request turns a long-
+    // lived instance into a synchronous disk read of an ever-larger JSONL on
+    // the hot path. The ledger is append-only, so (size, mtimeMs) is a sound
+    // fingerprint: every append grows size; external rewrite/truncate changes
+    // both. Cross-process writers (delegate children share this file) are
+    // caught by the same stat check (~µs vs a full read+parse).
+    this._cacheFp = null;
+    this._cacheRows = null;
     try {
       mkdirSync(dirname(ledgerPath), { recursive: true });
       appendFileSync(ledgerPath, JSON.stringify({ at: Date.now(), kind: 'ledger_open' }) + '\n');
@@ -64,17 +73,62 @@ export class BudgetGovernor {
     return this.consumed(scope);
   }
 
-  /** Monotonic cumulative spend for a scope (session id or run id). */
-  consumed(scope) {
-    if (!existsSync(this.ledgerPath)) return { tokens: 0, cost: 0, calls: 0 };
-    const out = { tokens: 0, cost: 0, calls: 0 };
+  /** Parsed ledger rows, cached by (size, mtimeMs) fingerprint. */
+  _rows() {
+    let st = null;
+    try { st = statSync(this.ledgerPath); } catch { this._cacheFp = null; this._cacheRows = null; return []; }
+    const fp = `${st.size}:${st.mtimeMs}`;
+    if (this._cacheFp === fp && this._cacheRows) return this._cacheRows;
+    const rows = [];
     for (const line of readFileSync(this.ledgerPath, 'utf-8').split('\n')) {
       if (!line) continue;
       let r; try { r = JSON.parse(line); } catch { continue; }
+      rows.push(r);
+    }
+    this._cacheFp = fp;
+    this._cacheRows = rows;
+    return rows;
+  }
+
+  /** Monotonic cumulative spend for a scope (session id or run id). */
+  consumed(scope) {
+    const out = { tokens: 0, cost: 0, calls: 0 };
+    for (const r of this._rows()) {
       if (r.scope !== scope || r.kind) continue;
       out.tokens += r.tokens ?? 0;
       out.cost += r.cost ?? 0;
       out.calls += r.calls ?? 0;
+    }
+    return out;
+  }
+
+  /**
+   * Aggregate rollup ACROSS scopes over a time window — the answer to "what
+   * did the whole instance burn today/this week?", which per-scope consumed()
+   * cannot give. Same ledger discipline as consumed(): append-only rows,
+   * non-usage rows (r.kind) skipped, algebraic refund rows net against their
+   * scope. byDay buckets are UTC dates so day boundaries don't lie about the
+   * operator's timezone.
+   *
+   * @param {object} [window] {since?, until?} — epoch ms, inclusive bounds;
+   *        both absent = all time
+   * @returns {{window:{since:number|null,until:number|null}, rows:number,
+   *   total:{tokens,cost,calls}, byScope:object, byDay:object}}
+   */
+  rollup({ since = null, until = null } = {}) {
+    const zero = () => ({ tokens: 0, cost: 0, calls: 0 });
+    const out = { window: { since, until }, rows: 0, total: zero(), byScope: {}, byDay: {} };
+    const inWindow = (at) => (since == null || at >= since) && (until == null || at <= until);
+    for (const r of this._rows()) {
+      if (r.kind || r.scope == null) continue;
+      const at = Number(r.at ?? 0);
+      if (!inWindow(at)) continue;
+      const day = new Date(at).toISOString().slice(0, 10);
+      const acc = (b) => { b.tokens += r.tokens ?? 0; b.cost += r.cost ?? 0; b.calls += r.calls ?? 0; };
+      acc(out.total);
+      acc(out.byScope[r.scope] ??= zero());
+      acc(out.byDay[day] ??= zero());
+      out.rows += 1;
     }
     return out;
   }

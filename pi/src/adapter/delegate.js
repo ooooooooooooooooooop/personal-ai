@@ -12,6 +12,7 @@
  *    delegated work bills to the parent run identity (Hermes pattern)
  */
 import { JobExecutor } from './jobs.js';
+import { resolveRoute } from './modelroutes.js';
 import { fileURLToPath } from 'node:url';
 
 /** The real usage producer every delegation rides through. */
@@ -63,11 +64,14 @@ export function makeDelegationCommand(template, { enforceableTargets = new Set()
  * @param {Map} [opts.profiles]  frontmatter subagent profiles (.pai/agents,
  *        <instance>/agents) — `profile` param resolves target + prepends the
  *        profile preamble to the task
+ * @param {{default, routes: Array}} [opts.routes]  operator-declared model
+ *        routing (model-routes.json) — fills model/effort slots the profile
+ *        left open; precedence profile > route > default
  * @param {TaskStore} [opts.taskStore]  F-family mailbox — when present every
  *        delegation creates a task record and the bridge binds --task-dir,
  *        upgrading the one-shot job to a bidirectional AgentTask.
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, taskStore = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -138,6 +142,24 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           content: [{ type: 'text', text: 'delegate_task requires a `target` agent id or a `profile` name' }],
           isError: true,
         };
+      }
+      // Operator-declared model routing (model-routes.json): fill the
+      // model/effort slots the profile left open — profile frontmatter is
+      // more specific than a route, a route more specific than the default
+      // block. Deterministic table match, never an LLM judgment; `routedVia`
+      // rides into the result details so the spend attribution is visible.
+      let routedVia = null;
+      if (routes && (!profileModel || !profileEffort)) {
+        const route = resolveRoute(routes, {
+          profile: params.profile != null && params.profile !== '' ? String(params.profile).toLowerCase() : null,
+          target,
+          task,
+        });
+        if (route) {
+          profileModel = profileModel ?? route.model;
+          profileEffort = profileEffort ?? route.effort;
+          routedVia = route.via;
+        }
       }
       const innerSpec = commandFor(target, task, { model: profileModel, effort: profileEffort });
       const inner = typeof innerSpec === 'string' ? innerSpec : String(innerSpec?.command ?? '');
@@ -316,6 +338,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           }],
           details: {
             job_id, queued: true, waiting_on: r.waiting_on, target, profile: params.profile ?? null,
+            ...(routedVia ? { routed_via: routedVia } : {}),
             ...(agentTask ? { task_id: agentTask.task_id } : {}),
           },
         };
@@ -329,6 +352,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         }],
         details: {
           job_id, attempt_id, target, profile: params.profile ?? null,
+          ...(routedVia ? { routed_via: routedVia } : {}),
           ...(agentTask ? { task_id: agentTask.task_id } : {}),
           ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}),
         },

@@ -549,3 +549,61 @@ test('governance_dryrun routes to the governance facade; validates input', async
   assert.equal(noFacade.success, false);
   assert.match(noFacade.error, /unavailable/);
 });
+
+test('budget_rollup: window translation, facade passthrough, honest validation', async () => {
+  const calls = [];
+  const budget = {
+    rollup: (opts) => { calls.push(opts); return { rows: 0, total: { tokens: 0, cost: 0, calls: 0 }, byScope: {}, byDay: {} }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), budget });
+  const all = await ch.handle({ type: 'budget_rollup' });
+  assert.equal(all.success, true);
+  assert.deepEqual(calls.at(-1), {}, 'no window args = all-time');
+
+  const win = await ch.handle({ type: 'budget_rollup', since: 1000, until: 2000 });
+  assert.equal(win.success, true);
+  assert.deepEqual(calls.at(-1), { since: 1000, until: 2000 });
+
+  const hrs = await ch.handle({ type: 'budget_rollup', hours: 24 });
+  assert.equal(hrs.success, true);
+  assert.ok(Math.abs((Date.now() - calls.at(-1).since) - 86_400_000) < 5000, 'hours translates to a since bound');
+
+  const bad = await ch.handle({ type: 'budget_rollup', hours: -3 });
+  assert.equal(bad.success, false);
+  const bad2 = await ch.handle({ type: 'budget_rollup', since: 'not-a-number' });
+  assert.equal(bad2.success, false);
+
+  const noFacade = new HostChannel({ session: fakeSession() });
+  const r = await noFacade.handle({ type: 'budget_rollup' });
+  assert.equal(r.success, false);
+  assert.match(r.error, /unavailable/);
+});
+
+test('provider_add/provider_models_add: cost declaration validated and passed through', async () => {
+  const added = [];
+  const models = {
+    addProvider: async (spec) => { added.push(spec); return { provider: spec.provider, model: spec.model }; },
+    addModels: async (args) => { added.push(args); return { ok: true, added: args.modelIds } },
+  };
+  const ch = new HostChannel({ session: fakeSession(), models });
+
+  const ok = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://127.0.0.1:8317/v1', api: 'openai-completions', model: 'gpt-5.6', cost: { input: 2.5, output: 10 } });
+  assert.equal(ok.success, true);
+  assert.deepEqual(added.at(-1).cost, { input: 2.5, output: 10 }, 'declared pricing reaches the body');
+
+  const none = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://x', api: 'openai-completions', model: 'm2' });
+  assert.equal(none.success, true);
+  assert.equal(added.at(-1).cost, undefined, 'no cost key when undeclared (facade zero-fills)');
+
+  for (const bad of [{ input: -1 }, { output: 'lots' }, ['not-an-object']]) {
+    const r = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://x', api: 'a', model: 'm', cost: bad });
+    assert.equal(r.success, false, `bad cost rejected: ${JSON.stringify(bad)}`);
+    assert.match(r.error, /cost/);
+  }
+
+  const ml = await ch.handle({ type: 'provider_models_add', provider: 'cpa', models: ['a', 'b'], cost: { input: 1 } });
+  assert.equal(ml.success, true);
+  assert.deepEqual(added.at(-1).cost, { input: 1 });
+  const mlBad = await ch.handle({ type: 'provider_models_add', provider: 'cpa', models: ['c'], cost: { input: NaN } });
+  assert.equal(mlBad.success, false);
+});

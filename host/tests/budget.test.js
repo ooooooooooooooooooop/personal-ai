@@ -7,7 +7,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BudgetGovernor } from '../src/core/budget.js';
@@ -121,4 +121,58 @@ test('commit-on-issue is durable: a fresh governor sees the committed slice', ()
   const gov2 = new BudgetGovernor({ ledgerPath: gov.ledgerPath, limits: { maxTokensPerSession: 1000 } });
   assert.equal(gov2.consumed('s1').tokens, 700, 'commit survives process restart — append-only ledger');
   assert.equal(gov2.remaining('s1').tokens, 300);
+});
+
+test('rollup aggregates across scopes with windowing, skips non-usage rows, nets refunds', () => {
+  const { gov } = rig(null);
+  const now = Date.now();
+  // hand-write rows so `at` is pinned (record() stamps Date.now())
+  const rows = [
+    { at: now - 86_400_000, scope: 's-old', source: 'turn', tokens: 500, cost: 0.5, calls: 2 },
+    { at: now - 3_600_000, scope: 's1', source: 'turn', tokens: 100, cost: 0.10, calls: 1 },
+    { at: now - 1_800_000, scope: 's2', source: 'subagent', tokens: 200, cost: 0.20, calls: 3 },
+    { at: now - 900_000, scope: 's1', source: 'delegate_refund', tokens: -40, cost: -0.04, calls: -1 },
+    { at: now - 600_000, kind: 'ledger_open' }, // non-usage row — must be skipped
+    { at: now - 300_000, scope: 's2', source: 'job', tokens: 50, cost: 0.05, calls: 1 },
+  ];
+  for (const r of rows) appendFileSync(gov.ledgerPath, JSON.stringify(r) + '\n');
+
+  const all = gov.rollup();
+  assert.equal(all.rows, 5, 'kind rows excluded from the count');
+  assert.equal(all.total.tokens, 810);
+  assert.equal(all.total.calls, 6);
+  assert.ok(Math.abs(all.total.cost - 0.81) < 1e-9, 'refund nets against the total');
+  assert.equal(all.byScope['s1'].tokens, 60);
+  assert.equal(all.byScope['s1'].calls, 0, 'refund cancels the call too');
+  assert.equal(all.byScope['s2'].tokens, 250);
+  const oldDay = new Date(now - 86_400_000).toISOString().slice(0, 10);
+  const today = new Date(now).toISOString().slice(0, 10);
+  assert.equal(all.byDay[oldDay].tokens, 500);
+  assert.equal(all.byDay[today].tokens, 310, 'UTC day buckets split the window honestly');
+
+  const recent = gov.rollup({ since: now - 2_000_000 });
+  assert.equal(recent.rows, 3, 'window excludes s-old and the oldest s1 row');
+  assert.equal(recent.total.tokens, 210);
+
+  const none = gov.rollup({ since: now + 1_000 });
+  assert.equal(none.rows, 0);
+  assert.equal(none.total.tokens, 0);
+});
+
+test('rollup on a ledger with only non-usage rows returns zeros, not an error', () => {
+  const { gov } = rig(null); // construction wrote only the ledger_open kind row
+  const r = gov.rollup({ since: 0 });
+  assert.equal(r.rows, 0);
+  assert.deepEqual(r.total, { tokens: 0, cost: 0, calls: 0 });
+});
+
+test('read-path cache: external (cross-process) appends invalidate via stat fingerprint', () => {
+  const { gov } = rig(null);
+  gov.record({ scope: 's1', usage: { input: 10 } });
+  assert.equal(gov.consumed('s1').tokens, 10);
+  assert.equal(gov.consumed('s1').tokens, 10, 'warm cache hit — same value');
+  // a delegate child in ANOTHER process appends directly to the shared ledger
+  appendFileSync(gov.ledgerPath, JSON.stringify({ at: Date.now(), scope: 's1', source: 'job', tokens: 77, cost: 0, calls: 1 }) + '\n');
+  assert.equal(gov.consumed('s1').tokens, 87, 'external append visible on the next read');
+  assert.equal(gov.rollup().total.tokens, 87);
 });
