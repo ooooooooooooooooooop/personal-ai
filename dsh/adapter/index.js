@@ -195,17 +195,33 @@ export class DshBody {
       const child = Array.isArray(cmd)
         ? spawn(cmd[0], cmd.slice(1), { cwd: workdir, windowsHide: true })
         : spawn(cmd, { cwd: workdir, windowsHide: true, shell });
+      // Bounded capture: a noisy child must not grow memory without limit —
+      // keep the TAIL (the failure signature lives at the end).
+      const MAX_OUT = 1024 * 1024;
       let out = '';
-      child.stdout.on('data', (d) => { out += d; });
-      child.stderr.on('data', (d) => { out += d; });
-      const timer = setTimeout(() => { child.kill(); resolve({ ok: false, reason: 'timeout', output: out, via }); }, timeoutMs);
+      const eat = (d) => { out = (out + d).slice(-MAX_OUT); };
+      child.stdout.on('data', eat);
+      child.stderr.on('data', eat);
+      // Tree-kill on timeout: with shell:true the child is a cmd/sh WRAPPER —
+      // killing it alone orphans the real (hung) process (batch-4 verify
+      // timeout class). taskkill /T takes the whole tree on Windows.
+      const killTree = () => {
+        try {
+          if (process.platform === 'win32') {
+            spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true });
+          } else {
+            child.kill('SIGKILL');
+          }
+        } catch { /* already dead */ }
+      };
+      let settled = false;
+      const done = (r) => { if (!settled) { settled = true; clearTimeout(timer); resolve(r); } };
+      const timer = setTimeout(() => { killTree(); done({ ok: false, reason: 'timeout', output: out, via }); }, timeoutMs);
       child.on('exit', (code) => {
-        clearTimeout(timer);
-        resolve({ ok: code === 0, exitCode: code, output: out, via });
+        done({ ok: code === 0, exitCode: code, output: out, via });
       });
       child.on('error', (e) => {
-        clearTimeout(timer);
-        resolve({ ok: false, reason: e.message, via });
+        done({ ok: false, reason: e.message, via });
       });
     });
   }

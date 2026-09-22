@@ -221,6 +221,34 @@ test('dsh channel: approval/requested surfaces a governance ask; decision_resolv
   }
 });
 
+test("dsh channel: an 'always' grant is NOT reported as rejected on the wire", async () => {
+  // Regression: the outcome map listed only allow/allow_session — an operator
+  // clicking 'always' saw the call REJECTED while PendingAsks recorded a grant.
+  const { port, pushWithId, muxOpen, responds, close } = await fakeDsh();
+  try {
+    const client = createTypertClient({ baseUrl: base(port) });
+    const { channel, dispose } = createDshChannel({ client, sessionId: 's-1', cwd: '/tmp' });
+    const events = [];
+    channel.subscribe((m) => events.push(m));
+    await muxOpen;
+    pushWithId('rpc-appr-always', {
+      type: 'approval/requested', sessionId: 's-1',
+      approvalId: 'appr-9', toolName: 'write', reason: 'wants to write notes/a.txt',
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    const ask = events.find((m) => m.event?.type === 'governance_ask')?.event?.ask;
+    assert.ok(ask, 'governance_ask emitted');
+    const r = await channel.handle({ id: '10', type: 'decision_resolve', askId: ask.id, answer: 'always' });
+    assert.equal(r.success, true);
+    await new Promise((r2) => setTimeout(r2, 50));
+    assert.equal(responds.length, 1);
+    assert.equal(responds[0].result.value.outcome, 'allowed-once'); // grant, not rejection
+    dispose();
+  } finally {
+    await close();
+  }
+});
+
 test('dsh channel: session.list maps to plain rows; history folds events', async () => {
   const { server, port , close } = await fakeDsh({
     'session.list': () => ({ sessions: [{ sessionId: 's-1', title: 'demo', lastPromptAt: '2026-01-01' }] }),

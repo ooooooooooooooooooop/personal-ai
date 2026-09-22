@@ -252,7 +252,13 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
       await client.respond(frame.rpcId, {
         sessionId: p.sessionId,
         approvalId: p.approvalId,
-        outcome: (answer === 'allow' || answer === 'allow_session') ? 'allowed-once' : 'rejected',
+        // 'always' is a first-class PendingAsks answer — leaving it out of the
+        // allowed branch turned an operator's GRANT into a rejection on the
+        // wire (and PendingAsks had already recorded the grant, so the next
+        // identical call auto-allowed while this one died). The Typert
+        // protocol has no always-scope outcome — the host-side PendingAsks
+        // grant carries the persistence, the wire answer is allowed-once.
+        outcome: (answer === 'allow' || answer === 'allow_session' || answer === 'always') ? 'allowed-once' : 'rejected',
       }).catch(() => {});
     } else if (p?.type === 'question/requested') {
       const qs = Array.isArray(p.questions) ? p.questions : [];

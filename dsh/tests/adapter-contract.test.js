@@ -96,3 +96,22 @@ test('L4: runTask reports unavailable honestly when no dsh cli is installed', as
   assert.equal(r.ok, false);
   assert.equal(r.unavailable, true);
 });
+
+test('L4: runTask direct-effect bounds captured output and honors the timeout', async () => {
+  const dsh = new DshBody({ runId: 'r' }); // no cli -> direct-effect path
+  // unbounded-output regression: a noisy child must not grow memory forever —
+  // the capture keeps the tail only
+  const noisy = await dsh.runTask('x', {
+    command: `"%NODE_EXE%" -e "process.stdout.write('y'.repeat(3 * 1024 * 1024))"`.replace('%NODE_EXE%', process.execPath),
+    timeoutMs: 20_000,
+  });
+  assert.equal(noisy.ok, true);
+  assert.ok(noisy.output.length <= 1024 * 1024 + 64, `output unbounded: ${noisy.output.length}`);
+  // timeout: a hung child is killed (tree-kill on win32) and reports timeout
+  const hung = await dsh.runTask('x', {
+    command: `"%NODE_EXE%" -e "setInterval(() => {}, 1000)"`.replace('%NODE_EXE%', process.execPath),
+    timeoutMs: 300,
+  });
+  assert.equal(hung.ok, false);
+  assert.equal(hung.reason, 'timeout');
+});
