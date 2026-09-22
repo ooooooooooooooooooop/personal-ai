@@ -41,6 +41,28 @@ END;
 const nowIso = () => new Date().toISOString();
 const norm = (t) => String(t ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
 
+/**
+ * M125: injection-shaped text refused at the write boundary. Memory recall
+ * is injected into every context envelope — a stored "ignore all
+ * instructions" is a persistent attack that survives sessions, so the write
+ * path must reject it, not merely mark it untrusted downstream.
+ * Patterns are deliberately narrow (instruction-override / role-hijack
+ * shapes); ordinary prose mentioning these words mid-sentence passes —
+ * role-channel markers are line-anchored so "the file system: NTFS" survives.
+ */
+const INJECTION_PATTERNS = [
+  /\b(?:ignore|disregard|forget|override|bypass)\s+(?:all\s+|any\s+|the\s+)?(?:previous|prior|above|earlier|preceding|your)\s+(?:instructions?|prompts?|rules?|directives?|guidelines?|constraints?)\b/i,
+  /\byou\s+are\s+now\s+(?:a|an|the)\b/i,
+  /\bnew\s+(?:system\s+)?instructions?\s*:/i,
+  /^ *(?:system|assistant|developer|tool)\s*:/im,
+  /<\/?(?:system|instruction|im_start|im_end|assistant|user)\s*>/i,
+  /\bforget\s+everything\b/i,
+];
+export function scanForInjection(text) {
+  const t = String(text ?? '');
+  return INJECTION_PATTERNS.some((p) => p.test(t)) ? 'injection-shaped content' : null;
+}
+
 export class MemoryStore {
   /** @param {string} dbPath <instance>/memory.db */
   constructor(dbPath) {
@@ -69,6 +91,11 @@ export class MemoryStore {
     if (scope === 'project' && !workdir) return { refused: "scope 'project' requires a workdir" };
     const secret = scanForSecrets(t);
     if (secret) return { refused: `secret-looking content (${secret}) — never persisted to memory` };
+    // M125: instruction-override / role-hijack payloads are refused outright —
+    // recall lands inside every prompt, so a stored injection is a persistent
+    // attack surface, not a note.
+    const inject = scanForInjection(t);
+    if (inject) return { refused: `${inject} — never persisted to memory` };
     const n = norm(t);
     const dupe = this.db.prepare(
       'SELECT id FROM memory WHERE lower(text) = ? AND archived = 0',
