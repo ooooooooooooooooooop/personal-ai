@@ -165,7 +165,7 @@ export class GovernanceKernel {
     // complete payload or a clipped prefix — truncated args carry an explicit
     // flag + original size so the UI can say "you are approving N chars shown
     // of M total".
-    const argState = { truncated: false };
+    const argState = { truncated: false, redacted: false };
     const askArgs = sanitizeAskArgs(ctx.args, 0, argState);
     const argsTotalChars = (() => { try { return JSON.stringify(ctx.args ?? {}).length; } catch { return null; } })();
     // Shadow judge: bounded second opinion rides the card to the operator.
@@ -181,7 +181,7 @@ export class GovernanceKernel {
       } catch { advisory = null; }
     }
     const answer = await this.ask(
-      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsTotalChars, advisory },
+      { toolName: ctx.toolName, toolCallId: ctx.toolCallId, rule, summary, detail: detail.reason ?? null, risk: detail.risk ?? null, args: askArgs, argsTruncated: argState.truncated, argsRedacted: argState.redacted, argsTotalChars, advisory },
       ctx.signal,
     );
     // in-card editing: {answer, edited:{key:value}} — the operator's edited
@@ -619,10 +619,42 @@ const stableJson = (v) => JSON.stringify(v, (_k, x) => (
  * Args carried onto the operator ask card — the operator approves what they
  * can SEE, so the real payload (command/path/content) must be inspectable.
  * Strings are clipped for transport; nothing is dropped by key.
+ *
+ * M116: this payload lands in the approval-card DOM AND the shadow judge —
+ * a secret inside args (env, header, command line) would be exposed to both.
+ * Redact at this single generation point so every downstream consumer is
+ * covered; execution still uses the untouched ctx.args.
  */
+const SECRET_FIELD_RE = /(?:api[_-]?key|apikey|secret|token|password|passwd|credential|authorization|private[_-]?key|access[_-]?key|client[_-]?secret|key)/i;
+const SECRET_INLINE_RES = [
+  /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g,
+  /\bBearer\s+[A-Za-z0-9._~+/=-]{8,}\b/gi,
+  /\bsk-(?:proj-|ant-)?[A-Za-z0-9_-]{16,}\b/g,
+  /\bgh[pousr]_[A-Za-z0-9]{16,}\b/g,
+  /\bgithub_pat_[A-Za-z0-9_]{16,}\b/g,
+  /\bxox[baprs]-[A-Za-z0-9-]{8,}\b/g,
+  /\bAKIA[0-9A-Z]{16}\b/g,
+  /\bAIza[0-9A-Za-z_-]{30,}\b/g,
+  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}\b/g,
+];
+const SECRET_ASSIGN_RE = /([A-Za-z_][A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL)[A-Za-z0-9_]*)(\s*=\s*)(?:"[^"\n]*"|'[^'\n]*'|[^\s,;&|]{4,})/g;
+
+function redactSecrets(value, state) {
+  if (typeof value !== 'string') return value;
+  let out = value;
+  for (const re of SECRET_INLINE_RES) out = out.replace(re, '[REDACTED]');
+  out = out.replace(SECRET_ASSIGN_RE, '$1$2[REDACTED]');
+  if (out !== value) state.redacted = true;
+  return out;
+}
+
 function sanitizeAskArgs(args, depth = 0, state = { truncated: false }) {
   if (args == null || typeof args !== 'object') {
-    if (typeof args === 'string' && args.length > 4000) { state.truncated = true; return clip(args, 4000); }
+    if (typeof args === 'string') {
+      const redacted = redactSecrets(args, state);
+      if (redacted.length > 4000) { state.truncated = true; return clip(redacted, 4000); }
+      return redacted;
+    }
     return args;
   }
   if (Array.isArray(args)) {
@@ -631,6 +663,15 @@ function sanitizeAskArgs(args, depth = 0, state = { truncated: false }) {
   }
   if (depth > 4) { state.truncated = true; return '[nested]'; }
   const out = {};
-  for (const [k, v] of Object.entries(args)) out[k] = sanitizeAskArgs(v, depth + 1, state);
+  for (const [k, v] of Object.entries(args)) {
+    // Credential-named fields redact the whole value regardless of content —
+    // a field literally called token/password/key needs no pattern proof.
+    if (typeof v === 'string' && v.length > 0 && SECRET_FIELD_RE.test(k)) {
+      state.redacted = true;
+      out[k] = '[REDACTED]';
+      continue;
+    }
+    out[k] = sanitizeAskArgs(v, depth + 1, state);
+  }
   return out;
 }

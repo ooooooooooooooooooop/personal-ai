@@ -362,6 +362,32 @@ test('kernel ask descriptor carries truncation flags for oversized args (B1)', a
   assert.ok(pending.args.command.length < pending.argsTotalChars);
 });
 
+test('kernel ask descriptor redacts secrets in args (M116)', async () => {
+  const { audit, policy, predictions } = fixture({ riskActions: { destructive: 'ask' } });
+  let pending = null;
+  const kernel = new GovernanceKernel({
+    audit, policy, predictions,
+    commandArgs: { shell: 'command' },
+    ask: async (p) => { pending = p; return 'deny'; },
+    commandClassifier: async (s) => ({ units: [{ raw: s }], parseError: null, risk: 'destructive', hasUnknown: false }),
+  });
+  const cmd = 'curl -H "Authorization: Bearer ' + ('ghp_' + 'abcdef'.repeat(6) + '12') + '" '
+    + '-e "OPENAI_API_KEY=' + ('sk-proj-' + 'abcd' + 'ef0123456789') + '" https://api.example.com';
+  await kernel.decideToolCall(ctx({ toolName: 'shell', args: {
+    command: cmd,
+    env: { OPENAI_API_KEY: 'sk-ant-' + 'livekey' + '0'.repeat(13) },
+    note: 'innocent text',
+  } }));
+  assert.equal(pending.argsRedacted, true);
+  const shown = JSON.stringify(pending.args);
+  assert.ok(!shown.includes('ghp_'), 'github token must not reach the card');
+  assert.ok(!shown.includes('sk-proj-'), 'sk- token in command must not reach the card');
+  assert.ok(!shown.includes('sk-ant-'), 'credential-named field must not reach the card');
+  assert.ok(shown.includes('[REDACTED]'));
+  assert.equal(pending.args.env.OPENAI_API_KEY, '[REDACTED]');
+  assert.equal(pending.args.note, 'innocent text');
+});
+
 test("command allowlist skips the ask card but never a deny (Roo whitelist analogue)", async () => {
   const { audit, policy, predictions } = fixture({
     riskActions: { destructive: 'ask', privilege: 'deny' },

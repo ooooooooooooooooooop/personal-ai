@@ -652,6 +652,12 @@ function addAskCard(ask) {
     payload.insertAdjacentHTML('beforeend',
       `<div class="ask-trunc">载荷过长，仅显示截断前缀（完整参数 ${ask.argsTotalChars ?? '?'} 字符）——批准/拒绝作用于完整参数</div>`);
   }
+  if (ask.argsRedacted) {
+    // M116: secrets in the payload are masked before reaching the DOM —
+    // tell the operator the card hides credential material on purpose.
+    payload.insertAdjacentHTML('beforeend',
+      `<div class="ask-trunc">载荷中的凭据/密钥已遮蔽（[REDACTED]）——批准/拒绝仍作用于完整参数</div>`);
+  }
   if (ask.args && typeof ask.args === 'object') {
     const cmdStr = ask.args.command ?? ask.args.cmd;
     const editPair = [ask.args.oldText ?? ask.args.old_string, ask.args.newText ?? ask.args.new_string];
