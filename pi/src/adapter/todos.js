@@ -6,8 +6,9 @@
  * switch can re-render the same checklist. The tool itself performs no
  * workspace mutation — it writes only the canonical todos file.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 const STATUSES = new Set(['pending', 'in_progress', 'completed']);
 
@@ -60,14 +61,22 @@ export function updateTodosTool(instanceRoot, getSessionId) {
     },
     async execute(_toolCallId, params) {
       const todos = (params.todos ?? []).map((t) => ({
-        content: String(t.content ?? ''),
+        // M5 parity: this checklist persists across restarts under the
+        // instance root — a plan item quoting a key/token is an on-disk
+        // secret store unless scrubbed before the bytes land
+        content: redactSecrets(String(t.content ?? '')),
         status: STATUSES.has(t.status) ? t.status : 'pending',
-        activeForm: t.activeForm != null ? String(t.activeForm) : null,
+        activeForm: t.activeForm != null ? redactSecrets(String(t.activeForm)) : null,
       }));
       const sid = getSessionId?.() ?? 'default';
       const p = todosPath(instanceRoot, sid);
       mkdirSync(join(instanceRoot, 'todos'), { recursive: true });
-      writeFileSync(p, JSON.stringify({ sessionId: sid, todos, updatedAt: new Date().toISOString() }, null, 2));
+      // atomic: a torn store silently drops the operator-visible plan on the
+      // next read (readTodos fails safe to []) — tmp+rename keeps the last
+      // good checklist intact
+      const tmp = `${p}.tmp-${process.pid}`;
+      writeFileSync(tmp, JSON.stringify({ sessionId: sid, todos, updatedAt: new Date().toISOString() }, null, 2));
+      renameSync(tmp, p);
       const done = todos.filter((t) => t.status === 'completed').length;
       return {
         content: [{ type: 'text', text: `todo list updated (${done}/${todos.length} completed)` }],

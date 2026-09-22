@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 /**
@@ -56,8 +56,15 @@ export class PendingAsks {
   }
 
   #alwaysMatch(toolName, args) {
+    // scope keys mirror the deny-cascade signature (#sigOf): a grant recorded
+    // against a command matches that command, a grant recorded against a path
+    // matches that path, and only a grant with NEITHER is tool-wide. Before
+    // this, a path-arg tool (write/edit) persisted {tool} alone — an 'always'
+    // click on one file auto-approved EVERY future write.
     return this.#alwaysAllows.some((e) =>
-      e.tool === toolName && (e.command == null || e.command === args?.command));
+      e.tool === toolName &&
+      (e.command == null || e.command === args?.command) &&
+      (e.path == null || e.path === args?.path));
   }
 
   subscribe(listener) {
@@ -151,11 +158,18 @@ export class PendingAsks {
           if (!rec.argsTruncated && this.alwaysPath) {
             const entry = { tool: toolName };
             const persistedCmd = edited?.command ?? rec.args?.command;
+            const persistedPath = edited?.path ?? rec.args?.path;
             if (typeof persistedCmd === 'string') entry.command = persistedCmd;
+            if (typeof persistedPath === 'string') entry.path = persistedPath;
             this.#alwaysAllows.push(entry);
             try {
               mkdirSync(dirname(this.alwaysPath), { recursive: true });
-              writeFileSync(this.alwaysPath, JSON.stringify(this.#alwaysAllows, null, 2));
+              // atomic: a torn store silently dropped every durable grant on
+              // next construction (parse fails closed to []) — tmp+rename
+              // keeps the last good grant set
+              const tmp = `${this.alwaysPath}.tmp-${process.pid}`;
+              writeFileSync(tmp, JSON.stringify(this.#alwaysAllows, null, 2));
+              renameSync(tmp, this.alwaysPath);
             } catch { /* persistence failure only costs durability — session grant still stands */ }
             this.audit?.write?.({ kind: 'ASK_ALWAYS_PERSIST', toolName, data: { command: entry.command != null ? entry.command.slice(0, 200) : null } });
           }

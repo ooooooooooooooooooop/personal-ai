@@ -34,7 +34,11 @@ function met(req, turn) {
     case 'text_pattern': {
       if (!req.match) return false;
       if (req.match.startsWith('/') && req.match.endsWith('/')) {
-        return new RegExp(req.match.slice(1, -1)).test(turn.assistantText);
+        // requirement text is model-authored — an invalid regex must degrade
+        // to an honest unmet gap, never throw through the evaluator
+        try {
+          return new RegExp(req.match.slice(1, -1)).test(turn.assistantText);
+        } catch { return false; }
       }
       return turn.assistantText.includes(req.match);
     }

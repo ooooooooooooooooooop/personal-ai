@@ -105,3 +105,24 @@ test('personal-local files: *.local.md load last with local marker', () => {
   // local reads AFTER the shared file (override ordering)
   assert.ok(out.indexOf('personal overrides') > out.indexOf('shared rules'));
 });
+
+test('truncation is visible: oversized per-file body and total-cap overflow are marked, never silent', () => {
+  const w = dir();
+  mkdirSync(join(w, '.pai', 'steering'), { recursive: true });
+  // per-file cap (16KB): body cut but the block must SAY so
+  writeFileSync(join(w, '.pai', 'steering', 'huge.md'), 'huge-rule\n' + 'x'.repeat(20 * 1024));
+  const out1 = loadSteering(w);
+  assert.match(out1, /huge-rule/);
+  assert.match(out1, /\[truncated: file exceeds the 16KB per-file steering cap\]/);
+  assert.ok(out1.length < 20 * 1024, 'body actually cut');
+
+  // total cap (32KB): later files omitted — the omission must be declared
+  const w2 = dir();
+  mkdirSync(join(w2, '.pai', 'steering'), { recursive: true });
+  for (let i = 0; i < 5; i++) {
+    writeFileSync(join(w2, '.pai', 'steering', `r${i}.md`), `rule-${i}\n` + 'y'.repeat(12 * 1024));
+  }
+  const out2 = loadSteering(w2);
+  assert.match(out2, /<steering-truncated>\d+ steering file\(s\) omitted/);
+  assert.ok(!out2.includes('rule-4'), 'overflow file content does not silently render');
+});

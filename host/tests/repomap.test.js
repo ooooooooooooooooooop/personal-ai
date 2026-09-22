@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { buildRepoMap } from '../src/core/repomap.js';
@@ -38,6 +38,17 @@ test('subdir narrows; isIgnored honored; missing subdir errors', () => {
   assert.ok(!ig.text.includes('b.py'));
   assert.ok(buildRepoMap(w, { subdir: 'nope' }).error);
   assert.match(buildRepoMap(w, { subdir: '../outside' }).error, /escapes/); // builder itself is confined
+});
+
+test('a junction/symlink subdir pointing outside the workdir refuses (A1 realpath parity)', (t) => {
+  const w = dir(); seed(w);
+  const outside = mkdtempSync(join(tmpdir(), 'pai-rm-out-'));
+  writeFileSync(join(outside, 'leak.ts'), 'export function leaked() {}\n');
+  const link = join(w, 'linked-out');
+  try { symlinkSync(outside, link, 'junction'); } catch { t.skip('no symlink privilege'); return; }
+  const r = buildRepoMap(w, { subdir: 'linked-out' });
+  assert.match(r.error ?? '', /escapes the workspace/, 'lexically-inside junction must not escape the map root');
+  assert.ok(!r.text.includes('leak.ts'), 'outside file never surfaces');
 });
 
 test('budget truncation marks truncated and stays under cap', () => {

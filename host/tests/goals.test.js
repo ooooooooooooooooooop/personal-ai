@@ -2,7 +2,7 @@
  * GoalStore — durable long-horizon goal records: create/list/state, task
  * and schedule binding, scratchpad continuity, tick fingerprinting.
  */
-import { mkdtempSync, existsSync, readFileSync, appendFileSync } from 'node:fs';
+import { mkdtempSync, existsSync, readFileSync, readdirSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -62,4 +62,27 @@ test('setState transitions; touchTick stores fingerprint + timestamp', () => {
   assert.equal(meta.fingerprint, 'fp-1');
   assert.equal(meta.last_tick_at, new Date(5000).toISOString());
   assert.equal(g.setState('goal-nope', 'done'), null);
+});
+
+test('goal statement + scratchpad notes are secret-scrubbed before they hit disk (M5 parity)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-goals-'));
+  const g = new GoalStore(dir);
+  const key = ['sk', 'abcdefghij0123456789abcd'].join('-'); // assembled — never a literal
+  const goal = g.create({ statement: `rotate key ${key} weekly` });
+  g.note(goal.goal_id, `used ${key} against staging`);
+  const metaRaw = readFileSync(join(dir, 'goals', goal.goal_id, 'goal.json'), 'utf-8');
+  const padRaw = readFileSync(join(dir, 'goals', goal.goal_id, 'scratchpad.md'), 'utf-8');
+  assert.ok(!metaRaw.includes(key) && !padRaw.includes(key), 'secret-shaped span must not reach disk');
+  assert.match(metaRaw, /\[REDACTED:/);
+  assert.match(padRaw, /\[REDACTED:/);
+});
+
+test('goal.json writes atomically — no tmp debris, store parseable after update', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-goals-'));
+  const g = new GoalStore(dir);
+  const goal = g.create({ statement: 'keep the lights on' });
+  g.setState(goal.goal_id, 'paused');
+  g.bindTask(goal.goal_id, 'task-1');
+  assert.ok(!readdirSync(join(dir, 'goals', goal.goal_id)).some((f) => f.includes('.tmp-')), 'no tmp debris');
+  assert.equal(g.get(goal.goal_id).state, 'paused');
 });

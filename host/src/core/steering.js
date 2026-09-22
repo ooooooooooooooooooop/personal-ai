@@ -91,10 +91,15 @@ export function loadSteering(workdir) {
 
   let out = '';
   const manual = [];
+  let omitted = 0;
   for (const f of files) {
-    if (out.length >= TOTAL_MAX) break;
-    let body = '';
-    try { body = readFileSync(f.path, 'utf-8').slice(0, PER_FILE_MAX); } catch { continue; }
+    if (out.length >= TOTAL_MAX) { omitted++; continue; }
+    let raw = '';
+    try { raw = readFileSync(f.path, 'utf-8'); } catch { continue; }
+    // truncation must be VISIBLE — a silently cut rule reads as intact
+    // guidance; the model (and operator) must know content was dropped
+    const cut = raw.length > PER_FILE_MAX;
+    const body = cut ? raw.slice(0, PER_FILE_MAX) : raw;
     const fm = parseFrontmatter(body);
     // Trae/Kiro apply modes: 'manual' rules are not auto-injected — they are
     // indexed by name so the model reads them on demand. 'globs' rules are
@@ -103,11 +108,14 @@ export function loadSteering(workdir) {
     if (fm.apply === 'manual') { manual.push(f.name); continue; }
     const scope = fm.globs?.length ? ` scope="${fm.globs.join(', ')}"` : '';
     const anc = f.ancestor ? ` dir="${f.ancestor}"` : '';
-    const loc = f.local ? ' local="personal"' : '';
-    out += `\n<steering-file name="${f.name}"${scope}${anc}${loc}>\n${fm.body}\n</steering-file>\n`;
+    const loc = f.local ? ` local="personal"` : '';
+    out += `\n<steering-file name="${f.name}"${scope}${anc}${loc}>\n${fm.body}${cut ? '\n[truncated: file exceeds the 16KB per-file steering cap]' : ''}\n</steering-file>\n`;
   }
   if (manual.length) {
     out += `\n<manual-rules>${manual.join(', ')}</manual-rules>\n`;
+  }
+  if (omitted) {
+    out += `\n<steering-truncated>${omitted} steering file(s) omitted — the ${TOTAL_MAX}-char total steering cap was reached</steering-truncated>\n`;
   }
   return out.trim() || null;
 }

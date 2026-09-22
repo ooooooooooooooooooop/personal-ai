@@ -13,9 +13,10 @@
  * States: open | paused | done. A paused/done goal's schedule still exists
  * but its tick is skipped at fire time (the schedule row stays honest).
  */
-import { existsSync, mkdirSync, readFileSync, readdirSync, appendFileSync, writeFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, appendFileSync, renameSync, writeFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { redactSecrets } from './secrets.js';
 
 export class GoalStore {
   /** @param {string} root instance root — goals live under <root>/goals */
@@ -35,11 +36,19 @@ export class GoalStore {
   }
 
   #writeMeta(goalId, meta) {
-    writeFileSync(this.#metaPath(goalId), JSON.stringify(meta, null, 2));
+    // atomic: goal.json is THE durable record of a long-horizon goal — a
+    // torn write makes #readMeta return null and the goal silently vanishes
+    // from list() and from its own schedule tick
+    const p = this.#metaPath(goalId);
+    const tmp = `${p}.tmp-${process.pid}`;
+    writeFileSync(tmp, JSON.stringify(meta, null, 2));
+    renameSync(tmp, p);
   }
 
   create({ statement, scheduleId = null } = {}) {
-    const text = String(statement ?? '').trim();
+    // M5 parity: the statement is durable on-disk text echoed back into tick
+    // prompts — scrub secret-shaped spans before bytes land
+    const text = redactSecrets(String(statement ?? '').trim());
     if (!text) throw new Error('goal requires a non-empty statement');
     const goalId = `goal-${randomUUID().slice(0, 8)}`;
     mkdirSync(this.#goalDir(goalId), { recursive: true });
@@ -103,7 +112,8 @@ export class GoalStore {
   note(goalId, line) {
     const meta = this.#readMeta(goalId);
     if (!meta) return null;
-    appendFileSync(this.scratchpadPath(goalId), `${String(line ?? '').slice(0, 2000)}\n`);
+    // M5 parity: the scratchpad is durable on-disk text (append-only)
+    appendFileSync(this.scratchpadPath(goalId), `${redactSecrets(String(line ?? '').slice(0, 2000))}\n`);
     return meta;
   }
 

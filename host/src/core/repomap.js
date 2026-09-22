@@ -15,7 +15,7 @@
  * Python import/from, C-family quoted #include, Rust mod. Unresolvable
  * specifiers (node_modules, stdlib) simply contribute no edge.
  */
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, realpathSync, statSync, existsSync } from 'node:fs';
 import { join, relative, resolve, extname, dirname, sep } from 'node:path';
 
 const SRC_EXT = new Set([
@@ -160,6 +160,18 @@ export function buildRepoMap(workdir, { isIgnored = null, subdir = null, maxChar
   const resolved = resolve(base);
   if (subdir && resolved !== resolve(workdir) && !resolved.startsWith(resolve(workdir) + sep)) {
     return { text: '', files: 0, symbols: 0, truncated: false, error: 'subdir escapes the workspace' };
+  }
+  // A1 parity: a junction/symlink named as subdir passes the lexical check —
+  // confinement must hold on the REAL path, or the read-only map becomes an
+  // out-of-workdir read. realpath failure fails closed.
+  let realBase;
+  try { realBase = realpathSync(base); } catch {
+    return { text: '', files: 0, symbols: 0, truncated: false, error: `not found: ${subdir ?? workdir}` };
+  }
+  let realRoot;
+  try { realRoot = realpathSync(workdir); } catch { realRoot = resolve(workdir); }
+  if (realBase !== realRoot && !realBase.startsWith(realRoot + sep)) {
+    return { text: '', files: 0, symbols: 0, truncated: false, error: 'subdir escapes the workspace (via symlink)' };
   }
   if (!existsSync(base)) return { text: '', files: 0, symbols: 0, truncated: false, error: `not found: ${subdir}` };
 

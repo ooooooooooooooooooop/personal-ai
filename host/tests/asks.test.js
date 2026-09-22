@@ -185,6 +185,47 @@ test("'always' persists {tool,command} to alwaysPath and auto-allows across rest
   assert.equal(await asks2.ask(desc({ args: { command: 'git status' } })), 'allow');
 });
 
+test("'always' on a path-arg tool scopes the grant to THAT path — never tool-wide", async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  const p = asks.ask(desc({ toolName: 'write', args: { path: 'notes/a.txt' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  assert.equal(await p, 'always');
+  // same path auto-allows…
+  assert.equal(await asks.ask(desc({ toolName: 'write', args: { path: 'notes/a.txt' } })), 'allow');
+  // …a different path still asks (the grant must not cover every write)
+  const p2 = asks.ask(desc({ toolName: 'write', toolCallId: 'tc-b', args: { path: 'src/critical.js' } }));
+  assert.equal(asks.list().length, 1, 'different path must still open a card');
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+  // the persisted entry carries the path scope across restart
+  const persisted = JSON.parse(readFileSync(path, 'utf-8'));
+  assert.deepEqual(persisted, [{ tool: 'write', path: 'notes/a.txt' }]);
+  const asks2 = new PendingAsks({ timeoutMs: 5000 }, path);
+  assert.equal(await asks2.ask(desc({ toolName: 'write', args: { path: 'notes/a.txt' } })), 'allow');
+  const p3 = asks2.ask(desc({ toolName: 'write', toolCallId: 'tc-c', args: { path: 'etc.txt' } }));
+  assert.equal(asks2.list().length, 1);
+  asks2.resolve(asks2.list()[0].id, 'deny');
+  await p3;
+});
+
+test("legacy tool-wide entries (no command, no path) still match any args; persist is atomic (no tmp debris)", async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  mkdirSync(dir, { recursive: true });
+  // legacy shape from before path-scoping existed
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(path, JSON.stringify([{ tool: 'browser_navigate' }]));
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  assert.equal(await asks.ask(desc({ toolName: 'browser_navigate', args: { url: 'https://x.test' } })), 'allow');
+  // adding another grant leaves no tmp debris
+  const p = asks.ask(desc({ toolName: 'bash', args: { command: 'ls' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  await p;
+  assert.ok(!readdirSync(dir).some((f) => f.includes('.tmp-')), 'no tmp debris');
+});
+
 test("'always' refused on truncated payload; deny cascades same tool:arg for the session", async () => {
   const asks = new PendingAsks({ timeoutMs: 5000 });
   const p = asks.ask(desc({ args: { command: 'x' }, argsTruncated: true }));

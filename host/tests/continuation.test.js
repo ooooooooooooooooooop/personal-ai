@@ -32,6 +32,16 @@ test('evidence evaluator returns unmet gap ids', () => {
   assert.equal(full.sufficient, true);
 });
 
+test('an invalid /regex/ requirement degrades to an unmet gap — never throws through the evaluator', () => {
+  const reqs = [{ id: 'pattern', kind: 'text_pattern', match: '/^([a-z/' }];
+  const r = evaluateEvidence(reqs, turn([], 'any text'));
+  assert.equal(r.sufficient, false);
+  assert.deepEqual(r.gaps, ['pattern']);
+  // valid regex still matches
+  const ok = evaluateEvidence([{ id: 'p2', kind: 'text_pattern', match: '/done/' }], turn([], 'all done'));
+  assert.equal(ok.sufficient, true);
+});
+
 test('gap text is structured and repair-oriented', () => {
   const text = renderGap(REQUIREMENTS, ['tested']);
   assert.match(text, /EVIDENCE GAP/);

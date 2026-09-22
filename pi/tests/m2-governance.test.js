@@ -12,7 +12,7 @@ import { createRevalidator } from '../src/adapter/revalidate.js';
 import { renderDenial } from '../src/adapter/errors.js';
 import { ToolSurface } from '../src/adapter/surface.js';
 import { FileOpsGuard } from '../src/adapter/fileops.js';
-import { updateTodosTool, readTodos } from '../src/adapter/todos.js';
+import { updateTodosTool, readTodos, todosPath } from '../src/adapter/todos.js';
 
 test('command parser extracts units hidden in substitutions and pipes', async () => {
   const { units, risk } = await parseShellCommand('rm -rf $(cat targets) | tee log');
@@ -179,6 +179,23 @@ test('update_todos persists a session-scoped checklist readable via readTodos', 
   // bad status coerced to pending
   await tool.execute('tc2', { todos: [{ content: 'x', status: 'bogus' }] });
   assert.equal(readTodos(dir, 'sess-B')[0].status, 'pending');
+});
+
+test('update_todos: persisted checklist is secret-scrubbed (M5 parity) and written atomically', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-todos-'));
+  const tool = updateTodosTool(dir, () => 'sess-S');
+  const key = ['sk', 'abcdefghij0123456789abcd'].join('-'); // assembled — never a literal
+  await tool.execute('tc1', {
+    todos: [{ content: `rotate key ${key} in vault`, status: 'in_progress', activeForm: `rotating ${key}` }],
+  });
+  const raw = readFileSync(todosPath(dir, 'sess-S'), 'utf-8');
+  assert.ok(!raw.includes(key), 'secret-shaped span must not reach disk');
+  assert.match(raw, /\[REDACTED:/);
+  // atomic persist: no tmp debris, and the store parses
+  assert.ok(!readdirSync(join(dir, 'todos')).some((f) => f.includes('.tmp-')), 'no tmp debris');
+  const list = readTodos(dir, 'sess-S');
+  assert.equal(list.length, 1);
+  assert.match(list[0].content, /\[REDACTED:/);
 });
 
 test('FileOpsGuard.diff: backup→current unified diff per receipt, artifacts gone → skipped', async () => {
