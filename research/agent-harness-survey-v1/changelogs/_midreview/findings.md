@@ -259,3 +259,28 @@ G1 kernel commandArgs + decide COMMAND_ARG_KEYS 加 schedule_task（创建时分
 | G8 | wrapUntrusted 对非文本块归一：已知类型透传+未知名/畸形块→`unsupported content block dropped` 文本桩，details.droppedBlocks 计数 | mcp-ext: `non-text MCP blocks: known types pass, malformed become stub text` |
 
 残留 cand：#1435 `/mcp` reconnect（v1 低成本项，未实装——记录为候选缺口）
+
+## batch23 — 逐条处置台账收口（2026-09-23）
+
+`_midreview/item-dispositions.tsv` 落地：18,405/18,405 行逐条有处置结论，构成 = **18,037 条早前逐条标注**（compact.txt `<<` 尾注，先前评审轮写入）+ **368 条本轮补判**（早前标注的散布空档，本批逐条过读补齐）。
+
+368 补判分布：cand×14 / dup×13 / verify-closed×2 / variant×1 / boundary×274 / noise×64。新增候选（未在既有批次中实现的）：
+
+- #14 全局禁用 always-授权的管理员开关（batch1 已记，M146 族）
+- #16 auto-compact 触发阈值可配置（我方固定 90%）
+- #17 requirements.toml allowed_web_search_modes（搜索模式白名单声明）
+- #34/#121 安全检测框架（safety-checker/Conseca——verify/hooks 族方向佐证）
+- #104 新用户检测→onboarding（batch1 已记缺口）
+- #123 ModelPolicy/PolicyCatalog 模型策略目录
+- #361 --skip-sanity-check-repo 大仓启动加速档
+- #383 /verify 深度验证 lane（verify 族佐证）
+- #512 command_aliases 命令别名
+- #1116 disable_paste_burst 粘贴突发开关（M129 族）
+- #1639 SKILL.toml manifest 变体
+- #1705 skipLoopDetection 关闭档
+- #3088/#6261 已发消息原位编辑+重答/删除（真实 UI 缺口，归批4 UI 族）
+- #4999 CODEX_SECURE_MODE 进程可观测性限制档
+
+补判为 dup/verify-closed 的代表：#420 IP 校验+safeFetch≈M63/M66、#1916 XML 转义≈M147/U5、#329 FolderTrust≈M85、#1498 损坏权限文件 panic≈policy fail-closed（已核销）、#6072 /copy-context≈context_map/export、#97 workboard 编排≈delegate/mailbox、#144 .devinignore≈.paiignore。
+
+台账列：`idx | novelty | cluster | src | verdict | detail | pass`；pass=prior（早前逐条标注）/fill（本轮补判）。
