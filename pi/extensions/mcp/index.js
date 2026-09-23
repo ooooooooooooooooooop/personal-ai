@@ -1157,7 +1157,7 @@ export default function mcpExtension(pi) {
   // a boot server takes. A failed connect still persists the entry (the
   // config is the operator's; /mcp shows the failure honestly).
   pi.registerCommand('mcp-add', {
-    description: 'Add an MCP server — /mcp-add <name> <url|command> [args…] [--header "K: V"]* [--env K=V]*',
+    description: 'Add an MCP server — /mcp-add <name> <url|command> [args…] [--header "K: V"]* [--env K=V]* [--transport sse] [--oauth-client-id ID --oauth-token-url U [--oauth-authorize-url U] [--oauth-scope S]]',
     handler: async (args, ctx) => {
       await boot;
       // quote-aware tokenize — --header "K: V" must arrive as ONE word
@@ -1179,6 +1179,7 @@ export default function mcpExtension(pi) {
       const rest = [];
       const headers = {}, env = {};
       let transport = null;
+      const oauth = {};
       for (let i = 1; i < words.length; i++) {
         if (words[i] === '--header' && words[i + 1]) {
           const h = words[++i]; const ci = h.indexOf(':');
@@ -1188,6 +1189,15 @@ export default function mcpExtension(pi) {
           if (ei > 0) env[e.slice(0, ei)] = e.slice(ei + 1);
         } else if (words[i] === '--transport' && words[i + 1]) {
           transport = words[++i];
+        // dedup-h #350 — pre-registered OAuth client flags
+        } else if (words[i] === '--oauth-client-id' && words[i + 1]) {
+          oauth.clientId = words[++i];
+        } else if (words[i] === '--oauth-token-url' && words[i + 1]) {
+          oauth.tokenUrl = words[++i];
+        } else if (words[i] === '--oauth-authorize-url' && words[i + 1]) {
+          oauth.authorizationUrl = words[++i];
+        } else if (words[i] === '--oauth-scope' && words[i + 1]) {
+          oauth.scope = words[++i];
         } else rest.push(words[i]);
       }
       if (!rest.length) { ctx.ui?.notify?.('usage: /mcp-add <name> <url|command> [args…]', 'error'); return; }
@@ -1199,10 +1209,25 @@ export default function mcpExtension(pi) {
           ctx.ui?.notify?.(`--transport '${transport}' unsupported — expected http|sse`, 'error'); return;
         }
         if (Object.keys(headers).length) spec.headers = headers;
+        // pre-registered client needs its token endpoint too — a bare id
+        // would be a half-spec that only fails later at connect (#350)
+        if (Object.keys(oauth).length) {
+          try {
+            validateOAuthSpec({ ...spec, oauth });
+          } catch (e) {
+            ctx.ui?.notify?.(`oauth spec incomplete: ${e.message} — needs --oauth-client-id + --oauth-token-url (+ --oauth-authorize-url for the interactive flow)`, 'error');
+            return;
+          }
+          spec.oauth = oauth;
+        }
       } else {
         spec = { command: rest[0] };
         if (rest.length > 1) spec.args = rest.slice(1);
         if (Object.keys(env).length) spec.env = env;
+        if (Object.keys(oauth).length) {
+          ctx.ui?.notify?.('oauth flags apply to URL servers only — stdio servers have no token endpoint', 'error');
+          return;
+        }
       }
       if (denied.has(name)) { ctx.ui?.notify?.(`server '${name}' is denied for this agent (PAI_MCP_DENY)`, 'error'); return; }
       const target = configPath ?? join(process.cwd(), '.pai', 'mcp.json');

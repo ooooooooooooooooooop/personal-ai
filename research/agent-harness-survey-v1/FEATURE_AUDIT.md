@@ -2294,3 +2294,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。上游缺陷类 = HTTP/SSE MCP 调用静默落在 undici ~5min 默认超时上。
 - **机制**：所有 MCP 网络操作显式上界——request 调用沿用调用方 `timeoutMs`；`httpTransport.notify` POST 加 `AbortSignal.timeout(postTimeoutMs)`；`sseTransport.doPost` 加 `AbortSignal.any([transport-close, timeout])`；`POST_TIMEOUT_MS=30s` 默认，`spec.postTimeoutMs` 可覆盖。POST 黑洞 → 合成 JSON-RPC error 推回该 id，pending 立即拒而非挂起。
 - **证据**：mcp-ext 26/26（黑洞 POST postTimeoutMs=80 在 <10s 内拒）；pi 回归随 #347 同测。
+
+### 28.66 648 清单逐条核销 #38：dedup-h #350 `--oauth-client-id` 预注册 client（2026-09-23）
+
+- **判定**：IMPLEMENTED。预注册 client_id 本就是本实现的唯一 client 模型（无动态注册——`oauth.clientId` 必填）；本行补齐 `/mcp-add` 命令面的 OAuth 旗标族。
+- **机制**：`--oauth-client-id/--oauth-token-url/--oauth-authorize-url/--oauth-scope` → `spec.oauth`；写入前过 `validateOAuthSpec`——半规格（裸 client-id 无 token-url）在**写入时**即拒并给完整用法，不留一颗连不上的配置；stdio add 上挂 oauth 旗标同样拒（无 token 端点）。
+- **证据**：mcp-ext 26/26（半规格拒+不落盘、完整旗标逐字段落盘、stdio+oauth 拒）。

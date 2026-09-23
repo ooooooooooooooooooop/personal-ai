@@ -1071,6 +1071,20 @@ test('mcp-add: positional URL persists + hot-connects; stdio + duplicates + deny
       const doc3 = JSON.parse(readFileSync(cfgPath, 'utf-8'));
       assert.ok(doc3.mcpServers.ghost, 'failed connect still persisted');
       assert.match(notices.at(-1)[1], /connect FAILED/);
+
+      // dedup-h #350: pre-registered oauth client — bare id is a half-spec
+      // refused at write time; full flags persist a validated spec.oauth
+      await add.handler(`half http://127.0.0.1:${srv.address().port}/mcp --oauth-client-id cid-1`, ctx);
+      assert.match(notices.at(-1)[1], /oauth spec incomplete.*tokenUrl/);
+      assert.ok(!JSON.parse(readFileSync(cfgPath, 'utf-8')).mcpServers.half, 'half-spec not persisted');
+      await add.handler(`secured http://127.0.0.1:${srv.address().port}/mcp --oauth-client-id cid-9 --oauth-token-url http://127.0.0.1:9/token --oauth-scope "mcp:read"`, ctx);
+      const doc4 = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+      assert.deepEqual(doc4.mcpServers.secured.oauth, {
+        clientId: 'cid-9', tokenUrl: 'http://127.0.0.1:9/token', scope: 'mcp:read',
+      });
+      // oauth flags on a stdio add are nonsense — refused, not stored
+      await add.handler(`badstdio "${process.execPath}" --oauth-client-id x`, ctx);
+      assert.match(notices.at(-1)[1], /oauth flags apply to URL servers only/);
       await pi.handlers.get('session_shutdown')?.();
     } finally {
       if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;
