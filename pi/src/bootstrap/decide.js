@@ -559,7 +559,12 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     }
     const fgHolder = `fg:${ctx.toolCall?.id ?? 'unknown'}`;
     let fgHeld = false;
-    if (mutating && writeLease) {
+    // job_spawn never takes the foreground lease even when its command is
+    // mutating — the durable job serializes via its own `job:` lease inside
+    // spawnCommandJob; an fg hold here deadlocks every mutating spawn against
+    // its own caller. The mutating flag above still drives the write-target /
+    // protected-path rechecks for the command text.
+    if (mutating && toolName !== 'job_spawn' && writeLease) {
       const acq = writeLease.acquire(fgHolder, { tool: toolName });
       if (!acq.ok) {
         core.audit.write({

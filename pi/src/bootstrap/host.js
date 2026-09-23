@@ -1762,6 +1762,41 @@ export async function startHost({
         }
         return r;
       },
+      // Operator worktree/job spawn (sidebar worktree-creation analogue,
+      // candidates-open #2): a durable background task the operator launches
+      // explicitly — optionally inside a detached git worktree. Same decide
+      // chain as model job_spawn + the same JobExecutor, so restart spec,
+      // dependency validation and audit all behave identically.
+      runJob: async ({ command, worktree = false, timeoutMs = null }) => {
+        if (!currentDecide) return { ok: false, error: 'session not ready' };
+        const cmdText = String(command ?? '').trim();
+        if (!cmdText) return { ok: false, error: 'command required' };
+        const callId = `op-job-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`;
+        const args = { command: cmdText, workdir, worktree: worktree === true };
+        const emit = (ev) => channelHandle?.channel.emitEvent(ev);
+        const d = await currentDecide({ toolCall: { name: 'job_spawn', id: callId }, args });
+        hooks?.fire('tool_start', { toolName: 'job_spawn', toolCallId: callId });
+        if (d?.block) {
+          emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'job_spawn', result: d.reason ?? 'blocked', isError: true });
+          hooks?.fire('tool_end', { toolName: 'job_spawn', toolCallId: callId, isError: true });
+          core.audit.write({ kind: 'OPERATOR_JOB_BLOCK', data: { command: cmdText.slice(0, 200), rule: d.rule ?? 'deny' } });
+          return { ok: false, blocked: true, reason: d.reason ?? 'blocked' };
+        }
+        emit({ type: 'tool_execution_start', toolCallId: callId, toolName: 'job_spawn', args });
+        const r = await executor.spawnCommandJob({
+          command: cmdText, workdir, jobType: 'shell_command',
+          authorizedRoot: workdir, timeoutMs, worktree: worktree === true,
+        });
+        if (r?.refused) {
+          emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'job_spawn', result: r.reason ?? 'refused', isError: true });
+          hooks?.fire('tool_end', { toolName: 'job_spawn', toolCallId: callId, isError: true });
+          return { ok: false, refused: true, reason: r.reason };
+        }
+        emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'job_spawn', result: `job ${r.job_id}`, isError: false });
+        hooks?.fire('tool_end', { toolName: 'job_spawn', toolCallId: callId, isError: false });
+        core.audit.write({ kind: 'OPERATOR_JOB_SPAWN', data: { command: cmdText.slice(0, 200), worktree: worktree === true, jobId: r.job_id } });
+        return { ok: true, jobId: r.job_id, queued: r.queued === true };
+      },
     },
     modes: {
       get: () => riskMode,

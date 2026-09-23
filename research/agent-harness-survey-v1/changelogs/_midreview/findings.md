@@ -366,3 +366,9 @@ batch26 的 "~33,217 noflag 自动处置" 当时是估算口径；本批物化�
 | findings-dir（`[dir]` 方向观察） | 13 | compact.txt 内嵌行号或散文 |
 
 合计 **648 条**。G1–G12 / U1–U15 / D1–D6 经 §28 回写全部关闭（已有或有意拒绝），verify-closed（#915/#1277/#1284）已修复——均不在列。
+
+## batch29 — 648 逐条实施核销开始：#2 worktree 侧栏创建（2026-09-23）
+
+用户指令"开始逐条实施"。核销账规则：**`candidates-open.tsv` 保持 648 行冻结**（发布口径/审计分母，anchor v7 锁定）；逐条核销走 **`candidates-resolved.tsv`**（src/id/grp/detail/resolution/evidence/resolved_at/batch），决议四值 = IMPLEMENTED / ALREADY-COVERED / VARIANT / REJECTED(理由)。剩余开放数 = 648 − resolved 行数，两条台账可对账不重不漏。
+
+**#1 dedup-h#2 → IMPLEMENTED**：侧栏开 worktree 的对等面 = `/worktree <cmd>`（app）→ channel `job_spawn{worktree:true}`（host）→ `exec.runJob` 走与模型 job_spawn **同一 currentDecide 链**（pi host.js）→ `JobExecutor` detached checkout（M13 执行器复用）。顺修一个既有真洞：decide.js job_spawn 的 fg 租约死锁（:483 豁免被 :484 重分类抵消，任何 mutating job_spawn 必撞自己调用方的锁）——模型路径同病，修复后保留 mutating 重检只豁免取锁。证据见 FEATURE_AUDIT §28.32。

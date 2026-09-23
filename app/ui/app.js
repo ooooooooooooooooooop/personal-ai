@@ -3782,6 +3782,26 @@ const SLASH = [
   { cmd: '/sessions', label: '对话列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },
   { cmd: '/body', label: 'AI 引擎', hint: '查看与切换当前执行引擎', run: () => switchView('bodies') },
   { cmd: '/jobs', label: '后台任务', hint: '查看后台自动化任务与计划作业', run: () => switchView('jobs') },
+  {
+    cmd: '/worktree', label: 'worktree 后台任务', hint: '/worktree <命令>——在独立 git worktree 里跑后台任务（zed 侧栏 worktree 对等）',
+    run: async (arg) => {
+      const c = String(arg ?? '').trim();
+      if (!c) { toast('用法：/worktree <命令>', 'err'); return; }
+      const r = await cmd('job_spawn', { command: c, worktree: true });
+      if (r.success) { toast(`worktree 任务已开：${r.data?.jobId ?? ''}`); switchView('jobs'); }
+      else addSys(`worktree 任务失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/job', label: '后台跑命令', hint: '/job <命令>——durable job 后台执行（走 decide 治理链）',
+    run: async (arg) => {
+      const c = String(arg ?? '').trim();
+      if (!c) { toast('用法：/job <命令>', 'err'); return; }
+      const r = await cmd('job_spawn', { command: c });
+      if (r.success) { toast(`后台任务已开：${r.data?.jobId ?? ''}`); switchView('jobs'); }
+      else addSys(`后台任务失败：${r.error ?? '未知'}`, true);
+    },
+  },
   { cmd: '/changes', label: '文件变更', hint: '查看文件改动回执与导出产物', run: () => switchView('changes') },
   { cmd: '/audit', label: '安全日志', hint: '安全规则与治理事件流', run: () => switchView('audit') },
   { cmd: '/settings', label: '系统设置', hint: '模型密钥与工作目录', run: () => switchView('settings') },

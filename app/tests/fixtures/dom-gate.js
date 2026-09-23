@@ -199,6 +199,21 @@ const DRIVER = `(async () => {
     };
     sessRow?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
 
+    // candidates-open #2 — /worktree dispatches job_spawn{worktree:true} and
+    // lands the operator in the jobs view on success.
+    inputEl.value = '/worktree echo domgate';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    await sleep(80);
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await sleep(250);
+    const sysTail = document.querySelector('#transcript')?.textContent ?? '';
+    checks.worktreeCmd = {
+      ok: currentView === 'jobs' && !sysTail.includes('worktree 任务失败'),
+      view: currentView, tail: sysTail.slice(-120),
+    };
+    switchView('chat');
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

@@ -64,7 +64,7 @@ test('startHost assembles a governed pi body end-to-end', async () => {
   // lease store live: claim a domain through the real store
   const claim = host.leases.claim({ scope: 'domain', name: 'smoke', owner: 'pi:test', ttlSeconds: 60 });
   assert.ok(claim.ok);
-  host.leases.close();
+  host.dispose();
 });
 
 // BCC-1 wiring: the world-model adapter must actually reach the live session —
@@ -92,7 +92,7 @@ test('BCC-1: the world-model adapter is wired into the live session', async () =
     assert.ok(existsSync(join(dir, 'world-model')),
       'world-model state dir must exist under the instance root');
   } finally {
-    host.leases.close();
+    host.dispose();
   }
 });
 
@@ -205,7 +205,7 @@ test('loop governance is installed without taskRequirements or a fallback chain'
     ids.some((id) => id.includes('pai-loop-governance')),
     `loop-governance extension must load unconditionally; loaded: ${JSON.stringify(ids)}`,
   );
-  host.leases.close(); // same teardown convention as the other tests in this file
+  host.dispose(); // full teardown — dispose() already closes leases; calling both double-closes
 });
 
 test('M8-B4: canonical observations flow into the live context provider', async () => {
@@ -237,7 +237,7 @@ test('M8-B4: canonical observations flow into the live context provider', async 
   const reopened = new ObservationStore(join(dir, 'canonical'));
   assert.ok(reopened.recent(20).some((o) => o.subject === 'bash'));
 
-  host.leases.close();
+  host.dispose();
 });
 
 test('M8: ToolSurface + FileOpsGuard are wired into the real session', async () => {
@@ -265,7 +265,7 @@ test('M8: ToolSurface + FileOpsGuard are wired into the real session', async () 
   // deny-memory persisted under the instance root
   assert.ok(existsSync(join(dir, 'deny-memory.json')));
 
-  host.leases.close();
+  host.dispose();
 });
 
 test('M89: session_import never mutates the source file', async () => {
@@ -302,7 +302,7 @@ test('M89: session_import never mutates the source file', async () => {
   assert.ok(
     !existsSync(stageRoot) || readdirSync(stageRoot).length === 0,
     'staging dir must be gone after import');
-  host.leases.close();
+  host.dispose();
 });
 
 test('M89-R3: a post-fork failure also removes the half-imported session', async () => {
@@ -341,7 +341,7 @@ test('M89-R3: a post-fork failure also removes the half-imported session', async
   assert.deepEqual(readFileSync(src), before);
   const stageRoot = join(sessionsDir, '.import-stage');
   assert.ok(!existsSync(stageRoot) || readdirSync(stageRoot).length === 0);
-  host.leases.close();
+  host.dispose();
 });
 
 test('M89-R3: a mid-fork throw leaves no orphan — staging sweep + atomic publish', async () => {
@@ -388,7 +388,7 @@ test('M89-R3: a mid-fork throw leaves no orphan — staging sweep + atomic publi
   assert.deepEqual(readFileSync(src), before);
   const stageRoot = join(sessionsDir, '.import-stage');
   assert.ok(!existsSync(stageRoot) || readdirSync(stageRoot).length === 0);
-  host.leases.close();
+  host.dispose();
 });
 
 test('M90-R3: restart gate args use the canonical job_spawn schema', () => {
@@ -459,7 +459,7 @@ test('M89-R2: provenance rewrite failure fails the whole import — no dangling 
   assert.ok(
     !existsSync(stageRoot) || readdirSync(stageRoot).length === 0,
     'staging must be cleaned even on failure');
-  host.leases.close();
+  host.dispose();
 });
 
 test('M107: btw readonly posture — effectful tools denied at decide, reads pass through', async () => {
@@ -518,7 +518,7 @@ test('M123: operator bash_run fires observational tool_start/tool_end hooks', as
   const fired = readFileSync(marker, 'utf-8').trim().split('\n').map((l) => JSON.parse(l).ev);
   assert.ok(fired.includes('tool_start'), `tool_start fired (got ${fired})`);
   assert.ok(fired.includes('tool_end'), `tool_end fired (got ${fired})`);
-  host.leases.close();
+  host.dispose();
 });
 
 test('B1 scan_run: artifact stub + governed prompt fire (or honest refusal)', async () => {
@@ -595,5 +595,67 @@ test('#1284: session_fork refuses an oversized source transcript', async () => {
       ? readdirSync(sessionsDir, { recursive: true }).filter((f) => String(f).endsWith('.jsonl')).length
       : 0;
     assert.ok(spawned <= 1, 'no fork destination left behind');
+  } finally { host.dispose(); }
+});
+
+// candidates-open #2: operator worktree spawn — the sidebar worktree-creation
+// analogue rides the channel job_spawn command through the SAME decide chain
+// and lands a durable job inside a detached git worktree.
+test('operator job_spawn: worktree flag reaches a real detached-checkout job', { timeout: 40_000 }, async () => {
+  const { spawnSync } = await import('node:child_process');
+  // instanceRoot must NOT sit inside a git worktree (doctor refuses) — keep
+  // runtime state separate from the repo the job runs against.
+  const inst = mkdtempSync(join(tmpdir(), 'pai-opwt-inst-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-opwt-repo-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  for (const args of [
+    ['init', '-q'], ['config', 'user.email', 't@t'], ['config', 'user.name', 't'],
+  ]) spawnSync('git', args, { cwd: dir });
+  writeFileSync(join(dir, 'base.txt'), 'base');
+  spawnSync('git', ['add', 'base.txt'], { cwd: dir });
+  spawnSync('git', ['commit', '-qm', 'init'], { cwd: dir });
+
+  const host = await startHost({
+    instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+  });
+  try {
+    const writeCmd = process.platform === 'win32' ? 'echo wt>wt-marker.txt' : 'echo wt > wt-marker.txt';
+    const r = await host.channel.handle({ type: 'job_spawn', command: writeCmd, worktree: true });
+    assert.equal(r.success, true, `operator spawn refused: ${r.error ?? JSON.stringify(r)}`);
+    const jobId = r.data?.jobId ?? r.data?.job_id;
+    assert.ok(jobId, 'spawn returns a job id');
+
+    let job = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((res) => setTimeout(res, 1000));
+      const st = await host.channel.handle({ type: 'job_status', job_id: jobId });
+      job = st.data?.job;
+      const state = String(job?.job_state ?? job?.state ?? '');
+      if (/COMPLETED|FAILED|CANCELLED/.test(state)) break;
+    }
+    assert.equal(String(job?.job_state ?? job?.state), 'COMPLETED', `job did not complete: ${JSON.stringify(job)}`);
+
+    const audits = readdirSync(join(inst, 'audit')).map((f) => join(inst, 'audit', f));
+    const lines = audits.flatMap((f) => readFileSync(f, 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(lines.some((e) => e.kind === 'OPERATOR_JOB_SPAWN' && e.data?.worktree === true), 'OPERATOR_JOB_SPAWN audited');
+    const kept = lines.find((e) => e.kind === 'JOB_WORKTREE_KEPT');
+    assert.ok(kept, 'worktree kept (dirty write)');
+    assert.ok(existsSync(join(kept.data.path ?? kept.data.worktree ?? '', 'wt-marker.txt')), 'marker lives in the worktree');
+    assert.ok(!existsSync(join(dir, 'wt-marker.txt')), 'real checkout untouched');
+
+    // policy denial stops the worktree job before any side effect — the
+    // project deny list is the same chain a model job_spawn faces.
+    mkdirSync(join(dir, '.pai'), { recursive: true });
+    writeFileSync(join(dir, '.pai', 'commands.json'), JSON.stringify({ denyPrefixes: ['blocked-cmd'] }));
+    const denied = await host.channel.handle({ type: 'job_spawn', command: 'blocked-cmd --now', worktree: true });
+    assert.equal(denied.success, false, 'denied command must not spawn');
+    const deniedLines = readdirSync(join(inst, 'audit'))
+      .flatMap((f) => readFileSync(join(inst, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(deniedLines.some((e) => e.kind === 'OPERATOR_JOB_BLOCK'), 'block audited');
+    const deniedJobs = await host.channel.handle({ type: 'job_list' });
+    assert.ok(!JSON.stringify(deniedJobs).includes('blocked-cmd'), 'no denied job record');
   } finally { host.dispose(); }
 });

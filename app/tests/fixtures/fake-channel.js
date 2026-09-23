@@ -115,6 +115,9 @@ rl.on('line', async (line) => {
     });
     case 'model_list': return reply([{ provider: 'fake', id: 'fake-1', name: 'fake-1', reasoning: false }]);
     case 'risk_mode': return reply({ mode: 'execute' });
+    case 'job_spawn':
+      if (!cmd.command) return fail('command required');
+      return reply({ ok: true, jobId: 'fake-job-1', worktree: cmd.worktree === true });
     case 'job_status':
       return reply({
         job: { job_id: cmd.job_id, job_type: 'shell', job_state: 'RUNNING', orchestration_state: 'foreground' },

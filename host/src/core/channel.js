@@ -219,6 +219,17 @@ export class HostChannel {
         }
         case 'get_state':
           return reply(true, await this.session.getState());
+        case 'job_spawn': {
+          // Operator-spawned durable job (sidebar worktree-creation analogue):
+          // {command, worktree?, timeout_ms?} — the exec facade runs it through
+          // the same decide chain as a model job_spawn call.
+          if (!this.exec?.runJob) return reply(false, undefined, 'job spawn unavailable');
+          const r = await this.exec.runJob({
+            command: cmd.command, worktree: cmd.worktree === true,
+            timeoutMs: Number.isFinite(cmd.timeout_ms) ? cmd.timeout_ms : null,
+          });
+          return r?.ok ? reply(true, r) : reply(false, r, r?.reason ?? r?.error ?? 'spawn failed');
+        }
         case 'job_status': {
           if (!this.jobs) return reply(false, undefined, 'jobs facade unavailable');
           const job = this.jobs.getJob(cmd.job_id);

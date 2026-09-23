@@ -90,7 +90,7 @@
 | 上下文 | ToolSearch 延迟加载工具 schema | ❌ | 工具面小暂无需求；登记候选 |
 | 协作 | subagents（.claude/agents md+frontmatter：tools/model/permissionMode/isolation:worktree/background）、内置 Explore/Plan、后台白名单过滤 | 🟡 | delegate_task 跨 agent 委派+预算门；无 frontmatter 自定义、无内置 profile、无后台 subagent 面板 |
 | 协作 | agent teams 跨会话消息（SendMessage/ListAgents）、RemoteTrigger 云例程 | ❌ | 无跨会话消息/远程触发 |
-| 协作 | EnterWorktree git worktree 隔离 | ❌ | 无 worktree 隔离 |
+| 协作 | EnterWorktree git worktree 隔离 | 🟡 | 委派侧 M13 已落（delegate worktree:true 独立检出，脏保留+审计）；操作员侧 `/worktree`+`job_spawn` 已落（同 decide 链，§28.32）；frontmatter `isolation:worktree` subagent profile 面仍无 |
 | 持久化 | CronCreate 会话级定时任务（resume 恢复）、Monitor 后台命令流式回事件 | ❌ | 无定时任务；job 有持久化但非 cron |
 | 扩展 | hooks ~30 事件（Pre/PostToolUse、PermissionRequest、PreCompact、SessionStart…）handler=shell/HTTP/MCP/LLM | ❌ | 无 hooks 体系 |
 | 扩展 | skills（SKILL.md+`!cmd`动态注入）、plugins+marketplace、MCP 一等、LSP 工具 | ⛔ | skills/plugins 市场=managed-manifest 拒绝；MCP/LSP 客户端无 |
@@ -1844,3 +1844,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | C1 会话列表 | 置顶独立"📌 置顶"分组（不再只是组内排序）；状态点诚实映射——任务绑定非终态会话或当前会话 busy→绿脉冲点，归档→空心点，**完成/未完成不可廉价判定不造数**；hover 卡（400ms 延迟）含标题/条数/类型标记/修改/创建/cwd；数据位：facade `sessions.list` 对非终态 run_scope 任务打 `live` | dom-gate `sessPinnedGroup`+`sessDot`+`sessCard`；pi `sessionlist-live.test.js` |
 
 回归：app 26/26（dom-gate 六面+八项新断言全绿，axe 无 serious）；pi 368/372（4 skip）全绿；stylelint+html-validate 净。
+
+### 28.32 648 清单逐条核销 #1：dedup-h #2 worktree 侧栏创建（2026-09-23）
+
+**行**：`dedup-h	2	shell-tools	worktree: sidebar worktree creation`（zed release：侧栏 new-thread 按钮直接开新 worktree）。
+
+**判定**：**IMPLEMENTED（变体语义对齐）**——能力本体（git worktree 独立检出跑任务）M13 已有（`delegate_task worktree:true`）；本行补的是**操作员入口面**：侧栏按钮 → 在独立 worktree 起一条干活线程。落法不复制 harness 的 UI 形状，而是把同一能力挂到治理链同侧：
+
+| 层 | 落点 | 证据 |
+|---|---|---|
+| channel | `host/src/core/channel.js` `job_spawn` 操作员命令（{command, worktree?, timeout_ms?}） | host 346/346 |
+| decide | `pi/src/bootstrap/decide.js`：修复**既有缺陷**——job_spawn 被 :483 豁免 fg 租约后，:484 命令重分类又置回 mutating → :562 照拿 fg 锁 → job 自己的 `job:` 锁必撞；改法=mutating 判定保留（写目标/protected 重检仍生效）但 job_spawn 永不拿 fg 锁 | bootstrap e2e 覆盖 mutating 命令 spawn |
+| exec facade | `pi/src/bootstrap/host.js` `runJob`：与模型 job_spawn **同一 currentDecide 链**（denyPrefix/riskActions/写目标全生效），spawn 后 OPERATOR_JOB_SPAWN 审计；拒绝/阻塞分路径审计 | `OPERATOR_JOB_SPAWN`/`OPERATOR_JOB_BLOCK` 审计断言 |
+| UI | `app/ui/app.js` `/worktree <命令>` 斜杠命令 → `job_spawn{worktree:true}` → 成功跳 jobs 视图 | dom-gate `worktreeCmd` |
+| 执行器 | `JobExecutor.spawnCommandJob` 复用：`git worktree add --detach`，干净自动移除/脏保留 `JOB_WORKTREE_KEPT`/非 git 诚实拒绝/restart spec 携带 worktree 位 | `pi/tests/jobs-executor.test.js` M13 |
+
+**回归证据**：pi 369 测 365 过 4 skip（新 e2e `operator job_spawn`：真 git 仓→worktree 标记文件落在 detached checkout、主检出零污染、denyPrefix 拒绝零副作用、审计齐全）；host 346/346；app 26/26（dom-gate `worktreeCmd`）；lint 双净；`git diff --check` 净。
+
+**核销**：candidates-open #2 → `candidates-resolved.tsv` #1。
