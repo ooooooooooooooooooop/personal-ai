@@ -111,6 +111,94 @@ const DRIVER = `(async () => {
       cmd: jd?.textContent ?? '',
     };
 
+    /* ---- batch-4 UI features (M109/M126/M127/M128/M129/C1) ---- */
+    switchView('chat');
+    const inputEl = document.querySelector('#input');
+
+    // M126 — draft-level undo: a programmatic snapshot survives Ctrl+Z
+    inputEl.value = 'domgate-draft-A';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    pushDraft();
+    inputEl.value = 'domgate-draft-B';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
+    checks.draftUndo = { ok: inputEl.value === 'domgate-draft-A', got: inputEl.value };
+    // redo walks back forward
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'y', ctrlKey: true, bubbles: true }));
+    checks.draftRedo = { ok: inputEl.value === 'domgate-draft-B', got: inputEl.value };
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // M127 — fuzzy matching + session entries in the slash surface
+    checks.fuzzyScore = {
+      ok: fuzzyScore('nw', 'new') > 0 && fuzzyScore('zzz', 'new') === -1
+        && fuzzyScore('ss', 'sessions') > 0,
+    };
+    sessionsCache.push({
+      path: 'zz-domgate-session.jsonl', name: 'zzdomgate target',
+      firstMessage: '', modified: new Date().toISOString(), messageCount: 1,
+    });
+    inputEl.value = '/zzdomgate';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    const sessItem = await waitFor('.slash-item', (e) => e.textContent.includes('切换到会话'), 6000);
+    checks.slashSession = { ok: !!sessItem, items: document.querySelectorAll('.slash-item').length };
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // M109 — transcript selection shows the quote button; click inserts '> '
+    const bub = [...document.querySelectorAll('#transcript .msg .bubble')].pop();
+    if (bub) {
+      const rng = document.createRange(); rng.selectNodeContents(bub);
+      const sel2 = window.getSelection(); sel2.removeAllRanges(); sel2.addRange(rng);
+      document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      await sleep(80);
+      let upErr = null;
+      try { updateSelQuote(); } catch (e) { upErr = String(e?.stack ?? e); }
+      const qb = document.querySelector('#sel-quote:not(.hidden)');
+      const selTxt = String(window.getSelection());
+      const anch = window.getSelection()?.anchorNode;
+      qb?.click();
+      checks.selQuote = {
+        ok: !!qb && inputEl.value.includes('> '), val: inputEl.value.slice(0, 60),
+        selLen: selTxt.length, collapsed: window.getSelection()?.isCollapsed,
+        btnExists: !!document.querySelector('#sel-quote'),
+        btnHidden: document.querySelector('#sel-quote')?.classList?.contains('hidden'),
+        upErr,
+        anchName: anch?.nodeName,
+        anchInT: !!(anch && (anch instanceof Element ? anch : anch.parentElement) && document.querySelector('#transcript').contains(anch instanceof Element ? anch : anch.parentElement)),
+        quoteTxt: selQuoteText?.length,
+      };
+    } else checks.selQuote = { ok: false, why: 'no .msg .bubble to select' };
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // M128 — scroll preference persists to localStorage
+    const sc = document.querySelector('#set-scroll');
+    sc.value = 'always'; sc.dispatchEvent(new Event('change'));
+    checks.scrollPref = { ok: localStorage.getItem('pai.scrollmode') === 'always' };
+    sc.value = 'near'; sc.dispatchEvent(new Event('change'));
+
+    // M129 — long paste carrying path:line refs badges the attach chip
+    const longTxt = 'line '.repeat(400) + ' src/foo.ts:42:7 boom';
+    const dt2 = new DataTransfer(); dt2.items.add(longTxt, 'text/plain');
+    inputEl.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt2, bubbles: true, cancelable: true }));
+    const refChip = await waitFor('#attach-row .attach-refs', null, 6000);
+    checks.pasteBadge = { ok: !!refChip && refChip.textContent.includes('src/foo.ts:42'), text: refChip?.textContent ?? '' };
+    document.querySelector('#attach-row .attach-x')?.click();
+
+    // C1 — pinned group, status dot element, hover card with real metadata
+    sessionsCache[0].pinned = true;
+    renderSessions();
+    const pinHdr = [...document.querySelectorAll('.sess-group')].find((h) => h.textContent.includes('置顶'));
+    const sessRow = document.querySelector('#session-list .sess');
+    checks.sessPinnedGroup = { ok: !!pinHdr };
+    checks.sessDot = { ok: !!sessRow?.querySelector('.sess-dot') };
+    sessRow?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+    await sleep(600);
+    const card = document.querySelector('#sess-card');
+    checks.sessCard = {
+      ok: !!card && card.textContent.includes('条') && card.textContent.includes('修改'),
+      text: card?.textContent?.slice(0, 90) ?? '',
+    };
+    sessRow?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

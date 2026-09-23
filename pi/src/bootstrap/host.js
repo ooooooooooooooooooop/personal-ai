@@ -1176,7 +1176,12 @@ export async function startHost({
       const byScope = new Map(taskStore.list().filter((t) => t.run_scope).map((t) => [t.run_scope, t]));
       for (const s of rows) {
         const t = byScope.get(s.id);
-        if (t) s.type = t.kind === 'teammate' ? 'teammate' : 'subagent';
+        if (t) {
+          s.type = t.kind === 'teammate' ? 'teammate' : 'subagent';
+          // C1: a session claimed by a non-terminal task is live — the list
+          // can paint an honest 进行中 dot without reading transcripts.
+          if (!/COMPLETED|FAILED|CANCELLED|DONE/i.test(String(t.state ?? ''))) s.live = true;
+        }
       }
       return rows;
     },

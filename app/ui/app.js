@@ -71,8 +71,13 @@ async function cmd(type, params = {}) {
   }
 }
 
-/* ---------- scroll follow: only pinned when the user is at the tail ---------- */
+/* ---------- scroll follow: three-mode persisted preference (M128) ----------
+   near   — follow only while the user sits at the tail (classic behaviour)
+   always — every append pins to the bottom, even after the user scrolled up
+   off    — never auto-scroll; the jump button still works on demand        */
 const transcript = $('transcript');
+const SCROLL_KEY = 'pai.scrollmode';
+function scrollMode() { return localStorage.getItem(SCROLL_KEY) ?? 'near'; }
 function isNearBottom() {
   return transcript.scrollHeight - transcript.scrollTop - transcript.clientHeight < 90;
 }
@@ -120,7 +125,9 @@ minimap?.addEventListener('pointerdown', (e) => {
   transcript.scrollTop = ((e.clientY - r.top) / r.height) * transcript.scrollHeight - transcript.clientHeight / 2;
 });
 function scrollTail() {
-  if (!nearBottom) { $('jump-latest').classList.add('show'); return; }
+  const mode = scrollMode();
+  if (mode === 'always') { transcript.scrollTop = transcript.scrollHeight; return; }
+  if (mode === 'off' || !nearBottom) { if (sawMessage) $('jump-latest').classList.add('show'); return; }
   transcript.scrollTop = transcript.scrollHeight;
 }
 $('jump-latest').onclick = () => {
@@ -128,6 +135,38 @@ $('jump-latest').onclick = () => {
   $('jump-latest').classList.remove('show');
   transcript.scrollTop = transcript.scrollHeight;
 };
+
+/* ---------- M109: transcript selection → "引用到对话" floating button ---------- */
+const selQuoteBtn = $('sel-quote');
+let selQuoteText = '';
+function hideSelQuote() { selQuoteBtn.classList.add('hidden'); selQuoteText = ''; }
+function updateSelQuote() {
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed || !String(sel).trim()) { hideSelQuote(); return; }
+  const anchor = sel.anchorNode instanceof Element ? sel.anchorNode : sel.anchorNode?.parentElement;
+  if (!anchor || !transcript.contains(anchor)) { hideSelQuote(); return; }
+  selQuoteText = String(sel).trim();
+  const r = sel.getRangeAt(0).getBoundingClientRect();
+  selQuoteBtn.style.left = `${Math.min(Math.max(8, r.left + r.width / 2 - 55), window.innerWidth - 130)}px`;
+  selQuoteBtn.style.top = `${Math.max(8, r.top - 38)}px`;
+  selQuoteBtn.classList.remove('hidden');
+}
+document.addEventListener('mouseup', () => setTimeout(updateSelQuote, 0));
+document.addEventListener('keyup', (e) => { if (e.shiftKey || e.key === 'Shift') updateSelQuote(); });
+document.addEventListener('selectionchange', () => { if (window.getSelection()?.isCollapsed) hideSelQuote(); });
+transcript.addEventListener('scroll', hideSelQuote);
+// mousedown must not collapse the selection before click fires
+selQuoteBtn.addEventListener('mousedown', (e) => e.preventDefault());
+selQuoteBtn.onclick = () => {
+  if (!selQuoteText) return;
+  const quote = selQuoteText.split('\n').map((l) => `> ${l}`).join('\n');
+  pushDraft();
+  const cur = input.value.replace(/\n+$/, '');
+  input.value = `${cur ? `${cur}\n\n` : ''}${quote}\n\n`;
+  prevDraft = input.value;
+  hideSelQuote(); autogrow(); input.focus();
+};
+document.addEventListener('mousedown', (e) => { if (e.target !== selQuoteBtn) hideSelQuote(); });
 
 /* Keep transcript bottom padding in sync with composer-dock height so no ask card / message is obscured */
 const composerDock = $('composer-dock');
@@ -281,7 +320,7 @@ function addMsg(who, text) {
       if (!entry) { addSys('找不到这条消息对应的回退点', true); return; }
       const r2 = await cmd('session_rewind', { entryId: entry.entryId });
       if (!r2.success) { addSys(`回退失败：${r2.error ?? '未知'}`, true); return; }
-      input.value = r2.data?.editorText ?? myText;
+      pushDraft(); input.value = r2.data?.editorText ?? myText;
       autogrow(); input.focus();
       await replayHistory(); refreshState();
     });
@@ -1417,7 +1456,12 @@ function renderSessions() {
     box.appendChild(t);
   }
   const groups = new Map();
+  // C1: pinned sessions form their own leading group instead of merely
+  // sorting to the top inside each date bucket.
+  const pinnedRows = items.filter((s) => s.pinned);
+  if (pinnedRows.length) groups.set('📌 置顶', pinnedRows);
   for (const s of items) {
+    if (s.pinned) continue;
     const g = sessionGroup(s.modified);
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(s);
@@ -1438,8 +1482,16 @@ function renderSessions() {
       const rawTitle = s.name || s.firstMessage;
       const cleanTitle = (!rawTitle || rawTitle.trim() === '(no messages)') ? '新对话' : rawTitle;
       const title = `${typeTag}${cleanTitle}`;
-      row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
+      row.innerHTML = `<span class="sess-dot"></span><span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
+      // C1 status dot: live = task-bound session still running, or the open
+      // session mid-turn. Archived gets a hollow dot; plain sessions get
+      // none — 完成/未完成 isn't derivable without reading transcript tails,
+      // so we don't fake it.
+      const dot = row.querySelector('.sess-dot');
+      const live = s.live || (s.path === currentSessionFile && busy);
+      if (live) { dot.classList.add('live'); dot.title = '进行中'; }
+      else if (s.archived) { dot.classList.add('arch'); dot.title = '已归档'; }
       const hit = searchHits?.get(s.path);
       if (hit?.length && !`${s.name ?? ''} ${s.firstMessage ?? ''}`.toLowerCase().includes(filter)) {
         const snip = document.createElement('div');
@@ -1447,7 +1499,32 @@ function renderSessions() {
         snip.textContent = hit[0];
         row.appendChild(snip);
       }
-      row.title = s.path;
+      // C1 hover card: native title can't carry structured metadata —
+      // show cwd, timestamps, count and flags after a short hover delay.
+      let cardTimer = 0;
+      const hideCard = () => { $('sess-card')?.remove(); };
+      row.addEventListener('mouseenter', () => {
+        cardTimer = setTimeout(() => {
+          hideCard();
+          const c = document.createElement('div');
+          c.id = 'sess-card';
+          c.innerHTML = '<div class="sc-title"></div><div class="sc-line"></div><div class="sc-line"></div><div class="sc-line dim"></div>';
+          const fmt = (v) => (v ? new Date(v).toLocaleString('zh-CN', { hour12: false }) : '—');
+          c.children[0].textContent = cleanTitle;
+          const flags = [s.type === 'teammate' ? '队友会话' : s.type === 'subagent' ? '子代理' : null,
+            s.live || (s.path === currentSessionFile && busy) ? '进行中' : null,
+            s.pinned ? '已置顶' : null, s.archived ? '已归档' : null].filter(Boolean).join(' · ');
+          c.children[1].textContent = `${s.messageCount ?? 0} 条${flags ? ` · ${flags}` : ''}`;
+          c.children[2].textContent = `修改 ${fmt(s.modified)} · 创建 ${fmt(s.created)}`;
+          c.children[3].textContent = s.cwd || s.path;
+          c.children[3].title = s.path;
+          document.body.appendChild(c);
+          const r = row.getBoundingClientRect();
+          c.style.left = `${Math.min(r.right + 10, window.innerWidth - c.offsetWidth - 8)}px`;
+          c.style.top = `${Math.max(8, Math.min(r.top, window.innerHeight - c.offsetHeight - 8))}px`;
+        }, 400);
+      });
+      row.addEventListener('mouseleave', () => { clearTimeout(cardTimer); hideCard(); });
       row.onclick = () => switchSession(s.path);
       row.oncontextmenu = (e) => {
         e.preventDefault();
@@ -1807,6 +1884,15 @@ if ($('set-sound')) {
     const v = $('set-sound').value;
     localStorage.setItem(SOUND_KEY, v);
     if (v === 'on') beep(); // immediate feedback that the toggle works
+  };
+}
+if ($('set-scroll')) {
+  $('set-scroll').value = scrollMode();
+  $('set-scroll').onchange = () => {
+    const v = $('set-scroll').value;
+    localStorage.setItem(SCROLL_KEY, v);
+    if (v === 'always') { nearBottom = true; scrollTail(); }
+    toast(`滚动跟随：${{ near: '接近底部时跟随', always: '总是跟随', off: '从不自动滚动' }[v] ?? v}`);
   };
 }
 async function saveKey(providerSel, keyInput, msgEl) {
@@ -3971,6 +4057,20 @@ $('mode-chip').onclick = async () => {
   });
 };
 
+/* M127: fuzzy subsequence match — needle chars must appear in order;
+   score rewards contiguity, prefix hits and shorter targets. -1 = no match. */
+function fuzzyScore(needle, hay) {
+  if (!needle) return 0;
+  const n = needle.toLowerCase(), h = String(hay ?? '').toLowerCase();
+  let i = 0, best = 0, run = 0;
+  for (let j = 0; j < h.length && i < n.length; j++) {
+    if (h[j] === n[i]) { i++; run++; if (run > best) best = run; }
+    else run = 0;
+  }
+  if (i < n.length) return -1;
+  return n.length * 2 + best * 3 + (h.startsWith(n) ? 10 : 0) - h.length * 0.01;
+}
+
 function slashFilter() {
   const v = input.value;
   // @file-ref autocomplete: a @token anywhere (start or after whitespace)
@@ -3980,10 +4080,30 @@ function slashFilter() {
   atToken = null;
   if (!v.startsWith('/') || v.includes('\n')) { closeSlash(); return; }
   const head = v.slice(1).split(/\s+/)[0].toLowerCase();
-  slashItems = SLASH.filter((s) => s.cmd.slice(1).startsWith(head))
-    .concat(Object.keys(MACROS)
-      .filter((n) => n.toLowerCase().startsWith(head))
-      .map((n) => ({ cmd: `/${n}`, label: '宏', hint: MACROS[n].slice(0, 60), macro: MACROS[n] })));
+  const scored = [];
+  for (const s of SLASH) {
+    const sc = Math.max(fuzzyScore(head, s.cmd.slice(1)), fuzzyScore(head, s.label) - 1);
+    if (sc >= 0) scored.push({ s, sc });
+  }
+  for (const n of Object.keys(MACROS)) {
+    const sc = fuzzyScore(head, n);
+    if (sc >= 0) scored.push({ s: { cmd: `/${n}`, label: '宏', hint: MACROS[n].slice(0, 60), macro: MACROS[n] }, sc });
+  }
+  // session jump: fuzzy over session names/first messages — only when the
+  // user typed a head, capped so commands stay reachable
+  if (head) {
+    let sessCount = 0;
+    for (const s of sessionsCache) {
+      if (sessCount >= 6) break;
+      const sc = fuzzyScore(head, `${s.name ?? ''} ${s.firstMessage ?? ''}`);
+      if (sc >= 0) {
+        scored.push({ s: { cmd: '💬', label: (s.name || s.firstMessage || '会话').slice(0, 42), hint: '切换到会话', session: s.path }, sc: sc - 2 });
+        sessCount++;
+      }
+    }
+  }
+  scored.sort((a, b) => b.sc - a.sc);
+  slashItems = scored.slice(0, 24).map((x) => x.s);
   if (!slashItems.length) { closeSlash(); return; }
   slashIdx = Math.min(slashIdx, slashItems.length - 1);
   slashMenu.innerHTML = '';
@@ -4076,18 +4196,27 @@ function slashFilterHist() {
   slashMenu.classList.remove('hidden');
 }
 function pickHist(h) {
-  input.value = h; histSearch = null; closeSlash(); autogrow();
+  pushDraft(); input.value = h; histSearch = null; closeSlash(); autogrow();
   input.focus();
   input.setSelectionRange(input.value.length, input.value.length);
 }
 function cancelHistSearch() {
-  input.value = histSearch?.draft ?? '';
+  pushDraft(); input.value = histSearch?.draft ?? '';
   histSearch = null; closeSlash(); autogrow();
 }
 async function execSlash(s) {
+  // session-jump entries switch sessions instead of running a command
+  if (s.session) {
+    const target = s.session;
+    closeSlash();
+    pushDraft(); input.value = ''; autogrow();
+    await switchSession(target);
+    return;
+  }
   // file-ref / macro entries edit the draft, not execute a command
   if (s.file && atToken) {
     const v = input.value;
+    pushDraft();
     input.value = v.slice(0, atToken.start) + `@${s.file} ` + v.slice(atToken.end);
     input.selectionStart = input.selectionEnd = atToken.start + s.file.length + 2;
     closeSlash(); autogrow(); input.focus();
@@ -4095,23 +4224,64 @@ async function execSlash(s) {
   }
   if (s.macro != null) {
     closeSlash();
-    input.value = s.macro; autogrow(); input.focus();
+    pushDraft(); input.value = s.macro; autogrow(); input.focus();
     return;
   }
   const arg = input.value.slice(1).split(/\s+/).slice(1).join(' ').trim();
   closeSlash();
-  input.value = ''; autogrow();
+  pushDraft(); input.value = ''; autogrow();
   await s.run(arg);
 }
 
 /* Per-session composer drafts (PI reference): text survives session
  * switches — keyed by session file, cleared on send. */
+/* ---------- M126: draft-level undo/redo ----------
+   Native textarea undo dies at every programmatic set (send clear, slash
+   exec, history recall, rewind restore, quote insert). This stack snapshots
+   the draft at those boundaries plus typing pauses; Ctrl+Z / Ctrl+Shift+Z
+   (or Ctrl+Y) walk it. */
+const draftUndo = [], draftRedo = [];
+let prevDraft = '', draftLastPush = 0;
 const draftKey = () => `pai.draft.${currentSessionFile ?? 'new'}`;
 function loadDraft() {
   input.value = localStorage.getItem(draftKey()) ?? '';
+  draftUndo.length = 0; draftRedo.length = 0; prevDraft = input.value;
   autogrow();
 }
-input.addEventListener('input', () => { autogrow(); if (histSearch) slashFilterHist(); else slashFilter(); localStorage.setItem(draftKey(), input.value); });
+function pushDraft(v = input.value) {
+  if (draftUndo[draftUndo.length - 1] === v) return;
+  draftUndo.push(v);
+  if (draftUndo.length > 200) draftUndo.shift();
+  draftRedo.length = 0;
+}
+input.addEventListener('input', () => {
+  autogrow();
+  if (histSearch) slashFilterHist(); else slashFilter();
+  localStorage.setItem(draftKey(), input.value);
+  if (Date.now() - draftLastPush > 700) { draftLastPush = Date.now(); pushDraft(prevDraft); }
+  prevDraft = input.value;
+});
+input.addEventListener('keydown', (e) => {
+  if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (k === 'z' && !e.shiftKey) {
+    if (!draftUndo.length) return; // no snapshot — let native undo try
+    e.preventDefault();
+    const cur = input.value;
+    let prev = draftUndo.pop();
+    if (prev === cur && draftUndo.length) prev = draftUndo.pop();
+    if (prev === cur) { draftUndo.push(prev); return; }
+    draftRedo.push(cur);
+    input.value = prev; prevDraft = prev;
+    autogrow(); if (histSearch) slashFilterHist(); else slashFilter();
+  } else if ((k === 'z' && e.shiftKey) || k === 'y') {
+    if (!draftRedo.length) return;
+    e.preventDefault();
+    draftUndo.push(input.value);
+    input.value = draftRedo.pop(); prevDraft = input.value;
+    autogrow(); if (histSearch) slashFilterHist(); else slashFilter();
+  }
+});
 input.addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R')) {
     e.preventDefault();
@@ -4152,8 +4322,9 @@ input.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowUp' && promptHist.length
       && (!input.value.trim() || histIdx >= 0)) {
     e.preventDefault();
+    if (histIdx < 0) pushDraft();
     if (histIdx < promptHist.length - 1) histIdx++;
-    input.value = promptHist[promptHist.length - 1 - histIdx]; autogrow(); return;
+    input.value = promptHist[promptHist.length - 1 - histIdx]; prevDraft = input.value; autogrow(); return;
   }
   if (e.key === 'ArrowDown' && histIdx >= 0) {
     e.preventDefault();
@@ -4277,6 +4448,15 @@ function renderAttach() {
     chip.className = 'attach-chip';
     chip.innerHTML = `<span class="attach-name"></span><button class="attach-x" title="移除">✕</button>`;
     chip.querySelector('.attach-name').textContent = `${a.kind === 'image' ? '🖼' : '📄'} ${a.name} (${Math.round(a.bytes / 1024)}KB)`;
+    // M129: path:line references detected inside the paste ride the chip as
+    // a badge so the operator can see what the wall of text points at.
+    if (a.refs?.length) {
+      const badge = document.createElement('span');
+      badge.className = 'attach-refs';
+      badge.textContent = `📍 ${a.refs[0]}${a.refs.length > 1 ? ` +${a.refs.length - 1}` : ''}`;
+      badge.title = a.refs.join('\n');
+      chip.insertBefore(badge, chip.querySelector('.attach-x'));
+    }
     chip.querySelector('.attach-x').onclick = () => { pendingAttach.splice(i, 1); renderAttach(); };
     row.appendChild(chip);
   });
@@ -4307,7 +4487,16 @@ input.addEventListener('paste', (e) => {
   const t = e.clipboardData?.getData?.('text/plain') ?? '';
   if (t.length > 1500) {
     e.preventDefault();
-    pendingAttach.push({ name: `粘贴文本-${new Date().toTimeString().slice(0, 8).replaceAll(':', '')}.txt`, kind: 'text', text: t, bytes: t.length });
+    // M129: recognise `path:line(:col)` references inside the paste so the
+    // chip can badge what it points at (stack traces, grep output, editor
+    // copy-all with headers).
+    const refs = [...new Set(
+      [...t.matchAll(/([\w./\\-]{2,}\.(?:js|jsx|ts|tsx|mjs|cjs|py|pyi|java|go|rs|c|cc|cpp|h|hpp|cs|css|scss|html|vue|svelte|md|json|jsonc|ya?ml|toml|ini|sql|sh|bash|bat|ps1|rb|php|swift|kt|kts|lua|pl|ex|exs|erl|hs|clj|scala|xml))[:：](\d{1,7})(?::\d{1,7})?/g)]
+        .map((mm) => `${mm[1]}:${mm[2]}`),
+    )].slice(0, 8);
+    const a = { name: `粘贴文本-${new Date().toTimeString().slice(0, 8).replaceAll(':', '')}.txt`, kind: 'text', text: t, bytes: t.length };
+    if (refs.length) a.refs = refs;
+    pendingAttach.push(a);
     renderAttach();
   }
 });
@@ -4323,7 +4512,7 @@ async function send() {
   const text = input.value.trim();
   if (!text && !pendingAttach.length) return;
   closeSlash();
-  input.value = ''; autogrow();
+  pushDraft(); input.value = ''; autogrow();
   localStorage.removeItem(draftKey());
   // `!cmd` — operator direct-exec (Claude Code bang mode): runs through the
   // governed decide chain (ask rules still pop approval cards); the output
@@ -4380,7 +4569,7 @@ async function steer() {
   const text = input.value.trim();
   if (!text) return;
   closeSlash();
-  input.value = ''; autogrow();
+  pushDraft(); input.value = ''; autogrow();
   localStorage.removeItem(draftKey());
   const r = await cmd('steer', { message: text });
   if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
@@ -4388,7 +4577,7 @@ async function steer() {
 $('send').onclick = () => (busy ? steer() : send());
 $('steer').onclick = steer;
 for (const b of document.querySelectorAll('.starter')) {
-  b.onclick = () => { input.value = b.dataset.q; autogrow(); input.focus(); };
+  b.onclick = () => { pushDraft(); input.value = b.dataset.q; autogrow(); input.focus(); };
 }
 $('abort').onclick = () => cmd('abort');
 

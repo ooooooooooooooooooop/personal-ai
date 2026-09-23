@@ -118,6 +118,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         最新
       </button>
+      <button id="sel-quote" type="button" class="sel-quote hidden" title="把选中文字作为引用插入输入框">＋ 引用到对话</button>
 
       <div id="composer-dock">
         <div id="queue-row" class="hidden"></div>
@@ -377,6 +378,14 @@
           <select id="set-sound">
             <option value="off">关闭</option>
             <option value="on">批准/完成时响</option>
+          </select>
+        </div>
+        <div class="set-row">
+          <label>滚动跟随</label>
+          <select id="set-scroll">
+            <option value="near">接近底部时跟随</option>
+            <option value="always">总是跟随</option>
+            <option value="off">从不自动滚动</option>
           </select>
         </div>
       </div>

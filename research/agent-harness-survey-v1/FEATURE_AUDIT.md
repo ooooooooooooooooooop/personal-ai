@@ -50,7 +50,7 @@
 | 输入 | `@`/`/` 自动完成浮层 | ✅ | slash 26 条+@文件附着（B7 R6） |
 | 输入 | 粘贴超长文本自动转附件 chip | 🟡 | 文本内联附着已有；"超长自动转附件"语义未做 |
 | 输入 | 拖入文件夹添加为项目/参考目录 | ⛔ | 无"项目"概念；workdir 走 set_workdir（B9 判定不做） |
-| 会话 | 会话列表（置顶/今天/昨天/7天/14天分组+状态点+hover卡） | 🟡 | 日期分组+搜索已有；置顶/归档/状态点/hover 详情未做 |
+| 会话 | 会话列表（置顶/今天/昨天/7天/14天分组+状态点+hover卡） | ✅ | 置顶独立分组+日期分组+搜索；状态点诚实映射（任务绑定非终态/当前会话 busy→绿点，归档→空心点，完成/未完成不可判定不造数）；hover 卡含 cwd/修改/创建/条数/标记 |
 | 会话 | 右键菜单（重命名/置顶/归档/分支/复制ID/打开路径/删除二次确认） | 🟡 | 右键菜单已有（打开/重命名/复制路径/分支/导出/删除）；置顶/归档无 |
 | 会话 | Ctrl+K 搜索会话与消息 | ✅ | C2 R6+全文搜索 |
 | 执行 | PermissionCard（风险等级+允许一次/本次对话/拒绝+倒计时+排队数） | ✅ | D1 已落+R9 截断透传 |
@@ -1644,7 +1644,7 @@
 | M101 后台会话 attach/detach | **MISSING** | 无 `session_attach/detach` 面；task/job 协调不等于后台会话挂接 |
 | M106 `/context` map+ring | **MISSING** | 有 contextUsage 数字/pins/compact，无 composition map/ring |
 | M108 消毒会话分享 | **MISSING** | export 为直接 copy，无 share 专用 sanitizer/token/link |
-| M109 选区"Add to chat" | **MISSING** | — |
+| M109 选区"Add to chat" | **REAL** | `app/ui` 选区→浮动"＋引用到对话"按钮→`> ` 引用块插入草稿；dom-gate `selQuote` 断言 |
 | M110 Skill Workshop | **MISSING** | runtime 无 skill 创建/修改工具面 |
 | M112 webhook 入站 | **MISSING** | 无 inbound endpoint/trigger router |
 | M114 持久 `js_repl` | **MISSING** | Pi body 无持久 JS REPL（他 harness 的 node_repl 不外借） |
@@ -1678,10 +1678,10 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 | 项 | 终态 | 证据/修复 |
 |---|---|---|
 | M125 memory 注入拒收 | **落地**（修复完成） | `remember()` 原只扫 secret——recall 注入每轮 context，存一句 "ignore all previous instructions" 即成跨会话持久攻击。现 `scanForInjection()` 在写入边界拒收指令覆写/角色劫持形态（角色通道标记行锚定，"file system:" 类普通行文不误杀）；哨兵测拒收+不可 recall+误杀豁免三态（`095c373`） |
-| M126 输入框 Ctrl+Z | **PARTIAL / BROWSER-NATIVE** | 无自实现 undo 栈；原生 textarea Ctrl+Z 覆盖基础文本撤销，无草稿级撤销 |
-| M127 全局命令面板 | **PARTIAL / VARIANT** | Ctrl+K→slash 前缀过滤（非 fuzzy，不含会话跳转）；Ctrl+R 历史倒序子串搜索（含历史排序但非 fuzzy 子序列） |
-| M128 autoscroll 偏好 | **PARTIAL** | near-bottom 行为+jump-latest 按钮存在；无 near-bottom/always/off 三档持久化偏好 |
-| M129 粘贴徽章 | **PARTIAL** | >1500 字长粘贴→附件 chip 存在；无"文件路径+行号"徽章识别 |
+| M126 输入框 Ctrl+Z | **REAL** | 草稿级 undo/redo 栈：程序性写入点全插桩（send/steer/slash/历史召回/rewind/引用/starter）+700ms 打字合并快照；Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y；dom-gate `draftUndo`+`draftRedo` 断言 |
+| M127 全局命令面板 | **REAL** | `fuzzyScore` 子序列匹配（连续段/前缀/短目标加权）贯通 slash 命令+宏+标签；头部非空时注入 top-6 会话模糊条目（💬 切换到会话）；Ctrl+K 面板+Ctrl+R 历史检索不变 |
+| M128 autoscroll 偏好 | **REAL** | `pai.scrollmode` 三档持久化（接近底部时跟随/总是跟随/从不自动滚动）；off 档新消息仅弹 jump-latest；设置-外观下拉生效；dom-gate `scrollPref` 断言 |
+| M129 粘贴徽章 | **REAL** | 长粘贴内 `path:line(:col)` 引用识别（40+ 扩展名，全角冒号兼容，去重 cap 8）→附件 chip `📍` 徽章；dom-gate `pasteBadge` 断言 |
 | M130 MCP list_changed | **MISSING** | pi/host 源码无 tools/list_changed 接线（venv 命中不算） |
 | M131 slash frontmatter mode | **MISSING** | recipe frontmatter 只有 `params:`；microagents 只有 `triggers:`；无 mode 字段触发切模式 |
 | M132 /config 会话内设置 | **MISSING** | 无 /config key=value 命令面 |
@@ -1713,7 +1713,7 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 | M140 Fast Context 子代理 | **REAL (deterministic variant)** | `fast_context` 工具：单次调用完成 walk+term 打分+行号摘录（文件名命中>>内容命中），有界（20k 文件/512KB/10 层/40 结果上限），只读零副作用，.paiignore 生效，subdir 不可逃逸 workdir。诚实变体：确定性检索替代 LLM 子代理循环（`pi/src/adapter/fastcontext.js`） |
 | M143 跨文件 multi-edit | **REAL** | `multi_edit` 工具：`edits[{path,old_string,new_string,replace_all}]` 全量 preflight（存在/唯一/workdir 内/未 ignore）任一失败整批拒绝零写入；应用期每文件经 fileOps.write 备份+同 toolCallId 收据→undoCall 整批回滚；中途失败对已写文件 best-effort restore。decide 链入 FILE_MUTATION_TOOLS（写租约）+U4 密钥预扫覆盖 edits[].new_string（堵批量工具绕过洞）。哨兵 5 态（multiedit.test.js） |
 
-未补建项（保持诚实记录）：M126/127/128/129/133/137/139/144 维持 PARTIAL 原裁（均有近端实现，差的是各自注明的完整语义）；M141 N/A-UPSTREAM 不变。
+未补建项（保持诚实记录）：M133/137/139/144 维持 PARTIAL 原裁（均有近端实现，差的是各自注明的完整语义）；M141 N/A-UPSTREAM 不变。M126/127/128/129 已于批4 落地为 REAL（见 §28.30）。
 
 ### 28.23 A1 边界硬化（2026-09-22，方向二全量复审取证实修）
 
@@ -1829,3 +1829,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 **6 条 verify 落码核销**：#248 memory 召回 untrusted 标（`memory.js:297`，dup）；#981 globs 锚 workdir（`decide.js:84`，dup）；#1249 家目录索引面不存在（`fastcontext.js` workdir 限定，dup——更强）；#915 repo 内 exe 影子化批准命令（`jobs.js:505` shell:true + cmd.exe cwd 搜索，**cand**）；#1277 revert 不清 agent 建的空目录（**cand**）；#1284 fork 无容量闸（**cand**）。
 
 **全量对账闭环**：item-dispositions.tsv 18,405（score 4–7）+ hiscore-dispositions.tsv 4,263（score 8–29）= **22,668 条去重候选逐条处置完备**，上溯 80,369 信号 / 89,544 原始 / 35 家 harness 采集链不断层。
+
+### 28.31 批4 UI 侧落地：M109/M126/M127/M128/M129/C1 六项（2026-09-23）
+
+`app/ui` 外来改动入库后基线已净，批4 的六个 UI 项落地（代码 `app/ui/app.js`+`index.html`+`style.css`，C1 数据位 `pi/src/bootstrap/host.js`）：
+
+| 项 | 实现 | 证据 |
+|---|---|---|
+| M109 选区入聊 | transcript 内选区→跟随浮动"＋引用到对话"按钮（mouseup/Shift+键触发，scroll/点击别处/选区塌缩即隐）→ `> ` 引用块插入草稿尾部并聚焦 | dom-gate `selQuote` |
+| M126 草稿撤销 | 自实现草稿 undo/redo 栈（cap 200）：程序性写入点全插桩（send/steer/execSlash×3/pickHist/cancelHistSearch/历史召回/starter/rewind/选区引用）+输入 700ms 合并快照；Ctrl+Z 撤销/Ctrl+Shift+Z 或 Ctrl+Y 重做；draftKey 切换时栈随草稿重置 | dom-gate `draftUndo`+`draftRedo` |
+| M127 fuzzy 面板 | `fuzzyScore` 子序列匹配（连续段加权+前缀奖+短目标偏好）替换前缀过滤；命中域=命令+中文标签+宏；头部非空时注入 top-6 会话模糊条目（💬 徽章"切换到会话"→switchSession）；Ctrl+K 面板入口不变 | dom-gate `fuzzyScore`+`slashSession` |
+| M128 滚动偏好 | `localStorage pai.scrollmode` 三档：`near`（原行为）/`always`（追加即钉底）/`off`（不自动滚，新消息仍弹 jump-latest）；设置-外观"滚动跟随"下拉持久化 | dom-gate `scrollPref` |
+| M129 粘贴徽章 | 长粘贴文本内 `path:line(:col)` 引用识别（~50 扩展名、全角冒号、去重 cap 8）→附件 chip `📍 file:line +N` 徽章（title 全列表） | dom-gate `pasteBadge` |
+| C1 会话列表 | 置顶独立"📌 置顶"分组（不再只是组内排序）；状态点诚实映射——任务绑定非终态会话或当前会话 busy→绿脉冲点，归档→空心点，**完成/未完成不可廉价判定不造数**；hover 卡（400ms 延迟）含标题/条数/类型标记/修改/创建/cwd；数据位：facade `sessions.list` 对非终态 run_scope 任务打 `live` | dom-gate `sessPinnedGroup`+`sessDot`+`sessCard`；pi `sessionlist-live.test.js` |
+
+回归：app 26/26（dom-gate 六面+八项新断言全绿，axe 无 serious）；pi 368/372（4 skip）全绿；stylelint+html-validate 净。
