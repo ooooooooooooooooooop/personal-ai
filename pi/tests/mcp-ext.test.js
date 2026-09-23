@@ -1287,7 +1287,7 @@ test('mcp boot: dead remote servers fail inside one shared 10s budget', async ()
   writeFileSync(join(dir, 'mcp.json'), JSON.stringify({
     mcpServers: {
       dead1: { url: `http://127.0.0.1:${s1.address().port}/mcp` },
-      dead2: { url: `http://127.0.0.1:${s2.address().port}/mcp` },
+      dead2: { url: `http://127.0.0.1:${s2.address().port}/mcp`, transport: 'sse' }, // #398: legacy-SSE spec shares the same budget
     },
   }));
   const prev = process.env.PAI_MCP_CONFIG;

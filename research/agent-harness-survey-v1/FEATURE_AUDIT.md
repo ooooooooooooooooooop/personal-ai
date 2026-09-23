@@ -2330,3 +2330,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。URL+auth headers 配置面早已落地，本行闭合 **redaction** 半边。
 - **机制**：`redactUrl()` 剥离一切操作员可见回显的 userinfo（`/mcp-add` 通知）；`/mcp` 状态报 `headers: N configured (values redacted)`——只数不名不值；`mcpFacade.status` 行携 headers 计数而非内容。
 - **证据**：mcp-ext 27/27（userinfo URL 通知有主机无密码；/mcp 计数在场名值缺席）。
+
+### 28.72 648 清单逐条核销 #44：dedup-h #398 不可达 SSE 服务器连接预算（2026-09-23）
+
+- **判定**：ALREADY_COVERED+TESTED。与 #394 同面：legacy-SSE 握手走共享 `CONNECT_TIMEOUT_MS`（现 10s），boot 并发连接；死 SSE 服务器 → endpoint 握手超时 → connectOne fail-isolate（failed:true）。
+- **证据补强**：boot 预算测试的 dead2 改为 `transport:'sse'` 黑洞 spec——共享窗口内完结且 FAILED 列出。mcp-ext 27/27。
