@@ -2254,3 +2254,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - 缺席=不受限（同 egress-allow 姿态）、畸形=fail-closed 全拒自动回退；每次决策重读文件，操作员改单即生效
 - 位点在共享 `fallbackCfg.allowed` 上——`models_fallback_set` 运行期改链不丢谓词
 - 测试：允许项越过被拒项被选中、畸形文件全拒、缺席不受限
+
+### 28.61 648 清单逐条核销 #33：dedup-h #286 `!cmd` 操作员 shell（2026-09-23）
+
+**行**：`dedup-h	286	shell-tools	REPL !<command>操作员shell直跑(输出进context)`。
+
+**判定**：**ALREADY_COVERED**（本轮补证据）——`app/ui/app.js` `!` 前缀路径早已是真实实现：`bash_run` 走治理 decide 链（审批卡照常弹）、输出压进 `pendingBash`、下一条 prompt 前自动注入 `<operator-bash>` 上下文块。本轮补的是**缺失的端到端证据**：fake-channel 加 `bash_run` 桩、dom-gate 加 `bangStash`（stash 持有 command+output）与 `bangShell`（块逐字随下条 prompt 进上下文、stash 排空）两断言。
+
+**顺带抓到的真 bug**：DRIVER 模板串内注释含 `` `!cmd` `` 反引号会提前终止字符串（`SyntaxError: Unexpected token '!'` ——Electron "App threw an error during load"），已修。

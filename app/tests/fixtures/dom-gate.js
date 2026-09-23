@@ -247,6 +247,28 @@ const DRIVER = `(async () => {
     const mdlLine = await waitFor('.sys', (e) => e.textContent.includes('模型请求执行 /model fake/fake-2'), 8000);
     checks.cmdModel = { ok: !!mdlLine };
 
+    /* dedup-h #286 — bang-command operator shell: the command runs through
+     * the governed bash_run path; its output is stashed and prepended to
+     * the NEXT prompt as an <operator-bash> context block. send() is a
+     * page global — awaiting it waits for the internal cmd('bash_run')
+     * reply, no sleeps. */
+    inputEl.value = '!echo domgate-bang';
+    await send();
+    checks.bangStash = {
+      ok: pendingBash.length === 1 && pendingBash[0].command === 'echo domgate-bang'
+        && pendingBash[0].output.includes('domgate-bash-out'),
+      pending: pendingBash.length, out: pendingBash[0]?.output?.slice(0, 60) ?? '',
+    };
+    inputEl.value = 'bang next';
+    await send();
+    const bangMsg = await waitFor('.msg', (e) => e.textContent.includes('domgate-bash-out[echo domgate-bang]'), 8000);
+    checks.bangShell = {
+      ok: !!bangMsg && bangMsg.textContent.includes('<operator-bash command="echo domgate-bang"'),
+      text: bangMsg?.textContent?.slice(0, 140) ?? '',
+      drained: pendingBash.length === 0,
+    };
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

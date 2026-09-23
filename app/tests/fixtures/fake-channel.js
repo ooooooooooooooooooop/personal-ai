@@ -152,6 +152,9 @@ rl.on('line', async (line) => {
         },
       });
     case 'job_cancel': return reply({ killed: true });
+    case 'bash_run':
+      if (!cmd.command) return fail('command required');
+      return reply({ output: `domgate-bash-out[${cmd.command}]`, code: 0 });
     case 'job_list':
       return reply([{ job_id: 'job-dom-1', job_type: 'shell', job_state: 'RUNNING', updated_at: '2026-01-01T00:00:00Z' }]);
     case 'audit_tail': return reply([]);
