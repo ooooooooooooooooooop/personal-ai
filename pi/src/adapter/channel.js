@@ -323,7 +323,12 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           // (no auth) just continues the search. Nothing found → degrade.
           const rt = box.s?.modelRuntime;
           const prev = box.s?.model;
+          // dedup-h #282: the media failover surface is bounded by the
+          // operator's models-allow.json — a non-allowed vision entry is
+          // skipped and the walk continues, so a text+image prompt stays
+          // reachable through the allowlisted remainder of the chain.
           const hit = (fallbacks?.chain ?? [])
+            .filter((e) => !fallbacks?.allowed || fallbacks.allowed(e))
             .map((e) => { try { return rt?.getModel?.(e.provider, e.model) ?? null; } catch { return null; } })
             .find((m) => m && Array.isArray(m.input) && m.input.includes('image'));
           const switched = hit && typeof box.s?.setModel === 'function'

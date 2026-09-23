@@ -117,6 +117,7 @@ import { specTools } from '../adapter/specs.js';
 import { ScheduleStore } from '../../../host/src/core/scheduler.js';
 import { loadAgentProfiles } from '../adapter/agentprofiles.js';
 import { loadModelRoutes } from '../adapter/modelroutes.js';
+import { modelsAllowPredicate } from '../adapter/modelallow.js';
 import { createChannelHost } from '../adapter/channel.js';
 import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
@@ -417,6 +418,10 @@ export async function startHost({
         .slice(0, 8);
     }
   } catch { /* absent/invalid file = no fallback */ }
+  // dedup-h #282: operator model allowlist — automatic failovers (provider-
+  // error walk, media capability switch) may only pick allowlisted chain
+  // entries. Shared on the same cell both call sites already hold.
+  fallbackCfg.allowed = modelsAllowPredicate(instanceRoot);
   // M38 — oversized tool outputs spool here; the tool_result seam swaps them
   // for placeholders carrying an output_read handle.
   const outputSpool = new OutputSpool(join(instanceRoot, 'spool'));

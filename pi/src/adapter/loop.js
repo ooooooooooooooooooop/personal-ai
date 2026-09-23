@@ -227,6 +227,13 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
         const idx = chain.findIndex((e) => e.provider === cur?.provider && e.model === cur?.id);
         for (let i = idx >= 0 ? idx + 1 : 0; i < chain.length && fallbackHops < chain.length; i += 1) {
           const e = chain[i];
+          // dedup-h #282: operator models-allow.json bounds the automatic
+          // failover surface — a chain entry outside the allowlist is
+          // skipped with an audit row, never selected.
+          if (fallbacks?.allowed && !fallbacks.allowed(e)) {
+            audit.write({ kind: 'MODEL_FALLBACK', data: { skip: `${e.provider}/${e.model}`, reason: 'not-in-models-allow' } });
+            continue;
+          }
           const model = ctx.modelRegistry.find(e.provider, e.model);
           if (!model) {
             audit.write({ kind: 'MODEL_FALLBACK', data: { skip: `${e.provider}/${e.model}`, reason: 'unregistered' } });

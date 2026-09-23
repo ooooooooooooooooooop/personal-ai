@@ -2242,3 +2242,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - `task_started` ← `JobExecutor.executeAttempt` 的 spawn 咽喉——delegate/job_spawn/schedule/restart/队列 promote 全路径覆盖，子进程已存在才发
 - `session_heartbeat` ← 复用操作员 heartbeat.json 同一 cadence（不建第二定时器、同一信任边界）
 - `HOOK_EVENTS` 扩名；测试：加载+发射、prompt_queued 仅真入队触发
+
+### 28.60 648 清单逐条核销 #32：dedup-h #282 failover allowlist（2026-09-23）
+
+**行**：`dedup-h	282	sessions-history	provider-failover: text+image链在allowlist下保持可达`。
+
+**判定**：**IMPLEMENTED**——操作员私有 `<instance>/models-allow.json` `{allow:[{provider,model}]}`（`*` 通配），约束**两条自动回退面**：
+
+- loop.js provider-error walk：非白名单链项跳过并审计 `not-in-models-allow`
+- channel.js media fallback：先过滤白名单再选视觉模型——text+image 提示在白名单内保持可达
+- 缺席=不受限（同 egress-allow 姿态）、畸形=fail-closed 全拒自动回退；每次决策重读文件，操作员改单即生效
+- 位点在共享 `fallbackCfg.allowed` 上——`models_fallback_set` 运行期改链不丢谓词
+- 测试：允许项越过被拒项被选中、畸形文件全拒、缺席不受限

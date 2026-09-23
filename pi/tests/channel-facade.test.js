@@ -1215,3 +1215,44 @@ test('instance_purge tasks: closed dirs deleted, open mailbox protected', async 
   assert.equal(bad.success, false);
   dispose();
 });
+
+// dedup-h #282: models-allow.json bounds the automatic failover surface.
+test('models allowlist: media fallback picks only allowed entries; malformed file fails closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-1', input: ['text'] };
+  const calls = [];
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const visionBad = { provider: 'evil', id: 'vision-x', input: ['text', 'image'] };
+  const visionOk = { provider: 'other', id: 'vision-9', input: ['text', 'image'] };
+  fakeSessionRef.modelRuntime = { getModel: (p, id) => ({ evil: visionBad, other: visionOk }[p] ?? null) };
+  fakeSessionRef.setModel = async (m) => { fakeSessionRef.model = m; };
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-allow-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const core = { paths: { auditDir: join(dir, 'audit'), root: dir }, audit: { write: () => {} } };
+  const { modelsAllowPredicate } = await import('../src/adapter/modelallow.js');
+
+  // allowlist admits only 'other/*' — 'evil/vision-x' skipped, walk continues
+  writeFileSync(join(dir, 'models-allow.json'), JSON.stringify({ allow: [{ provider: 'other', model: '*' }] }));
+  const fallbacks = {
+    chain: [{ provider: 'evil', model: 'vision-x' }, { provider: 'other', model: 'vision-9' }],
+    allowed: modelsAllowPredicate(dir),
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, fallbacks });
+  await ch.handle({ type: 'prompt', message: 'see', options: { attachments: [{ name: 'p.png', mime: 'image/png', data: 'aGk=' }] } });
+  assert.equal(fakeSessionRef.model.id, 'vision-9', 'allowlisted vision entry selected over the earlier denied one');
+  dispose();
+
+  // malformed allowlist → fail closed: even the good entry is refused
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-1', input: ['text'] };
+  writeFileSync(join(dir, 'models-allow.json'), '{oops');
+  const { channel: ch2, dispose: d2 } = createChannelHost({ session: fakeSessionRef, core, fallbacks });
+  await ch2.handle({ type: 'prompt', message: 'see', options: { attachments: [{ name: 'q.png', mime: 'image/png', data: 'aGk=' }] } });
+  assert.equal(fakeSessionRef.model.id, 'text-only-1', 'malformed allowlist denies the whole failover surface');
+  d2();
+
+  // absent file → unrestricted
+  const { rmSync } = await import('node:fs');
+  rmSync(join(dir, 'models-allow.json'));
+  const pred = modelsAllowPredicate(dir);
+  assert.equal(pred({ provider: 'anything', model: 'm' }), true, 'absent file is unrestricted');
+});
