@@ -295,7 +295,12 @@ export async function startHost({
     let spec = null;
     try { spec = JSON.parse(readFileSync(proxyFile, 'utf-8')); }
     catch (e) { if (e?.code !== 'ENOENT') throw new Error(`proxy.json: ${e.message}`); }
-    const mode = String(spec?.mode ?? 'off').trim();
+    // dedup-h #389 — PAI_PROXY_URL is the env-var channel analogue of
+    // OpenClaw's OPENCLAW_PROXY_URL: an operator-named env var naming the
+    // proxy outright. Lowest precedence — an explicit proxy.json wins.
+    const envProxy = process.env.PAI_PROXY_URL?.trim();
+    const mode = String(spec?.mode ?? (envProxy ? envProxy : 'off')).trim();
+    if (envProxy && !spec?.mode) proxyState.envSource = 'PAI_PROXY_URL';
     proxyState.configured = mode || 'off';
     if (mode && mode !== 'off') {
       if (mode === 'env') {
@@ -303,9 +308,10 @@ export async function startHost({
         proxyState.active = { mode: 'env' };
       } else {
         let u;
-        try { u = new URL(mode); } catch { throw new Error(`proxy.json: mode '${mode}' is not off|env|a proxy URL`); }
+        const src = proxyState.envSource ?? 'proxy.json';
+        try { u = new URL(mode); } catch { throw new Error(`${src}: mode '${mode}' is not off|env|a proxy URL`); }
         if (u.protocol !== 'http:' && u.protocol !== 'https:') {
-          throw new Error(`proxy.json: scheme '${u.protocol}' unsupported (http/https only)`);
+          throw new Error(`${src}: scheme '${u.protocol}' unsupported (http/https only)`);
         }
         process.env.NODE_USE_ENV_PROXY = '1';
         process.env.HTTP_PROXY = mode;

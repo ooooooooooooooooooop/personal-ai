@@ -834,3 +834,51 @@ test('proxy.json: env-proxy applied at bootstrap; config_set persists + reports 
     host.dispose();
   }
 });
+
+// dedup-h #389 — PAI_PROXY_URL (OpenClaw OPENCLAW_PROXY_URL analogue):
+// operator-named env var names the proxy outright; explicit proxy.json
+// still wins; a malformed env URL fails loud, not silently off.
+test('PAI_PROXY_URL: env-named proxy applies; proxy.json wins; bad URL loud', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-pxyenv-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-pxyenv-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  process.env.PAI_PROXY_URL = 'http://127.0.0.1:9090';
+  try {
+    const host = await startHost({
+      instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+    });
+    try {
+      assert.equal(process.env.HTTP_PROXY, 'http://127.0.0.1:9090', 'env-named proxy applied');
+      const st = await host.channel.handle({ type: 'get_state' });
+      assert.equal(st.data.proxy?.active?.url, 'http://127.0.0.1:9090');
+      assert.equal(st.data.proxy?.envSource, 'PAI_PROXY_URL', 'source honestly labeled');
+    } finally {
+      host.dispose();
+    }
+    // explicit proxy.json beats the env var
+    writeFileSync(join(inst, 'proxy.json'), JSON.stringify({ mode: 'off' }));
+    const host2 = await startHost({
+      instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+    });
+    try {
+      const st = await host2.channel.handle({ type: 'get_state' });
+      assert.equal(st.data.proxy?.active, null, 'explicit off wins over env var');
+    } finally {
+      host2.dispose();
+    }
+    // malformed env URL fails at bootstrap, not silently
+    process.env.PAI_PROXY_URL = 'not-a-url';
+    rmSync(join(inst, 'proxy.json'));
+    await assert.rejects(
+      () => startHost({ instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel } }),
+      /PAI_PROXY_URL.*proxy URL/,
+    );
+  } finally {
+    delete process.env.PAI_PROXY_URL;
+    delete process.env.NODE_USE_ENV_PROXY; delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY; delete process.env.NO_PROXY;
+  }
+});

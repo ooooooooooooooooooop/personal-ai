@@ -2300,3 +2300,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。预注册 client_id 本就是本实现的唯一 client 模型（无动态注册——`oauth.clientId` 必填）；本行补齐 `/mcp-add` 命令面的 OAuth 旗标族。
 - **机制**：`--oauth-client-id/--oauth-token-url/--oauth-authorize-url/--oauth-scope` → `spec.oauth`；写入前过 `validateOAuthSpec`——半规格（裸 client-id 无 token-url）在**写入时**即拒并给完整用法，不留一颗连不上的配置；stdio add 上挂 oauth 旗标同样拒（无 token 端点）。
 - **证据**：mcp-ext 26/26（半规格拒+不落盘、完整旗标逐字段落盘、stdio+oauth 拒）。
+
+### 28.67 648 清单逐条核销 #39：dedup-h #389 `PAI_PROXY_URL` 环境变量代理（2026-09-23）
+
+- **判定**：IMPLEMENTED。`proxy.enabled` 语义已由 #233 `mode` 超集覆盖；本行补 OpenClaw `OPENCLAW_PROXY_URL` 的字面对等——命名环境变量直接给代理 URL。
+- **机制**：`PAI_PROXY_URL` 为**最低优先级**源（显式 `proxy.json` 胜出，env 仅填未配置槽）；来源诚实标注（`get_state.proxy.envSource`，报错前缀 `PAI_PROXY_URL` 而非 proxy.json）；同走 http/https scheme 闸，畸形 URL bootstrap 即抛。
+- **证据**：bootstrap.test +1（env 应用+标注 / 显式 off 胜 env / 坏 URL 响拒），24/24 绿。
