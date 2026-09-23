@@ -3793,6 +3793,24 @@ const SLASH = [
     },
   },
   {
+    cmd: '/insights', label: '会话剖析', hint: '/insights [路径]——单会话分解+建议（默认当前会话）',
+    run: async (arg) => {
+      const p = String(arg ?? '').trim() || currentSessionFile;
+      if (!p) { toast('当前会话未落盘——/insights 需要文件会话', 'err'); return; }
+      const r = await cmd('session_insights', { path: p });
+      if (!r.success) { addSys(`insights 失败：${r.error ?? '未知'}`, true); return; }
+      const d = r.data ?? {};
+      const mins = d.durationMs != null ? `${Math.round(d.durationMs / 60000)}min` : 'n/a';
+      const top = (d.topTools ?? []).map((t) => `${t.name}×${t.count}`).join(' ') || '无';
+      addSys([
+        `📊 会话剖析 ${d.file?.split(/[\\/]/).pop() ?? ''}`,
+        `消息 ${d.messages}（user ${d.roles?.user ?? 0}/assistant ${d.roles?.assistant ?? 0}）· 时长 ${mins} · tokens ${d.tokens ?? 0} · $${d.cost ?? 0}`,
+        `工具：${top}`,
+        ...(d.tips ?? []).map((t) => `💡 ${t}`),
+      ].join('\n'));
+    },
+  },
+  {
     cmd: '/job', label: '后台跑命令', hint: '/job <命令>——durable job 后台执行（走 decide 治理链）',
     run: async (arg) => {
       const c = String(arg ?? '').trim();

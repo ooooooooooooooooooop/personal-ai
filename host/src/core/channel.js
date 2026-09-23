@@ -615,6 +615,13 @@ export class HostChannel {
           if (!this.sessions?.agentStats) return reply(false, undefined, 'agent stats unavailable');
           return reply(true, await this.sessions.agentStats());
         }
+        case 'session_insights': {
+          // Per-session breakdown + deterministic tips (dedup-h #7 analogue):
+          // the facade parses the transcript file — confined to sessionDir.
+          if (!this.sessions?.insights) return reply(false, undefined, 'session insights unavailable');
+          const r = await this.sessions.insights(cmd.path);
+          return r?.error ? reply(false, r, r.error) : reply(true, r);
+        }
         // F-family AgentTask mailbox — operator-facing mirrors of the
         // model's task_* tools (same store, same state machine).
         case 'task_list': {

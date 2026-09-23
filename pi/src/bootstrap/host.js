@@ -1444,6 +1444,69 @@ export async function startHost({
         lastSession: last?.toISOString?.() ?? null,
       };
     },
+    // Session Insights (dedup-h #7): per-session breakdown — what happened
+    // (roles, tools, errors, usage, duration) plus deterministic tips derived
+    // ONLY from parsed data. No model call: a tip that cannot be traced to a
+    // counted fact would be fabricated analysis.
+    insights: async (path) => {
+      const target = String(path ?? '').trim();
+      if (!target) return { error: 'path required' };
+      // confine to the session dir — insights must not become an arbitrary
+      // JSONL reader for the operator's filesystem
+      const resolved = resolve(target);
+      if (!resolved.startsWith(resolve(sessionDir))) return { error: 'path outside session dir' };
+      if (!existsSync(resolved)) return { error: 'session file not found' };
+      const rows = [];
+      try {
+        for (const line of readFileSync(resolved, 'utf-8').split('\n')) {
+          if (!line.trim()) continue;
+          try { rows.push(JSON.parse(line)); } catch { /* torn tail tolerated */ }
+        }
+      } catch { return { error: 'session file unreadable' }; }
+      const roles = {}, entryTypes = {}, blockTypes = {}, tools = {}, toolErrors = {};
+      let tokens = 0, cost = 0, usageSeen = 0, firstTs = null, lastTs = null, errorBlocks = 0;
+      for (const e of rows) {
+        const ts = e?.timestamp ?? e?.ts ?? e?.message?.timestamp;
+        if (ts) { const d = new Date(ts); if (!firstTs || d < firstTs) firstTs = d; if (!lastTs || d > lastTs) lastTs = d; }
+        entryTypes[e?.type ?? 'unknown'] = (entryTypes[e?.type ?? 'unknown'] ?? 0) + 1;
+        const msg = e?.message ?? e;
+        const role = msg?.role;
+        if (role) roles[role] = (roles[role] ?? 0) + 1;
+        const u = msg?.usage ?? e?.usage;
+        if (u) { usageSeen++; tokens += Number(u.totalTokens ?? u.input ?? 0) + Number(u.output ?? 0); cost += Number(u.cost?.total ?? 0); }
+        const content = Array.isArray(msg?.content) ? msg.content : (typeof msg?.content === 'string' ? [{ type: 'text', text: msg.content }] : []);
+        for (const b of content) {
+          const bt = b?.type ?? 'unknown';
+          blockTypes[bt] = (blockTypes[bt] ?? 0) + 1;
+          const tn = b?.name ?? b?.toolName ?? b?.tool_name;
+          if (tn) {
+            tools[tn] = (tools[tn] ?? 0) + 1;
+            if (b?.isError || b?.is_error) { toolErrors[tn] = (toolErrors[tn] ?? 0) + 1; errorBlocks++; }
+          } else if (b?.isError || b?.is_error) errorBlocks++;
+        }
+      }
+      const messages = Object.values(roles).reduce((a, b) => a + b, 0);
+      const tips = [];
+      if (messages === 0) tips.push('会话无任何消息——可能是空会话文件或导入截断');
+      const errTools = Object.entries(toolErrors).sort((a, b) => b[1] - a[1]);
+      if (errTools.length) {
+        const [n, c] = errTools[0];
+        tips.push(`工具 '${n}' 出错 ${c} 次${errTools.length > 1 ? `（共 ${errTools.length} 个出错工具）` : ''}——下次可先 /doctor 或查 deny 规则再跑`);
+      }
+      if (errorBlocks > 3) tips.push(`错误块占比偏高（${errorBlocks} 个）——逐条复盘比继续重试更省 token`);
+      if ((roles.user ?? 0) > 50) tips.push(`用户消息 ${roles.user} 条——长会话上下文成本高，建议 /save 存档后开新会话`);
+      if (cost > 1) tips.push(`本会话成本 $${cost.toFixed(2)}——可设 budget_set 美元上限防失控`);
+      const topTools = Object.entries(tools).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (!tips.length) tips.push('无异常信号——会话形态正常');
+      return {
+        file: resolved, messages, roles, entryTypes, blockTypes,
+        tools, toolErrors, tokens, cost: Number(cost.toFixed(4)), usageRecords: usageSeen,
+        durationMs: firstTs && lastTs ? lastTs - firstTs : null,
+        firstTs: firstTs?.toISOString?.() ?? null, lastTs: lastTs?.toISOString?.() ?? null,
+        topTools: topTools.map(([name, count]) => ({ name, count })),
+        tips,
+      };
+    },
   };
 
   // G5: typed lifecycle hooks — observational only, never in the decide path

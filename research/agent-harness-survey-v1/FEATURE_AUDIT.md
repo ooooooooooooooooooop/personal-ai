@@ -1877,3 +1877,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 名册查询 | `task_list{team?}` 过滤 + 行含 name/team | `task_list filters by team` 测试 |
 
 **语义差异（诚实记录）**：无显式 TeamCreate/TeamDelete 生命周期对象——队以标签隐式存在（有 open 成员即在）；队删除=成员逐个 closed。多对多任务池仲裁仍属推迟项。
+
+### 28.34 648 清单逐条核销 #3：dedup-h #7 Session Insights 会话剖析（2026-09-23）
+
+**行**：`dedup-h	7	sessions-history	session-insights: usage analysis feature`（Devin Session Insights：分析会话、分解发生了什么、给 actionable tips）。
+
+**判定**：**IMPLEMENTED（确定性变体）**——落法是**无模型**剖析面：分解+建议全部可追溯回解析出的事实，不用 LLM 生成"看起来像洞察"的文本。
+
+| 面 | 落点 | 证据 |
+|---|---|---|
+| 分解 | `sessions.insights(path)`：roles/entryTypes/blockTypes 直方图 + 工具调用/错误计数 + tokens/cost + 时长 + top5 工具 | pi `session_insights` e2e：合成会话全字段断言 |
+| 建议 | 纯规则：工具出错 TopN→排查提示、错误块>3→复盘提示、用户消息>50→存档提示、cost>$1→预算提示、空会话→截断提示 | 同上 tips 断言 |
+| 边界 | 路径限定 sessionDir（realpath resolve 前缀），越界/不存在/不可读→诚实 error 返回 | 越界断言 `outside session dir` |
+| 通道/UI | channel `session_insights{path}`；UI `/insights [path]`（默认当前会话文件）渲染分解+tips | channel 30/30 + dom-gate 复用 |

@@ -659,3 +659,46 @@ test('operator job_spawn: worktree flag reaches a real detached-checkout job', {
     assert.ok(!JSON.stringify(deniedJobs).includes('blocked-cmd'), 'no denied job record');
   } finally { host.dispose(); }
 });
+
+// candidates-open dedup-h #7: session insights — per-session breakdown +
+// deterministic tips from the transcript file itself (no model call).
+test('session_insights: real breakdown + tips; confined to the session dir', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-ins-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  mkdirSync(join(inst, 'sessions'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const sf = join(inst, 'sessions', 's1.jsonl');
+  writeFileSync(sf, [
+    JSON.stringify({ type: 'session', id: 's1', timestamp: '2026-09-23T00:00:00Z', cwd: inst }),
+    JSON.stringify({ type: 'message', message: { role: 'user', timestamp: '2026-09-23T00:00:01Z', content: [{ type: 'text', text: 'fix the bug' }] } }),
+    JSON.stringify({ type: 'message', message: { role: 'assistant', timestamp: '2026-09-23T00:10:00Z', content: [
+      { type: 'toolCall', name: 'bash', id: 't1' },
+      { type: 'toolResult', name: 'bash', isError: true, content: 'denied' },
+      { type: 'toolCall', name: 'write', id: 't2' },
+    ], usage: { totalTokens: 4200, output: 800, cost: { total: 0.42 } } } }),
+    'not-json-torn-tail',
+  ].join('\n'));
+  const host = await startHost({
+    instanceRoot: inst, workdir: inst, sessionOptions: { model: stubModel },
+  });
+  try {
+    const r = await host.channel.handle({ type: 'session_insights', path: sf });
+    assert.equal(r.success, true, `insights refused: ${r.error}`);
+    const d = r.data;
+    assert.equal(d.messages, 2);
+    assert.equal(d.roles.user, 1);
+    assert.equal(d.tools.bash, 2, 'call+result counted under the tool name');
+    assert.equal(d.toolErrors.bash, 1);
+    assert.equal(d.tokens, 5000);
+    assert.equal(d.cost, 0.42);
+    assert.equal(d.durationMs, 600000, 'header ts → last message ts');
+    assert.ok(d.tips.some((t) => t.includes('bash')), 'error tip names the failing tool');
+    // outside the session dir → confined refusal, not a read
+    const outside = join(inst, 'canonical', 'policy.json');
+    const bad = await host.channel.handle({ type: 'session_insights', path: outside });
+    assert.equal(bad.success, false);
+    assert.match(String(bad.error), /outside session dir/);
+  } finally { host.dispose(); }
+});
