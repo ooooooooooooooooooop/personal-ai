@@ -2030,3 +2030,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - bootstrap 注入 `jobState: jobStore.getJob(...)`——presence 与 durable job 真态同源
 
 测试：`M91-presence`——busy/queued/idle/unbound/offline 五态 + name/id 寻址 + not-found + last_activity 随子输出更新。
+
+### 28.44 648 清单逐条核销 #13：dedup-h #100 plugins 注册 slash commands + dispatch tools（2026-09-23）
+
+**行**：`dedup-h	100	shell-tools	plugins注册slash commands+dispatch tools — 扩展命令面`（插件注册斜杠命令+分发工具）。
+
+**判定**：**ALREADY COVERED**——引擎 `pi.registerCommand`/`pi.registerTool` 契约 + 生产在用 + 测试实锤：
+
+| 面 | 证据 |
+|---|---|
+| 静态命令 | mcp 扩展 `pi.registerCommand('mcp', …)`；lsp `registerCommand('lsp', …)` |
+| 动态命令 | M82：MCP prompt 自动注册 `/mcp-<srv>-<prompt>` 斜杠命令族——`pi.commands.get('mcp-fake-greet')` 测试断言注册+handler 分发到 `getPrompt`→`sendUserMessage` |
+| 工具注册 | mcp 扩展每服务器 `registerTool`（`mcp__srv__tool` 动态族+list_changed 热更新）+ lsp 六工具 |
+| 测试锚 | mcp-ext.test.js：`prompts register as slash commands`、`prompt-only server`、`tools-only server`、M130 hot-refresh |
+
+无新增代码必要。
