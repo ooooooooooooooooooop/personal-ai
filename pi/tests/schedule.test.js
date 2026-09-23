@@ -289,3 +289,108 @@ test('decide: .pai/commands.json denyPrefix gates schedule_task.command at creat
   assert.equal(r?.block, true);
   assert.equal(r?.rule, 'command_denylist');
 });
+
+// ── dedup-h #410: outbound finished-run webhook ────────────────────────
+
+test('finished scheduled run POSTs webhook with bearer token — durable + idempotent', async () => {
+  const { createServer } = await import('node:http');
+  const posts = [];
+  const srv = createServer((req, res) => {
+    let b = '';
+    req.on('data', (c) => b += c);
+    req.on('end', () => {
+      posts.push({ auth: req.headers.authorization, ct: req.headers['content-type'], body: JSON.parse(b) });
+      res.end('{}');
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${srv.address().port}/hook`;
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const store = new ScheduleStore(dir, () => now);
+  process.env.PAI_TEST_WH_TOK = 's3cr3t-token';
+  store.add({ command: 'x', run_at: now - 1000, webhook: { url, token_env: 'PAI_TEST_WH_TOK' } });
+  const jobs = { 'job-9': { job_state: 'COMPLETED' } };
+  const jobStore = {
+    getJob: (id) => jobs[id] ?? null,
+    getAttempts: () => [{ attempt_id: 'a1', exit_code: 0, started_at: '2026-09-23T00:00:00Z', ended_at: '2026-09-23T00:00:05Z' }],
+  };
+  const executor = { spawnCommandJob: async () => ({ job_id: 'job-9', attempt_id: 'a1' }) };
+  const pump = startSchedulerPump({ store, executor, workdir: dir, audit, intervalMs: 60_000, jobStore });
+  try {
+    await pump.tick(); // fires job-9 + sweeps (already terminal)
+    assert.equal(posts.length, 1);
+    assert.equal(posts[0].auth, 'Bearer s3cr3t-token');
+    assert.equal(posts[0].body.event, 'schedule.run.finished');
+    assert.equal(posts[0].body.job_id, 'job-9');
+    assert.equal(posts[0].body.job_state, 'COMPLETED');
+    assert.equal(posts[0].body.exit_code, 0);
+    await pump.tick(); // idempotent — delivered set persisted, no re-POST
+    assert.equal(posts.length, 1);
+    // delivery truth survived in the state file
+    const st = JSON.parse(readFileSync(join(dir, 'schedule-webhooks.json'), 'utf-8'));
+    assert.deepEqual(st.delivered, ['job-9']);
+  } finally {
+    pump.dispose();
+    srv.close();
+    delete process.env.PAI_TEST_WH_TOK;
+  }
+});
+
+test('webhook waits for terminal state; unresolved token env fails loudly, retries bounded', async () => {
+  const { createServer } = await import('node:http');
+  let hits = 0;
+  const srv = createServer((_req, res) => { hits++; res.end('{}'); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const url = `http://127.0.0.1:${srv.address().port}/hook`;
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const store = new ScheduleStore(dir, () => now);
+  // token_env points at a var that is NOT set → attempt fails, never silently unauthenticated
+  store.add({ command: 'x', run_at: now - 1000, webhook: { url, token_env: 'PAI_TEST_WH_MISSING' } });
+  const job = { job_state: 'RUNNING' };
+  const jobStore = { getJob: () => job, getAttempts: () => [] };
+  const executor = { spawnCommandJob: async () => ({ job_id: 'job-1', attempt_id: 'a1' }) };
+  const pump = startSchedulerPump({ store, executor, workdir: dir, audit, intervalMs: 60_000, jobStore });
+  try {
+    await pump.tick(); // job RUNNING → no delivery attempt yet
+    assert.equal(hits, 0);
+    job.job_state = 'FAILED';
+    for (let i = 0; i < 5; i++) await pump.tick(); // 5 failed attempts (token unset) → gave up
+    assert.equal(hits, 0); // endpoint never saw an unauthenticated POST
+    const st = JSON.parse(readFileSync(join(dir, 'schedule-webhooks.json'), 'utf-8'));
+    assert.deepEqual(st.delivered, ['job-1']); // gave up — marked done, not retried forever
+    await pump.tick(); // no further attempts
+    const st2 = JSON.parse(readFileSync(join(dir, 'schedule-webhooks.json'), 'utf-8'));
+    assert.equal(st2.attempts['job-1'], undefined);
+  } finally {
+    pump.dispose();
+    srv.close();
+  }
+});
+
+test('schedule_task tool: webhook_url + token_env params wire the spec; malformed refused', async () => {
+  const { dir } = rig();
+  const store = new ScheduleStore(dir);
+  const tool = scheduleTool(store);
+  const noTok = await tool.execute('c', { action: 'create', command: 'x', every_seconds: 120, webhook_token_env: 'TOK' });
+  assert.equal(noTok.isError, true); // token_env without url
+  const badUrl = await tool.execute('c', { action: 'create', command: 'x', every_seconds: 120, webhook_url: 'ftp://x' });
+  assert.equal(badUrl.isError, true); // non-http(s) refused at write time
+  const r = await tool.execute('c', {
+    action: 'create', command: 'x', every_seconds: 120,
+    webhook_url: 'https://ops.example.com/hook', webhook_token_env: 'WH_TOK',
+  });
+  assert.match(r.content[0].text, /scheduled sch-/);
+  const rec = store.list().find((s) => s.id === r.details.id);
+  assert.equal(rec.webhook.url, 'https://ops.example.com/hook');
+  assert.equal(rec.webhook.token_env, 'WH_TOK');
+  const list = await tool.execute('c', { action: 'list' });
+  assert.match(list.content[0].text, /→webhook/);
+  // edit: clear then re-set
+  const clr = await tool.execute('c', { action: 'edit', id: rec.id, webhook_clear: true });
+  assert.match(clr.content[0].text, /edited/);
+  assert.equal(store.list()[0].webhook, null);
+  const conflict = await tool.execute('c', { action: 'edit', id: rec.id, webhook_clear: true, webhook_url: 'https://x' });
+  assert.equal(conflict.isError, true);
+});

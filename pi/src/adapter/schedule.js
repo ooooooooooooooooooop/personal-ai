@@ -5,7 +5,42 @@
  * fires due entries as durable jobs (they survive restarts, hold their own
  * write lease, bill into the session budget scope). A refused spawn does NOT
  * consume the fire — the entry stays due and retries on the next tick.
+ *
+ * dedup-h #410 — outbound finished-run webhook: a schedule entry carrying
+ * `webhook:{url,token?|token_env?,headers?}` gets ONE POST per terminal job
+ * (`Authorization: Bearer` when a token resolves). Delivery truth persists
+ * in <instance>/schedule-webhooks.json {delivered, attempts} — a fire on
+ * one boot can be reported after a restart, and a delivered job never
+ * re-POSTs. Failures retry per tick up to a bounded attempt cap, then the
+ * give-up is audited — never silently dropped, never retried forever.
  */
+import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+
+const WEBHOOK_TIMEOUT_MS = 10_000;
+const WEBHOOK_MAX_ATTEMPTS = 5;
+const TERMINAL = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
+
+async function deliverWebhook(wh, payload) {
+  const token = wh.token ?? (wh.token_env ? process.env[wh.token_env] : null);
+  if (!token && (wh.token || wh.token_env)) {
+    // configured auth that cannot resolve = fail the attempt loudly; sending
+    // an unauthenticated POST would silently downgrade the declared contract
+    return { ok: false, error: `webhook token unresolved (${wh.token_env ? `env ${wh.token_env} unset` : 'empty token'})` };
+  }
+  const headers = { 'content-type': 'application/json', ...(wh.headers ?? {}) };
+  if (token) headers.authorization = `Bearer ${token}`;
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), WEBHOOK_TIMEOUT_MS);
+  try {
+    const res = await fetch(wh.url, { method: 'POST', headers, body: JSON.stringify(payload), signal: ac.signal });
+    return res.ok ? { ok: true } : { ok: false, error: `HTTP ${res.status}` };
+  } catch (e) {
+    return { ok: false, error: e?.name === 'AbortError' ? `timeout ${WEBHOOK_TIMEOUT_MS}ms` : (e?.message ?? 'fetch failed') };
+  } finally {
+    clearTimeout(t);
+  }
+}
 
 /**
  * @param {import('../../../host/src/core/scheduler.js').ScheduleStore} store
@@ -24,6 +59,69 @@
  */
 export function startSchedulerPump({ store, executor, workdir, audit = null, getScope = null, intervalMs = 30_000, promptSink = null, goals = null, tasks = null, jobStore = null, missedWindowMs = 4 * 60 * 60 * 1000 }) {
   let inflight = null;
+
+  // dedup-h #410 — webhook delivery truth lives next to schedules.json
+  // (instance root): delivered jobIds for idempotence, attempt counts for
+  // the bounded retry. Atomic write like the schedule file itself.
+  const whStateFile = join(dirname(store.file), 'schedule-webhooks.json');
+  const whLoad = () => {
+    try {
+      const d = JSON.parse(readFileSync(whStateFile, 'utf-8'));
+      return { delivered: Array.isArray(d.delivered) ? d.delivered : [], attempts: d.attempts ?? {} };
+    } catch {
+      return { delivered: [], attempts: {} };
+    }
+  };
+  const whSave = (state) => {
+    const tmp = `${whStateFile}.tmp-${process.pid}`;
+    writeFileSync(tmp, JSON.stringify(state));
+    renameSync(tmp, whStateFile);
+  };
+  const sweepWebhooks = async () => {
+    if (!jobStore || !existsSync(store.file)) return;
+    const recs = store.list().filter((s) => s.webhook?.url && s.lastJobId);
+    if (!recs.length) return;
+    const state = whLoad();
+    let dirty = false;
+    const done = (jid) => { state.delivered.push(jid); delete state.attempts[jid]; dirty = true; };
+    for (const s of recs) {
+      const jid = s.lastJobId;
+      if (state.delivered.includes(jid)) continue;
+      const job = jobStore.getJob?.(jid);
+      if (!job) {
+        done(jid); // job record vanished — nothing can ever be reported
+        audit?.write({ kind: 'SCHEDULE_WEBHOOK_LOST', data: { id: s.id, job_id: jid } });
+        continue;
+      }
+      if (!TERMINAL.has(job.job_state)) continue; // still running — next tick
+      const att = jobStore.getAttempts?.(jid)?.at(-1) ?? null;
+      const payload = {
+        event: 'schedule.run.finished',
+        schedule_id: s.id, label: s.label ?? null,
+        job_id: jid, job_state: job.job_state,
+        exit_code: att?.exit_code ?? null,
+        started_at: att?.started_at ?? null,
+        finished_at: att?.ended_at ?? new Date(store.now?.() ?? Date.now()).toISOString(),
+      };
+      const r = await deliverWebhook(s.webhook, payload);
+      if (r.ok) {
+        done(jid);
+        audit?.write({ kind: 'SCHEDULE_WEBHOOK_SENT', data: { id: s.id, job_id: jid, job_state: job.job_state } });
+      } else {
+        const n = (state.attempts[jid] = (state.attempts[jid] ?? 0) + 1);
+        dirty = true;
+        audit?.write({ kind: 'SCHEDULE_WEBHOOK_FAILED', data: { id: s.id, job_id: jid, attempt: n, error: r.error } });
+        if (n >= WEBHOOK_MAX_ATTEMPTS) {
+          done(jid);
+          audit?.write({ kind: 'SCHEDULE_WEBHOOK_GAVE_UP', data: { id: s.id, job_id: jid, attempts: n } });
+        }
+      }
+    }
+    if (dirty) {
+      state.delivered = state.delivered.slice(-1000); // unbounded growth guard
+      whSave(state);
+    }
+  };
 
   // Monitor-skip fingerprint: scratchpad bytes + bound task/job states.
   // An unchanged world means the tick would re-read the same state — skip
@@ -141,6 +239,10 @@ export function startSchedulerPump({ store, executor, workdir, audit = null, get
       store.markFired(s.id, r.job_id ?? null);
       audit?.write({ kind: 'SCHEDULE_FIRED', data: { id: s.id, job_id: r.job_id, kind: s.kind } });
     }
+    // dedup-h #410: after firing, report any webhook-bound job that reached
+    // a terminal state (this tick's own fire may still be running — it is
+    // swept on later ticks, or after a restart, until delivered/gave-up).
+    await sweepWebhooks();
   })().catch(() => {}).finally(() => { inflight = null; });
   const timer = setInterval(() => { tick(); }, intervalMs);
   timer.unref?.();
@@ -170,6 +272,9 @@ export function scheduleTool(store) {
         min_seconds: { type: 'number', description: 'adaptive rate floor — quiet ticks stretch the interval from every_seconds toward max_seconds (create, requires max_seconds)' },
         max_seconds: { type: 'number', description: 'adaptive rate ceiling (create, requires min_seconds)' },
         label: { type: 'string', description: 'optional human label (create/edit)' },
+        webhook_url: { type: 'string', description: 'POST the finished-run report to this http(s) URL when the fired job reaches a terminal state (create/edit)' },
+        webhook_token_env: { type: 'string', description: 'env var NAME holding the webhook bearer token — never the token itself (create/edit)' },
+        webhook_clear: { type: 'boolean', description: 'remove the webhook spec (edit)' },
         id: { type: 'string', description: 'schedule id (cancel/pause/resume/edit)' },
       },
       required: ['action'],
@@ -182,6 +287,9 @@ export function scheduleTool(store) {
             if (params.run_at == null && params.every_seconds == null) {
               return { content: [{ type: 'text', text: 'schedule create requires run_at (one-shot) or every_seconds (interval)' }], isError: true };
             }
+            if (params.webhook_token_env != null && params.webhook_url == null) {
+              return { content: [{ type: 'text', text: 'webhook_token_env requires webhook_url' }], isError: true };
+            }
             const rec = store.add({
               command: params.command,
               run_at: params.run_at,
@@ -189,6 +297,9 @@ export function scheduleTool(store) {
               label: params.label,
               min_seconds: params.min_seconds,
               max_seconds: params.max_seconds,
+              webhook: params.webhook_url != null
+                ? { url: params.webhook_url, token_env: params.webhook_token_env ?? null }
+                : null,
             });
             return text(
               `scheduled ${rec.id} (${rec.kind}${rec.every_seconds ? ` ${rec.every_seconds}s` : ''}) — next fire ${new Date(rec.nextRunAt).toISOString()}`,
@@ -199,7 +310,7 @@ export function scheduleTool(store) {
             const rows = store.list();
             if (!rows.length) return text('no schedules');
             return text(rows.map((s) =>
-              `${s.id} ${s.enabled === false ? '[disabled] ' : ''}${s.kind}${s.every_seconds ? ` ${s.current_seconds ?? s.every_seconds}s` : ''}${s.min_seconds != null ? `[adapt ${s.min_seconds}–${s.max_seconds}s quiet=${s.quietStreak ?? 0}]` : ''}${s.target === 'prompt' ? '→goal' : ''} next=${new Date(s.nextRunAt).toISOString()} lastFired=${s.lastFiredAt ?? 'never'}${s.lastJobId ? ` job=${s.lastJobId}` : ''} :: ${s.label ?? s.command ?? s.prompt}`,
+              `${s.id} ${s.enabled === false ? '[disabled] ' : ''}${s.kind}${s.every_seconds ? ` ${s.current_seconds ?? s.every_seconds}s` : ''}${s.min_seconds != null ? `[adapt ${s.min_seconds}–${s.max_seconds}s quiet=${s.quietStreak ?? 0}]` : ''}${s.target === 'prompt' ? '→goal' : ''}${s.webhook?.url ? ' →webhook' : ''} next=${new Date(s.nextRunAt).toISOString()} lastFired=${s.lastFiredAt ?? 'never'}${s.lastJobId ? ` job=${s.lastJobId}` : ''} :: ${s.label ?? s.command ?? s.prompt}`,
             ).join('\n'));
           }
           case 'cancel': {
@@ -214,10 +325,17 @@ export function scheduleTool(store) {
               : { content: [{ type: 'text', text: r.error }], isError: true };
           }
           case 'edit': {
+            if (params.webhook_clear === true && params.webhook_url != null) {
+              return { content: [{ type: 'text', text: 'webhook_clear and webhook_url are mutually exclusive' }], isError: true };
+            }
             const r = store.edit(String(params.id ?? ''), {
               command: params.command, prompt: params.prompt,
               every_seconds: params.every_seconds, run_at: params.run_at,
               label: params.label,
+              webhook: params.webhook_clear === true ? null
+                : params.webhook_url != null
+                  ? { url: params.webhook_url, token_env: params.webhook_token_env ?? null }
+                  : undefined,
             });
             return r.ok
               ? text(`edited ${params.id} — next fire ${new Date(r.rec.nextRunAt).toISOString()}`, r.rec)

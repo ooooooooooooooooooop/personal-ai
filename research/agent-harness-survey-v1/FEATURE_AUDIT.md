@@ -2340,3 +2340,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。两个半边：**(a) shell/CLI 登录**——`pai-host mcp-auth`/`mcp-auth-done` 走同一 PKCE 实现（第三道门）；跨进程 pending 落盘 `<store>/mcp-oauth-pending.json`（0600，10min TTL——两次 CLI 调用是两个进程，内存 map 活不了）；**(b) capability 声明**——initialize 发送 `capabilities:{}` + `CLIENT_INFO`：roots/sampling/elicitation 未实现即声明缺席，不冒称。
 - **证据**：CLI 端到端（授权 URL + pending 落盘 → 换码携 `code_verifier` → token 入库 → 无 pending 诚实拒）。
+
+### 28.74 648 清单逐条核销 #46：dedup-h #410 调度完成出站 webhook + bearer（2026-09-23）
+
+- **判定**：IMPLEMENTED。schedule 记录新增 `webhook:{url, token?|token_env?, headers?}`（`validateWebhook` fail-closed：仅 http(s)，`authorization` 头只能从 token 派生不许夹带）。pump 每 tick 扫 `lastJobId` 终态 → POST `schedule.run.finished` 运行报告 + `Authorization: Bearer`（token 直存或 env 名引用）。**交付真值持久化** `schedule-webhooks.json`（delivered cap1000 + attempts）：重启后补投、已投不重投；失败每 tick 重试 cap5 → `SCHEDULE_WEBHOOK_GAVE_UP` 审计；token_env 未解析=响亮失败，绝不静默降级为无认证 POST。工具面只收 `webhook_token_env`（env 名）——原始 token 永不进 transcript。
+- **证据**：真 HTTP 接收器断言 Bearer+payload 字段、二次 tick 幂等不重投、RUNNING 不投、5 次放弃审计、畸形 URL 写入即拒；pi 全套 416/412/0/4。

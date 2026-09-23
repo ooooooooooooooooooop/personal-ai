@@ -36,6 +36,41 @@ export function validateAdaptive(rec) {
   return null;
 }
 
+/**
+ * dedup-h #410 — outbound finished-run webhook spec on a schedule record.
+ * {url, token?, token_env?, headers?}. Fail-closed: a malformed spec is
+ * refused at write time, never discovered at fire time. `authorization`
+ * is derived from token/token_env — a raw header must not smuggle a
+ * second credential the audit cannot name.
+ */
+export function validateWebhook(wh) {
+  if (wh == null) return null;
+  if (typeof wh !== 'object' || Array.isArray(wh)) return 'webhook must be an object';
+  let parsed;
+  try { parsed = new URL(String(wh.url ?? '')); }
+  catch { return 'webhook.url must be a URL'; }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return 'webhook.url must be http(s)';
+  if (wh.token != null && typeof wh.token !== 'string') return 'webhook.token must be a string';
+  if (wh.token_env != null && !/^[A-Za-z_][A-Za-z0-9_]*$/.test(String(wh.token_env))) {
+    return 'webhook.token_env must be an environment-variable NAME';
+  }
+  if (wh.headers != null) {
+    if (typeof wh.headers !== 'object' || Array.isArray(wh.headers)) return 'webhook.headers must be an object';
+    for (const [k, v] of Object.entries(wh.headers)) {
+      if (k.toLowerCase() === 'authorization') return 'webhook.headers.authorization is derived from token — set token/token_env instead';
+      if (typeof v !== 'string') return 'webhook.headers values must be strings';
+    }
+  }
+  return null;
+}
+
+const normWebhook = (wh) => wh == null ? null : {
+  url: String(wh.url),
+  token: wh.token ?? null,
+  token_env: wh.token_env ?? null,
+  headers: wh.headers ?? null,
+};
+
 export class ScheduleStore {
   /**
    * @param {string} instanceRoot
@@ -75,7 +110,7 @@ export class ScheduleStore {
    * via the prompt sink (coordinator tick). run_at in the past → fires on
    * the next tick (catch-up once semantics).
    */
-  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null, min_seconds = null, max_seconds = null }) {
+  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null, min_seconds = null, max_seconds = null, webhook = null }) {
     const cmd = String(command ?? '').trim();
     const prm = String(prompt ?? '').trim();
     if (!cmd && !prm) throw new Error('schedule requires a non-empty command or prompt');
@@ -103,6 +138,8 @@ export class ScheduleStore {
     const maxS = max_seconds != null ? Math.floor(Number(max_seconds)) : null;
     const aerr = validateAdaptive({ kind: interval != null ? 'interval' : 'once', every_seconds: interval, min_seconds: minS, max_seconds: maxS });
     if (aerr) throw new Error(aerr);
+    const werr = validateWebhook(webhook);
+    if (werr) throw new Error(werr);
     const rec = {
       id: `sch-${randomUUID().slice(0, 8)}`,
       target: cmd ? 'command' : 'prompt',
@@ -123,6 +160,7 @@ export class ScheduleStore {
       createdAt: new Date(this.now()).toISOString(),
       lastFiredAt: null,
       lastJobId: null,
+      webhook: normWebhook(webhook),
     };
     this.#save([...schedules, rec]);
     return rec;
@@ -153,8 +191,8 @@ export class ScheduleStore {
     return { ok: true, rec };
   }
 
-  /** Goose edit: patch command/prompt/every_seconds/run_at of a live entry. */
-  edit(id, { command, prompt, every_seconds, run_at, label } = {}) {
+  /** Goose edit: patch command/prompt/every_seconds/run_at/webhook of a live entry. */
+  edit(id, { command, prompt, every_seconds, run_at, label, webhook } = {}) {
     const schedules = this.#load();
     const rec = schedules.find((s) => s.id === id);
     if (!rec) return { ok: false, error: `no schedule '${id}'` };
@@ -188,6 +226,17 @@ export class ScheduleStore {
     if (rec.kind === 'interval') {
       const aerr = validateAdaptive(rec);
       if (aerr) return { ok: false, error: aerr };
+    }
+    // webhook: undefined leaves the spec alone; null clears it; an object
+    // replaces it (validated — same fail-closed rules as create).
+    if (webhook !== undefined) {
+      if (webhook === null) {
+        rec.webhook = null;
+      } else {
+        const werr = validateWebhook(webhook);
+        if (werr) return { ok: false, error: werr };
+        rec.webhook = normWebhook(webhook);
+      }
     }
     this.#save(schedules);
     return { ok: true, rec };
