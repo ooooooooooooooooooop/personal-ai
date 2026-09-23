@@ -305,6 +305,26 @@ export async function oauthExchangeCode(oauth, { code, verifier }) {
 export const mcpOperatorSurface = {
   loadConfig, validateOAuthSpec, readTokenStore, writeTokenStore, tokenStorePath,
 };
+
+// dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
+// pending verifier/state must survive between two separate invocations,
+// so the CLI persists it next to the token store (0600, TTL-bounded).
+// In-process surfaces (session commands, channel facade) keep their
+// in-memory maps — this file is only for stateless invocations.
+export function oauthPendingPath() {
+  return join(dirname(tokenStorePath()), 'mcp-oauth-pending.json');
+}
+export function oauthPendingLoad() {
+  try { return JSON.parse(readFileSync(oauthPendingPath(), 'utf-8')) ?? {}; } catch { return {}; }
+}
+export function oauthPendingSave(doc) {
+  const p = oauthPendingPath();
+  mkdirSync(dirname(p), { recursive: true });
+  const tmp = `${p}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(doc));
+  try { chmodSync(tmp, 0o600); } catch { /* windows ACLs — best effort */ }
+  renameSync(tmp, p);
+}
 async function parseTokenResponse(res) {
   if (!res.ok) throw new McpError(`oauth token request failed: HTTP ${res.status}`);
   const doc = await res.json().catch(() => null);

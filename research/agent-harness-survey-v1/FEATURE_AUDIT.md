@@ -2335,3 +2335,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：ALREADY_COVERED+TESTED。与 #394 同面：legacy-SSE 握手走共享 `CONNECT_TIMEOUT_MS`（现 10s），boot 并发连接；死 SSE 服务器 → endpoint 握手超时 → connectOne fail-isolate（failed:true）。
 - **证据补强**：boot 预算测试的 dead2 改为 `transport:'sse'` 黑洞 spec——共享窗口内完结且 FAILED 列出。mcp-ext 27/27。
+
+### 28.73 648 清单逐条核销 #45：dedup-h #404 shell 侧 MCP 登录 + capability 声明（2026-09-23）
+
+- **判定**：IMPLEMENTED。两个半边：**(a) shell/CLI 登录**——`pai-host mcp-auth`/`mcp-auth-done` 走同一 PKCE 实现（第三道门）；跨进程 pending 落盘 `<store>/mcp-oauth-pending.json`（0600，10min TTL——两次 CLI 调用是两个进程，内存 map 活不了）；**(b) capability 声明**——initialize 发送 `capabilities:{}` + `CLIENT_INFO`：roots/sampling/elicitation 未实现即声明缺席，不冒称。
+- **证据**：CLI 端到端（授权 URL + pending 落盘 → 换码携 `code_verifier` → token 入库 → 无 pending 诚实拒）。

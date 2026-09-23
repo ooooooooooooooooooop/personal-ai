@@ -127,6 +127,65 @@ if (cmd === 'backup') {
   process.exit(1);
 }
 
+// dedup-h #404 — shell-side MCP OAuth login: `pai-host mcp-auth <name>`
+// prints the PKCE authorize URL and persists the pending verifier/state
+// to disk (0600, 10min TTL) so `mcp-auth-done` in a LATER process can
+// complete the exchange. Same shared implementation the session command
+// and channel facade use — three front doors, one dance.
+if (cmd === 'mcp-auth' || cmd === 'mcp-auth-done') {
+  const {
+    oauthBuildAuthorizeUrl, oauthExchangeCode, mcpOperatorSurface,
+    oauthPendingLoad, oauthPendingSave,
+  } = await import('../extensions/mcp/index.js');
+  const name = process.argv[3] ?? '';
+  if (!name) {
+    console.error(`usage: pai-host ${cmd} <server>${cmd === 'mcp-auth-done' ? ' <code>' : ''}`);
+    process.exit(1);
+  }
+  const { servers } = mcpOperatorSurface.loadConfig();
+  const spec = servers?.[name];
+  if (!spec) { console.error(`unknown server '${name}'`); process.exit(1); }
+  let oauth;
+  try { oauth = mcpOperatorSurface.validateOAuthSpec(spec); }
+  catch (e) { console.error(e.message); process.exit(1); }
+  if (!oauth?.authorizationUrl) {
+    console.error(`server '${name}' has no oauth.authorizationUrl — interactive flow not configured`);
+    process.exit(1);
+  }
+  if (cmd === 'mcp-auth') {
+    const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, spec.url);
+    const pend = oauthPendingLoad();
+    pend[name] = { verifier, state, deadline: Date.now() + 10 * 60 * 1000 };
+    oauthPendingSave(pend);
+    console.log(`OAuth '${name}' — open, approve, then run:\n\n${url}\n\npai-host mcp-auth-done ${name} <code>   (valid 10 minutes)`);
+    process.exit(0);
+  }
+  const code = process.argv[4] ?? '';
+  if (!code) { console.error(`usage: pai-host mcp-auth-done ${name} <code>`); process.exit(1); }
+  const pend = oauthPendingLoad();
+  const entry = pend[name];
+  delete pend[name];
+  oauthPendingSave(pend);
+  if (!entry || Date.now() > entry.deadline) {
+    console.error(`no pending OAuth for '${name}' (or it expired) — run mcp-auth again`);
+    process.exit(1);
+  }
+  try {
+    const t = await oauthExchangeCode(oauth, { code, verifier: entry.verifier });
+    const store = mcpOperatorSurface.readTokenStore();
+    store[name] = {
+      access_token: t.accessToken, refresh_token: t.refreshToken,
+      expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+    };
+    mcpOperatorSurface.writeTokenStore(store);
+    console.log(`OAuth complete for '${name}' — token stored (refresh: ${t.refreshToken ? 'yes' : 'no'})`);
+    process.exit(0);
+  } catch (e) {
+    console.error(`exchange failed: ${e.message}`);
+    process.exit(1);
+  }
+}
+
 // dedup-h #242 — expose this host as an MCP server to external clients
 // (Claude `mcp serve` analogue). Newline-delimited JSON-RPC on stdio;
 // the served tools run the REAL governed channel (policy/hooks/budget).
