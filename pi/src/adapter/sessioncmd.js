@@ -7,7 +7,7 @@
  * once the turn ends. The tool call itself rides the normal governed chain;
  * the surface effect is operator-visible in the transcript.
  */
-const COMMANDS = ['clear', 'model', 'resume', 'config'];
+const COMMANDS = ['clear', 'model', 'resume', 'config', 'new'];
 
 export function sessionCommandTool(getEmit) {
   return {
@@ -15,7 +15,9 @@ export function sessionCommandTool(getEmit) {
     label: 'Session Command',
     description:
       'Request a builtin session command on the operator surface: ' +
-      "'clear' starts a new session, 'model' switches model (arg: alias or provider/model), " +
+      "'clear' starts a new session, 'new' starts a new session AND posts your arg " +
+      "as its first message (Cline new_task analogue — use arg for the context handoff " +
+      "briefing the fresh task continues from), 'model' switches model (arg: alias or provider/model), " +
       "'resume' switches to another session (arg: session id or name substring), " +
       "'config' views or sets session config (arg: key=value, or empty to view). " +
       'The command executes when the current turn ends — this call only queues the request.',
@@ -37,7 +39,9 @@ export function sessionCommandTool(getEmit) {
       }
       const emit = getEmit?.();
       if (!emit) return { content: [{ type: 'text', text: 'no operator surface attached — the command cannot run' }], isError: true };
-      const arg = String(p?.arg ?? '').slice(0, 300);
+      // 'new' carries a context-handoff briefing — a cramped cap would gut
+      // the point of the feature; other commands only need short args.
+      const arg = String(p?.arg ?? '').slice(0, name === 'new' ? 1000 : 300);
       emit({ type: 'command_request', name, arg });
       return {
         content: [{ type: 'text', text: `queued '${name}'${arg ? ` ${arg}` : ''} — runs on the operator surface when this turn ends` }],

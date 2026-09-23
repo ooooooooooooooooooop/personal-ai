@@ -4628,6 +4628,16 @@ async function runSessionCommand(name, arg) {
   const slash = (c) => SLASH.find((s) => s.cmd === c);
   switch (name) {
     case 'clear': return slash('/clear')?.run('');
+    case 'new': {
+      // dedup-h #571 Cline new_task analogue: fresh session, then the
+      // model's handoff briefing is sent through the SAME prompt path an
+      // operator message takes (mention expansion, transcript, decide chain).
+      const r = await cmd('session_new');
+      if (!r.success) { addSys(`新建会话失败：${r.error ?? '未知'}`, true); return; }
+      switchView('chat');
+      if (arg) { queue.push({ text: arg, label: arg, typed: arg }); await flushQueue(); }
+      return;
+    }
     case 'config': return slash('/config')?.run(arg);
     case 'model': {
       if (!arg) return slash('/model')?.run('');

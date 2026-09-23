@@ -2383,3 +2383,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：VARIANT（身份轴在本架构下的诚实映射）。源条目（v2026.5.12-beta.4/v2026.1.29）= per-sender/group tool policies + canonical channel-scoped sender keys——按**请求者身份**在 Slack/WhatsApp 等多 channel 入口上限制危险工具。我方是**单操作员主权通道**（无 IM 多发送者入口，by design）：不存在"同一入口多请求者"的攻击面，channel-scoped sender key 无可指对象。
 - **已覆盖的身份轴**（本架构真实存在的发送者维度）：**per-agent** `tools_deny` profile（M76，委派子体工具面收窄+不可执法 target 拒派）+ `mcp_deny`/budget 同族；**per-context** mode 工具限制（M83 mode-denied lazy tools）；**全局** canonical `tools:` policy（精确名+`*`前缀通配 mcp__* 动态命名空间，allow/ask/deny）；调度任务=shell spec 无模型工具面。被委派体、模式上下文、全局策略三层构成了本架构下"按身份限制工具"的全部可执法点。
 - **不落地**：IM 群发送者键——无对应入口，伪造一个不存在的多用户轴比缺失更不诚实。
+
+### 28.82 648 清单逐条核销 #56：dedup-h #571 模型自主开新任务（Cline new_task）（2026-09-23）
+
+- **判定**：IMPLEMENTED。`session_command` 白名单新增 `new`（Cline v3.10.1 "Create New Task" 对等）：模型调用 → `command_request` 事件 → 操作员面闲时执行 `session_new` → **arg 携带的上下文交接简报作为新会话首条消息走与操作员输入完全相同的 prompt 链**（@mention 展开、transcript 渲染、decide 治理）。arg 上限对 `new` 放宽至 1000（300 装不下交接简报）；其余命令不变。
+- **与 `clear` 的差**：`clear`=裸新会话；`new`=新会话+交接简报首条 prompt——模型能把"继续修 src/parse.js 的解析器"直接递交给新任务，正是 new_task 的语义核。
+- **证据**：sessioncmd 6/6（new 入列+宽帽+白名单更新）；dom-gate `cmdNew`——command_request → 新会话 → 简报 .msg 落地 + echo 回显 + `模型请求执行 /new` 审计行；app 25/26、pi 相关单测绿。

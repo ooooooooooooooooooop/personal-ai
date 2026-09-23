@@ -18,18 +18,18 @@ test('session_command whitelist: unknown names are refused before emitting', asy
   const tool = make((ev) => sent.push(ev));
   const r = await tool.execute('c2', { name: 'exec' });
   assert.equal(r.isError, true);
-  assert.match(r.content[0].text, /allowed: clear, model, resume, config/);
+  assert.match(r.content[0].text, /allowed: clear, model, resume, config, new/);
   assert.equal(sent.length, 0);
 });
 
-test('session_command covers the four builtin commands', async () => {
+test('session_command covers the five builtin commands', async () => {
   const sent = [];
   const tool = make((ev) => sent.push(ev));
-  for (const name of ['clear', 'model', 'resume', 'config']) {
+  for (const name of ['clear', 'model', 'resume', 'config', 'new']) {
     const r = await tool.execute(`c-${name}`, { name, arg: '' });
     assert.equal(r.isError, undefined, name);
   }
-  assert.deepEqual(sent.map((e) => e.name), ['clear', 'model', 'resume', 'config']);
+  assert.deepEqual(sent.map((e) => e.name), ['clear', 'model', 'resume', 'config', 'new']);
 });
 
 test('session_command fails closed with no operator surface', async () => {
@@ -44,4 +44,17 @@ test('session_command bounds the arg it forwards', async () => {
   const tool = make((ev) => sent.push(ev));
   await tool.execute('c4', { name: 'config', arg: 'x'.repeat(500) });
   assert.equal(sent[0].arg.length, 300);
+});
+
+// dedup-h #571: 'new' (Cline new_task) — a fresh session whose first message
+// is the model's context-handoff briefing, capped at 1000 not 300.
+test('session_command new carries the handoff briefing at the wider cap', async () => {
+  const sent = [];
+  const tool = make((ev) => sent.push(ev));
+  const r = await tool.execute('c5', { name: 'new', arg: 'continue: fix parser, see src/parse.js' });
+  assert.equal(r.isError, undefined);
+  assert.deepEqual(sent, [{ type: 'command_request', name: 'new', arg: 'continue: fix parser, see src/parse.js' }]);
+  sent.length = 0;
+  await tool.execute('c6', { name: 'new', arg: 'y'.repeat(1500) });
+  assert.equal(sent[0].arg.length, 1000);
 });

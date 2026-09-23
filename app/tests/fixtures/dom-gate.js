@@ -311,6 +311,22 @@ const DRIVER = `(async () => {
     inputEl.value = ''; pendingAttach.length = 0; renderAttach();
     inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    /* dedup-h #571 — session_command 'new' (Cline new_task): the model asks
+     * for a fresh session whose first message is its handoff briefing; the
+     * briefing rides the same prompt path as operator text. The bang turn
+     * left a scripted ask pending — resolve it so the request can drain. */
+    document.querySelector('.ask-btn[data-a="allow"]')?.click();
+    await waitFor('.sys,.msg', (e) => e.textContent.includes('done'), 8000);
+    await sleep(400); // let agent_end clear busy so the queued request drains
+    onAgentEvent({ type: 'command_request', name: 'new', arg: 'handoff: continue fixing parser at src/parse.js' });
+    const newBrief = await waitFor('.msg', (e) => e.textContent.includes('handoff: continue fixing parser'), 10000);
+    const newEcho = await waitFor('.msg', (e) => e.textContent.includes('echo:handoff: continue fixing parser'), 10000);
+    checks.cmdNew = {
+      ok: !!newBrief && !!newEcho
+        && (document.querySelector('#transcript')?.textContent ?? '').includes('模型请求执行 /new'),
+      brief: !!newBrief, echo: !!newEcho,
+    };
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],
