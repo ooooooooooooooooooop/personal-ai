@@ -42,7 +42,10 @@ import { join, dirname } from 'node:path';
 const PROTOCOL_VERSION = '2025-06-18';
 const CLIENT_INFO = { name: 'personal-ai', version: '1' };
 const DEFAULT_TIMEOUT_MS = 30_000;
-const CONNECT_TIMEOUT_MS = 15_000;
+// dedup-h #394 — remote connect budget: an unreachable SSE/streamable
+// server must never stall boot. 10s per the audited upstream fix; applies
+// to initialize handshakes AND the legacy-SSE endpoint discovery.
+const CONNECT_TIMEOUT_MS = 10_000;
 const TOOL_TIMEOUT_MS = 120_000;
 const MAX_RESULT_CHARS = 24_000;
 
@@ -1056,10 +1059,13 @@ export default function mcpExtension(pi) {
     };
 
   const boot = (async () => {
-    for (const [name, spec] of Object.entries(servers)) {
-      if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) continue;
-      await connectOne(name, spec);
-    }
+    // dedup-h #394: connects run CONCURRENTLY — a dead server costs its own
+    // 10s budget in parallel instead of serially multiplying the stall.
+    // connectOne already fail-isolates each server (failed:true).
+    await Promise.all(Object.entries(servers).map(([name, spec]) => {
+      if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) return null;
+      return connectOne(name, spec);
+    }));
   })();
 
   pi.on('session_shutdown', () => {

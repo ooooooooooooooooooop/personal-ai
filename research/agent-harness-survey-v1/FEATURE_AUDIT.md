@@ -2319,3 +2319,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**（生成器源码）：`pi/extensions/mcp/index.js` 抽出 `oauthBuildAuthorizeUrl`/`oauthExchangeCode`/`mcpOperatorSurface` 共享导出（manifest 钉）；`pi/src/bootstrap/host.js` `mcpFacade`；`host/src/core/channel.js` 三命令分派；`pi/src/adapter/channel.js` facade 透传；`app/ui/app.js` `/mcp` 授权卡。
 - **机制**：`mcp_status` 列服务器+flow+authorized 布尔（token 字节永不出面）；`mcp_auth` 返 PKCE+state+RFC8707 resource 的授权 URL；`mcp_auth_done` 换 code 入用户私有 store；facade 持**自己的** pending map——verifier/state 永不跨面。UI `/mcp`：未授权 server 行挂 🔐 按钮 → URL 展示 → `askText` 粘 code → 完成播报。
 - **证据**：bootstrap.test 全流程（真 token 端点断言 grant/verifier/resource；unauthorized→authorized 翻转；no-pending 诚实拒；token 字节在所有 payload 缺席）；pi 412 测 408 过。
+
+### 28.70 648 清单逐条核销 #42：dedup-h #394 远程 MCP 10s 连接预算（2026-09-23）
+
+- **判定**：IMPLEMENTED。两点缺口修实：`CONNECT_TIMEOUT_MS` 15s→10s（审计上游取值，同时覆盖 initialize 握手与 legacy-SSE endpoint 发现）；boot 连接改 `Promise.all` **并发**——死服务器花自己的 10s 而非串行叠加 stall。
+- **证据**：mcp-ext 27/27（双黑洞服务器 boot <19s 完结——串行需 ~20s+，两台均 FAILED 如实列出）；pi 回归随批绿。

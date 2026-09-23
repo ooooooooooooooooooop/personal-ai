@@ -1263,3 +1263,38 @@ test('mcp legacy sse: black-hole POST fails bounded, never silently hangs', asyn
     server.close();
   }
 });
+
+// dedup-h #394 — remote connect budget: unreachable servers connect
+// CONCURRENTLY inside a 10s budget; two dead servers cost ~10s, not ~20s.
+test('mcp boot: dead remote servers fail inside one shared 10s budget', async () => {
+  const blackhole = () => {
+    const s = createServer(() => { /* accept, never respond — a hung server */ });
+    return new Promise((r) => s.listen(0, '127.0.0.1', () => r(s)));
+  };
+  const s1 = await blackhole(), s2 = await blackhole();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcpbh-'));
+  writeFileSync(join(dir, 'mcp.json'), JSON.stringify({
+    mcpServers: {
+      dead1: { url: `http://127.0.0.1:${s1.address().port}/mcp` },
+      dead2: { url: `http://127.0.0.1:${s2.address().port}/mcp` },
+    },
+  }));
+  const prev = process.env.PAI_MCP_CONFIG;
+  process.env.PAI_MCP_CONFIG = join(dir, 'mcp.json');
+  try {
+    const pi = fakePi();
+    mcpExtension(pi);
+    const t0 = Date.now();
+    const notices = [];
+    await pi.commands.get('mcp').handler({ ui: { notify: (m) => notices.push(m) } });
+    const elapsed = Date.now() - t0;
+    assert.ok(elapsed < 19_000, `serial connects would take ~20s+; parallel budget measured ${elapsed}ms`);
+    const doc = notices.join('\n');
+    assert.match(doc, /dead1: FAILED/);
+    assert.match(doc, /dead2: FAILED/);
+    await pi.handlers.get('session_shutdown')?.();
+  } finally {
+    s1.close(); s2.close();
+    if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;
+  }
+});
