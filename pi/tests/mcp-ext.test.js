@@ -1008,3 +1008,76 @@ test('non-text MCP blocks: known types pass, malformed blocks become stub text',
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// dedup-h #167: /mcp-add — claude-code compatible positional add persists
+// the spec then hot-connects through the same path as boot servers.
+test('mcp-add: positional URL persists + hot-connects; stdio + duplicates + deny handled', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-add-'));
+  try {
+    // live http MCP server to add against
+    const srv = createServer((req, res) => {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        const msg = JSON.parse(body);
+        const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+        res.setHeader('content-type', 'application/json');
+        if (msg.method === 'initialize') res.end(JSON.stringify(rpcRes({ protocolVersion: '2025-06-18', serverInfo: { name: 'added' } })));
+        else if (!msg.id) { res.statusCode = 202; res.end(); }
+        else if (msg.method === 'tools/list') res.end(JSON.stringify(rpcRes({ tools: [{ name: 'ping', inputSchema: { type: 'object' } }] })));
+        else if (msg.method === 'prompts/list') res.end(JSON.stringify(rpcRes({ prompts: [] })));
+        else res.end(JSON.stringify(rpcRes({ content: [{ type: 'text', text: 'pong' }] })));
+      });
+    });
+    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: {} }));
+    const prev = process.env.PAI_MCP_CONFIG, prevDeny = process.env.PAI_MCP_DENY;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    process.env.PAI_MCP_DENY = 'blocked';
+    try {
+      const pi = fakePi();
+      const notices = [];
+      const ctx = { ui: { notify: (m, l) => notices.push([l, m]) } };
+      mcpExtension(pi);
+      const add = pi.commands.get('mcp-add');
+      assert.ok(add, 'mcp-add registered');
+
+      // positional URL → http spec persisted + hot-connected
+      await add.handler(`remote http://127.0.0.1:${srv.address().port}/mcp --header "X-Team: ops"`, ctx);
+      assert.ok(pi.tools.has('mcp__remote__ping'), 'added server tools registered live');
+      const doc = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+      assert.equal(doc.mcpServers.remote.url, `http://127.0.0.1:${srv.address().port}/mcp`);
+      assert.equal(doc.mcpServers.remote.headers['X-Team'], 'ops');
+      assert.match(notices.at(-1)[1], /connected: 1 tools/);
+
+      // stdio form: quoted command path + args array + env
+      await add.handler(`local "${process.execPath}" -e "console.log(1)" --env FOO=bar`, ctx);
+      const doc2 = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+      assert.equal(doc2.mcpServers.local.command, process.execPath);
+      assert.deepEqual(doc2.mcpServers.local.args, ['-e', 'console.log(1)']);
+      assert.equal(doc2.mcpServers.local.env.FOO, 'bar');
+
+      // duplicate refused; denied name refused; missing args refused
+      await add.handler(`remote http://127.0.0.1:9/mcp`, ctx);
+      assert.match(notices.at(-1)[1], /already exists/);
+      await add.handler(`blocked http://127.0.0.1:9/mcp`, ctx);
+      assert.match(notices.at(-1)[1], /denied/);
+      await add.handler(`lonely`, ctx);
+      assert.match(notices.at(-1)[1], /usage:/);
+
+      // failed connect still persists (operator's config), honestly reported
+      await add.handler(`ghost http://127.0.0.1:1/mcp`, ctx);
+      const doc3 = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+      assert.ok(doc3.mcpServers.ghost, 'failed connect still persisted');
+      assert.match(notices.at(-1)[1], /connect FAILED/);
+      await pi.handlers.get('session_shutdown')?.();
+    } finally {
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;
+      if (prevDeny === undefined) delete process.env.PAI_MCP_DENY; else process.env.PAI_MCP_DENY = prevDeny;
+      srv.close();
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

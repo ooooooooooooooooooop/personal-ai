@@ -2138,3 +2138,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 可见性 | `client.oauth`/`/mcp` 描述为 `... + gateway token-exchange`，令牌永不进输出 |
 
 测试：真实双端点 rig——token 端断言 client_credentials、exchange 端断言 RFC8693 全字段（subject_token=tok-1/audience/resource/client_id）、上游请求全带 `Bearer gw-tok-*`；malformed exchange spec×4 fail-closed。manifest sha256 同步更新。
+
+### 28.51 648 清单逐条核销 #20：dedup-h #167 mcp add 位置参数 URL（claude code 兼容语法）（2026-09-23）
+
+**行**：`dedup-h	167	mcp-tools	remote-mcp: mcp add positional URL(claude code兼容语法)`。
+
+**判定**：**IMPLEMENTED**——`/mcp-add` 命令：
+
+| 面 | 落点 |
+|---|---|
+| 语法 | `/mcp-add <name> <http(s)-url> [--header "K: V"]*` 与 `/mcp-add <name> <command> [args…] [--env K=V]*`；name kebab-case；**引号感知分词**（`--header "X-Team: ops"` 完整成词） |
+| 持久化 | 写入已解析的配置文件（`$PAI_MCP_CONFIG`/`.pai/mcp.json`/`.mcp.json`），无配置文件时落 `.pai/mcp.json`；尊重文件既有键型（mcpServers/servers）；tmp+rename 原子写；重复名/deny 名/畸形 spec 拒 |
+| 热连接 | 提炼 `connectOne`——boot 循环与 /mcp-add 共用同一路径（通知订阅/独立族发现/pending refresh/failed 标记） |
+| 诚实面 | 连接失败仍持久化（配置是操作员的）+ 明说 FAILED 看 /mcp；成功报 tools/prompts 数 |
+
+测试：mcp-add 用例覆盖 URL 持久化+live 工具注册+header 透传、stdio command/args/env 形、重复/deny/usage 拒、失败仍持久化。manifest sha256 同步。修一处真实 bug：天真 whitespace 分词会把带引号 header 切碎成非法 header 名导致连接必败——已改引号感知。

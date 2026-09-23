@@ -790,9 +790,11 @@ export default function mcpExtension(pi) {
     });
   };
 
-  const boot = (async () => {
-    for (const [name, spec] of Object.entries(servers)) {
-      if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) continue;
+  // dedup-h #167: extracted per-server connect so /mcp-add hot-connects a
+  // newly persisted entry through the EXACT same path as boot servers —
+  // notification subscription, independent family discovery, pending
+  // refresh flush, honest failed marker.
+  const connectOne = async (name, spec) => {
       try {
         const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS, serverName: name });
         const entry = { client, tools: [], spec, prompts: [], booted: false };
@@ -859,6 +861,13 @@ export default function mcpExtension(pi) {
         // /mcp reports it as failed so the operator can see why
         connected.set(name, { client: null, tools: [], spec, failed: true });
       }
+      return connected.get(name);
+    };
+
+  const boot = (async () => {
+    for (const [name, spec] of Object.entries(servers)) {
+      if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) continue;
+      await connectOne(name, spec);
     }
   })();
 
@@ -978,6 +987,88 @@ export default function mcpExtension(pi) {
       } catch (err) {
         ctx.ui?.notify?.(`OAuth exchange failed for '${name}': ${err?.message ?? err} — run /mcp-auth ${name} to retry`, 'error');
       }
+    },
+  });
+
+  // dedup-h #167: claude-code compatible positional add —
+  //   /mcp-add <name> <http(s)-url> [--header "K: V"]*
+  //   /mcp-add <name> <command> [args...] [--env K=V]*   (stdio)
+  // The spec persists to the resolved config file (or .pai/mcp.json when
+  // none exists yet), then hot-connects through connectOne — the same path
+  // a boot server takes. A failed connect still persists the entry (the
+  // config is the operator's; /mcp shows the failure honestly).
+  pi.registerCommand('mcp-add', {
+    description: 'Add an MCP server — /mcp-add <name> <url|command> [args…] [--header "K: V"]* [--env K=V]*',
+    handler: async (args, ctx) => {
+      await boot;
+      // quote-aware tokenize — --header "K: V" must arrive as ONE word
+      const words = [];
+      {
+        let cur = '', q = null;
+        for (const ch of String(args ?? '')) {
+          if (q) { if (ch === q) q = null; else cur += ch; }
+          else if (ch === '"' || ch === "'") q = ch;
+          else if (/\s/.test(ch)) { if (cur) { words.push(cur); cur = ''; } }
+          else cur += ch;
+        }
+        if (cur) words.push(cur);
+      }
+      const name = words[0] ?? '';
+      if (!name || !/^[a-z0-9][a-z0-9_-]{0,60}$/i.test(name)) {
+        ctx.ui?.notify?.('usage: /mcp-add <name> <url|command> [args…] — name is kebab-case', 'error'); return;
+      }
+      const rest = [];
+      const headers = {}, env = {};
+      for (let i = 1; i < words.length; i++) {
+        if (words[i] === '--header' && words[i + 1]) {
+          const h = words[++i]; const ci = h.indexOf(':');
+          if (ci > 0) headers[h.slice(0, ci).trim()] = h.slice(ci + 1).trim();
+        } else if (words[i] === '--env' && words[i + 1]) {
+          const e = words[++i]; const ei = e.indexOf('=');
+          if (ei > 0) env[e.slice(0, ei)] = e.slice(ei + 1);
+        } else rest.push(words[i]);
+      }
+      if (!rest.length) { ctx.ui?.notify?.('usage: /mcp-add <name> <url|command> [args…]', 'error'); return; }
+      let spec;
+      if (/^https?:\/\//i.test(rest[0])) {
+        spec = { url: rest[0] };
+        if (Object.keys(headers).length) spec.headers = headers;
+      } else {
+        spec = { command: rest[0] };
+        if (rest.length > 1) spec.args = rest.slice(1);
+        if (Object.keys(env).length) spec.env = env;
+      }
+      if (denied.has(name)) { ctx.ui?.notify?.(`server '${name}' is denied for this agent (PAI_MCP_DENY)`, 'error'); return; }
+      const target = configPath ?? join(process.cwd(), '.pai', 'mcp.json');
+      let doc = {};
+      if (existsSync(target)) {
+        try { doc = JSON.parse(readFileSync(target, 'utf-8')); }
+        catch { ctx.ui?.notify?.(`config '${target}' is unparseable — refusing to write`, 'error'); return; }
+      }
+      const key = doc.mcpServers != null ? 'mcpServers' : (doc.servers != null ? 'servers' : 'mcpServers');
+      const table = doc[key] ?? {};
+      if (table[name] || servers[name]) { ctx.ui?.notify?.(`server '${name}' already exists`, 'error'); return; }
+      table[name] = spec;
+      doc[key] = table;
+      try {
+        mkdirSync(dirname(target), { recursive: true });
+        const tmp = `${target}.tmp-${process.pid}`;
+        writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+        renameSync(tmp, target);
+      } catch (err) {
+        ctx.ui?.notify?.(`persist failed: ${err?.message ?? err} — server NOT added`, 'error'); return;
+      }
+      servers[name] = spec;
+      const entry = await connectOne(name, spec);
+      const kind = spec.url ? `http ${spec.url}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
+      if (entry?.failed || !entry?.client) {
+        ctx.ui?.notify?.(`added '${name}' (${kind}) to ${target} — connect FAILED; /mcp shows the error, fix the spec and restart`, 'error');
+        return;
+      }
+      ctx.ui?.notify?.(
+        `added '${name}' (${kind}) to ${target} — connected: ${entry.tools.length} tools, ${(entry.prompts ?? []).length} prompts`,
+        'info',
+      );
     },
   });
 }
