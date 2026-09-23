@@ -2173,3 +2173,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - `host/src/core/hooks.js`：`session_directory` 进 `GATE_EVENTS`（**绝不进 HOOK_EVENTS**——agent 可达的可观察配置重定向 transcript = 自助外泄通道）；新 `fireValue` 方法（gate-only 查询事件：跑首个配置的 hook，解析末行 stdout JSON；配置却失败→抛错由调用方裁决）
 - `pi/src/bootstrap/host.js`：gate runner 提前到 sessionDir 之前；`fireValue('session_directory')` 返回 `{directory}` → 校验绝对路径/长度/NUL → mkdir -p → `SESSION_DIRECTORY` 审计（source: hook|default）；hook 配置却失败 → **拒绝启动**（静默回默认目录会把会话撒到两处）
 - 测试：bootstrap `session_directory` 重定向（session_new 落定制目录+审计）+ 坏 hook fail-closed；host 349 全绿
+
+### 28.54 648 清单逐条核销 #26：dedup-h #228 worktree trust 机制（2026-09-23）
+
+**行**：`dedup-h	228	approval-gate	worktree: Dev Containers+worktree trust机制`（Zed v0.218.5 `trust_all_worktrees` 同款）。
+
+**判定**：**IMPLEMENTED**——`host/src/core/trust.js`：
+
+- `worktreeInfo()`：`.git` 为文件的链接检出 → `gitdir:` → `…/worktrees/<n>` → commonDir → mainRoot
+- 默认 = Zed 默认：worktree 自有 trust scope（`resolve(path)` 键天然不继承）
+- `trustAllWorktrees:true`（operator-private 顶层 flag）→ worktree 继承主检出授权；主检出未授权照样拒
+- `setTrust` 改 doc 合并写，不再丢顶层 flag；`project_trust_status` 暴露 `worktree`/`trustAllWorktrees`；`project_trust_set{allWorktrees}` 切换 + `PROJECT_TRUST` 审计
+- 测试：host trust 套件——默认隔离/开关继承/主根未授权不发明授权/flag 跨写保留

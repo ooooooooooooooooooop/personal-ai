@@ -938,6 +938,12 @@ export class HostChannel {
           return reply(true, this.projectTrust.status());
         }
         case 'project_trust_set': {
+          // dedup-h #228: {allWorktrees:bool} toggles the opt-in inheritance;
+          // {trusted:bool} grants/revokes THIS workdir's own entry.
+          if (cmd.allWorktrees != null) {
+            if (!this.projectTrust?.setAllWorktrees) return reply(false, undefined, 'trust facade unavailable');
+            return reply(true, this.projectTrust.setAllWorktrees(cmd.allWorktrees === true));
+          }
           if (!this.projectTrust?.set) return reply(false, undefined, 'trust facade unavailable');
           return reply(true, this.projectTrust.set(cmd.trusted === true));
         }

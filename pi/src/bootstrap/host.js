@@ -89,7 +89,7 @@ import { toolActivateTool, toolSearchTool } from '../adapter/toollazy.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
-import { isTrusted, setTrust, hasInjectableContent } from '../../../host/src/core/trust.js';
+import { isTrusted, setTrust, hasInjectableContent, worktreeInfo, trustAllWorktreesEnabled, setTrustAllWorktrees } from '../../../host/src/core/trust.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool, askStructuredTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
@@ -1848,10 +1848,23 @@ export async function startHost({
     // every turn. .paiignore wins over pinning both at add time and render.
     // project trust — operator grant gates .pai/microagents auto-injection
     projectTrust: {
-      status: () => ({ trusted: isTrusted(core.paths.root, workdir), hasInjectableContent: hasInjectableContent(workdir) }),
+      status: () => ({
+        trusted: isTrusted(core.paths.root, workdir),
+        hasInjectableContent: hasInjectableContent(workdir),
+        // dedup-h #228 worktree trust: a linked checkout reports its main
+        // root so the UI can explain WHY it needs a separate grant (or that
+        // it inherits under trustAllWorktrees).
+        worktree: worktreeInfo(workdir)?.mainRoot ?? null,
+        trustAllWorktrees: trustAllWorktreesEnabled(core.paths.root),
+      }),
       set: (v) => {
         const r = setTrust(core.paths.root, workdir, v === true);
         core.audit.write({ kind: 'PROJECT_TRUST', data: { trusted: r.trusted } });
+        return r;
+      },
+      setAllWorktrees: (v) => {
+        const r = setTrustAllWorktrees(core.paths.root, v === true);
+        core.audit.write({ kind: 'PROJECT_TRUST', data: { trustAllWorktrees: r.trustAllWorktrees } });
         return r;
       },
     },
