@@ -417,6 +417,50 @@ test('operator pre_tool gate vetoes an admitted call (fail-closed on error)', as
   assert.match(r.reason, /fail-closed/);
 });
 
+test('M109: pre_tool hook requireApproval suspends on an operator ask', async () => {
+  const { dir } = rig();
+  const audit = { events: [], write: (e) => audit.events.push(e) };
+  const fileOps2 = new FileOpsGuard(dir);
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const gate = {
+    async fireGate(event, payload) {
+      return payload.tool === 'bash' ? { requireApproval: 'prod migration — approve?' } : null;
+    },
+  };
+  // operator approves → the call proceeds
+  const asked = [];
+  const decide = makeDecide({
+    core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir,
+    preToolGate: gate,
+    asks: { ask: async (p) => { asked.push(p); return 'allow'; } },
+  });
+  const ok = await decide({ toolCall: { name: 'bash', id: 'tc1' }, args: { command: 'migrate' } });
+  assert.equal(ok, undefined);
+  assert.equal(asked.length, 1);
+  assert.equal(asked[0].rule, 'pre_tool_hook');
+  assert.match(asked[0].detail, /prod migration/);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_ESCALATE'));
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_ESCALATE_RESOLVED'));
+  // operator denies → refused with the ask's verdict
+  const decide2 = makeDecide({
+    core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir,
+    preToolGate: gate,
+    asks: { ask: async () => 'deny' },
+  });
+  const denied = await decide2({ toolCall: { name: 'bash', id: 'tc2' }, args: { command: 'migrate' } });
+  assert.equal(denied.block, true);
+  assert.equal(denied.rule, 'pre_tool_hook');
+  assert.match(denied.reason, /denied the hook-escalated/);
+  // no ask channel → fail closed
+  const decide3 = makeDecide({
+    core, executor: null, fileOps: fileOps2, getSurface: () => null, workdir: dir,
+    preToolGate: gate,
+  });
+  const closed = await decide3({ toolCall: { name: 'bash', id: 'tc3' }, args: { command: 'migrate' } });
+  assert.equal(closed.block, true);
+  assert.match(closed.reason, /no operator channel/);
+});
+
 test('mistake-limit stop: loopwatch.stopped refuses calls until a fresh turn resets', async () => {
   const { LoopDetector } = await import('../../host/src/core/loopwatch.js');
   const dir = mkdtempSync(join(tmpdir(), 'pai-m8-stop-'));

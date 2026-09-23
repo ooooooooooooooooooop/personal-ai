@@ -172,6 +172,13 @@ export class HookRunner {
         if (structured && typeof structured.deny === 'string' && structured.deny.trim()) {
           return { deny: structured.deny.slice(0, 500) };
         }
+        // dedup-h #109: {"requireApproval":"question"} — the hook neither
+        // allows nor denies; it suspends the call on an operator ask. The
+        // decide chain resolves it through PendingAsks (async, real card);
+        // a hook can never approve, only escalate.
+        if (structured && typeof structured.requireApproval === 'string' && structured.requireApproval.trim()) {
+          return { requireApproval: structured.requireApproval.slice(0, 500) };
+        }
         if (r.code !== 0) {
           return { deny: `pre_tool hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}` };
         }

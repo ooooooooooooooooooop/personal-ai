@@ -566,6 +566,10 @@ export async function startHost({
         try {
           const g = await preToolGate.fireGate('pre_tool', { tool: 'job_spawn', toolCallId: 'job_restart', args });
           if (g?.deny) return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook refused: ${g.deny}` };
+          // dedup-h #109: a restart runs without an interactive ask context —
+          // an escalation here cannot suspend, so it refuses honestly. The
+          // operator adjudicates by restarting the job manually.
+          if (g?.requireApproval) return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook requested approval — background restarts cannot ask; restart the job manually to adjudicate` };
         } catch (err) {
           return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook error (fail-closed): ${String(err?.message ?? err).slice(0, 200)}` };
         }

@@ -143,6 +143,19 @@ test('gate: match prefix filters tools; exit 0 → allow; broken hook fails clos
   assert.ok(d.deny);
 });
 
+test('gate: {"requireApproval":"q"} structured output escalates instead of deny/allow', async () => {
+  const w = dir();
+  const gateFile = join(w, 'gate-hooks.json');
+  const script = join(w, 'ask.js');
+  writeFileSync(script, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({requireApproval:'deploy to prod?'}))});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ command: `node ${JSON.stringify(script)}` }] } }));
+  const g = new HookRunner(w, { configPath: gateFile, gate: true });
+  const r = await g.fireGate('pre_tool', { tool: 'bash' });
+  assert.equal(r.deny, undefined);
+  assert.equal(r.requireApproval, 'deploy to prod?');
+  // a hook can never mint approval — there is no approve branch by design
+});
+
 test('fireGate on a non-gate runner throws', async () => {
   const h = new HookRunner(dir());
   await assert.rejects(() => h.fireGate('pre_tool', {}), /non-gate/);

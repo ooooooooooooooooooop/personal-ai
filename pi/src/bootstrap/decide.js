@@ -348,6 +348,29 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
             reason: `operator pre_tool hook refused: ${g.deny}`,
           };
         }
+        // dedup-h #109: the hook asked for operator adjudication — suspend
+        // on a real approval ask. A hook can escalate, never self-approve;
+        // without an ask channel the escalation fails closed.
+        if (g?.requireApproval) {
+          core.audit.write({ kind: 'HOOK_ESCALATE', toolName, data: { toolCallId: ctx.toolCall?.id, question: g.requireApproval.slice(0, 300) } });
+          if (!asks) {
+            return { block: true, rule: 'pre_tool_hook', reason: `operator pre_tool hook requested approval but no operator channel is configured (fail-closed)` };
+          }
+          const answer = await asks.ask({
+            toolName,
+            toolCallId: ctx.toolCall?.id,
+            rule: 'pre_tool_hook',
+            summary: `pre_tool hook requests approval for ${toolName}`,
+            detail: g.requireApproval,
+            args: ctx.args ?? {},
+            argsTruncated: false,
+            argsTotalChars: null,
+          }, signal);
+          core.audit.write({ kind: 'HOOK_ESCALATE_RESOLVED', toolName, data: { toolCallId: ctx.toolCall?.id, answer } });
+          if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+            return { block: true, rule: 'pre_tool_hook', reason: `operator denied the hook-escalated call (${answer})` };
+          }
+        }
       } catch (err) {
         // A broken gate must never silently pass — fail closed.
         core.audit.write({ kind: 'HOOK_VETO', toolName, data: { toolCallId: ctx.toolCall?.id, error: String(err?.message ?? err).slice(0, 200) } });

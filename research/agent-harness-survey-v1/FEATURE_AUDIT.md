@@ -2045,3 +2045,19 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 测试锚 | mcp-ext.test.js：`prompts register as slash commands`、`prompt-only server`、`tools-only server`、M130 hot-refresh |
 
 无新增代码必要。
+
+### 28.45 648 清单逐条核销 #14：dedup-h #109 hooks before_tool_call requireApproval（2026-09-23）
+
+**行**：`dedup-h	109	approval-gate	hooks: before_tool_call async requireApproval(钩→ask升级)`（pre_tool 钩可异步要求操作员批准）。
+
+**判定**：**IMPLEMENTED**——gate 钩第三种结局：
+
+| 结局 | 语义 |
+|---|---|
+| `{"deny":"…"}`/exit≠0 | 拒绝（既有） |
+| exit 0 | 放行（既有） |
+| `{"requireApproval":"question"}` | **新增**：suspend 在 `asks.ask()` 真审批卡上——allow/allow_session/always 放行，deny/timeout 拒绝；无 asks 通道 fail-closed |
+
+**信任边界保持**：钩只能**升级**，永远没有 approve 分支（operator-private `<instance>/hooks.json` gate 专属；workdir 观察面钩仍无 veto 权）。后台 job 重启路径无交互上下文→升级=诚实拒绝（操作员手动重启即裁决）。
+
+测试：hooks `requireApproval` 结构化输出（deny 缺位/问题透传）；m8-wiring `M109`——批准放行/deny 拒绝/无通道 fail-closed + HOOK_ESCALATE 双审计事件。
