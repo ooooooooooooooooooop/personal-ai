@@ -158,6 +158,7 @@ export async function createPiSession({
   outputSpool = null, // M38 — tool_result seam externalizes oversized outputs
   customTools = [], // host-owned tools (job_status, delegate_task) — go through the same composite chain
   excludeTools = [], // policy-derived initial suppression — model never sees them
+  extraExtensions = [], // additional inline extension factories (e.g. the world-model shim)
 }) {
   const resourceLoader = new DefaultResourceLoader({
     cwd: workdir,
@@ -171,6 +172,9 @@ export async function createPiSession({
         ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]
         : []),
       ...(outputSpool ? [outputSpoolExtension({ spool: outputSpool, audit })] : []),
+      // Inline factories supplied by the composition root (a body adapter's own
+      // extension). Kept generic: createPiSession does not know what they do.
+      ...extraExtensions,
       injectionHygieneExtension({ audit }),
     ],
     noSkills: true,

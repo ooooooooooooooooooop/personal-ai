@@ -67,6 +67,147 @@ test('startHost assembles a governed pi body end-to-end', async () => {
   host.leases.close();
 });
 
+// BCC-1 wiring: the world-model adapter must actually reach the live session —
+// an extension that never attaches, or a tool that never registers, is the same
+// as no adapter at all (which is exactly how this loop stayed dark before).
+test('BCC-1: the world-model adapter is wired into the live session', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-wm-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  try {
+    const ids = (host.extensionsResult?.extensions ?? []).map((e) => e?.path ?? '');
+    assert.ok(ids.some((id) => id.includes('pai-world-model')),
+      `world-model extension must attach; loaded: ${JSON.stringify(ids)}`);
+    const names = (host.session?.getAllTools?.() ?? []).map((t) => t?.name ?? t);
+    assert.ok(names.includes('world_model'),
+      `world_model tool must be registered; tools: ${JSON.stringify(names.slice(0, 40))}`);
+    // the adapter writes its state under the instance root
+    assert.ok(existsSync(join(dir, 'world-model')),
+      'world-model state dir must exist under the instance root');
+  } finally {
+    host.leases.close();
+  }
+});
+
+// The guard is the whole point of the adapter: without it the world model is a
+// passive log. This drives it through the shim (the same path the decide chain
+// uses) so a wiring mistake in either file fails here.
+test('BCC-1: the world-model guard denies an unbound consequential mutation', async () => {
+  const { createWorldModelShim } = await import('../src/adapter/world-model-shim.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wm-guard-'));
+  const mk = (mode) => createWorldModelShim({
+    stateDir: join(dir, 'state'), canonicalDir: join(dir, 'canonical'),
+    mode, bodyId: 'test', getSessionId: () => 's1',
+  });
+
+  // core mode: an unbound consequential mutation is refused
+  const denial = mk('core').guard({ name: 'exec', arguments: { command: 'ls' } });
+  assert.equal(typeof denial, 'string');
+  assert.match(denial, /BLOCKED/);
+
+  // off mode: the same call is admitted (world model present, gate not armed)
+  assert.equal(mk('off').guard({ name: 'exec', arguments: { command: 'ls' } }), undefined);
+
+  // a read tool is never gated, even in core
+  assert.equal(mk('core').guard({ name: 'read', arguments: { path: 'x' } }), undefined);
+
+  // an unnamed tool call fails closed
+  assert.match(String(mk('core').guard({ name: '', arguments: {} })), /fail closed/);
+});
+
+// The contract's tool interface and pi's are NOT the same, and only a real
+// provider run surfaced it: a contract-shaped tool (no `parameters`, execute
+// taking the input first) makes the runtime fail with "Cannot read properties of
+// undefined (reading 'properties')". The shim must translate both ways.
+test('BCC-1: the shim exposes the tool in PI\'s shape, not the contract\'s', async () => {
+  const { createWorldModelShim } = await import('../src/adapter/world-model-shim.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wm-shape-'));
+  const shim = createWorldModelShim({
+    stateDir: join(dir, 'state'), canonicalDir: join(dir, 'canonical'),
+    mode: 'core', bodyId: 'test', getSessionId: () => 's1',
+  });
+  const tool = shim.tool;
+  assert.ok(tool, 'shim must expose a tool');
+  // pi reads .parameters.properties to describe the tool to the model
+  assert.equal(tool.parameters?.type, 'object');
+  assert.ok(tool.parameters.properties.op, 'op must be declared');
+  assert.deepEqual(tool.parameters.required, ['op']);
+  // pi calls execute(toolCallId, params) and expects {content:[...]}
+  const out = await tool.execute('call-1', { op: 'status' });
+  assert.ok(Array.isArray(out.content), 'result must be a content block array');
+  assert.equal(out.content[0].type, 'text');
+  const parsed = JSON.parse(out.content[0].text);
+  assert.equal(parsed.ok, true);
+  assert.equal(parsed.bcc, 'BCC-1');
+  // an unknown op is reported as an error result, not a throw
+  const bad = await tool.execute('call-2', { op: 'nope' });
+  assert.equal(bad.isError, true);
+});
+
+// The depth is a RATCHET, not a switch: the session may maintain or raise it,
+// never lower it. Otherwise the agent could disarm the very gate it is subject
+// to — activate({mode:'off'}) would end the mechanism. `off` is env/config only.
+test('BCC-1: a session cannot lower its own formalization depth', async () => {
+  const { createWorldModelShim } = await import('../src/adapter/world-model-shim.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wm-ratchet-'));
+  const shim = createWorldModelShim({
+    stateDir: join(dir, 'state'), canonicalDir: join(dir, 'canonical'),
+    mode: 'core', bodyId: 'test', getSessionId: () => 's1',
+  });
+  const call = async (input) => JSON.parse((await shim.tool.execute('c', input)).content[0].text);
+
+  // asking for off is refused and reported
+  const lowered = await call({ op: 'activate', mode: 'off' });
+  assert.equal(lowered.mode, 'core', 'mode must not drop to off');
+  assert.equal(lowered.refused_lower, 'off');
+  // and the gate is still armed after the attempt
+  assert.match(String(shim.guard({ name: 'exec', arguments: { command: 'ls' } })), /BLOCKED/);
+
+  // raising is allowed
+  assert.equal((await call({ op: 'activate', mode: 'full' })).mode, 'full');
+  // but then it cannot be lowered back
+  assert.equal((await call({ op: 'activate', mode: 'core' })).mode, 'full');
+});
+
+// Regression: the loop-governance extension bundles four jobs, and only two of
+// them (continuation, fallbacks) have a precondition. It must be installed even
+// when BOTH are absent — otherwise the canonical observation feed (one row per
+// tool result per turn) is silently disabled, which is exactly what happened
+// while the whole extension was gated on
+// `(taskRequirements.length || fallbackCfg.chain.length)`: the production entry
+// point passes no taskRequirements, so the stream stayed permanently empty.
+test('loop governance is installed without taskRequirements or a fallback chain', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-lg-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  // NOTE: no taskRequirements, no model-fallbacks.json — the production shape.
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+
+  // Inline factories register with a synthetic `<inline:NAME>` path; file-backed
+  // extensions carry a real path. Either way the NAME is what we assert on.
+  const ids = (host.extensionsResult?.extensions ?? [])
+    .map((e) => (typeof e === 'string' ? e : e?.path ?? e?.name ?? e?.id ?? ''))
+    .filter(Boolean);
+  assert.ok(
+    ids.some((id) => id.includes('pai-loop-governance')),
+    `loop-governance extension must load unconditionally; loaded: ${JSON.stringify(ids)}`,
+  );
+  host.leases.close(); // same teardown convention as the other tests in this file
+});
+
 test('M8-B4: canonical observations flow into the live context provider', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-boot-obs-'));
   mkdirSync(join(dir, 'canonical'), { recursive: true });
@@ -428,5 +569,31 @@ test('M112 webhook_status facade: no config → not listening, zero endpoints', 
     assert.equal(r.success, true);
     assert.equal(r.data.listening, false);
     assert.equal(r.data.endpoints.length, 0);
+  } finally { host.dispose(); }
+});
+
+test('#1284: session_fork refuses an oversized source transcript', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-forkcap-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  try {
+    const big = join(dir, 'huge.jsonl');
+    writeFileSync(big, Buffer.alloc(64 * 1024 * 1024 + 1, 'x')); // 1 byte over cap
+    const r = await host.channel.handle({ type: 'session_fork', path: big });
+    assert.equal(r.success, false, 'oversized source must be refused');
+    assert.match(String(r.error ?? r), /too large to fork/);
+    // the refusal happens before any destination file exists
+    const sessionsDir = join(dir, 'sessions');
+    const spawned = existsSync(sessionsDir)
+      ? readdirSync(sessionsDir, { recursive: true }).filter((f) => String(f).endsWith('.jsonl')).length
+      : 0;
+    assert.ok(spawned <= 1, 'no fork destination left behind');
   } finally { host.dispose(); }
 });

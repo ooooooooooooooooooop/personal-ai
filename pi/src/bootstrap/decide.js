@@ -71,7 +71,7 @@ export function commandDenyPrefixes(workdir) {
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null, preToolGate = null }) {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null, preToolGate = null, worldModelGuard = null }) {
   // Qwen MAX_TURNS analogue: hard cap on admitted tool calls per user turn.
   // The refusal reason is the steering channel — it tells the model to stop
   // and report, not to retry.
@@ -314,6 +314,19 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
             return { block: true, rule, reason: `operator refused this write target — '${realHit}' blocked` };
           }
         }
+      }
+    }
+    // World-model gate (BCC-1 6.3): a consequential mutation in core/full must
+    // bind to an open, unevaluated prediction that names the tool and its
+    // target; an irreversible payload additionally needs irreversible:true on
+    // that prediction. In-process and deterministic, so it runs before the
+    // operator's pre_tool hook (which may spawn a process). The guard is a
+    // body-supplied function: the chain stays ignorant of the world model.
+    if (worldModelGuard) {
+      const g = worldModelGuard({ name: toolName, arguments: ctx.args ?? {} });
+      if (typeof g === 'string' && g) {
+        core.audit.write({ kind: 'WORLD_MODEL_BLOCK', toolName, data: { toolCallId: ctx.toolCall?.id, reason: g.slice(0, 300) } });
+        return { block: true, rule: 'world_model_prediction_binding', reason: g };
       }
     }
     // Operator veto hooks (Claude Code PreToolUse analogue): <instance>/

@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -27,6 +27,10 @@ test('M96: an in-root symlink pointing outside fails the real-path check', () =>
   const link = join(root, 'linked.json');
   try {
     symlinkSync(outside, link);
+    // A filesystem shim (or a platform without the privilege) can make
+    // symlinkSync a SILENT no-op: it does not throw, but no link exists. The
+    // try/catch alone would then proceed and fail on a link that isn't there.
+    if (!lstatSync(link).isSymbolicLink()) return;
   } catch {
     return; // platform without symlink privilege — lexical checks still hold
   }

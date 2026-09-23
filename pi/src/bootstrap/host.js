@@ -5,6 +5,7 @@ import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFile
 import { fileURLToPath } from 'node:url';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
+import { createWorldModelShim } from '../adapter/world-model-shim.js';
 import { parseShellCommand } from '../adapter/command-parse.js';
 import { commandAllowlistMatch } from '../adapter/command-allow.js';
 import { ContinuationGovernor } from '../../../host/src/core/continuation.js';
@@ -131,6 +132,16 @@ import { randomUUID } from 'node:crypto';
 
 const PI_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const HOST_ROOT = fileURLToPath(new URL('../../../host/', import.meta.url));
+
+// #915 path-shadowing mitigation, process-wide: on Windows, bare command
+// resolution (cmd.exe under shell:true AND CreateProcess for argv spawns)
+// searches the child cwd before PATH — a repo-dropped git.exe/rg.exe would
+// shadow an approved command. Setting the documented env var on our own
+// process covers both surfaces and propagates to every spawned child
+// (jobs/verify/hooks/sandbox all inherit process.env).
+if (process.platform === 'win32' && !process.env.NoDefaultCurrentDirectoryInExePath) {
+  process.env.NoDefaultCurrentDirectoryInExePath = '1';
+}
 
 /** Domain lease the live body holds: canonical writer authority. */
 const WRITER_LEASE = { scope: 'domain', name: 'canonical-writer' };
@@ -775,11 +786,33 @@ export async function startHost({
     const n = t.trim();
     if (/^[a-zA-Z][\w*-]*$/.test(n) && !initialDeny.includes(n)) initialDeny.push(n);
   }
-  const fileOps = new FileOpsGuard(core.paths.root);
+  const fileOps = new FileOpsGuard(core.paths.root, { workdir });
   // M143: batch exact-match edits across files — atomic preflight, per-file
   // fileOps backup receipts under one call (batch-undoable). Registered here,
   // not in the literal above, because fileOps doesn't exist yet there.
+  // World-model adapter (BCC-1). Created here because its tool must be in
+  // customTools before the first buildSession, and its guard must exist before
+  // the decide chain closes over it. The shim presents pi's seams in the
+  // contract's shape; world-model.js itself knows nothing about pi.
+  // mode defaults to 'off' (record the ledger, no gate) — the world model is
+  // always present, OFF/CORE/FULL is only ritual depth (dsh-world-model README).
+  const worldModel = createWorldModelShim({
+    stateDir: join(core.paths.root, 'world-model'),
+    canonicalDir: core.paths.canonicalDir,
+    mode: process.env.PAI_WORLD_MODEL_MODE || 'off',
+    bodyId: 'pi',
+    getSessionId: () => currentSession?.sessionId ?? null,
+    // The learning trigger: a refuted prediction requests a cycle, and this is
+    // the mechanism that carries it out (a one-shot durable job, not a cadence).
+    scheduleStore,
+    instanceRoot: core.paths.root,
+    pythonExe: process.env.PAI_PYTHON || undefined,
+  });
+
   customTools.push(multiEditTool({ workdir, fileOps, getIgnored: repoMapIgnore }));
+  // BCC-1 world-model tool — goes through the same composite chain as any
+  // other host-owned tool.
+  if (worldModel.tool) customTools.push(worldModel.tool);
   // M124 — runtime state bundles: whitelisted export + manifest-verified,
   // operator-asked import (never governance config, never sessions)
   customTools.push(...runtimeXferTools({
@@ -854,12 +887,17 @@ export async function startHost({
       audit: core.audit,
       customTools,
       excludeTools: initialDeny,
+      extraExtensions: [worldModel.extension],
       // revalidate defaults to the session's own tool registry via pi-ai
       // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
       // ctx.toolName — translate at the boundary, don't leak Pi shape inward.
       decide: (currentDecide = btwReadonlyDecide(makeDecide({
         core, executor, fileOps,
         getSurface: () => toolSurface,
+        // BCC-1 gate: a consequential mutation in core/full must bind to an open
+        // prediction. Deterministic and in-process, so it runs before the
+        // operator's pre_tool hook (which may spawn a process).
+        worldModelGuard: (execution) => worldModel.guard(execution),
         workdir,
         writeLease,
         classifier: parseShellCommand,
@@ -879,20 +917,31 @@ export async function startHost({
       // M100 provider fallback: the chain object is shared so the channel's
       // models_fallback_set mutates the SAME object the extension reads —
       // a config change takes effect on the next agent_end, no rebuild.
-      loopGovernance: (taskRequirements.length || fallbackCfg.chain.length)
-        ? {
-            continuation: taskRequirements.length
-              ? (currentGovernor = new ContinuationGovernor({
-                  ledgerPath: join(core.paths.root, 'continuation.jsonl'),
-                  audit: core.audit,
-                  requirements: taskRequirements,
-                }))
-              : null,
-            predictions: core.predictions,
-            observations: core.observations,
-            fallbacks: fallbackCfg,
-          }
-        : null,
+      //
+      // The extension is installed UNCONDITIONALLY. It bundles four jobs, and
+      // only two of them have a precondition: `continuation` needs
+      // taskRequirements, `fallbacks` needs a chain. The other two —
+      // observation recording (the canonical world-model feed, one row per
+      // tool result per turn) and the open-prediction read — are useful in
+      // EVERY session. An earlier form gated all four on
+      // `(taskRequirements.length || fallbackCfg.chain.length)`, which is false
+      // on the production path (pai-channel.js passes no taskRequirements and
+      // model-fallbacks.json is usually absent) — so the whole extension was
+      // skipped and the observation stream stayed permanently empty.
+      // Every field is null-guarded inside the extension, so the two
+      // conditional jobs no-op when their input is absent.
+      loopGovernance: {
+        continuation: taskRequirements.length
+          ? (currentGovernor = new ContinuationGovernor({
+              ledgerPath: join(core.paths.root, 'continuation.jsonl'),
+              audit: core.audit,
+              requirements: taskRequirements,
+            }))
+          : null,
+        predictions: core.predictions,
+        observations: core.observations,
+        fallbacks: fallbackCfg,
+      },
       outputSpool,
     });
     if (!built.guard.sealed()) {
@@ -1105,6 +1154,19 @@ export async function startHost({
     firstMessage: s.firstMessage ?? '',
   });
 
+  // #1284 — an oversized parent transcript bricks the fork: forkFrom copies
+  // the full history and the inherited context then overflows every turn.
+  // Refuse above a generous byte cap; the operator can still resume the
+  // source session directly or start fresh.
+  const FORK_MAX_BYTES = 64 * 1024 * 1024;
+  const assertForkableSource = (path) => {
+    const sz = statSync(String(path)).size;
+    if (sz > FORK_MAX_BYTES) {
+      core.audit.write({ kind: 'FORK_REFUSED', runId, data: { path: String(path).slice(0, 200), bytes: sz, cap: FORK_MAX_BYTES } });
+      throw new Error(`session too large to fork (${sz} bytes > ${FORK_MAX_BYTES} cap) — resume the source or start a fresh session`);
+    }
+  };
+
   const sessionsFacade = {
     list: async () => {
       const rows = (await sessionManagers.list(workdir, sessionDir)).map(sessionInfo);
@@ -1215,6 +1277,7 @@ export async function startHost({
     // tree head to that entry first — the fork inherits history up to the
     // chosen point instead of the source's current leaf.
     fork: async (path, { entryId = null } = {}) => {
+      assertForkableSource(path);
       const s = await rebuildSession(sessionManagers.forkFrom(path, workdir, sessionDir), 'fork');
       if (entryId) await s.navigateTree?.(String(entryId));
       return {
@@ -1229,6 +1292,7 @@ export async function startHost({
     importSession: async (srcPath, { rewriteParent = rewriteSessionParent, afterFork = null, fork = null } = {}) => {
       const abs = resolve(String(srcPath ?? ''));
       if (!existsSync(abs)) throw new Error(`session file not found: ${abs}`);
+      assertForkableSource(abs);
       // M89: upstream loadEntriesFromFile() APPENDS a newline to a source file
       // missing one — an import must never mutate its input, so all work
       // happens on copies. M89-R3: everything upstream writes — scratch,
@@ -1775,5 +1839,11 @@ export async function startHost({
     core.leases.close();
   };
 
-  return { ...core, identity, session, guard, runId, jobStore, executor, recoveryActions, channel, toolSurface, fileOps, dispose };
+  // extensionsResult is exposed so callers (and tests) can assert WHICH
+  // extensions actually loaded. The HOST_STARTED audit only carries a count,
+  // and a count cannot distinguish a fully-installed extension from an absent
+  // one. (Wording note: keep prose free of a bare "from" followed by a quoted
+  // string — tests/boundary.test.js regex-scans this file for import
+  // specifiers and does not skip comments.)
+  return { ...core, identity, session, guard, runId, jobStore, executor, recoveryActions, channel, toolSurface, fileOps, extensionsResult, dispose };
 }
