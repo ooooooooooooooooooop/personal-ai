@@ -80,6 +80,8 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       'Delegate a task to another agent via the switchboard RPC bridge. ' +
       'Pass a subagent `profile` name (project .pai/agents or instance agents/) ' +
       'to delegate with that persona, or a raw `target` agent id. ' +
+      'Omit both for FORK mode — a background subagent inheriting the parent ' +
+      'body (target "pai"). ' +
       'Returns immediately with a durable job id; the delegated work survives ' +
       'restarts and its usage is attributed to this run.' +
       (profiles?.size ? ` Available profiles: ${[...profiles.values()].map((p) => `${p.name}→${p.target}${p.description ? ` (${p.description})` : ''}`).join(', ')}` : ''),
@@ -141,12 +143,12 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (p.mcpDeny?.length) mcpDeny = p.mcpDeny.join(',');
         if (p.budget) profileBudget = p.budget;
       }
-      if (!target) {
-        return {
-          content: [{ type: 'text', text: 'delegate_task requires a `target` agent id or a `profile` name' }],
-          isError: true,
-        };
-      }
+      // M43/dedup-h-#43: omitting target AND profile is FORK mode — a
+      // background subagent on the same body ('pai' resolves to the
+      // pai-channel branch of the operator's delegate template). Fork
+      // inherits the parent agent config, not its transcript.
+      const forked = !target;
+      if (forked) target = 'pai';
       // Operator-declared model routing (model-routes.json): fill the
       // model/effort slots the profile left open — profile frontmatter is
       // more specific than a route, a route more specific than the default
@@ -382,6 +384,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           }],
           details: {
             job_id, queued: true, waiting_on: r.waiting_on, target, profile: params.profile ?? null,
+            mode: forked ? 'fork' : 'delegate',
             ...(routedVia ? { routed_via: routedVia } : {}),
             ...(agentTask ? { task_id: agentTask.task_id } : {}),
           },
@@ -390,12 +393,13 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       return {
         content: [{
           type: 'text',
-          text: `delegated to ${target} as durable job ${job_id} (attempt ${attempt_id})` +
+          text: `delegated to ${target}${forked ? ' (fork)' : ''} as durable job ${job_id} (attempt ${attempt_id})` +
             (agentTask ? ` — AgentTask ${agentTask.task_id}: use task_send/task_wait/task_yield/task_interrupt/task_close for two-way coordination. ` : '. ') +
             'Poll job_status for completion; the result envelope lands in the jobs directory.',
         }],
         details: {
           job_id, attempt_id, target, profile: params.profile ?? null,
+          mode: forked ? 'fork' : 'delegate',
           ...(routedVia ? { routed_via: routedVia } : {}),
           ...(agentTask ? { task_id: agentTask.task_id } : {}),
           ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}),

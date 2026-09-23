@@ -394,6 +394,28 @@ test('delegate_task spawns a delegation job; job_status reads it back', async ()
   store.close();
 });
 
+test('M43: omitting target+profile forks to the pai body — mode stamped, job spawns', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fork-'));
+  const { store, executor } = rig(dir);
+  const seen = [];
+  const tool = delegateTool(executor, {
+    commandFor: (target, task) => {
+      seen.push(target);
+      return `echo "delegating to ${target}: ${task}"`;
+    },
+    workdir: tmpdir(),
+  });
+  const res = await tool.execute('tc1', { task: 'inherit me' });
+  assert.equal(res.details?.mode, 'fork');
+  assert.equal(res.details?.target, 'pai');
+  assert.deepEqual(seen, ['pai']); // the fork resolves target 'pai'
+  assert.match(res.content[0].text, /delegated to pai \(fork\) as durable job job-/);
+  // explicit target still delegates — fork only fills the omission
+  const res2 = await tool.execute('tc2', { target: 'codex', task: 'x' });
+  assert.equal(res2.details?.mode, 'delegate');
+  store.close();
+});
+
 test('B3: cancel is terminal — worker exit must NOT overwrite CANCELLED; tree killed', { timeout: 30_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-cancel-'));
   const { store, executor } = rig(dir);

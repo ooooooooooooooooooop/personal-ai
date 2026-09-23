@@ -1949,3 +1949,17 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 边界 | authorization_code/PKCE 需浏览器回调——明示越界；静态 bearer 仍走 `spec.headers` | 头注释 |
 
 **注**：候选描述混入了"等连接中 MCP 服务器"的另一特征（wait-for-connect）——那是连接行为，本行按 oauthResource 字段核销；等待语义已在 connect 超时链覆盖。
+
+### 28.39 648 清单逐条核销 #8：dedup-h #43 delegate-modes Fork 模式（2026-09-23）
+
+**行**：`dedup-h	43	orchestration	delegate-modes: Agent tool Fork mode(省略type→后台fork)`（省略 subagent_type → 自动后台 fork 继承父代理）。
+
+**判定**：**IMPLEMENTED**——`delegate_task` 省略 `target` 且省略 `profile` → **fork 模式**：`target` 解析为 `'pai'`（pai-channel 同体子代理=继承父体配置的后台持久任务；fork 继承代理配置而非 transcript）。`details.mode` 盖 `'fork'|'delegate'` 供归因；返回文本显式标 `(fork)`。
+
+| 面 | 证据 |
+|---|---|
+| 默认链 | `!target → 'pai'`——与显式 `target:'pai'` 走完全相同的模板插值/enforceable 断言/预算切片路径，无旁路 |
+| 可观测 | `details.mode` + 文本 `(fork)` + 工具描述明示"Omit both for FORK mode" |
+| 测试 | jobs-executor `M43`：省略→`mode:'fork'`/`target:'pai'`/commandFor 收到 'pai'；显式 target 仍 `mode:'delegate'` |
+
+**边界**：fork=同体配置继承（opencode 语义），非 transcript 分叉——后者是会话层 `session fork`（已有 `/fork`）。
