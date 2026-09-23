@@ -214,6 +214,31 @@ const DRIVER = `(async () => {
     switchView('chat');
     inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    // dedup-h #509 — bare /worktree = management pane (worktree_list cmd,
+    // rendered rows with managed flag); /worktree-open dispatches
+    // job_spawn{in_worktree} and lands in jobs view.
+    inputEl.value = '/worktree';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    await sleep(80);
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await sleep(250);
+    const wtPane = document.querySelector('#transcript')?.textContent ?? '';
+    checks.worktreeList = {
+      ok: wtPane.includes('git worktrees（2）') && wtPane.includes('/repo/wt-linked') && wtPane.includes('(任务托管)'),
+      tail: wtPane.slice(-160),
+    };
+    inputEl.value = '/worktree-open wt-linked echo hi';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    await sleep(80);
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await sleep(250);
+    checks.worktreeOpen = {
+      ok: currentView === 'jobs' && !((document.querySelector('#transcript')?.textContent ?? '').includes('打开 worktree 失败')),
+      view: currentView,
+    };
+    switchView('chat');
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
     /* dedup-h #143 — model-invoked builtin commands: queued while the turn
      * is live, drained on agent_end, executed through the same paths as the
      * operator's slash commands. The scripted '看图' turn still has its ask

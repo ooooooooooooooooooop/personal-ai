@@ -1,4 +1,4 @@
-import { join, resolve, basename, isAbsolute } from 'node:path';
+import { join, resolve, basename, isAbsolute, sep } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../adapter/paths.js';
 import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, rmSync, openSync, writeSync, closeSync } from 'node:fs';
@@ -2118,7 +2118,36 @@ export async function startHost({
     hooks,
     turns: { reset: () => currentDecide?.resetTurn?.() },
     getLoopwatch: () => currentLoopwatch,
-    exec: {
+    exec: (() => {
+      // dedup-h #509 — git worktree management (Zed worktree panel
+      // analogue): porcelain-parse every linked checkout; entries under
+      // <instance>/jobs/worktrees are OUR job-created ones (managed:true)
+      // so the operator can tell spawned worktrees from their own.
+      const listWorktrees = async () => {
+        const r = spawnSync('git', ['worktree', 'list', '--porcelain'],
+          { cwd: workdir, encoding: 'utf-8', timeout: 10_000, windowsHide: true });
+        if (r.status !== 0) {
+          return { ok: false, error: `git worktree list failed: ${(r.stderr || r.error?.message || 'not a git repo').trim().slice(0, 200)}` };
+        }
+        const managedRoot = resolve(join(core.paths.root, 'jobs', 'worktrees'));
+        const out = [];
+        let cur = null;
+        for (const line of String(r.stdout ?? '').split('\n')) {
+          if (line.startsWith('worktree ')) {
+            if (cur) out.push(cur);
+            cur = { path: line.slice(9).trim(), head: null, branch: null, detached: false, bare: false, managed: false };
+          } else if (cur && line.startsWith('HEAD ')) cur.head = line.slice(5).trim();
+          else if (cur && line.startsWith('branch ')) cur.branch = line.slice(7).trim().replace(/^refs\/heads\//, '');
+          else if (cur && line === 'detached') cur.detached = true;
+          else if (cur && line === 'bare') cur.bare = true;
+        }
+        if (cur) out.push(cur);
+        for (const e of out) {
+          e.managed = resolve(e.path) === managedRoot || resolve(e.path).startsWith(managedRoot + sep);
+        }
+        return { ok: true, worktrees: out };
+      };
+      return {
       // `!cmd` operator direct-exec (Claude Code bang-mode analogue): the
       // command runs through the SAME decide chain as a model call — ask
       // rules still pop the approval card, denies still block. Operator
@@ -2149,17 +2178,36 @@ export async function startHost({
         }
         return r;
       },
+      // dedup-h #509 — git worktree management (Zed worktree panel
+      // analogue): porcelain-parse every linked checkout; entries under
+      // <instance>/jobs/worktrees are OUR job-created ones (managed:true)
+      // so the operator can tell spawned worktrees from their own.
+      worktreeList: listWorktrees,
       // Operator worktree/job spawn (sidebar worktree-creation analogue,
       // candidates-open #2): a durable background task the operator launches
       // explicitly — optionally inside a detached git worktree. Same decide
       // chain as model job_spawn + the same JobExecutor, so restart spec,
       // dependency validation and audit all behave identically.
-      runJob: async ({ command, worktree = false, timeoutMs = null }) => {
+      // dedup-h #509: in_worktree opens an EXISTING linked checkout — the
+      // name/path must appear in `git worktree list` (fail closed: an
+      // arbitrary directory is never accepted through this surface).
+      runJob: async ({ command, worktree = false, in_worktree = null, timeoutMs = null }) => {
         if (!currentDecide) return { ok: false, error: 'session not ready' };
         const cmdText = String(command ?? '').trim();
         if (!cmdText) return { ok: false, error: 'command required' };
+        let targetDir = workdir;
+        let opened = null;
+        if (in_worktree != null && String(in_worktree).trim()) {
+          const want = String(in_worktree).trim();
+          const wl = await listWorktrees();
+          const hit = wl.ok && wl.worktrees.find((e) =>
+            resolve(e.path) === resolve(workdir, want) || basename(e.path) === want);
+          if (!hit) return { ok: false, error: `no such worktree '${want}' — see worktree_list` };
+          targetDir = hit.path;
+          opened = hit.path;
+        }
         const callId = `op-job-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}`;
-        const args = { command: cmdText, workdir, worktree: worktree === true };
+        const args = { command: cmdText, workdir: targetDir, worktree: worktree === true };
         const emit = (ev) => channelHandle?.channel.emitEvent(ev);
         const d = await currentDecide({ toolCall: { name: 'job_spawn', id: callId }, args });
         hooks?.fire('tool_start', { toolName: 'job_spawn', toolCallId: callId });
@@ -2171,8 +2219,8 @@ export async function startHost({
         }
         emit({ type: 'tool_execution_start', toolCallId: callId, toolName: 'job_spawn', args });
         const r = await executor.spawnCommandJob({
-          command: cmdText, workdir, jobType: 'shell_command',
-          authorizedRoot: workdir, timeoutMs, worktree: worktree === true,
+          command: cmdText, workdir: targetDir, jobType: 'shell_command',
+          authorizedRoot: targetDir, timeoutMs, worktree: worktree === true,
         });
         if (r?.refused) {
           emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'job_spawn', result: r.reason ?? 'refused', isError: true });
@@ -2181,10 +2229,11 @@ export async function startHost({
         }
         emit({ type: 'tool_execution_end', toolCallId: callId, toolName: 'job_spawn', result: `job ${r.job_id}`, isError: false });
         hooks?.fire('tool_end', { toolName: 'job_spawn', toolCallId: callId, isError: false });
-        core.audit.write({ kind: 'OPERATOR_JOB_SPAWN', data: { command: cmdText.slice(0, 200), worktree: worktree === true, jobId: r.job_id } });
-        return { ok: true, jobId: r.job_id, queued: r.queued === true };
+        core.audit.write({ kind: 'OPERATOR_JOB_SPAWN', data: { command: cmdText.slice(0, 200), worktree: worktree === true, in_worktree: opened, jobId: r.job_id } });
+        return { ok: true, jobId: r.job_id, queued: r.queued === true, workdir: opened ?? undefined };
       },
-    },
+      };
+    })(),
     modes: {
       get: () => riskMode,
       set: (m) => { riskMode = m; core.audit.write({ kind: 'RISK_MODE_SET', data: { mode: m } }); return riskMode; },

@@ -234,9 +234,17 @@ export class HostChannel {
           if (!this.exec?.runJob) return reply(false, undefined, 'job spawn unavailable');
           const r = await this.exec.runJob({
             command: cmd.command, worktree: cmd.worktree === true,
+            in_worktree: cmd.in_worktree ?? null,
             timeoutMs: Number.isFinite(cmd.timeout_ms) ? cmd.timeout_ms : null,
           });
           return r?.ok ? reply(true, r) : reply(false, r, r?.reason ?? r?.error ?? 'spawn failed');
+        }
+        case 'worktree_list': {
+          // dedup-h #509 — git worktree management: every linked checkout,
+          // our job-managed ones flagged, for the operator's open/list pane.
+          if (!this.exec?.worktreeList) return reply(false, undefined, 'worktree list unavailable');
+          const r = await this.exec.worktreeList();
+          return r?.ok === false ? reply(false, undefined, r.error) : reply(true, r);
         }
         case 'job_status': {
           if (!this.jobs) return reply(false, undefined, 'jobs facade unavailable');

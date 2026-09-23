@@ -3849,13 +3849,32 @@ const SLASH = [
   { cmd: '/body', label: 'AI 引擎', hint: '查看与切换当前执行引擎', run: () => switchView('bodies') },
   { cmd: '/jobs', label: '后台任务', hint: '查看后台自动化任务与计划作业', run: () => switchView('jobs') },
   {
-    cmd: '/worktree', label: 'worktree 后台任务', hint: '/worktree <命令>——在独立 git worktree 里跑后台任务（zed 侧栏 worktree 对等）',
+    cmd: '/worktree', label: 'worktree 管理', hint: '/worktree [命令]——裸用列出全部 git worktree（dedup-h #509 面板）；带命令则新建独立 worktree 跑后台任务',
     run: async (arg) => {
       const c = String(arg ?? '').trim();
-      if (!c) { toast('用法：/worktree <命令>', 'err'); return; }
+      if (!c) {
+        // bare form = the management pane: every linked checkout, managed flagged
+        const r = await cmd('worktree_list');
+        if (!r.success) { addSys(`worktree 列表失败：${r.error ?? '未知'}`, true); return; }
+        const wts = r.data?.worktrees ?? [];
+        if (!wts.length) { addSys('无 git worktree（或非 git 仓库）', true); return; }
+        addSys(`git worktrees（${wts.length}）— /worktree-open <路径|名> <命令> 在其中开任务：\n` +
+          wts.map((w) => `  ${w.managed ? '🛠' : '📁'} ${w.path}${w.branch ? `  [${w.branch}]` : ''}${w.detached ? '  (detached)' : ''}${w.managed ? '  (任务托管)' : ''}`).join('\n'), true);
+        return;
+      }
       const r = await cmd('job_spawn', { command: c, worktree: true });
       if (r.success) { toast(`worktree 任务已开：${r.data?.jobId ?? ''}`); switchView('jobs'); }
       else addSys(`worktree 任务失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
+    cmd: '/worktree-open', label: '打开既有 worktree', hint: '/worktree-open <路径|名> <命令>——在已存在的 git worktree 里跑后台任务（zed "open worktree in new window" 对等）',
+    run: async (arg) => {
+      const m = /^(\S+)\s+(.+)$/s.exec(String(arg ?? '').trim());
+      if (!m) { toast('用法：/worktree-open <路径|名> <命令>', 'err'); return; }
+      const r = await cmd('job_spawn', { command: m[2], in_worktree: m[1] });
+      if (r.success) { toast(`已在 ${r.data?.workdir ?? m[1]} 开任务：${r.data?.jobId ?? ''}`); switchView('jobs'); }
+      else addSys(`打开 worktree 失败：${r.error ?? '未知'}`, true);
     },
   },
   {

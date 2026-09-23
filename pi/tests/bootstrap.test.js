@@ -1053,3 +1053,62 @@ test('dedup-h #459: auth-success notification hook fires on mcp_auth_done', asyn
     if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
   }
 });
+
+// dedup-h #509: git worktree management — worktree_list reports every linked
+// checkout (managed flagged); job_spawn{in_worktree} opens an EXISTING
+// worktree (fail closed on unknown names).
+test('worktree_list + job_spawn in_worktree: open an existing linked checkout', { timeout: 40_000 }, async () => {
+  const { spawnSync } = await import('node:child_process');
+  const inst = mkdtempSync(join(tmpdir(), 'pai-wtm-inst-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wtm-repo-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  for (const args of [
+    ['init', '-q'], ['config', 'user.email', 't@t'], ['config', 'user.name', 't'],
+  ]) spawnSync('git', args, { cwd: dir });
+  writeFileSync(join(dir, 'base.txt'), 'base');
+  spawnSync('git', ['add', 'base.txt'], { cwd: dir });
+  spawnSync('git', ['commit', '-qm', 'init'], { cwd: dir });
+  // a pre-existing linked worktree the operator created outside the product
+  const linked = join(dir, '..', 'pai-wtm-linked');
+  spawnSync('git', ['worktree', 'add', '--detach', linked, 'HEAD'], { cwd: dir });
+
+  const host = await startHost({ instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const wl = await host.channel.handle({ type: 'worktree_list' });
+    assert.equal(wl.success, true, JSON.stringify(wl));
+    const paths = wl.data.worktrees.map((w) => w.path);
+    assert.ok(paths.some((p) => resolve(p) === resolve(dir)), 'main checkout listed');
+    assert.ok(paths.some((p) => resolve(p) === resolve(linked)), 'linked worktree listed');
+    assert.ok(wl.data.worktrees.every((w) => w.managed === false), 'no managed entries yet');
+
+    // unknown name → fail closed, never an arbitrary directory
+    const bad = await host.channel.handle({ type: 'job_spawn', command: 'echo x', in_worktree: '..\..\Windows' });
+    assert.equal(bad.success, false, 'arbitrary dir must not be accepted as a worktree');
+
+    // open the linked worktree by basename → job lands THERE, not the main checkout
+    const writeCmd = process.platform === 'win32' ? 'echo wt>wt-open.txt' : 'echo wt > wt-open.txt';
+    const r = await host.channel.handle({ type: 'job_spawn', command: writeCmd, in_worktree: 'pai-wtm-linked' });
+    assert.equal(r.success, true, `in_worktree spawn refused: ${r.error ?? JSON.stringify(r)}`);
+    const jobId = r.data?.jobId ?? r.data?.job_id;
+    let job = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((res) => setTimeout(res, 1000));
+      const st = await host.channel.handle({ type: 'job_status', job_id: jobId });
+      job = st.data?.job;
+      if (/COMPLETED|FAILED|CANCELLED/.test(String(job?.job_state ?? ''))) break;
+    }
+    assert.equal(String(job?.job_state), 'COMPLETED', `job did not complete: ${JSON.stringify(job)}`);
+    assert.ok(existsSync(join(linked, 'wt-open.txt')), 'marker landed in the opened worktree');
+    assert.ok(!existsSync(join(dir, 'wt-open.txt')), 'main checkout untouched');
+    // audit names the opened worktree
+    const lines = readdirSync(join(inst, 'audit'))
+      .flatMap((f) => readFileSync(join(inst, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(lines.some((e) => e.kind === 'OPERATOR_JOB_SPAWN' && e.data?.in_worktree), 'in_worktree audited');
+  } finally {
+    host.dispose();
+    spawnSync('git', ['worktree', 'remove', '--force', linked], { cwd: dir });
+  }
+});

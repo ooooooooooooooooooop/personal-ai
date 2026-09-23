@@ -139,7 +139,13 @@ rl.on('line', async (line) => {
     case 'risk_mode': return reply({ mode: 'execute' });
     case 'job_spawn':
       if (!cmd.command) return fail('command required');
-      return reply({ ok: true, jobId: 'fake-job-1', worktree: cmd.worktree === true });
+      if (cmd.in_worktree && cmd.in_worktree !== 'wt-linked') return fail(`no such worktree '${cmd.in_worktree}'`);
+      return reply({ ok: true, jobId: 'fake-job-1', worktree: cmd.worktree === true, workdir: cmd.in_worktree ? '/repo/wt-linked' : undefined });
+    case 'worktree_list':
+      return reply({ ok: true, worktrees: [
+        { path: '/repo', head: 'aaa', branch: 'main', detached: false, bare: false, managed: false },
+        { path: '/repo/wt-linked', head: 'bbb', branch: null, detached: true, bare: false, managed: true },
+      ] });
     case 'job_status':
       return reply({
         job: { job_id: cmd.job_id, job_type: 'shell', job_state: 'RUNNING', orchestration_state: 'foreground' },

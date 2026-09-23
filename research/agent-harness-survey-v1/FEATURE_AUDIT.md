@@ -2350,3 +2350,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。`notification` hook 事件（已在 HOOK_EVENTS）现覆盖交互式认证完成：facade `mcp_auth_done` 成功 → `hooks.fire('notification', {kind:'auth_success', server, flow})`；CLI `pai-host mcp-auth-done` 退出前 await 触发 workdir 观察钩子；会话内 `/mcp-auth-done` 经 `ctx.ui.notify`→channel `emit`→同一事件（既有链路）。hook 脚本按 `kind:'auth_success'` 可过滤。
 - **证据**：bootstrap 端到端——`.pai/hooks.json` notification 钩子写 marker + 本地 token 端点 + `mcp_auth`/`mcp_auth_done` 走 channel → marker 断言 `kind=auth_success, server=authsrv`；pi 全套 417/413/0/4。
+
+### 28.76 648 清单逐条核销 #48：dedup-h #509 worktree 管理面板 + 打开既有 worktree（2026-09-23）
+
+- **判定**：IMPLEMENTED（Zed v0.212.3 "git worktree management for opening worktrees" 对等）。`exec.worktreeList` porcelain 解析全部 linked checkout（path/head/branch/detached/bare + `managed` 标记 `<instance>/jobs/worktrees/*` 自家产物）；channel `worktree_list` 分发；`runJob{in_worktree}` 打开既有 worktree——只接受 `git worktree list` 在册项（绝对路径或托管 basename），任意目录 fail closed；`authorizedRoot`/`workdir`=所开路径。UI：`/worktree` 裸用=管理面板，`/worktree-open <名|路径> <命令>` 在其中开任务（"open in new window" 的任务语境对等）。
+- **证据**：真 git 仓 + 外部 linked worktree → list 双列 + managed 判定 → 未知名拒 → `in_worktree` 任务 marker 落在 linked 而非主 checkout + 审计记 in_worktree；pi 418/414/0/4、host 357、app 26/25/1（dom-gate `worktreeList`/`worktreeOpen` 断言）。
