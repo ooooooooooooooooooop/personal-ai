@@ -90,6 +90,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         profile: { type: 'string', description: 'named subagent profile — resolves target and prepends its preamble' },
         task: { type: 'string', description: 'task description for the delegate' },
         name: { type: 'string', description: 'optional teammate name — makes the task a named, persistent member of the teammate pool (addressable via teammate_msg)' },
+        team: { type: 'string', description: 'optional team name — groups the task under a shared roster (task_list filters by it; team_msg broadcasts to every open member)' },
         max_minutes: { type: 'number', description: 'optional wall-clock ceiling in minutes — the job is killed at the deadline and reported as timed out' },
         worktree: { type: 'boolean', description: 'run inside a detached git worktree — parallel delegates cannot collide on the real checkout; dirty worktrees are kept and reported' },
         depends_on: {
@@ -317,12 +318,14 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // AgentTask — the bridge watches inbox→stdin and captures child
       // markers→outbox/events. v1 is strictly parent↔child.
       const tname = params.name ? String(params.name).trim() : null;
+      const tteam = params.team ? String(params.team).trim() : null;
       const agentTask = taskStore
         ? taskStore.create({
             label: tname ? `@${tname} ${task.slice(0, 60)}` : task.slice(0, 80),
             parent: scope,
             kind: tname ? 'teammate' : 'delegation',
             name: tname,
+            team: tteam,
             spawnSpec: tname ? { target, profile: params.profile ?? null, task, depth: depth + 1 } : null,
           })
         : null;

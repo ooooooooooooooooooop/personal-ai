@@ -140,7 +140,7 @@
 | 执行 | "proceed while running" 前台命令 detach 成后台 log（PID+start-token 防 PID 复用） | ❌ | job 系统有持久化后台，但无"运行中一键转后台"语义 |
 | 可见性 | diff preview+autoApprovePreviewLinger；工具输出结构化；context 进度条 | 🟡 | 工具卡 diff 有；context 进度条无（状态行数字） |
 | 上下文 | `.clinerules`/`.cline/rules`+`.cline/cron/*.md`；compaction 0.9 触发/basic+agentic 双策略 | 🟡 | AGENTS.md 有；rules 目录+cron 无；compaction 手动+auto |
-| 协作 | `spawn_agent`+**agent teams**（teammate 常驻+mailbox+共享任务库+outcome artifacts，SQLite 持久化 team 状态） | 🟡 | delegate_task 一次性委派；无常驻 teammate/mailbox/共享任务库 |
+| 协作 | `spawn_agent`+**agent teams**（teammate 常驻+mailbox+共享任务库+outcome artifacts，SQLite 持久化 team 状态） | 🟡 | teammate（`delegate_task name=` 常驻+`teammate_msg` 按名投递+mailbox inbox/outbox/events 持久化）+**team 名册/广播**（`team=` 分组、`team_msg` 扇出、`task_list team=` 过滤，§28.33）已落；多对多任务池仍按裁定书 v1 外项推迟 |
 | 协作 | **cline-hub**：detached daemon 持会话，CLI/VSCode/desktop/automation 多客户端 attach 同一权威 runtime | ❌ | supervisor 单 app 实例；无多客户端 attach |
 | 持久化 | cron（.cline/cron md 规格+SQLite store+schedule 工具）；stale session 对账 | ❌ | 无 cron；session 状态机有但无 stale 对账面 |
 | 扩展 | hooks（文件型 TaskStart/PreToolUse…+in-process hook 点，可 appendContext）、plugins（sandbox 隔离装载）、skills 工具、MCP（stdio/sse/http+OAuth）、slash 自定义、remote-config 企业指令 | 🟡 | 全部无对应物；宏/slash 有；MCP/hooks/plugins ❌（plugins 市场拒绝） |
@@ -1862,3 +1862,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 **回归证据**：pi 369 测 365 过 4 skip（新 e2e `operator job_spawn`：真 git 仓→worktree 标记文件落在 detached checkout、主检出零污染、denyPrefix 拒绝零副作用、审计齐全）；host 346/346；app 26/26（dom-gate `worktreeCmd`）；lint 双净；`git diff --check` 净。
 
 **核销**：candidates-open #2 → `candidates-resolved.tsv` #1。
+
+### 28.33 648 清单逐条核销 #2：dedup-h #6 Team 多代理任务分派+消息传递（2026-09-23）
+
+**行**：`dedup-h	6	orchestration	Team: multi-agent task assignment + message passing`（TeamCreate/TeamDelete 类工具组建多 agent 协作）。
+
+**判定**：**IMPLEMENTED（名册层）**——消息传递/常驻 teammate/邮箱/拓扑此前已落（D3/G4）；本行补的是缺的"队"实体层：名册分组 + 广播投递。落法仍走 mailbox 原语，不引入并行任务池仲裁（裁定书 v1 外项维持推迟）：
+
+| 面 | 落点 | 证据 |
+|---|---|---|
+| 名册 | `TaskStore.create({team})` → task.json 持久 `team` 字段；`byTeam()` 只回 open 成员（closed 自动离队，大小写不敏感） | host `team roster` 测试（含重开 store 持久性断言） |
+| 分派 | `delegate_task(team=…)` 参数 → 任务挂名册（可独立或与 `name=` 并用） | delegate.js schema+create 透传 |
+| 广播 | 新工具 `team_msg{team,message}` → 对名册内每个 open 成员各投一封 inbox（行内带 `team` 标记）+每成员记 `team_msg` event；全员被拒则 isError | `team_msg broadcasts…` 测试：2/2 送达、跨队零污染、closed 跳过 |
+| 名册查询 | `task_list{team?}` 过滤 + 行含 name/team | `task_list filters by team` 测试 |
+
+**语义差异（诚实记录）**：无显式 TeamCreate/TeamDelete 生命周期对象——队以标签隐式存在（有 open 成员即在）；队删除=成员逐个 closed。多对多任务池仲裁仍属推迟项。

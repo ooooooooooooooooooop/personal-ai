@@ -13,15 +13,21 @@ export function taskTools(store, { interrupt = null } = {}) {
   return [
     {
       name: 'task_list', label: 'Task List',
-      description: 'List AgentTask records (delegated work): state, label, job binding, message counts.',
-      parameters: { type: 'object', properties: {} },
-      async execute() {
-        const rows = store.list().map((t) => ({
-          task_id: t.task_id, label: t.label, state: t.state, kind: t.kind,
-          job_id: t.job_id, created: t.created,
-          inbox: t.inbox_count, outbox: t.outbox_count, events: t.events_count,
-        }));
-        return txt(rows.length ? JSON.stringify(rows) : 'no tasks yet');
+      description: 'List AgentTask records (delegated work): state, label, job binding, message counts. Optional `team` filters to one roster.',
+      parameters: {
+        type: 'object',
+        properties: { team: { type: 'string', description: 'filter to tasks in this team roster' } },
+      },
+      async execute(_id, p = {}) {
+        const rows = store.list()
+          .filter((t) => !p.team || String(t.team ?? '').toLowerCase() === String(p.team).toLowerCase())
+          .map((t) => ({
+            task_id: t.task_id, label: t.label, state: t.state, kind: t.kind,
+            name: t.name, team: t.team,
+            job_id: t.job_id, created: t.created,
+            inbox: t.inbox_count, outbox: t.outbox_count, events: t.events_count,
+          }));
+        return txt(rows.length ? JSON.stringify(rows) : (p.team ? `no tasks in team '${p.team}'` : 'no tasks yet'));
       },
     },
     {
@@ -126,6 +132,33 @@ export function taskTools(store, { interrupt = null } = {}) {
         const r = store.postInbox(t.task_id, { from: 'parent', body: p.message });
         if (r?.refused) return txt(`send refused: ${r.refused}`, { isError: true });
         return txt(`delivered to teammate '${t.name}' (${t.task_id}) inbox seq ${r.seq}`);
+      },
+    },
+    {
+      name: 'team_msg', label: 'Team Message',
+      description: 'Broadcast a message to every OPEN task in a team roster (delegate_task with `team` assigns membership). Each member gets the message in its own inbox — the bridge steers it into the running child.',
+      parameters: {
+        type: 'object',
+        properties: {
+          team: { type: 'string' },
+          message: { type: 'string' },
+        },
+        required: ['team', 'message'],
+      },
+      async execute(_id, p) {
+        const err = need(p.team, 'team') ?? need(p.message, 'message');
+        if (err) return txt(err, { isError: true });
+        const members = store.byTeam(p.team);
+        if (!members.length) return txt(`no open tasks in team '${p.team}' — assign members via delegate_task(team=...)`, { isError: true });
+        const delivered = [], refused = [];
+        for (const t of members) {
+          const r = store.postInbox(t.task_id, { from: 'parent', body: p.message, team: p.team });
+          if (r?.refused) refused.push(`${t.name ?? t.task_id}:${r.refused}`);
+          else delivered.push(`${t.name ?? t.task_id}#${r.seq}`);
+        }
+        for (const t of members) store.postEvent(t.task_id, 'team_msg', { team: p.team, from: 'parent' });
+        if (!delivered.length) return txt(`team '${p.team}' broadcast refused on all ${members.length} members: ${refused.join('; ')}`, { isError: true });
+        return txt(`team '${p.team}' → ${delivered.length}/${members.length} members (${delivered.join(', ')})${refused.length ? `; refused: ${refused.join('; ')}` : ''}`);
       },
     },
     {

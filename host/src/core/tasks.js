@@ -49,19 +49,20 @@ export class TaskStore {
     renameSync(tmp, f);
   }
 
-  create({ label = '', jobId = null, parent = null, kind = 'delegation', name = null, spawnSpec = null } = {}) {
+  create({ label = '', jobId = null, parent = null, kind = 'delegation', name = null, team = null, spawnSpec = null } = {}) {
     const taskId = `task-${randomUUID().slice(0, 12)}`;
     mkdirSync(this.#taskDir(taskId), { recursive: true });
     const meta = {
       task_id: taskId, job_id: jobId, job_ids: jobId ? [jobId] : [], label, kind,
       name, // teammate pool: stable human/model address across restarts
+      team, // team roster: tasks sharing a label are addressable as a group
       spawn_spec: spawnSpec, // {target, profile, task} — respawnable identity
       parent_task_id: parent,
       state: 'open', created: new Date().toISOString(),
       acks: { inbox: 0, outbox: 0, events: 0 },
     };
     this.#writeMeta(taskId, meta);
-    this.postEvent(taskId, 'task_created', { label, job_id: jobId, parent, name });
+    this.postEvent(taskId, 'task_created', { label, job_id: jobId, parent, name, team });
     return meta;
   }
 
@@ -72,6 +73,13 @@ export class TaskStore {
     return this.list().find((t) => t.name?.toLowerCase() === n && t.state === 'open')
       ?? this.list().find((t) => t.name?.toLowerCase() === n)
       ?? null;
+  }
+
+  /** Team roster — open tasks grouped under this team label. */
+  byTeam(team) {
+    const n = String(team ?? '').toLowerCase();
+    if (!n) return [];
+    return this.list().filter((t) => t.team?.toLowerCase() === n && t.state === 'open');
   }
 
   get(taskId) {
@@ -124,11 +132,11 @@ export class TaskStore {
     return meta.acks[stream];
   }
 
-  postInbox(taskId, { from = 'parent', body }) {
+  postInbox(taskId, { from = 'parent', body, ...extra }) {
     const meta = this.#readMeta(taskId);
     if (!meta) return null;
     if (meta.state !== 'open') return { seq: null, refused: `task '${taskId}' is ${meta.state}` };
-    return { seq: this.#append(taskId, 'inbox', { from, body: String(body ?? '') }) };
+    return { seq: this.#append(taskId, 'inbox', { from, body: String(body ?? ''), ...extra }) };
   }
 
   postOutbox(taskId, { from = 'child', body }) {

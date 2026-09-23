@@ -138,3 +138,20 @@ test('task.json writes are atomic — meta survives with no tmp debris', () => {
   assert.equal(meta.job_id, 'job-9');
   assert.equal(meta.acks.inbox, 3);
 });
+
+test('team roster: tasks group under a team label; byTeam returns open members only', () => {
+  const { store: s, root } = mk();
+  const a = s.create({ label: 'a', name: 'alpha', team: 'core' });
+  const b = s.create({ label: 'b', name: 'beta', team: 'Core' }); // case-insensitive
+  const c = s.create({ label: 'c', team: 'other' });
+  const d = s.create({ label: 'd', team: 'core' });
+  s.setState(d.task_id, 'closed');
+  const roster = s.byTeam('core').map((t) => t.task_id).sort();
+  assert.deepEqual(roster, [a.task_id, b.task_id].sort(), 'closed + other-team excluded');
+  assert.deepEqual(s.byTeam(''), []);
+  assert.deepEqual(s.byTeam('nope'), []);
+  // the team label survives a fresh store (task.json persists it)
+  const s2 = new TaskStore(root);
+  assert.equal(s2.byTeam('core').length, 2);
+  assert.equal(s2.byTeam('other')[0].task_id, c.task_id);
+});
