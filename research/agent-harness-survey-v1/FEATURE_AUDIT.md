@@ -2306,3 +2306,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。`proxy.enabled` 语义已由 #233 `mode` 超集覆盖；本行补 OpenClaw `OPENCLAW_PROXY_URL` 的字面对等——命名环境变量直接给代理 URL。
 - **机制**：`PAI_PROXY_URL` 为**最低优先级**源（显式 `proxy.json` 胜出，env 仅填未配置槽）；来源诚实标注（`get_state.proxy.envSource`，报错前缀 `PAI_PROXY_URL` 而非 proxy.json）；同走 http/https scheme 闸，畸形 URL bootstrap 即抛。
 - **证据**：bootstrap.test +1（env 应用+标注 / 显式 off 胜 env / 坏 URL 响拒），24/24 绿。
+
+### 28.68 648 清单逐条核销 #40：dedup-h #390 `/insights` 聚合统计（2026-09-23）
+
+- **判定**：IMPLEMENTED。`session_insights{all:true}` 聚合面——同一行分析 `analyzeSessionRows`（抽出共享 helper，无双解析器）扇形扫过 sessionDir 全部 `.jsonl`。
+- **机制**：fleet 计数器逐字段合并（messages/roles/tools/toolErrors/tokens/cost/errorBlocks）；`avgDurationMs` + 最长会话实名；不可读文件列入 `unreadable` 而非吞掉；聚合 tips 针对 fleet 模式（惯犯工具、错误总量、累计成本、>1h 会话）。
+- **证据**：bootstrap.test 会话剖析测试扩两个合成会话逐字段核对；24/24 绿；host/app 回归绿。

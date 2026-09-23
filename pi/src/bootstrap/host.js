@@ -231,6 +231,55 @@ export function btwReadonlyDecide(inner, posture) {
 
 /** M86 ambient context — cheap per-turn grounding facts. Git probes are
  *  bounded (1.5s) and fail-soft: a non-repo workdir just reports no git. */
+// dedup-h #7/#390 — shared per-session row analysis: single-file insights
+// and the fleet aggregate both feed parsed session rows through this.
+function analyzeSessionRows(rows) {
+  const roles = {}, entryTypes = {}, blockTypes = {}, tools = {}, toolErrors = {};
+  let tokens = 0, cost = 0, usageSeen = 0, firstTs = null, lastTs = null, errorBlocks = 0;
+  for (const e of rows) {
+    const ts = e?.timestamp ?? e?.ts ?? e?.message?.timestamp;
+    if (ts) { const d = new Date(ts); if (!firstTs || d < firstTs) firstTs = d; if (!lastTs || d > lastTs) lastTs = d; }
+    entryTypes[e?.type ?? 'unknown'] = (entryTypes[e?.type ?? 'unknown'] ?? 0) + 1;
+    const msg = e?.message ?? e;
+    const role = msg?.role;
+    if (role) roles[role] = (roles[role] ?? 0) + 1;
+    const u = msg?.usage ?? e?.usage;
+    if (u) { usageSeen++; tokens += Number(u.totalTokens ?? u.input ?? 0) + Number(u.output ?? 0); cost += Number(u.cost?.total ?? 0); }
+    const content = Array.isArray(msg?.content) ? msg.content : (typeof msg?.content === 'string' ? [{ type: 'text', text: msg.content }] : []);
+    for (const b of content) {
+      const bt = b?.type ?? 'unknown';
+      blockTypes[bt] = (blockTypes[bt] ?? 0) + 1;
+      const tn = b?.name ?? b?.toolName ?? b?.tool_name;
+      if (tn) {
+        tools[tn] = (tools[tn] ?? 0) + 1;
+        if (b?.isError || b?.is_error) { toolErrors[tn] = (toolErrors[tn] ?? 0) + 1; errorBlocks++; }
+      } else if (b?.isError || b?.is_error) errorBlocks++;
+    }
+  }
+  const messages = Object.values(roles).reduce((a, b) => a + b, 0);
+  const tips = [];
+  if (messages === 0) tips.push('会话无任何消息——可能是空会话文件或导入截断');
+  const errTools = Object.entries(toolErrors).sort((a, b) => b[1] - a[1]);
+  if (errTools.length) {
+    const [n, c] = errTools[0];
+    tips.push(`工具 '${n}' 出错 ${c} 次${errTools.length > 1 ? `（共 ${errTools.length} 个出错工具）` : ''}——下次可先 /doctor 或查 deny 规则再跑`);
+  }
+  if (errorBlocks > 3) tips.push(`错误块占比偏高（${errorBlocks} 个）——逐条复盘比继续重试更省 token`);
+  if ((roles.user ?? 0) > 50) tips.push(`用户消息 ${roles.user} 条——长会话上下文成本高，建议 /save 存档后开新会话`);
+  if (cost > 1) tips.push(`本会话成本 $${cost.toFixed(2)}——可设 budget_set 美元上限防失控`);
+  const topTools = Object.entries(tools).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (!tips.length) tips.push('无异常信号——会话形态正常');
+  return {
+    messages, roles, entryTypes, blockTypes,
+    tools, toolErrors, tokens, cost: Number(cost.toFixed(4)), usageRecords: usageSeen,
+    errorBlocks,
+    durationMs: firstTs && lastTs ? lastTs - firstTs : null,
+    firstTs: firstTs?.toISOString?.() ?? null, lastTs: lastTs?.toISOString?.() ?? null,
+    topTools: topTools.map(([name, count]) => ({ name, count })),
+    tips,
+  };
+}
+
 function ambientInfo(workdir) {
   const lines = [
     `date: ${new Date().toISOString().slice(0, 19)} (${Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'local'})`,
@@ -1606,47 +1655,64 @@ export async function startHost({
           try { rows.push(JSON.parse(line)); } catch { /* torn tail tolerated */ }
         }
       } catch { return { error: 'session file unreadable' }; }
-      const roles = {}, entryTypes = {}, blockTypes = {}, tools = {}, toolErrors = {};
-      let tokens = 0, cost = 0, usageSeen = 0, firstTs = null, lastTs = null, errorBlocks = 0;
-      for (const e of rows) {
-        const ts = e?.timestamp ?? e?.ts ?? e?.message?.timestamp;
-        if (ts) { const d = new Date(ts); if (!firstTs || d < firstTs) firstTs = d; if (!lastTs || d > lastTs) lastTs = d; }
-        entryTypes[e?.type ?? 'unknown'] = (entryTypes[e?.type ?? 'unknown'] ?? 0) + 1;
-        const msg = e?.message ?? e;
-        const role = msg?.role;
-        if (role) roles[role] = (roles[role] ?? 0) + 1;
-        const u = msg?.usage ?? e?.usage;
-        if (u) { usageSeen++; tokens += Number(u.totalTokens ?? u.input ?? 0) + Number(u.output ?? 0); cost += Number(u.cost?.total ?? 0); }
-        const content = Array.isArray(msg?.content) ? msg.content : (typeof msg?.content === 'string' ? [{ type: 'text', text: msg.content }] : []);
-        for (const b of content) {
-          const bt = b?.type ?? 'unknown';
-          blockTypes[bt] = (blockTypes[bt] ?? 0) + 1;
-          const tn = b?.name ?? b?.toolName ?? b?.tool_name;
-          if (tn) {
-            tools[tn] = (tools[tn] ?? 0) + 1;
-            if (b?.isError || b?.is_error) { toolErrors[tn] = (toolErrors[tn] ?? 0) + 1; errorBlocks++; }
-          } else if (b?.isError || b?.is_error) errorBlocks++;
+      const a = analyzeSessionRows(rows);
+      return { file: resolved, ...a };
+    },
+    // dedup-h #390 — /insights aggregate: the same honest row analysis
+    // fanned over EVERY session file in the dir. Aggregate counters are
+    // merges of per-session fields; tips come from fleet-level patterns
+    // (repeated tool failures, cost concentration, chronic long sessions).
+    insightsAll: async () => {
+      const files = readdirSync(sessionDir).filter((f) => f.endsWith('.jsonl'));
+      const agg = {
+        sessions: 0, unreadable: [], messages: 0, roles: {}, tools: {},
+        toolErrors: {}, tokens: 0, cost: 0, usageRecords: 0, errorBlocks: 0,
+        durationMsTotal: 0, longest: null,
+      };
+      for (const f of files) {
+        const rows = [];
+        try {
+          for (const line of readFileSync(join(sessionDir, f), 'utf-8').split('\n')) {
+            if (!line.trim()) continue;
+            try { rows.push(JSON.parse(line)); } catch { /* torn tail tolerated */ }
+          }
+        } catch { agg.unreadable.push(f); continue; }
+        const a = analyzeSessionRows(rows);
+        agg.sessions++;
+        agg.messages += a.messages;
+        for (const [k, v] of Object.entries(a.roles)) agg.roles[k] = (agg.roles[k] ?? 0) + v;
+        for (const [k, v] of Object.entries(a.tools)) agg.tools[k] = (agg.tools[k] ?? 0) + v;
+        for (const [k, v] of Object.entries(a.toolErrors)) agg.toolErrors[k] = (agg.toolErrors[k] ?? 0) + v;
+        agg.tokens += a.tokens; agg.cost += a.cost; agg.usageRecords += a.usageRecords;
+        agg.errorBlocks += a.errorBlocks;
+        if (a.durationMs != null) {
+          agg.durationMsTotal += a.durationMs;
+          if (!agg.longest || a.durationMs > agg.longest.durationMs) {
+            agg.longest = { file: f, durationMs: a.durationMs };
+          }
         }
       }
-      const messages = Object.values(roles).reduce((a, b) => a + b, 0);
       const tips = [];
-      if (messages === 0) tips.push('会话无任何消息——可能是空会话文件或导入截断');
-      const errTools = Object.entries(toolErrors).sort((a, b) => b[1] - a[1]);
+      const errTools = Object.entries(agg.toolErrors).sort((a, b) => b[1] - a[1]);
       if (errTools.length) {
-        const [n, c] = errTools[0];
-        tips.push(`工具 '${n}' 出错 ${c} 次${errTools.length > 1 ? `（共 ${errTools.length} 个出错工具）` : ''}——下次可先 /doctor 或查 deny 规则再跑`);
+        tips.push(`跨会话工具 '${errTools[0][0]}' 累计出错 ${errTools[0][1]} 次——是反复性问题，值得查 deny/env 而非逐次重试`);
       }
-      if (errorBlocks > 3) tips.push(`错误块占比偏高（${errorBlocks} 个）——逐条复盘比继续重试更省 token`);
-      if ((roles.user ?? 0) > 50) tips.push(`用户消息 ${roles.user} 条——长会话上下文成本高，建议 /save 存档后开新会话`);
-      if (cost > 1) tips.push(`本会话成本 $${cost.toFixed(2)}——可设 budget_set 美元上限防失控`);
-      const topTools = Object.entries(tools).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      if (!tips.length) tips.push('无异常信号——会话形态正常');
+      if (agg.errorBlocks > 10) tips.push(`错误块总量 ${agg.errorBlocks}——按工具分布定位根因比散点修复更省`);
+      if (agg.cost > 5) tips.push(`累计成本 $${agg.cost.toFixed(2)}——建议 budget_set 兜底`);
+      if (agg.longest && agg.longest.durationMs > 3_600_000) {
+        tips.push(`最长会话 ${agg.longest.file} 跑了 ${Math.round(agg.longest.durationMs / 60000)}min——长会话成本集中，考虑拆分`);
+      }
+      if (agg.sessions === 0) tips.push('目录下无可分析会话');
+      if (!tips.length) tips.push('聚合面无异常信号');
       return {
-        file: resolved, messages, roles, entryTypes, blockTypes,
-        tools, toolErrors, tokens, cost: Number(cost.toFixed(4)), usageRecords: usageSeen,
-        durationMs: firstTs && lastTs ? lastTs - firstTs : null,
-        firstTs: firstTs?.toISOString?.() ?? null, lastTs: lastTs?.toISOString?.() ?? null,
-        topTools: topTools.map(([name, count]) => ({ name, count })),
+        dir: sessionDir, sessions: agg.sessions, unreadable: agg.unreadable,
+        messages: agg.messages, roles: agg.roles, tools: agg.tools, toolErrors: agg.toolErrors,
+        tokens: agg.tokens, cost: Number(agg.cost.toFixed(4)), usageRecords: agg.usageRecords,
+        errorBlocks: agg.errorBlocks,
+        avgDurationMs: agg.sessions ? Math.round(agg.durationMsTotal / agg.sessions) : null,
+        longest: agg.longest,
+        topTools: Object.entries(agg.tools).sort((a, b) => b[1] - a[1]).slice(0, 5)
+          .map(([name, count]) => ({ name, count })),
         tips,
       };
     },

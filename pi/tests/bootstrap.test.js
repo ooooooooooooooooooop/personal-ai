@@ -700,6 +700,29 @@ test('session_insights: real breakdown + tips; confined to the session dir', asy
     const bad = await host.channel.handle({ type: 'session_insights', path: outside });
     assert.equal(bad.success, false);
     assert.match(String(bad.error), /outside session dir/);
+
+    // dedup-h #390 — aggregate mode fans the same analysis over the dir
+    writeFileSync(join(inst, 'sessions', 's2.jsonl'), [
+      JSON.stringify({ type: 'session', id: 's2', timestamp: '2026-09-23T01:00:00Z', cwd: inst }),
+      JSON.stringify({ type: 'message', message: { role: 'user', timestamp: '2026-09-23T01:00:01Z', content: [{ type: 'text', text: 'again' }] } }),
+      JSON.stringify({ type: 'message', message: { role: 'assistant', timestamp: '2026-09-23T01:30:00Z', content: [
+        { type: 'toolCall', name: 'bash', id: 't9' },
+        { type: 'toolResult', name: 'read', isError: true, content: 'e' },
+      ], usage: { totalTokens: 1000, output: 200, cost: { total: 0.08 } } } }),
+    ].join('\n'));
+    const all = await host.channel.handle({ type: 'session_insights', all: true });
+    assert.equal(all.success, true, `aggregate refused: ${all.error}`);
+    const a = all.data;
+    assert.equal(a.sessions, 2);
+    assert.equal(a.messages, 4, 'two sessions merged');
+    assert.equal(a.tools.bash, 3, 'tool counts merged across sessions');
+    assert.equal(a.toolErrors.bash, 1);
+    assert.equal(a.toolErrors.read, 1);
+    assert.equal(a.tokens, 6200);
+    assert.ok(Math.abs(a.cost - 0.5) < 1e-9);
+    assert.ok(a.longest?.file === 's2.jsonl' && a.longest.durationMs === 1800000);
+    assert.equal(a.avgDurationMs, 1200000, '(600000+1800000)/2');
+    assert.ok(a.tips.some((t) => t.includes('bash')), 'aggregate tip names the repeat offender');
   } finally { host.dispose(); }
 });
 

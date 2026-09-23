@@ -626,6 +626,13 @@ export class HostChannel {
         case 'session_insights': {
           // Per-session breakdown + deterministic tips (dedup-h #7 analogue):
           // the facade parses the transcript file — confined to sessionDir.
+          // dedup-h #390: `all: true` fans the same analysis over the whole
+          // session dir — fleet aggregate, no single-path requirement.
+          if (cmd.all) {
+            if (!this.sessions?.insightsAll) return reply(false, undefined, 'aggregate insights unavailable');
+            const r = await this.sessions.insightsAll();
+            return r?.error ? reply(false, r, r.error) : reply(true, r);
+          }
           if (!this.sessions?.insights) return reply(false, undefined, 'session insights unavailable');
           const r = await this.sessions.insights(cmd.path);
           return r?.error ? reply(false, r, r.error) : reply(true, r);

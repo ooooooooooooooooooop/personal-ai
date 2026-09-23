@@ -3859,9 +3859,25 @@ const SLASH = [
     },
   },
   {
-    cmd: '/insights', label: '会话剖析', hint: '/insights [路径]——单会话分解+建议（默认当前会话）',
+    cmd: '/insights', label: '会话剖析', hint: '/insights [all|路径]——单会话分解+建议，all 聚合全部会话',
     run: async (arg) => {
-      const p = String(arg ?? '').trim() || currentSessionFile;
+      const a = String(arg ?? '').trim();
+      // dedup-h #390 — aggregate mode: fleet stats across the session dir
+      if (a === 'all' || a === '*') {
+        const r = await cmd('session_insights', { all: true });
+        if (!r.success) { addSys(`insights 失败：${r.error ?? '未知'}`, true); return; }
+        const d = r.data ?? {};
+        const top = (d.topTools ?? []).map((t) => `${t.name}×${t.count}`).join(' ') || '无';
+        addSys([
+          `📊 聚合剖析 ${d.sessions ?? 0} 个会话${d.unreadable?.length ? `（${d.unreadable.length} 个不可读）` : ''}`,
+          `总消息 ${d.messages ?? 0} · 总 tokens ${d.tokens ?? 0} · 累计 $${d.cost ?? 0} · 错误块 ${d.errorBlocks ?? 0}`,
+          `时长：均值 ${d.avgDurationMs != null ? `${Math.round(d.avgDurationMs / 60000)}min` : 'n/a'}${d.longest ? ` · 最长 ${Math.round(d.longest.durationMs / 60000)}min（${d.longest.file}）` : ''}`,
+          `工具：${top}`,
+          ...(d.tips ?? []).map((t) => `💡 ${t}`),
+        ].join('\n'));
+        return;
+      }
+      const p = a || currentSessionFile;
       if (!p) { toast('当前会话未落盘——/insights 需要文件会话', 'err'); return; }
       const r = await cmd('session_insights', { path: p });
       if (!r.success) { addSys(`insights 失败：${r.error ?? '未知'}`, true); return; }
