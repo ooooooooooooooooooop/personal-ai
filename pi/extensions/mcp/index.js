@@ -134,20 +134,98 @@ function parseSseBlock(text) {
   return data.length ? data.join('\n') : null;
 }
 
+// M38/dedup-h-#38: remote-MCP OAuth (client_credentials grant — the only
+// grant completable without a browser/callback). spec.oauth = {
+//   tokenUrl, clientId, clientSecret?, scope?, resource? }
+// `resource` is the RFC 8707 resource-indicator OVERRIDE: when set it is
+// sent verbatim as the `resource=` parameter; when absent the indicator
+// defaults to the MCP server URL (the canonical URI of the resource).
+// Authorization-code/PKCE needs a browser dance — out of scope; static
+// bearer stays expressible via spec.headers.
+const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '[::1]']);
+
+function validateOAuthSpec(spec) {
+  const o = spec?.oauth;
+  if (o == null) return null;
+  if (typeof o !== 'object') throw new McpError('oauth must be an object');
+  if (typeof o.tokenUrl !== 'string' || !o.tokenUrl) throw new McpError('oauth.tokenUrl required');
+  let tokenUrl;
+  try { tokenUrl = new URL(o.tokenUrl); } catch { throw new McpError('oauth.tokenUrl is not a URL'); }
+  if (!['https:', 'http:'].includes(tokenUrl.protocol)) throw new McpError('oauth.tokenUrl must be http(s)');
+  // token endpoints carry client secrets — plaintext http is loopback-only
+  if (tokenUrl.protocol === 'http:' && !LOOPBACK_HOSTS.has(tokenUrl.hostname.toLowerCase())) {
+    throw new McpError('oauth.tokenUrl over http is refused off-loopback');
+  }
+  if (typeof o.clientId !== 'string' || !o.clientId) throw new McpError('oauth.clientId required');
+  if (o.clientSecret != null && typeof o.clientSecret !== 'string') throw new McpError('oauth.clientSecret must be a string');
+  if (o.scope != null && typeof o.scope !== 'string') throw new McpError('oauth.scope must be a string');
+  // RFC 8707 §2: resource is an absolute URI and MUST NOT include a fragment.
+  let resource = null;
+  if (o.resource != null) {
+    try { resource = new URL(o.resource); } catch { throw new McpError('oauth.resource is not an absolute URI'); }
+    if (resource.hash) throw new McpError('oauth.resource must not carry a fragment (RFC 8707)');
+    resource = resource.href;
+  }
+  // a static Authorization header AND oauth is ambiguous auth — refuse
+  for (const h of Object.keys(spec.headers ?? {})) {
+    if (h.toLowerCase() === 'authorization') {
+      throw new McpError('spec sets both headers.authorization and oauth — ambiguous credentials');
+    }
+  }
+  return { tokenUrl: tokenUrl.href, clientId: o.clientId, clientSecret: o.clientSecret ?? null, scope: o.scope ?? null, resource };
+}
+
+function oauthTokenManager(oauth, serverUrl) {
+  let cached = null; // { token, expiresAt }
+  const acquire = async () => {
+    const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: oauth.clientId });
+    if (oauth.clientSecret) body.set('client_secret', oauth.clientSecret);
+    if (oauth.scope) body.set('scope', oauth.scope);
+    body.set('resource', oauth.resource ?? serverUrl);
+    const res = await fetch(oauth.tokenUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body,
+    });
+    if (!res.ok) throw new McpError(`oauth token request failed: HTTP ${res.status}`);
+    const doc = await res.json().catch(() => null);
+    if (typeof doc?.access_token !== 'string' || !doc.access_token) throw new McpError('oauth token response lacks access_token');
+    if (String(doc.token_type ?? '').toLowerCase() !== 'bearer') throw new McpError(`oauth token_type '${doc.token_type}' is not bearer`);
+    const ttl = Number.isFinite(doc.expires_in) ? Math.max(0, doc.expires_in) : 3600;
+    cached = { token: doc.access_token, expiresAt: Date.now() + Math.max(0, ttl - 60) * 1000 };
+    return cached.token;
+  };
+  return {
+    token: async () => (cached && Date.now() < cached.expiresAt ? cached.token : acquire()),
+    invalidate: () => { cached = null; },
+    // status surface sees the resolved indicator, never the token
+    describe: () => `oauth client_credentials (resource: ${oauth.resource ?? 'server-url'})`,
+  };
+}
+
 function httpTransport(spec) {
+  const oauthSpec = validateOAuthSpec(spec); // throws on malformed — fail closed at connect
+  const tokens = oauthSpec ? oauthTokenManager(oauthSpec, spec.url) : null;
   let sessionId = null;
   const post = async (msg, signal) => {
-    const res = await fetch(spec.url, {
+    const doPost = async () => fetch(spec.url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         accept: 'application/json, text/event-stream',
         ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
         ...(spec.headers ?? {}),
+        ...(tokens ? { authorization: `Bearer ${await tokens.token()}` } : {}),
       },
       body: JSON.stringify(msg),
       signal,
     });
+    let res = await doPost();
+    // 401 → the cached token was rejected: invalidate and retry ONCE
+    if (res.status === 401 && tokens) {
+      tokens.invalidate();
+      res = await doPost();
+    }
     const sid = res.headers.get('mcp-session-id');
     if (sid) sessionId = sid;
     return res;
@@ -175,6 +253,7 @@ function httpTransport(spec) {
     callHttp: async (msg, signal) => readResponse(await post(msg, signal)),
     notify: async (msg) => { await post(msg).catch(() => {}); },
     close: () => {},
+    oauth: tokens?.describe() ?? null,
   };
 }
 
@@ -203,6 +282,7 @@ export class McpClient {
     const transport = spec.url ? httpTransport(spec) : stdioTransport(spec);
     const client = new McpClient(transport);
     client.strippedEnv = transport.strippedEnv ?? [];
+    client.oauth = transport.oauth ?? null;
     try {
       await client.initialize({ timeoutMs });
     } catch (err) {
@@ -635,6 +715,7 @@ export default function mcpExtension(pi) {
           ? `  ${name}: FAILED to connect/list — no tools exposed`
           : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
         if (entry.client?.strippedEnv?.length) lines.push(`    env stripped (injection-vector keys): ${entry.client.strippedEnv.join(', ')}`);
+        if (entry.client?.oauth) lines.push(`    auth: ${entry.client.oauth}`);
         if (entry.dead?.size) lines.push(`    removed by server (list_changed): ${[...entry.dead].join(', ')}`);
         if (entry.lastRefresh) lines.push(`    last refresh ${entry.lastRefresh.at} (+${entry.lastRefresh.added}/-${entry.lastRefresh.removed})`);
         for (const t of entry.tools) lines.push(`    ${t}`);

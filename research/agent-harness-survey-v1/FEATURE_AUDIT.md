@@ -1934,3 +1934,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | UI | ask 卡 form 分支：按 schema 渲 text/textarea/number/checkbox/select+必填星+description title → 收集值对象 → decision_resolve | `.ask-field` CSS + 渲染分支 |
 
 **语义差异**：超时/中断=诚实未答（非自动默认）；表单值不写审计明细（只记 `answered:keys`——表单可含敏感输入）。
+
+### 28.38 648 清单逐条核销 #7：dedup-h #38 remote-mcp oauthResource RFC8707（2026-09-23）
+
+**行**：`dedup-h	38	mcp-tools	remote-mcp: oauthResource RFC8707 override field`（远程 MCP 服务器 OAuth 的 RFC8707 resource 指示符覆盖字段）。
+
+**判定**：**IMPLEMENTED**——HTTP 传输加 `spec.oauth` client_credentials 授予：
+
+| 面 | 落点 | 证据 |
+|---|---|---|
+| 覆盖字段 | `spec.oauth.resource` → token 请求 `resource=` 原样发出；缺省=服务器 URL（RFC8707 资源的规范 URI） | `resource override` 测试断言 token POST body |
+| 校验 | `validateOAuthSpec` 连接期 fail-closed：tokenUrl 必须 http(s) 且 http 仅 loopback（携 client_secret 禁明文外发）；resource 必须绝对 URI 且无 fragment（RFC8707 §2）；`headers.authorization` 与 oauth 并存=歧义凭据拒绝；类型全检 | `malformed specs fail closed` 7 组断言 |
+| 令牌管理 | form-encoded client_credentials；token_type 必须 bearer；expires_in-60s 提前刷新；401 → invalidate + 单次重试；令牌只进 Authorization 头，`/mcp` 只见 `oauth client_credentials (resource: …)` 描述符 | `401 re-auths once` 测试 |
+| 边界 | authorization_code/PKCE 需浏览器回调——明示越界；静态 bearer 仍走 `spec.headers` | 头注释 |
+
+**注**：候选描述混入了"等连接中 MCP 服务器"的另一特征（wait-for-connect）——那是连接行为，本行按 oauthResource 字段核销；等待语义已在 connect 超时链覆盖。

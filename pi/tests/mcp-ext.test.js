@@ -13,7 +13,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import mcpExtension, { McpClient, sanitizeSpecEnv } from '../extensions/mcp/index.js';
+import mcpExtension, { McpClient, McpError, sanitizeSpecEnv } from '../extensions/mcp/index.js';
 import { GovernanceKernel } from '../../host/src/core/governance.js';
 import { AttestedPolicy } from '../../host/src/core/policy.js';
 import { makeDecide } from '../src/bootstrap/decide.js';
@@ -139,6 +139,113 @@ test('mcp http: JSON + SSE answers, session-id echo', async () => {
     }
   } finally {
     server.close();
+  }
+});
+
+// M38/dedup-h-#38: remote-MCP OAuth — client_credentials grant with the
+// RFC 8707 `resource` override field. Real http servers assert the token
+// request body, the bearer on MCP posts, and 401 re-auth.
+const makeOAuthRig = (seen, opts = {}) => {
+  const token = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      seen.tokenBodies.push(Object.fromEntries(new URLSearchParams(body)));
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify(opts.badToken ?? { access_token: `tok-${seen.tokenBodies.length}`, token_type: 'bearer', expires_in: 3600 }));
+    });
+  });
+  const mcp = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      seen.authHeaders.push(req.headers['authorization'] ?? null);
+      if (opts.rejectFirst && msg.method === 'tools/call' && !seen.rejected) {
+        // the first real tool call is refused — client must re-auth + retry
+        seen.rejected = true;
+        res.statusCode = 401; res.end(); return;
+      }
+      const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+      res.setHeader('content-type', 'application/json');
+      if (msg.method === 'initialize') {
+        res.end(JSON.stringify(rpcRes({ protocolVersion: '2025-06-18', serverInfo: { name: 'oauthfake' } })));
+      } else if (!msg.id) { res.statusCode = 202; res.end(); }
+      else res.end(JSON.stringify(rpcRes({ content: [{ type: 'text', text: 'ok' }] })));
+    });
+  });
+  return { token, mcp };
+};
+
+test('mcp oauth: client_credentials sends RFC8707 resource override; bearer rides posts', async () => {
+  const seen = { tokenBodies: [], authHeaders: [] };
+  const { token, mcp } = makeOAuthRig(seen);
+  await new Promise((r) => token.listen(0, '127.0.0.1', r));
+  await new Promise((r) => mcp.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${mcp.address().port}/mcp`;
+    const client = await McpClient.connect({
+      url,
+      oauth: {
+        tokenUrl: `http://127.0.0.1:${token.address().port}/token`,
+        clientId: 'pai-client', clientSecret: 's3cret', scope: 'mcp:tools',
+        resource: 'https://api.example.com/mcp', // RFC8707 override
+      },
+    });
+    try {
+      assert.equal(client.serverInfo.serverInfo.name, 'oauthfake');
+      await client.callTool('anything', {});
+      const tb = seen.tokenBodies[0];
+      assert.equal(tb.grant_type, 'client_credentials');
+      assert.equal(tb.client_id, 'pai-client');
+      assert.equal(tb.client_secret, 's3cret');
+      assert.equal(tb.scope, 'mcp:tools');
+      assert.equal(tb.resource, 'https://api.example.com/mcp');
+      assert.ok(seen.authHeaders.every((h) => h === 'Bearer tok-1'));
+      assert.equal(client.oauth, 'oauth client_credentials (resource: https://api.example.com/mcp)');
+    } finally { client.close(); }
+  } finally { token.close(); mcp.close(); }
+});
+
+test('mcp oauth: absent override defaults resource to the server URL; 401 re-auths once', async () => {
+  const seen = { tokenBodies: [], authHeaders: [] };
+  const { token, mcp } = makeOAuthRig(seen, { rejectFirst: true });
+  await new Promise((r) => token.listen(0, '127.0.0.1', r));
+  await new Promise((r) => mcp.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${mcp.address().port}/mcp`;
+    const client = await McpClient.connect({
+      url,
+      oauth: { tokenUrl: `http://127.0.0.1:${token.address().port}/token`, clientId: 'pai' },
+    });
+    try {
+      const res = await client.callTool('anything', {});
+      assert.equal(res.content[0].text, 'ok');
+      assert.equal(seen.tokenBodies[0].resource, url); // default = server URL
+      assert.equal(seen.tokenBodies.length, 2);        // 401 → one re-auth
+      // init + initialized-notify with tok-1, call refused→retry + one extra
+      // frame may share the cache — assert every post carried SOME bearer
+      // and the retry used the fresh token
+      assert.ok(seen.authHeaders.every((h) => h?.startsWith('Bearer tok-')));
+      assert.equal(seen.authHeaders.at(-1), 'Bearer tok-2');
+      assert.equal(client.oauth, 'oauth client_credentials (resource: server-url)');
+    } finally { client.close(); }
+  } finally { token.close(); mcp.close(); }
+});
+
+test('mcp oauth: malformed specs fail closed at connect', async () => {
+  const url = 'http://127.0.0.1:1/mcp';
+  const base = { tokenUrl: 'http://127.0.0.1:1/token', clientId: 'c' };
+  for (const spec of [
+    { url, oauth: { clientId: 'c' } },                                              // no tokenUrl
+    { url, oauth: { ...base, tokenUrl: 'notaurl' } },                               // bad tokenUrl
+    { url, oauth: { ...base, tokenUrl: 'http://example.com/token' } },              // http off-loopback
+    { url, oauth: { ...base, resource: 'rel/path' } },                              // non-absolute resource
+    { url, oauth: { ...base, resource: 'https://x/#frag' } },                       // fragment (RFC8707)
+    { url, headers: { Authorization: 'Bearer x' }, oauth: base },                   // ambiguous auth
+    { url, oauth: { ...base, clientSecret: 42 } },                                  // wrong type
+  ]) {
+    await assert.rejects(() => McpClient.connect(spec), McpError);
   }
 });
 
