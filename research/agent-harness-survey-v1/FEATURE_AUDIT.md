@@ -2371,3 +2371,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED（诚实变体切片）。源条目（OpenClaw v2026.3.2）= pdf 工具 + Anthropic/Google 原生 PDF + 非原生模型 extraction fallback + `pdfModel/pdfMaxBytesMb/pdfMaxPages` 配置。我方 pin 引擎 `pi-ai@0.85.1` 的 `InputContent = TextContent|ImageContent`——**没有 document/PDF content block，provider 层无 application/pdf**：原生字节载具在引擎侧不存在，不可伪造。故 extraction（既有零依赖 `extractPdf`：FlateDecode 流→BT/ET 文本算子）是**全模型通用载具**而非降级——这恰是源特性的 fallback 半边，在我方架构下是唯一诚实路径。
 - **落地**：`pdf_read` 模型工具——workdir 限定路径（逃逸/绝对外部拒）、`%PDF` magic 或 `.pdf` 校验、`<instance>/pdf.json {maxBytesMb,maxPages}` 实例上限（畸形文件 fail-closed 拒用；per-call 参数只能收紧）、`/Type /Page` 计数页帽、`question` 走 `feature-models.json` `pdf` 委派分析（pdfModel 对等——缺条目回落会话模型分析，无 runtime 则返回原文让调用模型自析，绝不捏造答案）。`judgeCall` 泛化 feature 名，judge 默认不变。
 - **证据**：真 PDF fixture（deflate 流+文本算子）提取命中；逃逸/missing/非 PDF/不可提取全拒；字节帽与页帽各报真实计数；per-call 不可放宽实例帽；畸形 pdf.json 拒；question 委派携提取文本、无模型时回落原文+诚实标注；pdftool 5/5、pi 全套 425/421/0/4。
+
+### 28.80 648 清单逐条核销 #54：dedup-h #564 AgentDefinition disallowedTools per-subagent（2026-09-23）
+
+- **判定**：ALREADY_COVERED（M76 已落）。源条目（v2.96.0）= AgentDefinition.disallowedTools 每子代理工具黑名单 + **与会话级 --disallowedTools 取并集**。我方同构：`.pai/agents/*.md` frontmatter `tools_deny: bash,deploy`（envCapable 信任闸——repo 植入的 profile 不能收窄执法面）→ `PAI_TOOLS_DENY` env 戳记 → 子进程 bootstrap 合入 `initialDeny`（= policy toolPolicy 会话级 deny ∪ profile 级 deny，正是 union 语义）→ `excludeTools` 引擎隐藏 + ToolSurface denied 集执法，session-inherited。
+- **边界面**：pai-channel body 可执法；不可执法的 target（foreign harness）在 delegate 准入即拒（`unenforceable_tools_deny`），绝不"声明了但没生效"。
+- **证据**：M76/M94 信任闸测试（tools_deny load under trust/strip without）；M76 non-pai-channel 拒派 + pai-channel 委派通行；pi 全套 425/421/0/4 现役绿。
