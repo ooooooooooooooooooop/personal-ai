@@ -283,6 +283,39 @@ export async function startHost({
   delegationCommand = null, // (target, task) => shell cmd — delegate_task stays unregistered without it
 } = {}) {
   const runId = randomUUID();
+  // dedup-h #233 outbound proxy control (Codex config.json proxy.mode
+  // analogue): <instance>/proxy.json {mode:'off'|'env'|<proxy-url>, noProxy?}
+  // is operator-private. Applied BEFORE any fetch — NODE_USE_ENV_PROXY is
+  // evaluated once by undici's global dispatcher on the first request, so
+  // the file must be read here and a runtime toggle honestly can't apply.
+  const proxyFile = join(instanceRoot, 'proxy.json');
+  const proxyState = { configured: 'off', active: null, appliesOnRestart: false };
+  {
+    let spec = null;
+    try { spec = JSON.parse(readFileSync(proxyFile, 'utf-8')); }
+    catch (e) { if (e?.code !== 'ENOENT') throw new Error(`proxy.json: ${e.message}`); }
+    const mode = String(spec?.mode ?? 'off').trim();
+    proxyState.configured = mode || 'off';
+    if (mode && mode !== 'off') {
+      if (mode === 'env') {
+        process.env.NODE_USE_ENV_PROXY = '1';
+        proxyState.active = { mode: 'env' };
+      } else {
+        let u;
+        try { u = new URL(mode); } catch { throw new Error(`proxy.json: mode '${mode}' is not off|env|a proxy URL`); }
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+          throw new Error(`proxy.json: scheme '${u.protocol}' unsupported (http/https only)`);
+        }
+        process.env.NODE_USE_ENV_PROXY = '1';
+        process.env.HTTP_PROXY = mode;
+        process.env.HTTPS_PROXY = mode;
+        if (Array.isArray(spec?.noProxy) && spec.noProxy.every((x) => typeof x === 'string' && x)) {
+          process.env.NO_PROXY = spec.noProxy.join(',');
+        }
+        proxyState.active = { mode: 'url', url: mode, noProxy: spec?.noProxy ?? [] };
+      }
+    }
+  }
   // Operator-ask registry: constructed right after core (it audits), but the
   // kernel needs an ask callback at construction — lazy closure resolves it.
   let asks = null;
@@ -1149,6 +1182,7 @@ export async function startHost({
       body: 'pi',
       extensions_loaded: extensionsResult.extensions.length,
       extension_errors: extensionsResult.errors.length,
+      proxy: proxyState.active ? proxyState.configured : 'off',
     },
   });
 
@@ -1687,6 +1721,31 @@ export async function startHost({
     // M100 — shared by reference with the loop extension; setFallbacks
     // mutates this object so the new chain applies on the next agent_end.
     fallbacks: fallbackCfg,
+    // dedup-h #233 proxy.status/set — config_set{key:'proxy_mode'} writes
+    // <instance>/proxy.json; undici binds the env-proxy decision on the
+    // first fetch, so the honest answer is "applies on next restart".
+    proxy: {
+      status: () => ({ ...proxyState }),
+      set: (spec) => {
+        const mode = String(spec?.mode ?? '').trim();
+        if (mode !== 'off' && mode !== 'env') {
+          let u;
+          try { u = new URL(mode); } catch { return { error: `proxy_mode must be off|env|a proxy URL, got '${mode}'` }; }
+          if (u.protocol !== 'http:' && u.protocol !== 'https:') {
+            return { error: `proxy scheme '${u.protocol}' unsupported (http/https only)` };
+          }
+        }
+        const doc = { mode };
+        if (Array.isArray(spec?.noProxy) && spec.noProxy.every((x) => typeof x === 'string' && x)) doc.noProxy = spec.noProxy;
+        const tmp = `${proxyFile}.tmp-${process.pid}`;
+        writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+        renameSync(tmp, proxyFile);
+        proxyState.configured = mode;
+        proxyState.appliesOnRestart = true;
+        core.audit.write({ kind: 'PROXY_MODE_SET', runId, data: { mode } });
+        return { mode, appliesOnRestart: true };
+      },
+    },
     imageDetail,
     // /map — operator surface over the same builder repo_map wraps
     repoMap: {

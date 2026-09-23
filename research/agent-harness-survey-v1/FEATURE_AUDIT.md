@@ -2185,3 +2185,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - `trustAllWorktrees:true`（operator-private 顶层 flag）→ worktree 继承主检出授权；主检出未授权照样拒
 - `setTrust` 改 doc 合并写，不再丢顶层 flag；`project_trust_status` 暴露 `worktree`/`trustAllWorktrees`；`project_trust_set{allWorktrees}` 切换 + `PROJECT_TRUST` 审计
 - 测试：host trust 套件——默认隔离/开关继承/主根未授权不发明授权/flag 跨写保留
+
+### 28.55 648 清单逐条核销 #27：dedup-h #233 proxy.mode 出站 HTTP 代理控制（2026-09-23）
+
+**行**：`dedup-h	233	cli-flags	proxy: config.json proxy.mode出站HTTP代理控制`。
+
+**判定**：**IMPLEMENTED**——`<instance>/proxy.json` `{mode:'off'|'env'|<url>, noProxy[]}`（operator-private）：
+
+- `pi/src/bootstrap/host.js`：startHost 顶部（任何 fetch 之前）读文件应用 `NODE_USE_ENV_PROXY` + `HTTP(S)_PROXY`/`NO_PROXY`——Node 24 undici 全局 dispatcher 在首个请求时绑定 env 代理（实测死代理立即 ECONNREFUSED、运行时切换不生效——诚实报 appliesOnRestart）；非法 spec 抛错拒启
+- `host/src/core/channel.js`：`config_set{key:'proxy_mode'}` 走 proxy 立面原子写文件 + `PROXY_MODE_SET` 审计；`get_state` 携带 `proxy{configured,active}` 实态
+- 子进程面：hook/job/delegate 继承 env——代理语义一致覆盖
+- 测试：bootstrap `proxy.json` 应用+状态+持久化+非 http scheme 拒

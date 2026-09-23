@@ -95,7 +95,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -131,6 +131,7 @@ export class HostChannel {
     this.repoMap = repoMap;
     this.skills = skills;
     this.governance = governance;
+    this.proxy = proxy;
     this.listeners = new Set();
     // M144 unicode_mode: 'auto' resolves once from env; 'ascii' degrades the
     // symbol layer of operator-visible event text (chrome, never content)
@@ -217,8 +218,14 @@ export class HostChannel {
           if (!this.exec?.run) return reply(false, undefined, 'exec facade unavailable');
           return reply(true, await this.exec.run(String(cmd.command ?? '')));
         }
-        case 'get_state':
-          return reply(true, await this.session.getState());
+        case 'get_state': {
+          const st = await this.session.getState();
+          // dedup-h #233: outbound proxy posture is session-relevant state —
+          // the dispatcher binding was decided at bootstrap and cannot be
+          // re-toggled, so surface what is actually in force.
+          if (this.proxy?.status) st.proxy = this.proxy.status();
+          return reply(true, st);
+        }
         case 'job_spawn': {
           // Operator-spawned durable job (sidebar worktree-creation analogue):
           // {command, worktree?, timeout_ms?} — the exec facade runs it through
@@ -826,6 +833,7 @@ export class HostChannel {
           out.unicode_mode = this.unicodeMode;
           out.charset = resolveCharset(this.unicodeMode);
           if (this.imageDetail) out.image_detail = this.imageDetail.current ?? 'high';
+          if (this.proxy?.status) out.proxy = this.proxy.status();
           return reply(true, out);
         }
         case 'config_set': {
@@ -867,8 +875,17 @@ export class HostChannel {
               this.imageDetail.current = v;
               return reply(true, { image_detail: v });
             }
+            // dedup-h #233 proxy.mode outbound control — writes
+            // <instance>/proxy.json; undici binds the env-proxy decision on
+            // first fetch so the facade honestly reports appliesOnRestart.
+            case 'proxy_mode': {
+              if (!this.proxy?.set) return reply(false, undefined, 'proxy facade unavailable');
+              const out = this.proxy.set({ mode: value, noProxy: cmd.noProxy });
+              if (out?.error) return reply(false, undefined, `config_set: ${out.error}`);
+              return reply(true, out);
+            }
             default:
-              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode, image_detail)`);
+              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode, image_detail, proxy_mode)`);
           }
         }
         case 'modes_read': {

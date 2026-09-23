@@ -98,7 +98,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null }) {
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -1089,6 +1089,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     imageDetail,
     leases,
     repoMap,
+    proxy,
     // M64 instance inventory — a cross-category purge PREVIEW surface: every
     // persisted artifact class under the instance root with file/byte counts.
     // Deletion goes through instance.purge: an explicit per-category action

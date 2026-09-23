@@ -793,3 +793,44 @@ test('session_directory hook relocates sessionDir; broken hook refuses closed', 
     /session_directory|exited 3/i,
   );
 });
+
+// candidates-open dedup-h #233: proxy.mode outbound control —
+// <instance>/proxy.json applies env-proxy at bootstrap; config_set writes
+// the file and honestly reports appliesOnRestart.
+test('proxy.json: env-proxy applied at bootstrap; config_set persists + reports restart', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-pxy-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-pxy-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  writeFileSync(join(inst, 'proxy.json'), JSON.stringify({ mode: 'http://127.0.0.1:8080', noProxy: ['localhost'] }));
+  const host = await startHost({
+    instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+  });
+  try {
+    assert.equal(process.env.NODE_USE_ENV_PROXY, '1', 'env-proxy flag applied');
+    assert.equal(process.env.HTTP_PROXY, 'http://127.0.0.1:8080');
+    assert.equal(process.env.NO_PROXY, 'localhost');
+    const audits = readdirSync(join(inst, 'audit')).flatMap((f) =>
+      readFileSync(join(inst, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(audits.some((e) => e.kind === 'HOST_STARTED' && e.data?.proxy === 'http://127.0.0.1:8080'),
+      'proxy posture audited at start');
+
+    const st = await host.channel.handle({ type: 'get_state' });
+    assert.equal(st.data.proxy?.active?.url, 'http://127.0.0.1:8080', 'status surfaces active proxy');
+
+    // config_set persists + honestly says the dispatcher is already bound
+    const r = await host.channel.handle({ type: 'config_set', key: 'proxy_mode', value: 'off' });
+    assert.equal(r.success, true, `config_set refused: ${r.error}`);
+    assert.equal(r.data.appliesOnRestart, true);
+    assert.equal(JSON.parse(readFileSync(join(inst, 'proxy.json'), 'utf-8')).mode, 'off');
+
+    const bad = await host.channel.handle({ type: 'config_set', key: 'proxy_mode', value: 'socks5://x' });
+    assert.equal(bad.success, false, 'non-http scheme refused');
+  } finally {
+    delete process.env.NODE_USE_ENV_PROXY; delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY; delete process.env.NO_PROXY;
+    host.dispose();
+  }
+});
