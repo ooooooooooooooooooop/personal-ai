@@ -1890,3 +1890,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 建议 | 纯规则：工具出错 TopN→排查提示、错误块>3→复盘提示、用户消息>50→存档提示、cost>$1→预算提示、空会话→截断提示 | 同上 tips 断言 |
 | 边界 | 路径限定 sessionDir（realpath resolve 前缀），越界/不存在/不可读→诚实 error 返回 | 越界断言 `outside session dir` |
 | 通道/UI | channel `session_insights{path}`；UI `/insights [path]`（默认当前会话文件）渲染分解+tips | channel 30/30 + dom-gate 复用 |
+
+### 28.35 648 清单逐条核销 #4：dedup-h #12 自定义 session-id（2026-09-23）
+
+**行**：`dedup-h	12	shell-tools	custom session-id flag (--create-with-session-id)`（创建任务时指定 UUID 会话 ID，ID 校验为 UUID）。
+
+**判定**：**IMPLEMENTED**——引擎 `NewSessionOptions.id` 本就支持注入（`SessionManager.create(cwd,dir,{id})`），缺口全在操作员面与校验：
+
+| 面 | 落点 | 证据 |
+|---|---|---|
+| 透传 | `sessionManagers.create` 转发 options → 引擎 `assertValidSessionId` | pi adapter index.js |
+| 校验 | 操作员面收严格 UUID（8-4-4-4-12 hex）——比引擎的宽松字符集更贴合"validated as UUID"语义；非法→创建前拒绝 | `session_new id` e2e |
+| 碰撞 | **双层**：同实例 pinned-id 集（会话文件懒写，文件名/头扫描拦不住未落盘双胞胎）+ 持久会话头 `id` 扫描；命中→`already exists` 拒绝不覆盖 | e2e：未落盘同 id 拒 + 持久头同 id 拒 |
+| 通道/UI | `session_new{id?}` 透传（ephemeral 分支不变）；UI `/newid <uuid>` | channel + slash |
+
+**回归**：pi e2e 21/21（本文件模式跑通）；host channel 30/30。

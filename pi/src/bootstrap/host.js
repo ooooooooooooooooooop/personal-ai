@@ -1143,6 +1143,10 @@ export async function startHost({
   // not a monkeypatched field on the upstream session object (which could
   // be frozen and silently degrade the non-exportable contract).
   const ephemeralSessions = new WeakSet();
+  // dedup-h #12: ids pinned via session_new{id} this instance — lazily-written
+  // session files can't be found by a header scan yet, so the set is the
+  // collision fence until they land on disk.
+  const pinnedSessionIds = new Set();
   const sessionInfo = (s) => ({
     path: s.path,
     id: s.id,
@@ -1185,7 +1189,29 @@ export async function startHost({
       }
       return rows;
     },
-    create: async () => {
+    create: async (id) => {
+      // Custom session id (dedup-h #12 / --create-with-session-id analogue):
+      // operator-pinned UUID, validated before any file is created; an id
+      // that collides with an existing session is refused, not adopted.
+      // Collision checks: (a) ids pinned earlier this instance — session
+      // files are lazily written, so an unwritten twin would slip past a
+      // filename scan; (b) persisted session headers (first line `id`).
+      if (id != null) {
+        const sid = String(id).trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sid)) {
+          return { error: `session id '${sid}' is not a UUID (expected 8-4-4-4-12 hex)` };
+        }
+        if (pinnedSessionIds.has(sid.toLowerCase())) return { error: `session id '${sid}' already exists` };
+        try {
+          for (const f of readdirSync(sessionDir).filter((x) => x.endsWith('.jsonl'))) {
+            const head = readFileSync(join(sessionDir, f), 'utf-8').split('\n', 1)[0];
+            try { if (JSON.parse(head)?.id === sid) return { error: `session id '${sid}' already exists` }; } catch { /* skip unparseable */ }
+          }
+        } catch { /* sessionDir absent → no persisted collisions */ }
+        const s = await rebuildSession(sessionManagers.create(workdir, sessionDir, { id: sid }), 'new');
+        pinnedSessionIds.add(sid.toLowerCase());
+        return { id: s.sessionId ?? null, file: s.sessionManager?.getSessionFile?.() ?? null };
+      }
       const s = await rebuildSession(sessionManagers.create(workdir, sessionDir), 'new');
       return { id: s.sessionId ?? null, file: s.sessionManager?.getSessionFile?.() ?? null };
     },

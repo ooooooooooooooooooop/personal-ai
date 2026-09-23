@@ -409,7 +409,8 @@ export class HostChannel {
             return reply(true, await this.sessions.createEphemeral());
           }
           if (!this.sessions?.create) return reply(false, undefined, 'sessions facade unavailable');
-          return reply(true, await this.sessions.create());
+          const made = await this.sessions.create(cmd.id);
+          return made?.error ? reply(false, made, made.error) : reply(true, made);
         }
         case 'session_switch': {
           if (!this.sessions?.open) return reply(false, undefined, 'sessions facade unavailable');

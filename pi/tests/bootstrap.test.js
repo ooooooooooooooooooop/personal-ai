@@ -702,3 +702,45 @@ test('session_insights: real breakdown + tips; confined to the session dir', asy
     assert.match(String(bad.error), /outside session dir/);
   } finally { host.dispose(); }
 });
+
+// candidates-open dedup-h #12: operator-pinned session id — UUID validated
+// before any file exists; collisions refused, not adopted.
+test('session_new id: custom UUID lands in the filename; bad/colliding ids refuse', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-sid-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: inst, workdir: inst, sessionOptions: { model: stubModel },
+  });
+  try {
+    const uuid = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+    const r = await host.channel.handle({ type: 'session_new', id: uuid });
+    assert.equal(r.success, true, `pinned create refused: ${r.error}`);
+    assert.equal(r.data.id, uuid);
+    assert.ok(String(r.data.file).includes(uuid), 'filename carries the pinned id');
+    // files are lazily written (first message) — the pinned-id set is the
+    // collision fence before anything lands on disk
+    // malformed → refused before any file
+    const bad = await host.channel.handle({ type: 'session_new', id: 'not-a-uuid' });
+    assert.equal(bad.success, false);
+    assert.match(String(bad.error), /not a UUID/);
+    // same id again → collision refused even though nothing is written yet
+    const again = await host.channel.handle({ type: 'session_new', id: uuid });
+    assert.equal(again.success, false);
+    assert.match(String(again.error), /already exists/);
+    // a persisted session header with the id also collides
+    const sid2 = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+    mkdirSync(join(inst, 'sessions'), { recursive: true });
+    writeFileSync(join(inst, 'sessions', `2026-09-23T00-00-00-000Z_${sid2}.jsonl`),
+      JSON.stringify({ type: 'session', version: 3, id: sid2, timestamp: '2026-09-23T00:00:00Z', cwd: inst }) + '\n');
+    const dup = await host.channel.handle({ type: 'session_new', id: sid2 });
+    assert.equal(dup.success, false);
+    assert.match(String(dup.error), /already exists/);
+    // no id → random path still works
+    const rand = await host.channel.handle({ type: 'session_new' });
+    assert.equal(rand.success, true);
+    assert.ok(rand.data.id && rand.data.id !== uuid);
+  } finally { host.dispose(); }
+});

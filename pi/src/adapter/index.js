@@ -126,7 +126,7 @@ const confinedSessionPath = (path, sessionDir) => {
 };
 
 export const sessionManagers = {
-  create: (cwd, sessionDir) => SessionManager.create(cwd, sessionDir),
+  create: (cwd, sessionDir, options) => SessionManager.create(cwd, sessionDir, options),
   // M71: in-memory session — never touches sessionDir; nothing to purge
   inMemory: (cwd) => SessionManager.inMemory(cwd),
   // Open = adopt the file as the live session — future turns APPEND to it.

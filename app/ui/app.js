@@ -3874,6 +3874,20 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #12: operator-pinned session id — UUID validated host-side,
+    // collision with an existing file refused rather than adopted.
+    cmd: '/newid', label: '指定 ID 新会话', hint: '/newid <uuid>——自定义会话 ID 开新会话',
+    run: async (arg) => {
+      const id = String(arg ?? '').trim();
+      if (!id) { toast('用法：/newid <uuid>', 'err'); return; }
+      const r = await cmd('session_new', { id });
+      if (r.success) {
+        addSys(`已开会话 ${r.data?.id ?? id}`, false);
+        switchView('chat'); $('input').focus(); refreshSessions();
+      } else addSys(`新建失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
     cmd: '/resume', label: '继续会话', hint: '弹出会话选择器',
     run: async () => {
       const r = await cmd('session_list');
