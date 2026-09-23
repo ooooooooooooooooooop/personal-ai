@@ -1,0 +1,200 @@
+68580	noise	prose noise
+68585	noise	version header
+68586	dup	hardened migration preserve icon — 迁移保留已有
+68591	noise	version header
+68593	noise	version header
+68596	noise	version header
+68600	dup	open editor files as context — 打开文件上下文已有
+68601	dup	hooks block user prompts — 阻断钩已有
+68603	noise	version header
+68606	noise	prose noise
+68607	noise	prose noise
+68611	noise	docs noise
+68612	noise	docs noise
+68613	noise	prose noise
+68617	noise	version header
+68621	boundary	review in editor — their UI
+68624	boundary	Spaces switching — their UI
+68626	boundary	browser toolbar — their UI
+68629	noise	version header
+68631	noise	version header
+68634	noise	version header
+68636	noise	prose noise
+68642	noise	version header
+68645	boundary	quota display — their UI
+68648	noise	version header
+68650	dup	POST_CASCADE_RESPONSE_WITH_TRANSCRIPT hook — 响应钩已有
+68656	noise	version header
+68658	dup	rules_applied tracking hook — 规则追踪已有
+68660	dup	linux arm64 deb/rpm — 平台产物已有
+68663	noise	pricing noise
+68664	noise	pricing noise
+68665	noise	pricing noise
+68666	noise	pricing noise
+68668	noise	version header
+68669	noise	prose noise
+68672	boundary	model battle groups — their feature
+68673	boundary	leaderboards — their feature
+68677	noise	prose noise
+68688	boundary	loading indicators — their UI
+68692	dup	respect gitignore tree — gitignore已有
+68694	noise	version header
+68699	noise	version header
+68701	noise	version header
+68713	noise	version header
+68715	noise	version header
+68724	noise	version header
+68727	boundary	chat with maps — their feature
+68728	boundary	mermaid diagrams — their feature
+68729	boundary	cascade suggestions — their feature
+68732	noise	version header
+68737	noise	version header
+68740	boundary	codemaps beta — their feature
+68742	noise	version header
+68744	noise	version header
+68752	boundary	vibe and replace — their feature
+68755	noise	version header
+68757	noise	version header
+68759	boundary	voice input — their feature
+68760	dup	@-mention conversations — 会话引用已有
+68763	dup	@-mention browser tabs — 标签引用已有
+68766	dup	.codeiumignore in ~/.codeium global — 全局忽略已有
+68768	noise	version header
+68770	noise	version header
+68774	noise	version header
+68776	noise	version header
+68779	dup	share code/text/console logs — 分享已有
+68783	dup	user-editable plan pickup — 计划编辑已有
+68786	noise	ui noise
+68788	boundary	conversation menu — their UI
+68790	noise	version header
+68792	noise	prose noise
+68794	noise	version header
+68797	noise	version header
+68807	noise	version header
+68812	dup	workflows saved prompts — 工作流已有
+68813	dup	workflows via slash — 斜杠调用已有
+68814	dup	cascade creates workflows — 生成工作流已有
+68815	dup	.windsurf/workflows dir — 目录已有
+68818	dup	.windsurf/rules dir — 规则目录已有
+68826	noise	prose noise
+68828	dup	@mention docs retrieval — 文档引用已有
+68832	noise	version header
+68833	noise	prose noise
+68834	noise	prose noise
+68835	noise	prose noise
+68839	noise	pricing noise
+68842	noise	prose noise
+68845	noise	version header
+68847	noise	pricing noise
+68848	noise	pricing noise
+68849	noise	pricing noise
+68851	dup	auto-top off max limits — 自动充值已有
+68856	noise	version header
+68859	noise	pricing noise
+68861	noise	version header
+68864	noise	pricing noise
+68866	noise	version header
+68868	boundary	deploys beta — their platform
+68869	boundary	deploy same project — their platform
+68877	boundary	clickable links — their UI
+68881	noise	prose noise
+68883	noise	prose noise
+68884	noise	version header
+68887	noise	version header
+68890	noise	version header
+68895	dup	edits count toward LOC analytics — 统计计入已有
+68897	dup	message held during outage delivered — 断线保留已有
+68899	noise	version header
+68904	dup	config changes ordered application — 序贯应用已有
+68906	noise	version header
+68912	dup	deb uninstall keeps apt keyring — 密钥环保留已有
+68917	dup	stop subagents individually — 单独停止已有
+68918	boundary	tab status indicators — their UI
+68919	dup	mcp_config no spurious warnings — 校验修复已有
+68920	dup	up/down prompt history — 历史导航已有
+68923	noise	version header
+68927	noise	version header
+68929	dup	hide Cascade options when disabled — 条件隐藏已有
+68930	boundary	quota banners filter — their UI
+68932	dup	revert mid-turn cancels first — 回滚取消已有
+68935	dup	edit queued messages — 队列编辑已有
+68938	noise	version header
+68939	dup	Restricted Mode nested object block CVE — 嵌套封堵已有
+68940	dup	recent sessions instant transcript — 会话缓存已有
+68942	dup	archive offers close PRs+child sessions — 级联归档已有
+68966	boundary	mode switch windows — their UI
+68970	boundary	30-day sessions default — their UI
+68971	dup	problems sent to local when disabled — 降级路由已有
+68974	boundary	filtering controls — their UI
+68976	boundary	tab close behavior — their UI
+68984	boundary	sidebar toggle — their UI
+68989	noise	perf internal
+68999	noise	prose noise
+69000	noise	prose noise
+69002	noise	prose noise
+69010	noise	prose noise
+69012	noise	prose noise
+69018	dup	tab in-IDE search signals — 信号扩展已有
+69027	dup	reconnect banner on drop — 断连横幅已有
+69029	dup	no flash on brief drop — 抖动抑制已有
+69030	dup	bash→Git Bash not WSL stub — 解析修复已有
+69031	dup	startup timeout 6s — 超时调整已有
+69032	dup	WSL path resolution — 路径修复已有
+69033	noise	prose noise
+69035	dup	remote extensions stability — 远程稳定已有
+69045	dup	remote extensions stability — 同上dup
+69048	dup	fusion without lead model — 模型解耦已有
+69059	noise	prose fragment
+69075	noise	prose noise
+69128	dup	restart confirm counts working agents — 重启确认计数已有
+69135	dup	skill frontmatter auto-approvals — 技能权限已有
+69153	dup	diff zones close on commit — 提交关闭已有
+69158	noise	prose noise
+69159	dup	commit gen reads global rules — 规则上下文已有
+69161	noise	prose noise
+69162	dup	click commit gen — 提交生成已有
+69163	noise	perf internal
+69166	dup	orphan ACP cleanup on startup — 孤儿清理已有
+69167	noise	perf internal
+69168	noise	prose noise
+69170	noise	prose noise
+69171	noise	prose noise
+69172	noise	perf internal
+69173	noise	prose noise
+69178	noise	prose noise
+69180	noise	prose noise
+69181	noise	prose noise
+69182	noise	prose noise
+69183	noise	prose noise
+69184	noise	prose noise
+69186	noise	prose noise
+69189	noise	prose noise
+69190	noise	prose noise
+69192	noise	perf internal
+69194	dup	problems to local disabled — 同上dup
+69197	dup	sudo prompts no hang — 挂起修复已有
+69200	noise	version header
+69201	dup	no telemetry before account resolves — 遥测门已有
+69203	noise	version header
+69206	dup	ACP+hooks off in Restricted Mode — 受限模式封锁已有
+69216	boundary	participant names — their UI
+69218	noise	version header
+69220	boundary	mention icons — their UI
+69222	boundary	usage page link — their UI
+69223	dup	devin.* settings honored — 设置生效已有
+69228	boundary	timeline navigator — their UI
+69231	noise	version header
+69233	noise	version header
+69235	dup	cloud sessions auto-reconnect — 自动重连已有
+69240	dup	autonomous edits reviewable diffs — 可审diff已有
+69241	dup	ACU in /usage — 用量显示已有
+69242	dup	enterprise login policies CLI — 策略执行已有
+69244	noise	version header
+69246	dup	ACU usage display — 同上dup
+69251	noise	version header
+69254	noise	version header
+69256	noise	version header
+69258	noise	version header
+69259	noise	prose noise
+69264	noise	version header

@@ -1,0 +1,200 @@
+25144	noise	lang noise
+25145	noise	lang noise
+25146	noise	lang noise
+25149	dup	cloud project+local agent coordinator — 协调器已有
+25152	dup	Slack bug channel delegation — 频道委派已有
+25156	dup	cloud project — 已有
+25159	dup	Slack delegation — 已有
+25163	dup	cloud project — 已有
+25166	dup	Slack delegation — 已有
+25170	dup	cloud project — 已有
+25173	dup	Slack delegation — 已有
+25180	boundary	Origin-hosted repos — their product
+25186	boundary	Origin repos — their product
+25192	boundary	Origin repos — their product
+25198	boundary	Origin repos — their product
+25200	noise	nav noise
+25202	noise	nav noise
+25204	noise	nav noise
+25206	noise	nav noise
+25207	dup	My Machines laptop connect — 机器接入已有
+25212	dup	My Machines — 已有
+25217	dup	My Machines — 已有
+25222	dup	My Machines — 已有
+25296	boundary	Codebase tab — their UI
+25298	boundary	Codebase tab — their UI
+25300	boundary	Codebase tab — their UI
+25302	boundary	Codebase tab — their UI
+25366	boundary	synced repos — their product
+25369	boundary	repo browse+PR — their product
+25371	boundary	repo settings — their product
+25375	boundary	synced repos — their product
+25378	boundary	repo browse — their product
+25380	boundary	repo settings — their product
+25384	boundary	synced repos — their product
+25387	boundary	repo browse — their product
+25389	boundary	repo settings — their product
+25393	boundary	synced repos — their product
+25396	boundary	repo browse — their product
+25398	boundary	repo settings — their product
+25403	boundary	diff inspect — their product
+25409	boundary	diff inspect — their product
+25415	boundary	diff inspect — their product
+25421	boundary	diff inspect — their product
+25424	dup	skill Use as Mode — 技能模式已有
+25426	dup	skill mode — 已有
+25428	dup	skill mode — 已有
+25430	dup	skill mode — 已有
+25433	dup	add plugins/skills/MCPs/rules one place — 统一扩展面已有
+25435	dup	extensions one place — 已有
+25438	dup	extensions one place — 已有
+25440	dup	extensions one place — 已有
+25487	noise	nav noise
+25490	noise	nav noise
+25493	noise	nav noise
+25496	noise	nav noise
+25498	noise	version noise
+25500	dup	disabled_tools config — 工具禁用已有
+25501	boundary	Ctrl+Y yank — their UI
+25503	boundary	diff gray — their UI
+25507	noise	version noise
+25509	dup	Ask/Plan read-only webfetch+notebook_read — 模式工具面已有
+25510	dup	Agent Plugins 1.0.0 format — 插件格式已有
+25512	dup	background shells tray Ctrl+B — 后台任务盘已有
+25514	dup	Esc twice 3s interrupt — 双击中断已有
+25516	dup	/fast Lightning fallback — 快模选择已有
+25520	noise	version noise
+25522	dup	ACU usage /usage — 用量命令已有
+25523	dup	autonomous edits reviewable diffs — 差异评审已有
+25528	dup	plugins list blocked by policy — 策略拦截可见已有
+25529	noise	version noise
+25532	dup	compact earlier background — 提前压缩已有
+25534	dup	revert preview irreversible warnings — 不可逆警告已有
+25537	dup	web_search tool — 搜索工具已有
+25538	noise	model internal
+25540	noise	release noise
+25541	noise	release noise
+25542	dup	/revert step picker — 回退选择器已有
+25547	dup	Ctrl+R fuzzy prompt search — 历史模糊搜索已有
+25548	boundary	auth pages — their UI
+25551	dup	/handoff to cloud — 云端交接已有
+25556	dup	did-you-mean slash commands — 命令建议已有
+25560	dup	.devin/hooks.v1.json — hooks配置已有
+25564	dup	paginated agent questions — 分页提问已有
+25565	dup	/mode interactive dropdown — 模式选择已有
+25566	dup	/mode dropdown — 已有
+25567	boundary	duration display — their UI
+25568	noise	version noise
+25569	noise	version noise
+25571	noise	version noise
+25572	boundary	footer clickable — their UI
+25573	dup	/mode dropdown — 已有
+25580	noise	version noise
+25582	noise	disclaimer noise
+25583	noise	footer noise
+25586	noise	nav noise
+25587	noise	nav noise
+25588	noise	nav noise
+25589	noise	nav noise
+25595	noise	docs internal
+25596	dup	commands run sequence cd — 命令序列已有
+25597	dup	2min command timeout — 超时已有
+25598	noise	docs internal
+25599	dup	command history outputs — 命令历史已有
+25600	dup	click command jump timestamp — 定位已有
+25601	boundary	copy output — their UI
+25602	noise	docs internal
+25604	noise	docs internal
+25605	noise	docs internal
+25609	noise	docs internal
+25613	dup	unmute reverses mute — 静音反转已有
+25614	dup	(aside) ignore message — 旁注消息已有
+25615	dup	snapshot: prefix — 快照前缀已有
+25616	dup	playbook: prefix — 剧本前缀已有
+25618	noise	disclaimer noise
+25619	noise	footer noise
+25623	boundary	follow edits — their UI
+25624	boundary	⌘I — their UI
+25627	dup	cite code deep links — 引用定位已有
+25629	boundary	Ask Devin — their UI
+25630	boundary	Deep Mode — their UI
+25631	boundary	share link — their UI
+25633	dup	auto-close PRs inactivity — 不活动关PR已有
+25634	dup	@file_name reference — 文件引用已有
+25636	dup	prompt feedback — 提示反馈已有
+25638	noise	tabs internal
+25639	noise	tabs internal
+25643	dup	diagnostics errors shown — 诊断已有
+25649	noise	docs internal
+25650	noise	docs internal
+25654	noise	disclaimer noise
+25655	noise	footer noise
+25657	noise	nav noise
+25658	noise	version noise
+25660	noise	nav noise
+25666	noise	prose noise
+25667	dup	sleep/@Devin wake — 休眠唤醒已有
+25669	noise	prose noise
+25670	boundary	Cmd+G — their UI
+25672	boundary	IDE accept — their UI
+25682	boundary	auto-join domains — their product
+25684	boundary	usage alerts — their product
+25687	noise	docs internal
+25688	boundary	Cmd+Enter send — their UI
+25699	dup	Universal Planner loops — 循环规划已有
+25700	noise	docs internal
+25703	dup	forbidden actions abide — 禁令遵守已有
+25705	noise	nav noise
+25707	boundary	chart — their UI
+25715	noise	prose noise
+25720	dup	duplicate permission detection — 重复权限拒绝已有
+25722	noise	docs internal
+25724	noise	docs internal
+25725	noise	docs internal
+25730	noise	prose noise
+25731	noise	prose noise
+25753	noise	prose noise
+25757	noise	prose noise
+25758	dup	adjust plan mid-work — 计划调整已有
+25759	noise	prose noise
+25762	dup	confidence score no session — 置信评分已有
+25764	dup	DeepWiki integration — 代码库理解已有
+25765	dup	auto-detect codebase scan !ask — 扫描触发已有
+25771	dup	ticket comment plan+questions — 工单摘要已有
+25772	noise	prose noise
+25778	noise	prose noise
+25781	noise	prose noise
+25786	noise	prose noise
+25788	noise	nav noise
+25840	noise	nav noise
+25846	noise	prose noise
+25854	noise	disclaimer noise
+25856	noise	version noise
+25860	noise	version noise
+25861	noise	version noise
+25863	noise	version noise
+25864	noise	version noise
+25865	dup	cd read-only resolve paths fail-closed — 路径解析fail-closed已有
+25866	noise	version noise
+25867	dup	unknown slash fail instantly — 未知命令已有
+25870	dup	invalid config value no discard — 配置容错已有
+25873	dup	interrupted update repair dangling — 安装自愈已有
+25875	noise	version noise
+25876	noise	version noise
+25877	dup	ACP elicitation third-party — 询问协议已有
+25879	dup	notebook edits preserve fields — 编辑保真已有
+25881	noise	version noise
+25882	noise	version noise
+25883	dup	queued message interrupts turn — 排队中断已有
+25888	dup	skipping questions no block — 跳过不阻塞已有
+25890	noise	version noise
+25892	noise	version noise
+25893	noise	version noise
+25895	noise	version noise
+25896	noise	version noise
+25897	noise	version noise
+25900	noise	version noise
+25901	noise	version noise
+25904	noise	version noise
+25905	noise	version noise
+25907	dup	Other field typing no drop — 输入处理已有

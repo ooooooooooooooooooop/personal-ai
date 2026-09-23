@@ -1,0 +1,200 @@
+69721	dup	thinking/context per session persist — 会话级档位已有
+69722	dup	backfill content on return mid-gen — 回补生成已有
+69723	dup	history artifact loss fix — 产物修复已有
+69724	dup	cross-device sync+auto reconnect — 同步恢复已有
+69725	dup	tool status truncates reply fix — 截断修复已有
+69726	dup	cancel shows user-cancelled state — 取消态已有
+69727	noise	fix prose
+69728	noise	fix prose
+69729	dup	enterprise proxy+dingtalk proxy — 代理兼容已有
+69730	boundary	hide empty entries — their UI
+69731	dup	expert deep link with prompt — 深链带参已有
+69732	noise	fix prose
+69733	dup	session reuse fix — 会话复用修复已有
+69734	noise	perf prose
+69735	dup	hide intermediate files in share — 中间文件过滤已有
+69736	dup	disabled skill still searchable fix — 状态生效修复已有
+69737	dup	mobile reconnect stability — 重连稳定已有
+69738	dup	deny step skips only that step — 单步拒绝粒度已有
+69739	noise	fix prose
+69740	dup	pinned tasks lost after upgrade fix — 置顶保留修复已有
+69741	noise	fix prose
+69742	dup	compressed session continue fix — 压缩续聊修复已有
+69743	noise	prose noise
+69744	dup	deleted HTML empty state — 空态已有
+69745	noise	fix prose
+69746	noise	perf prose
+69747	dup	streaming order fix — 顺序修复已有
+69748	noise	fix prose
+69749	dup	follow-up after complete fix — 续问修复已有
+69750	noise	perf prose
+69751	dup	cancel then send fix — 取消续发修复已有
+69752	noise	fix prose
+69753	dup	auth state stuck fix — 授权修复已有
+69754	dup	docs auto-enable connector — 连接器联动已有
+69755	dup	archived tasks full load — 归档加载已有
+69756	dup	input preserved on scene switch — 草稿保留已有
+69757	dup	proactive auth guide+dedup prompts — 授权引导已有
+69758	noise	fix prose
+69759	dup	task default perms+workspace — 权限默认已有
+69760	noise	perf prose
+69761	noise	fix prose
+69762	dup	worktree parallel tasks — worktree并行已有
+69763	boundary	self-check tool — their platform
+69764	boundary	3D/PPT gen — their feature
+69765	dup	drag files+collapse paste — 拖拽+折叠粘贴已有
+69766	noise	platform noise
+69767	boundary	recent expert search — their UI
+69768	dup	reasoning intensity per task — 推理档位已有
+69769	dup	multi-date monthly schedule — 多日调度已有
+69770	noise	perf prose
+69771	dup	draft/compression order fix — 草稿+错序修复已有
+69772	dup	Enter send Cmd+Enter newline — 键位已有
+69773	dup	long-term memory load stable — 记忆加载已有
+69774	dup	peak scheduling dedup — 高峰调度已有
+69775	noise	prose noise
+69776	noise	perf prose
+69777	dup	cross-talk between tasks fix — 串话修复已有
+69778	dup	numeric skill name fix — 名称容错已有
+69779	noise	fix prose
+69780	noise	fix prose
+69781	noise	fix prose
+69782	noise	fix prose
+69783	dup	subagent sandbox infinite wait fix — 沙箱死等修复已有
+69784	noise	fix prose
+69785	noise	fix prose
+69786	boundary	inspiration clone — their feature
+69787	noise	perf prose
+69788	dup	dedup re-upload existing files — 重复上传拦截已有
+69789	dup	subtask stuck preparing fix — 子任务修复已有
+69790	noise	fix prose
+69791	noise	fix prose
+69792	noise	fix prose
+69793	noise	fix prose
+69794	noise	fix prose
+69795	noise	fix prose
+69796	noise	fix prose
+69797	noise	fix prose
+69798	boundary	share tokens — their platform
+69799	dup	weak-net resume stability — 弱网续聊已有
+69800	noise	ui prose
+69801	dup	large markdown preview hang fix — 大预览修复已有
+69802	dup	non-system drive/CJK path fix — 路径修复已有
+69803	dup	wake/weak-net white screen fix — 白屏修复已有
+69804	dup	memory growth crash fix — 内存修复已有
+69805	dup	task context lost on restart fix — 上下文恢复已有
+69806	dup	lockscreen remote state persist — 状态持久已有
+69807	noise	fix prose
+69808	dup	deep link cold start fix — 深链修复已有
+69809	noise	fix prose
+69810	noise	fix prose
+69811	dup	admin whitelist stale model fix — 白名单刷新已有
+69812	dup	check-network quick entry — 诊断入口已有
+69813	dup	char-level streaming — 逐字流已有
+69814	dup	file first then text — 文件先行已有
+69815	dup	per-turn runtime display — 耗时显示已有
+69816	dup	batch delete/archive tasks — 批量操作已有
+69817	dup	installed skills search — 技能搜索已有
+69818	noise	prose noise
+69819	dup	autostart setting — 自启已有
+69820	dup	file-change detail toggle — 详情开关已有
+69821	noise	prose noise
+69822	dup	skill toggle toast — 反馈已有
+69823	dup	deeplink to doc — 深链已有
+69824	dup	python connector runtime — 连接器运行时已有
+69825	dup	dir watch perf — 监听优化已有
+69826	noise	prose noise
+69827	noise	perf prose
+69828	noise	perf prose
+69829	noise	ui prose
+69830	noise	fix prose
+69831	dup	history lost after upgrade fix — 升级保留已有
+69832	noise	fix prose
+69833	dup	builtin skills update on upgrade — 技能随升级已有
+69834	dup	stuck thinking fix — 卡死修复已有
+69835	noise	fix prose
+69836	noise	fix prose
+69837	noise	fix prose
+69838	noise	fix prose
+69839	dup	dup reply bubbles on reconnect fix — 重连去重已有
+69840	noise	fix prose
+69841	noise	fix prose
+69842	noise	fix prose
+69843	noise	fix prose
+69844	noise	fix prose
+69845	noise	fix prose
+69846	noise	fix prose
+69847	dup	history wiped on restart fix — 历史保留已有
+69848	dup	post-compress continuation fix — 压缩续写修复已有
+69849	noise	fix prose
+69850	noise	fix prose
+69851	noise	fix prose
+69852	noise	fix prose
+69853	noise	fix prose
+69854	dup	user-edited title overwrite fix — 标题保护已有
+69855	noise	fix prose
+69856	noise	fix prose
+69857	noise	fix prose
+69858	noise	fix prose
+69859	noise	fix prose
+69860	dup	selection insert position fix — 插入位置修复已有
+69861	noise	fix prose
+69862	noise	perf prose
+69863	dup	artifact index bloat breaks recovery fix — 索引膨胀修复已有
+69864	noise	fix prose
+69865	noise	fix prose
+69866	dup	internal msgs hidden in history — 内部消息过滤已有
+69867	dup	strip large fields socket — 字段剥离已有
+69868	dup	deeplink workdir set — 目录设置已有
+69869	noise	fix prose
+69870	dup	auto-reconnect on sync drop — 自动重连已有
+69871	noise	fix prose
+69872	dup	inquiry list lost on switch fix — 清单保留已有
+69873	noise	fix prose
+69874	noise	fix prose
+69875	noise	fix prose
+69876	dup	first message editable — 首消息编辑已有
+69877	noise	fix prose
+69878	dup	unsupported format prompt — 格式提示已有
+69879	noise	fix prose
+69880	dup	first-msg edit resend replay fix — 回放修复已有
+69881	dup	SSE CJK garbled fix — 乱码修复已有
+69882	noise	fix prose
+69883	dup	high-risk approval panel crash fix — 审批修复已有
+69884	dup	bg session truncate fix — 截断修复已有
+69885	dup	reconnect on account switch — 切换重连已有
+69886	noise	fix prose
+69887	noise	fix prose
+69888	noise	fix prose
+69889	dup	prompt-enhance backflow misjudge fix — 回流误判修复已有
+69890	dup	silent model fallback Auto fix — 静默兜底修复已有
+69891	noise	fix prose
+69892	boundary	deep login launch — their platform
+69893	dup	unsupported image toast switch model — 引导换模已有
+69894	noise	prose noise
+69895	dup	parallel subtask thinking overwrite fix — 并行覆盖修复已有
+69896	dup	external chart libs in preview — 外部库加载已有
+69897	noise	fix prose
+69898	dup	fallback default dir on perm error — 目录回退已有
+69899	dup	plugin list-disk desync fix — 缓存同步修复已有
+69900	noise	fix prose
+69901	noise	fix prose
+69902	noise	fix prose
+69903	noise	prose noise
+69904	dup	extension plugin hook — 扩展钩已有
+69905	noise	prose noise
+69906	boundary	project plan rich text — their platform
+69907	dup	enterprise agent identity config — 身份配置已有
+69908	boundary	PPT preview steps — their feature
+69909	boundary	canvas embed preview — their feature
+69910	dup	long-term memory view+edit — 记忆编辑已有
+69911	dup	hotkey cloud sync — 键位同步已有
+69912	dup	forced upgrade capability — 强升已有
+69913	noise	prose noise
+69914	boundary	connector search — their UI
+69915	noise	platform noise
+69916	dup	cost hints on gen tools — 消耗提示已有
+69917	noise	prose noise
+69918	noise	platform noise
+69919	dup	feedback paste image — 反馈插图已有
+69920	dup	auto-backup on file modify — 修改备份已有

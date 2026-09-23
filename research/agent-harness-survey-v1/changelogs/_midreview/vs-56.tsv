@@ -1,0 +1,200 @@
+18207	noise	lint internal
+18208	noise	lint internal
+18209	noise	lint internal
+18210	noise	lint internal
+18227	noise	review bot internal
+18230	noise	model check internal
+18231	boundary	assistant polish — their UI
+18233	noise	model spec internal
+18235	noise	apply internal
+18236	noise	windows internal
+18240	noise	prompt internal
+18241	noise	rebrand internal
+18242	noise	enums internal
+18244	noise	move internal
+18245	noise	builds internal
+18246	noise	abort internal
+18247	noise	typing internal
+18248	noise	ranges internal
+18249	noise	newline internal
+18252	noise	token internal
+18253	noise	time internal
+18254	noise	time internal
+18256	noise	action internal
+18257	noise	redirect internal
+18259	noise	diff internal
+18260	noise	test internal
+18261	noise	test internal
+18262	noise	test internal
+18263	noise	test internal
+18264	noise	test internal
+18265	noise	test internal
+18266	noise	test internal
+18267	noise	test internal
+18268	noise	test internal
+18269	noise	test internal
+18270	noise	test internal
+18271	noise	test internal
+18272	noise	space internal
+18273	boundary	border flash — their UI
+18274	noise	svg internal
+18275	noise	reranker internal
+18276	noise	hub errors internal
+18277	noise	org errors internal
+18278	noise	param internal
+18279	noise	loop internal
+18280	noise	copy internal
+18281	noise	comments internal
+18282	noise	diff internal
+18283	noise	prefetch internal
+18284	noise	ci internal
+18285	boundary	onboarding block — their UI
+18288	noise	debugger internal
+18289	noise	edit internal
+18291	noise	branch noise
+18302	noise	branch noise
+18315	boundary	middle click tabs — their UI
+18324	noise	message internal
+18326	noise	branch noise
+18330	noise	branch noise
+18338	noise	watsonx internal
+18342	boundary	sticky headers — their UI
+18344	noise	DX internal
+18345	dup	warning when last input pruned — 裁剪警告已有
+18347	noise	stderr internal
+18354	dup	rules cache — 规则缓存已有
+18355	noise	test internal
+18365	noise	names noise
+18369	noise	url internal
+18371	noise	region internal
+18375	boundary	mode alert — their UI
+18376	boundary	reasoning btn — their UI
+18378	noise	block loading internal
+18381	noise	getter internal
+18382	noise	script internal
+18383	dup	high default pruning length — 裁剪默认值已有
+18384	noise	JAVA_HOME internal
+18385	noise	loading internal
+18386	dup	reasoning budget tokens — 预算token已有
+18387	boundary	word break — their UI
+18388	noise	script internal
+18391	boundary	markdown display — their UI
+18392	boundary	tailwind — their UI
+18393	noise	stringify internal
+18394	dup	ignore invalid JSON messages — 容错已有
+18395	noise	permalinks internal
+18396	dup	alwaysApply local rule — 规则属性已有
+18397	noise	revert internal
+18399	boundary	tailwind — their UI
+18400	noise	slug internal
+18401	dup	tool arg checking utils — 参数校验已有
+18403	noise	model reccs internal
+18409	boundary	shiki lines — their UI
+18410	boundary	edit rules button — their UI
+18411	noise	release internal
+18413	dup	prompts starting with / — 斜杠提示已有
+18414	dup	refresh with retries — 重试刷新已有
+18415	noise	view error internal
+18416	noise	args internal
+18417	noise	env type internal
+18418	noise	timestamp internal
+18420	boundary	corners — their UI
+18421	dup	dangling messages cleanup — 悬空消息清理已有
+18423	dup	no infinite backoff loops — 退避上限已有
+18426	noise	format internal
+18428	noise	patterns internal
+18429	noise	release internal
+18430	dup	inactive only when not continuing — 会话保持已有
+18432	boundary	pasting images — their UI
+18433	noise	pathname internal
+18434	noise	pattern internal
+18437	dup	queue messages to binary — 消息队列已有
+18438	noise	EDT internal
+18439	boundary	reload login — their UI
+18442	noise	restart internal
+18444	noise	branch noise
+18446	dup	agent/tool message construction — 消息合成已有
+18467	boundary	tailwind migration — their UI
+18470	noise	hotfix internal
+18494	dup	unrolling markdown blocks — 展开已有
+18500	dup	hot reloading .continue/rules — 规则热载已有
+18508	noise	rule tool internal
+18511	noise	fetch internal
+18512	dup	fetch extra CA certs+NO_PROXY — 证书代理已有
+18515	noise	branch noise
+18516	noise	release internal
+18518	noise	rules internal
+18525	noise	rule internal
+18527	noise	rule internal
+18528	noise	rule internal
+18538	noise	hotfix internal
+18539	noise	names noise
+18541	noise	minor internal
+18543	noise	rule internal
+18546	noise	branch noise
+18547	noise	branch noise
+18549	noise	branch noise
+18550	dup	fetch secrets .continue/.env — 秘密路径已有
+18551	noise	docs internal
+18562	boundary	active file toolbar — their UI
+18565	noise	impl internal
+18566	noise	providers internal
+18579	noise	branch noise
+18583	dup	context dedup autocomplete — 上下文去重已有
+18585	boundary	submenu — their UI
+18596	boundary	org button login — their UI
+18597	dup	alwaysApply property rules — 规则控制已有
+18605	noise	branch noise
+18606	boundary	edit prompt config — their UI
+18607	noise	docs internal
+18613	noise	test internal
+18625	dup	respect HTTP_PROXY env — 代理环境已有
+18627	noise	DataLogger internal
+18628	dup	cancel autocomplete timeout — 超时取消已有
+18631	dup	plist /etc custom env — 环境读取已有
+18632	noise	signin internal
+18639	noise	branch noise
+18640	noise	branch noise
+18642	dup	raise edit/apply streaming errors — 流错误上抛已有
+18644	dup	include rules in edit requests — 规则注入已有
+18647	noise	prompt internal
+18649	dup	gpt/o-series chat only — 能力标记已有
+18652	noise	hotfix internal
+18659	noise	svg internal
+18660	dup	don't break completion unsupported FS — 降级容错已有
+18668	noise	test internal
+18674	noise	mercury internal
+18675	boundary	smooth scrolling — their UI
+18682	noise	adjustments internal
+18685	dup	reasoningBudgetTokens config — 推理预算已有
+18687	dup	requestOptions carry over — 请求选项透传已有
+18688	noise	rename internal
+18689	noise	converter internal
+18690	noise	branch noise
+18696	noise	messages internal
+18708	noise	branch noise
+18709	noise	branch noise
+18713	noise	docs internal
+18717	boundary	no-select — their UI
+18719	boundary	ellipsized — their UI
+18721	boundary	pointer — their UI
+18722	dup	tools architecture error handling — 工具错误处理已有
+18723	noise	branch noise
+18737	boundary	profiles deeplink — their UI
+18738	noise	schema internal
+18739	noise	docs internal
+18740	noise	branch noise
+18744	noise	branch noise
+18745	noise	localhost internal
+18750	noise	hub client internal
+18754	noise	ci internal
+18759	noise	lint internal
+18760	noise	script internal
+18762	noise	config internal
+18769	dup	no imports outside workspace — 工作区边界已有
+18774	noise	watsonx internal
+18779	noise	URI internal
+18784	noise	branch noise
+18786	noise	dir internal
+18791	noise	assistant internal
+18793	noise	branch noise

@@ -1,0 +1,200 @@
+1580	dup	/prompts /prompt /compact命令 — command surface
+1581	dup	auto pre-compaction时summary与user message错位修复 — compaction
+1582	dup	A2A contextId分组保持 — session continuity
+1583	dup	fetch tool读网页进context+max size缩减 — web fetch
+1584	boundary	BYOK 1M context/git panel改进
+1585	variant	Token counter显示开关
+1586	dup	Typed Memory默认启用(同1101) — typed memory
+1587	noise	app-server docs更新
+1588	boundary	Cline API provider
+1589	dup	custom API request timeout可配 — timeout config
+1590	cand	proxy: OpenAI-compatible可设Host header+legacy API
+1591	boundary	Cloudflare AI Gateway provider
+1592	boundary	Cloudflare Workers AI provider
+1593	boundary	OpenCode Go provider
+1594	dup	local Gemini CLI auth访问模型 — auth reuse
+1595	boundary	Baseten provider
+1596	dup	models-store.json动态catalog+Radius gateway — catalog
+1597	boundary	assistant panel Claude
+1598	dup	qwen review cost-ledger聚合usage — cost ledger
+1599	variant	SSE rate-limit retryInitialDelayMs/retryMaxDelayMs
+1600	boundary	qwen review publish-assets
+1601	dup	sessions_spawn bare model alias解析 — delegate model
+1602	dup	per-call timeoutMs(image/video/music/TTS) — tool timeout
+1603	dup	pre-prompt context diagnostics — diagnostics
+1604	dup	models.json只覆baseUrl走proxy保留其余 — proxy override
+1605	boundary	openclaw infer hub
+1606	dup	Provider Index preview rows冷fallback — catalog fallback
+1607	variant	chat-template thinking映射(chat_template.jinja)
+1608	boundary	Cline Pass provider picker
+1609	dup	doctor窄修profiled tool-section — config doctor
+1610	dup	flat-rate订阅不显示cost估计 — cost display
+1611	dup	custom model 401不再触发自动logout — auth hygiene
+1612	dup	Copilot multi-turn重答旧prompts修复 — transport
+1613	dup	provider-executed tool activity不再整丢 — tool reporting
+1614	noise	GPT-5.1-Codex-Max发布
+1615	boundary	GPT-6 Astra async tools/steering
+1616	dup	/v1/chat/completions response_format透传 — API compat
+1617	dup	SSE assistant chunk先发 — stream start
+1618	noise	gemini-3.1-flash-lite
+1619	dup	image requests走shared provider HTTP transport — media transport
+1620	dup	explicit image-model配置优先于native-vision skip — media config
+1621	dup	inbound media understanding(image/audio/video)+fallbacks — media understanding
+1622	noise	Opus5/Kimi K3/GPT Live realtime
+1623	dup	models auth login --provider openai — auth CLI
+1624	noise	Kimi-K2-Thinking
+1625	noise	GPT-5.2
+1626	boundary	vLLM onboarding provider
+1627	noise	Codex CLI models官方支持
+1628	boundary	Connected accounts个人provider账户
+1629	boundary	providerAuthAliases共享env vars
+1630	dup	provider账户增删/优先级/清理 — account management
+1631	dup	encrypted reasoning支持 — reasoning transport
+1632	dup	shared model/media request transport overrides — transport override
+1633	boundary	Nous Portal快速setup
+1634	noise	4新providers+模型列表刷新
+1635	dup	Roo provider启动预热model list — warmup
+1636	cand	model-pool: 同provider多API key自动rotation
+1637	dup	/login fuzzy搜索filter — picker UX
+1638	boundary	signal-cli JSON-RPC provider
+1639	boundary	登录卡列free model promotions
+1640	dup	reasoning-capable默认thinking level提升 — thinking default
+1641	boundary	Together AI provider
+1642	boundary	transcript capture+meeting summaries
+1643	boundary	AI SDK 7升级/Ollama native provider
+1644	dup	voice provider时隐藏tts tool — tool gating
+1645	noise	RISC-V image pasting
+1646	dup	models.json models按id merge进built-in — config merge
+1647	boundary	Agent Teams Web UI
+1648	boundary	AWS Control overview
+1649	dup	config自定义multi-agent roles+命名迁移 — agent roles
+1650	boundary	Web Shell拖图/fullscreen panel
+1651	dup	team feature禁用时隐藏相关tools — feature gating
+1652	variant	claude-cli runner+session_status tool+adaptive pruning
+1653	dup	cross-agent subagent spawn走目标agent的channel account — spawn routing
+1654	dup	built-in tool schema注明defaults/bounds/enums — schema quality
+1655	dup	thread routing保持各channel announce delivery — thread routing
+1656	dup	Plan mode重构为sub-agent架构 — plan subagent
+1657	dup	Bash/Agent/Skill tool description瘦身 — schema瘦身
+1658	dup	sub-agent批量生成时stop失效修复 — cancel
+1659	dup	telemetry interceptor崩溃致delegation失败修复 — delegation crash
+1660	dup	system prompt全覆盖重写(role/tool rules/通知/工作流) — prompt engineering
+1661	boundary	Task Flow substrate managed-vs-mirrored
+1662	dup	SDK initialize的agents/systemPrompt/appendSystemPrompt正确注入 — SDK init
+1663	boundary	WebShell subagent snapshot callback
+1664	cand	agent-frontmatter: maxTurns/background/initialPrompt/effort/disallowedTools/memory字段
+1665	boundary	chat可attach任意文件类型
+1666	dup	/workspace /add-dir命令 — workspace commands
+1667	dup	rules popover(workspace/global rule files启停) — rules UI
+1668	boundary	desktop deep link新建session
+1669	dup	"/"快速action菜单 — command palette
+1670	noise	Authorization header测试
+1671	boundary	$ZED_PICK_PID调试变量
+1672	dup	JS REPL文档+config — js_repl已实装
+1673	boundary	DeploySearch included_files预填
+1674	boundary	context servers环境变量配置
+1675	boundary	GoToPreviousSymbol/GoToNextSymbol
+1676	boundary	fold actions
+1677	boundary	HTML tag autoclosing
+1678	boundary	buffer-local marks('a-'z)
+1679	boundary	截断条目(内容不全) — 无法判,标boundary
+1680	boundary	super modifier keybinds
+1681	boundary	standalone window编辑
+1682	boundary	vim command mode v1(:w/:%s)
+1683	dup	响应生成中发新消息打断LLM — steer已实装
+1684	dup	spawn_agent tool子agent并行 — delegate_task已实装
+1685	dup	embedded runner idle-stream timeout可配 — stream timeout
+1686	dup	browser/canvas/nodes快照迁details.media — media unification
+1687	dup	artifact declarations只走out-of-band channel — artifact channel
+1688	boundary	proxy agent走@openclaw/proxyline
+1689	noise	"更强reasoning models"泛述
+1690	boundary	Feishu Drive comment-event
+1691	dup	每轮注入group chat context(name/participants/reply guidance) — group context
+1692	dup	Repo context推理能力改进 — context
+1693	boundary	existingShareLink原位更新share link
+1694	dup	Ctrl+R输入历史反搜索 — input history
+1695	boundary	Interactive Browser用户可直接操作
+1696	cand	/test命令:跑命令非零退出把输出进chat
+1697	boundary	本地模型下载+自动选runtime backend
+1698	cand	hook-events: llm_input/llm_output hook payloads
+1699	noise	prompt hooks文档改进
+1700	boundary	agent自建custom tools("add a tool that...")
+1701	boundary	WeCom AI Bot消息注入sessions
+1702	dup	auth profile status单次locked store写 — auth write perf
+1703	dup	CDP phase-specific readiness诊断+loopback host别名 — browser diagnostics
+1704	dup	--agent <agent>启动参数 — agent select
+1705	boundary	agent error/等输入时也可feedback
+1706	dup	search结果去重+throttling — search perf
+1707	dup	.env.example占位token被复制时fail startup — credential hygiene
+1708	boundary	test:restart:gateway benchmark
+1709	boundary	登录选项简化(中国站/国际站/企业域名)
+1710	boundary	signal-cli startup timeout
+1711	dup	streaming/first-token timeout 2→10分钟 — timeout defaults
+1712	dup	大文件targeted edit用search&replace diff格式 — diff edit
+1713	boundary	amazon-bedrock provider
+1714	boundary	Unix socket transport+pagination resume/fork
+1715	boundary	Cloud environment menu
+1716	dup	attach-only manual-cdp复用loopback control plane — browser cdp
+1717	boundary	SSH target/identity同步config(ssh-config aware)
+1718	boundary	extension dialogs/notifications RPC docs
+1719	noise	remote project下skill mention崩溃修复
+1720	dup	dashboard auth tokens session-scoped storage — token storage
+1721	dup	remote auth failures默认rate limiter — rate limit
+1722	dup	headless stream-json input/output format — headless io
+1723	boundary	resolveConnectionHeaders() resolver
+1724	boundary	MCP bundle(.mcpb/.dxt/.zip)加载
+1725	dup	embedding provider calls超时abort — embedding timeout
+1726	dup	Codex Hosted Search/Gemini CLI proxy OAuth — provider auth
+1727	boundary	NVIDIA provider
+1728	dup	remote SSE MCP 401→OAuth prompt(同1221) — remote-mcp族
+1729	boundary	daemon-managed codex remote-control
+1730	dup	RemoteSession.sessions→durable SessionMetadata — session metadata
+1731	variant	scale-to-zero+drain coordination(gateway休眠)
+1732	dup	gateway.http.no_auth finding(auth none可达) — audit finding
+1733	boundary	Web Shell remote-add/connection-add统一
+1734	boundary	OSC 8不支持终端hyperlink降级
+1735	boundary	Interface release(React/Ink rewrite)
+1736	boundary	image viewer zoom/pan/SSH remoting Windows
+1737	boundary	WSL检测+Linux path prompt
+1738	boundary	plugin keyed store(api.runtime.state)
+1739	boundary	remote/Dev Container git checkpoint
+1740	cand	fs-perms: deny-read glob policies+platform sandbox enforce
+1741	dup	Docker下MCP bare commands(npx/npm/node)resolve — command resolution
+1742	cand	hook-events: runtime.events.onAgentEvent/onSessionTranscriptUpdate
+1743	dup	plugin管理操作不误复用前session — session isolation
+1744	noise	sandbox platform包升级
+1745	variant	sandbox toggle persistent→in-memory(session级)
+1746	dup	read-only apply_patch错误清晰化 — error surface
+1747	noise	测试mock loadConfig防真配置
+1748	dup	sandbox读enterprise-managed security policies — policy enforce
+1749	boundary	Gateway restart恢复/plugin convergence repair
+1750	boundary	大项目disk space优化
+1751	cand	schedule-reuse: 排程任务可reuse既有session(sessionId)
+1752	dup	cron list/show --json带computed status — schedule inspect
+1753	dup	cron并发竞态+enqueue-first+drain merge — schedule concurrency
+1754	cand	schedule-params: cron add/edit --model flag
+1755	dup	exact-command排程用lightweight bootstrap context — schedule context
+1756	variant	--light-context cron/heartbeat轻量bootstrap
+1757	dup	cron delivery explicit accountId路由 — schedule routing
+1758	dup	cron doctor报payload.model overrides — schedule doctor
+1759	boundary	Cursor Agent订阅事件源
+1760	dup	cron runtime lazy-load延迟启动 — startup perf
+1761	dup	冷启动"Initializing agent..."加速 — startup perf
+1762	dup	Anthropic default时haiku进agent allowlist — model allowlist
+1763	dup	QuickStart单选provider picker+Codex CLI假expiry修复 — onboarding
+1764	boundary	scheduleSessionTurn/tag cleanup SDK
+1765	variant	prompt cache timer进context指示器
+1766	variant	排程prompt内联extension/skill/MCP引用tags
+1767	dup	Scheduled Task gateway.cmd引号/转义加固 — G1族已实装
+1768	boundary	Web Shell右侧review panel
+1769	boundary	org级custom slash commands管理
+1770	boundary	code comment直接问Devin
+1771	dup	SendMessage "main"别名+user message注入member — routing alias
+1772	dup	secret-contract-api sidecar也查<rootDir>/dist/ — secret sidecar
+1773	dup	--model正确覆盖project配置 — precedence
+1774	dup	/sessions搜索/过滤/排序/分组分离 — session list UX
+1775	dup	API server tool progress streaming — stream
+1776	variant	/clone复制当前branch为新session(/fork仍指fork点)
+1777	dup	model-driven image generation — image gen
+1778	dup	transcript-backed mid-conversation system prompt/tool changes持久 — mid-conv persistence
+1779	dup	gh/glab后PR/MR链接追踪 — pr tracking

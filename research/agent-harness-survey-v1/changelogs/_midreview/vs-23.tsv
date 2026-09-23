@@ -1,0 +1,200 @@
+13058	dup	hook trust bypass启动期 — hook信任已有
+13059	boundary	trusted projects config — their TUI
+13063	noise	auto-review profile override internal
+13082	boundary	approval mode status line — their TUI
+13095	boundary	delay approval while typing — their TUI
+13104	noise	approvals popup test internal
+13115	noise	reviewer→auto-review rebrand internal
+13118	noise	reviewer→auto-review rename internal
+13123	dup	permission state after side conv — 权限态持久已有
+13136	noise	trust persistence fail-soft internal
+13141	noise	permission profile conv internal
+13148	dup	approval sources distinct log — 审批来源审计已有
+13190	noise	trust config CLI override internal
+13201	boundary	apps allowlist — their product
+13221	dup	request_rule guidance — 审批规则提示已有
+13402	noise	originator forward internal
+13421	dup	MCP startup latency trace — 遥测已有
+13427	dup	MCP tool timeout 300s — 超时配置已有
+13428	dup	policy eval reuse MCP — 策略评估已有
+13451	boundary	MCP inventory config — their TUI
+13457	dup	MCP explicit environments — 环境路由已有
+13463	boundary	replay MCP calls TUI — their UI
+13485	boundary	hide bearer_token schema — their config
+13487	dup	relative stdio MCP cwd — cwd锚定已有
+13491	boundary	/mcp diagnostics — their TUI
+13492	noise	MCP threadless read internal
+13493	dup	thread id MCP metadata — 溯源元数据已有
+13496	cand	dummy tools for missing tools — 工具消失占位防断链
+13498	dup	MCP startup cancel — 启动取消已有
+13517	boundary	bypass read-only checks — their internal
+13518	dup	MCP startup timeout — 超时已有
+13519	noise	MCP warnings regression internal
+13520	noise	Windows path test internal
+13521	dup	session/turn headers MCP — 溯源头已有
+13522	dup	MCP turn metadata _meta — 元数据贯通已有
+13524	boundary	elicitation messages — their UI
+13530	noise	tool call meta internal
+13542	boundary	mcp CLI help — their CLI
+13550	noise	cache MCP actions internal
+13555	noise	gateway MCP blocking internal
+13564	boundary	connectors part1 — their product
+13581	noise	tool summary heuristic internal
+13586	noise	null resource args internal
+13607	dup	non-blocking MCP startup — 异步启动已有
+13748	boundary	remote catalog override local — their cloud
+13754	boundary	plugin recommend install — their cloud
+13756	boundary	remote catalog auth gate — their cloud
+13757	noise	remote plugin error status internal
+13768	boundary	server auth plugin install — their cloud
+13773	boundary	skip local curated remote — their cloud
+13780	boundary	cached remote catalog — their cloud
+13791	boundary	remove remote sync — their cloud
+13796	boundary	dedup local/remote plugins — their cloud
+13867	boundary	remote plugin IDs — their cloud
+13883	boundary	remote skill popup — their UI
+13898	boundary	skills/remote endpoints — their cloud
+13913	boundary	public remote skills API — their cloud
+13926	boundary	device auth headless — their product
+13930	boundary	device auth headless — their product
+13974	boundary	GPT-5.6 ctx window — their provider
+14064	boundary	ctx window display — their TUI
+14142	boundary	auto-compact gpt-5-codex — their provider
+14153	dup	proactive delegation guidance — 委派已有
+14159	boundary	Bedrock multi-agent compat — their provider
+14162	boundary	multi-agent V1 Bedrock — their provider
+14193	boundary	multi-agent v2 hints — their product
+14224	dup	delegated patch approval details — 委派审批已有
+14227	dup	rollout_trace agent edges — 追踪已有
+14229	dup	bg agent task auth — 后台认证已有
+14237	noise	ghost subagent entries internal
+14246	noise	predefined subagent name internal
+14256	noise	subagent startup speed internal
+14257	boundary	subagent contrast — their TUI
+14276	dup	project instructions in subagent — 指令继承已有
+14315	noise	route-aware clients internal
+14321	boundary	marketplace plugin import — their cloud
+14325	noise	bundled instructions refresh internal
+14329	boundary	auth elicitation default — their product
+14335	noise	dark-mode logo internal
+14336	noise	Bedrock cred errors internal
+14341	noise	import result counts internal
+14343	boundary	credential broker — their product
+14346	boundary	Bedrock cred guidance — their provider
+14347	noise	import results record internal
+14352	dup	default_tools_approval_mode — 审批模式配置已有
+14357	dup	pause goals on interrupt — 中断暂停已有
+14359	noise	exec-server OTel startup internal
+14363	boundary	agent identity auth — their product
+14369	boundary	workspace dir plugins — their cloud
+14375	boundary	plugin install elicitations — their cloud
+14386	boundary	multiline paste /goal — their TUI
+14388	noise	fork thread name internal
+14408	noise	auto-review model override internal
+14414	noise	resume path normalize internal
+14420	boundary	Bedrock region fallback — their provider
+14423	dup	turns page on resume — 恢复分页已有
+14427	dup	seed prompt history resumed — 历史恢复已有
+14428	dup	fs/watch debounce batching — 防抖已有
+14429	boundary	permissions labels — their TUI
+14435	boundary	exec sessions resume list — their TUI
+14436	dup	resume cwd overrides — cwd覆盖已有
+14452	noise	empty rollout path internal
+14462	boundary	TUI polish — their TUI
+14467	boundary	Fast tier resume — their TUI
+14472	dup	pause on usage limits — 限额暂停已有
+14473	dup	resume hints renamed — 恢复提示已有
+14479	noise	env snapshots path-free internal
+14515	boundary	shared plugins paths — their cloud
+14526	dup	paused goals stay paused on resume — 暂停持久已有
+14528	boundary	disable plugins workspace — their config
+14543	boundary	popup columns — their TUI
+14546	noise	thread-list resume regression internal
+14554	dup	rollout_trace tool boundaries — 追踪已有
+14562	dup	rollout_trace crate — 追踪已有
+14567	noise	Bedrock auth lazy internal
+14568	dup	rollout_trace session — 追踪已有
+14576	dup	bg task auth backend — 后台认证已有
+14580	noise	TUI reexports internal
+14582	dup	spawn inherits model — 继承模型已有
+14583	noise	fork parent titles internal
+14586	noise	exec flags inheritance internal
+14592	boundary	network proxy yolo — their product
+14596	noise	resume hints invalid internal
+14598	boundary	yolo skip network enforcement — their product
+14606	noise	exec policy test flake internal
+14624	dup	fork keeps parent model — 继承已有
+14628	dup	parallel_tool_calls flag MCP — 并行标记已有
+14640	noise	auth trait refactor internal
+14642	noise	/status rate limits internal
+14645	noise	paste pane teardown internal
+14646	noise	resume picker loading internal
+14647	noise	resume picker names internal
+14650	dup	forked_from_id exposed — fork溯源已有
+14653	noise	tool suggest prompts internal
+14654	dup	hook notification replay — hook回放已有
+14658	noise	resume-by-name regression internal
+14663	noise	custom prompts deprecation internal
+14667	boundary	product-scoped plugins — their cloud
+14672	boundary	hooks disabled windows — their platform
+14675	boundary	ARC yolo — their product
+14676	noise	legacy notification removal internal
+14677	noise	legacy auth removal internal
+14682	noise	in-process app server internal
+14686	dup	userpromptsubmit hook — hook事件已有
+14689	noise	curated plugins refactor internal
+14695	noise	exec --profile internal
+14696	dup	js_repl hard-stop interrupt — 中断终止已有
+14700	dup	stop continuation hook mechanics — 停止机制已有
+14703	dup	hooks engine — hooks已有
+14717	dup	persisted git info resume — 恢复元数据已有
+14722	noise	js_repl ESM imports internal
+14725	boundary	load from plugins — their cloud
+14737	boundary	Fast cmd desc — their TUI
+14741	noise	paste placeholders internal
+14745	boundary	device auth hint — their product
+14749	noise	subagent history scan internal
+14777	dup	sessionCompleted event — 会话事件已有
+14786	dup	multiple rate limits — 多限额已有
+14787	noise	watcher debounce 10s internal
+14792	noise	limit_name inherit internal
+14794	boundary	fork info UI — their TUI
+14801	dup	watcher event log — 审计已有
+14802	boundary	personality menu — their product
+14804	noise	exec_policy flag remove internal
+14807	noise	usage poll apikey internal
+14826	noise	personality template internal
+14836	dup	file-search multi-root — 多根搜索已有
+14840	dup	resume --last json — resume已有
+14847	dup	resume --last consistent — resume已有
+14854	boundary	placeholder styling — their TUI
+14856	dup	resume --last cwd — resume已有
+14865	dup	multiline execpolicy拒绝 — 策略已有
+14878	dup	ghost_commit→undo — undo已有
+14899	boundary	device auth — their product
+14901	noise	release pointer internal
+14931	noise	reasoning preset internal
+14934	dup	autocompact 220k — 自动压缩已有
+15018	noise	sandbox dep remove internal
+15083	dup	exec-server fs via sandbox — 沙箱fs已有
+15086	dup	sandbox state MCP metadata — 沙箱态透传已有
+15128	dup	sandbox escalation guidance — 升级指引已有
+15132	dup	sandbox escalation guidance — 升级指引已有
+15142	dup	.agents dir sandbox protect — 目录保护已有
+15154	dup	sandbox untrusted consistency — 沙箱一致已有
+15280	dup	trace hook execution — hook追踪已有
+15327	dup	PostToolUse on write_stdin — hook覆盖已有
+15330	noise	snapshot cleanup warnings internal
+15364	noise	PTY terminate internal
+15456	noise	npm publish internal
+15738	dup	plugin skill loading unify — 技能加载已有
+15740	dup	plugin skill loading shared — 技能加载已有
+15801	dup	plugin install failure log — 失败审计已有
+15808	noise	skill installer guidance internal
+15809	dup	marketplace source requirements — 源准入已有
+15810	dup	marketplace admission enforce — 源准入已有
+15816	dup	plugin install requests by ID — 请求追踪已有
+15820	dup	plugin load/runtime capability stages — 加载阶段已有
+15824	boundary	plugin suggestion UI — their cloud
+15825	boundary	endpoint plugin recommend — their cloud
+15826	boundary	recommended install schema — their cloud

@@ -1,0 +1,200 @@
+13181	dup	reject policy by approval source — 批准源策略已有
+13194	dup	AbsolutePathBuf permission roots — 路径锚定已有
+13196	noise	zsh fork tests internal
+13206	dup	approval for destructive MCP calls — MCP 批准已有
+13225	dup	unsafe auto-approval git fix — 批准硬化已有
+13226	noise	approval events review mode internal
+13234	noise	/approvals rename internal
+13254	dup	approval force delete Windows — 危险批准已有
+13400	noise	Apps SKU internal
+13443	dup	refresh expired OAuth pre-startup — token 刷新已有
+13465	noise	taskkill output suppress internal
+13467	dup	truncate mcp outputs rollouts — 截断已有
+13508	noise	MCP leaks internal
+13528	noise	MCP tool calling fix internal
+13573	noise	threadId structuredContent internal
+13583	dup	Esc interrupt MCP startup mid-turn — 中断已有
+13594	noise	MCP startup progress internal
+13598	noise	parallel tool call internal
+13604	noise	parallel call instruction internal
+13608	noise	Windows MCP script tools internal
+13648	noise	additionalProperties schema internal
+13649	noise	oauth login hang internal
+13650	noise	mcp-types protocol internal
+13651	noise	mcp split internal
+13667	noise	mcp-types codegen internal
+13682	dup	pause timer for elicitations — elicitation 已有
+13689	noise	redraw 60fps internal
+13769	noise	plugin service route internal
+13940	noise	WSL paste internal
+14156	noise	multi-agent grammar internal
+14168	noise	subagent MCP status internal
+14258	noise	/status sub-agent internal
+14278	dup	delegate cancellation — 取消传播已有
+14908	noise	empty finish_reason internal
+14979	noise	elevated sandbox setup internal
+15001	noise	deletion writable roots internal
+15009	noise	sandbox hostname defer internal
+15030	dup	shell cleanup on interruption — 清理已有
+15031	dup	cancel sandbox on network denial — 拒绝联动已有
+15080	noise	private DNS macOS internal
+15082	noise	WSL1 bwrap reject internal
+15091	dup	symlinked writable roots — symlink 处理已有
+15098	noise	bwrap multi-PATH internal
+15103	dup	canonicalize symlinked sandbox cwd — 规范化已有
+15104	noise	missing writable roots internal
+15105	noise	system bwrap prefer internal
+15108	noise	sandbox review nits internal
+15109	dup	split filesystem semantics — sandbox 语义已有
+15112	dup	symlinked writable roots policies — 同上
+15122	dup	unshare bwrap userns — sandbox 已有
+15135	dup	sandbox envelope zsh fork — 封套已有
+15137	noise	bwrap /dev mount internal
+15141	noise	sandbox tag internal
+15148	noise	auth tokens isolate internal
+15150	dup	block io_uring seccomp no-network — syscall 过滤已有
+15160	noise	utf-8 sandbox logs internal
+15164	noise	request files cleanup internal
+15167	dup	deny .git under writable roots — .git 防护已有（G2 同族）
+15168	noise	PATH audit roots internal
+15183	noise	sandbox-state update request internal
+15324	boundary	reflow scrollback resize — their UI
+15331	noise	proxy env snapshot internal
+15356	noise	zsh-fork fds internal
+15383	noise	js_repl reset hang internal
+15384	noise	shell-tool-mcp CI internal
+15400	noise	shell-tool-mcp CI internal
+15407	noise	shell snapshot test flake internal
+15428	noise	shell snapshot cleanup internal
+15617	noise	yolo git check internal
+15789	noise	skills walk inventory internal
+15799	noise	plugin namespaces internal
+15815	noise	skill discovery merge internal
+15862	noise	plugin SKU internal
+15933	dup	plugin creator sharing validation — 校验已有
+16119	noise	admin skills internal
+16129	noise	skills dir cleanup internal
+16141	noise	prompt expansion pastes internal
+16196	noise	collab cpu internal
+16309	dup	preserve managed deny-read escalation — deny-read 已有
+16311	noise	auth.json leak tests internal
+16329	noise	RequestPermissions ApplyPatch internal
+16331	noise	personality prompt patch internal
+16378	noise	plugin service dispose internal
+16437	noise	thinking indicator internal
+16439	noise	tool calls no text internal
+16452	noise	empty sessions save internal
+16483	noise	isComplete flag internal
+16506	noise	useSlashCommand telemetry internal
+16510	noise	system prompts endpoint internal
+16547	dup	0600 config.yaml — 文件权限已有
+16552	noise	telemetry docs internal
+16568	noise	yolo diff apply internal
+16579	dup	stop agent loop on abort — 中止已有
+16581	noise	auth packages internal
+16587	noise	heredoc EOF spaces internal
+16590	dup	max depth file indexing — 深度限已有
+16596	noise	auth truncated internal
+16621	noise	message content tool calls internal
+16622	noise	find/replace empty lines internal
+16628	noise	indexing race internal
+16629	noise	circular import internal
+16637	noise	--rule improvements internal
+16655	dup	tool content tag escape — 标签转义已有
+16676	boundary	drag overlay close — their UI
+16679	noise	className quote internal
+16685	dup	skip indexing home dir — 索引边界已有
+16704	noise	profile URI internal
+16722	noise	abort listeners internal
+16748	noise	grep escaped chars internal
+16771	noise	system prompt word internal
+16774	noise	indexing toggle copy internal
+16826	noise	aborts fix internal
+16864	noise	edit rules button internal
+16872	noise	env type exceptions internal
+16875	noise	queue messages binary internal
+16882	noise	safeParse logging internal
+16909	noise	indexing not starting internal
+16911	noise	indexing broken internal
+16923	boundary	alternating colors — their UI
+16924	boundary	bolt icon — their UI
+16949	noise	permissions messenger internal
+17038	noise	empty file insert internal
+17062	noise	empty addedLines internal
+17089	noise	indexing unsupported CPUs internal
+17094	noise	tiptap undo internal
+19565	noise	llama.cpp URL internal
+19718	noise	token/credential regex internal
+19719	noise	secret passing tests internal
+19720	noise	secret declarations CI internal
+19728	dup	skip remote URIs MCP cwd — workdir 已有
+19738	noise	cmd.exe WSL wrap internal
+19824	dup	compact dangling tool calls — compaction 已有
+19866	noise	config listeners internal
+19893	noise	tab/esc reserved internal
+19945	boundary	focus chat status bar — their UI
+19954	boundary	close sidebar cmd+l — their UI
+20222	noise	coerce args schema internal
+20228	noise	object args parsing internal
+20232	dup	validate required tool params — 参数校验已有
+20252	noise	mcp policies dedup internal
+20260	noise	tool call truncation internal
+20279	noise	json mcp loading internal
+20287	noise	mcp status tests internal
+20304	boundary	status icons — their UI
+20313	noise	sanitize mcp names internal
+20332	noise	streaming tool states internal
+20333	noise	invalid args internal
+20354	noise	cmd windows MCP internal
+20356	noise	fontSize internal
+20357	dup	PATH for mcp connections — env 已有
+20366	noise	server_name display internal
+20379	noise	MCP attributes internal
+20410	dup	restrict terminal spawn local-only — 本地限定已有
+20424	noise	pastes Terminal/Ghostty internal
+21000	noise	jq short circuit internal
+23042	noise	LM Studio enricher internal
+24614	noise	skill load reliability internal
+26508	dup	PTY fd cleanup — 进程清理已有
+26515	dup	prevent SIGHUP kills PTY — 信号处理已有
+26519	noise	isBinary false-positive internal
+26531	noise	newline shell wrapping internal
+26538	dup	PTY exhaustion+orphan MCP leaks — 孤儿回收已有（G7 同族）
+26545	boundary	escape in shell mode — their UI
+26552	dup	reap orphaned descendants PTY abort — 进程树回收已有（G7）
+26561	dup	shell output to model on cancel — 取消语义已有
+26563	dup	destroy PTY on kill — fd 回收已有
+26571	noise	shell:true .cmd internal
+26582	noise	quota threshold internal
+26586	dup	PTY descriptor leak — 同上
+26626	noise	shell spawn windows internal
+26629	noise	winpty internal
+26637	noise	enableInteractiveShell internal
+26683	dup	rollback multi-turn on cancel — 回滚已有
+26692	dup	preserve empty text turns w/ tools — 转录保真已有
+26704	dup	task cancellation aborts loop — 取消已有
+26707	dup	enforce HTTPS credentials — TLS 已有
+26731	dup	dynamic fallback exhausted quota — 配额回退已有
+26736	noise	restricted preview fallback internal
+26744	dup	snapshot recovery across sessions — 恢复已有
+26754	noise	yolo redirection internal
+26765	noise	snapshotter model config internal
+26771	dup	respect explicit model after quota — 模型选择已有
+26776	noise	empty log guard internal
+26790	noise	agent mode disconnect internal
+26793	noise	generalist profile internal
+26799	noise	list suggestion internal
+26801	noise	async experiments boot internal
+26808	dup	ACP stdout pollution SessionEnd hooks — stdout 洁净已有
+26812	dup	prevent YOLO downgrade — 模式保护已有
+26814	noise	IDE listeners internal
+26837	noise	quota footer internal
+26843	dup	stop when declinable cancelled — 取消语义已有
+26849	noise	stale retry state internal
+26855	dup	BeforeModel partial override — hooks 已有
+26856	dup	BeforeModel override propagate — hooks 已有
+26871	dup	policy rules replace hardcoded ASK_USER denial — 策略引擎已有
+26879	dup	harden replay semantics — 回放已有
+26880	dup	allowRedirect policy engine — 策略已有
+26883	noise	policy toolName required internal
+26884	noise	Ctrl+D buffer internal

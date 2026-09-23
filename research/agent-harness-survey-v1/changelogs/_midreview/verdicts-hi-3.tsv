@@ -1,0 +1,200 @@
+780	dup	restart后WhatsApp captured replies接回controller — channel durability
+781	dup	不外泄raw provider错误到chat channels — error hygiene
+782	dup	API key写~/.clawdbot/.env共享 — env config
+783	boundary	Google Live browser session WebSocket
+784	dup	reasoning effort max/ultra tiers — reasoning levels已实装
+785	dup	httpIdleTimeoutMs+websocketConnectTimeoutMs — timeout knobs
+786	boundary	Tailscale discovery/bind mode
+787	noise	Gemini image models add
+788	variant	.qwen/review-context.json声明式review manifest
+789	boundary	llama.cpp GGUF in-process inference
+790	noise	muse-spark-1.1 provider
+791	boundary	MoA first-class model
+792	dup	manifest-sourced model rows+conflict reporting — model catalog
+793	dup	/models选择跨transient failure保持 — model persistence
+794	noise	Kimi-K2.5 model add
+795	dup	Vertex ADC auth markers保留 — provider auth
+796	boundary	Kilo Gateway provider
+797	dup	utility-model生成session titles — session naming(feature model同源)
+798	boundary	TTS openai.baseUrl config
+799	dup	provider/model refs归一化后registry lookup — resolution
+800	boundary	kimi web_search provider
+801	boundary	/tts personas/per-agent overrides
+802	boundary	WhatsApp Web media kinds
+803	noise	provider model mapping npm tracking
+804	dup	chat model picker+thinking-level持久 — model picker
+805	dup	paginated thread history+resume+search — session history
+806	boundary	DelegateTool外部client注册delegate tools
+807	dup	subagent[compacted]标记恢复指引 — compaction指引
+808	dup	background tasks共享控制面 — jobs/background已实装
+809	dup	sandbox approval三阶段解耦 — approval staging
+810	boundary	Bot Mode agents society
+811	dup	subagent model config限primary/fallback — delegate config
+812	boundary	Devin orchestrates Devins(管理会话)
+813	noise	multi-agent相邻stream显示异常修复
+814	boundary	Feishu group broadcast dispatch
+815	boundary	crew member ghost avatar
+816	dup	tool result序列化一致提升cache hit — cache coherence
+817	dup	interrupt暂停running subagents不撂着 — abort cascade已实装
+818	boundary	Kiro Crew remote crew
+819	dup	loading token count为0修复 — telemetry
+820	cand	secrets: Bitwarden/1Password作为secret source
+821	dup	active-memory recall channel解析跳过:条目 — channel resolve
+822	boundary	connected crew侧边栏聊天
+823	dup	subagent progress token从cumulative改per-turn — telemetry
+824	dup	parent task失败已完tool calls容错 — delegate容错
+825	dup	team导航回主session修复 — UI nav
+826	dup	Agent tool省subagent_type自动Fork — delegate-modes族(同43)
+827	variant	/btw侧问(当前context快速提问)
+828	dup	chat_turn_timeout_secs=14400默认 — turn timeout
+829	dup	thinkingLevelMap per-model映射 — reasoning levels
+830	boundary	host networking mode(沙箱)
+831	dup	Monitor tool后台命令输出唤醒 — monitor已实装
+832	dup	process.*工具显示command/pid — jobs surface
+833	boundary	Quick Chat macOS/Linux
+834	dup	/code /smart /bypass mode slash commands — mode commands
+835	boundary	Pi/Codex native web search embedded
+836	variant	X-Agent-Purpose请求分类头
+837	boundary	TLS verify关闭feature toggle(私部署)
+838	noise	preview=stable fast-track
+839	boundary	Vim editor mode NORMAL/INSERT
+840	dup	custom-token auth同步fast path — auth perf
+841	dup	openclaw config validate启动前校验 — config validation
+842	variant	接近heap limit自动heap snapshot(OOM forensics)
+843	dup	ToolSearch search+activate模式 — tool search
+844	boundary	remote control CLI session任意设备
+845	boundary	command palette keybinding footer
+846	boundary	cloud agents tray键盘选择
+847	boundary	WeChat KF/WeCom集成
+848	dup	proxy环境login直连超时修复 — proxy handling
+849	boundary	LM Studio bundled provider
+850	dup	local service/model/usage/media轮询cap — polling caps
+851	boundary	Telegram markdown image→media payload
+852	boundary	unified Git picker(branches+worktrees+stashes)
+853	boundary	resolve merge conflicts/@-mention branch
+854	boundary	Transport ABC+AWS Bedrock plugin
+855	dup	WebFetch并发竞速(同271) — fetch strategy
+856	cand	worktree: --worktree auto-create under ~/.cline/worktrees
+857	dup	browser.target sandbox/host/custom gating — browser boundary
+858	variant	Sandbox Center不可用时allow-by-default fallback(与我方fail-closed相反→注意)
+859	dup	ls别名mcp/sandbox/marketplace list — CLI aliases
+860	dup	session tools默认all-session可见性 — session access
+861	noise	Docker build process-group timeouts
+862	noise	WebUI editor branch/terminal fixes
+863	dup	sandbox断开后工具不悬挂 — cleanup
+864	dup	per-agent sandbox overrides+tool policy — policy layering
+865	dup	sandbox browser image对比 — config check
+866	boundary	pluggable sandbox backends+OpenShell
+867	boundary	dev container networking
+868	noise	split-publication verifier修复
+869	dup	/loop首次调度不依赖Bash(date) — scheduling(我方cron无此依赖)
+870	dup	Codex turn limits/cron backoff — turn/schedule limits
+871	dup	Bedrock daily quota归rate limit — failover信号
+872	variant	Automation Blueprints(按名选automation引导填参)
+873	dup	cron attempt层转发tool policy/event params — schedule policy
+874	dup	jobs.json.bak保留pre-normalization — durable store
+875	dup	cron get <id>单查 — schedule inspect
+876	boundary	memory/dreaming experimental(拒方向)
+877	dup	macOS lock唤醒后长轮询消息丢失修复 — channel resilience
+878	dup	periodic callback阻塞不stall lease refresh+mid-turn steer持久 — lease/steer
+879	dup	interactive跳过respawn wrapper+terminal loss退出 — launch hygiene
+880	dup	conversation外auto-continuation tool approval投递 — approval routing
+881	boundary	macOS browser proxy routing/paste语义
+882	boundary	ZED_DEVICE_ID GPU选择
+883	boundary	Devin for Teams计划
+884	cand	hook-events: unstable_Checkpoint文件修改后自动触发
+885	dup	resume keybinding action — session resume
+886	dup	subagent cwd分离+hook context prompt-local — delegate isolation
+887	dup	--agent指定session agent — agent selection
+888	boundary	Control UI layout重排
+889	boundary	session workspace rail快捷键
+890	dup	/rewind回到历史消息点 — session_rewind已实装
+891	dup	warmup standby冷启settings生效 — prewarm config
+892	dup	/sessions搜索索引title+prompt+response — session search
+893	dup	crush session list/inspect — session list
+894	dup	model选择Global/Session scope切换 — model scope
+895	cand	session-insights: on-demand生成(非自动)
+896	dup	session indexes先commit再evict — store ordering
+897	dup	hooks session-routing hardening检查 — hook config hardening
+898	dup	cross-project session search+meta分离存储 — session store
+899	dup	无reset policy时跨idle/day保会话 — session persistence
+900	dup	external agents session history+panel restoration — session restore
+901	boundary	V2 Session API配置Hooks
+902	dup	warmup mode env生效修复 — prewarm env
+903	dup	session reuse不再dup histories — session dedupe
+904	boundary	Alacritty vi mode
+905	dup	native PowerShell工具检测7+/5.1 — shell detection
+906	dup	terminal timeout_ms参数 — command timeout
+907	boundary	terminal_init_command自动跑命令
+908	variant	file tool titles OSC8 file://超链接
+909	dup	bash tool多shell source解析序 — shell resolution
+910	dup	drag-paste各类附件 — attachments
+911	dup	read_command_output取全量输出 — outspool readback已实装
+912	dup	mcporter.cmd EINVAL走bare shell retry — spawn hardening
+913	variant	NDJSON结构化stdin协议(start/message/…)
+914	dup	/branch fork当前会话 — session fork
+915	cand	path-shadowing: jobs.js:505 shell:true spawn下cmd.exe先搜cwd,repo内git.exe/rg.exe可影子化已批准命令 — 待加NoDefaultCurrentDirectoryInExePath或绝对PATH解析
+916	dup	Codex/Claude/Cursor bundle发现+skills映射 — compat dirs
+917	boundary	prompt navigation/collapsible sections(shell integration)
+918	dup	shell command history完整可查 — command history
+919	boundary	Gemini 3.6+git panel grouped changes
+920	boundary	terminal commands/web fetch sandboxing
+921	dup	非string command args校验 — arg validation
+922	boundary	app-server exec TTY/PTY streaming
+923	dup	background command实时流输出 — output streaming
+924	noise	Windows Terminal keyboard修复
+925	dup	SHA-pinned plugin index+admission CI — manifest sha256已实装
+926	boundary	Cline Account billing view
+927	dup	unified slash command message tag+command-args — command protocol
+928	dup	cross-scope config优先级(local>project>user) — config layering
+929	boundary	mobile responsive/queued messages Enter-to-send
+930	boundary	Discord agent-proxy voice mode
+931	dup	built-in tools走extension-runner同context — tool context
+932	boundary	External Context Provider Extension Profile
+933	boundary	MCP Marketplace
+934	boundary	MCP Apps resource reads/tool-call metadata
+935	cand	hook-events: input事件(intercept/transform用户输入)
+936	dup	Pi skills SKILL.md约定 — skills format已实装
+937	cand	hook-forms: prompt/agent/http类型hooks不再丢弃
+938	noise	marketplace tracking events
+939	boundary	bundled-plugin embedded extension factory seam
+940	boundary	STT WebSocket/multipart helpers
+941	dup	plugin agent config不受enabled限 — config
+942	boundary	STT transcribeAudioFile API
+943	noise	ModelRuntime.getAuth重构(其SDK)
+944	dup	debug/config输出redact+block内部HTTP session覆盖 — secrets scrub
+945	dup	exec preflight/env denylist/output boundary加固 — security batch同源
+946	variant	disableModelInvocation skill/command禁用模型调用开关
+947	dup	/skills查看全部loaded skills — skill listing
+948	dup	auto-discover ~/.claude/skills/*/SKILL.md等 — compat dirs已实装
+949	boundary	extension autocomplete providers
+950	dup	image create/edit统一core image_generate — media tool
+951	boundary	transparent mode toggle
+952	dup	empty-state "New {agent} Thread"占位+draft prompt — UI placeholder
+953	dup	completion通知含exit code — notify payload
+954	boundary	/prompt开$EDITOR写长prompt
+955	dup	workspace file行details懒加载md preview — file preview
+956	dup	double-ESC空输入rollback — M126族批4
+957	boundary	Web UI timeline交错布局
+958	boundary	project panel unfocus创建文件
+959	cand	worktree: sidebar新thread建worktree
+960	boundary	Workers page(同960重复)
+961	boundary	Vim mode agent panel+Python venv
+962	boundary	unstable_v2_logout清token缓存
+963	boundary	/api/v1/fs+files端点
+964	noise	SDK v0.49.3 breaking changes
+965	dup	ACP mode permission request修复 — protocol
+966	dup	fire-and-forget task spawning — spawn modes
+967	boundary	Mem0 memory write(external context)
+968	noise	连续approval dialog Enter误吃修复
+969	dup	Gemini CLI OAuth前account-risk warning — auth warning
+970	boundary	Fable 5.1 org rollout
+971	variant	browser SSRF默认trusted-network(allowPrivateNetwork=true) vs 我方deny
+972	dup	outbound hooks channel delivery/session identity — provenance
+973	boundary	Signal/iMessage/WhatsApp thumb approvals
+974	dup	dmPolicy allowlist空allowFrom拒绝 — config validation
+975	dup	composer载live slash-command catalog — command surface
+976	boundary	/tts replies webchat+token hint
+977	dup	doctor不追加built-in channel ids到plugins.allow — config fix
+978	variant	CODEBUDDY_DISABLE_PLAN_MODE host开关
+979	dup	expert team plan permission state保存 — plan mode

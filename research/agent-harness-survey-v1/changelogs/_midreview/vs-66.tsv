@@ -1,0 +1,200 @@
+27824	noise	docs internal
+27832	boundary	hint length — their UI
+27849	dup	notify extension command conflict — 冲突通知已有
+27853	dup	hide AskUser validation errors — 自纠容错已有
+27858	boundary	autocomplete — their UI
+27875	noise	paste internal
+27878	noise	sidebar internal
+27905	noise	notification internal
+27913	noise	refresh internal
+27918	noise	persistence internal
+27928	boundary	right click paste — their UI
+27929	boundary	alternate buffer — their UI
+27930	boundary	page keys — their UI
+27936	dup	compression threshold editable UI — 阈值可配已有
+27942	boundary	shortcuts — their UI
+27949	noise	poll internal
+27950	noise	script internal
+27969	boundary	screen reader — their UI
+27995	boundary	tip — their UI
+28001	boundary	slash vs drawer — their UI
+28002	dup	bracketed paste node<20 — 粘贴兼容已有
+28012	noise	reaction noise
+28014	noise	names noise
+28015	noise	name noise
+28018	noise	name noise
+28019	noise	name noise
+28020	noise	branch noise
+28023	noise	names noise
+28025	noise	name noise
+28027	noise	names noise
+28037	dup	tool registry discovery — 注册表发现已有
+28049	noise	release internal
+28050	noise	names noise
+28051	noise	names noise
+28052	noise	names noise
+28053	noise	name noise
+28054	noise	names noise
+28055	noise	names noise
+28066	noise	names noise
+28067	dup	a2a usage metadata — 用量元数据已有
+28075	dup	auto detect pnpm path — 路径探测已有
+28084	dup	deterministic encoding child I/O — 编码确定已有
+28086	noise	args internal
+28093	noise	revert internal
+28098	noise	name noise
+28152	dup	stop suppressing thoughts — 思考展示已有
+28154	noise	ci internal
+28160	noise	lint internal
+28170	noise	docs internal
+28171	noise	branch noise
+28172	noise	color internal
+28175	noise	context internal
+28181	noise	format internal
+28185	noise	errors internal
+28188	noise	release internal
+28195	noise	dep internal
+28210	noise	test internal
+28224	noise	template internal
+28226	dup	copied extensions writable — 权限修复已有
+28251	noise	lint internal
+28255	noise	test internal
+28261	dup	keychain fallback service — 凭据回退已有
+28266	noise	models internal
+28268	noise	lint internal
+28279	noise	svg internal
+28281	dup	proto pollution checks — 原型防护已有
+28285	noise	defensive internal
+28334	noise	docs internal
+28336	noise	format internal
+28343	noise	branch noise
+28345	dup	history immutable static checks — 不变性检查已有
+28368	noise	util internal
+28374	noise	lint internal
+28375	dup	ranged reads+limited searches+fuzzy edit — 读取限定已有
+28389	noise	format internal
+28393	noise	migrate internal
+28398	dup	/extensions explore — 扩展探索已有
+28407	noise	workflow internal
+28423	boundary	searchable list — their UI
+28427	noise	lint internal
+28428	noise	docs internal
+28436	noise	metrics internal
+28442	dup	disable workspace settings home dir — 目录门已有
+28450	dup	encourage ecosystem tools — 工具引导已有
+28457	boundary	/plan error — their UI
+28464	noise	release internal
+28486	dup	at-commands narrow nbsp — 解析容错已有
+28490	boundary	wrap — their UI
+28495	boundary	queue height — their UI
+28507	dup	lower default max retries — 重试上限已有
+28510	noise	branch noise
+28518	dup	default max attempts 3 — 重试默认已有
+28523	boundary	retry text — their UI
+28526	dup	beforeTool/afterTool to hookSystem — hook迁移已有
+28529	boundary	backspace — their UI
+28549	boundary	mac keys — their UI
+28554	noise	test internal
+28576	dup	steer to expert subagents — 专家子代理已有
+28584	dup	enableInteractiveShell a2a — 交互shell已有
+28596	dup	fireToolNotificationHook hookSystem — hook迁移已有
+28603	dup	Esc-Esc clear prompt — 清屏键已有
+28623	dup	cli_help agent default — 帮助代理已有
+28624	dup	interactive shell a2a — 已有
+28625	dup	extensions disabled admin — 管理禁用已有
+28634	dup	@ suggestions subagents — 子代理补全已有
+28644	noise	keybindings internal
+28652	noise	resize internal
+28657	noise	metrics internal
+28659	dup	unified secrets sanitization+env redaction — 秘密净化已有
+28662	dup	project-level hook warnings — hook警告已有
+28664	dup	don't persist fallback model — 回退不持久已有
+28668	dup	exponential backoff retryable — 退避重试已有
+28682	dup	opt-in persist model /model — 模型持久已有
+28684	dup	inform missing settings update — 设置警告已有
+28686	boundary	settings descriptions — their UI
+28688	noise	keyboard internal
+28689	noise	ci internal
+28704	noise	keywords internal
+28717	noise	ci internal
+28731	noise	model internal
+28741	noise	test internal
+28742	noise	ci internal
+28746	dup	prompt_id propagation a2a — 提示溯源已有
+28747	noise	ci internal
+28753	dup	final:true a2a edit — 终止标记已有
+28767	noise	test internal
+28768	dup	hide sessions no user messages — 空会话隐藏已有
+28769	noise	name noise
+28771	noise	stdio internal
+28776	boundary	alternate buffer off — their UI
+28784	dup	fallback flash quota errors — 配额回退已有
+28788	noise	keys internal
+28790	noise	followup internal
+28794	noise	keys internal
+28799	noise	formatting internal
+28800	boundary	mouse warn — their UI
+28805	noise	dep internal
+28807	dup	uninstall multiple extensions — 批量卸载已有
+28809	noise	name noise
+28812	boundary	sticky headers — their UI
+28815	noise	buffer internal
+28827	noise	rename internal
+28832	noise	keys internal
+28836	dup	temp dir in first user msg — 上下文归位已有
+28843	noise	console internal
+28844	dup	tool internal name /tools — 工具名展示已有
+28853	dup	fallback flash notice — 回退通知已有
+28854	noise	keychain internal
+28860	boundary	todo tray — their UI
+28872	dup	compressionThreshold restart required — 重启标记已有
+28873	noise	ink internal
+28879	noise	ink internal
+28880	noise	branch noise
+28889	boundary	alternate buffer — their UI
+28899	dup	codebase investigator default — 调查器已有
+28901	noise	ci internal
+28902	noise	ci internal
+28903	noise	util internal
+28914	noise	test internal
+28916	noise	logger internal
+28921	noise	path internal
+28923	noise	logger internal
+28936	dup	--record-responses testing — 录制已有
+28942	noise	npm internal
+28950	noise	clean internal
+28951	noise	branch noise
+28961	dup	check updates if not disabled — 更新门已有
+28964	dup	BYOID auth client — 凭据检测已有
+28995	noise	ci internal
+28996	dup	pass whole extensions — 扩展传递已有
+29002	noise	test internal
+29007	dup	no input until commands loaded — 加载门已有
+29010	dup	investigator default — 已有
+29011	noise	test internal
+29018	dup	conditional investigator prompt — 条件提示已有
+29025	noise	test internal
+29029	noise	cherrypick internal
+29034	dup	settings showInDialog — 设置展示已有
+29036	dup	investigator settings exposed — 设置暴露已有
+29040	noise	test internal
+29041	dup	investigator less trigger-happy — 触发收敛已有
+29042	noise	names noise
+29044	dup	relax JSON schema validation — 校验放宽已有
+29045	noise	docs internal
+29051	noise	release internal
+29056	noise	release internal
+29062	noise	test internal
+29064	dup	compression more aggressive — 压缩调参已有
+29066	noise	branch noise
+29067	noise	ci internal
+29080	noise	release internal
+29082	noise	release internal
+29086	noise	release internal
+29087	noise	release internal
+29089	noise	release internal
+29091	noise	release internal
+29092	noise	release internal
+29095	noise	release internal
+29096	noise	release internal
+29097	noise	release internal

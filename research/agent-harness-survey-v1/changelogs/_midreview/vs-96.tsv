@@ -1,0 +1,200 @@
+68057	noise	fix prose
+68058	noise	release header
+68059	noise	fix prose
+68060	noise	release header
+68061	noise	fix prose
+68062	noise	release header
+68063	noise	prose noise
+68064	noise	prose fragment
+68065	noise	prose fragment
+68067	noise	release header
+68068	noise	prose noise
+68069	noise	release header
+68070	noise	fix prose
+68071	noise	release header
+68073	noise	release header
+68074	dup	auto-fix toggle — 自动修复开关已有
+68075	noise	release header
+68077	noise	release header
+68078	noise	fix prose
+68079	noise	release header
+68081	noise	release header
+68082	dup	custom notification sounds — 音效已有
+68083	noise	release header
+68085	noise	release header
+68086	dup	auto-run except blacklist — 黑名单自动已有
+68087	dup	#Problems as context — 问题引用已有
+68088	noise	release header
+68089	noise	fix prose
+68090	noise	release header
+68091	noise	prose noise
+68092	noise	release header
+68093	noise	fix prose
+68094	noise	release header
+68095	noise	fix prose
+68096	noise	release header
+68097	noise	prose noise
+68098	noise	release header
+68099	noise	release header
+68101	noise	release header
+68102	noise	fix prose
+68103	noise	release header
+68104	noise	fix prose
+68105	noise	release header
+68106	dup	task complete/interrupt alerts — 状态提醒已有
+68107	dup	@ to select agent modes — 模式选择已有
+68108	noise	release header
+68109	noise	fix prose
+68110	noise	release header
+68112	noise	release header
+68113	dup	privacy mode toggle — 隐私模式已有
+68114	noise	release header
+68115	noise	prose noise
+68116	noise	prose noise
+68117	noise	release header
+68118	dup	task list breakdown+status — 任务列表已有
+68119	dup	input smart optimize — 输入优化已有
+68120	noise	release header
+68122	noise	release header
+68123	noise	prose noise
+68124	dup	smart import deps — 智能导入已有
+68125	dup	smart rename cross-file — 跨文件重命名已有
+68126	noise	prose noise
+68127	boundary	console log types filter — their UI
+68128	boundary	multi tabs preview — their UI
+68130	noise	release header
+68132	noise	release header
+68134	noise	release header
+68135	noise	prose noise
+68136	noise	prose noise
+68137	dup	unaccepted code overwrite fix — 覆盖修复已有
+68138	dup	$ char breaks conversation fix — 字符修复已有
+68139	noise	release header
+68140	noise	prose noise
+68141	noise	release header
+68142	dup	select plugin versions — 版本选择已有
+68144	noise	release header
+68145	noise	prose noise
+68146	noise	release header
+68147	noise	release header
+68148	noise	prose noise
+68149	boundary	voice input — their feature
+68150	boundary	random avatars — their UI
+68151	dup	preview window as context — 预览上下文已有
+68152	boundary	data dashboard — their UI
+68153	noise	prose noise
+68154	dup	AI generates editable PRD — 需求文档已有
+68155	dup	AI orchestrates editor/browser/terminal — 工具调度已有
+68156	boundary	SOLO Builder — their platform
+68157	boundary	follow AI ops auto panel — their UI
+68158	noise	release header
+68161	noise	release header
+68162	dup	preview service permissions mic/camera — 权限管理已有
+68163	dup	skip running terminal command — 命令跳过已有
+68165	noise	release header
+68166	noise	fix prose
+68167	noise	release header
+68169	noise	release header
+68170	noise	prose noise
+68171	noise	release header
+68172	dup	message notifications — 通知已有
+68173	noise	release header
+68174	noise	fix prose
+68175	noise	release header
+68176	noise	release header
+68177	boundary	process resource manager — their UI
+68179	dup	AI detect terminal command status fix — 状态检测已有
+68180	noise	release header
+68181	dup	workspace-level plugin enable/disable — 工作区级开关已有
+68185	noise	release header
+68186	noise	release header
+68188	noise	fix prose
+68189	noise	release header
+68190	noise	prose noise
+68191	noise	prose noise
+68192	boundary	CUE prediction jump — their feature
+68193	noise	prose noise
+68194	noise	fix prose
+68195	noise	release header
+68196	dup	streamable HTTP transport — 传输已有
+68197	dup	configurable headers HTTP/SSE — 头配置已有
+68198	noise	release header
+68199	noise	prose noise
+68200	dup	remove fixed Proposal AI decides — 自主决策已有
+68201	dup	expanded toolset less intervention — 工具集扩展已有
+68202	dup	continue command seamless — 续接已有
+68203	dup	env setup guides per language — 环境引导已有
+68204	noise	release header
+68205	dup	local VSIX install — 本地安装已有
+68206	noise	release header
+68208	noise	release header
+68210	noise	release header
+68212	noise	release header
+68213	noise	prose noise
+68214	noise	prose noise
+68215	noise	release header
+68217	noise	release header
+68218	boundary	agent avatars — their UI
+68219	dup	plugin marketplace source config — 源配置已有
+68221	noise	release header
+68223	noise	release header
+68225	dup	@Builder as agent — 智能体调用已有
+68226	dup	docs/webpages as context — 上下文已有
+68227	dup	#Web search extract — 联网检索已有
+68229	noise	prose noise
+68230	noise	prose noise
+68231	dup	personal rules all projects — 个人规则已有
+68232	dup	project rules current — 项目规则已有
+68233	noise	prose noise
+68234	noise	prose noise
+68235	dup	custom agents prompt+toolset — 自定义智能体已有
+68236	dup	auto-run mode+command blacklist — 自动运行黑名单已有
+68237	noise	prose noise
+68238	noise	release header
+68239	noise	prose noise
+68240	noise	release header
+68241	noise	prose noise
+68242	noise	prose noise
+68243	noise	release header
+68244	boundary	report issue window — their UI
+68245	noise	release header
+68246	noise	fix prose
+68247	noise	release header
+68248	noise	fix prose
+68249	noise	release header
+68251	boundary	custom URL preview — their UI
+68252	dup	auto-detect install lang plugins — 语言插件检测已有
+68253	noise	release header
+68254	noise	fix prose
+68255	noise	release header
+68256	noise	fix prose
+68257	noise	release header
+68259	boundary	device toolbar preview — their UI
+68260	dup	DND mode+per-plugin notifs — 勿扰已有
+68261	noise	release header
+68262	dup	merge no length truncation — 截断防护已有
+68263	noise	fix prose
+68264	noise	release header
+68265	noise	i18n noise
+68266	boundary	market themes — their platform
+68267	dup	high memory notification — 内存告警已有
+68268	noise	release header
+68269	noise	prose noise
+68270	noise	release header
+68271	noise	prose noise
+68272	noise	prose noise
+68273	noise	release header
+68274	noise	release header
+68276	noise	prose noise
+68277	noise	fix prose
+68278	noise	release header
+68279	noise	prose noise
+68280	noise	fix prose
+68281	noise	release header
+68282	dup	Builder auto plan+exec+preview — 构建模式已有
+68283	dup	multi-turn project codegen — 项目生成已有
+68284	dup	apply/review/diff/rollback — 变更操作已有
+68285	dup	rich context types incl terminal logs — 上下文类型已有
+68286	noise	docs scrape noise
+68287	noise	docs scrape noise
+68288	noise	docs scrape noise

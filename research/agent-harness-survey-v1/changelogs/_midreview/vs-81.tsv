@@ -1,0 +1,200 @@
+41035	noise	truncated noise
+41047	dup	prefilter conflict-marker scans — 前置过滤已有
+41049	dup	musl detect Alpine — 平台检测已有
+41055	noise	installer internal
+41061	noise	release prose
+41064	noise	qa internal
+41067	noise	truncated noise
+41068	noise	truncated noise
+41071	dup	opt-in self-upgrade sentinel — 哨兵已有
+41079	noise	truncated noise
+41080	noise	dep internal
+41097	dup	status commands no abort+spool tombstone — 命令隔离已有
+41098	noise	decoder internal
+41099	noise	decoder internal
+41100	dup	default auto final delivery+opt-in tool — 投递默认已有
+41101	dup	typing indicators renewed capped — 指示节流已有
+41103	boundary	mac app rows — their UI
+41106	dup	keep context-engine messages on truncation — 截断保留已有
+41107	noise	reaction noise
+41115	noise	truncated noise
+41120	noise	truncated noise
+41126	dup	reject malformed extensions metadata — 元数据校验已有
+41127	dup	ignore malformed persisted metadata — 容错已有
+41130	dup	stream preambles progress drafts — 草稿流已有
+41136	noise	truncated noise
+41150	boundary	checkbox row — their UI
+41159	noise	lint internal
+41162	noise	truncated noise
+41163	dup	code-mode-only harness threads — 代码模式已有
+41164	noise	dep internal
+41165	dup	advertise protocol compat range — 协议协商已有
+41175	noise	contributor noise
+41187	noise	publish noise
+41219	noise	truncated noise
+41222	noise	prose noise
+41223	dup	bundled plugins disabled pre-update — 兼容门已有
+41230	dup	forum metadata bounded expiry — 缓存过期已有
+41241	dup	legacy verify compatible shim — 兼容层已有
+41242	noise	contributor noise
+41248	noise	contributor noise
+41284	noise	contributor noise
+41289	dup	ignore unsupported hints warning — 提示容错已有
+41294	noise	truncated noise
+41328	noise	contributor noise
+41332	dup	suppress same-base newer warning — 版本警告已有
+41335	dup	external catalogs override fallback — 目录覆盖已有
+41345	noise	prose noise
+41346	noise	prose noise
+41349	noise	gitignore internal
+41351	dup	guard updater missing cwd — cwd守护已有
+41356	noise	release internal
+41361	dup	strip zero-width markers boundary sanitize — 标记净化已有
+41384	dup	DM preview real edits no dup — 去重显示已有
+41386	dup	SELinux auto-detect :Z relabel — 标签自适应已有
+41410	dup	NO_REPLY suppression — 抑制已有
+41438	dup	clear webhooks before polling — 钩子清理已有
+41472	noise	truncated noise
+41493	noise	truncated noise
+41515	dup	retry without thread_id stale — 话题回退已有
+41524	noise	typescript internal
+41536	noise	dep internal
+41545	dup	align tool execute adapters — 适配器对齐已有
+41546	noise	lint internal
+41550	dup	system prompt session_status date — 状态注入已有
+41590	dup	track normalization skips no empty — 跳过追踪已有
+41595	noise	dep internal
+41612	noise	normalize internal
+41613	dup	newline chunking fenced markdown — 分块保护已有
+41621	dup	non-UUID sessionIds + scoping — id兼容已有
+41631	dup	tool summaries optional params — 摘要精简已有
+41634	noise	mac internal
+41641	dup	windows exec paths safe-bin — 路径解析已有
+41643	dup	preserve fetch helpers abort wrap — 包装保留已有
+41645	dup	forwarded-message origin context — 转发上下文已有
+41647	dup	manifest config schemas preflight — 清单校验已有
+41648	noise	policy internal
+41659	noise	dep internal
+41660	noise	postinstall internal
+41661	noise	dep internal
+41662	noise	dns internal
+41663	dup	message-flow diagnostics dispatch — 诊断分发已有
+41672	noise	breaking internal
+41673	dup	plugins install copy to extensions — 安装复制已有
+41675	dup	web_fetch Readability — 提取已有
+41677	dup	chrome-like headers web_fetch — 头模拟已有
+41678	dup	firecrawl fallback+remove HTML — 提取降级已有
+41680	dup	refresh directory cache targets — 缓存刷新已有
+41686	dup	split long captions — 标题切分已有
+41688	dup	deliveryContext sessions.list — 投递上下文已有
+41689	dup	propagate deliveryContext — 路由稳定已有
+41690	dup	preserve overrides /new reset — 覆盖保留已有
+41693	dup	honor message tool channel dedup — 通道去重已有
+41694	dup	sender labels live group — 发送者标已有
+41696	dup	repair orphaned user turns — 孤儿修复已有
+41697	dup	hard-stop sessions.delete — 删除停清已有
+41698	dup	replies to bot implicit mentions — 隐式提及已有
+41699	dup	normalize object capabilities — 能力归一已有
+41703	dup	NO_REPLY after tool sends — 重复抑制已有
+41708	noise	model internal
+41714	dup	node auth tokens encrypted — 令牌加密已有
+41724	dup	web_fetch default on — 默认开启已有
+41725	noise	browser internal
+41729	noise	section header
+41743	dup	downgrade unsigned thinking — 签名降级已有
+41747	noise	section header
+41749	dup	reuse launchd auth skip wizard — 向导跳过已有
+41750	noise	section header
+41751	dup	aggregate split inbound one prompt — 消息聚合已有
+41752	noise	truncated noise
+41760	noise	dep internal
+41761	noise	packaging internal
+41762	noise	packaging internal
+41775	dup	read keychain platform-aware — 凭据查找已有
+41776	noise	release internal
+41778	dup	inline /status allowlisted stripped — 命令剥离已有
+41779	dup	config-only allowlisted models — 目录兼容已有
+41780	dup	ignore /status unless directive-only — 指令限定已有
+41785	dup	preserve reasoning tool-only turns — 推理保留已有
+41799	dup	sub-agents sandboxed no elevated — 沙箱声明已有
+41801	dup	sandboxed prompt+elevated surface — 能力显式已有
+41804	dup	Tailscale target URLs preserve — 路径保留已有
+41808	noise	prose noise
+41820	dup	global .env fallback after CWD — env回退已有
+41832	noise	swift internal
+41835	noise	version noise
+41837	dup	hook mappings gmail pubsub auto-renew — 钩子映射已有
+41839	dup	browser act snapshot refs no CSS — 快照引用已有
+41843	dup	groupChat requireMention default — 提及默认已有
+41845	dup	Funnel requires password auth — 认证强制已有
+41847	dup	typing only after payload — 指示延迟已有
+41850	dup	allowlisted owner as user identity — 身份标记已有
+41852	dup	/model status lists models — 列表已有
+41853	dup	no duplicate gateway process — 进程去重已有
+41855	noise	ui internal
+41858	noise	section header
+41861	boundary	menu hover — their UI
+41862	boundary	menu width — their UI
+41871	noise	section header
+41873	noise	signing internal
+41876	noise	contributor noise
+41880	noise	normalize internal
+41883	noise	ui internal
+41885	noise	rename internal
+41888	dup	LAN bridge loopback-only gateway — 回环隔离已有
+41889	noise	app internal
+41895	dup	launchd PATH hardened+health probes — 探针已有
+41897	noise	release header
+41902	dup	text-based echo detection bounded Set — 回声检测已有
+41903	noise	lint noise
+41904	noise	test noise
+41905	noise	build noise
+41911	dup	command auto-replies timeout+cwd — 选项传递已有
+41912	noise	prose noise
+41913	noise	install noise
+41914	noise	install noise
+41916	noise	action link
+41917	noise	action link
+41937	noise	pr noise
+41977	noise	pr noise
+42063	noise	pr noise
+42098	noise	pr noise
+42099	noise	pr noise
+42120	noise	pr noise
+42123	noise	action link
+42124	noise	action link
+42252	noise	pr noise
+42271	noise	pr noise
+42293	noise	pr noise
+42297	noise	pr noise
+42314	boundary	GitHub previews hover — their UI
+42352	noise	pr noise
+42353	noise	pr noise
+42365	noise	action link
+42366	noise	action link
+42407	noise	pr noise
+42412	noise	pr noise
+42473	noise	pr noise
+42508	noise	pr noise
+42514	noise	pr noise
+42515	noise	pr noise
+42520	noise	pr noise
+42546	noise	ci internal
+42555	noise	ci internal
+42557	noise	action link
+42558	noise	action link
+42560	dup	externalize plugins install-on-demand — 按需插件已有
+42562	noise	action link
+42563	noise	action link
+42564	noise	action link
+42566	noise	action link
+42567	noise	action link
+42568	noise	action link
+42569	noise	action link
+42571	noise	action link
+42572	noise	action link
+42578	noise	sha noise
+42584	dup	QA evidence artifacts only no git branches — 证据隔离已有
+42586	noise	dep internal
+42600	noise	release prose
+42601	noise	release prose

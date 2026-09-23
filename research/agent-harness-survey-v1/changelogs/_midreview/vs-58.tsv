@@ -1,0 +1,200 @@
+19791	dup	remote sessions in cn ls — 远端会话列出已有
+19793	noise	telemetry internal
+19795	dup	headless mode — 无头已有
+19796	noise	constants internal
+19797	noise	templates internal
+19798	noise	mercury internal
+19805	noise	template internal
+19806	noise	docs internal
+19817	noise	model internal
+19818	noise	model internal
+19821	dup	headless browser crawling — 爬取方式已有
+19825	dup	compact dangling tool calls — 悬空压缩已有
+19826	noise	compaction internal
+19842	boundary	dialog compaction — their UI
+19844	dup	compaction refactor — 压缩已有
+19845	dup	compaction ChatHistoryItem — 已有
+19850	boundary	compaction button — their UI
+19857	boundary	rename — their UI
+19869	noise	test internal
+19870	dup	notify config listeners — 配置通知已有
+19875	boundary	banner — their UI
+19877	boundary	rule creation UI — their UI
+19882	noise	notifications internal
+19884	noise	interruption internal
+19885	noise	test internal
+19887	boundary	ellipsis — their UI
+19895	boundary	chevron — their UI
+19899	boundary	diff tools UI — their UI
+19902	boundary	tab/esc reserved — their UI
+19906	boundary	tool UI — their UI
+19933	boundary	refresh feedback — their UI
+19947	boundary	tab bar — their UI
+19951	noise	webview errors internal
+19956	boundary	shortcut descriptions — their UI
+19960	boundary	sidebar — their UI
+19961	boundary	sidebar — their UI
+19970	boundary	copy/paste — their UI
+19971	boundary	fancy keys — their UI
+19973	noise	webview internal
+19974	boundary	inline edit — their UI
+19975	dup	untrained model error→warning — 降级警告已有
+19976	boundary	scroll — their UI
+19989	boundary	diff streaming — their UI
+19990	boundary	buttons — their UI
+19999	noise	docs internal
+20001	noise	snyk dep
+20002	noise	snyk dep
+20007	noise	snyk dep
+20009	noise	snyk dep
+20010	noise	move internal
+20011	noise	snyk dep
+20012	noise	logging internal
+20014	noise	dep internal
+20015	noise	test internal
+20016	noise	dep internal
+20017	noise	circular internal
+20020	noise	test internal
+20021	noise	telemetry internal
+20023	noise	snyk dep
+20027	noise	snyk dep
+20028	noise	snyk dep
+20030	noise	snyk dep
+20033	noise	uri internal
+20034	noise	logger internal
+20037	noise	config internal
+20038	noise	config internal
+20051	noise	dep internal
+20052	noise	dep internal
+20053	dup	always show context percentage — 上下文占比已有
+20054	dup	filter >1000 char lines — 行长过滤已有
+20055	noise	dev mode internal
+20058	noise	uri internal
+20059	dup	injected blocks ignored — 注入忽略已有
+20061	dup	exit after -p print — 打印退出已有
+20063	dup	edit CLI messages+go back — 消息编辑已有
+20068	noise	revert internal
+20069	dup	0600 permissions config — 文件权限已有
+20070	dup	full secrets parsing CLI flags — 秘密解析已有
+20076	noise	docs internal
+20078	noise	test internal
+20080	boundary	paste chunks — their UI
+20081	noise	test internal
+20083	noise	workflow internal
+20087	noise	titles internal
+20093	noise	circular internal
+20095	noise	yaml internal
+20096	noise	yaml internal
+20103	dup	--id flag cn serve — 实例标识已有
+20105	noise	browser compat internal
+20113	noise	link internal
+20114	noise	flag internal
+20117	boundary	/exit ctrl-d — their UI
+20118	noise	test internal
+20122	noise	syntax internal
+20130	noise	tips internal
+20131	noise	flag internal
+20137	dup	--prompt flag — 提示旗标已有
+20138	noise	build internal
+20140	noise	deps internal
+20141	noise	lint internal
+20142	noise	yaml internal
+20148	noise	docs internal
+20149	noise	docs internal
+20153	noise	logging internal
+20155	noise	config internal
+20157	noise	logging internal
+20160	noise	telemetry internal
+20161	noise	telemetry internal
+20162	noise	logging internal
+20164	noise	logging internal
+20170	noise	yaml internal
+20171	noise	logging internal
+20172	noise	logging internal
+20180	noise	branch noise
+20183	noise	branch noise
+20187	dup	always use proxy option — 代理开关已有
+20189	noise	lint internal
+20195	noise	branch noise
+20196	noise	branch noise
+20205	noise	docs internal
+20207	noise	branch noise
+20209	noise	docs internal
+20211	noise	yaml internal
+20212	noise	logging internal
+20213	noise	yaml internal
+20218	noise	config internal
+20220	noise	config internal
+20229	dup	object-type args tool call — 参数解析已有
+20231	dup	pass all env vars to MCP — env透传已有
+20241	noise	secret internal
+20245	dup	CLI warnings unresolved MCP secrets — 秘密警告已有
+20246	dup	validate required params tool call — 参数校验已有
+20248	dup	mcp agent policies+dedupe — 策略合并已有
+20249	dup	MCP oauth 405 — oauth容错已有
+20257	dup	continue oauth cli mcps — oauth已有
+20258	noise	mcp internal
+20259	boundary	mcp warning — their UI
+20276	noise	mcp internal
+20283	dup	serverName registry MCP — 注册表命名已有
+20292	noise	test internal
+20293	noise	mcp internal
+20294	noise	types internal
+20296	dup	top level claude mcp servers — 配置兼容已有
+20298	dup	mcp loading errors in config errors — 错误聚合已有
+20299	dup	mcp loading errors — 已有
+20300	dup	tool call args preprocessing — 预处理已有
+20301	noise	types internal
+20302	noise	test internal
+20303	boundary	status icons — their UI
+20307	dup	oauth asExternalUrl callback — 回调已有
+20308	noise	docs internal
+20310	noise	messages internal
+20311	noise	stats internal
+20316	dup	sanitize mcp names — 名称净化已有
+20318	dup	canceled not errored on deny — 拒绝状态已有
+20321	noise	mcp internal
+20322	dup	--mcp --model flags — 旗标已有
+20323	dup	don't exit on mcp config error — 容错已有
+20324	noise	mcp internal
+20335	dup	throw if tool args missing — 参数校验已有
+20364	noise	mcp internal
+20373	noise	mcp internal
+20375	noise	sdk internal
+20376	dup	multiple resources MCP server — 资源面已有
+20390	dup	disable clipboard default — 剪贴板门已有
+20391	dup	autodetect image support — 能力探测已有
+20395	boundary	paste image hint — their UI
+20396	boundary	image component — their UI
+20401	boundary	image height — their UI
+20411	dup	proportional truncation read/bash — 输出截断已有
+20415	dup	cli bash truncation — 已有
+20418	dup	terminal timeout 120s — 超时已有
+20419	noise	test internal
+20422	noise	test internal
+20426	boundary	pastes terminal — their UI
+20435	noise	terminal internal
+20436	noise	powershell internal
+20437	boundary	scrollback — their UI
+20441	boundary	Unified Terminal — their UI
+20444	dup	terminal without workspace — 无工作区容错已有
+20445	noise	shell internal
+20449	dup	reuse terminal by name — 终端复用已有
+20450	noise	terminal internal
+20451	dup	background preserve output — 后台输出已有
+20453	noise	async internal
+20468	noise	dep internal
+20471	noise	adapter internal
+20472	noise	config internal
+20482	noise	branch noise
+20485	noise	api internal
+20488	boundary	submenu reload — their UI
+20490	noise	publish internal
+20500	dup	plan mode sys prompt — 计划模式已有
+20503	noise	CLA internal
+20506	dup	require permission — 权限要求已有
+20509	noise	release noise
+20510	noise	release noise
+20511	noise	release noise
+20512	noise	release noise
+20513	noise	docs internal

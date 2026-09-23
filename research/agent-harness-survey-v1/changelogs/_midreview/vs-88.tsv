@@ -1,0 +1,200 @@
+51315	dup	/mcp alias /status — 别名已有
+51325	dup	remove unresponsive MCP clients init — 死连清理已有
+51331	noise	schema internal
+51332	dup	tool call errors to model — 错误回喂已有
+51343	dup	graceful mcp failures — 失败优雅已有
+51397	dup	refuse loose edit matches — 模糊匹配拒绝已有
+51446	dup	ignore EPIPE console — 断管容错已有
+51487	dup	clear error HTML response — 非API检测已有
+51504	noise	prompt internal
+51505	dup	overflow error patterns — 溢出识别已有
+51518	dup	stale credentials re-login — 凭据失效已有
+51528	noise	refactor internal
+51532	dup	fail fast config dep installs — 快败已有
+51576	noise	sidecar internal
+51602	noise	migration prose
+51612	noise	rust internal
+51624	dup	context overflow cases — 溢出识别已有
+51681	noise	rust internal
+51683	dup	timeout race guards — 竞态守卫已有
+51806	noise	dep internal
+51835	noise	wording internal
+51875	noise	revert internal
+51892	noise	ui internal
+51905	noise	ui internal
+51914	noise	ui internal
+51923	dup	drop dead server — 死服清理已有
+51987	boundary	copy logs — their UI
+51988	boundary	dialog — their UI
+51995	dup	alert only manual update — 告警限定已有
+52031	dup	descriptive exec failed errors — 错误细化已有
+52085	noise	ci internal
+52138	noise	bug internal
+52180	dup	stack trace errors — 栈已有
+52195	noise	test internal
+52201	noise	zen internal
+52370	dup	SimpleRoots root search — 根搜索已有
+52400	noise	windows internal
+52409	noise	infra internal
+52427	noise	naming internal
+52438	dup	answer subagent permission requests run — 子代理批准已有
+52453	dup	trust system CA — 系统CA已有
+52454	dup	global temp dir no prompts — 临时目录豁免已有
+52463	dup	one-time confirm before share — 首享确认已有
+52473	dup	normalize paths permission windows — 路径归一已有
+52475	boundary	layout — their UI
+52476	boundary	warning icon — their UI
+52515	noise	docs fragment
+52516	noise	config fragment
+52519	noise	docs fragment
+52520	noise	docs fragment
+52521	noise	docs fragment
+52522	noise	config fragment
+52525	noise	api noise
+52527	noise	rename noise
+52530	noise	api noise
+52531	noise	deprecation noise
+52578	dup	experimental flags override umbrella — 旗覆盖已有
+52579	boundary	checkmarks — their UI
+52582	dup	preserve arg descriptions schemas — 描述保留已有
+52584	dup	real server errors not {} — 错误透传已有
+52589	dup	filter sessions current path — 路径过滤已有
+52592	dup	OTEL settings managed workspaces — 遥测传递已有
+52594	dup	restore instance/logger context — 上下文恢复已有
+52602	dup	workspaces behind flag — 实验旗已有
+52605	noise	sidecar internal
+52606	noise	dep internal
+52617	noise	logging internal
+52627	dup	exclude chat models verbosity — 详细度限定已有
+52636	dup	verbosity/effort defaults — 默认对齐已有
+52653	noise	tauri internal
+52654	noise	tauri internal
+52655	noise	tauri internal
+52656	noise	tauri internal
+52660	noise	internal
+52669	noise	rename internal
+52675	noise	rename internal
+52676	noise	tauri internal
+52679	noise	telemetry internal
+52693	dup	respect disable_paste_summary — 粘贴摘要关已有
+52704	noise	telemetry internal
+52707	dup	DISABLE_AUTOUPDATE flag — 更新旗已有
+52711	noise	dep internal
+52715	dup	disable file watcher flag — 监视开关已有
+52716	dup	uncaught errors to log — 错误落盘已有
+52719	noise	config internal
+52725	dup	parse fenced blocks in patches — 块解析已有
+52744	dup	multiple matches error wording — 多匹配报错已有
+52745	noise	export internal
+52753	dup	only severity 1 diagnostics — 严重度过滤已有
+52754	noise	docs internal
+52757	noise	patch internal
+52758	noise	patch internal
+52759	dup	robust edit tool — 编辑加固已有
+52760	dup	gemini-cli strategies edit — 策略借鉴已有
+52761	noise	fix internal
+52792	dup	preserve UTF-8 BOMs — BOM保留已有
+52903	dup	failed subagent calls resumable task_id — 续跑id已有
+52904	dup	resumable subagent failures — 已有
+52912	boundary	picker — their UI
+52915	boundary	clickable — their UI
+52916	boundary	dialog — their UI
+52917	boundary	footer — their UI
+52920	dup	explore prompts permission not auto-deny — 询问非拒已有
+52923	dup	subagent agent-initiated quota exempt — 配额豁免已有
+52939	noise	symbol internal
+52950	boundary	picker — their UI
+52961	dup	plugin requests reuse server — 服务复用已有
+52964	dup	clearer skill errors — 错误明确已有
+52965	dup	plugin file errors no break — 容错加载已有
+52966	dup	missing args no break — 已有
+52971	dup	skills without descriptions — 容错已有
+52973	dup	global before project/skill instructions — 指令序已有
+52986	dup	preserve JSONC comments install — 注释保留已有
+52998	dup	serverUrl getter plugins — 连接修复已有
+53003	boundary	skill issue display — their UI
+53015	dup	parallelize skill downloads — 并行下载已有
+53022	dup	copilot plugin headers clients — 头设置已有
+53023	noise	bundle internal
+53034	boundary	skill dialog — their UI
+53037	boundary	badges — their UI
+53039	dup	skills as slash commands — 技能命令已有
+53047	noise	desc internal
+53052	noise	model internal
+53055	dup	builtin plugin always available — 内置可用已有
+53059	dup	no 'name' in request body — 字段净化已有
+53070	dup	globs top-level only — 顶层限定已有
+53071	dup	plugin exists first run — 首启已有
+53081	dup	read global Claude skills — 全局技能已有
+53083	noise	ecosystem internal
+53118	dup	plugin in .opencode — 目录已有
+53150	boundary	tab states — their UI
+53152	boundary	tab keyboard — their UI
+53156	boundary	layout — their UI
+53168	boundary	panel — their UI
+53178	boundary	mouse down — their UI
+53190	boundary	tab shortcuts — their UI
+53198	boundary	home tab — their UI
+53214	boundary	spinner — their UI
+53230	boundary	titlebar — their UI
+53233	boundary	keybinds — their UI
+53234	boundary	paste layout — their UI
+53235	dup	collapse long output lines — 输出折叠已有
+53246	boundary	keybindings — their UI
+53255	dup	CSP arbitrary connect-src — CSP放宽已有
+53275	dup	plugins load correct project — 项目归属已有
+53300	boundary	keyboard — their UI
+53302	noise	section noise
+53308	boundary	sidebar sync — their UI
+53324	boundary	panel animate — their UI
+53326	dup	canonicalize cwd in TUI — cwd归一已有
+53333	noise	bug internal
+53340	noise	prose noise
+53342	boundary	arrow indicator — their UI
+53347	noise	refactor internal
+53356	dup	wait loadFile before tab — 加载序已有
+53359	dup	stay pinned auto-scroll — 滚动钉住已有
+53369	boundary	titlebar — their UI
+53395	dup	sandboxes in notifs — 通知含沙箱已有
+53401	boundary	scroll button — their UI
+53409	boundary	sidebar — their UI
+53434	boundary	auto-scroll — their UI
+53438	boundary	scroll button — their UI
+53439	boundary	select dialog — their UI
+53443	boundary	styles — their UI
+53458	boundary	tooltip — their UI
+53460	boundary	remount — their UI
+53466	boundary	auto-scroll — their UI
+53476	boundary	sound — their UI
+53482	boundary	scroll — their UI
+53483	boundary	shortcut — their UI
+53490	boundary	panel — their UI
+53496	boundary	icon — their UI
+53497	boundary	icon — their UI
+53509	boundary	dot — their UI
+53513	boundary	button — their UI
+53523	boundary	panel — their UI
+53530	boundary	truncation — their UI
+53532	dup	persist workspace order/collapsed — 布局持久已有
+53535	boundary	button — their UI
+53622	boundary	drag region — their UI
+53624	boundary	resize — their UI
+53645	noise	revert internal
+53660	dup	plugins in /status — 已有
+53665	boundary	sidebar — their UI
+53691	boundary	dialog wrap — their UI
+53694	boundary	keybind — their UI
+53702	boundary	hide username — their UI
+53708	boundary	spinner — their UI
+53737	boundary	progress bar — their UI
+53759	boundary	auto-scroll — their UI
+53777	noise	dep internal
+53780	boundary	sidebar — their UI
+53792	boundary	keybind — their UI
+53798	boundary	formatter status — their UI
+53810	noise	prose noise
+53812	noise	prose noise
+53817	noise	api internal
+53822	boundary	cursor — their UI
+53832	dup	show actual command error — 错误显示已有
+53871	boundary	selection — their UI

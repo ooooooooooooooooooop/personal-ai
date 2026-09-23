@@ -1,0 +1,200 @@
+77622	noise	nushell kill internal
+77724	boundary	terminal focus slow — their UI
+77817	boundary	nav buttons — their UI
+77854	boundary	terminal selection — their UI
+77859	boundary	tab tooltip — their UI
+77861	boundary	selection off-by-one — their UI
+77892	boundary	git keybindings — their UI
+78026	noise	worktree default branch internal
+78038	noise	git spawn timing internal
+78313	boundary	branch selector — their UI
+78384	dup	pre-commit hooks commit fail — hook联动已有
+78691	noise	repo switch crash internal
+78735	boundary	conflicted paths — their UI
+78773	boundary	staged status stale — their UI
+78775	boundary	conflicted files jump — their UI
+78780	boundary	committer vs author — their UI
+79074	noise	blame empty buffer internal
+79125	noise	ext LS update flaky internal
+79233	dup	ext install incomplete download — 下载完整性已有
+79326	boundary	docks active panel — their UI
+79339	noise	blank rename internal
+79356	boundary	trust git repo button — their UI
+79696	boundary	git panel push — their UI
+79699	boundary	git panel push — their UI
+80040	noise	dev container buildx internal
+80135	dup	MCP OAuth non-default scopes — OAuth已有
+80137	boundary	MCP settings display — their UI
+80143	dup	stdio MCP no args — 加载容错已有
+80151	dup	parallel tool call wrong approval — 审批定向已有
+80154	noise	Gemini MCP internal
+80155	noise	stale buffer undo internal
+80170	boundary	MCP source prop — their UI
+80185	boundary	MCP settings view — their UI
+80220	noise	queued image paste crash internal
+80243	boundary	screenshot paste — their UI
+80273	boundary	copy newline — their UI
+80274	boundary	copy newline — their UI
+68	boundary	Gemini Flash support — their provider
+72	dup	no token cost on hard error — 计费修正已有
+175	boundary	/clear confirm — their UI
+177	boundary	history tokens limit — their product
+181	noise	session cost /ask internal
+204	noise	git AssertionError internal
+205	noise	git AttributeError internal
+206	noise	git unicode paths internal
+207	dup	run without git — 无git降级已有
+215	boundary	prefilled issue — their product
+216	noise	git repo sanity internal
+218	dup	refuse git repo in $HOME — 边界检查已有
+221	noise	auto commit sequencing internal
+227	noise	commit message internal
+239	boundary	git author names — their product
+240	boundary	commit prefix — their product
+244	dup	/undo only last commit files — 撤销范围已有
+250	boundary	relative paths hint — their product
+251	dup	commit only dirty edited — 提交范围已有
+254	noise	paths relative root internal
+255	dup	/git command — git集成已有
+257	noise	git unicode internal
+258	boundary	git repo offer — their product
+259	noise	CI Windows internal
+260	noise	URL noise internal
+263	noise	aider% meta internal
+272	noise	pip check internal
+273	noise	aider% meta internal
+274	noise	fragment noise internal
+277	boundary	/settings metadata — their product
+290	noise	aider% meta internal
+292	noise	URL noise internal
+293	boundary	GPT 4.1 support — their provider
+295	noise	edit format select internal
+298	noise	aider% meta internal
+301	noise	benchmark meta internal
+305	noise	aider% meta internal
+307	dup	repomap boost chat identifiers — 仓库图已有
+313	noise	aider% meta internal
+316	noise	aider% meta internal
+323	noise	tree-sitter pack internal
+327	boundary	/think-tokens display — their product
+328	noise	/drop read-only internal
+330	noise	aider% meta internal
+338	noise	hex color internal
+341	noise	aider% meta internal
+343	noise	/editor bugfix internal
+349	noise	aider% meta internal
+350	boundary	use_temperature — their config
+351	noise	path noise internal
+353	noise	/model report internal
+354	dup	watch ignores top dirs — watcher已有
+355	noise	watch limits internal
+357	dup	honor ignores — ignore已有
+359	boundary	All/Skip alias — their UI
+360	noise	aider% meta internal
+362	noise	turn order R1 internal
+364	noise	turn order harden internal
+365	noise	aider% meta internal
+368	noise	lint/test turn internal
+370	noise	repomap indices internal
+371	noise	aider% meta internal
+373	noise	pretty output internal
+374	boundary	bare commands mode switch — their product
+376	noise	aider% meta internal
+377	dup	watch subtree-only — watcher已有
+379	boundary	uv install — their product
+383	boundary	AI comments hints — their product
+384	noise	aider% meta internal
+385	dup	watch files improvements — watcher已有
+386	boundary	AI? comments — their product
+387	noise	watch all files internal
+388	boundary	AI comments — their product
+390	noise	aider% meta internal
+391	noise	mp4 noise internal
+392	noise	username noise internal
+396	noise	watch no tree-sitter internal
+398	noise	sys.python upgrade internal
+399	noise	aider% meta internal
+401	dup	watch-files instructions — watcher已有
+402	boundary	AI comments — their product
+403	boundary	AI! comments — their product
+405	boundary	--read ~ expand — their CLI
+406	noise	aider% meta internal
+407	noise	mp4 noise internal
+411	noise	URL scrape internal
+415	noise	aider% meta internal
+418	noise	suggest files internal
+419	boundary	/editor prefill — their product
+421	noise	aider% meta internal
+429	boundary	--read recursive — their CLI
+431	noise	username noise internal
+435	noise	token double-count internal
+437	noise	leaderboard meta internal
+439	noise	marketing internal
+441	noise	marketing internal
+443	noise	aider% meta internal
+444	dup	slash-commands files — 命令文件已有
+446	dup	/load replay commands — 命令重放已有
+447	dup	/load arbitrary commands — 命令重放已有
+448	dup	--load commands on launch — 启动命令已有
+449	boundary	sorted filenames — their UI
+457	dup	.env→gitignore offer — 密钥防护已有
+459	noise	aider% meta internal
+460	noise	/read-only internal
+462	boundary	globs /read-only — their CLI
+465	noise	editor-model check internal
+467	noise	Control-C architect internal
+468	dup	repo-map deterministic cache — 缓存已有
+469	boundary	Architect/Editor pair — their product
+470	boundary	autocomplete filesystem — their UI
+472	noise	HTTP redirects scrape internal
+474	noise	aider% meta internal
+479	noise	aider% meta internal
+480	noise	username noise internal
+481	boundary	--chat-language — their product
+484	noise	aider% meta internal
+485	boundary	/settings command — their product
+486	noise	pip print internal
+487	noise	errors→warnings internal
+491	noise	/model completions internal
+492	boundary	--upgrade switch — their CLI
+496	noise	aider% meta internal
+498	noise	full paths prompt internal
+500	noise	windows filenames internal
+501	noise	aider% meta internal
+507	boundary	~ expand — their CLI
+508	boundary	chat mode display — their UI
+513	noise	metadata json internal
+516	noise	scraper idle internal
+518	noise	aider% meta internal
+520	dup	scripted messages /commands — 脚本命令已有
+521	boundary	/tokens model — their product
+523	noise	aider% meta internal
+524	noise	linting internal
+526	noise	subprocess encodings internal
+527	noise	contribution graph internal
+529	noise	aider% meta internal
+532	boundary	ask command — their product
+533	boundary	code command — their product
+534	boundary	help command — their product
+536	boundary	Or file — their CLI
+537	boundary	case-insensitive complete — their UI
+538	noise	url add repeat internal
+539	noise	SSL disable internal
+542	noise	aider% meta internal
+544	noise	windows add files internal
+546	noise	.env precedence internal
+547	noise	pandoc errors internal
+548	noise	aider% meta internal
+549	noise	pip size internal
+550	noise	package extras internal
+551	noise	extras internal
+552	noise	extras internal
+553	noise	extras internal
+555	noise	glob absolute internal
+557	noise	switch rename internal
+558	noise	switch rename internal
+559	noise	aider% meta internal
+560	boundary	/help question — their product
+561	noise	help internal
+562	dup	multiple /undo — 撤销已有
+563	noise	cache dir internal

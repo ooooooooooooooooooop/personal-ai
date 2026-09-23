@@ -1,0 +1,200 @@
+64656	noise	toolName ACP meta internal
+64662	noise	OAuth client name Figma internal
+64674	noise	auth top-right internal
+64676	noise	isAsyncOperator separators internal
+64690	boundary	queued msgs teammate tabs — their UI
+64692	boundary	duplicate TodoList panels — their UI
+64709	boundary	queued-count badge — their UI
+64722	noise	SGR mouse paste internal
+64727	noise	npm view update internal
+64728	dup	no monitor notifications after task_stop — 任务态已有
+64729	noise	npm view update internal
+64733	noise	/cd tab completion internal
+64742	dup	keep model override on drain — 覆盖保持已有
+64754	boundary	stream scrollback — their UI
+64787	noise	notebook tab-indent internal
+64788	boundary	bg task results order — their UI
+64795	noise	panel-ownership internal
+64797	noise	foreground entry linger internal
+64814	noise	literal Tab input internal
+64815	noise	tab chars pasted internal
+64817	noise	dead dirs state internal
+64819	noise	Shift+Tab placeholder internal
+64933	noise	defer ACP telemetry internal
+65130	dup	show scheduled tasks at start — 调度可见已有
+65136	noise	cron textChunk guard internal
+65139	noise	acp-cron cleanup internal
+65151	noise	CRON_FAST test internal
+65155	noise	Vixie cron day fields internal
+65168	noise	cron step internal
+65172	noise	cron tool intents internal
+65176	noise	blank cron prompts internal
+65179	noise	malformed cron internal
+65180	noise	invalid cron entries internal
+65184	dup	no cron fire on creation minute — 调度语义已有
+65189	dup	hide cron-allowedTools skills when disabled — 条件宣告已有
+66243	dup	responsive cancel reverting — 取消已有
+66256	noise	global export rules internal
+66258	dup	sort symlinked rules by link name — 顺序语义已有
+67652	noise	empty template warning internal
+67659	noise	init.py hooks internal
+67665	dup	handle cost limit exceeded — 成本上限已有
+67667	noise	empty traj internal
+67680	noise	full clone fallback internal
+187	noise	commit msg prefix internal
+287	dup	/ask elide unchanging code — 输出省略已有
+340	noise	empty response warning internal
+378	noise	watch files prompting internal
+409	dup	input history file perms — 权限已有
+413	noise	/drop substring internal
+494	dup	no auto-reply on /undo — undo 语义已有
+629	noise	tree-sitter pip internal
+645	dup	2×Ctrl-C force exit — 强退已有
+695	noise	gitignore ops internal
+1074	noise	auth state ext windows internal
+1157	noise	ClinePass provider internal
+1702	noise	re-reading files prompt internal
+1757	noise	PowerShell hooks internal
+1766	dup	cancel bg terminal commands — 取消已有
+1973	dup	drop attachments edited messages — 附件语义已有
+2084	noise	example hooks internal
+2368	dup	VCS-free checkpoints — checkpoint 已有
+2413	noise	Focus Chain regex internal
+2491	noise	auth state internal
+2867	noise	keybinding label internal
+2988	noise	view ID internal
+3003	noise	session import paths internal
+3021	noise	sessions flash internal
+3067	dup	checkpoint restores across resumes — checkpoint 已有
+3071	dup	checkpoint restores SDK 同上
+3077	noise	mode switch restart internal
+3102	dup	checkpoint tracks all changes — checkpoint 已有
+3115	dup	wedged MCP blocking shutdown leak — 孤儿回收已有（G7）
+3128	noise	work summary elapsed internal
+3129	noise	credential gate internal
+3163	cand	streamable HTTP MCP reconnects — 重连面（#1435 同族）
+3169	noise	tool call IDs internal
+3173	noise	context rewriting internal
+3241	noise	scheduled report collapse internal
+3245	dup	hub schedules wiped cron reconcile — 调度持久已有
+3250	dup	scheduled tasks survive restart — 同上
+3261	noise	shimmer stuck internal
+3293	noise	images capability list internal
+3294	noise	images dropped internal
+3347	dup	single bad rules file no abort — 容错扫描已有
+3355	noise	composer stuck internal
+3362	noise	mode notices internal
+3365	boundary	edit msg Escape — their UI
+3382	noise	abort indicator internal
+3424	dup	parallel calls call_id tracking — 并行已有
+3428	boundary	request badge wrap — their UI
+3459	noise	auth persistence internal
+3490	noise	featureFlags internal
+3528	noise	plan_mode_respond internal
+3534	boundary	plan/act colors — their UI
+3543	noise	auth secrets persist internal
+3576	noise	Plan/Act race internal
+3582	noise	telemetry popup internal
+3583	noise	settings cancel internal
+3632	noise	error telemetry model internal
+3741	noise	telemetry per-turn internal
+3742	noise	telemetry internal
+3766	dup	agentic compaction persist resume — 压缩恢复已有
+3810	noise	context window anxiety internal
+3816	noise	prompt cache display internal
+3883	noise	duplicate ask headers internal
+3891	boundary	ESC nav buttons — their UI
+3966	noise	empty API responses internal
+4015	dup	checkpoints perf+large warning — checkpoint 已有
+5337	dup	hook scripts via service proxy — hooks 服务面已有
+5798	dup	stale processes cleanup startup — 清理已有
+5986	dup	EADDRINUSE port race — 端口竞争已有
+6130	dup	node-pty ptmx fd leak — fd 回收已有
+6276	boundary	cancelled spans gray — their UI
+6330	noise	console windows internal
+6435	noise	status bar cost internal
+6463	boundary	status bar cursor — their UI
+6469	boundary	status bar 同上
+6940	noise	empty tool params internal
+7119	dup	sub-agent message passing — 通信已有
+7210	dup	preserve queue on cancel — 队列已有
+7681	noise	server mode policy internal
+7786	boundary	loading display — their UI
+7790	noise	streaming concat internal
+8167	noise	fuzzy matching internal
+8176	noise	rule triggering internal
+8354	dup	late-MCP tools first turn+same-name skills — 渐进注册已有
+8472	noise	promo links internal
+8701	dup	/copy post-rollback latest — revert 语义已有
+8729	dup	live Stop-hook prompts immediate — hooks 已有
+8855	noise	limit_name merge internal
+8883	dup	exec hang after interrupt — 中断已有
+9160	noise	revert regression internal
+9321	dup	wait_agent prompt return — 等待语义已有
+9381	boundary	Ctrl-C sub-agents TUI — their UI
+9492	boundary	markdown reflow resize — their UI
+9527	noise	ghost snapshot notify internal
+10089	dup	dangerous-command detection rm forms — 危险检测已有
+10656	noise	debug-info internal
+11416	dup	max 6 sub-agents — 扇出上限已有
+11445	noise	exact over fuzzy internal
+11817	noise	localshell internal
+11923	dup	cancelling mid-turn — 取消已有
+12198	dup	ArchiveConversation — 归档已有
+12331	dup	realtime handoffs transcript deltas — handoff 增量已有
+12339	dup	verbatim prefix cwd matching — 规范化已有
+12367	dup	multiline env export capture — env 捕获已有
+12404	boundary	Esc notes overlay — their UI
+12457	dup	resume performance — 恢复已有
+12488	dup	resume flags work — 恢复已有
+12628	noise	websocket telemetry internal
+12941	boundary	image drag drop — their UI
+13090	noise	deprecate --full-auto internal
+13166	dup	permissions persist+reject configs+apply_patch — 批准持久已有
+13170	dup	no git before trust bootstrap — trust 前置已有
+13296	noise	trusted publishing internal
+13299	noise	projects table internal
+13430	dup	MCP retry startup+disabled preserved — MCP 恢复已有
+13445	noise	rmcp 1.7.0 internal
+13507	dup	MCP cleanup on disconnect — 回收已有
+13535	dup	thread/start non-blocking — 已有
+13541	noise	MCP docs internal
+13705	dup	remote MCP bearer lookup — auth 已有
+13767	noise	plugin uninstall internal
+13826	noise	cleanup friction internal
+14144	dup	resume/fork after compact — 压缩恢复已有
+14264	dup	skip metadata scans subagent spawn — 快速 spawn 已有
+14973	noise	Windows sandbox edge internal
+14975	dup	remote sandbox executor home — sandbox 已有
+15088	dup	elevated sandbox carveouts — 雕刻已有
+15114	noise	Windows exec edge internal
+15121	dup	macOS sandbox unix-socket — sandbox 已有
+15134	dup	zsh-fork dropped sandbox wrappers — 封套保持已有
+15182	noise	sandbox-state ordering internal
+15511	noise	installer rate limits internal
+15633	dup	/undo git staging ghost commits — undo 语义已有
+15646	noise	FeatureSpec regression internal
+15661	dup	no ghost notifications sans repo — 快照门控已有
+16034	boundary	$ mention picker — their UI
+16038	noise	curated plugins TUI internal
+16066	noise	parse-error debounce internal
+16106	dup	skills discovery config layers — 发现已有
+16195	dup	no busy-wait subagents — 等待已有
+16367	noise	plugin.xml internal
+16376	noise	plugin service dispose internal
+16379	noise	plugin service dispose dup internal
+16648	noise	indexing race internal
+16848	noise	auth refresh internal
+16890	dup	cancelable slash commands — 取消已有
+16896	dup	log tool call outcomes — 审计已有
+17058	noise	no profile internal
+17073	noise	auth link internal
+17217	noise	dir structure prompt internal
+17319	noise	import order internal
+17329	noise	options object lint internal
+17671	noise	heredoc EOF internal
+17838	noise	find/replace empty lines internal
+17843	boundary	diff button shortcuts — their UI
+17962	noise	className quote internal
+18038	noise	/help internal
+18852	noise	.prompt filter internal

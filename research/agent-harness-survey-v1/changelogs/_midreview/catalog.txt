@@ -1,0 +1,851 @@
+ slash 菜单 26 条；用户宏
+ 先搜后读；会话目录禁锢（仅 .jsonl）、尾部限界（≤60 条/条≤2000 字符）、
+ 冻结锚的代码与测试为准（命令面 = host channel
+ 已有（用户可用、有实证） ·
+ 模型工具——配合
+ 清单 +
+ 研究文档 + 官方文档为准；我方状态以
+ 缺失（用户层面没有） ·
+ 调用，
+ 部分（有机制但面不全/语义不同） ·
+!cmd
+!macro
+#Past Chats
+#[[file:…]]
+#chatw-handle
+#note
+#splash
+$ENV
+*.local.md
+*.md
+*Operations
+--attach :4096
+--channels
+--chat-w
+--continue
+--env-json
+--fork
+--host
+--lint-cmd
+--mode json
+--mode rpc
+--model
+--no-optional-locks
+--permission-mode
+--permission-prompts none
+--reasoning-effort
+--restore-chat-history
+--resume
+--resume-picker
+--sandbox
+--save_trajectories
+--steering-off
+--title
+-c
+-c core.fsmonitor=
+-mention plans、
+-p
+-r
+-t
+.agents
+.aider.chat.history.md
+.aider.conf.yml
+.aiignore
+.claude
+.claude/agents
+.claude/rules
+.claude/rules/
+.cline/cron
+.cline/cron/*.md
+.cline/rules
+.clineignore
+.clinerules
+.codebuddy/
+.crush
+.cursor
+.cursor/agents
+.cursor/agents/
+.cursor/rules
+.cursor/rules/*.mdc
+.cursorrules
+.devin/
+.devin/agents
+.devin/rules
+.git
+.github/copilot-instructions.md
+.goosehints
+.kimi-code
+.kiro/agents
+.kiro/agents/*.{json,md}
+.kiroignore
+.md
+.pai/**
+.pai/agents
+.pai/commands.json
+.pai/hooks.json
+.pai/microagents
+.pai/microagents/<name>.md
+.pai/modes.json
+.pai/pins.json
+.pai/recipes/*.md
+.pai/recipes/<name>.md
+.pai/specs
+.pai/verify.json
+.pai/verify.json onWrite
+.paiignore
+.pi/SYSTEM.md
+.policy
+.qwen
+.roo/rules-{mode}/
+.roo/rules/
+.rooignore
+.roomodes
+.toml
+.trae/.ignore
+.trae/rules/*.md
+.windsurf/rules
+.windsurfrules
+/act
+/activity
+/api/artifact
+/api/artifacts
+/approvals
+/btw
+/chat
+/chat new|save|load
+/compact
+/config
+/context
+/context add
+/context add <globs>
+/continue
+/debug
+/diff
+/doctor
+/export debug
+/goal
+/handoff
+/init
+/kiro fix
+/lint
+/load
+/login
+/ls
+/map
+/mcp
+/mention
+/model
+/pin
+/plan
+/plans
+/recipe
+/redo
+/rename
+/reset
+/review
+/rewind
+/save
+/save-team
+/sdd-*
+/self-upgrade
+/side
+/skill-doctor
+/skills
+/skills allow a,b
+/spec
+/stats
+/status
+/tangent
+/tasks
+/test
+/tree
+/undo
+/unpin
+/verify
+/workflow
+095c373
+1d75cd0
+432566f
+7 类风险分类
+74c66b5
+7a038ab
+9d4ad70
+<<<EXTERNAL_UNTRUSTED_CONTENT id>>>
+<<<EXTERNAL_UNTRUSTED_CONTENT>>>
+<UNTRUSTED_CONTENT>
+<available_references>
+<instance>/agents/
+<instance>/always-allow.json
+<instance>/command-allow.json
+<instance>/defer-tools.json
+<instance>/exports/**
+<instance>/hooks.json
+<instance>/model-fallbacks.json
+<instance>/profiles.json
+<instance>/project-trust.json
+<instance>/sessions
+<instance>/skill-allow.json
+<manual-rules>
+<memory>
+<pinned-files>
+<recipe>
+@file
+@import
+@path
+ADOPTION_MATRIX.md
+AGENTS.md
+AI
+APPEND_SYSTEM.md
+ASK_ALWAYS_PERSIST
+ASK_RESOLVED
+Builder with MCP
+C:\Desktop\pai-eval\PI-Desktop
+CLAUDE.md
+CLAUDE_CODE_SUBAGENT_MODEL_FORCE
+COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT
+CONVENTIONS.md
+ContinuationGovernor.status()
+ExitPlanMode
+FileOpsGuard 回执
+FileOpsGuard.restore
+GEMINI.md
+GIT_INTERNAL_RE
+HOOK_EVENTS
+INJECTION_HYGIENE_HIT
+KNOWLEDGE_INJECTED
+LoopDetector.observeResult
+M1 **
+M1 0
+M1 1
+M1 2
+M1 3
+M1 4
+M1 5
+M1 6
+M1 7
+M1 8
+M1 9
+M1 （命令文本检查 vs 沙箱级路径防护）
+M100 provider fallback 链
+M100 provider fallback 链+retry+模型目录（全家族最多源）
+M101 –M114 重裁 + 安全补缺（2026-09-22
+M101 –M147 + 20 项坑核查
+M101 后台会话 attach/detach
+M102 `/rename`
+M103 孤儿恢复有界化
+M104 turn 导航协议
+M105 工具级 checkpoint→rewind
+M105 工具级 checkpoint→rewind（checkpoint 行指示器+hover 恢复
+M105 工具级 checkpoint、M38 占位回取、M135 动态调速、M73 向量记忆
+M106 `/context` map+ring
+M107 `/btw` 只读旁路
+M107 外部审查后落实为机制：fork 以 `btw-readonly` posture 构建——decide 层白名单硬拒写/
+M108 消毒会话分享
+M109 选区"Add to chat"
+M11 ~~ **已修复 `ac18d6a`**
+M110 Skill Workshop
+M111 skill 根目录热更新
+M112 webhook 入站
+M113 插件安装治理
+M114 持久 `js_repl`
+M115 tool-result 媒体可视性
+M115 tool-result 媒体可视性、schedule adaptive edit invariant、profile s
+M115 –M124 深审并复核 M135/M81 措辞
+M115 –M124 终裁 + M135/M81 收口（2026-09-22
+M116 /M107/M103 哨兵）
+M116 审批卡 secret 泄漏
+M117 ignore 兼容族
+M118 持久 job stdio 生命周期
+M119 live 工具输出
+M120 doctor 诊断子系统
+M121 会话级 env 注入
+M122 shell 环境快照
+M123 bash spawn hook
+M124 运行时备份导入
+M125 memory 注入拒收
+M125 –M147 自查终裁 + 安全补缺（2026-09-22
+M125 –M147 逐条对照实现面取证（不依赖外部审查）
+M125 ）互补成链
+M126 /127/128/129/133/137/139/144 维持 PARTIAL 原裁（均有近端实现
+M126 输入框 Ctrl+Z
+M127 全局命令面板
+M128 autoscroll 偏好
+M129 粘贴徽章
+M130 /M131/M132/M140/M143 实装落地；M136 以 advisory-curator 形态落地（评分/提案
+M130 MCP list_changed
+M131 slash frontmatter mode
+M132 /config 会话内设置
+M133 web_fetch 超限摘要
+M134 exec 危险环境变量
+M134 危险环境变量
+M135 + cron 动态调速+错过跳过+心跳唤醒策略（调度族最密复发）
+M135 -R1 四态哨兵与 M115 媒体描述符哨兵）
+M135 adaptive 调度 edit 漏验
+M135 动态调速
+M136 自治 Curator
+M137 图片压缩档
+M138 字节嗅探+BMP
+M138 附件字节嗅探
+M138 ）
+M139 附件落盘路径
+M140 Fast Context 子代理
+M141 N/A-UPSTREAM 不变
+M141 apply_patch 拒 Add
+M142 写后 lint
+M143 跨文件 multi-edit
+M144 unicode_mode
+M145 .git 只读
+M146 持久 always 授权
+M147 文件读取注入扫描
+M2 0
+M2 1
+M2 2
+M25 延迟载 MCP 工具
+M38 大输出占位符回取
+M38 大输出外置落盘+占位符回取（3 源
+M5 **
+M54 Ctrl+R 历史搜索
+M54 Ctrl+R 模糊反向搜输入历史（3 源）
+M54 –M100 候选族
+M54 –M147 做深审
+M54 –M147 全部裁定完毕
+M54 –M147 收口：94/94 全部有终态**（落地 / 核查已有 / 部分 / 上游残余 / DEFERRED_BY_E
+M54 –M147（94 项）**
+M55 结构化提问
+M55 结构化提问 request_user_input/AskUserQuestion/elicitation（codex+D
+M56 per-feature 模型
+M56 per-feature 模型路由（zed×2+--weak-model+标题生成映射
+M57 外部密源
+M57 外部密源 Bitwarden/1Password SecretSource/外部 secrets workflow（4
+M58 glob 路径穿越保护；M59 /recap 返回摘要；M60 /insights；M61 占位凭证拒绝启动
+M58 glob/路径穿越
+M59 /recap 会话回顾
+M60 /insights 用量
+M61 占位凭证
+M62 request_permission
+M62 运行时提权 request_permissions/request_scope（2 源）
+M62 运行时权限请求
+M63 /66/71/76/77/80/82/83/89/90/94/96 FROZEN；M92/M99 PARTIAL/VAR
+M63 出口域控
+M63 网络出口域级 allowlist+检查器（CodeBuddy 域哈希+Zed per-host 代理+egress lo
+M64 全量 purge 预览；M65 记忆 project/user scope；M67 全局级 allowlist
+M64 实际删除、M71 免持久会话、M76 per-agent disallowedTools、M77 实况窗格、M80 sa
+M64 实际删除动作
+M64 实际删除动作、M71 免持久会话、M77 子 agent 实况窗格、M81 多 profile、M82 MCP prom
+M64 实际删除动作（预览底子在）、M71 免持久会话、M76 per-agent disallowedTools、M77 子
+M65 记忆 scope
+M66 web_fetch SSRF
+M68 掩码凭证请求流；M69 OS 级通知策略 never/smart/always+声音
+M69 notify 策略
+M70 /M97 会话树/编辑即分支
+M70 会话树/fork 关系/编辑即分支（5 源）
+M71 免持久会话
+M72 凭证原子写
+M73 向量记忆——需 sqlite-vec/embedding 依赖决策（host 零依赖约束下只能挂 pi 侧）
+M73 向量记忆终裁（2026-09-21
+M73 向量记忆（sqlite-vec 依赖决策
+M73 语义向量记忆；M74 记忆原子批量；M75 指标页
+M74 记忆批量
+M75 系统指标
+M76 per-agent disallowedTools
+M76 per-agent disallowedTools/permission-mode；M77 子代理实况窗格
+M77 子agent 实况窗格
+M78 调度绑 live session
+M78 调度绑 live session；M79 missed-job 策略；M80 sandbox.excluded 命令出沙
+M79 错过任务
+M80 sandbox.excluded
+M80 sandbox.excluded、M81 多 profile、M82 MCP prompts、M83 惰性工具目录、M8
+M81 命名 profile
+M81 命名 profile 包、上游残余（stale agent_end、MCP 工具顺序）
+M81 多 profile 实例
+M81 多 profile、M82 MCP prompts、M86 ambient context、M90/M92/M99 UI
+M82 MCP prompts 上浮
+M83 工具惰性加载
+M83 工具惰性加载 ToolSearch/Defer()（4 源）
+M83 惰性加载、M100 fallback 链、M105 工具级 checkpoint、M38 占位符回取、M135 动态调速
+M84 卡内编辑命令
+M84 审批卡内联编辑命令+自然语言改写 wand（2 源强信号）
+M85 /M88 /add-dir
+M85 workspace trust 分层（目录/父/递归）+沙箱可写挂载+移除吊销
+M86 ambient context
+M86 ambient context；M88 /add-dir+/undo-add-dir；M90 workflow paus
+M87 Monitor 唤醒
+M87 事件驱动唤醒 Monitor（crush+Cursor+自动化蓝本
+M89 会话导入
+M89 会话导入 Claude Code/Codex/opencode/ChatGPT（4 源
+M9 ~~ **已修复 `ac18d6a`**
+M90 workflow 生命周期
+M90 workflow 生命周期页、M92 后台会话页、M94 per-agent 上下文预算、M99 workers 页、M
+M90 workflow 生命周期页、M92 后台会话页、M99 workers 页、M73 向量记忆（重依赖决策）、上游残余（
+M91 结构化参数表单
+M91 结构化表单（Automation Blueprints）；M92 后台会话页；M94 上下文注入预算
+M92 后台会话页
+M93 排队弃尾
+M93 活跃 turn 排队消息+Esc暂停/Ctrl+C弃尾（4 源）
+M94 per-agent 上下文预算
+M94 per-agent 预算、M135 动态调速、M73 向量记忆（重依赖）
+M95 本地模型发现
+M95 本地模型自动发现（Ollama/DNS-SD）；M96 allowlist 导入导出；M97 已发消息编辑→分支
+M96 allowlist 导入导出
+M97 消息点击编辑
+M98 bare /loop
+M98 bare /loop 自主模式；M99 workers/daemons 页；M101-M147 其余见 findings
+M99 workers 页
+NoDefaultCurrentDirectoryInExePath
+PAI_*
+PAI_DELEGATE_DEFAULT_TARGET
+PAI_MAX_SPAWN_DEPTH
+PAI_SANDBOX=wsl
+PAI_SHADOW_JUDGE_MODE=guard
+PAI_SPAWN_DEPTH
+PAI_STEERING_OFF
+PendingAsks
+PendingAsks 标准通路
+PendingAsks.grantSession
+Personal AI 功能基线
+
+壳/平台: 桌面 Electron 壳 + 零构建网页 UI
+Read()
+RemoteEnvironmentService
+SKILL_DELETED
+SandboxProvider.spawnSpec(command, workdir)
+ScheduleStore
+TaskStore
+Tool(glob)
+Tool(specifier)
+[REDACTED]
+[swarm:blackboard]
+[type mime: name]
+\r?\n
+_REPORT.md
+_scan_context_content
+_signal-review.txt
+`/` slash 菜单 26 条
+`/plan` 只读模式/`/act` 恢复
+`/reset` 双 scope 回退
+`@`文件引用附着真内容
+`@`文件附着
+`auth_set_key`/`auth_clear`
+`body_select` 显式切换+七态 fail-closed handoff
+`budget_status`+预算门
+
+持久化: instance root 运行态
+`delegate_task`
+`provider_add`
+`session_compact`
+`session_entries`+`session_rewind`
+`session_export`
+`session_stats`
+`thinking_set`
+a.b.c=value
+ac18d6a
+agent
+agent create/debug
+agent debug
+agent()/pipeline()/parallel()
+agent-instructions
+agent_stats
+agent_stop
+allow_session
+always
+app/UI-BACKLOG.md
+app/server
+app/ui
+app/ui/app.js
+apply: manual
+applyMode
+approval
+argsRedacted
+argsTotalChars
+argsTruncated
+ask_user_question
+auth_clear
+auth_set_key
+auto
+auto_retry 事件行。
+
+工具可见性: 工具卡
+bash 前缀直跑、
+bash 直跑、
+bash-sandbox
+bash/
+bashEditDiffEnabled
+bash_run
+beforeToolCall
+blockReadsOutsideWorkingDirectories
+board
+body 面板
+body_select
+browser_*
+browser_navigate/read/click/type/eval/screenshot
+browser_screenshot
+btw-readonly
+budget_status
+buildSession(forkMgr,{posture:'btw-readonly'})
+changelogs/
+channel
+clarify
+claude plugin eval
+cline auth
+cloud
+code
+codearts
+codearts codebase --init
+codex resume/fork/queue/archive
+command-compact
+commandAllowlistMatch
+command_allow_export
+command_allow_import
+compact_end
+compact_start
+compaction-basic
+compaction.prune
+config_get
+config_set
+confirm
+confirm_ask
+crush
+crush run
+crush server
+ctx.on
+ctx.sessionManager
+ctx.tools.guard()
+curateLibrary
+curator_scan
+dangerEnv
+delegate_task
+delegate_task(name=…)
+delegate_task(profile=…)
+devin rm
+dir=
+doctor
+dsh web
+durable jobs
+e011d5d
+e0cd7d9
+e6a2c30
+ece8c24
+echo
+echo x > AGENTS.md
+edit()
+edits[{path,old_string,new_string,replace_all}]
+effort:
+env:
+env_deny:
+env_injection
+errorLimit
+excludeMessages
+execute_code
+exit_plan_mode
+export
+fast_context
+fileOps.undoCall/undoFrom
+fileops_diff receiptId
+fork
+fs-observation-policy
+fs-sandbox
+get_state.goals
+get_state.projection
+git status
+git status --porcelain
+git worktree add --detach
+git write-tree
+git_internal
+globs:
+goose configure
+goose doctor
+goose roam
+goose session
+harnesses/aider.md
+harnesses/claude-code.md
+harnesses/cline.md
+harnesses/codearts-agent.md
+harnesses/codex-cli.md
+harnesses/crush.md
+harnesses/cursor.md
+harnesses/devin.md
+harnesses/dsh.md
+harnesses/gemini-cli.md
+harnesses/goose.md
+harnesses/hermes.md
+harnesses/kimi-code.md
+harnesses/kiro.md
+harnesses/mini-swe-agent.md
+harnesses/mistral-vibe.md
+harnesses/openclaw.md
+harnesses/opencode.md
+harnesses/openhands.md
+harnesses/pi.md
+harnesses/qwen-code.md
+harnesses/roo-code.md
+harnesses/trae.md
+harnesses/workbuddy.md
+harnesses/zcode.md
+hermes fallback
+hermes peer
+host/core/repomap.js
+host/core/trust.js
+host/src/core/envelopes.js
+host/src/core/hooks.js
+host/src/core/loopwatch.js
+host/src/core/memory.js
+host/src/core/sandbox.js
+host/src/core/scheduler.js
+host/src/core/secrets.js
+host/src/core/shadowjudge.js
+host/src/core/tasks.js
+images:true
+injectionHygieneExtension
+input
+introspect
+invoke_subagent
+isContextOverflow
+isLongRunningCommand
+isRetryableAssistantError
+isolate_steering:
+items.jsonl
+job 详情投影
+job_cancel
+job_kill
+job_list
+job_output
+job_spawn
+job_status
+jobs.recovery_count
+js_repl
+kimi login
+kimi session
+kimi web
+lattice deny>负能力>ask>allow
+llm
+llm-deepseek
+llm-pi-ai
+llm-retry
+loadAgentProfiles
+loadSteering
+match
+maxEffortLevel
+maxRecoveries=3
+max_minutes
+max_session_turns
+mcp__<s>__<t>
+media
+memory search --format inject --token-cap
+memory_save
+migrate
+mini -t "task" --yolo
+mistake_limit
+mode:
+mode_request
+model:
+model_fallback_set
+model_fallbacks
+model_list
+model_ping
+model_set
+model_status
+models.json
+modes_read
+modes_save
+multi_edit
+navigateTree
+network_error
+new_task
+noExtensions:true
+notifications/tools/list_changed
+omitClaudeMd
+openclaw.json
+opencode
+opencode run
+orchestrator.max_plan_duration_seconds
+output_read(id,offset,limit)
+params:
+parentID
+pathAsk
+pathDeny
+permission
+pi
+pi install
+pi/adapter/modetools.js
+pi/src/adapter/
+pi/src/adapter/agentprofiles.js
+pi/src/adapter/askuser.js
+pi/src/adapter/browser.js
+pi/src/adapter/fastcontext.js
+pi/src/adapter/jobs.js
+pi/src/adapter/memtools.js
+pi/src/adapter/web.js
+pi/src/bootstrap/decide.js
+plan-mode
+plan_list
+plan_save
+pre_tool
+prepareOverflowCompaction
+project_trust_status/set
+protectedRoots
+provider
+provider/model:thinking
+provider_add
+pwsh-sandbox
+read_outside
+recipe_run
+refreshTools
+remember()
+repeat-tool-reminder
+repetition_guard
+repo_map
+requestModeSwitch
+request_permission
+restore()
+resultText()
+resume --last
+revert()
+rt.getAuth
+run -p
+run_slash_command
+sandbox
+sandbox-policy
+sandbox.js
+sanitizeAskArgs
+scanForInjection()
+schedule_cancel
+schedule_list
+schedule_task
+security_risk
+serve
+session/jobs
+session/projection
+session_attach/detach
+session_before_compact
+session_compact
+session_entries
+session_export
+session_fork {entryId}
+session_history
+session_list
+session_rename
+session_rewind
+session_rewind {scope:'chat'|'files'|'both'}
+session_rewind{entryId,scope}
+session_search
+session_search(scope)
+session_stats
+session_sweep {days=14}
+shell 直跑、图片、多行编辑器、自定义 command md（
+skill-filesystem
+skill_allow_set
+skill_delete
+skill_manage
+skill_save
+skills.Tracker
+skills_list
+slash。无 hooks、无 MCP 客户端、无插件市场
+
+出口: export HTML
+spawn_agent
+spawn_spec
+spill-local
+spill-policy
+stale:true
+stats
+stopped
+subagent
+subagent_claude_code
+subagent_codex
+submit_and_exit
+supervisor。
+
+模型: `model_list`/`model_set`/`model_status`
+target:
+task
+task_list
+tasktools.js
+teammate
+teammate_msg
+thinking_set
+timeoutMs
+todo 面板实时刷新
+token-meter
+tool-goal
+tool-jobs
+tool-ralph
+tool-result-pruner
+tool-skill
+tool-subagent
+tool-workflow
+tool_activate
+tool_call
+tool_deferred
+tool_end
+tool_guardrails
+tool_result
+tool_search
+tool_start
+tools.<name>()
+triggers:
+undoCall
+undoFrom
+update_todos。
+
+上下文: 手动+自动 compaction
+upgrade
+validateAdaptive()
+verify_run
+verify_status
+vibe --setup
+vibehistory
+{"deny"}
+{baseUrl}/models
+{effort}
+{model,thinking,mode,savedAt}
+{model}
+{onWrite}
+{permission, pattern, action}
+{tool,command}
+{type,mimeType,name}
+{{k}}
+{{var}}
+~/.devin/plans/*.md
+~/.dsh/skills/
+~/.gemini
+~/.pi/agent/trust.json
+~/.zcode/agents/*.md
+侧栏折叠。
+
+任务/委派: durable jobs
+元信息 chip
+全文搜索 `session_search`。
+
+执行中控制: abort
+单用户本地单机
+历史会话链接、
+历史链接（228/193） |
+处理计时行+子状态
+审计 JSONL。
+
+扩展: managed extensions 机制
+审计导出。无 PR/commit 集成、无 CI/headless 用户面。
+
+---
+审计流。无 OS 级沙箱。
+
+多身体: pi/dsh 双身体
+文件/文件夹/plugin 引用、
+文件、
+文件引用附着真内容；粘贴/拖拽文本与图片（图片走
+文件附着；AGENTS.md（pi 原生 ResourceLoader 加载+
+新建/切换/重命名/删除/分支 fork/resume
+无移动/Web/IDE/headless-CLI 产品面。
+
+开屏/入口: 无模型时 setup 引导卡接管空态
+模型 chip + 推理档 chip。
+
+会话管理: 侧栏会话列表
+用户宏 `/macro`
+粘贴/拖拽文本与图片
+记忆前缀、图片粘贴、多行 | 🟡 | @文件+图片已有；
+设置页：provider 管理
+速记、
+错误卡+详情折叠
+（保存模板，
+，R9 实证）；

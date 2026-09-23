@@ -1,0 +1,200 @@
+5958	boundary	channel list startup — their UI
+5960	dup	tool status stats accuracy — 遥测准确已有
+5963	boundary	icon flicker — their UI
+5966	boundary	copy button hover — their UI
+5967	boundary	copy button hover — their UI
+5980	boundary	加速域名 — their product
+5981	boundary	加速域名 — their product
+5982	boundary	加速域名 — their product
+5987	dup	team member stop reliability — 停止可靠已有
+5995	dup	fish safe-delete compat — shell兼容已有
+6006	dup	reconnect replay buffer 5MB — 回放缓冲已有
+6023	boundary	tab auto-scroll — their UI
+6027	boundary	terminal fit — their UI
+6046	dup	bash fallback Git Bash — shell降级已有
+6052	noise	IDE detection internal
+6065	dup	child processes remain after exit — 进程清理已有
+6067	boundary	shell submode — their UI
+6068	boundary	local inspect mode — their product
+6072	boundary	recall behavior — their product
+6084	boundary	tmux highlight — their UI
+6085	boundary	paste compat — their UI
+6086	boundary	logo — their UI
+6088	boundary	input handling — their UI
+6090	noise	subprocess hang internal
+6091	boundary	loading box — their UI
+6095	dup	MCP init one-time commands — 初始化开销已有
+6104	noise	PTY GLIBC detect internal
+6118	boundary	shared task list terminals — their product
+6143	dup	hooks Windows path — hook路径已有
+6156	dup	plugin bin/ into PATH — 环境注入已有
+6169	boundary	canvas view — their UI
+6170	boundary	canvas view — their UI
+6175	boundary	canvas zoom — their UI
+6176	boundary	box select — their UI
+6181	dup	Git Bash fallback PowerShell — shell降级已有
+6187	dup	Git Bash fallback — shell降级已有
+6190	boundary	macOS permissions — their product
+6191	noise	env示例噪声
+6202	boundary	keybind contexts — their UI
+6209	dup	Grep/Glob registration restore — 工具注册已有
+6210	dup	disallowedTools subcommand rules — 规则解析已有
+6211	dup	Office automation false intercept — 策略误报修复已有
+6212	dup	rawCommand skip wrapper — 透传已有
+6213	noise	conhost windows internal
+6214	dup	UTF-8 multi-byte chunks — 编码已有
+6228	boundary	status bar git — their UI
+6229	dup	error codes preserved pipeline — 错误码透传已有
+6232	boundary	changes list merge — their UI
+6233	dup	SCM real-time monitor — 监听已有
+6235	dup	watch noise filter node_modules — 过滤已有
+6252	noise	git scan parallel internal
+6256	noise	headers case merge internal
+6260	dup	changes on exit+worktree cleanup — 退出清理已有
+6267	dup	git危险操作风险识别 — 风险分级已有
+6268	dup	git高危命令阻断 — 高危拦截已有
+6288	dup	Tab queue message — 队列已有
+6291	boundary	QR panel esc — their UI
+6295	dup	tab metadata persist — 标签持久已有
+6319	boundary	settings TOC — their UI
+6321	boundary	tab lag — their UI
+6324	dup	IDE auto-connect status — 连接已有
+6346	noise	notepad Ctrl+G internal
+6382	boundary	paste speed — their UI
+6387	boundary	todo status — their UI
+6388	boundary	editor paste — their UI
+6390	boundary	diff highlight — their UI
+6395	boundary	notification prefix — their UI
+6398	boundary	bashes panel — their UI
+6433	boundary	instance panel — their UI
+6438	boundary	full-text search — their UI
+6439	boundary	i18n switch — their UI
+6448	boundary	multi-tab — their UI
+6450	boundary	auto save — their UI
+6451	boundary	dnd files — their UI
+6452	boundary	shortcuts — their UI
+6454	dup	real-time file change notify — 变更通知已有
+6457	boundary	message display — their UI
+6477	dup	toast replaces silent swallow — 错误可见已有
+6479	dup	AskUserQuestion normalize — 容错已有
+6490	boundary	macOS desktop control — their product
+6493	noise	service worker internal
+6497	dup	AskUserQuestion unanswered — 状态修正已有
+6499	dup	orphaned tool_call skip replay — 回放完整已有
+6503	noise	Retina coords internal
+6527	dup	风险+语义+历史智能放行 — 审批分级已有
+6546	dup	ACP skip questions hang — 审批挂起已有
+6561	dup	sandbox env skips approvals — 沙箱档已有
+6578	dup	approval polling resume — 审批恢复已有
+6579	dup	denied→stop+cancel remote — 拒绝取消已有
+6594	dup	prefix allowlist default off — 默认拒绝已有
+6600	boundary	dialog UX — their UI
+6628	noise	code示例噪声
+6649	dup	confirm dialog overlap multi-teammate — 并发审批已有
+6656	dup	AskUserQuestion invisible race — 竞态已有
+6662	dup	confirm dialog race — 竞态已有
+6681	dup	directory trust state — 目录信任已有
+6694	dup	PermissionRequest intercept+lifecycle hooks — hook拦截已有
+6700	dup	rm bulk HIGH risk — 风险分级已有
+6701	dup	rm risk level tune — 风险分级已有
+6705	dup	permission error details — 错误详情已有
+6706	dup	debug logs per session — 日志归已有
+6716	noise	OTel revert internal
+6749	dup	port assign after ready — 就绪连接已有
+6751	dup	port assign after ready — 就绪连接已有
+6764	dup	/background session — 后台会话已有
+6765	dup	/fork-bg — 后台fork已有
+6766	dup	handoff rollback on fail — 回滚已有
+6768	boundary	cursor residual — their UI
+6776	dup	ACP cancel deadlock — 取消死锁已有
+6782	dup	interruption stability — 中断已有
+6794	dup	--session-id as contextId — 会话ID已有
+6808	dup	rewind scoped per session — 会话隔离已有
+6812	noise	title timeout internal
+6817	noise	session state internal
+6820	noise	session lifecycle internal
+6821	noise	null check internal
+6831	boundary	/feedback — their product
+6838	dup	context compression fix — 压缩已有
+6862	noise	SDK示例噪声
+6863	noise	SDK示例噪声
+6864	noise	SDK示例噪声
+6874	dup	summary message toggle — 摘要开关已有
+6875	dup	topic message toggle — 主题开关已有
+6881	noise	示例噪声
+6882	noise	env示例噪声
+6883	noise	命令噪声
+6892	noise	doctor null session internal
+6895	boundary	--tmux — their CLI
+6899	dup	explicit continue session reuse — 会话复用显式已有
+6900	boundary	WeCom streaming — their connector
+6904	dup	rewind pre-modification state — 回滚准确已有
+6907	dup	checkpoint rollback — 检查点已有
+6924	noise	title i18n internal
+6951	noise	snappy bundling internal
+6952	noise	MeterProvider internal
+6975	noise	editor return internal
+6977	dup	prewarm handshake hang — 预热握手已有
+6985	dup	error codes per failure cause — 错误码细化已有
+6989	boundary	autocomplete flash — their UI
+6996	noise	points aggregation internal
+6998	dup	daemon crash recovery — 守护恢复已有
+7002	noise	BOM csv internal
+7006	dup	multi-select+custom merge — 答案合并已有
+7008	noise	credit display internal
+7029	dup	time keywords current time — 时间锚定已有
+7037	dup	warmup readiness port — 就绪检查已有
+7050	dup	message send during model sync+reconnect — 发送解耦已有
+7056	noise	fun fact internal
+7057	dup	child process orphan cleanup — 进程清理已有
+7061	dup	commands/hooks/terminals no residue — 退出清理已有
+7067	dup	TaskStop/TaskOutput bad id error — 任务错误已有
+7071	dup	team cleanup+counts+tree state — 并发清理已有
+7074	dup	Esc foreground only+queue continue — 中断域已有
+7085	dup	HTTP status in model errors — 错误分类已有
+7089	dup	A2A tools absent in surface — 工具面已有
+7091	dup	empty continuation fix — 续发修复已有
+7101	dup	background agents print mode summary — 后台汇总已有
+7104	dup	dup-named downstream agents callable — 重名代理已有
+7106	dup	中文文件名编码 — 编码已有
+7117	dup	multi tool calls each reported — 并发汇报已有
+7123	noise	token stats internal
+7128	noise	libc internal
+7131	noise	install detect internal
+7138	noise	token calc internal
+7140	noise	musl internal
+7141	dup	subtask exec limits — 执行上限已有
+7143	noise	IDE detect internal
+7145	noise	LSP Windows internal
+7146	dup	alwaysApply:false rules skipped — 规则导入已有
+7160	dup	auto-update lock multi-process — 更新锁已有
+7168	dup	Windows-style paths on POSIX — 路径兼容已有
+7173	dup	symlink relative path — 符号链接已有
+7175	dup	tool not found errors — 错误消息已有
+7179	dup	failed subtask cleanup — 子任务清理已有
+7182	noise	color index internal
+7186	dup	alias subcommand routing — 别名路由已有
+7197	dup	hooks中文编码 — 编码已有
+7213	boundary	token counter — their UI
+7227	noise	metrics circular internal
+7229	noise	metrics circular internal
+7230	noise	path case internal
+7233	dup	AskUserQuestion invalid reject — 输入校验已有
+7237	dup	PromptManager atomic template swap — 原子替换已有
+7247	dup	compression cancel rollback — 取消回滚已有
+7250	dup	ACP agent_thought_chunk — 协议合规已有
+7267	boundary	auto-connect matching — their product
+7268	dup	single-IDE auto-connect — 连接判定已有
+7269	boundary	multi-IDE manual pick — their product
+7271	noise	release list noise
+7272	noise	JSON示例噪声
+7280	dup	shutdown ID collision recipient+ts+rand — 幂等ID已有
+7339	dup	@file oversized limit+continue prompt — 大文件截断已有
+7428	dup	CODEBUDDY_MODEL override — 模型覆盖已有
+7429	dup	small fast model config — 模型档已有
+7430	dup	big slow model config — 模型档已有
+7647	noise	a2a flag compat noise
+7671	boundary	client SDK — their product
+7676	dup	auto detect login — 登录检测已有
+7685	noise	示例噪声
+7713	dup	ACP custom types removed — 协议合规已有

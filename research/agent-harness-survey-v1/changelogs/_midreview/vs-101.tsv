@@ -1,0 +1,200 @@
+69921	noise	ui prose
+69922	noise	ui prose
+69923	noise	prose noise
+69924	noise	ui prose
+69925	dup	prewarm deferred to first paint — 预热延后已有
+69926	noise	fix prose
+69927	noise	fix prose
+69928	noise	fix prose
+69929	dup	count drop notification — 突降提示已有
+69930	dup	hide unauthorized connectors — 授权屏蔽已有
+69931	dup	expert prompt injection fix — 提示词修复已有
+69932	dup	share message order fix — 排序修复已有
+69933	noise	fix prose
+69934	noise	fix prose
+69935	dup	--- not heading fix — 解析修复已有
+69936	noise	fix prose
+69937	noise	fix prose
+69938	noise	fix prose
+69939	noise	fix prose
+69940	dup	subagent edit bypassed sandbox approval fix — 沙箱中介修复已有
+69941	dup	divider misdrop real msgs fix — 消息保护已有
+69942	dup	license error raw text — 原文错误已有
+69943	noise	fix prose
+69944	noise	fix prose
+69945	noise	prose noise
+69946	dup	keep old config on network jitter — 配置保留已有
+69947	noise	fix prose
+69948	noise	prose noise
+69949	dup	cardId share jump — 分享跳转已有
+69950	noise	prose noise
+69951	dup	cost hints gen tools — 消耗提示已有
+69952	noise	ui prose
+69953	boundary	model cost display — their UI
+69954	noise	ui prose
+69955	noise	prose noise
+69956	noise	prose noise
+69957	noise	ui prose
+69958	noise	ui prose
+69959	noise	fix prose
+69960	dup	destroyed session inbound fix — 会话防护已有
+69961	noise	fix prose
+69962	noise	fix prose
+69963	dup	personal acct wrong toast fix — 误报修复已有
+69964	noise	fix prose
+69965	dup	approval card dedup+stream overwrite fix — 审批卡片修复已有
+69966	noise	fix prose
+69967	dup	hidden share entry fix — 入口生效已有
+69968	dup	input preserved during restart — 输入保留已有
+69969	noise	fix prose
+69970	noise	fix prose
+69971	noise	fix prose
+69972	noise	fix prose
+69973	noise	fix prose
+69974	dup	switch state sync fix — 开关同步已有
+69975	noise	prose noise
+69976	noise	fix prose
+69977	dup	client network error code not 502 — 错误码区分已有
+69978	dup	windows path normalize fix — 路径归一已有
+69979	noise	fix prose
+69980	noise	fix prose
+69981	noise	fix prose
+69982	dup	401 no global logout — 登出防护已有
+69983	dup	reasoning-only empty msg crash fix — 空消息修复已有
+69984	dup	download security headers XSS — 响应头已有
+69985	noise	prose noise
+69986	noise	prose noise
+69987	noise	prose noise
+69988	noise	prose noise
+69989	noise	ui prose
+69990	noise	ui prose
+69991	dup	resume after weak net fix — 同上dup
+69992	dup	reconnect false-report fix — 同上dup
+69993	dup	tool records lost fix — 同上dup
+69994	dup	dirty config exception fix — 脏配置防护已有
+69995	dup	streaming dup+group fix — 同上dup
+69996	noise	fix prose
+69997	dup	usage+expiry reminders — 用量提醒已有
+69998	dup	startup subprocess/perm check trim — 启动精简已有
+69999	dup	wake comm channel fix — 唤醒修复已有
+70000	dup	backend restart race+history loss fix — 竞态修复已有
+70001	dup	perm selector flash+plan residue fix — 残留修复已有
+70002	dup	task shows running after done fix — 状态修复已有
+70003	noise	perf prose
+70004	noise	ui prose
+70005	noise	fix prose
+70006	dup	abnormal content infinite render fix — 渲染防护已有
+70007	dup	input loop update fix — 循环修复已有
+70008	dup	upload cancel keeps file fix — 取消清理已有
+70009	noise	fix prose
+70010	dup	large preview hang fix — 同上dup
+70011	dup	model config fallback refresh fix — 兜底刷新已有
+70012	noise	prose noise
+70013	noise	ui prose
+70014	noise	perf prose
+70015	dup	dir perm check auto-repair — 权限自修已有
+70016	dup	audit log search+batch delete — 审计日志已有
+70017	dup	RPC queue saturation fix — 队列饱和修复已有
+70018	dup	host restart recovery fix — 重启恢复已有
+70019	noise	fix prose
+70020	dup	config refresh+perm+draft fix — 刷新修复已有
+70021	noise	fix prose
+70022	noise	fix prose
+70023	noise	fix prose
+70024	noise	fix prose
+70025	noise	fix prose
+70026	noise	fix prose
+70027	dup	CJK username install fix — 路径兼容已有
+70028	noise	fix prose
+70029	dup	file version history loss fix — 版本历史已有
+70030	noise	fix prose
+70031	dup	builtin skill replaces market plugin — 内置替换已有
+70032	noise	prose noise
+70033	dup	auto-relaunch after update fix — 自动拉起已有
+70034	dup	read tool bad params crash fix — 参数容错已有
+70035	dup	client network error not 502 — 同上dup
+70036	dup	artifact panel cap 6+view all — 面板限量已有
+70037	dup	dir perm check startup — 同上dup
+70038	noise	fix prose
+70039	noise	fix prose
+70040	dup	dirty tool data crash fix — 脏数据防护已有
+70041	noise	fix prose
+70042	dup	connector auth state after restart — 授权判定已有
+70043	dup	connector no false restore — 误恢复修复已有
+70044	noise	fix prose
+70045	noise	fix prose
+70046	noise	fix prose
+70047	noise	fix prose
+70048	noise	fix prose
+70049	noise	fix prose
+70050	dup	auto-relaunch after update — 同上dup
+70051	noise	fix prose
+70052	dup	CJK username self-repair — 同上dup
+70053	dup	perm dialog repeat on resume fix — 弹窗去重已有
+70054	noise	fix prose
+70055	dup	expert task abnormal termination fix — 异常终止修复已有
+70056	dup	task ends but session streams fix — 终止一致已有
+70057	noise	fix prose
+70058	noise	fix prose
+70059	boundary	wechat pay plugin — their platform
+70060	noise	prose noise
+70061	dup	model switch divider marker — 切换标记已有
+70062	dup	inject current time per turn — 时间注入已有
+70063	dup	dismiss preference persist — 偏好持久已有
+70065	noise	platform noise
+70066	boundary	feishu custom host — their platform
+70067	dup	sandbox open browser under policy — 沙箱浏览器已有
+70068	dup	history batch less clone — 克隆精简已有
+70069	dup	db precheck+repair startup screen — 库预检已有
+70070	dup	binaries dir write-protect anti-escape — 逃逸防护已有
+70071	noise	ui prose
+70072	noise	perf prose
+70073	dup	WAL light repair+silent loss detect — WAL检测已有
+70074	dup	unconnected connectors sink — 排序已有
+70075	dup	expert pack latest update time — 包版本已有
+70076	dup	NOT CONNECTED intermittent fix — 状态修复已有
+70077	dup	full-access still sandboxed fix — 权限生效修复已有
+70078	dup	timeout misreported moderation fix — 误报修复已有
+70079	noise	fix prose
+70080	dup	multi-line paste splits fix — 粘贴合并已有
+70081	dup	unfinished tool calls marked cancelled — 取消标记已有
+70082	dup	search filter inverted fix — 过滤修复已有
+70083	dup	update badge clear fix — 徽标清除已有
+70084	dup	prompt placeholder loss fix — 占位符修复已有
+70085	dup	default prompt dup append fix — 追加去重已有
+70086	dup	model memory lost on switch fix — 模型记忆已有
+70087	noise	fix prose
+70088	noise	fix prose
+70089	noise	fix prose
+70090	noise	fix prose
+70091	dup	artifact cache pollution on switch fix — 缓存隔离已有
+70092	dup	bg task force-switch fix — 切换防护已有
+70093	dup	dup user-context on compress resume — 注入去重已有
+70094	noise	fix prose
+70095	dup	custom model config path fix — 配置路径已有
+70096	dup	leftover process locks db fix — 锁释放已有
+70097	dup	pending msgs cross-session fix — 会话隔离已有
+70098	dup	crash recovery non-terminal state fix — 终态恢复已有
+70099	noise	fix prose
+70100	dup	auth vs enabled state fix — 状态一致已有
+70101	dup	multi-select delete+share by message — 粒度分享已有
+70102	dup	present_files unified artifact entry — 产物入口已有
+70103	dup	deeplink to task/project — 深链已有
+70104	noise	platform noise
+70105	dup	knowledge source fine toggle — 知识开关已有
+70106	noise	prose noise
+70107	dup	model switch divider — 同上dup
+70108	dup	time inject per turn — 同上dup
+70110	dup	sandbox intercept card reason+lists — 拦截透明已有
+70111	dup	security center switches+audit+write protect — 安全中心已有
+70112	dup	tool loop detection blacklist — 循环检测已有
+70113	dup	ProjFS detection windows — 特性检测已有
+70114	dup	bundle ID migration updater — 迁移器已有
+70116	noise	ui prose
+70117	noise	ui prose
+70118	noise	perf prose
+70119	noise	perf prose
+70120	noise	perf prose
+70121	dup	featured skill sort — 推荐排序已有
+70122	dup	WAL write policy+passive checkpoint — 写策略已有
+70123	dup	unfinished calls misjudged running fix — 状态判定已有

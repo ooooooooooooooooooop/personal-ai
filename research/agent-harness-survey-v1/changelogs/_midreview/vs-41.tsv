@@ -1,0 +1,200 @@
+9711	noise	recency sort internal
+9712	dup	sanitize backend errors — 错误净化已有
+9714	dup	thread source metadata — 来源元数据已有
+9715	dup	history tool output budgets — 输出预算已有
+9716	noise	keymap registry internal
+9717	dup	history images to model — 图片转发已有
+9718	dup	subagents root service tier — 层级继承已有
+9719	dup	honor required reviews reuse scores — 审查复用已有
+9720	noise	retry backoff internal
+9721	dup	clock tools built-in classify — 工具分类已有
+9722	dup	stable IDs Responses items — 稳定ID已有
+9723	dup	compression shared rollout lineages — 血统压缩已有
+9725	dup	async user messages questions only — 消息限域已有
+9726	dup	Guardian classifications turn identities — 轮标识已有
+9727	noise	context primitives internal
+9728	dup	one-shot exec preserve — 回退已有
+9729	dup	context baselines nested forks — fork基线已有
+9730	dup	last step context per turn — 上下文保持已有
+9731	dup	executor hooks interrupted turns — 中断hook已有
+9732	noise	question handling internal
+9733	noise	policy rename internal
+9734	noise	duration internal
+9735	dup	block goals repeated failures — 熔断已有
+9737	noise	release binaries internal
+9738	noise	asset dirs internal
+9739	dup	turn lineage continuations — 血统已有
+9744	dup	history ingestion turn metadata — 元数据已有
+9745	dup	update_plan opt-in — 工具开关已有
+9747	dup	Guardian answers preserve — 答复保持已有
+9748	dup	user text preserve oversized images — 降级保留已有
+9750	noise	test internal
+9751	dup	model-specific tool plans — 工具计划已有
+9752	dup	fallback model-aware — 降级已有
+9753	dup	executor OS turn envs — 环境注入已有
+9754	dup	deny-read executor semantics — 拒读对齐已有
+9756	boundary	markdown links — their UI
+9757	dup	global scope check runtime — 作用域检查已有
+9758	dup	Seatbelt writable root bind — 沙箱绑定已有
+9759	noise	buffer alloc internal
+9762	noise	dial future internal
+9763	dup	private executor dir removal — 目录清理已有
+9765	dup	auto-review outcome instructions — 审查指令已有
+9766	noise	postprocessing internal
+9767	dup	refresh capability roots resume — 能力刷新已有
+9768	dup	require dir walks — 接口契约已有
+9769	dup	managed dev instructions requirements — 指令需求已有
+9770	noise	model defs internal
+9771	dup	verify app signatures — 签名校验已有
+9772	dup	retry transient registry — 重试已有
+9773	dup	classify migration failures — 失败分类已有
+9774	dup	host-accepted websockets — 接管已有
+9775	dup	tool outputs external context — 外部上下文已有
+9776	dup	reject settings parent-owned subagents — 信任边界已有
+9777	noise	rmcp internal
+9778	dup	macOS pref reads policy — 读取限域已有
+9779	dup	avoid materializing carveouts — 延迟物化已有
+9780	noise	policy projection internal
+9781	dup	uncapped classifier instructions — 指令完整已有
+9783	dup	ignore instructions untrusted projects — 信任门已有
+9784	noise	retry reset internal
+9786	dup	attach existing realtime calls — 复用已有
+9787	dup	bound output delta frames — 帧上限已有
+9788	noise	pnpm internal
+9789	noise	tests internal
+9790	dup	bypass risk scoring auto-review — 审查分流已有
+9792	noise	keymap internal
+9793	dup	credentials out of logs — 日志净化已有
+9794	dup	browser/computer requirements — 需求已有
+9796	boundary	fast mode status — their UI
+9797	dup	requirements through app-server — 需求暴露已有
+9798	dup	reuse reviews async scoring — 复用已有
+9799	noise	tracing internal
+9802	dup	cancel reviews with tool calls — 联动取消已有
+9803	dup	unfinished root turn suspension — 挂起已有
+9804	dup	thread source Guardian classifiers — 元数据已有
+9806	dup	content item kinds preserve — 类型保持已有
+9807	dup	shutdown descendants archive — 级联关闭已有
+9808	dup	contextual fragments kinds — 分类已有
+9809	dup	annotations merged messages — 注解保持已有
+9810	dup	input fragments kinds — 分类已有
+9811	dup	Guardian threads vs subagents — 区分已有
+9812	noise	truncated noise
+9815	dup	WebRTC sideband reconnect — 重连已有
+9816	noise	contribution policy noise
+9817	dup	metadata staging reserved IDs — 暂存已有
+9818	noise	alloc internal
+9819	dup	requirements policy ownership — 策略归属已有
+9822	boundary	project APIs — their product
+9824	dup	env-specific command policies — 环境策略已有
+9825	noise	config load internal
+9826	dup	images Guardian transcripts — 转录已有
+9828	noise	settings gate internal
+9829	dup	retry Guardian sampling — 重试已有
+9830	dup	ignore stale risk scores — 过期分丢弃已有
+9831	dup	disable V2 managed reviewers — 档位已有
+9832	dup	restrict pipe impersonation — 防冒名已有
+9833	noise	simulated time internal
+9834	noise	spritesheet internal
+9835	dup	queued messages other processes — 跨进程队列已有
+9836	dup	config reads join batches — 批读已有
+9837	dup	managed auth backend enforce — 认证后端已有
+9838	dup	managed gates chat/dictation — 功能门已有
+9840	noise	metrics tag internal
+9842	dup	queued-message editing binding — 编辑绑定已有
+9844	dup	persist generated images — 产物持久已有
+9845	dup	caller metadata rendezvous — 元数据已有
+9846	noise	tracing internal
+9847	noise	contribution policy internal
+9849	dup	trace requests end-to-end — 追踪已有
+9850	noise	rmcp internal
+9851	boundary	task dashboard — their UI
+9852	dup	interactive requests realtime — 交互暴露已有
+9854	noise	endpoint internal
+9857	dup	refresh collab instructions change — 指令刷新已有
+9858	dup	skip empty messages idle — 空消息跳过已有
+9859	dup	symlink-safe sensitive reader — 安全读已有
+9861	dup	reconnect WS auth changes — 重连已有
+9862	dup	skip redirected migration — 迁移保护已有
+9863	dup	model switches no stale instructions — 指令一致已有
+9864	dup	interrupt after one denial — 拒绝即断已有
+9865	dup	legacy semantics migration — 语义保持已有
+9866	dup	persisted cwd local threads — cwd保持已有
+9868	dup	MITM authorization harden — 代理授权已有
+9870	noise	clone cache internal
+9871	boundary	repaint viewports — their UI
+9872	noise	origin internal
+9873	noise	provisioning API internal
+9874	noise	content refs internal
+9875	dup	foreign cwd URIs — URI保持已有
+9876	noise	bazel internal
+9877	dup	context windows per agent — 窗口隔离已有
+9881	noise	spawn retry internal
+9883	dup	clamp wait_agent timeouts — 超时钳制已有
+9885	dup	executor-local config layers — 配置分层已有
+9887	dup	cap project instructions — 指令上限已有
+9888	dup	process diagnostics snapshots — 快照已有
+9889	dup	base instruction provenance sessions — 来源持久已有
+9890	noise	bazel internal
+9891	dup	temp dirs env info — 环境信息已有
+9892	dup	interrupt cells with turn — 联动中断已有
+9893	dup	streams alive conn failures — 流保活已有
+9894	dup	runtime activity diagnostics — 诊断已有
+9895	dup	tool namespace turn metadata — 工具清单已有
+9896	dup	child waiters termination — 终止保序已有
+9897	noise	metadata inventory internal
+9898	noise	Nagle internal
+9899	noise	gRPC protocol internal
+9900	dup	enforce auto review managed models — 强制审查已有
+9901	dup	reuse parent compactions — 压缩复用已有
+9903	dup	terminate timed-out hook trees — hook杀树已有
+9904	dup	agent detection nonblocking — 非阻塞检测已有
+9906	dup	async command hooks — 异步hook已有
+9910	dup	buffered turns edit prompts — 缓冲编辑已有
+9911	dup	generalize hook handler — hook抽象已有
+9914	dup	bound path resolution — 路径限界已有
+9916	dup	shared tool specs prompts — 规格共享已有
+9917	dup	packaged defaults layering — 默认分层已有
+9918	dup	track running exec turn end — 进程追踪已有
+9919	dup	preserve envs reload agents — 环境保持已有
+9921	noise	truncated noise
+9922	boundary	persistent sections — their UI
+9925	noise	archive noise
+9926	noise	wait schema internal
+9927	noise	version internal
+9928	dup	thread metadata missing rollout — 容错已有
+9929	dup	terminate non-TTY interrupt — 中断终止已有
+9931	dup	exec yield floor 10s — 让出下限已有
+9932	dup	curated plugins auth mode — 插件路由已有
+9933	dup	paginated metadata resumes — 分页保持已有
+9934	dup	item timestamps projections — 时间戳已有
+9935	dup	empty-preview listings — 列表已有
+9936	dup	SQLite home logs client — 路径配置已有
+9937	dup	dev instructions v2 subagents — 子代理指令已有
+9939	noise	rmcp internal
+9940	dup	disabled code mode fallback — 降级已有
+9941	dup	persisted sections threads — 分区持久已有
+9942	dup	bounded metadata tool calls — 元数据限界已有
+9944	noise	accounts internal
+9946	dup	tag reports model/effort — 报告标签已有
+9948	dup	centralized SQLite creation — 连接统一已有
+9949	noise	rusty_v8 internal
+9950	dup	parent turns nested requests — 血统已有
+9951	noise	plugins internal
+9953	dup	namespace paths URIs — 路径规范化已有
+9957	dup	env readiness in place — 就绪更新已有
+9958	dup	side conversations cleanup — 会话清理已有
+9959	dup	inherit step envs spawning — 环境继承已有
+9960	dup	direct input capability subagents — 能力声明已有
+9961	noise	ratatui internal
+9962	dup	avoid cloning rollout forks — 克隆优化已有
+9965	noise	bazel internal
+9966	noise	rmcp internal
+9967	noise	serialization internal
+9969	noise	http client internal
+9970	noise	stack size internal
+9971	noise	http client internal
+9972	dup	exit stdio server on close — 连接关闭退出已有
+9975	dup	avoid overwrite symlinked targets — 符号链接保护已有
+9976	dup	remove legacy --full-auto — 参数清理已有
+9977	dup	safer auto-review defaults — 默认收紧已有

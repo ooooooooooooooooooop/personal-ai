@@ -1,0 +1,200 @@
+980	dup	custom CA+危险project config keys+heredoc加固 — config safety
+981	dup	policy-globs锚定: decide.js:84 resolve(workdir,p)全部锚workdir非启动cwd — 已覆盖
+982	noise	Skill tool Configure按钮开错工具修复
+983	boundary	SDK tools.invoke RPC
+984	dup	path-shaped allowlists+safe-bin trust+Allow Always持久 — M146族
+985	boundary	group pairing policy stable chat ID
+986	dup	HookInput.permission_mode输出真实运行mode — hook metadata
+987	dup	session model overrides继承threads/topics — model inheritance
+988	variant	--require-approval替代-y/--yes语义反转
+989	dup	sandbox mode下plan mode可用 — mode compat
+990	dup	plan review内容/revise不退出修复 — plan mode
+991	boundary	plugin SDK reaction approval helpers
+992	boundary	ClawHub package publishing dry-run
+993	boundary	api.runtime.taskFlow plugin seam
+994	boundary	side-by-side diff viewer TUI
+995	boundary	OpenGrep扫描+GHSA triage
+996	dup	plugin-only tool allowlists+owner /allowlist — tools_deny已实装
+997	variant	"always allow in <workspace>"域标签 vs session域
+998	boundary	Slack groupPolicy provider级default
+999	boundary	Slack native exec approval routing
+1000	boundary	status bar session/mode/context fields
+1001	dup	team member不再跳过permission confirmation — per-member gate
+1002	boundary	A2A pending approval不算progress
+1003	dup	plan approval mode启动fallback安全 — mode fallback
+1004	boundary	Finder paste进project panel
+1005	boundary	ImageGen生成工具
+1006	boundary	allowedInsecureVoiceBaseUrls
+1007	dup	generated-media announce pending时不fallback — delivery ordering
+1008	dup	incompatible image format请求错误修复 — format normalization
+1009	dup	clipboard image多文件paste优化 — attachments
+1010	boundary	LINE outbound media sends
+1011	boundary	text-to-image/image-to-image model tags
+1012	boundary	unified model catalog(text/image/video/music)
+1013	boundary	iMessage local attachment roots
+1014	boundary	缺麦克风守卫audio paths
+1015	noise	/add-dir空参误触picker修复
+1016	dup	stream timeout二次后挂起修复 — retry
+1017	noise	旧版本config cache污染修复
+1018	boundary	Windows cert store登录
+1019	dup	request timeout单次failover(408) — failover
+1020	noise	macOS *.sql保存改名bug
+1021	noise	Kitty keyboard NumLock修复
+1022	dup	502 socket hang TCP keepalive — transport resilience
+1023	dup	sign-in走config proxy(mode/url/no_proxy) — proxy
+1024	boundary	Slack assistant thread lifecycle
+1025	cand	proxy: PAC脚本动态选择proxy/direct
+1026	boundary	Chrome Site Search Shortcut建议
+1027	cand	proxy: NO_PROXY尊重
+1028	boundary	audit logs 65+企业事件(SSO/SCIM)
+1029	noise	codebuddy-code CLI别名
+1030	dup	daemon runtime selection+logs/health — daemon ops
+1031	noise	CLI命令集裁剪(update/gateway-daemon移除)
+1032	boundary	new line keybinding自定义
+1033	variant	stream-json _meta customPassthrough自定义HTTP头
+1034	cand	hook-forms: prompt-type Stop hook continueOnBlock
+1035	dup	stream timeout自动重试 — retry
+1036	variant	hub drain升级不丢工作(graceful drain)
+1037	dup	--tools内置工具白名单(可空) — tools_deny
+1038	dup	progress draft labels滚走+structured tool rows — render
+1039	dup	patch-budget image 400缩小重试 — attachment retry
+1040	noise	大文件edit冻结修复
+1041	boundary	Wayland screen-share/multi-line replace
+1042	boundary	Git Panel View Options
+1043	boundary	commit.template加载
+1044	boundary	past commits查看
+1045	boundary	git: branch diff命令
+1046	boundary	git.diff_base setting
+1047	boundary	limit_content_width setting
+1048	dup	delivery queue持久lastAttemptAt防retry starvation — queue backoff
+1049	noise	branch diff不刷新修复
+1050	boundary	git rename branch/symbol outline
+1051	noise	v2.98.0 npm OOM重发布
+1052	boundary	xAI custom model tool/image config
+1053	boundary	Discord forum/media threads
+1054	boundary	Replit custom connectors
+1055	dup	MCP prompts /mcp:<server>:<prompt> — mcp prompts已实装
+1056	boundary	background sessions page/sidebar
+1057	boundary	pi auth print-api-key/print-bearer-token导出
+1058	boundary	GH_COPILOT_TOKEN手动token
+1059	cand	ToolSearch自然语言找工具+MCP defer_loading
+1060	dup	OAuth locked refresh path重载+retry — auth refresh
+1061	dup	browser existing-session driver validation+reconnect — browser resilience
+1062	dup	credential storage统一~/.pi/agent/auth.json — auth store
+1063	noise	doctor --fix误修openai-codex路由回退
+1064	variant	/login provider多OAuth登录选项
+1065	cand	remote-mcp: OAuth redirect URI localhost:8765/callback
+1066	dup	MCP config ${VAR:-default}语法 — env expansion
+1067	noise	MCP env expansion文档
+1068	boundary	Teams/Zoom/Meet meeting plugins
+1069	dup	model output/用户消息/tool参数untrusted包裹 — M147已实装
+1070	dup	stored-credential refresh走HTTP proxy dispatcher — proxy
+1071	dup	Gemini CLI proxy OAuth/Bedrock embedding修正 — provider fixes
+1072	boundary	Telegram inline button styles
+1073	boundary	platform expansion wave
+1074	boundary	Helix mode/MCP配置UX
+1075	cand	remote-mcp: streamable http连接支持进行中
+1076	variant	--weak-model用于commit message/聊天历史(专用轻量模型)
+1077	cand	remote-mcp: 交互式OAuth browser自动打开
+1078	dup	--no-session-persistence(同172) — ephemeral sessions
+1079	noise	New from summary菜单移除
+1080	dup	agents/auth写路径修正 — auth write path
+1081	boundary	memory-wiki plugin allowlist
+1082	dup	OpenAI-compatible cache hit率统计0修复 — telemetry
+1083	dup	compaction后boundary message恢复异常修复 — compaction
+1084	dup	PreMessage/MaxToken compaction统一boundary过滤 — compaction
+1085	dup	仅显式UI创建才fire /new+lifecycle hooks — hook discipline
+1086	dup	tool/compaction/branch usage入session totals — usage accounting
+1087	noise	release pipeline heap 8GB
+1088	dup	reasoning model summarizer不硬编码1024输出 — compaction
+1089	dup	fallback memory filename collision suffixes — memory file safety
+1090	dup	context condensation v2 — compaction
+1091	dup	auto memory注入首消息(同541) — memory injection
+1092	boundary	people wiki/关系图(其产品向)
+1093	boundary	multimodal image/audio indexing memorySearch
+1094	boundary	ollama embedding query prefixes
+1095	variant	openai Responses WebSocket-first transport auto
+1096	boundary	context engines availableTools/citationsMode
+1097	noise	memory-core deprecated subpath alias
+1098	dup	compaction结果含post-compaction token估计 — compaction telemetry
+1099	boundary	Mistral provider
+1100	dup	provider/search/embedding响应cap — output caps
+1101	variant	Typed Memory 4类(user/feedback/project/reference)+YAML frontmatter
+1102	dup	streaming compaction cancel UI态修复 — compaction UX
+1103	dup	rename/compact sessions+时长显示 — session ops
+1104	dup	webfetch.complete/failed结构化telemetry — observability
+1105	dup	platform-owned数据读取要ask — file boundary族
+1106	dup	mid-stream transient重试×3(同514) — retry
+1107	boundary	OpenRouter按throughput排序provider
+1108	boundary	Claude Code作为API provider
+1109	noise	Qwen Token Plan providers
+1110	dup	/login auth来源标签(--api-key/env/...) — auth labels
+1111	noise	GPT-4.1系列add
+1112	cand	delegate-params: project级named fork profiles(tool allowlists+prompt hints)
+1113	dup	/responses端点支持 — provider transport
+1114	dup	per external agent默认model — agent model default
+1115	dup	provider/model identity注入system prompt — identity injection
+1116	dup	keychain credentials in-place更新 — auth refresh
+1117	boundary	Claude CLI text-delta→reasoning preview桥
+1118	dup	onboarding转发--openai-api-key等 — onboarding
+1119	dup	inspect_site screenshot+console log — browser已实装
+1120	dup	legacy speech config自动迁移 — config migration
+1121	dup	summary请求用主对话sampling params — compaction params
+1122	dup	New Session picker reasoning level持久 — reasoning persist
+1123	noise	Copilot Chat Gemini 2.5 Pro
+1124	boundary	Discord voice播放/wake
+1125	noise	legacy Nano Banana provider seed修复
+1126	dup	catalog refresh pi.dev keyed解析+throttle — catalog
+1127	dup	undefined provider request controls省略 — request hygiene
+1128	dup	retry.provider.{timeoutMs,maxRetries,maxRetryDelayMs} — retry config
+1129	boundary	GPT-5.6 Ultra Sol/Terra/Luna引擎切换
+1130	noise	GPT-6 Astra支持
+1131	noise	Gemini-3.0-Pro add
+1132	variant	request-wide input-token pricing tiers(长context计费)
+1133	variant	kimi-coding默认claude-code UA头
+1134	dup	credential validation failures归auth error触发fallback — failover
+1135	dup	models auth list per-agent profiles — auth inspect
+1136	boundary	app chrome context menu抑制
+1137	dup	SessionImportService发现+导入Claude Code/Codex历史 — session_import已实装
+1138	noise	Fable 5.1/SuperGrok usage
+1139	boundary	Ollama first-class setup
+1140	dup	pasted API keys剥离invisible chars(newlines/zero-width) — input sanitize已实装(INVISIBLE_UNICODE)
+1141	dup	models.json modelOverrides不改built-in — config override
+1142	boundary	inbound.reply.agent pluggable CLI/parser
+1143	cand	hook-forms: hooks.allowPromptInjection+unknown typed hook名校验
+1144	boundary	OpenRouter/Copilot/Codex provider逻辑进bundled plugins
+1145	dup	explicit config refs自动加载bundled plugins — plugin loading
+1146	dup	retry.provider.* controls — retry config
+1147	dup	local CLI provider(Claude/Codex)无API key可起session — auth reuse
+1148	boundary	Azure Speech TTS provider
+1149	dup	media HTTP base URL/auth/header集中 — transport
+1150	boundary	providers.json重构(其config重构)
+1151	noise	GLM-5.2/Haiku 4.5 catalog
+1152	dup	/new /reset清auto-sourced model/provider/auth overrides — reset hygiene
+1153	boundary	semantic search需OPENAI_API_KEY
+1154	boundary	video aspect-ratio/resolution hints
+1155	dup	accept前可编辑Claude的改动 — approve-edit UX(与154同族)
+1156	dup	extension/hook context含conversation history+subagent identity — hook context
+1157	boundary	Agent Backend选择(Claude/Codex/KAS)
+1158	dup	cron isolated runs subagent model fallbacks转发 — schedule policy
+1159	dup	多subagent children session history渲染修复 — session tree
+1160	dup	malformed tool args后idle loop修复 — turn integrity
+1161	dup	pending subagent completion announcements保留 — announce
+1162	dup	plan subagent可Write/Edit plan文件 — plan tools
+1163	dup	subagent prompt上答的permission/mode应用全session — grant scope
+1164	cand	delegate-modes: delegate_task live编排(list running children+steer mid-run)
+1165	dup	stream-json输出用provider实报model id — model reporting
+1166	dup	sub-agent未指定model继承主会话 — delegate model inherit
+1167	dup	sub-agent hooks session_id指主session — hook session routing
+1168	dup	sub-agent messages带parent tool identifier — provenance
+1169	cand	delegate-params: 调用时动态model selection
+1170	boundary	subagent orchestration custom tool示例
+1171	dup	cancel信号统一清理runtime state — cancel cleanup
+1172	dup	delegate_task live transcripts+durable background — delegate-modes族
+1173	variant	strict-mcp-config trusted built-in subagent scoped MCP白名单
+1174	boundary	ShareLink公开HTML部署
+1175	boundary	Vim tag stack navigation
+1176	variant	ambient context展示≤3 buffers+diagnostics
+1177	noise	qwen3.8-max model add
+1178	noise	xiaomi regional providers
+1179	dup	prompt-cache runtime context进context engines — cache context

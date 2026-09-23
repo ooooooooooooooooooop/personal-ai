@@ -1,0 +1,200 @@
+2780	dup	stale cache snapshot全量rewrite修复 — write freshness
+2781	dup	ChatGPT sign-out后runtime重导入修复 — auth sign-out
+2782	dup	Skill Workshop newest-first渐进扫旧sessions — M110族
+2783	dup	skill/agent descriptions丢失+Boolean解析修复 — parse fix
+2784	dup	Skill Workshop PROPOSAL.md drafts+review actions+rollback — M110已实装
+2785	dup	watched skill roots变化时刷新session snapshots — skill refresh
+2786	boundary	channels.telegram.webhookPort
+2787	cand	tool-defer: --tools/frontmatter tools支持Defer(...)/NoDefer(...)修饰
+2788	boundary	installed/browse按类型+enabled过滤
+2789	boundary	review skill comment-status/presubmit Aone
+2790	dup	enabled diffs恢复短prompt hint — prompt hints
+2791	dup	doctor repair走$include写路径保留plugin-validation bypass — doctor
+2792	boundary	debug submenu/session status panel
+2793	boundary	vim_sneak plugin
+2794	dup	SearXNG bundled provider(同1194) — web search
+2795	dup	bundled search providers解析SecretRef API keys — secret resolution
+2796	boundary	Exa bundled web-search plugin
+2797	boundary	Tavily bundled provider
+2798	boundary	IntelliJ runCommand实现
+2799	noise	project panel binding移除(breaking)
+2800	noise	sidebar new thread不在active worktree修复
+2801	noise	sidebar误开修复
+2802	dup	/undo [N]回退N轮 — undo已实装
+2803	boundary	workspace toggle命令
+2804	boundary	Copy response/Scroll to message/top按钮
+2805	boundary	Web UI文档浏览
+2806	boundary	project_panel::Trash+delete行为
+2807	boundary	PI_EXPERIMENTAL=1首启主题选择
+2808	boundary	theme preview action
+2809	boundary	default_open_behavior
+2810	boundary	project panel双击空白新建文件
+2811	boundary	command palette历史
+2812	dup	PI_TUI_WRITE_LOG per-instance日志 — logging
+2813	boundary	markdown frontmatter渲染
+2814	boundary	compare marked files
+2815	dup	inline editor+编辑旧消息支持@mentions — composer
+2816	boundary	拖files/tabs进agent panel
+2817	boundary	review section点击跳文件
+2818	cand	paste-context: 粘贴代码自动检测file context+折叠
+2819	boundary	Android nodes parity(notify/photos/contacts/calendar)
+2820	dup	AskUserQuestion偶尔永久挂起修复(10min fallback) — ask timeout
+2821	dup	standalone /exit进程终止 — process lifecycle
+2822	boundary	vim /搜索重置regex-only
+2823	boundary	inline completions与LSP completions交互
+2824	boundary	QQBot group mention toggle/iPad表面
+2825	cand	ui-changes: Review Changes diff视图(同1955)
+2826	boundary	Desktop v2迁移
+2827	dup	/context map只渲染真实run context — context render
+2828	dup	context-window progress+latest-run tokens+active model — context UI
+2829	boundary	sender avatar gutter
+2830	cand	ui-prefs: auto-scroll mode selector持久(near-bottom/follow)
+2831	boundary	long animation frame记录
+2832	cand	ui-config: pending-changes diff panel(JSON5解析+敏感值redact)
+2833	dup	exec policy badge读tools.exec.security非agents.defaults.exec — schema fix
+2834	dup	file changes panel anti-revival(async broadcasts) — UI fix
+2835	dup	chat.send/chat.inject payload同样sanitize — envelope sanitize
+2836	boundary	directory menu向上开/new-agent menu
+2837	dup	file loading/saving/autosave/close-protection — edit lifecycle
+2838	boundary	Python新capture groups高亮
+2839	cand	ui-input: Ctrl+Z input box undo
+2840	boundary	DingTalk Workspace channel
+2841	boundary	Linux Cut/Copy/Paste等键
+2842	boundary	Shift+Tab mode切换Windows
+2843	boundary	sidebar update indicator
+2844	dup	/theme交互面板 — theme command
+2845	dup	stats显示用户配置的model names — stats labels
+2846	boundary	Cmd/Ctrl+Shift+P全局palette
+2847	dup	message-tool-only agents输出mirror进chat — message mirror
+2848	boundary	telemetry E2E全路径测试
+2849	boundary	Web UI background task panel
+2850	boundary	malformed regex报错/multi-root view
+2851	boundary	CRUSH_NEW_UI flag
+2852	boundary	history playback图片zoom/sub-agents折叠
+2853	boundary	de locale
+2854	cand	outbound-webhook: webhook直发platform chat(不经session)
+2855	boundary	同2803(重复)
+2856	boundary	Prompt Library prompts作user rules
+2857	boundary	Responses API tool-search flow
+2858	boundary	extensions提供settings schemas
+2859	noise	ACP OpenAPI文档
+2860	boundary	Python SDK runtime wheels
+2861	cand	api-surface: v2 filesystem RPCs(read/write/copy/dir/watch)
+2862	cand	--add-dir进exec+TS SDK
+2863	cand	mcp-bridge: ACPX plugin-tools MCP bridge default-off+trust boundary
+2864	dup	ACP dangerous-tool name override→semantic approval classes — approval classes
+2865	dup	permission dialogs reject message — approval UX
+2866	cand	api-surface: GET /workspaces/:ws/sessions/live-state(trusted-only)
+2867	boundary	AWS Bedrock guardrail_identifier/version
+2868	noise	settings重复项+copy修复
+2869	cand	fs-scope: edit tool可访问project外文件(需授权)
+2870	cand	sandbox-scope: Codex可ask额外sandbox permissions+auto规则
+2871	dup	pairing list/approve --provider命令 — pairing CLI
+2872	dup	Gateway拒disallowed browser origins — origin gate
+2873	dup	"Use MCP servers" toggle对所有tool calls生效 — toggle scope
+2874	dup	auto approval reviews跨compaction保留authorization context — approval persist
+2875	noise	wheel build丢executable权限修复
+2876	dup	pairing-scope ownership denial后operator.admin重试 — pairing retry
+2877	dup	CLI/nodes fix(截断)
+2878	cand	channel-privacy: per-channel contextVisibility(all/allowlist/allowlist_quote)
+2879	dup	10+ channels cap统一 — channel caps
+2880	dup	Auto-approve菜单(同1991) — auto-approve
+2881	dup	automatic plugin approvals+ClawHub skill provenance — provenance
+2882	boundary	Ctrl+N/P替代箭头
+2883	cand	mode-api: Session API setPermissionMode/getPermissionMode动态切换
+2884	cand	approval-auto: --approve-for-me CLI flag(自动审批准的)
+2885	dup	workflow agents approval请求上浮parent interface — approval surface
+2886	dup	/approve跨channels(含plugins)in-chat批准 — approval channels
+2887	dup	exec approvals默认local+gateway/node targeting+wildcard allowlists — approval targeting
+2888	dup	Windows rename-overwrite拒绝时guarded copy — write fallback
+2889	dup	同2886(重复发布)
+2890	dup	移除cat SKILL.md allowlist兼容路径(skill文件不再构成grant) — allowlist hygiene
+2891	dup	Enter误批未读plan修复 — approval UX fix
+2892	boundary	feishu_doc owner permission grant fields
+2893	dup	sender-name permission notices并入主inbound dispatch — dispatch merge
+2894	boundary	feishu allowlist user/chat kind canonicalize
+2895	dup	Claude Code provider跑native tools不再接tools — provider fix
+2896	dup	stdio cleanup/plugin MCP approval持久/metadata隔离 — mcp edges
+2897	dup	无API key的provider不再误报check API key — error accuracy
+2898	dup	扩展名与实际格式不符的upload修复(同1894) — format gate
+2899	dup	agents.defaults.models allowlist在catalog stale时仍生效 — allowlist resilience
+2900	dup	shared JSON endpoint不trust malformed Host headers — G5族已实装
+2901	dup	ALL_PROXY进Undici env-proxy dispatcher — proxy env
+2902	dup	tool approval全局锁30s timeout防死锁 — lock timeout
+2903	boundary	Google Chat native approval cards
+2904	dup	skill proposals/disabled snapshots/support-file approvals — M110族
+2905	noise	确认键盘不响应修复(某gateway下)
+2906	cand	approval-resume: managed approval resumes用approvalId免resume token
+2907	cand	approval-scope: MCP wildcard批准整server工具
+2908	dup	MCP/connector tool calls遵守permission系统 — mcp permission
+2909	variant	auto mode状态prompt改warning色
+2910	noise	steer handler编译失败等修复
+2911	dup	hardcoded permission继承→可扩展mapping table — policy refactor
+2912	dup	ExitPlanMode误降权限修复 — mode restore
+2913	cand	plan-mode: 开始实施时自动切回Code Mode
+2914	cand	plan-mcp: plan mode允许readOnlyHint MCP tools+列servers/tools
+2915	dup	plan文件名短suffix防并发冲突 — file naming
+2916	dup	plan/act/auto-approve/compaction mode持久global settings — settings persist
+2917	boundary	plugin approval action metadata导出
+2918	dup	install-time code safety scans限plugin-owned entrypoints — scan scope
+2919	dup	CLI/provider/channel activation限manifest-declared needs — activation scope
+2920	boundary	tokenjuice 0.7.1(Codex hook approval兼容)
+2921	boundary	QA-Lab approval-denial场景
+2922	dup	structured questions option cards跨web/channels — ask UX
+2923	dup	REPL interactive tools(AskUserQuestion/ExitPlan)误阻修复 — interactive fix
+2924	dup	read-only tools(reads/grep/glob/thinking)始终放行 — auto-allow
+2925	boundary	grounded-citations skill(fact-checking)
+2926	dup	review rollout filtering关闭+approval presets尊重workspace-write — approval scope
+2927	dup	SDK concurrent writes修复 — SDK stability
+2928	variant	sandbox approval timeout 30分钟
+2929	cand	mcp-scope: external MCP loopback clients用session-bound attach grants
+2930	dup	file search tools权限检查优化 — permission UX
+2931	cand	apikeyhelper-rce: apiKeyHelper在trust前被执行RCE修复(历史漏洞参照)
+2932	dup	approval prompts转义invisible Unicode — sanitize已实装
+2933	dup	time作transparent dispatch wrapper评估 — wrapper eval
+2934	dup	pnpm runtime forms unwrap(--reporter exec等) — command unwrap
+2935	dup	切session时permission mode保持 — mode persist
+2936	dup	auto-approval默认关闭(更安全默认) — safe defaults
+2937	boundary	Skills Hub dashboard rework
+2938	dup	Skill Workshop support-file经guarded lifecycle writes — write guard
+2939	dup	A2A denial/unanswered返回标准化消息 — denial message
+2940	dup	Codex SecretRefs/thread context/bounded turn/routed approvals — codex harden
+2941	cand	policy-mdm: teams定terminal allow/deny lists+CLI scopes exact-match
+2942	dup	Telegram target writeback要admin+DM approval allowlists — channel admin
+2943	boundary	/review --comment经a1 CLI发comments/approvals
+2944	boundary	service-tier commands/blended usage
+2945	dup	sandbox policy允许WorkBuddy asset dirs写 — sandbox scope
+2946	dup	transcript/sandbox/MCP/browser/exec-approval fail-closed — fail-closed已实装
+2947	dup	ACP approval interface信息完整 — approval UI
+2948	dup	SDK mode tool permission check修复 — permission fix
+2949	noise	troubleshooting doc加permission dialog TAGs
+2950	dup	composed hook registries保留trusted tool policies — hook compose
+2951	dup	Python/Java SDK auto permission mode对齐 — SDK parity
+2952	dup	trusted project config叠加user config(不替换) — config compose
+2953	dup	trusted forwarding headers解析source IP做pending-connection限流 — rate limit
+2954	dup	WeChat NL permission确认 — channel approval
+2955	dup	WeChat/WeCom y/n/a三选项 — channel approval
+2956	dup	workspace trust后apiKeyHelper错误残留修复 — trust fix
+2957	cand	ignore-file: .clineignore阻止访问指定patterns
+2958	cand	plan-mode: "Yes, restore previous mode"退出选项
+2959	boundary	已批准plan迭代vs新建指导
+2960	cand	plan-mcp: plan mode支持MCP servers
+2961	cand	approval-scope: MCP access_resource tool auto-approve
+2962	cand	fs-scope: multi-root workspace auto-approve file reads
+2963	dup	voice-call inbound allowlist/拒匿名/Telnyx publicKey/token gate — voice security
+2964	boundary	iOS composer inline controls
+2965	boundary	API key editor homepage link
+2966	cand	tls-pin: 首用wss:// certificate pinning前要求system TLS trust
+2967	dup	streaming时chat pinned+wildcard exec approvals — UX+approval
+2968	cand	tool-perms: web_search作permissions.deny/ask/allow工具名
+2969	boundary	audio pause/controls
+2970	dup	XML/JSON/TXT/LOG/MD/DOCX/IPYNB/PDF上传 — attachment types
+2971	noise	ZAI GLM-4.6V China plan
+2972	dup	image tool路由到image model — image tool
+2973	dup	workspace root进tool wiring使local image paths可用 — path wiring
+2974	dup	attachment-style message tool actions算completed sends — dedupe
+2975	dup	async media generation不结束Codex turn+防duplicate — media lifecycle
+2976	variant	--text-to-image-model启动参数
+2977	dup	Ctrl+V clipboard image→temp file attach — clipboard
+2978	boundary	DeepInfra onboarding全catalog
+2979	dup	Discord attachment/sticker下载经idle-timeout+worker-abort — download guard

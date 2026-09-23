@@ -1,0 +1,200 @@
+2380	dup	Ollama /api/show检测vision capability — capability detect
+2381	dup	native-vs-proxy request policy集中 — routing policy
+2382	dup	reasoning settings跨AI SDK providers可移植映射 — reasoning portability
+2383	variant	relatedModels.lite/reasoning per-model声明
+2384	cand	model-fallback: provider usage-policy refusal时切换另一model重试
+2385	boundary	Gemini CLI/Antigravity内置移除
+2386	dup	provider refresh改read-only snapshot+generation-check — state access
+2387	dup	web-search credential checks走cold config不import — cold checks
+2388	dup	Vertex全region catalog — catalog coverage
+2389	boundary	Microsoft/ElevenLabs speech providers auto-enable
+2390	boundary	Edge TTS fallback
+2391	dup	Telegram inline model button持久session model — picker persist
+2392	dup	Python SDK API key/browser/device-code auth — SDK auth
+2393	dup	thinking mode全局默认启用 — thinking default
+2394	dup	max thinking只对显式支持model暴露+remap — thinking levels
+2395	noise	preview quiet注记
+2396	noise	GPT-5.4 Mini/Nano
+2397	boundary	Python venv propagation等Zed改进
+2398	cand	delegate-parallel: parallel subagents+Vercel AI Gateway
+2399	dup	web search provider字母序统一 — provider ordering
+2400	dup	ModelRuntime统一model config+/model — runtime unify
+2401	dup	voice agent tools.allow含空allowlist — tool allow
+2402	boundary	model picker按family分组+hovercard toggles
+2403	boundary	Xiaomi MiMo Token Plan
+2404	dup	macOS file URL clipboard插实际路径 — clipboard
+2405	cand	thinking-level: max level(GPT-5.6/adaptive Claude)
+2406	boundary	A2A delegatable agents实时渲染
+2407	boundary	Projects coordinator agent(计划不写码)
+2408	cand	hook-events: 20+ events(tool failures/sub-agent lifecycle/permission/file watching)
+2409	dup	codebuddy agents --json含memory scope/toolset — agent inspect
+2410	boundary	qwen review emit-workflow确定性脚本
+2411	dup	queued follow-ups/manual-turn priority/completion handoffs/session locks — turn mgmt
+2412	dup	subagent completion announce显式queue/direct/fallback状态机 — announce fsm
+2413	dup	memory recall guidance+bootstrap truncation可配(20k) — recall+bootstrap
+2414	dup	delegate_task(background=true)异步派发 — delegate-modes已实装
+2415	dup	/commit /commit-push-pr内置委派命令 — git delegation
+2416	dup	tasks maintenance --json含stale-running决策 — task maintenance
+2417	boundary	A2A client发现/调用其他agents
+2418	dup	call_llm统一provider router+/model — router
+2419	dup	custom sub-agents不再继承创建sub-agent能力 — spawn scoping
+2420	dup	plugin agent frontmatter model字段生效 — agent frontmatter
+2421	boundary	Fast Context subagent(SWE-grep)
+2422	cand	pairing: authenticated local gateway-client self-connections免device pairing
+2423	dup	Guardian review history存活compaction/restart/fork — review durability
+2424	dup	Langfuse traces带session/client identity — tracing
+2425	boundary	Teams reactions/Graph pagination
+2426	noise	install/update/release可靠性(Alpine等)
+2427	dup	legacy tool results/spawn payloads/stale lock/replay修复 — replay
+2428	cand	policy-compose: enterprise/mode/user/project/subagent权限层predictable compose
+2429	dup	persistent sessions可编辑可steer — session steer
+2430	boundary	Web/WorkBuddy实时显示background tool calls
+2431	cand	delegate-resume: 恢复之前sub-task sessions(staged agents)
+2432	dup	fuzzy selectors委托pi-tui(slash-token/alpha-number) — M127族
+2433	cand	delegate-backends: team members三backend(in-process/detached/tmux)
+2434	cand	delegate-params: Task tool model参数(lite/reasoning变体)
+2435	boundary	Cursor Projects
+2436	dup	subagent tool permission隔离 — per-agent tools
+2437	boundary	delegation accuracy eval
+2438	cand	agent-profiles: built-in verifier profile(subagent review/validation)
+2439	dup	agent行动中可输入下条消息 — composer queue
+2440	dup	edit-and-regenerate早前user messages+Reset Chat/Code — message edit已实装
+2441	boundary	prompt-type Stop hook E2E
+2442	boundary	cmd-enter新窗口开recent project
+2443	boundary	toggle inline completions
+2444	dup	js_repl跨tool calls持久 — js_repl已实装
+2445	boundary	comment language injections
+2446	boundary	Next LS Elixir
+2447	dup	自动/手动编辑对话摘要 — summary edit
+2448	boundary	OTEL gen_ai semantic mapping/AgentLens
+2449	cand	rate-limit: codex.rate_limits事件websocket侧信号
+2450	cand	memory-recall: Auto Recall profile提交时自动搜外部context
+2451	dup	per-feature model配置 — model granularity
+2452	boundary	model favorites pin顶
+2453	dup	fallback链持续遍历 — fallback chain
+2454	variant	agents.list[].experimental.localModelLean per-agent
+2455	dup	unknown-tool stream guard默认启用 — stream guard
+2456	cand	tools-scope: per-agent tools.message.actions.allow(send-only)
+2457	boundary	app自动更新检查+one-click install
+2458	dup	browser.ssrfPolicy.allowPrivateNetwork:false保留strict — SSRF policy
+2459	dup	WeChat/WeCom message queue防并发丢失 — channel queue
+2460	dup	buildSystemPrompt从ToolDefinition metadata取snippets — prompt hygiene
+2461	dup	loop detector 5次identical停run — loop detection
+2462	cand	delegate-params: spawn_agent接role preset+send_input可interrupt
+2463	boundary	~/.pi/agent/keybindings.json自定义键位
+2464	dup	file checkpoints自动+恢复 — checkpoint已实装
+2465	dup	/reset /new清auto-fallback-pinned保留显式选择 — reset hygiene
+2466	variant	messages.groupChat.unmentionedInbound:"room_event"
+2467	dup	hooks从VS Code window解析workspace非global state — hook workspace
+2468	variant	settings profiles("profiles" key临时切换)
+2469	boundary	keymap JSON打开按钮
+2470	boundary	channels.matrix.proxy config
+2471	dup	BodyForAgent主inbound text+Body legacy fallback — envelope semantics
+2472	noise	Hunter/Healer Alpha临时catalog
+2473	dup	autofix bot tracking issues不处理 — bot guard
+2474	boundary	Raft agent network adapter
+2475	dup	snapshot SSRF honor+system-event不可spoof嵌套markers+fetch边界 — boundary harden
+2476	boundary	ShareLink直接分享.md服务端渲染
+2477	dup	/model切换时edit format跟随新model默认 — format跟随
+2478	noise	TypeBox 1.3.7升级
+2479	boundary	Jules critic agent改进
+2480	boundary	clawdis nodes canvas.eval/snapshot
+2481	noise	edit mode add file input清理
+2482	cand	remote-mcp: ID token认证MCP
+2483	cand	hook-forms: HTTP Hook/Function Hook/Async Hook
+2484	boundary	working dir selection新建目录
+2485	variant	system-reminder分类属性(非rule类型标签)
+2486	noise	企业版Solo/Agent智能体合并
+2487	dup	API request bodies gzip压缩 — transport
+2488	boundary	setting链接复制
+2489	boundary	review tool Java/JVM checklist
+2490	dup	config sync throttle+debounce — perf
+2491	dup	无效models.json语法跳migration报正常错误 — config errors
+2492	boundary	Google Chat webhook mode lifecycle
+2493	boundary	Jules environment snapshot
+2494	noise	OpenHands 1.0.0 SDK
+2495	dup	next-turn suggestions用轻量model+condensed context — suggestion cost
+2496	noise	packaged CLI不读repo QA markdown
+2497	dup	Python SDK crash检测+stderr capture/JS exit reason — SDK diagnostics
+2498	dup	webhookPort:0 ephemeral绑定 — port config
+2499	dup	@文件搜索大代码库性能 — search perf
+2500	dup	ACP进程启动设UA header — UA header
+2501	dup	web search迁移新API — search API
+2502	dup	agent.message.ttfb.model延迟指标 — telemetry
+2503	dup	command:// URI正确转slash command — URI handling
+2504	boundary	A/B package VSIX
+2505	boundary	Bedrock requestMetadata cost tagging
+2506	boundary	Cline Kanban modal
+2507	boundary	disable Add Remote Servers setting
+2508	boundary	Bedrock custom model ID
+2509	boundary	@-mention search telemetry
+2510	boundary	Commit按钮Skip Hooks toggle
+2511	boundary	PiClient/CBOR/Unix-socket experimental APIs
+2512	cand	remote-mcp: unreachable remote MCP不再卡session启动
+2513	dup	CDP profile host不放宽navigation — browser policy
+2514	cand	browser-mcp: Chrome DevTools MCP attach mode
+2515	boundary	message tool+subcommands/DNS-SD discover
+2516	dup	Canvas HTTP host等lazy-load — startup perf
+2517	boundary	Windows/WSL keybinding避开terminal保留
+2518	dup	VS Code Remote SSH @ mentions修复 — remote files
+2519	boundary	marketplace install/remote bundle caching
+2520	dup	headless/server mode本地.mcp.json不再被忽略 — config loading
+2521	cand	remote-mcp: protected-resource metadata resource数组(GitLab /api/v4)
+2522	cand	clipboard: OSC 52 SSH/mosh远程剪贴板
+2523	boundary	WhatsApp Business Cloud API adapter
+2524	dup	systemctl probe失败非致命 — probe tolerance
+2525	boundary	plugin workspace sharing/access controls
+2526	dup	Codex quota errors+synthetic usage line+protocol assets — provider fixes
+2527	cand	oauth: device-code OAuth login(headless远程授权)
+2528	boundary	remote config UI/deletion同步
+2529	dup	SSH tunnel loopback+unsafe lengths bounded — input bounds
+2530	boundary	task modals多任务
+2531	boundary	WeCom远程控制CLI
+2532	noise	packaging pipeline版本检测
+2533	boundary	Hugging Face provider/model overhaul/Telegram topics
+2534	dup	空turns所有provider重试 — retry coverage
+2535	boundary	enterprise remote globalSkills同步
+2536	cand	remote-mcp: service account impersonation(IAP Cloud Run)
+2537	cand	remote-mcp: OAuth authentication remote servers
+2538	boundary	feature flag payload/remote onboarding
+2539	cand	remote-mcp: vibe mcp add/remove命令免编辑TOML
+2540	boundary	SANDBOX_KVM_ENABLED /dev/kvm
+2541	boundary	bwrap Linux sandbox foundation
+2542	cand	sandbox-scope: commands按path申请write access(非全有全无)
+2543	dup	sandbox bash用container paths(/workspace) — path guidance
+2544	dup	sandbox registry per-runtime shard files — state isolation
+2545	dup	CDP startup errors含Chrome stderr+no-sandbox hint — diagnostics
+2546	dup	legacy sandbox configs补默认file rules — config migration
+2547	cand	env-sandbox: block JVM injection(MAVEN_OPTS/SBT_OPTS/GRADLE_OPTS/ANT_OPTS)+glibc tunables
+2548	cand	remote-mcp: MCP Apps tool calls+namespaced registration+parallel-call opt-in
+2549	boundary	unprivileged sandbox pnpm store fallback
+2550	dup	Gemini CLI isolated runtime home用选定auth profile — auth isolation
+2551	boundary	Honcho Memory integration
+2552	dup	低FD容器hot reload优化 — perf
+2553	dup	local/sandbox一致non-interactive pager — pager hygiene
+2554	variant	standalone conversation isolation primitives
+2555	dup	MCP config scope隔离优化 — config isolation
+2556	dup	--profile主选择器统一 — profile unify
+2557	boundary	egress websocket/remote --cd/remote-control
+2558	dup	cross-channel origin replies不回落active channel — routing isolation
+2559	boundary	CDP endpoint auto-start/attachOnly proxy
+2560	boundary	sandbox.browser.binds分离exec containers
+2561	dup	--host启动WebUI CORS逻辑修复 — CORS
+2562	cand	sandbox-backup: macOS redirection/write前备份pipeline
+2563	dup	完成的scheduled session自动展开final answer — schedule UX
+2564	dup	queue drain/wake-up用错Agent修复 — session-agent binding
+2565	dup	agents创建scheduled tasks+durable todo agenda — schedule+todo已实装
+2566	dup	Browser timeouts/viewport/ports/cron输入校验 — input validation
+2567	cand	schedule-cli: cron run --wait(timeout/poll)+cron.runs --run-id过滤
+2568	dup	malformed auth credential fields/state归一 — config normalize
+2569	dup	scheduled tasks定义执行 — schedule
+2570	cand	schedule-forms: exit-triggered schedules+detached session-targeted runs
+2571	dup	Control UI Quick Create选agent-turn model — schedule model
+2572	boundary	session workspace rail/plugin health/cron lists/iOS Watch
+2573	boundary	workflow approval stage list+resource estimation
+2574	dup	clawdbot logs/cron colors/agents flows/status snapshot — CLI UX
+2575	dup	restart后heartbeat唤醒interrupted session — restart wake
+2576	dup	GPT-5 prompt overlay进shared provider runtime — prompt overlay
+2577	dup	schedule runs折叠为单sidebar row(带run count) — schedule UX
+2578	cand	schedule-forms: per-job dynamic cadence+gated script payloads+cron heartbeat
+2579	boundary	Spotify tools+skill(PKCE OAuth)

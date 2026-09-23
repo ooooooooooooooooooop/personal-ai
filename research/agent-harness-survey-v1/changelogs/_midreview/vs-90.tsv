@@ -1,0 +1,200 @@
+55302	dup	sandbox python transparent — 透明运行时已有
+55307	noise	eval internal
+55310	noise	arch internal
+55315	dup	sandbox opendevin user only — 用户限定已有
+55317	dup	docker descriptor leak — 描述符泄漏修复已有
+55364	noise	repo move prose
+55372	dup	split tasks by git providers — 任务分流已有
+55384	noise	sorting internal
+55389	dup	gitlab membership repos — 成员仓库已有
+55391	dup	multiple providers github+gitlab — 多源已有
+55398	dup	agent knows cloned repo+location — 仓库感知已有
+55406	noise	ci internal
+55410	noise	ci internal
+55450	dup	agent controls PR draft status — 草稿控制已有
+55452	dup	agent uses MCP for PRs — MCP提PR已有
+55580	boundary	sidebar layout — their UI
+55592	boundary	microagents UI — their UI
+55595	boundary	tips — their UI
+55600	dup	panel limit 20 — 上限提升已有
+55607	boundary	error UI — their UI
+55616	dup	ratelimit status — 限流状态已有
+55617	noise	perf internal
+55623	dup	continue when stuck loop — 循环续行已有
+55627	dup	invalid token message — 令牌提示已有
+55632	boundary	startup messages — their UI
+55786	dup	cli entrypoint uvx — 入口修复已有
+55839	noise	fix internal
+55862	dup	recover on completion exception — 异常恢复已有
+55866	noise	test internal
+55867	noise	fix internal
+55870	noise	test internal
+55871	noise	eval internal
+55874	noise	ci internal
+55877	noise	test internal
+55878	noise	colima internal
+55879	noise	test internal
+55893	noise	fix internal
+55902	noise	eval internal
+55923	noise	eval internal
+55929	dup	close containers before throw — 清理序已有
+55949	dup	graceful shutdown headless — 优雅停已有
+55953	dup	self-hosted gitlab/enterprise github — 自托管已有
+55958	dup	microagents headless/CLI — 无头微代理已有
+55959	dup	finish task when done headless — 完成判定已有
+55997	dup	logger resource leak — 资源泄漏修复已有
+56024	dup	microagent non-github — 微代理通用已有
+56026	dup	custom agents via config.toml — 配置装载已有
+56032	dup	microagent npm timeout — 超时处理已有
+56059	noise	image internal
+56060	noise	image internal
+56061	noise	refactor internal
+56064	dup	browse no url change on observe — 观测隔离已有
+56074	dup	crash disabling confirm mid-conv — 确认切换崩溃修复已有
+56092	dup	trim middle long outputs — 中段截断已有
+56097	boundary	terminal tab — their UI
+56104	dup	bash non-blocking — 非阻塞已有
+56106	dup	show python interpreter — 解释器显示已有
+56108	noise	docs internal
+56137	dup	localStorage→server API settings — 存储迁移已有
+56154	dup	condensation from settings — 压缩开关已有
+56157	dup	dev mode filesystem storage — 持久存储已有
+56171	dup	history limit 100 — 上限已有
+56174	dup	fallback custom LLM configs — 回退已有
+56177	dup	multiple tabs same session — 多端连接已有
+56179	dup	visible logs actions — 日志恢复已有
+56185	noise	fix internal
+56186	dup	restore mute setting — 静音持久已有
+56189	noise	eval internal
+56193	noise	eval internal
+56204	dup	SigTerm graceful startup — 信号停已有
+56206	dup	lazy BrowseEnv optional — 懒加载已有
+56218	dup	GLIBC compat binaries — 兼容二进制已有
+56219	dup	multi-platform executables — 多平台已有
+56222	dup	partial CLI settings modify — 部分修改已有
+56228	dup	--file interactive — 交互文件已有
+56234	dup	uvx install — 安装已有
+56246	dup	pyproject version priority — 版本优先已有
+56248	dup	less verbose logging — 日志精简已有
+56258	noise	logging internal
+56260	dup	jupyter PWD env — env保留已有
+56274	dup	change email — 邮箱修改已有
+56303	dup	JSON-compatible ToolCall args — 参数约束已有
+56304	dup	user_bash fails closed — 失败关闭已有
+56309	dup	client compat entry — 兼容入口已有
+56310	dup	RPC clear_queue — 队列清除已有
+56311	dup	RPC clear_queue — 同上dup
+56313	dup	atomic managed updates — 原子更新已有
+56314	noise	rename internal
+56316	dup	stage/verify/atomic update — 同上dup
+56318	dup	AI_AGENT=pi process marker — 进程标记已有
+56322	noise	code fragment
+56323	noise	code fragment
+56326	noise	code fragment
+56327	noise	code fragment
+56328	noise	code fragment
+56329	noise	code fragment
+56330	noise	code fragment
+56331	noise	code fragment
+56332	noise	code fragment
+56333	noise	code fragment
+56334	dup	allowNetwork gate refresh — 网络闸已有
+56336	noise	code fragment
+56338	noise	code fragment
+56339	noise	code fragment
+56340	noise	code fragment
+56341	noise	code fragment
+56343	noise	code fragment
+56345	noise	code fragment
+56346	noise	code fragment
+56365	dup	externalEditor Ctrl+G — 外编已有
+56367	dup	externalEditor fallback Notepad/nano — 回退已有
+56368	noise	reaction noise
+56369	dup	Ctrl+J newline — 键位已有
+56372	dup	self-only updates default — 自更新已有
+56383	dup	rescue release Node20 warn — 救急发布已有
+56386	dup	strip-only TS compat — 兼容写法已有
+56388	dup	Node 22.19 minimum — 版本底线已有
+56389	dup	win arm64 binaries — 平台产物已有
+56409	dup	loadProjectContextFiles export — 工具导出已有
+56415	noise	prose fragment
+56417	noise	prose fragment
+56421	noise	prose fragment
+56422	dup	version in request path — 版本遥测已有
+56423	dup	aggregate version counters — 聚合计数已有
+56425	noise	prose fragment
+56426	dup	enableInstallTelemetry off — 遥测开关已有
+56427	dup	PI_OFFLINE=1 — 离线env已有
+56428	dup	PI_TELEMETRY=0 — 遥测env已有
+56430	dup	version path — 同上dup
+56431	dup	aggregate counters — 同上dup
+56432	dup	RpcClient stderr forwarding — stderr转发已有
+56435	noise	prose fragment
+56439	noise	code fragment
+56440	noise	code fragment
+56441	noise	code fragment
+56442	noise	code fragment
+56443	noise	code fragment
+56444	noise	code fragment
+56445	noise	code fragment
+56446	noise	code fragment
+56448	noise	code fragment
+56449	noise	code fragment
+56451	noise	code fragment
+56452	noise	code fragment
+56453	noise	code fragment
+56454	noise	code fragment
+56455	noise	code fragment
+56456	noise	code fragment
+56457	noise	code fragment
+56465	noise	code fragment
+56467	noise	code fragment
+56468	dup	ajv direct dependency — 依赖修复已有
+56473	noise	prose fragment
+56474	dup	sourceInfo.path/scope/source — 来源字段已有
+56475	dup	command.sourceInfo — 同上dup
+56476	dup	tool.sourceInfo.path — 同上dup
+56477	dup	provenance from loaded resources — 溯源已有
+56478	noise	prose fragment
+56479	noise	code fragment
+56481	noise	code fragment
+56483	dup	pi uninstall alias — 卸载别名已有
+56517	noise	code fragment
+56525	dup	invalid JSON not overwritten — 配置保护已有
+56528	dup	empty array disables all — 空表禁用已有
+56529	dup	retry counter resets per response — 计数重置已有
+56535	dup	ResourceDiagnostic collision reporting — 冲突报告已有
+56556	dup	jiti module resolution bun — 模块解析已有
+56561	dup	SessionManager onProgress — 进度回调已有
+56562	noise	type export
+56564	dup	cursor tracking content shrink — 光标跟踪已有
+56568	dup	setActiveTools dynamic mgmt — 工具动态管理已有
+56572	noise	api internal
+56573	noise	api internal
+56574	noise	api internal
+56575	noise	rename internal
+56578	dup	truncation utilities export — 截断工具已有
+56586	dup	hooks+tools→extensions unify — 统一扩展已有
+56587	noise	prose fragment
+56589	noise	prose fragment
+56591	noise	prose fragment
+56592	noise	prose fragment
+56594	noise	prose fragment
+56595	noise	migration fragment
+56596	noise	migration fragment
+56597	noise	migration fragment
+56598	noise	migration fragment
+56599	dup	direct files extension load — 直载已有
+56601	noise	code fragment
+56602	noise	code fragment
+56603	noise	code fragment
+56604	dup	manifest deps via jiti npm — 依赖解析已有
+56605	noise	prose fragment
+56606	noise	rename internal
+56607	noise	rename internal
+56608	noise	rename internal
+56609	noise	rename internal
+56610	noise	rename internal
+56611	noise	rename internal
+56612	noise	rename internal
+56613	noise	rename internal

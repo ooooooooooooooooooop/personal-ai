@@ -1,0 +1,200 @@
+2980	boundary	Discord voice wake-name gating
+2981	boundary	voice.allowedChannels限制
+2982	boundary	voice silence grace 2.5s
+2983	boundary	voice.model override LLM
+2984	boundary	macOS mic entitlement
+2985	boundary	feishu_doc Docx tables
+2986	boundary	audio input/output设备选择
+2987	dup	/v1/responses file/image inputs+tool_choice+limits — API surface
+2988	dup	agent接image attachments+live image probe — media input
+2989	dup	text-only primary models时images作media refs不丢弃 — media offload
+2990	dup	image filenames不覆盖generic byte sniffing — sniffing
+2991	dup	tool output图片shift修复 — render
+2992	dup	本地image attachments暴露file paths给model — M139族已实装
+2993	dup	late-joining turn handles从attach点收事件 — event attach
+2994	boundary	markdown <img> tag支持
+2995	dup	CSV/TSV推断+UTF-16检测+XML转义 — MIME detect
+2996	dup	agent.imageModel+fallbacks配置 — image model config
+2997	dup	PDF.js standard fonts从package root解析 — pdf fonts
+2998	boundary	fal/OpenRouter music providers
+2999	boundary	Telegram TTS入core+model-driven tags
+3000	dup	ANSI/control-heavy history sanitize+长token切分 — terminal sanitize
+3001	boundary	Telegram asDocument别名
+3002	boundary	Tool Gateway(Nous Portal订阅工具)
+3003	boundary	realtime turn-context tracking SDK
+3004	boundary	WeCom image+text合并发送
+3005	dup	CLI clipboard image+attachment UI — clipboard
+3006	dup	iMessage attachment roots进image tool — attachment roots
+3007	noise	iOS bundle id对齐
+3008	boundary	macOS composer/browser sidebar
+3009	dup	macOS gateway races/QR bundling/JSON5 safety — fixes batch
+3010	boundary	websocket capability token hash
+3011	dup	失败API请求可重试 — retry
+3012	noise	format失败activity indicator提示
+3013	boundary	convergence observation codes(root-cause-triage)
+3014	dup	per-agent code-mode config生效 — code mode config
+3015	dup	generic api_error仅transient信号才retryable — retry classify
+3016	dup	AskUserQuestion参数invalid时预验证报错非空返回 — param validation
+3017	dup	channel预计算message-tool-only但miss时fallback source delivery — delivery fallback
+3018	dup	CDP readiness timeout可调 — browser config
+3019	dup	standalone binaries built-in workflows可用 — packaging fix
+3020	dup	workspace hook缺失/阻塞时清晰提示(同2628) — hook visibility
+3021	dup	custom models会话统计修复 — usage count
+3022	dup	未启用的desktop operation tools不进tool search — tool visibility
+3023	dup	update失败后经installed CLI重启Gateway — recovery
+3024	dup	file locks进程崩溃后即时回收(不再等5分钟) — lock recovery
+3025	dup	OTEL变量bundling修复 — telemetry build
+3026	dup	HTTP workspace adapters丢instance context修复 — context loss
+3027	noise	folded directory新建崩溃修复
+3028	noise	project search丢unsaved edits修复
+3029	dup	cloud requirements fetch 401走auth-recovery — auth recovery
+3030	dup	config precedence:settings<workspace toml<cli参数 — precedence
+3031	dup	无query时file search limit生效 — search fix
+3032	noise	review CLI bundle含core build
+3033	noise	user-message间距修复
+3034	dup	restart-loop修复(bootstrap detection+lock重取) — restart fix
+3035	dup	Glob并行搜索hang修复 — search hang
+3036	dup	hooks按source file去重 — hook dedupe
+3037	dup	IDE editor context(active file/cursor/tabs)每条user message注入一次 — context inject
+3038	dup	IOA并发刷新短暂回落修复 — refresh race
+3039	dup	WorkBuddy误排ImageGen/VideoGen修复 — tool inclusion
+3040	dup	--mode json退出前flush stdout — output flush
+3041	noise	Kitty keyboard Caps Lock修复
+3042	dup	同batch TaskCreate数字ID按序 — id ordering
+3043	dup	context overflow按API turn精确截断fallback — overflow recovery
+3044	boundary	QA-Lab runtime-tool drift release-check
+3045	dup	Revert code only选项误隐藏修复 — revert UX
+3046	dup	settings.json写操作不再覆盖原文件 — write safety
+3047	boundary	Slack unfurlLinks/unfurlMedia config
+3048	dup	auth/team context变化时flag-gated features即时刷新 — flag refresh
+3049	dup	cancel后result event误判retry抑制修复 — cancel fix
+3050	dup	cleanup后team members误标failed修复 — status fix
+3051	dup	method-aware Bot API timeouts — api timeout
+3052	dup	sidecar telemetry环境标识修正 — telemetry
+3053	dup	IDE WebSocket handshake误判HTTP修复 — ws detect
+3054	noise	WSL1 Exec format error
+3055	boundary	Edit mode prompt slash commands
+3056	boundary	TestFlight Fastlane flow
+3057	dup	--system-prompt支持file path — flag file input
+3058	boundary	tabAutocompleteOptions per-model
+3059	cand	logging: LOG_JSON结构化JSON日志
+3060	boundary	--reuse/-r替换existing window
+3061	cand	agent-create: agent create CLI args(--path/--description/--mode/--tools)
+3062	boundary	Diagnostics key context
+3063	dup	PI_PACKAGE_DIR(同2114) — package path
+3064	boundary	zed <path>首启existing/new window选择
+3065	boundary	expand_outlines_with_depth
+3066	boundary	app font size slider
+3067	boundary	PostHog自定义配置
+3068	dup	不支持model时忽略--reasoning-effort/--thinking-tokens — flag guard
+3069	dup	--output-format stream JSON — output format
+3070	cand	sharelink: ShareLinkUnpublish撤销公开链接
+3071	boundary	project diagnostics排除warnings
+3072	cand	tool-defaults: defaultTools初始built-in selection(global/project)
+3073	boundary	skip_focus_for_active_in_search
+3074	boundary	goose recipe validate json schema
+3075	boundary	multi formatters per language
+3076	boundary	Alt+Cmd+L attach当前文件到Cascade
+3077	dup	inbound flags(reply/forward/thread/history)从system metadata移user-context — metadata hygiene
+3078	dup	prompt_suggestion等auxiliary features遥测过滤 — telemetry filter
+3079	dup	openclaw config file打印resolved path — config inspect
+3080	dup	capability命令不import auth runtime — lazy import
+3081	dup	commitments --json写stdout — output hygiene
+3082	cand	plugin-create: defineToolPlugin+plugins build/validate/init
+3083	dup	跨一版本CLI/Gateway skew restart health checks — version skew
+3084	dup	openclaw config schema打印JSON schema — config schema
+3085	boundary	Telegram rich-message/WhatsApp ACP binding
+3086	cand	egress-log: 记录+检查出站网络调用的inspector
+3087	boundary	Multi Conversation feature flag
+3088	boundary	Jules task级env vars
+3089	dup	message-tool-preferred replies保持private+log misses — privacy
+3090	boundary	Codex text verbosity移除+store flag
+3091	boundary	CLI环境找不到的language servers spawn配置
+3092	boundary	chat/edit生成maps
+3093	boundary	auto-update禁用setting
+3094	cand	command-frontmatter: prompt templates argument-hint字段
+3095	noise	SDK版本同步
+3096	noise	Agent SDK JS 0.3.81
+3097	variant	queueMode→steeringMode改名+followUpMode新增
+3098	boundary	trajectory replay web FEATURE flag
+3099	cand	turn-limits: --max-turns控制assistant轮数
+3100	boundary	Jules task-long env var access
+3101	boundary	opt-in feature statistics
+3102	dup	--version/-v — version flag
+3103	boundary	Jules Tools CLI
+3104	variant	CODEBUDDY_DISABLE_WORKFLOWS=1总开关
+3105	boundary	Codex CLI auth storage abstraction
+3106	cand	auth-header: models.json authHeader:true自动加Bearer
+3107	cand	command-args: slash commands argument-hint
+3108	boundary	status line preset默认
+3109	boundary	directory tree context可配
+3110	cand	plan-cmd: /plan命令reasoner+plan system prompt
+3111	boundary	chat config设置chat name
+3112	boundary	macOS提示装clawdbot CLI
+3113	dup	JSON mode stdout纯JSONL集成测试 — output purity
+3114	noise	command search suggestion测试
+3115	boundary	GPT-4.1 patch edit format
+3116	dup	Codex dynamic-tools profile移除(app-server自有workspace/edit/patch) — tool ownership
+3117	dup	Windows CRLF保留+e2e patch shapes — patch fidelity
+3118	dup	edit tool统一edits[] — tool schema
+3119	dup	同3118(重复)
+3120	dup	config.set/patch/apply报前3个validation issues — error detail
+3121	noise	patch release(session naming/Copilot quota/symlinks)
+3122	boundary	Fast Context企业opt-in
+3123	boundary	minimax-portal config patch
+3124	cand	remote-mcp: MCP OAuth无scopes时请求全部supported scopes
+3125	cand	redact-toggle: secret redaction默认关闭翻转(防patch-corruption)
+3126	boundary	cargo-audit/cargo-deny CI
+3127	dup	/review指出approach级问题时加advisory note — review depth
+3128	cand	memory-share: memory write tool跨runtime共享
+3129	dup	archive thread不再遗留worktree目录 — worktree cleanup
+3130	boundary	Git panel tree view
+3131	boundary	Agent Settings重启agent servers
+3132	boundary	Cloud Team page
+3133	boundary	VS Code LM API native tools
+3134	boundary	Add to .gitignore
+3135	cand	--commit-prompt自定义commit message prompt
+3136	boundary	Git panel history view
+3137	dup	Copilot不支持models时error含enable链接 — error UX
+3138	boundary	branch diff diff stat数字
+3139	boundary	git: create pull request
+3140	boundary	git blame GitLab MR links
+3141	boundary	开repo subfolders
+3142	boundary	zed://git/commit/<sha> URI
+3143	boundary	branch diff选base branch
+3144	boundary	GitLab suggested tasks
+3145	dup	编辑message重启thread提示 — edit notice
+3146	boundary	collapsed project headers完成指示
+3147	cand	commit-scope: agent.commit_message_include_project_rules排除rules文件
+3148	dup	inline assistant clipboard images — clipboard
+3149	boundary	workspace::ToggleZoom agent panel
+3150	dup	agent panel queue messages — queue
+3151	boundary	shift-tab cycle profiles
+3152	dup	Git backups保留NUL字符+Nix管理 — backup fidelity
+3153	boundary	act.fill无type默认text
+3154	noise	build-all ui:build
+3155	noise	SDK bundles CLI 0.10.2
+3156	noise	CI npcName参数
+3157	dup	models status live auth probes — auth probe
+3158	cand	read-file: indentation mode提取完整semantic blocks
+3159	boundary	fa/nl/vi/it/ar locales
+3160	dup	XML tool protocol废弃强制native — protocol
+3161	dup	编辑旧prompt/retry创建contextual branch保留原对话 — branch on edit
+3162	cand	ci-mode: --exit-on-error(API错误立即退出,CI/CD用)
+3163	dup	model cache refresh防stale disk cache — cache refresh
+3164	noise	空repo新文件commit message修复
+3165	dup	Copilot login触发rate limits限并发修复 — rate limit
+3166	boundary	Git Source Control panel
+3167	boundary	native tool calls streaming
+3168	dup	palette/branch picker/tab switcher fuzzy多词 — fuzzy improve
+3169	dup	auto-discovery尊重agents.defaults.imageModel — model config
+3170	dup	steer与queued message共存Esc修复 — queue fix
+3171	cand	hook-events: session_before_tree/session_tree(自定义branch summary)
+3172	dup	sessions/turns/generations/frames/transport IDs新生成 — id scheme
+3173	boundary	Origin early beta
+3174	noise	qa run --qa-profile测试
+3175	dup	TTS override deep-merge阻__proto__等键 — merge safety
+3176	boundary	CNB platform PR links worktrees
+3177	dup	unknown slash commands转发+Gateway命令autocomplete — command forward
+3178	dup	task lifecycle events+auth metadata+host identity — telemetry
+3179	cand	worktree: --worktree-branch指定base branch

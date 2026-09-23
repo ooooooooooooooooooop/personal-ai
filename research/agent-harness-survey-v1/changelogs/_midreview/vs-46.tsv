@@ -1,0 +1,200 @@
+11480	dup	system SIDs lookup — SID解析已有
+11482	dup	queue only when working — 队列条件已有
+11485	dup	prompt expansion preserve text — 扩展保持已有
+11490	dup	wait multiple IDs — 多ID等待已有
+11492	noise	rename internal
+11496	noise	prompt internal
+11499	dup	clean exec bg processes — 进程清理已有
+11503	noise	migration internal
+11511	noise	author噪声
+11517	noise	rename internal
+11518	noise	rename internal
+11520	dup	URL in error messages — 错误上下文已有
+11521	dup	label attached images — 图片标注已有
+11526	noise	header internal
+11528	dup	model client sessions — 会话复用已有
+11529	dup	reuse websocket — 连接复用已有
+11530	dup	websocket append — 追加已有
+11531	noise	markdown internal
+11532	dup	thread rollback Esc backtrack — 回滚已有
+11534	noise	cleaning internal
+11537	noise	test server internal
+11538	noise	manager internal
+11539	noise	parsed commands internal
+11540	dup	cache ttl etag — 缓存已有
+11543	dup	current model for review — 审查模型已有
+11544	noise	metrics internal
+11550	noise	tests internal
+11551	noise	todos internal
+11552	dup	stop AuthManager codex_home — 职责归位已有
+11555	dup	override truncation policy model level — 截断策略已有
+11556	noise	error mgmt internal
+11558	dup	warn BASE_URL in /model — 警告已有
+11564	dup	avoid setpgid inherited stdio — 进程组已有
+11567	noise	error messages internal
+11569	noise	cloning internal
+11570	noise	test internal
+11571	dup	read-only backfilling requirements — 只读回填已有
+11572	dup	immutable CodexAuth — 不可变认证已有
+11573	noise	parse internal
+11574	noise	matcher internal
+11576	dup	reload auth on 401 — 认证恢复已有
+11581	dup	conversations respect client config — 配置遵从已有
+11583	noise	reflow internal
+11593	noise	deps internal
+11597	dup	ExecPolicyManager — 策略管理已有
+11598	dup	junction cwd ACLs — ACL已有
+11599	noise	version internal
+11603	noise	format internal
+11606	dup	refresh etag mismatch — 缓存刷新已有
+11608	noise	tags internal
+11609	boundary	selection dismiss — their UI
+11610	dup	MDM config requirements — 管理需求已有
+11612	dup	idempotency firewall rules — 幂等已有
+11613	dup	issuer URL device auth — 设备认证已有
+11616	dup	cwd config loading — 加载上下文已有
+11617	noise	file-name internal
+11618	dup	ConstraintError enum — 错误分型已有
+11625	dup	exclude true default — 默认排除已有
+11629	dup	read ACL exe dir — ACL已有
+11631	noise	dmg internal
+11640	noise	link internal
+11642	noise	rename internal
+11643	noise	npm internal
+11647	noise	doc internal
+11649	noise	models file internal
+11652	noise	user_agent internal
+11653	noise	npm internal
+11666	noise	trace internal
+11668	noise	errors internal
+11677	noise	wrap algorithm internal
+11678	noise	otel internal
+11680	noise	status noise
+11681	noise	1p internal
+11683	noise	prompt internal
+11684	noise	prompt internal
+11685	noise	manager internal
+11687	noise	migration screen internal
+11691	noise	truncated noise
+11692	noise	prompt/tools noise
+11693	dup	removed risk assessment feature — 特性收敛已有
+11694	dup	parse rg|head search — 管道解析已有
+11695	boundary	rate limit % — their UI
+11697	dup	preserve comments/order config writes — 配置写保真已有
+11699	noise	model optional internal
+11700	noise	prompt/tools internal
+11701	noise	conpty internal
+11705	noise	signing internal
+11706	dup	dangling sessions tool calls — 会话泄漏修复已有
+11710	dup	inline response recording — 记录内联已有
+11712	noise	sandboxing internal
+11714	boundary	status display — their UI
+11715	noise	model_family internal
+11720	noise	models endpoint internal
+11722	noise	models endpoint internal
+11724	noise	justfile internal
+11728	noise	version format internal
+11729	dup	load models disk ttl etag — 模型缓存已有
+11730	noise	types internal
+11731	dup	override instructions ModelInfo — 指令覆盖已有
+11733	noise	migrate internal
+11735	noise	file_path internal
+11736	noise	manager internal
+11737	noise	manager internal
+11738	noise	preset internal
+11744	dup	seatbelt allow openpty — 沙箱放行已有
+11746	noise	auth strings internal
+11748	dup	trim history max_bytes — 日志截断已有
+11750	dup	execpolicy helpers — 策略助手已有
+11751	noise	mutex internal
+11760	dup	recent_commits limit zero — 边界已有
+11762	noise	thread fields internal
+11764	noise	experiment internal
+11766	noise	quickstart internal
+11769	dup	world-writable scan consolidate — 扫描收敛已有
+11772	dup	enterprise skip upgrade checks — 更新开关已有
+11775	noise	test client internal
+11780	noise	ci internal
+11783	noise	file internal
+11787	boundary	ImageView — their UI
+11790	noise	author噪声
+11793	dup	stop over-reporting world-writable — 报告收敛已有
+11794	dup	execpolicy2 integration — 策略集成已有
+11795	dup	single pass truncation — 截断单遍已有
+11797	noise	migration screen internal
+11799	boundary	credits /status — their UI
+11801	noise	stable internal
+11803	noise	flaky internal
+11804	dup	freeform output — 输出已有
+11805	noise	arcticfox internal
+11808	noise	credit internal
+11810	noise	models internal
+11812	dup	mtls otel — 传输安全已有
+11814	noise	config internal
+11815	dup	truncate by tokens — token截断已有
+11819	noise	app server internal
+11820	noise	serialization internal
+11821	noise	rate limits internal
+11824	noise	ci internal
+11826	dup	unified_exec workdir override — workdir已有
+11827	dup	order outputs before inputs — 序已有
+11831	noise	ci internal
+11834	noise	test helpers internal
+11835	noise	test helpers internal
+11836	dup	avoid double truncation — 截断已有
+11838	noise	tests internal
+11839	noise	ci internal
+11840	noise	yield time internal
+11841	noise	ci internal
+11845	dup	world-writable scan improve — 扫描已有
+11846	dup	world-writable warnings — 警告收敛已有
+11852	boundary	login menu exit — their UI
+11853	noise	ci internal
+11857	dup	workdir unified_exec — workdir已有
+11858	noise	macro internal
+11859	noise	helper internal
+11861	noise	logs internal
+11863	noise	description internal
+11864	dup	shell_command tool — 工具已有
+11865	dup	boolean config overrides parse — 覆盖解析已有
+11867	noise	verbosity internal
+11869	boundary	model display — their UI
+11870	noise	nudge copy internal
+11871	noise	reasoning internal
+11872	noise	reasoning internal
+11874	dup	freeform exec output — 输出已有
+11876	dup	skip retries insufficient_quota — 重试分层已有
+11877	noise	labeler internal
+11881	noise	thread fields internal
+11885	noise	export internal
+11886	dup	run from pid 1 — PID1支持已有
+11887	noise	rmcp internal
+11888	dup	token refresh reconnecting — 令牌刷新已有
+11889	noise	rmcp internal
+11890	noise	v2 APIs internal
+11895	noise	v2 APIs internal
+11898	dup	ignore deltas delegate — 委派收敛已有
+11900	noise	v2 internal
+11901	dup	follow symlinks search — 符号链接已有
+11904	noise	error response internal
+11906	boundary	truncate display — their UI
+11911	noise	message format internal
+11914	dup	!<cmd> direct exec — 直执已有
+11915	boundary	credits — their product
+11918	dup	centralized truncation+filter reasoning+annotate — 会话管理已有
+11929	noise	brew internal
+11943	dup	resilient missing id_token — 令牌容错已有
+11949	noise	revert internal
+11952	noise	annotations internal
+11972	dup	stdio servers cwd — cwd已有
+11973	dup	enabled/disabled_tools — 工具过滤已有
+11975	dup	forced_login/workspace_id managed — 强制登录已有
+11976	noise	PR list noise
+11982	dup	forced_login/workspace_id — 强制登录已有
+11986	noise	timestamps internal
+11998	noise	otel internal
+12002	dup	turn input ConversationHistory — 历史归位已有
+12004	dup	warning full access mode — 权限警告已有
+12014	dup	path field ParsedCommand — 命令解析已有
+12017	boundary	/diff wrap — their UI
+12021	noise	cloud tasks internal

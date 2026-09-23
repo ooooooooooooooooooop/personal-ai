@@ -1,0 +1,200 @@
+1980	boundary	/review Aone Code PR context(同1484)
+1981	cand	policy-mdm: 企业admin限制auto-run terminal commands(MDM enforcement)
+1982	dup	implicit trusted session建.pi目录时/reload持久trust — trust persist
+1983	dup	auto-approve开启≠yolo system prompt(prompt/mode解耦) — mode decoupling
+1984	dup	shared-token mismatch允许一次trusted device-token retry+recovery hints — auth retry
+1985	cand	skill-install: 私有skill archive上传安装(allowUploadedArchives门)
+1986	dup	group chats mention-gated+sender attribution+session prime — group chat
+1987	dup	Devin for Terminal遵守deny/allow/ask rules(Read()/Write()) — policy rules
+1988	dup	Windows credential写失败显示底层错误 — error surface
+1989	dup	stale plugin lock removal要owner identity proof — lock security
+1990	dup	non-interactive mode MCP approval不阻塞 — approval flow
+1991	dup	auto-approve菜单作唯一SSOT移除Yolo toggle — mode simplify
+1992	boundary	Matrix-native exec approval prompts(account-scoped approvers)
+1993	boundary	Mattermost interactive model picker
+1994	boundary	audio echoTranscript+echoFormat
+1995	dup	Compact/sub-agents不误fallback模型选择 — model fallback
+1996	boundary	NVIDIA/skills trusted skills tap
+1997	dup	无参tool(ExitPlanMode)stream-json漏approval修复 — approval edge
+1998	noise	IDE permission dialog不关修复
+1999	dup	切plan mode返回plan file path — plan artifacts
+2000	dup	plan mode保留进入前permission settings — mode inherit
+2001	dup	DeferExecuteTool proxy绕过ExitPlanMode approval修复 — approval bypass fix
+2002	dup	plan exit approval专用review UI — plan UX
+2003	dup	plan mode流式plans进专用TUI view — plan streaming
+2004	cand	approval-forms: plugin在approval里描述external verification选项
+2005	boundary	plugin bin/PATH注入+环境+durable storage
+2006	boundary	Crestodian plugin list/search/install
+2007	dup	新装plugin id先加plugins.allow再enable — allowlist ordering
+2008	dup	background session保留active permission mode — mode persist
+2009	dup	command approvals带distinct approval IDs(单shell多批准) — approval ids
+2010	cand	proxy: HTTPS managed forward-proxy+proxy.tls.caFile CA trust
+2011	dup	visible turn admission无界+fallback delivery latest targets — delivery
+2012	dup	ask_user_question answers回传model(SDK-hosted) — ask relay
+2013	dup	Windows paths/symlinked/approved backup paths写修复 — write paths
+2014	dup	SSH subprocess env经shared sandbox policy sanitize — env sanitize
+2015	dup	audit suppressions/log redaction/malformed输入/SSRF — hardening
+2016	dup	exec approval prompts内redact secrets — secret scrub
+2017	variant	auto permission mode的safety classifier独立model配置
+2018	dup	Skill Workshop apply/reject/quarantine不再二次approval — M110族
+2019	dup	thread starter/history按effective allowlist过滤 — thread filter
+2020	dup	group prompt text不进system prompt+repeated-dot hostnames — boundary
+2021	boundary	Telegram topic-aware approval threading
+2022	boundary	Telegram media经explicit proxy DNS
+2023	dup	Claude Code provider sessions锚定workspace+~/.claude — provider session
+2024	boundary	split diffs/LSP semantic tokens
+2025	dup	tool permission approval流程优化 — approval UX
+2026	cand	pairing: allowlisted proxy identities自动批准新UI设备
+2027	cand	approval-scope: MCP permission提示含"approve all tools on server"
+2028	dup	sandbox.excludedCommands不再绕过sandbox — sandbox bypass fix
+2029	dup	/approval-mode直接参数 — command args
+2030	dup	non-primary workspace sessions可改model/approval-mode — workspace scoping
+2031	dup	Windsurf Always Allow跨session持久 — M146族
+2032	boundary	desktop image attachments preview
+2033	boundary	WebShell macOS Live Voice
+2034	dup	generated music/video message-tool-only delivery — media delivery
+2035	boundary	Android pair-new-gateway/iOS Talk
+2036	dup	image-only inbound(无caption)可达agent — inbound media
+2037	dup	gateway-mode --media走channel sendMedia — media send
+2038	dup	media/reply/voice directives渲染为structured bubbles — render
+2039	dup	第三方gateway严image validation兼容 — image compat
+2040	dup	cache-trace JSONL剥credential fields — secret scrub
+2041	dup	client-side image-generation events+metadata — media events
+2042	dup	/export TUI对话到Markdown(clipboard/file) — export
+2043	dup	Windows file tools async+image resize — perf
+2044	boundary	Feishu/Lark gateway adapter
+2045	dup	空capability list剥image input修复 — capability gate
+2046	dup	loopback onboarding默认token auth+doctor token flow — auth bootstrap
+2047	dup	image attachments先经vision-capable imageModel plan — image routing
+2048	boundary	HTML export marked渲染
+2049	variant	CODEBUDDY_REHYDRATE_IMAGE_BLOB_REFS开关
+2050	dup	clipboard read retry+macOS格式检测 — clipboard
+2051	cand	image-quality: agents.defaults.imageQuality自适应压缩
+2052	boundary	SendKeystrokes re-bind
+2053	dup	执行中发的image messages被消费 — in-flight media
+2054	noise	browser daemon SDK bundle预算191KiB
+2055	dup	generic container bytes嗅探时忽略MIME/filename hints — sniffing已实装
+2056	boundary	Telegram disableAudioPreflight
+2057	boundary	realtime consult question matching
+2058	boundary	WeCom gateway adapter
+2059	boundary	WeCom group bot voice-to-text
+2060	boundary	iOS Talk Voice Directive Hint toggle
+2061	dup	plan retrieval失败可re-login+Key refresh — auth recovery
+2062	dup	agents.defaults.model/imageModel边界输入codify — config schema
+2063	boundary	openclaw flows list|show|cancel
+2064	dup	source-checkout build output走stderr不污--json — output hygiene
+2065	dup	mid-turn redirect不需/stop重述 — steer已实装
+2066	dup	parallel multi-file Edit失败含具体路径 — error detail
+2067	dup	/review test plan验证+failure attribution — review lens
+2068	noise	Exclusive Edition model list异常修复
+2069	dup	Feishu webhook缺encryptKey/blank callback fail closed — webhook harden
+2070	dup	新文件不进@建议(cache刷新) — completion cache
+2071	dup	file finder新文件加入时保持选中 — UX fix
+2072	dup	同file并发edit/write序列化保持request order — mutation ordering
+2073	dup	Hub daemon带runtime build fingerprint防stale重连 — daemon versioning
+2074	dup	@文件路径fix(截断) — completion
+2075	dup	workspace HTTP API query drift修复 — API schema
+2076	dup	payload-free stability recording+sanitized diagnostics export — diagnostics
+2077	dup	ripgrep timeout→glob后缺tool-level timeout修复 — timeout chain
+2078	boundary	JetBrains/Zed ACP auth
+2079	dup	reawakened team members不回落main model — member model persist
+2080	dup	model request timeout对齐first-token config — timeout align
+2081	dup	multi-turn model requests复用trace IDs修复 — tracing
+2082	dup	max output token截断pipe mode警告+非零退出 — truncation signal
+2083	dup	streaming中slash/hook命令可用 — mid-stream commands
+2084	dup	/config -d后login仍指production修复 — env routing
+2085	dup	spawn tool不对teammates暴露+errored runs报failed — spawn scope
+2086	dup	warmup扫错工作目录修复 — warmup path
+2087	cand	critic: Planning Critic二次agent审非人工plans
+2088	noise	Bun compiled binary Windows路径修复
+2089	dup	conversation list顺序/lazy metadata/limit参数 — list API
+2090	dup	stream-json模式error messages不污染JSON流 — output hygiene
+2091	cand	--append-system-prompt(text/file)
+2092	dup	folderTrust setting — trust toggle
+2093	dup	HTTP proxy env var支持 — proxy env
+2094	boundary	vim::Search regex开关
+2095	boundary	auto_indent_on_paste per-language
+2096	boundary	context server prompts参数补全
+2097	boundary	excerpt_context_lines multibuffer
+2098	variant	CODEBUDDY_DISABLE_BUILTIN_MODELS
+2099	boundary	agent.prevent_idle_sleep
+2100	cand	policy-mdm: MDM下发outbound HTTP proxy配置
+2101	cand	project-kill: .zed/settings.json disable_ai禁用项目AI
+2102	dup	prompt-cache break diagnostics — cache diagnostics
+2103	boundary	question/plan选项可直接发消息
+2104	dup	auth storage abstraction+keyring+可配backend — auth backend
+2105	noise	认证env var文档(中国/海外版)
+2106	boundary	browser evaluate --timeout-ms
+2107	dup	onboarding持久gateway token+默认auth Off — auth default
+2108	dup	doctor repair不盲写gateway.auth.token — doctor write discipline
+2109	boundary	inbound.samePhoneMarker自定义前缀
+2110	dup	Node persistent compile cache降启动时间 — startup perf
+2111	dup	CODEBUDDY_API_KEY/AUTH_TOKEN冲突检测 — env conflict
+2112	variant	codex tool_output_token_limit 10000
+2113	boundary	expand excerpt indicators单向
+2114	variant	PI_PACKAGE_DIR(Nix/Guix content-addressed)
+2115	dup	dangerous-code scanner→operator install policy — install policy
+2116	noise	SDK-JS 0.3.14/Python 0.3.12版本同步
+2117	noise	同2116版本同步
+2118	cand	model-router: Adaptive默认model按任务自动路由
+2119	boundary	crush projects命令(用过的项目列表)
+2120	dup	-w/--workspace自定义workspace目录 — workspace flag
+2121	dup	export命令markdown导出session — export
+2122	boundary	worker start免预provision token
+2123	dup	/config key=value slash命令 — config command
+2124	cand	headless: context-mode/context-include/output-schema flags
+2125	dup	/context usage数据非交互+SDK暴露 — usage API
+2126	dup	edit tool multi-edit(同文件多不相交区域) — multi-edit
+2127	boundary	multi-line search and replace
+2128	dup	config watcher等committed generation再清pending writes — write ordering
+2129	boundary	row-level session workflow helpers SDK
+2130	dup	snapshot revert overlapping patches hash修复 — revert fix
+2131	noise	run_agent.py重构(16k行)
+2132	cand	write-verify: post-write delta lint(Python/JSON/YAML/TOML syntax)
+2133	dup	apply_patch "Add File"对已存在路径拒绝 — patch guard
+2134	boundary	worktree names旁branch name显示
+2135	cand	worktree: git: worktree creation action+picker开新窗口
+2136	boundary	workspace级API config lock toggle
+2137	cand	command-frontmatter: slash command front matter mode字段(自动切mode)
+2138	boundary	git panel View File(不开diff)
+2139	boundary	folder_indicator chevrons
+2140	boundary	inline git blame默认开
+2141	boundary	从default branch建branch
+2142	boundary	Git Graph commit context menu custom tasks
+2143	boundary	verify-capture.mjs PR证据图
+2144	cand	context-forms: @-mention branch diff(自main全部changes)
+2145	boundary	agent完成/需输入时声音通知
+2146	boundary	agent panel editor vim-mode
+2147	boundary	Signal CLI wizard auto-install
+2148	boundary	release dependency evidence+npm advisory gating
+2149	dup	branch name与tag同名时git操作修复 — git edge
+2150	boundary	Jules autonomous tasks
+2151	boundary	M4A voice按ftyp brand分audio/mp4
+2152	noise	AppImage/Debian包发布注记
+2153	boundary	Team Reports浏览GitHub activity
+2154	dup	~/.pi/agent/settings.json+<cwd>/.pi/settings.json分层 — config layers
+2155	dup	create PR遵循existing PR template — pr template
+2156	dup	message queue处理保留slash commands — queue fidelity
+2157	boundary	assistant markdown视觉刷新
+2158	boundary	rust-analyzer/clangd artifact digest验证
+2159	boundary	Yuanbao/QQBot channels
+2160	cand	secrets-broker: 1Password/Bitwarden/vault代填(不見明文)
+2161	boundary	web-evals task log/run options
+2162	boundary	快速加recent project进workspace
+2163	boundary	Jules手动控制push时机
+2164	cand	render: unicode_mode(auto/unicode/ascii)终端降级
+2165	noise	CLI文档中英同步
+2166	boundary	ACP durable Discord/Telegram bindings
+2167	dup	devin auth status详细登录信息 — auth status
+2168	boundary	Discord stream preview mode
+2169	dup	auto-thread titles 60s timeout+4096 token budget — resource cap
+2170	boundary	Teams message edit/delete
+2171	dup	webhook ingress bounded body reads(size+timeout) — request guards已实装
+2172	noise	app-server test stabilization
+2173	cand	remote-mcp: /mcp add slash command(OAuth servers)
+2174	cand	remote-mcp: ACP client-provided MCP servers(VS Code/Zed/JetBrains)
+2175	boundary	ClinePass models/catalog刷新
+2176	cand	hook-forms: ToolDefinition.prepareArguments(schema validation前处理raw args)
+2177	cand	secrets: encrypted local storage CLI+MCP OAuth credentials
+2178	cand	remote-mcp: settings配置HTTP transport MCP servers
+2179	dup	执行完成tool calls折叠为summary lines — render

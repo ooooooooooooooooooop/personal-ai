@@ -1,0 +1,200 @@
+70325	dup	copy filters thinking content — 复制过滤已有
+70326	dup	reconnect on rapid toggle — 重连稳定已有
+70327	noise	perf prose
+70328	noise	perf prose
+70329	dup	whole-reply dup output fix — 重复修复已有
+70330	dup	streaming dup concat fix — 同上dup
+70331	dup	compress display fix — 压缩修复已有
+70332	dup	compress stuck fix — 同上dup
+70333	dup	compress leak+indicator fix — 泄漏修复已有
+70334	dup	memory toggle off-on loss fix — 记忆保留已有
+70335	noise	fix prose
+70336	noise	fix prose
+70337	dup	ask auto-switches craft fix — 模式保持已有
+70338	noise	fix prose
+70339	dup	expert tags lost restart fix — 标签保留已有
+70340	dup	done but todo unexecuted fix — 待办执行已有
+70341	dup	stop shows completed fix — 状态正确已有
+70342	dup	queue msgs after stop fix — 队列修复已有
+70343	dup	CJK dir shortcut fix — 路径兼容已有
+70344	noise	fix prose
+70345	dup	no resume after net drop fix — 断网恢复已有
+70346	dup	idle timeout unresponsive fix — 空闲超时已有
+70347	dup	automation wrong workdir fix — 目录绑定已有
+70348	noise	fix prose
+70349	noise	fix prose
+70350	dup	workdir naming format fix — 命名修复已有
+70351	dup	archive time overwrite fix — 时间保留已有
+70352	noise	fix prose
+70353	dup	old tasks empty fix — 历史加载已有
+70355	noise	fix prose
+70356	noise	fix prose
+70357	dup	large file list hang fix — 大列表修复已有
+70358	noise	fix prose
+70359	dup	market data desync fix — 同步修复已有
+70360	dup	resume skipped after compress fix — 恢复修复已有
+70361	dup	capsule plugin not applied fix — 生效修复已有
+70362	dup	no response on tight context fix — 上下文满续行已有
+70363	dup	compress failure stuck fix — 同上dup
+70364	dup	model switch ineffective fix — 切换生效已有
+70365	noise	fix prose
+70366	dup	perm mode interrupts reply fix — 权限中断修复已有
+70367	boundary	expert categories — their platform
+70368	dup	windows proxy config — 代理已有
+70369	dup	system proxy default on — 系统代理已有
+70370	noise	prose noise
+70371	noise	ui prose
+70372	noise	fix prose
+70373	noise	fix prose
+70374	dup	expert identity recognized fix — 身份识别已有
+70375	dup	cancel display fix — 取消显示已有
+70376	dup	history lost after compress fix — 同上dup
+70377	dup	system proxy auto-detect login — 代理检测已有
+70378	dup	missing terminal dep fix — 依赖修复已有
+70379	dup	expert identity — 同上dup
+70380	dup	waiting-confirm icon fix — 状态图标已有
+70381	dup	in-conversation search — 话内搜索已有
+70382	dup	system proxy read — 同上dup
+70383	dup	wrong-package detect+ARM64 guide — 包检测已有
+70384	dup	in-connector QR auth — 授权弹窗已有
+70385	boundary	computer-use macOS — their feature
+70386	dup	empty stream detect+retry — 空流重试已有
+70387	dup	date+seq workdir naming — 命名规范已有
+70388	noise	prose noise
+70389	noise	ui prose
+70390	noise	ui prose
+70391	dup	avoid degraded summaries — 摘要质量已有
+70392	noise	ui prose
+70393	noise	ui prose
+70394	noise	prose noise
+70395	dup	custom model ID conflict fix — ID冲突已有
+70396	dup	no-image model msg format fix — 格式修复已有
+70397	dup	clipboard screenshot unrecognized fix — 剪贴板图已有
+70398	noise	fix prose
+70399	dup	cancel long tool resend hang fix — 取消挂死修复已有
+70400	dup	msg loss on switch fix — 同上dup
+70401	dup	auto-compress interrupt fix — 同上dup
+70402	dup	markdown backtrack hang fix — 回溯修复已有
+70403	dup	dup migration overwrite fix — 迁移防护已有
+70404	noise	fix prose
+70405	dup	workspace option lost restart fix — 选项保留已有
+70406	noise	fix prose
+70407	dup	reply without @mention fix — 提及检查已有
+70408	noise	fix prose
+70409	dup	empty heartbeat closes SSE fix — 心跳修复已有
+70410	noise	fix prose
+70411	noise	fix prose
+70412	dup	sidecar crash pipe restore — 管道恢复已有
+70413	dup	market hooks display fix — 钩子显示已有
+70414	dup	market stale datasource fix — 数据源已有
+70415	noise	fix prose
+70416	dup	internal errors in history fix — 错误过滤已有
+70417	noise	fix prose
+70418	noise	fix prose
+70419	noise	fix prose
+70420	boundary	tencent docs — their platform
+70421	boundary	tencent docs — their platform
+70422	boundary	tencent docs upload — their platform
+70423	dup	auto watermark gen media — 水印已有
+70424	dup	DNS rebinding+Bearer strict connector — 重绑定防护已有
+70425	dup	segmented message collapse — 分段折叠已有
+70426	noise	ui prose
+70427	dup	artifact list lost restart fix — 产物保留已有
+70428	noise	fix prose
+70429	dup	update dialog repeat fix — 弹窗去重已有
+70430	dup	dup migration overwrite — 同上dup
+70431	dup	msg order/loss on switch fix — 同上dup
+70432	dup	session destroyed on switch fix — 会话保护已有
+70434	dup	summary leak to IM fix — 摘要泄漏修复已有
+70435	noise	fix prose
+70436	dup	cancel resend hang — 同上dup
+70437	dup	expert identity not recognized fix — 同上dup
+70438	noise	fix prose
+70439	dup	preview cross-talk fix — 串台修复已有
+70440	dup	custom model conflict/auth/gzip fixes — 自定义模型修复簇已有
+70441	dup	SSE heartbeat close — 同上dup
+70442	dup	market datasource — 同上dup
+70443	dup	plugin detail parse — 同上dup
+70444	dup	large image no compress fix — 图片压缩已有
+70445	noise	fix prose
+70446	noise	fix prose
+70447	dup	internal errors history — 同上dup
+70448	dup	devtools in prod fix — 生产收敛已有
+70449	noise	fix prose
+70450	dup	cmd window flash fix — 黑窗修复已有
+70451	noise	prose noise
+70452	boundary	model tags badges — their UI
+70453	noise	fix prose
+70455	dup	update dialog repeat — 同上dup
+70456	dup	history index corrupt fix — 索引修复已有
+70457	dup	compress strategy tune — 压缩调节已有
+70458	noise	prose noise
+70459	noise	ui prose
+70460	noise	fix prose
+70461	dup	automation relative time+rerun fix — 重复执行修复已有
+70462	dup	skip /chat/completions option — 协议选项已有
+70463	noise	ui prose
+70464	noise	fix prose
+70465	noise	ui prose
+70466	noise	ui prose
+70467	noise	fix prose
+70468	noise	fix prose
+70469	noise	fix prose
+70470	dup	zip stream EPERM fix — 锁修复已有
+70471	noise	fix prose
+70472	noise	fix prose
+70473	dup	case-insensitive dup register fix — 大小写去重已有
+70474	dup	feature flag flicker fix — 开关抖动修复已有
+70475	noise	fix prose
+70476	noise	fix prose
+70477	dup	mode reset on switch fix — 模式保留已有
+70478	dup	model change not synced fix — 同步修复已有
+70479	dup	WebFetch anti-bot+timeout hang fix — 抓取修复已有
+70480	noise	fix prose
+70481	noise	fix prose
+70482	dup	multi temp dirs fix — 目录去重已有
+70483	noise	fix prose
+70484	noise	fix prose
+70485	noise	prose noise
+70486	noise	prose noise
+70487	dup	perm state residue msg loss fix — 残留清理已有
+70488	dup	delete tasks/workspaces/archived — 删除操作已有
+70489	noise	prose noise
+70490	noise	ui prose
+70491	noise	ui prose
+70492	noise	ui prose
+70493	noise	ui prose
+70494	noise	ui prose
+70495	dup	connector config per-user — 用户级配置已有
+70496	noise	ui prose
+70497	noise	ui prose
+70498	dup	compact mode keeps last msg — 末条保留已有
+70499	noise	ui prose
+70500	noise	fix prose
+70501	dup	uninstall slow+memleak fix — 卸载修复已有
+70502	dup	connectors vanish reinstall fix — 重装保留已有
+70503	noise	fix prose
+70505	noise	fix prose
+70506	noise	fix prose
+70507	dup	explanation not shown fix — 说明展示已有
+70508	noise	fix prose
+70509	dup	system tray minimize — 托盘已有
+70510	boundary	wechat QR login — their platform
+70511	cand	IM text approval for high-risk commands — 外渠道文字批准高危命令，远程批准面可比照
+70512	boundary	macOS perm panel — their UI
+70513	noise	platform noise
+70514	dup	artifact share markdown render — 分享渲染已有
+70515	noise	i18n prose
+70516	noise	ui prose
+70517	dup	delete keeps empty workspace — 空区保留已有
+70518	dup	high-risk confirm overwrite+bot drop fix — 确认覆盖修复已有
+70519	dup	skip treated as reject fix — 三态区分已有
+70520	noise	fix prose
+70521	dup	artifacts vanish restart fix — 同上dup
+70522	dup	@ file search no result fix — 搜索修复已有
+70523	dup	danger reject hangs fix — 拒绝恢复已有
+70524	noise	fix prose
+70525	dup	multi-window config sync race — 配置竞态修复已有
+70526	dup	market removal cascades skills fix — 级联提示已有
+70527	dup	queue msg model sync — 队列同步已有
+70528	dup	fine reasoning params — 推理参数已有

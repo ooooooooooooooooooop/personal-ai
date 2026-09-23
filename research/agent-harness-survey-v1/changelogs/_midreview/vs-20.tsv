@@ -1,0 +1,200 @@
+58719	noise	isXxx key detection API internal
+58839	noise	proxied HTTP CONNECT internal
+58851	noise	Bun OAuth adapters internal
+58868	noise	tool arg defaults internal
+58871	noise	Google empty args internal
+58873	dup	tool call ID normalize cross-provider — ID 规范化已有
+58970	dup	trust discovery parent traverse — trust 已有
+58975	noise	attested clipboard internal
+59297	noise	CVE gate internal
+59881	noise	compression desc internal
+59932	noise	getProcessInfo internal
+59948	noise	Usage stats internal
+61213	noise	workspace skills ACP internal
+61251	noise	PR review skill align internal
+61301	noise	skills watchers quit internal
+61494	dup	fork from responses+shutdown resilience — fork 已有
+61760	noise	tracing/mocking edge internal
+62198	dup	agent settings propagate turn caps/allowlists — 配置传播已有
+63055	noise	compression instruction internal
+63303	noise	sandbox test perms internal
+63979	noise	review loop noise internal
+63983	noise	AGit-Flow internal
+64389	noise	abort listener accumulation internal
+64503	noise	credential mgmt internal
+64702	boundary	sidebar jitter — their UI
+65797	dup	warn on system prompt override — 覆盖警示已有
+66430	noise	node version managers internal
+66435	noise	MCP exec perf internal
+66441	noise	headers SSE MCP internal
+66447	noise	long MCP args internal
+66771	noise	Claude caching internal
+66816	noise	provider profile API internal
+67426	noise	phantom subtask internal
+67510	noise	telemetry banner i18n internal
+68987	boundary	sidebar sorting — their UI
+68992	boundary	price change notify — their UI
+69136	dup	approval parsing PS prefixes — 前缀规范化已有
+69139	dup	plan mode in OS sandbox — sandbox 已有
+69274	boundary	drag-drop Cascade — their UI
+69305	dup	post_write_code all edit formats — hooks 覆盖已有
+69387	noise	osascript Linux internal
+69441	noise	MCP uncommon features internal
+69445	noise	OAuth regression internal
+69446	noise	MCP context mgmt internal
+69450	noise	MCP resource loading internal
+69453	boundary	MCP call visibility — their UI
+69462	boundary	MCP loading state — their UI
+69593	noise	edit tool Windows internal
+71222	noise	plugin menu internal
+71247	noise	sub-agents task list internal
+71257	dup	less file-watcher usage — watcher 界已有
+71258	noise	old shortcuts internal
+71270	dup	file-watcher resource 同上
+71327	dup	plan mode+queued messages — 队列交互已有
+71349	dup	browser window isolation — 隔离已有
+71350	noise	scheduled deletion msg internal
+71351	noise	scheduled deletion msg internal
+71823	noise	snippet extensions internal
+71831	noise	Wayland drags internal
+71833	noise	tree-sitter grammars internal
+71838	noise	LSP logs cross-project internal
+71839	dup	private files leaked via project search — 私密文件防泄已有
+71841	noise	diagnostics stale internal
+71846	boundary	collab LSP cancel — their editor
+71850	noise	diagnostics worktree internal
+71866	boundary	goToDefinition out-of-worktree — editor
+71896	noise	hover responses internal
+71900	noise	RPC logs internal
+71902	noise	alt-shift gestures internal
+71917	boundary	diff view control — their UI
+71925	boundary	panel width — their UI
+71927	boundary	preview tabs — their UI
+71934	noise	external formatters internal
+71945	noise	diagnostics deadlock internal
+71956	noise	language servers re-enable internal
+71957	dup	agents hang LSP no-response — LSP 超时已有
+71965	boundary	worktree reorder — their UI
+72022	noise	tree-sitter panic internal
+72035	boundary	undo LSP completions — editor
+72073	dup	file watching symlinks outside — symlink 监听已有
+72104	noise	ACP slash restore internal
+72109	boundary	ACP log collapse — their UI
+72118	dup	agent rules priority per docs — 规则优先级已有
+72138	noise	pylsp detection internal
+72156	dup	worktree watch recreate same path — 监听已有
+72218	boundary	model selector cutoff — their UI
+72220	boundary	context menus focus — their UI
+72227	noise	hang_traces disk internal
+72291	noise	Ty diagnostics internal
+72308	boundary	worktree reorder — their UI
+72332	dup	infinite loop deleted worktree — 环路防护已有
+72377	noise	buffer colors internal
+72389	boundary	keybinding hover — their UI
+72398	noise	URL encoding [ ] internal
+72403	noise	LSP binary info internal
+72408	noise	URL encoding internal
+72416	noise	venv path Windows internal
+72441	noise	fuzzy panic internal
+72451	noise	fuzzy panic internal
+72482	noise	diagnostics freeze internal
+72501	noise	Haskell path internal
+72526	boundary	KeePassXC integration — desktop
+72541	noise	formatting unmodified internal
+72547	noise	menu keys internal
+72576	boundary	tab drag panic — their UI
+72578	boundary	pinned item panic — their UI
+72607	boundary	image drag drop — their UI
+72611	noise	extra language servers internal
+72645	noise	LSP tasks env internal
+72650	noise	LSP tasks env internal
+72687	boundary	ctrl-enter inline assist — their UI
+72726	noise	tree-sitter aarch64 internal
+72731	noise	LSP tasks panic internal
+72737	noise	LSP tasks panic internal
+72775	boundary	markdown preview images — their UI
+72776	noise	language server restarts internal
+72791	noise	completion resolve internal
+72852	boundary	deleted hunks undo — editor
+72878	noise	keymap internal
+72886	noise	empty remotes panic internal
+72899	boundary	context menus keyboard — their UI
+72905	noise	macOS menu shortcuts internal
+72907	noise	rename capability internal
+72915	noise	completion labels internal
+72918	noise	completion labels internal
+72930	boundary	Recent Projects title — their UI
+72945	noise	multiple imports internal
+72951	noise	Downloading status internal
+72952	dup	language servers not released — 资源回收已有
+72954	noise	Rust imports internal
+72966	dup	private files not redacted — 脱敏已有
+72967	noise	LS on project search internal
+72974	noise	completion resolve internal
+72982	noise	panel serialization internal
+72983	boundary	save dialogues — their UI
+72987	boundary	tab close panic — their UI
+72991	noise	code_actions_on_format internal
+72996	dup	symlink resolution file watching — symlink 监听已有
+73002	noise	code_actions internal
+73006	noise	Rust FreeBSD internal
+73007	noise	Spanish keyboard internal
+73012	noise	detect_venv internal
+73018	noise	language server names internal
+73025	noise	slash commands nested internal
+73038	boundary	undo/redo menu — their UI
+73042	noise	python toolchain internal
+73043	boundary	cursor flicker — their UI
+73047	noise	preview tabs internal
+73054	boundary	undo stack external changes — editor
+73069	noise	collab slowness internal
+73078	noise	Astro LSP internal
+73083	noise	macOS shortcuts internal
+73102	noise	on_type_format internal
+73103	noise	lsp binary path internal
+73118	noise	quotation marks internal
+73129	noise	privacy link internal
+73131	noise	file_icons schema internal
+73138	boundary	pinned tabs — their UI
+73140	noise	inlay hints internal
+73153	noise	telemetry dirty internal
+73159	noise	inline completions internal
+73178	noise	aborted op hang internal
+73196	noise	code action internal
+73197	noise	multi-key shortcuts internal
+73198	noise	multi-key input internal
+73203	noise	worktree ordering internal
+73213	noise	nushell direnv internal
+73216	dup	losing spawned task output — 输出保真已有
+73221	noise	telemetry temp files internal
+73224	noise	unzip dependency internal
+73234	noise	crates worktree internal
+73237	noise	Atom keymap internal
+73252	noise	multi-key internal
+73255	noise	package.json LS internal
+73281	noise	worktree relative paths internal
+73309	noise	single-file LS internal
+73310	noise	Node runtime PATH internal
+73330	noise	Textmate keys internal
+73358	noise	Find In Project internal
+73372	noise	collab panic internal
+73374	noise	multibuffer task panic internal
+73376	noise	task keybinding panic internal
+73406	noise	LS erased offline internal
+73408	noise	empty search internal
+73411	noise	LS erased offline internal
+73418	noise	LS watch glob internal
+73425	noise	channel notes internal
+73428	noise	collab slowness internal
+73434	noise	collab panic internal
+73444	noise	direnv fish internal
+73453	noise	indent column 0 internal
+73454	noise	collab inlay panic internal
+73458	noise	RPC messages internal
+73459	noise	collab support msgs internal
+73477	noise	LSP blocking prompts internal
+73478	noise	LSP blocking prompts internal
+73486	noise	LS worktree settings internal
+73488	noise	hover collab panic internal
+73489	noise	rename collab panic internal
+73492	noise	LS worktree settings internal

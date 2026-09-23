@@ -1,0 +1,200 @@
+70529	dup	command confirm in miniapp — 命令确认已有
+70530	dup	versioned market incremental cache — 增量缓存已有
+70531	noise	prose noise
+70532	noise	fix prose
+70533	noise	fix prose
+70534	noise	fix prose
+70535	noise	fix prose
+70536	dup	delete reported but not done fix — 删除生效已有
+70537	noise	fix prose
+70538	dup	rate-limit queue reminder fix — 排队提醒已有
+70539	dup	connected but unusable fix — 状态一致已有
+70540	noise	fix prose
+70541	dup	old connector manual reconnect fix — 升级重连已有
+70542	noise	fix prose
+70543	dup	delete with confirm incl files — 确认删除已有
+70544	boundary	hover quick-create — their UI
+70545	dup	AI content marker — 生成标记已有
+70546	dup	prompt quick-jump history — 历史跳转已有
+70547	noise	platform noise
+70549	noise	ui prose
+70550	noise	ui prose
+70551	noise	perf prose
+70552	dup	queue send+reorder fix — 队列修复已有
+70553	noise	fix prose
+70555	noise	fix prose
+70556	noise	fix prose
+70557	noise	fix prose
+70558	dup	history shows current time fix — 时戳修复已有
+70559	noise	fix prose
+70560	noise	fix prose
+70561	dup	message send time — 时戳已有
+70562	dup	AI content marker — 同上dup
+70563	boundary	drag sort path tags — their UI
+70564	dup	image auto-compress on send — 图片压缩已有
+70565	dup	hard delete tasks/workspaces — 硬删除已有
+70566	dup	quick create on hover — 同上dup
+70567	dup	/clear+divider — 清空+分割线已有
+70568	boundary	compact mode process info — their UI
+70569	dup	prompt quick-jump — 同上dup
+70570	dup	artifact share preview render — 预览已有
+70571	noise	prose noise
+70572	dup	slash commands model-invokable — 模型调命令已有
+70573	noise	ui prose
+70574	noise	i18n prose
+70575	boundary	hover full title — their UI
+70576	noise	ui prose
+70577	noise	ui prose
+70578	noise	ui prose
+70579	dup	reasoning counted compact mode — 精简计数已有
+70580	dup	terminal garbled fix — 乱码修复已有
+70581	noise	fix prose
+70582	dup	idle timeout timer reset fix — 计时器修复已有
+70583	noise	ui prose
+70584	dup	connect before session fix — 连接序已有
+70585	dup	blacklist substring false-match fix — 误拦修复已有
+70586	noise	fix prose
+70587	noise	fix prose
+70588	noise	fix prose
+70589	dup	confirm dialog race fix — 竞态修复已有
+70590	dup	memory switch race+queue stuck fix — 竞态修复已有
+70591	dup	CJK quotes tool fail fix — 引号修复已有
+70592	noise	ui prose
+70593	dup	artifact upload-to-cloud toggle — 回传开关已有
+70594	noise	ui prose
+70595	noise	prose noise
+70596	dup	push-to-bot toggle — 推送开关已有
+70597	dup	miniapp scheduled push default — 推送默认已有
+70598	noise	ui prose
+70599	dup	>30s unresponsive fix — 超时修复已有
+70601	dup	artifacts cross-space fix — 空间隔离已有
+70602	noise	ui prose
+70603	dup	pin/unpin tasks — 置顶已有
+70604	dup	rename+relocate on save — 保存重命名已有
+70605	dup	rename archived tasks — 归档改名已有
+70606	boundary	feedback+log upload — their platform
+70607	noise	ui prose
+70608	noise	ui prose
+70609	noise	ui prose
+70610	noise	fix prose
+70611	noise	fix prose
+70612	dup	temp workspace for automation — 临时工作区已有
+70613	dup	auto temp workspace — 同上dup
+70614	noise	prose noise
+70615	dup	command collapse in flow — 指令折叠已有
+70616	noise	ui prose
+70618	boundary	IM channel tags — their UI
+70619	dup	automation missing user prompt fix — prompt显示已有
+70620	dup	default prompt lost fix — 提示词修复已有
+70621	noise	prose noise
+70622	noise	prose noise
+70623	boundary	expert quick switch — their UI
+70624	dup	local task archive — 归档已有
+70625	boundary	drag sort — their UI
+70627	noise	prose noise
+70628	noise	prose noise
+70629	noise	ui prose
+70630	dup	archived click no response fix — 归档点击已有
+70631	dup	drag order not persist fix — 排序持久已有
+70632	dup	share link+online preview — 链接预览已有
+70633	dup	one-shot automation — 单次任务已有
+70634	noise	prose noise
+70635	noise	ui prose
+70636	boundary	fullscreen/external preview — their UI
+70637	dup	open folder locates file — 定位文件已有
+70638	dup	friendly errors — 友好错误已有
+70639	dup	expert mode switch fix — 模式生效已有
+70640	dup	rate limit高频 fix — 限频修复已有
+70641	noise	prose noise
+70642	boundary	wechat bot — their platform
+70643	noise	fix prose
+70644	noise	fix prose
+70645	dup	env auto-detect install python/node — 环境自检已有
+70646	dup	one-click env install — 同上dup
+70647	dup	open folder to level — 同上dup
+70648	dup	streaming images/attachments — 流式附件已有
+70649	noise	fix prose
+70650	noise	fix prose
+70651	noise	prose noise
+70652	dup	HTML artifact click preview — 预览已有
+70653	noise	prose noise
+70654	dup	hide .workbuddy internal files — 内部文件过滤已有
+70655	dup	unbind configured bot — 解绑已有
+70656	noise	prose noise
+70657	dup	auto suggested questions on summon — 推荐提问已有
+70658	dup	history fully lost fix — 历史修复已有
+70659	dup	bot config lost restart fix — 配置保留已有
+70660	noise	prose noise
+70661	dup	expert keyword search — 搜索已有
+70662	noise	prose noise
+70663	dup	task done badge — 红点已有
+70664	dup	no-image prompt switch model — 换模提示已有
+70665	noise	fix prose
+70667	noise	fix prose
+70668	boundary	plugin market — their platform
+70670	dup	artifact file preview — 预览已有
+70671	dup	scheduled automation — 定时任务已有
+70674	noise	fix prose
+70675	dup	history not shown on switch fix — 同上dup
+70676	noise	prose noise
+70677	dup	auto-create preset templates — 模板预置已有
+70678	noise	ui prose
+70679	noise	ui prose
+70680	noise	ui prose
+70681	dup	history not shown task switch — 同上dup
+70682	noise	fix prose
+70683	dup	auto check update — 更新检查已有
+70684	noise	prose noise
+70685	noise	prose noise
+70686	noise	fix prose
+70687	dup	win/mac work logic parity fix — 平台一致已有
+70688	dup	other-task artifacts shown fix — 产物隔离已有
+70689	noise	prose noise
+70690	noise	prose noise
+70692	noise	fix prose
+70693	dup	drag file not found fix — 拖拽修复已有
+70694	dup	new task workspace select fix — 工作区选中已有
+70695	noise	prose noise
+70696	noise	prose noise
+70697	dup	sessions overlap last fix — 会话隔离已有
+70698	noise	fix prose
+70699	noise	fix prose
+70700	noise	prose noise
+70701	noise	prose noise
+70702	noise	fix prose
+70703	noise	fix prose
+70704	noise	prose noise
+70705	noise	prose noise
+70706	noise	prose noise
+70707	noise	prose noise
+70708	noise	prose noise
+70709	noise	prose noise
+70710	noise	prose noise
+70711	noise	prose noise
+70712	noise	prose noise
+70713	noise	docs noise
+70715	noise	prose noise
+70716	noise	dl fragment
+70717	noise	dl fragment
+70718	noise	dl fragment
+70719	noise	dl fragment
+70735	noise	dl fragment
+70736	noise	dl fragment
+70737	noise	dl fragment
+70738	noise	dl fragment
+70764	noise	dl fragment
+70765	noise	dl fragment
+70766	noise	dl fragment
+70767	noise	dl fragment
+70813	noise	dl fragment
+70814	noise	dl fragment
+70815	noise	dl fragment
+70816	noise	dl fragment
+70872	noise	dl fragment
+70873	noise	dl fragment
+70874	noise	dl fragment
+70875	noise	dl fragment
+70886	noise	dl fragment
+70887	noise	dl fragment
+70888	noise	dl fragment
+70889	noise	dl fragment

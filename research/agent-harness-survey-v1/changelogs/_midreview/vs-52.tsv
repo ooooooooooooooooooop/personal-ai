@@ -1,0 +1,200 @@
+15721	dup	per-repo plugin config catalog — 配置遵从已有
+15722	noise	metadata internal
+15725	dup	content kinds extension fragments — 类型契约已有
+15726	dup	skill selection evaluation — 选择评估已有
+15728	dup	skip hooks when disabled — 禁用跳过已有
+15729	dup	plugin auth AuthManager — 认证集成已有
+15730	noise	identifier validate internal
+15731	noise	hydrate internal
+15733	dup	validation rejects TODO placeholders — 校验已有
+15735	dup	step envs extension input — 环境已有
+15737	dup	plugin roots host service — 加载路径已有
+15741	dup	remove legacy loader — 收敛已有
+15742	noise	config internal
+15743	dup	locator aliases providers — 别名已有
+15745	dup	prompt injection extension — 注入归位已有
+15746	noise	crate internal
+15747	noise	analytics internal
+15748	noise	transparency internal
+15749	noise	test internal
+15750	noise	reads internal
+15752	noise	helpers internal
+15753	noise	selection internal
+15754	noise	tests internal
+15755	noise	API surface internal
+15757	dup	import Cursor skills sync no dups — 导入同步已有
+15760	noise	metrics internal
+15761	noise	matching internal
+15762	noise	concurrent internal
+15763	dup	skill budget warnings world state — 预算警告已有
+15764	dup	shared budget host/executor — 预算共享已有
+15765	dup	metadata budgets scale context — 预算缩放已有
+15771	dup	retain skills tight budgets+warn — 截断警告已有
+15772	dup	respect proxies startup sync — 代理遵从已有
+15775	noise	forceRefetch internal
+15776	dup	routing-card lexical selection — 词法选择已有
+15777	dup	sanitize names metrics — 指标净化已有
+15781	dup	preserve catalog under pressure — 目录保持已有
+15783	dup	drop descriptions before omitting — 降级顺序已有
+15785	noise	ordering internal
+15786	dup	git attribution extension — 扩展已有
+15793	boundary	width skill names — their UI
+15797	noise	serialize internal
+15800	dup	extension-owned turn items — 扩展项已有
+15804	noise	path resolution internal
+15805	dup	plugin roots URI-native — URI已有
+15806	dup	executor skills no host conversion — 加载已有
+15811	dup	MCP paths URI-native — URI已有
+15813	dup	fs/walk skill discovery — 发现已有
+15814	noise	cache internal
+15841	dup	dedupe MCPs app name — 去重已有
+15843	dup	preserve plugin apps listings — 列表已有
+15844	dup	skip OAuth matching routes — 路由匹配已有
+15845	dup	activate executor MCPs — 激活已有
+15846	noise	skill internal
+15847	dup	centralize auth capability filtering — 能力过滤已有
+15849	dup	plugin details capability aware — 能力感知已有
+15850	boundary	@ mentions menu — their UI
+15851	dup	executor skills extensions — 加载已有
+15852	noise	contracts internal
+15853	noise	async-trait internal
+15856	dup	invocable without executor — 无执行器可调用已有
+15859	dup	decouple extension core — 解耦已有
+15864	dup	complete main-agent reads — 完整读取已有
+15866	dup	reuse discovery+hooks only critical path — 启动优化已有
+15867	noise	log internal
+15868	dup	bridge host skills extension — 桥接已有
+15869	dup	hooks without other capabilities — 最小加载已有
+15877	noise	startup internal
+15883	dup	GoalApi extension — 目标API已有
+15885	dup	invalid manifest field handle — 容错已有
+15889	noise	test internal
+15904	noise	extension internal
+15909	boundary	icon assets — their product
+15910	dup	budget-limited goal turns — 预算限已有
+15919	dup	extract turn injections — 注入归位已有
+15922	noise	warmup internal
+15927	noise	update flow internal
+15930	dup	async lifecycle hooks — 异步hook已有
+15934	boundary	@ mentions picker — their UI
+15938	noise	watcher internal
+15942	dup	git attribution extension — 扩展已有
+15945	dup	plugin hooks in details — hook展示已有
+15947	noise	roots internal
+15961	noise	handlers internal
+15976	boundary	display names — their UI
+15977	noise	wording internal
+15993	dup	AbsolutePathBuf skill loading — 路径类型已有
+15996	dup	filesystem-aware loading — 文件系统感知已有
+16002	noise	profiles internal
+16006	dup	fix stale cache refresh races — 竞态已有
+16008	dup	mentions context+gating fix — 上下文保持已有
+16017	noise	labeling internal
+16019	dup	exclude AGENTS/skills stage1 — 输入过滤已有
+16032	dup	instructions dev msg — 指令归位已有
+16033	dup	config disable bundled skills — 开关已有
+16035	noise	mention clarify internal
+16040	dup	check app auth install — 安装认证已有
+16043	noise	artifact internal
+16048	dup	@plugin mentions — 提及已有
+16064	noise	mentions internal
+16075	dup	.agents/skills load+nested — 技能加载已有
+16082	noise	fallback internal
+16086	noise	load internal
+16093	boundary	esc skill popup — their UI
+16103	noise	docs internal
+16111	noise	skills internal
+16114	dup	skills default on — 默认已有
+16115	dup	admin-scoped skills — 管理作用域已有
+16116	noise	skills internal
+16117	noise	skills internal
+16118	dup	skills flag default OFF windows — 旗标已有
+16120	noise	descriptions internal
+16121	dup	skills default on — 已有
+16122	dup	admin scope skills — 已有
+16123	noise	shortDescription internal
+16124	noise	skills internal
+16126	noise	flags internal
+16127	dup	malformed skills fail-open — 容错已有
+16128	dup	SYSTEM skills — 系统技能已有
+16133	dup	SkillsManager+skills/list — 管理器已有
+16140	noise	prompt expansion internal
+16142	dup	execpolicy2 extension — 策略扩展已有
+16147	dup	custom prompt args — 参数已有
+16153	noise	module internal
+16154	noise	metrics internal
+16155	noise	lookup internal
+16157	noise	matching internal
+16158	noise	startup internal
+16159	noise	test internal
+16160	noise	throttle internal
+16161	noise	latency internal
+16162	dup	proxies+custom CA websockets — 代理证书已有
+16163	dup	debounce time reminders — 防抖已有
+16164	noise	trace internal
+16165	dup	append speech/control entry/omit context — 实时控制已有
+16167	noise	nextest internal
+16168	noise	memchr internal
+16169	noise	bazel internal
+16170	dup	throttle compression runs — 节流已有
+16171	dup	skip prewarm ws disabled — 预热门控已有
+16172	noise	bench internal
+16173	dup	drop startup context fork truncation — 上下文裁剪已有
+16178	noise	signing internal
+16180	dup	plugins first-class sync/browse/install — 插件流已有
+16181	boundary	login browser — their product
+16185	noise	formatting internal
+16186	dup	realtime context override — 覆盖已有
+16187	noise	test internal
+16189	dup	disable js_repl incompatible Node — 环境门已有
+16190	noise	clarify internal
+16192	noise	apt internal
+16193	noise	apt internal
+16194	boundary	tooltips — their UI
+16198	noise	ACL speed internal
+16200	boundary	clear screen — their UI
+16205	noise	release internal
+16206	dup	expose diagnostics API — 诊断API已有
+16207	noise	routing internal
+16210	noise	actor internal
+16211	noise	bazel internal
+16212	noise	pin internal
+16213	noise	contention internal
+16214	dup	workspace roots absolute API — 绝对路径已有
+16216	noise	pin internal
+16217	noise	wheels internal
+16220	noise	rename internal
+16224	noise	classifiers internal
+16225	noise	note internal
+16226	noise	stage internal
+16227	boundary	non-interactive install — their product
+16228	noise	client internal
+16230	noise	API internal
+16232	noise	helper internal
+16237	noise	types internal
+16238	noise	API internal
+16241	noise	publish internal
+16242	noise	types internal
+16243	noise	types internal
+16245	noise	models internal
+16246	noise	bazel internal
+16248	dup	guardian errors denial rationale — 理由传递已有
+16254	noise	SDK internal
+16255	noise	types internal
+16256	noise	schema internal
+16257	noise	types internal
+16265	noise	docs internal
+16271	noise	model internal
+16279	noise	api internal
+16284	noise	api internal
+16285	noise	api internal
+16288	dup	separate interactive/non-interactive — 会话分离已有
+16292	noise	test internal
+16294	noise	scaffold internal
+16301	dup	escalated through Guardian review — 升级审查已有
+16302	dup	redact tokens logs — 令牌净化已有
+16303	dup	device-code phishing warnings — 钓鱼警告已有
+16304	noise	deps internal
+16307	dup	remove Plan gate idle injection — 门控调整已有
+16310	dup	bypass managed network escalated — 提权绕过已有
+16312	dup	turn item injection API — 注入API已有

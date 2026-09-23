@@ -1,0 +1,200 @@
+15828	noise	skill frontmatter scalars internal
+15830	noise	plugin telemetry failures internal
+15832	dup	plugin manifest path lists — 清单路径已有
+15833	noise	plugin warmup tracing internal
+15834	dup	plugin namespace skill loading — 命名空间已有
+15854	noise	plugin auth state internal
+15855	noise	auth mode plugin manager internal
+15861	noise	plugin app categories internal
+15865	noise	curated cache prune internal
+15874	boundary	app templates plugin detail — their cloud
+15875	noise	plugin service poll internal
+15880	noise	skill load warnings dedup internal
+15884	noise	manifest order internal
+15887	noise	discoverable logic move internal
+15888	dup	skill base name validate — 名称校验已有
+15905	boundary	plugin mentions config — their TUI
+15908	boundary	marketplace config — their TUI
+15915	boundary	plugin-creator guidance — their product
+15918	noise	skill env prompting remove internal
+15920	boundary	skill enablement app server — their TUI
+15921	noise	plugin discovery split internal
+15936	boundary	plugin-creator guidance — their product
+15948	boundary	plugin share discoverability — their cloud
+15954	noise	plugin out of core internal
+15959	dup	skill path root aliases — 路径别名已有
+15966	noise	plugin MCP test internal
+15967	noise	SHA cache entries internal
+15968	noise	imagegen skill update internal
+15969	dup	skill desc context budget trim — 预算裁剪已有
+15973	noise	skills refresh failures internal
+15983	noise	plugin logic extract internal
+15984	noise	skills list failure internal
+15988	dup	alternate manifest paths — 清单路径已有
+16004	noise	PR babysitter skill internal
+16005	noise	custom prompt removal internal
+16007	boundary	skills picker scroll — their TUI
+16010	dup	plugin feature gating harden — 特性门已有
+16011	dup	hook turn_id extension — hook载荷已有
+16012	noise	needs_auth expose internal
+16013	boundary	install MCPs via plugin/install — their cloud
+16014	noise	plugin products distinguish internal
+16015	boundary	git curated sync — their cloud
+16016	noise	plugin mention context internal
+16018	dup	disable skills by name — 按名禁用已有
+16020	boundary	skill-creator default dir — their product
+16021	boundary	marketplace display names — their cloud
+16022	boundary	remote_sync install — their cloud
+16024	boundary	plugin install elicitation — their cloud
+16026	dup	plugin feature gating harden — 特性门已有
+16028	noise	plugin/read internal
+16036	dup	disable bundled system skills — 禁用已有
+16039	noise	plugin/list internal
+16042	boundary	curated marketplace — their cloud
+16045	noise	curated plugins TUI internal
+16062	noise	system skills extra roots internal
+16063	noise	PyYAML lazy load internal
+16065	noise	rules syntax errors internal
+16071	noise	watcher spurious events internal
+16074	dup	skills from .agents/skills — 技能目录已有
+16077	dup	skills from .agents/skills — 技能目录已有
+16078	noise	skills prompt relative internal
+16079	boundary	system skills public repo — their cloud
+16080	boundary	system skills sync — their cloud
+16081	noise	skills marker recursive internal
+16084	noise	skill env deps internal
+16098	boundary	skill popup esc — their TUI
+16104	dup	symlink skills discovery — 发现机制已有
+16107	dup	ConfigLayerStack skills — 配置分层已有
+16110	noise	skills render internal
+16134	noise	skill name char limit internal
+16137	dup	skills from repo root — 技能目录已有
+16138	boundary	$ /skills select — their TUI
+16322	noise	crossterm fork internal
+16649	noise	event names internal
+16888	noise	vllm docs import internal
+16973	noise	Qwen tool args internal
+19355	noise	Ollama tool parse error internal
+19369	noise	Responses API 400 internal
+19375	noise	parallel calls call_ids internal
+19382	noise	parallel calls call_ids internal
+19394	noise	finish event usage internal
+19408	noise	adapter publish internal
+19427	noise	anthropic strip thinking internal
+19436	noise	anthropic strip thinking internal
+19448	noise	empty Bearer internal
+19474	noise	empty Bearer internal
+19547	noise	toolcall streaming internal
+19563	noise	ollama streaming internal
+19574	noise	SDK reexport internal
+19588	noise	o3 parallel calls internal
+19589	noise	bedrock reranker creds internal
+19610	boundary	extended thinking display — their provider
+20225	noise	Ollama MCP internal
+20240	noise	gpt-5 tool args empty internal
+20242	noise	gpt-5 tool args empty internal
+20367	noise	anthropic tool call internal
+20937	boundary	Hyper updates — their product
+23059	boundary	OpenAI upstream merge — their product
+23124	noise	Ollama tool calls internal
+23125	noise	Ollama tool calls internal
+23152	boundary	RISC-V paste — their product
+23206	noise	Grok multi-tool internal
+24105	noise	GLM Fireworks internal
+26500	dup	rule files injection limits+path-only降级 — 注入限+降级已有
+26598	dup	shell security policy unify — 安全策略已有
+27766	boundary	InvalidStreamError UI — their UI
+28149	noise	strategic re-eval prompt internal
+29533	boundary	no skills guidance — their UI
+29630	dup	skills representation unify — 技能统一已有
+30061	noise	gemini empty response internal
+30063	noise	gemini revert internal
+31432	dup	malformed tool call recovery — 容错解析已有
+31825	noise	Langfuse trace content internal
+31839	boundary	Groq preview models — their provider
+33085	noise	Bedrock bearer auth internal
+33139	boundary	DeepSeek reasoning preserve — their provider
+33148	noise	thinking buffer chunks internal
+33194	noise	thinking buffer chunks internal
+33199	noise	anthropic empty object internal
+33235	noise	anthropic empty object internal
+33250	noise	null tool_call args internal
+33277	noise	Bedrock empty object internal
+33278	noise	Ollama hang internal
+33283	noise	split tool-call consolidate internal
+33380	noise	interleaved chunks internal
+33415	noise	empty responses crash internal
+33427	noise	empty schemas type internal
+33465	noise	multi-tool streamed internal
+33472	noise	prompt name internal
+33613	boundary	permission modal scroll — their UI
+33853	noise	cost tracking OpenRouter internal
+34059	noise	langfuse auth internal
+34092	boundary	Bedrock prompt cache — their provider
+34145	boundary	Claude 4 ctx limit — their provider
+34188	dup	MCP blobs Anthropic/Google — 内容转发已有
+34194	boundary	SuperGrok OAuth — their provider
+34206	boundary	SuperGrok OAuth — their provider
+34224	boundary	Kimi OAuth device — their provider
+34241	dup	tool call/output linkage — 关联已有
+34690	boundary	recipe modal — their UI
+34703	noise	XML tool fallback Qwen internal
+34710	noise	Bedrock cred rotation internal
+34711	noise	Bedrock tool errors internal
+34728	noise	Bedrock keyring internal
+35222	dup	local langfuse tracing option — 本地追踪已有
+36696	dup	cold cache warn — 成本感知已有
+36801	boundary	MiniMax registry — their provider
+36841	noise	deepseek think extract internal
+36905	noise	Kimi thinking internal
+36910	dup	telemetry instrumentation — 遥测已有
+36911	noise	anthropic nonstream deny internal
+37645	noise	data_collection deny internal
+37946	noise	eval metric internal
+38465	boundary	settings modal mobile — their UI
+38661	noise	exec discipline prompt internal
+38964	boundary	Google Meet plugin — their plugin
+39045	noise	empty response recovery internal
+39070	noise	URL auth endpoints internal
+39071	noise	MiniMax bearer internal
+39083	boundary	Gemini 3.1 catalog — their provider
+39102	noise	empty user msg validate internal
+39137	noise	changelog window meta internal
+39180	noise	memory guidance prompt internal
+39193	boundary	GPT-5.5 OAuth picker — their provider
+39199	noise	OAuth stale autodetect internal
+39655	boundary	plugins toggle/remove — their product
+39761	noise	portkey cost internal
+40259	boundary	approval modal sizing — their UI
+40512	boundary	opus 1M ctx — their provider
+40568	noise	Mistral OTel gate internal
+40581	noise	Mistral telemetry URL internal
+40582	boundary	Mistral TTS — their provider
+40588	noise	Mistral SDK import internal
+40715	boundary	config modal hint — their UI
+40893	noise	audit record meta internal
+41755	noise	auth profiles ordering internal
+42751	dup	plugin loader fail-soft guidance — 容错加载已有
+43118	boundary	MiniMax-M2.5 catalog — their provider
+43210	boundary	clawdbot directory — their product
+43629	dup	DM pairing-first default lockdown — 默认拒绝+配对已有
+43877	noise	setTimeout yield abort internal
+43896	noise	malformed image responses internal
+43920	noise	Discord voice auth internal
+43946	noise	realtime interruption internal
+43973	noise	xAI thinking clamp internal
+44023	boundary	DeepSeek catalog — their provider
+44039	noise	Codex system prompts internal
+44070	noise	Anthropic api scope internal
+44334	dup	single-writer session lock+orphan tool drop — 会话锁+孤儿结果已有
+44725	boundary	plugin dep externalize — their product
+44915	noise	DeepSeek schema normalize internal
+45685	boundary	GPT-5.6 defaults — their provider
+45727	noise	OAuth metadata forward internal
+46352	noise	OpenRouter image prompts internal
+46840	noise	OpenClaw release summary internal
+49240	dup	step-start/finish cost — 步骤事件已有
+50123	boundary	keybind radius — their UI
+50124	boundary	keybind component — their UI
+50144	boundary	subagents modal — their UI
+50160	boundary	modal pastes — their UI

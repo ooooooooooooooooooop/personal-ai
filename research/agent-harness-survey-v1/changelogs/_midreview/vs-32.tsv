@@ -1,0 +1,200 @@
+564	boundary	model-settings-file — their config
+566	noise	marketing internal
+567	noise	marketing internal
+568	noise	username noise internal
+572	noise	username noise internal
+573	boundary	.env vars — their config
+574	noise	username noise internal
+577	noise	token limit errors internal
+578	noise	playwright scrape internal
+582	noise	bare filenames internal
+583	noise	GIT_EDITOR internal
+584	boundary	built-in linters — their product
+585	boundary	--lint-cmd — their product
+586	boundary	test fixing — their product
+587	boundary	--test-cmd — their product
+605	noise	tags.scm internal
+606	noise	username noise internal
+607	noise	reaction noise internal
+610	dup	.aiderignore refuse add — ignore执行已有
+611	noise	blog internal
+613	noise	/run alias internal
+617	noise	diff format internal
+618	boundary	! alias — their CLI
+622	noise	diff format internal
+623	boundary	--check-update — their CLI
+624	noise	fragment noise internal
+626	noise	username noise internal
+632	noise	/add wildcards internal
+634	noise	version noise internal
+638	noise	python>=3.9 internal
+639	noise	username noise internal
+642	boundary	--no-stream costs — their product
+644	boundary	multiline input — their UI
+648	noise	subdir files internal
+650	noise	/add recurse internal
+661	noise	username noise internal
+662	noise	username noise internal
+664	noise	version noise internal
+665	noise	version noise internal
+667	boundary	--no-stream — their CLI
+668	noise	benchmark tool internal
+669	noise	function backend internal
+670	noise	experiment note internal
+671	dup	limit retries malformed edit — 重试上限已有
+672	noise	version noise internal
+673	noise	version noise internal
+689	noise	streamlit dep internal
+700	noise	diff wrong filename internal
+702	noise	corner crashes internal
+704	noise	--msg /ask internal
+706	noise	/read only internal
+713	noise	--no-verify-ssl internal
+716	boundary	auto lint — their product
+717	boundary	auto lint on edit — their product
+719	boundary	auto test fix — their product
+722	boundary	FAQ link — their UI
+726	noise	SEARCH/REPLACE internal
+742	boundary	GUI scrape flag — their product
+744	noise	fragment noise internal
+748	boundary	--thinking-tokens — their CLI
+750	boundary	remove_reasoning deprecate — their config
+751	boundary	--reasoning-effort — their CLI
+753	boundary	analytics opt-in — their product
+756	boundary	analytics opt-in — their product
+758	boundary	--set-env — their CLI
+763	boundary	analytics opt-in — their product
+765	boundary	analytics opt-in — their product
+766	boundary	analytics opt-in — their product
+767	boundary	YES_ALWAYS env — their config
+768	noise	yaml update internal
+772	boundary	cache warming verbose — their CLI
+774	boundary	config file verbose — their CLI
+777	dup	--llm-history-file raw log — 消息日志已有
+779	boundary	benchmark YAML — their product
+784	boundary	color settings validate — their UI
+785	boundary	stream+cache warn — their CLI
+788	noise	startup QOL internal
+789	noise	autocomplete perf internal
+791	noise	repo map perf internal
+792	noise	mono repo perf internal
+793	noise	perf internal
+795	noise	perf internal
+796	noise	launch perf internal
+797	noise	repo map perf internal
+798	noise	sounddevice import internal
+809	dup	prompt cache chunking — 缓存分块已有
+810	boundary	cache-keepalive — their CLI
+819	dup	ctx exhaustion graceful — 溢出处理已有
+820	noise	token usage internal
+827	boundary	markdown headings — their UI
+829	boundary	dumb terminal — their UI
+835	boundary	/run PowerShell — their CLI
+843	dup	shell commands offer — shell已有
+846	boundary	/run shell — their CLI
+857	noise	mp4 noise internal
+861	boundary	URL scrape offer — their product
+862	boundary	version notify — their product
+867	noise	ASCII fallback internal
+882	noise	ctags encoding internal
+884	noise	utf-8 default internal
+898	noise	live diffs internal
+903	noise	/help RAG internal
+904	dup	devops files repo map — 仓库图已有
+906	dup	prompt+map+files cache — 缓存已有
+914	dup	confirmations — 确认已有
+915	dup	(D)on't ask again session — 会话级批准已有
+932	boundary	/copy-context — their product
+939	boundary	/paste rename — their product
+945	noise	flag noise internal
+950	noise	cache warm ping internal
+958	noise	signup noise internal
+971	boundary	clipboard images — their UI
+985	boundary	image size error — their product
+987	boundary	logo refresh — their product
+996	boundary	live model catalog — their product
+1009	dup	plugin settings centralize atomic toggles — 插件管理已有
+1010	dup	empty dirs unlisted+central — 插件管理已有
+1015	boundary	variant badge — their product
+1019	noise	bundle version internal
+1023	dup	BOM skill files — 编码容错已有
+1040	boundary	plugin uninstall cmd — their CLI
+1045	dup	symlinked skill dirs circular — 符号链接发现已有
+1050	dup	failed plugins visible+errors — 加载诊断已有
+1054	boundary	focus indicator — their UI
+1055	boundary	PR skill move — their repo
+1057	boundary	banners immediate — their UI
+1061	dup	Skills system — 技能已有
+1071	noise	ext version internal
+1075	noise	ext version headers internal
+1076	noise	packaging script internal
+1079	boundary	window focus — their UI
+1080	noise	FeatureFlagProvider internal
+1120	boundary	zero cost free models — their product
+1121	dup	telemetry limited own-keys not traced — 遥测范围门已有
+1127	boundary	session import page — their UI
+1128	boundary	provider picker marks — their UI
+1152	boundary	live catalog — their product
+1153	boundary	live catalog — their product
+1161	boundary	Add Provider dialog — their UI
+1209	noise	Vertex ADC fetch internal
+1210	noise	Vertex ADC fetch internal
+1212	noise	Vertex ADC fetch internal
+1253	dup	upstream error surface gateway — 错误透传已有
+1275	noise	reasoning controls catalog internal
+1282	dup	keep streamed response on max-turns exit — 部分响应保留已有
+1293	noise	optional peer deps internal
+1295	noise	install size internal
+1302	noise	headers centralize internal
+1312	noise	client-identity headers internal
+1321	boundary	reasoning controls ClinePass — their UI
+1564	noise	diff view provider internal
+1565	boundary	--system-prompt-file — their CLI
+1588	boundary	grok promo — their product
+1603	noise	provider name noise internal
+1650	noise	gemini cache internal
+1655	noise	cache TTL internal
+1658	noise	gemini cache internal
+1678	noise	html escape internal
+1709	boundary	files open editor — their UI
+1719	dup	backend retry+re-resolve addr — 重连已有
+1724	dup	PowerShell fail-fast — 快速失败已有
+1726	dup	PowerShell fail-fast — 快速失败已有
+1727	dup	PowerShell fail-fast — 快速失败已有
+1728	dup	PowerShell fail-fast — 快速失败已有
+1736	dup	complete cmds on shell end — 完成检测已有
+1746	noise	shell strings advertise internal
+1762	noise	terminal impls package internal
+1777	noise	deep planning prompts internal
+1802	dup	stdin interact+terminate — 交互执行已有
+1808	boundary	popover clicks — their UI
+1813	dup	untracked in commit msg — 提交已有
+1818	noise	benign git states internal
+1819	boundary	plugins github collection — their product
+1820	dup	plugins file:// URLs — 安装已有
+1823	noise	staged commit msg internal
+1834	noise	ripgrep workflow internal
+1844	noise	git better internal
+1873	boundary	zero cost — their product
+1876	boundary	logo refresh — their product
+1884	boundary	zero cost — their product
+1892	noise	reaction noise internal
+1897	dup	hub replace drain sessions — 排空升级已有
+1901	boundary	Windows installer — their product
+1902	boundary	provider badge — their UI
+1904	boundary	title bar drag — their UI
+1910	noise	-- separator internal
+1914	boundary	promo dialog — their product
+1917	boundary	feature flags server — their product
+1922	noise	truncation migrate internal
+1925	boundary	billed cost — their product
+1926	dup	detached output survives restart — 输出持久已有
+1928	boundary	rename Cline — their product
+1930	boundary	gateway cost — their product
+1936	boundary	beta release — their product
+1937	boundary	avatar overlay — their product
+1941	dup	hub swap on idle — 优雅切换已有
+1943	dup	dev builds own hub — 实例隔离已有
+1944	dup	hub shutdown loop — 守护生命周期已有
+1945	dup	hub attach not replace — 守护生命周期已有
+1946	dup	hub update dialog — 生命周期已有

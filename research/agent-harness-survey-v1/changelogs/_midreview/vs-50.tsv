@@ -1,0 +1,200 @@
+13814	dup	retry remote compaction — 重试已有
+13815	dup	remote-control foreground+readiness — 守护管理已有
+13817	noise	UX internal
+13819	dup	registration to environments — 注册归位已有
+13831	dup	remote-control headless — 远程控制已有
+13837	dup	response.processed after compaction — 事件已有
+13842	dup	sync remote plugin bundles — 同步已有
+13843	noise	analytics internal
+13845	dup	admin-disabled plugin status — 状态已有
+13869	dup	host-specific remote_sandbox_config — 沙箱需求已有
+13874	dup	tolerate missing auth+MCP cancel — 容错已有
+13877	dup	dismiss stale requests — 陈旧丢弃已有
+13882	noise	ports internal
+13903	noise	mocking internal
+13914	noise	bazel internal
+13915	noise	test internal
+13923	noise	merge models internal
+13925	dup	device-code headless — 无浏览器登录已有
+13945	dup	remote compaction default — 压缩默认已有
+13947	noise	WSL internal
+13950	dup	prompts saved compaction fails — 失败保持已有
+13951	dup	reasoning effort through compaction — 压缩保持已有
+13952	dup	human evidence priority v2 — 证据优先已有
+13954	noise	chunking internal
+13955	noise	prompts internal
+13956	dup	dual writing+v2 readiness — 双写已有
+13957	dup	Guardian summary compaction — 压缩已有
+13958	dup	verified answers across compaction — 答复保持已有
+13960	dup	Guardian review incompatible checkpoints — 检查点审查已有
+13961	dup	Guardian evidence compaction — 证据保持已有
+13963	dup	Guardian authorization compaction — 授权保持已有
+13964	dup	Guardian evidence compaction — 证据保持已有
+13965	dup	Guardian answers compaction — 答复保持已有
+13966	noise	backport internal
+13967	noise	configurable internal
+13969	dup	context window IDs metadata — ID已有
+13970	dup	memory consolidation identify — 归因已有
+13971	boundary	compact command activity — their UI
+13973	dup	bound parent compaction context — 限界已有
+13975	dup	MCP resource origins compaction — 来源保持已有
+13976	dup	reject symlinks memory workspaces — 符号链接拒绝已有
+13978	dup	skip token replay exec resumes — 回放跳过已有
+13981	noise	log summarize internal
+13982	dup	validate consolidation artifacts — 校验已有
+13983	dup	rebind consolidation roots — 根重绑已有
+13989	dup	turn-owned world state compaction — 轮域状态已有
+13991	dup	persist context window metadata — 元数据已有
+13998	noise	metrics internal
+14000	dup	compact window id rollout — ID已有
+14005	noise	analytics internal
+14015	noise	cache keys internal
+14016	dup	memory state dedicated SQLite — 分库已有
+14022	dup	memory state SQLite — 分库已有
+14024	dup	compaction metadata turn headers — 元数据已有
+14031	dup	densify+version memory summaries — 摘要版本已有
+14041	noise	builder internal
+14046	dup	replay token usage resume/fork — 用量回放已有
+14061	noise	flag internal
+14063	noise	params internal
+14066	noise	read-path internal
+14077	dup	model-switch instructions compaction — 指令一致已有
+14079	noise	storage internal
+14081	dup	exclude developer messages memory input — 输入过滤已有
+14083	noise	pipeline internal
+14089	noise	recorder internal
+14091	noise	truncation internal
+14092	dup	pre-sampling compact prev context — 压缩上下文已有
+14097	dup	refresh dev instructions compaction — 指令刷新已有
+14098	dup	compaction failure as failure — 失败诚实已有
+14104	noise	trim internal
+14105	noise	compaction internal
+14110	dup	accurate token estimation — 估算准确已有
+14112	noise	log internal
+14113	dup	last token count resume — 计数恢复已有
+14116	boundary	token display — their UI
+14128	noise	move internal
+14129	dup	context left proxy — 剩余上下文已有
+14131	dup	reasoning tokens window calc — 计算已有
+14132	boundary	compact warning — their UI
+14136	dup	truncate on compact — 截断已有
+14138	boundary	context usage — their UI
+14140	noise	token usage internal
+14141	dup	truncate long user messages compact — 截断已有
+14149	dup	preserve multi-agent version fork — 版本保持已有
+14151	dup	thread RPCs until delegated done — RPC保活已有
+14161	noise	analytics internal
+14167	boundary	subagent navigation — their UI
+14170	dup	delegate sandboxing to executor — 沙箱委派已有
+14172	dup	multi-agent settings representations — 设置保持已有
+14173	noise	picker internal
+14177	dup	explicit mode override delegation — 覆盖已有
+14178	boundary	concurrency warning — their UI
+14180	boundary	Ultra warning — their UI
+14181	dup	namespace tools collaboration — 命名空间已有
+14185	dup	surface subagent errors parent — 错误上浮已有
+14186	noise	prompts internal
+14187	dup	hide orchestrator skills local — 技能隐藏已有
+14188	dup	cache orchestrator per thread — 缓存已有
+14190	dup	path-based activity tracking — 活动追踪已有
+14191	dup	reject direct input sub-agents — 输入限域已有
+14192	noise	metrics internal
+14195	dup	rename interrupt_agent — 中断已有
+14197	noise	prompts internal
+14199	dup	encrypt v2 message payloads — 载荷加密已有
+14201	noise	defaults internal
+14202	noise	rename internal
+14204	dup	persist multi-agent metadata — 元数据已有
+14205	dup	per-thread runtime resolve — 运行时已有
+14206	dup	prewarm aligned runtime — 预热对齐已有
+14209	dup	reap stale slots — 槽位回收已有
+14210	dup	subagent lineage metadata — 血统已有
+14212	noise	test internal
+14215	dup	defer v1 tools tool search — 延迟已有
+14218	dup	trim description cap 5 models — 描述限界已有
+14219	dup	namespace configurable — 命名空间已有
+14220	dup	gate v2 tools independent — 门控已有
+14228	noise	futures internal
+14231	noise	wrap internal
+14233	dup	stop response.done delegation — 委派收敛已有
+14234	dup	stream background progress — 进度流已有
+14236	noise	prompt internal
+14249	noise	handlers internal
+14251	noise	handlers internal
+14252	dup	rename wait_agent — 等待工具已有
+14266	dup	disable collab tools review — 工具门控已有
+14269	noise	wording internal
+14274	noise	prompt internal
+14281	dup	initial history optional delegate — 历史传入已有
+14284	dup	pin reasoning config overrides — 推理钉住已有
+14291	noise	description internal
+14307	dup	tool availability model switch — 切换一致已有
+14312	dup	routing hints backend — 路由提示已有
+14313	dup	parse Claude/Cursor records — 外部解析已有
+14314	dup	otel shutdown idempotent — 幂等关闭已有
+14316	dup	imports by provider — 归因已有
+14318	noise	http client internal
+14337	noise	otel internal
+14395	dup	model-advertised effort order — 档位序已有
+14505	noise	rename internal
+14760	noise	constants internal
+14841	noise	prompt internal
+14900	noise	provider internal
+14907	boundary	LM Studio — their product
+14957	dup	skip sandbox setup proxy changes — 按需设置已有
+14959	dup	provisioning separate ACL refresh — 分离已有
+14960	dup	protect sandbox binaries write — 二进制保护已有
+14963	noise	scaffolding internal
+14964	dup	harden provisioning file handling — 配置加固已有
+14965	dup	managed policy validation — 策略校验已有
+14968	dup	Windows sandbox provisioning — 沙箱配置已有
+14969	dup	cleanup on uninstall — 卸载清理已有
+14970	dup	sandbox vs terminal input injection — 注入防护已有
+14974	dup	compatible PowerShell elevated — 兼容已有
+14976	dup	executor home dirs sandbox — 目录传播已有
+14978	dup	Guardian isolated from MCP — 审查隔离已有
+14981	dup	editor buffers isolated writable — 缓冲隔离已有
+14983	dup	harden vs reparse points — 重解析防护已有
+14984	dup	drop capabilities Linux — 能力裁剪已有
+14985	dup	fail closed denied/unreadable — fail-closed已有
+14986	dup	minimal /dev bwrap — 设备节点已有
+14987	dup	sandbox mode response metadata — 模式暴露已有
+14990	dup	cloud-managed profiles sandbox — 档案下发已有
+14991	dup	skip missing paths sandbox — 容错已有
+14992	dup	restrict SID proxy traffic — 流量限制已有
+14993	noise	test internal
+14994	dup	harden elevated startup — 启动加固已有
+14997	dup	parent sandbox memory consolidation — 沙箱继承已有
+14998	dup	elevated sandbox network proxies — 提权沙箱已有
+14999	dup	coalesce setup requests — 请求合并已有
+15000	dup	delete in writable roots — 删除能力已有
+15002	dup	access primary runtime — 运行时访问已有
+15005	noise	context internal
+15006	dup	preserve proxy state helpers — 状态保持已有
+15010	dup	fs helper sandbox wrapper — 助手沙箱已有
+15013	dup	repair stale credentials — 凭据修复已有
+15015	noise	runner internal
+15016	dup	recover stale credentials — 凭据恢复已有
+15017	noise	entrypoint internal
+15021	dup	effective sandbox modes debug — 模式暴露已有
+15022	noise	lint internal
+15023	noise	diagnostics internal
+15026	dup	respect backend exec policy — 策略遵从已有
+15032	dup	workspace roots runner — 根传递已有
+15033	noise	test internal
+15037	noise	plumbing internal
+15038	dup	sandbox log feedback — 日志附件已有
+15041	dup	infer host backend — 后端推断已有
+15042	dup	rolling files logs — 日志滚动已有
+15044	dup	resolved permissions helper — 权限解析已有
+15045	noise	helper lookup internal
+15046	dup	write roots from permissions — 权限驱动已有
+15047	dup	setup from resolved permissions — 权限驱动已有
+15048	noise	stamping internal
+15051	noise	ACL internal
+15055	dup	sandbox users runtime bin — 访问已有
+15056	dup	bwrap reliability fixes — 沙箱健壮已有
+15058	dup	bubblewrap 0.11.2 setuid — 沙箱更新已有
+15059	dup	elevated named-pipe access — 管道访问已有
+15060	dup	WFP filters setup — 过滤已有
+15062	noise	test serialize internal

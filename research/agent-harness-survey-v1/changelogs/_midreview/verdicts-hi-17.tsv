@@ -1,0 +1,200 @@
+3580	dup	agents add可选auth-profile copy prompt — auth setup
+3581	boundary	Android gateway auth state保留
+3582	boundary	app-server/protocol拆分瘦身
+3583	dup	多CBC窗口不再无限阻upgrade — update coordination
+3584	dup	Bot Mode不再每profile spawn backend — spawn lifecycle
+3585	boundary	bun-compiled embedded gateway+launchd
+3586	variant	cache.ttlPrune mode+auth-aware TTL defaults
+3587	boundary	DeploySearch改pane::
+3588	dup	cloud worker caches排除Python caches/dep trees — cache filter
+3589	dup	path+content-only bootstrap files仍出system-prompt reports — bootstrap
+3590	dup	config schema JSON含titles/descriptions — schema docs
+3591	dup	semantic config mutations集中serialize+retry — config concurrency
+3592	cand	budget: rollout token budgets跨threads追踪+remaining提醒+abort
+3593	boundary	auth migration→migrations.ts
+3594	dup	compression界面改进 — compaction UX
+3595	boundary	Copilot Chat endpoint URLs可配
+3596	noise	Daemon使用指南文档
+3597	boundary	lit/@lit-labs/signals依赖解析
+3598	dup	同3055(重复) — edit mode commands
+3599	cand	task-workdir: workflow agents workingDir pin
+3600	dup	跨进程file locking保护settings — config lock
+3601	boundary	ctx.reload()运行时重载
+3602	boundary	test-utils fixture helper迁移
+3603	dup	per-group systemPrompt转发(同1180) — group prompt
+3604	dup	SSE watcher file tree实时刷新 — file watch
+3605	cand	secrets: gateway.auth.token SecretRef支持
+3606	dup	*.groups作allowlist("*"保allow-all) — group allowlist
+3607	dup	bypass proxy时仍跑destination DNS checks — SSRF hygiene
+3608	boundary	Helix MoveToNextMatch修复
+3609	boundary	HookMetadata .root wrap
+3610	cand	update-idle: daemon idle时自动restart更新
+3611	boundary	Go debug/exec modes
+3612	boundary	keymap JSON schema增强
+3613	noise	Kitty graphics JPEG/GIF/WebP修复
+3614	boundary	Devin Knowledge(tips/instructions/org context)
+3615	dup	>30KB REPL output截断存盘(同3308) — externalize
+3616	boundary	proactive conversation starters per-user
+3617	boundary	Matrix E2EE setup
+3618	noise	~/.config/cognition目录迁移
+3619	boundary	env vars动态调model output limits
+3620	dup	multi-chat sessions管理 — multi-session
+3621	cand	web-cmd: /web <url>刮取转markdown进chat
+3622	boundary	OTLP config文件/env
+3623	boundary	A2A Agent Cards 12h缓存
+3624	cand	model-per-contact: per-DM-contact不同models(共享gateway)
+3625	boundary	Google Meet artifacts/attendance
+3626	boundary	OpenRouter X-Cache params
+3627	boundary	qa coverage --tools
+3628	boundary	runtime env传递desktop-browser Crabbox
+3629	dup	checkpoints更频繁创建+行指示器 — checkpoint UX
+3630	dup	safety-check downgrade误报靠response header model — classify fix
+3631	dup	account-scoped topics正确路由+streamed text存活tool calls — telegram delivery
+3632	dup	repo setup验证lint/install命令 — repo setup
+3633	cand	hook-events: experimental.chat.messages.transform/system.transform
+3634	dup	detached review mode+enter/exit events+thread IDs — review mode
+3635	dup	review round ledgers嵌入posted body持久 — review ledger
+3636	dup	embedded runner outer retry loop cap(32-160 profile-aware) — retry cap
+3637	boundary	sentiment friction按需开启
+3638	dup	/new /reset重置compactionCount+sessions.json 0600 — reset+perms
+3639	boundary	pre-build task完成提示
+3640	cand	policy-mdm: 企业team-wide默认model(新sessions)
+3641	dup	一条stuck message timeout后chat恢复 — recovery
+3642	variant	channels.telegram.streaming默认partial
+3643	boundary	ambientTurns room_event(同2466)
+3644	dup	over-limit draft previews续新message — stream overflow
+3645	dup	web search toggle说明只honor内建provider — setting honesty
+3646	dup	todo禁用时hub不建agenda watchers — watcher hygiene
+3647	noise	contributor鸣谢
+3648	noise	Jules sample prompts
+3649	dup	response cards含token counts — token display
+3650	dup	tool images提取为attachments非base64 — media extract
+3651	dup	usage-limit警告跟企业request action — limit UX
+3652	dup	web search默认开启(支持models,YOLO外) — search default
+3653	boundary	同3526 agent color(重复)
+3654	boundary	draft-2020-12 JSON Schema
+3655	noise	eval practical2 suite
+3656	cand	search-scope: non-recursive file search选项
+3657	dup	同3528(重复) — stats
+3658	boundary	Databricks models+fuzzy search
+3659	dup	unauthorized/missing-token暂停reconnect churn — reconnect discipline
+3660	dup	ACP mode model信息清晰 — display
+3661	boundary	首启header hint(pi可解释自身)
+3662	boundary	已有deployment config仍可新建
+3663	dup	auth机制优化+用户信息接口 — auth
+3664	boundary	opt-in debug timing helper
+3665	dup	exact match优先completion — completion
+3666	cand	search-params: Grep head_limit+offset优化
+3667	boundary	复制完整reply groups/双击复制
+3668	dup	deferred loading tools配置获取优化 — deferred tools
+3669	dup	streaming增量消息完整查看 — stream view
+3670	boundary	message like/dislike反馈
+3671	dup	browser control先于external providers启动+可禁用channel auto-start — startup order
+3672	dup	protocol validators首次用时lazy-compile — startup perf
+3673	dup	轻量secrets runtime state与auth-store cache拆分 — secrets split
+3674	dup	login flow修复(截断) — login fix
+3675	boundary	--cache_task_images SWE-agent
+3676	dup	tools.exec/tools.fs不再隐式放宽restrictive profiles — profile safety
+3677	dup	大repo @文件搜索性能 — search perf
+3678	dup	stream timeout 30→60s+智能检测 — timeout tune
+3679	dup	/todos数据加载+文件系统恢复 — todo persist
+3680	dup	tool search参数描述优化 — param docs
+3681	dup	tool search拆分search/activate参数 — tool search
+3682	boundary	HTTP/2 over QUIC tunnel
+3683	noise	eval tests
+3684	cand	handoff-remote: /handoff无参→摘要交给远程Devin session
+3685	boundary	AWS Web Identity Token File
+3686	dup	headless multiline user messages+默认message — headless input
+3687	dup	headless stream-json output-format — headless io
+3688	boundary	.devcontainer打开项目
+3689	boundary	Agent Panel快速加remote MCP server
+3690	boundary	Bedrock Mantle endpoint
+3691	boundary	opencode headless web命令
+3692	boundary	remote projects commit template
+3693	boundary	recent projects移到new window
+3694	boundary	thread as markdown remote
+3695	dup	/btw side questions在tool-use turns后可用(剥replayed blocks) — side questions
+3696	dup	auth慢路径优化防config sync jitter — auth perf
+3697	dup	stream-json/headless支持background tasks — task modes
+3698	boundary	Bazel diagnostics/remote downloads
+3699	dup	browser不开时显示copyable fallback URL — auth fallback
+3700	dup	stale-target recovery ensureTabAvailable复用sole tab — cdp recovery
+3701	boundary	Chrome extension relay takeover+browser serve
+3702	boundary	vibe skill文档更新(/copy/paste-image)
+3703	dup	Vercel AI Gateway/Cline API key headless CI — ci auth
+3704	dup	拒绝discovered endpoint后URL prompt回loopback默认 — safe default
+3705	dup	counts按session/request追踪不跨请求累积 — metric scope
+3706	boundary	jules remote new/list/monitor
+3707	dup	同3697(重复)
+3708	boundary	Fish Audio S2.1 synthesis
+3709	dup	SSH remote重命名路径重开修复 — remote fix
+3710	dup	无display时OSC 52 clipboard fallback(同2522) — clipboard fallback
+3711	dup	SSH Alt+Enter误读Escape+PI_TUI_ESC_TIMEOUT — input fix
+3712	boundary	tts.speak RPC operator-scoped
+3713	cand	api-surface: commands.list RPC(remote clients发现runtime/skill/plugin命令)
+3714	dup	git源无git:前缀时严格(只protocol URLs) — url strict
+3715	dup	--output-format=stream-json等号参数解析修复 — flag parse
+3716	dup	stale exec-server ws重连+remote control即重试 — reconnect
+3717	boundary	Bedrock embeddings(Titan/Cohere/Nova)
+3718	dup	OpenAI-compatible embedding provider(local/hosted) — embeddings
+3719	dup	title generation经remote model mappings切换 — model routing
+3720	cand	shell-persist: persistent shell mode(cd/env跨tool calls保持,local+SSH)
+3721	dup	prepared project snapshots+workspace hashes复用 — snapshot reuse
+3722	boundary	remote compact API-key users
+3723	dup	remote resume/fork恢复history+停重复输出 — remote resume
+3724	boundary	agent --message-file/RAFT wake bridge
+3725	dup	SDK/headless compaction output泄漏stdout修复 — output hygiene
+3726	noise	SSH remote folder project panel修复
+3727	boundary	TUI composer vim editing
+3728	boundary	headless daemon隐藏Browse按钮
+3729	boundary	top-down streaming/channel favorites
+3730	dup	headless/SDK首请求trace race修复 — trace init
+3731	dup	Remote API WebFetch 100K cap+15K cache — fetch cap
+3732	cand	parallel-runs: --parallel同prompt多任务
+3733	boundary	AWS Web Identity(同3685)
+3734	cand	remote-mcp: OAuth 2.1 remote servers
+3735	boundary	multi-modal input(image/PDF/audio)
+3736	dup	off状态对model/menu/SDK隐藏 — feature hide
+3737	boundary	ssh remoting terminal/tasks alpha
+3738	boundary	Modal sandbox runtime
+3739	cand	sandbox-elevate: elevated sandbox onboarding+/elevate-sandbox命令
+3740	cand	worktree-sandbox: git worktrees sandbox支持
+3741	dup	--dev-container自动开dev container — devcontainer
+3742	dup	20分钟静默sandbox kill+stale container回收 — watchdog
+3743	dup	sandbox mode system prompt告知限制+申请方式 — sandbox prompt
+3744	cand	delegate-context: sessions_spawn可选forked context(child继承请求)
+3745	dup	codex exec resume后可传global flags — flag order
+3746	dup	--system-prompt等临时参数不污染config cache — cache isolation
+3747	dup	channel adapter state按workspace隔离 — state isolation
+3748	boundary	@discordjs/opus opt-in install
+3749	dup	tools.exec.host=auto仅routing非隐式放行 — exec routing
+3750	dup	browser/sandbox/exec/MCP/secret路径拒unsafe输入 — input validation
+3751	boundary	browser --no-sandbox flag
+3752	dup	Container.render()长session栈溢出修复 — stack fix
+3753	cand	health-api: /health /healthz /ready /readyz endpoints
+3754	boundary	docker install smokes
+3755	cand	mcp-apps: ticketed MCP Apps host(bound tools/resources/bounded context)
+3756	boundary	sandbox-cli backend Linux pipe mode
+3757	dup	live model sweeps timeout/ stale filter时fail — test fidelity
+3758	boundary	Matrix per-DM threadReplies
+3759	boundary	native Modal SDK backend
+3760	boundary	Podman rootless
+3761	dup	providers retry/backoff/threading/reactions/media — channel resilience
+3762	cand	worktree-vcs: SVN/Perforce非git隔离workspace(Worktree通用化)
+3763	boundary	personal-agent packs/Codex-vs-Pi parity QA
+3764	boundary	QA-Lab Codex auth gate
+3765	boundary	qa suite --runner multipass lane
+3766	boundary	swe-agent docker web UI
+3767	dup	Codex auth/compaction/source replies/sandbox path/usage-limit — hardening
+3768	cand	sandbox-harden: block危险docker config(bind mounts/host net/unconfined)
+3769	boundary	sandbox list/recreate+skills同步+browser auto-start
+3770	dup	docker.binds config validation恢复+PATH保留 — config restore
+3771	dup	mediaUrl/fileUrl alias bypass关闭 — alias bypass fix
+3772	cand	sandbox-home: Windows USERPROFILE入blocked home roots(防.credential binds)
+3773	dup	sandbox下relative paths仍从原project解析 — cwd stability
+3774	boundary	Telegram isolated polling worker
+3775	boundary	Docker Codex install/plugin-tool E2E
+3776	dup	worktree并行开发隔离目录(同28/2135) — worktree族
+3777	dup	unified execution改进+race修复+timeout含输出 — exec fixes
+3778	dup	同2561 CORS修复 — CORS
+3779	boundary	Miora MCP stdio双向+自动重连

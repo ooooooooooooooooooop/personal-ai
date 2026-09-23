@@ -1,0 +1,200 @@
+69268	noise	version header
+69273	noise	version header
+69277	noise	version header
+69280	noise	version header
+69282	noise	version header
+69284	noise	version header
+69290	noise	version header
+69292	noise	version header
+69295	noise	version header
+69298	noise	version header
+69301	noise	version header
+69304	noise	version header
+69308	noise	version header
+69311	noise	version header
+69313	noise	version header
+69316	noise	version header
+69319	noise	version header
+69321	noise	version header
+69323	dup	post_setup_worktree hook — worktree钩已有
+69325	noise	version header
+69328	noise	version header
+69331	noise	version header
+69334	noise	version header
+69336	noise	version header
+69341	noise	version header
+69353	noise	version header
+69357	noise	version header
+69362	noise	prose noise
+69364	noise	version header
+69371	noise	version header
+69374	noise	version header
+69388	boundary	dedicated terminal — their UI
+69389	dup	colors in terminal output — 颜色保留已有
+69391	dup	force kill terminal commands — 强杀已有
+69397	dup	powershell stuck fix — 卡死修复已有
+69399	dup	terminal freeze fix — 冻结修复已有
+69404	dup	@-mention terminal — 终端引用已有
+69407	dup	terminal accepts input — 终端输入已有
+69410	boundary	terminal UI refresh — their UI
+69416	dup	customizations span workspace folders — 跨目录已有
+69427	dup	agent skills for cascade — 技能支持已有
+69430	noise	pricing noise
+69434	dup	delegate to Devin one click — 委派已有
+69437	dup	per-server MCP log channels — 日志分通道已有
+69438	dup	MCP registry cache warm startup — 缓存预热已有
+69440	dup	subagents call MCP directly — 子代理MCP已有
+69451	noise	prose noise
+69463	dup	refresh only edited MCP — 局部刷新已有
+69464	dup	MCP init timeout 60s — 超时已有
+69466	dup	MCP URL path components — 路径组件已有
+69467	dup	OAuth streamable HTTP — OAuth已有
+69469	dup	continue at tool call limit — 限值续行已有
+69475	noise	pricing noise
+69478	noise	rename internal
+69484	boundary	smart mode maps — their feature
+69485	dup	auto-continue on limit — 自动续行已有
+69486	dup	planning mode before edits — 计划模式已有
+69490	noise	prose noise
+69497	boundary	teams reviews — their platform
+69499	boundary	conversation sharing — their platform
+69501	boundary	teams knowledge — their platform
+69508	boundary	analytics dashboard — their platform
+69516	noise	version header
+69519	noise	version header
+69522	noise	version header
+69523	noise	prose noise
+69525	noise	version header
+69529	dup	auto-linting — 自动lint已有
+69533	noise	prose noise
+69537	noise	version header
+69539	noise	prose noise
+69543	noise	version header
+69545	noise	prose noise
+69547	noise	version header
+69550	noise	version header
+69553	noise	version header
+69555	noise	prose noise
+69557	noise	version header
+69560	noise	version header
+69563	noise	version header
+69567	noise	version header
+69570	noise	version header
+69573	noise	version header
+69576	noise	version header
+69579	noise	version header
+69582	noise	version header
+69587	noise	version header
+69592	noise	version header
+69596	noise	version header
+69599	noise	version header
+69605	dup	MCP SSE stability — 连接稳定已有
+69608	noise	version header
+69611	noise	version header
+69612	noise	docs noise
+69614	dup	share tasks/artifacts link — 分享已有
+69615	noise	ui fix prose
+69616	dup	resume after weak-net disconnect — 断网恢复已有
+69617	dup	reconnect false failure dedup — 误报修复已有
+69618	dup	tool records after task switch — 记录修复已有
+69619	dup	expert mapping/config guard — 配置容错已有
+69620	dup	streaming dedup+grouping fix — 流式修复已有
+69621	noise	fix prose
+69622	noise	fix prose
+69623	noise	docs noise
+69624	dup	app management revoke auth — 授权管理已有
+69625	dup	quote message as context — 引用追问已有
+69626	noise	i18n noise
+69627	dup	idle capability reminder disable — 闲置提醒已有
+69629	noise	platform noise
+69630	boundary	voice input — their feature
+69631	noise	perf prose
+69632	noise	prose noise
+69633	dup	artifacts follow message order — 产物排序已有
+69634	dup	cross-device title/model/pin sync — 多端同步已有
+69635	noise	prose noise
+69636	noise	prose noise
+69637	noise	perf prose
+69638	dup	logout confirm+cross-tab sync — 登出同步已有
+69639	dup	elapsed time real seconds — 耗时对齐已有
+69640	noise	ui fix prose
+69641	dup	preview login+auth redirect fix — 跳转修复已有
+69642	dup	cold-start missing plugins fix — 冷启修复已有
+69643	dup	%USERPROFILE% env path rules fix — 变量展开修复已有
+69644	dup	connector dir refresh on switch — 刷新修复已有
+69645	dup	new message interrupt running cmd fix — 中断修复已有
+69646	dup	connector state mismatch fix — 状态修复已有
+69647	dup	plugin toggle session生效 fix — 生效修复已有
+69648	dup	streaming markdown+slow history fix — 流式修复已有
+69649	dup	login drop fix — 掉登录修复已有
+69650	dup	local assistant empty reply fix — 空回复修复已有
+69651	dup	subagents vanish from tool desc fix — 描述修复已有
+69652	dup	queue bypass on weak net fix — 队列修复已有
+69653	dup	scheduled task stuck/sleep fix — 调度修复已有
+69654	noise	fix prose
+69655	noise	fix prose
+69656	noise	fix prose
+69657	noise	fix prose
+69658	noise	fix prose
+69659	dup	retry in same session no dup task — 重试同会话已有
+69660	dup	retry history state fix — 历史修复已有
+69661	dup	meaningful error not internal codes — 错误可读已有
+69662	dup	proactive plugin recommendations — 推荐已有
+69663	boundary	image/video gen — their feature
+69664	dup	attach docs/spaces to task — 资料引用已有
+69665	dup	bg task details+terminal+cancel — 后台管理已有
+69666	boundary	app publish mgmt — their platform
+69667	dup	wechat forward auto-read docs — 转发读取已有
+69668	noise	render prose
+69669	dup	long session streaming stability — 流稳定已有
+69670	dup	wake-from-sleep recovery — 休眠恢复已有
+69671	noise	fix prose
+69672	dup	lockscreen run modes 3 — 锁屏模式已有
+69673	noise	rename internal
+69674	dup	context window tier remembered per model — 档位记忆已有
+69675	dup	expired cred UI mismatch fix — 凭据修复已有
+69676	dup	load earlier messages fix — 加载修复已有
+69677	noise	fix prose
+69678	dup	mobile artifacts exclude process files — 产物过滤已有
+69679	dup	large office preview 100/500MB — 大预览已有
+69680	dup	model list consistency custom vs builtin — 列表一致已有
+69681	noise	platform noise
+69682	noise	fix prose
+69683	dup	stop after processed fix — 续跑修复已有
+69684	dup	outside-workspace artifacts fix — 越界修复已有
+69685	noise	prose noise
+69686	boundary	hover full path — their UI
+69687	dup	Ctrl+Enter newline+custom keys — 键位已有
+69688	dup	error retry dedup+model switch — 重试修复已有
+69689	dup	history recovery path change — 路径变更恢复已有
+69690	noise	fix prose
+69691	dup	scheduled task state fixes — 调度修复已有
+69692	dup	wake wrong error page fix — 唤醒修复已有
+69693	noise	platform noise
+69694	noise	fix prose
+69695	boundary	video aspect/sound — their feature
+69696	boundary	version in sidebar — their UI
+69697	noise	perf prose
+69698	noise	prose noise
+69699	dup	sensitive content confirm dedup — 确认去重已有
+69700	dup	task search/refresh restore — 搜索恢复已有
+69701	dup	removed expert tone fix — 口吻残留修复已有
+69702	dup	bg command status display fix — 状态修复已有
+69703	noise	fix prose
+69704	dup	context lost on retry fix — 上下文保留已有
+69705	dup	service error misreported fix — 误报修复已有
+69706	boundary	industry buddy apps — their platform
+69707	dup	share via OS share sheet — 系统分享已有
+69708	boundary	image processing — their feature
+69709	boundary	tencent docs — their platform
+69710	noise	perf prose
+69711	noise	perf prose
+69712	dup	draft isolation per app — 草稿隔离已有
+69713	dup	white screen+terminal window fix — 启动修复已有
+69714	dup	re-auth fix — 重授权已有
+69715	dup	edit-resend content fix — 重发修复已有
+69716	boundary	subscription page — their platform
+69717	noise	prose noise
+69718	dup	image send per model tier fix — 档位修复已有
+69719	noise	fix prose
+69720	dup	memory settings entry — 记忆入口已有

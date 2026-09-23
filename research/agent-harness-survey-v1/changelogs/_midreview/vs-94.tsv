@@ -1,0 +1,200 @@
+65627	dup	default architect mode — 默认模式已有
+65638	noise	contributor noise
+65649	noise	contributor noise
+65654	noise	contributor noise
+65661	noise	contributor noise
+65664	boundary	menu positioning — their UI
+65665	dup	start_line multi-file diff — 行锚已有
+65668	noise	contributor noise
+65670	dup	search_files workspace only — 工作区限定已有
+65682	dup	whenToUse descriptions modes — 模式描述已有
+65686	noise	contributor noise
+65693	noise	eval internal
+65697	noise	contributor noise
+65706	dup	condensing default+button move — 默认压缩已有
+65707	dup	skip condense if context grows — 压缩中止已有
+65711	noise	contributor noise
+65728	boundary	resizable textarea — their UI
+65742	noise	contributor noise
+65749	dup	clarify XML tool format — 格式说明已有
+65751	noise	contributor noise
+65756	noise	contributor noise
+65761	noise	refactor internal
+65767	noise	contributor noise
+65770	noise	contributor noise
+65778	noise	revert internal
+65780	dup	omit reasoning params non-reasoning — 参数省略已有
+65782	noise	contributor noise
+65784	noise	i18n noise
+65801	noise	contributor noise
+65804	noise	contributor noise
+65812	noise	fix internal
+65817	noise	contributor noise
+65821	noise	contributor noise
+65827	noise	contributor noise
+65832	dup	diff tolerant model errors — 容错编辑已有
+65833	noise	contributor noise
+65837	dup	follow symlinked rules files — 符号链接规则已有
+65838	noise	contributor noise
+65853	noise	contributor noise
+65856	dup	McpHub refcount disposal — 引用计数已有
+65858	noise	contributor noise
+65869	noise	contributor noise
+65872	dup	multi-block-diff strategy — 多块编辑已有
+65891	dup	partial reads chunk size control — 分块控制已有
+65894	dup	suggested responses optional — 建议可选已有
+65926	boundary	CommandTool display — their UI
+65943	dup	cwd in terminal details — cwd显示已有
+65953	dup	empty command fix — 空命令修复已有
+65954	dup	robust process killing — 进程终止已有
+66116	noise	release internal
+66143	dup	diagnostic messages settings — 诊断开关已有
+66147	dup	concurrent reads default 5 — 并发读限已有
+66154	dup	full-file reads enforcement — 全文读已有
+66163	dup	task ID upfront propagation — ID前置已有
+66164	dup	customTools experiment host — 扩展宿主已有
+66169	dup	path resolution source+bundle — 路径解析已有
+66175	noise	refactor internal
+66196	dup	delete rules folder on mode delete — 级联删除已有
+66212	dup	version detection upgrade — 版本检测已有
+66329	noise	revert internal
+66335	noise	revert internal
+66339	noise	dep internal
+66351	dup	diff resilient bad params — 参数容错已有
+66374	noise	dep internal
+66431	dup	MCP creation default false — 默认关已有
+66508	noise	config fragment
+66697	noise	rename internal
+66772	boundary	reasoning budget UI — their UI
+66791	dup	implicit caching gemini — 隐式缓存已有
+66831	dup	prompt caching gemini — 缓存已有
+66833	noise	revert internal
+67293	dup	list_files exclude .git — 目录排除已有
+67303	noise	rename internal
+67316	dup	rooignore edit tools — 忽略校验已有
+67324	dup	unified -y/--yes/--dangerously-skip — 统一批准旗已有
+67326	dup	auto-approval countdown — 倒计时批准已有
+67328	dup	release confirmation prompt — 发布确认已有
+67416	dup	efficient token estimation — 令牌估算已有
+67435	noise	refactor internal
+67436	noise	refactor internal
+67437	noise	perf internal
+67496	dup	safer JSON parse no crash — 容错解析已有
+67511	noise	prose noise
+67520	noise	perf internal
+67523	noise	revert internal
+67548	boundary	indexing dot — their UI
+67559	dup	force tar-fs>=2.1.3 vuln — 漏洞修复已有
+67562	noise	prose noise
+67563	noise	prose noise
+67564	noise	prose noise
+67566	noise	format internal
+67567	noise	rename internal
+67569	dup	no \n append new file — 文件纯净已有
+67572	noise	prose fragment
+67576	dup	override tools dirs — 目录覆盖已有
+67577	dup	override dataset path — 数据集覆盖已有
+67578	dup	disable python-standalone batch — 批禁用已有
+67579	dup	skipped exit status info — 跳过信息已有
+67581	noise	prose noise
+67582	dup	anthropic_filemap default — 默认配置已有
+67583	dup	timeout post_startup_commands — 超时已有
+67584	dup	override max_input_tokens local — 令牌覆盖已有
+67585	noise	ui internal
+67588	noise	prose noise
+67590	noise	prose noise
+67592	noise	prose noise
+67593	noise	prose noise
+67596	boundary	gdb interactive tools — their tools
+67598	dup	filemap command repomap — 文件图已有
+67600	dup	warn scrolling >=3 — 滚动警告已有
+67601	dup	configurable command timeout — 超时配置已有
+67605	noise	prose noise
+67606	noise	rename internal
+67608	dup	show commands on timeout — 超时显示已有
+67609	dup	LONG_TIMEOUT configurable — 超时配置已有
+67610	noise	contributor noise
+67611	dup	shallow clone default — 浅克隆已有
+67613	dup	clone conda env speedup — 环境克隆已有
+67614	dup	uv editable install — 安装已有
+67615	dup	reset container_name non-persistent — 名重置已有
+67616	dup	remove redundant save msgs — 消息精简已有
+67624	noise	contributor noise
+67628	noise	config internal
+67629	noise	prose noise
+67630	dup	custom install commands --environment_setup — 自定义安装已有
+67632	noise	prose noise
+67635	dup	JSON parse errors trajectory check — 容错解析已有
+67666	dup	catch CostLimitExceeded retry — 超限捕获已有
+67684	noise	fix internal
+67701	boundary	codespaces cloud — their platform
+67715	dup	show time in log — 日志时间已有
+67716	dup	write log to traj dir — 日志落盘已有
+67729	noise	prose noise
+67731	dup	patches saved separate dir — 补丁目录已有
+67735	dup	1s docker start wait — 等待缩减已有
+67742	dup	--cache_task_images reuse env — 镜像缓存已有
+67745	noise	prose noise
+67748	noise	docs scrape noise
+67749	noise	docs scrape noise
+67750	noise	docs scrape noise
+67751	noise	docs scrape noise
+67752	noise	docs scrape noise
+67753	noise	docs scrape noise
+67754	noise	docs scrape noise
+67755	noise	docs scrape noise
+67756	noise	prose noise
+67757	noise	prose noise
+67758	noise	docs scrape noise
+67759	noise	docs scrape noise
+67760	noise	docs scrape noise
+67761	noise	docs scrape noise
+67762	noise	docs scrape noise
+67763	noise	docs scrape noise
+67764	noise	docs scrape noise
+67765	noise	docs scrape noise
+67766	noise	docs scrape noise
+67767	noise	docs scrape noise
+67768	noise	docs scrape noise
+67769	noise	docs scrape noise
+67770	noise	docs scrape noise
+67771	noise	docs scrape noise
+67772	noise	docs scrape noise
+67773	noise	docs scrape noise
+67774	noise	prose noise
+67775	noise	release header
+67777	noise	release header
+67779	noise	release header
+67780	dup	share conversations — 分享已有
+67781	dup	network proxy config — 代理已有
+67783	noise	release header
+67785	noise	release header
+67786	boundary	plugin marketplace — their platform
+67788	noise	release header
+67791	noise	release header
+67792	boundary	mobile connect — their platform
+67794	noise	release header
+67796	noise	release header
+67797	boundary	computer use — their feature
+67799	noise	release header
+67801	noise	release header
+67802	dup	Max mode per model — 模型档已有
+67803	boundary	query nav thumbnails — their UI
+67805	noise	release header
+67806	noise	prose noise
+67808	noise	release header
+67809	boundary	browser use external — their feature
+67810	noise	prose noise
+67811	noise	prose noise
+67812	noise	release header
+67814	noise	release header
+67816	noise	release header
+67818	noise	release header
+67819	boundary	browser config page — their UI
+67820	noise	platform noise
+67822	noise	release header
+67824	noise	release header
+67826	noise	release header
+67827	boundary	browser screenshots — their UI
+67829	noise	release header
+67831	noise	release header

@@ -1,0 +1,200 @@
+73923	noise	editor feature
+73924	noise	prose noise
+73925	dup	thinking auto-expanded in progress — 思考展开已有
+73929	noise	editor feature
+73933	noise	platform noise
+73934	noise	editor feature
+73936	noise	config fragment
+73937	noise	config fragment
+73938	noise	editor feature
+73942	dup	recent projects preserved 7d offline — 断链保留已有
+73945	noise	editor feature
+73947	noise	editor feature
+73948	noise	editor feature
+73950	dup	edit queued msg back in editor — 队列编辑已有
+73954	noise	editor feature
+73956	noise	editor feature
+73958	noise	platform noise
+73959	noise	platform noise
+73964	noise	editor feature
+73965	noise	ui feature
+73967	noise	platform noise
+73968	noise	platform noise
+73969	noise	platform noise
+73970	noise	editor feature
+73973	noise	editor feature
+73975	noise	platform noise
+73982	noise	platform noise
+73990	noise	ui feature
+73996	noise	ui feature
+73998	noise	editor feature
+73999	noise	editor feature
+74001	noise	editor feature
+74003	noise	ui feature
+74007	noise	editor feature
+74008	noise	editor feature
+74010	noise	editor feature
+74013	noise	platform noise
+74014	dup	fewer fs watch resources — 监听精简已有
+74015	noise	editor feature
+74019	noise	editor feature
+74021	dup	block cursor no reveal redacted — 遮蔽保护已有
+74022	dup	queued msgs wait for activity — 排队等待已有
+74027	noise	editor feature
+74028	noise	editor feature
+74032	noise	editor feature
+74039	noise	prose noise
+74041	dup	up-to-date token counts — 令牌计数已有
+74043	noise	editor feature
+74044	noise	editor feature
+74045	noise	editor feature
+74046	noise	editor feature
+74049	noise	editor feature
+74051	noise	editor feature
+74053	noise	editor feature
+74057	noise	editor feature
+74064	noise	editor feature
+74065	noise	editor feature
+74066	noise	editor feature
+74067	noise	editor feature
+74073	noise	editor feature
+74075	dup	paste without formatting — 纯文本粘贴已有
+74077	noise	config fragment
+74078	noise	config fragment
+74079	noise	config fragment
+74080	noise	config fragment
+74082	noise	contributor noise
+74083	noise	prose noise
+74085	noise	editor feature
+74087	noise	editor feature
+74088	noise	editor feature
+74089	noise	editor feature
+74094	noise	platform noise
+74095	dup	fallback local codex on update fail — 本地回退已有
+74098	dup	no init timeout — 超时移除已有
+74099	noise	prose noise
+74102	noise	editor feature
+74111	noise	editor feature
+74114	dup	auto-keep unrelated pending edits on regen — 编辑保护已有
+74115	noise	prose noise
+74123	dup	clickable error links — 错误链接已有
+74124	noise	config fragment
+74125	noise	config fragment
+74127	noise	prose noise
+74130	noise	editor feature
+74134	noise	editor feature
+74135	noise	ui prose
+74136	noise	ui feature
+74138	noise	prose noise
+74140	noise	editor feature
+74141	noise	editor feature
+74144	noise	editor feature
+74145	noise	editor feature
+74152	noise	editor feature
+74154	noise	editor feature
+74155	dup	dedup inlay hints multi-LS — 提示去重已有
+74156	dup	invalid URL error not panic — 容错已有
+74157	noise	prose noise
+74158	noise	ui feature
+74161	noise	editor feature
+74166	noise	editor feature
+74169	noise	editor feature
+74172	noise	config fragment
+74175	noise	config fragment
+74177	noise	prose fragment
+74184	noise	editor feature
+74187	noise	editor feature
+74190	noise	editor feature
+74194	dup	.rules/.cursorrules as markdown — 规则文件识别已有
+74195	noise	editor feature
+74196	noise	ui feature
+74199	noise	editor feature
+74200	noise	editor feature
+74204	noise	editor feature
+74206	noise	editor feature
+74213	noise	editor feature
+74216	noise	editor feature
+74217	dup	disallow ops on unshared files — 权限限定已有
+74221	dup	expanded auto-retry errors — 重试扩展已有
+74222	noise	prose fragment
+74223	noise	editor feature
+74224	dup	unshared files — 同上dup
+74225	noise	editor feature
+74227	noise	prose noise
+74228	noise	prose noise
+74229	noise	prose noise
+74231	noise	editor feature
+74233	noise	editor feature
+74240	noise	editor feature
+74241	noise	editor feature
+74243	noise	prose noise
+74244	noise	prose noise
+74247	noise	editor feature
+74248	noise	editor feature
+74249	noise	editor feature
+74250	noise	editor feature
+74251	noise	editor feature
+74252	noise	editor feature
+74253	noise	editor feature
+74254	noise	editor feature
+74256	noise	editor feature
+74261	dup	no @-dir content when tools available — 上下文精简已有
+74264	noise	editor feature
+74269	noise	revert internal
+74278	noise	config fragment
+74279	noise	config fragment
+74282	noise	editor feature
+74283	noise	contributor noise
+74285	noise	editor feature
+74287	noise	editor feature
+74293	noise	platform noise
+74295	dup	tool schemas wider model compat — 模式兼容已有
+74299	noise	editor feature
+74301	noise	prose noise
+74302	noise	prose noise
+74303	noise	prose noise
+74308	noise	editor feature
+74310	dup	license eligibility data collection — 许可资格已有
+74311	dup	license eligibility — 同上dup
+74312	noise	editor feature
+74317	noise	editor feature
+74319	noise	editor feature
+74320	noise	editor feature
+74323	dup	ext install in activity indicator — 进度可见已有
+74324	dup	preserve search options — 搜索保留已有
+74326	noise	editor feature
+74332	noise	editor feature
+74333	noise	editor feature
+74334	noise	editor feature
+74337	noise	prose noise
+74349	noise	config fragment
+74350	noise	config fragment
+74360	noise	editor feature
+74361	noise	editor feature
+74363	noise	platform noise
+74369	noise	editor feature
+74373	noise	config fragment
+74374	noise	config fragment
+74375	noise	config fragment
+74376	noise	config fragment
+74377	noise	config fragment
+74378	noise	config fragment
+74379	noise	config fragment
+74380	dup	license eligibility — 同上dup
+74381	dup	license file change updates eligibility — 许可变动联动已有
+74382	noise	editor feature
+74388	noise	platform noise
+74393	noise	ui feature
+74394	noise	platform noise
+74396	noise	editor feature
+74398	noise	config fragment
+74399	noise	config fragment
+74400	noise	config fragment
+74401	noise	config fragment
+74402	noise	config fragment
+74408	noise	ui feature
+74409	dup	windows forward-slash search — 路径搜索已有
+74413	noise	editor feature
+74414	noise	editor feature
+74422	noise	prose noise
+74425	noise	editor feature

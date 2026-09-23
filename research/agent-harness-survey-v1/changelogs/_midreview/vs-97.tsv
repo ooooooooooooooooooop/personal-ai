@@ -1,0 +1,200 @@
+68289	noise	prose noise
+68290	noise	date header
+68291	noise	date header
+68292	noise	date header
+68293	noise	date header
+68294	noise	date header
+68295	noise	date header
+68296	noise	date header
+68297	noise	date header
+68298	noise	date header
+68299	noise	date header
+68300	noise	date header
+68301	noise	date header
+68302	noise	date header
+68303	noise	date header
+68304	noise	date header
+68305	noise	date header
+68306	noise	date header
+68307	noise	date header
+68308	noise	date header
+68309	noise	date header
+68310	noise	date header
+68311	noise	date header
+68312	noise	date header
+68313	noise	date header
+68314	noise	date header
+68315	noise	date header
+68316	noise	date header
+68317	noise	date header
+68318	noise	date header
+68319	noise	date header
+68320	noise	date header
+68321	noise	date header
+68322	noise	date header
+68323	noise	date header
+68324	noise	date header
+68325	noise	date header
+68326	noise	date header
+68327	noise	date header
+68328	noise	date header
+68329	noise	date header
+68330	noise	date header
+68331	noise	date header
+68332	noise	date header
+68333	noise	date header
+68334	noise	date header
+68335	noise	date header
+68336	noise	date header
+68337	noise	date header
+68338	noise	date header
+68339	noise	date header
+68340	noise	date header
+68341	noise	date header
+68342	noise	date header
+68343	noise	date header
+68344	noise	date header
+68345	noise	date header
+68346	noise	date header
+68347	noise	date header
+68348	noise	date header
+68349	noise	date header
+68350	noise	date header
+68351	noise	date header
+68352	noise	date header
+68353	noise	date header
+68354	noise	date header
+68355	noise	date header
+68356	noise	date header
+68357	noise	date header
+68358	noise	date header
+68359	noise	date header
+68360	noise	date header
+68361	noise	date header
+68362	noise	date header
+68363	noise	date header
+68364	noise	date header
+68365	noise	date header
+68366	noise	date header
+68367	noise	date header
+68368	noise	date header
+68369	noise	date header
+68370	noise	date header
+68371	noise	date header
+68372	noise	date header
+68373	noise	date header
+68374	noise	date header
+68375	noise	date header
+68376	noise	date header
+68377	noise	date header
+68378	noise	date header
+68379	noise	date header
+68380	noise	date header
+68381	noise	date header
+68382	noise	date header
+68383	noise	date header
+68384	noise	date header
+68385	noise	date header
+68386	noise	date header
+68387	noise	date header
+68388	noise	date header
+68389	noise	date header
+68390	noise	date header
+68391	noise	date header
+68392	noise	date header
+68393	noise	date header
+68394	noise	date header
+68395	noise	date header
+68396	noise	date header
+68397	noise	date header
+68398	noise	date header
+68399	noise	date header
+68400	noise	date header
+68401	noise	date header
+68402	noise	date header
+68403	noise	date header
+68404	noise	date header
+68405	noise	date header
+68406	noise	date header
+68407	noise	date header
+68408	noise	date header
+68409	noise	date header
+68410	noise	date header
+68411	noise	date header
+68412	noise	date header
+68413	noise	date header
+68414	noise	date header
+68471	noise	nav noise
+68472	noise	prose noise
+68473	dup	.agents/skills dir autoload — 技能目录已有
+68474	dup	reusable skills encapsulation — 技能封装已有
+68475	noise	prose noise
+68476	noise	prose noise
+68477	noise	prose noise
+68478	dup	hook custom shell at event nodes — 事件钩已有
+68479	dup	powershell compat fix — 兼容修复已有
+68480	boundary	subagent card collapse — their UI
+68484	dup	gemini provider — 供应商已有
+68486	noise	rename internal
+68487	dup	Spec mode — 规格模式已有
+68488	dup	/plan /spec mode commands — 模式指令已有
+68489	dup	sandbox auto env WSL2/Linux — 沙箱自配已有
+68490	dup	Remote SSH/WSL panel fix — 远程修复已有
+68491	dup	Remote SSH/WSL panel fix — 同上dup
+68492	dup	WSL connect slow fix — 连接修复已有
+68493	dup	SSH connect success rate — 连接率已有
+68494	dup	Alt+P plan mode — 快捷键已有
+68495	dup	SOLO Coder builtin — 内置智能体已有
+68496	dup	SSH Linux ARM — ARM支持已有
+68498	dup	WSL remote fix — 同上dup
+68499	dup	SSH Debian 10 — 发行版已有
+68500	dup	SSH connect fix — 修复已有
+68501	dup	SSH speed — 速度优化已有
+68502	dup	WSL dev — WSL开发已有
+68503	dup	Remote SSH manager Debian11/Ubuntu20 — 远程管理已有
+68504	noise	fix prose
+68505	dup	CPU/mem AI diagnostics — 资源诊断已有
+68507	noise	fix prose
+68508	noise	fix prose
+68509	noise	prose noise
+68510	dup	commit message rules file — 提交规则已有
+68511	dup	rules config prompt first use — 首用提示已有
+68512	noise	prose noise
+68514	dup	commit gen shortcut — 快捷键已有
+68515	noise	prose noise
+68516	dup	AI commit messages — 提交生成已有
+68517	dup	MCP full OAuth flow — OAuth全流程已有
+68518	dup	project-level MCP — 项目级已有
+68519	dup	project-level MCP — 同上dup
+68520	dup	auto-accept changes per agent — 自动接受已有
+68521	dup	pick tools when adding MCP — 工具勾选已有
+68522	dup	streamable HTTP MCP fix — 连接修复已有
+68523	noise	fix prose
+68524	dup	NPX/UVX env setup guide — 环境引导已有
+68525	noise	prose noise
+68526	noise	marketplace noise
+68527	noise	marketplace noise
+68528	boundary	volcano cloud MCP — their platform
+68529	noise	prose noise
+68530	dup	share agents via link import — 链接导入已有
+68531	dup	builtin Builder agents — 内置已有
+68532	noise	prose noise
+68533	dup	MCP marketplace — 市场已有
+68534	dup	MCP to agents — 挂载已有
+68535	noise	prose noise
+68537	boundary	edit prediction Tab — their feature
+68538	dup	disable Tab-Cue toggle — 开关已有
+68539	noise	prose noise
+68540	noise	fix prose
+68541	noise	fix prose
+68542	dup	webview port conflict fix — 端口冲突修复已有
+68543	dup	custom models API key — 自定义模型已有
+68544	noise	prose fragment
+68549	noise	docs scrape noise
+68551	noise	docs scrape noise
+68554	noise	docs scrape noise
+68561	noise	prose noise
+68568	noise	prose fragment
+68569	noise	prose fragment
+68570	noise	docs scrape noise
+68579	noise	release fragment

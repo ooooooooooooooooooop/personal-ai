@@ -1,0 +1,200 @@
+10994	dup	diagnostics earlier — 诊断前置已有
+10995	dup	emitImage data: only — 载荷限域已有
+10997	dup	Seatbelt network/socket — 沙箱网络已有
+11006	noise	test internal
+11007	noise	test internal
+11008	dup	host_executable preflight — 预检解析已有
+11009	dup	close marker replacement — 关闭标记已有
+11014	dup	name/set not-loaded threads — 未载线程已有
+11029	boundary	install script — their product
+11030	noise	prompt internal
+11032	noise	websocket impl internal
+11033	dup	feedback logs sqlite trace — 日志分级已有
+11035	dup	env values string — 类型校验已有
+11036	noise	diagnostics internal
+11039	noise	futures internal
+11040	dup	flex tier — 层级已有
+11043	noise	prompt internal
+11046	noise	examples internal
+11050	noise	LTO internal
+11051	dup	prefix handoff role — 角色前缀已有
+11053	dup	account reads no plan — 缺省容错已有
+11059	noise	NUX internal
+11060	noise	tracing internal
+11064	dup	host_executable mappings — 映射已有
+11065	boundary	NUX tooltips — their UI
+11067	dup	ephemeral field Thread — 临时标记已有
+11070	boundary	js_repl experimental — their product
+11071	dup	websocket timeout — 超时已有
+11073	noise	text logs internal
+11074	noise	preambles internal
+11075	noise	preambles internal
+11076	dup	request_user_input Default — 征求已有
+11077	boundary	install script — their product
+11079	noise	version internal
+11080	dup	settings diff one envelope — 更新合批已有
+11082	noise	typo internal
+11086	noise	debuginfo internal
+11089	dup	listeners survive disconnect+ctrl-c waits — 断连保持已有
+11090	dup	minimal /dev sandbox — 设备节点已有
+11091	dup	js_repl kernel failures recover — 内核容错已有
+11097	noise	model internal
+11098	dup	stop filtering model tools — 工具暴露已有
+11101	dup	canonicalize paths boundary checks — 路径边界已有
+11102	noise	defaults internal
+11105	dup	context tracking ContextManager — 上下文管理已有
+11106	dup	modelinfo overrides — 覆盖已有
+11111	noise	test hack internal
+11112	dup	skip removed features metrics — 指标修正已有
+11119	noise	collab gate internal
+11121	dup	reuse connection turns — 连接复用已有
+11122	dup	JSON tracing logs — 追踪已有
+11124	noise	helper internal
+11125	boundary	entitlement denials browser — their product
+11127	dup	disconnect cleanup paths — 断连清理已有
+11128	noise	mock server internal
+11131	dup	sanitizer codex-secrets — 净化归位已有
+11132	boundary	model hint — their UI
+11134	noise	url override internal
+11135	noise	truncated internal
+11144	dup	routing restrictions js_repl — 路由限域已有
+11146	noise	test internal
+11148	dup	TurnContextItem canonical — 规范化已有
+11149	dup	cwd thread/list — 字段已有
+11158	noise	test client internal
+11160	noise	prompt internal
+11162	noise	metrics internal
+11163	dup	process_uuid logs — 进程ID已有
+11164	dup	allow hooks to error — hook错误已有
+11166	noise	rename internal
+11168	boundary	debug commands — their UI
+11169	dup	context update diffing — 差异逻辑已有
+11178	noise	crates internal
+11179	dup	no resend incremental WS — 增量发送已有
+11183	dup	cache cloud requirements — 需求缓存已有
+11184	noise	memories internal
+11187	dup	no append after completed — 完成后禁写已有
+11188	noise	extract internal
+11191	noise	linkify internal
+11195	dup	pump pings — 心跳已有
+11197	dup	AfterToolUse hook — hook事件已有
+11200	noise	feature internal
+11201	noise	self test internal
+11203	boundary	retry hide — their UI
+11205	dup	handle response.incomplete — 不完整处理已有
+11206	noise	release internal
+11209	dup	drop stale rollout files — 陈旧清理已有
+11210	noise	DB version internal
+11215	noise	backfill internal
+11217	dup	real OS metrics — 指标真实已有
+11221	noise	metadata internal
+11222	dup	state DB thread summaries — 摘要已有
+11229	noise	header internal
+11230	dup	warning config requirements — 需求警告已有
+11232	boundary	tooltips macOS — their UI
+11233	noise	test internal
+11235	dup	queue nudges plan generating — 轻推队列已有
+11237	dup	preconnect WS first turn — 预连接已有
+11239	noise	otel internal
+11240	noise	help message internal
+11241	noise	schema internal
+11243	dup	resume_agent collab tool — 恢复代理已有
+11244	dup	null mode dev instructions built-in — 默认指令已有
+11246	noise	pre-connect internal
+11248	dup	HTTP fallback UPGRADE_REQUIRED — 降级已有
+11255	noise	test internal
+11256	dup	requirements windows — 需求加载已有
+11257	dup	remove get_memory tool — 工具收敛已有
+11258	noise	warmup internal
+11259	noise	helper internal
+11262	dup	steer stable default — steer稳定已有
+11263	dup	log_dir configurable — 日志目录已有
+11267	dup	client not state carrier — 状态归位已有
+11269	dup	cloud req over MDM — 需求优先已有
+11270	noise	timeout internal
+11275	noise	timeout internal
+11281	noise	metadata internal
+11282	dup	prefer state DB listings — DB优先已有
+11283	dup	source on requirement values — 来源溯源已有
+11285	noise	cleaning internal
+11287	dup	versioned filename — 版本化已有
+11294	boundary	highlighting — their UI
+11296	boundary	features select — their UI
+11298	noise	metric internal
+11299	dup	persist thread_dynamic_tools — 工具持久已有
+11300	noise	launcher internal
+11301	boundary	worked-for label — their UI
+11302	boundary	tooltip — their UI
+11304	noise	windows internal
+11307	dup	401 detail — 错误详情已有
+11308	noise	transactional internal
+11310	noise	variants internal
+11313	dup	defaults from requirements — 需求默认已有
+11319	dup	rules capped+prefix dedup — 规则去重已有
+11320	dup	override no append — 覆盖语义已有
+11325	dup	no append override context — 覆盖语义已有
+11329	dup	resume no updated_at until turn — 时间戳诚实已有
+11330	noise	docs internal
+11333	noise	description internal
+11334	noise	prompt internal
+11335	dup	get_config_requirements_file — 需求读取已有
+11336	noise	role type internal
+11344	dup	compression default enable — 压缩默认已有
+11350	noise	npm internal
+11355	noise	comment internal
+11360	noise	tests internal
+11363	dup	fetch requirements cloud — 云需求已有
+11364	noise	prompt internal
+11370	dup	exec policy from requirements — 策略下发已有
+11372	noise	prompt internal
+11373	boundary	highlight — their UI
+11374	dup	skip codex home project layer — 层排除已有
+11375	noise	copy internal
+11378	dup	enforce_residency requirements — 驻留强制已有
+11379	noise	fields internal
+11380	dup	cloud requirements business — 需求已有
+11382	dup	cached web_search default — 搜索缓存已有
+11383	boundary	search action types — their UI
+11391	noise	masks internal
+11392	noise	prompt internal
+11393	noise	prompt internal
+11399	noise	prompt internal
+11402	dup	thread list filtering — 过滤已有
+11403	noise	prompt internal
+11404	noise	composer internal
+11405	dup	reject request_user_input outside modes — 模式限域已有
+11406	noise	composer internal
+11407	noise	buffer internal
+11409	noise	test internal
+11410	noise	prompt internal
+11411	noise	prompt internal
+11412	noise	prompt internal
+11413	noise	prompt internal
+11414	dup	cached web_search default — 缓存已有
+11415	noise	prompt internal
+11422	dup	config errors clearer — 错误可读已有
+11423	dup	default model filtered presets — 默认模型已有
+11427	dup	machine scope dpapi — 凭据保护已有
+11431	noise	PWD internal
+11432	dup	warning skip config — 警告已有
+11433	dup	default model filtered — 默认模型已有
+11434	dup	load untrusted rules — 未信规则标记已有
+11436	noise	struct internal
+11437	boundary	coding mode — their UI
+11438	noise	prompt internal
+11442	dup	masks without mutating base — 不可变已有
+11443	noise	beta internal
+11447	noise	schema URL internal
+11449	noise	collab internal
+11451	noise	flake internal
+11453	boundary	modes label — their UI
+11457	dup	collab dev instructions — 指令已有
+11459	dup	turn-state sticky routing — 粘性路由已有
+11462	dup	collaboration modes — 协作模式已有
+11463	dup	collab override turns — 覆盖已有
+11464	dup	collab presets — 预设已有
+11467	dup	collab dev instructions — 指令已有
+11468	dup	slash order search — 顺序保持已有
+11472	noise	prompt internal
+11473	noise	prompts internal
+11476	dup	reasoning-included per turn — 推理档已有

@@ -1,0 +1,200 @@
+32878	noise	XDG config dirs — 平台路径
+32879	boundary	ext site backlink — their site
+32882	noise	goose windows experimental
+32890	boundary	minHeight remove — their UI
+32892	boundary	autoscroll — their UI
+32893	boundary	electron links new window — their app
+32897	noise	rm uv.lock internal
+32903	noise	openssl dep remove internal
+32906	noise	license checker internal
+32907	noise	optional params jsonschema internal
+32910	noise	processing indicator minor
+32911	noise	license checker internal
+32914	boundary	list moderators — their SaaS
+32916	noise	synopsis default internal
+32920	dup	browser toolkit — browser 工具已有
+32925	dup	synopsis approach core loop — 摘要已有
+32926	dup	web browsing — browser 已有
+32938	dup	goose run command — run 入口已有
+32946	dup	auto save sessions — 会话自动保存已有
+32951	dup	markdown plans — plan artifact 已有
+32952	noise	version options minor
+32956	dup	commands execute logic — 命令执行已有
+32961	dup	goosehints jinja — prompt 模板已有
+32962	noise	show toolkits minor
+33045	noise	acp tool name format internal
+33046	noise	acp upgrade internal
+33053	dup	Recipe Library — recipes 已有
+33058	noise	FFI prototype internal
+33505	noise	temperature env var minor
+33620	noise	confirmation handle dedup internal
+33893	noise	cli MCP load failure continue
+33941	noise	broken recipe url error
+33963	boundary	tooltips/back button — their UI
+33975	noise	autoclose inactive bug workflow
+34009	noise	goose bench framework internal
+34053	noise	issue templates internal
+34128	noise	summarize prompt iterate internal
+34158	dup	memory condensation — memory/compaction 已有
+34345	noise	mcp insert_line -1 internal
+34631	noise	jetbrains ext deprecate internal
+34634	dup	inline python extension — ext 已有
+34655	boundary	enable extension from ui — their UI
+34658	boundary	ext startup toasts — their UI
+34662	boundary	ext install UX — their UI
+34674	boundary	ext add button — their UI
+34720	noise	devcontainer internal
+34885	dup	session description editing — 会话元数据已有
+34920	dup	preview to-be-removed session — 会话管理已有
+34951	dup	session management guards — 会话守卫已有
+34996	dup	pdf reader — 文件读取已有
+35175	noise	alphabetize extensions internal
+35184	noise	GOOSE_RECIPE_PATH env internal
+35195	noise	auto-init config.yaml internal
+35200	noise	cli workflow build internal
+35207	noise	arbitrary session path internal
+35214	noise	simplify CLI sessions internal
+35397	dup	regex checks dangerous commands — 命令安检已有
+35448	dup	interactive commands error — exec 约束已有
+35452	boundary	goose web terminal — their product
+35456	boundary	terminal base colors — their UI
+35460	noise	tool entrypoints synopsis internal
+35570	cand	prompt injection detection settings — 注入检测面
+35593	boundary	font rendering — their UI
+35604	boundary	recipe save UX — their UI
+35654	boundary	ErrorBoundary UI — their UI
+35688	boundary	allow tool UI — their UI
+35690	boundary	goose mode UI — their UI
+35691	boundary	cmd+comma settings — their UI
+35737	noise	docker container build internal
+35743	noise	vector db env var internal
+35744	dup	lancedb vector tool selection — 工具选择已有
+35767	dup	global prompts at startup — prompt 加载已有
+35776	cand	knowledge schema entry_type — 结构化知识条目类型
+35785	noise	health probe internal
+35786	noise	html→markdown skip internal
+35845	noise	out-of-tree transports internal
+35850	noise	next-step response ending internal
+35853	dup	hashline_edit register ops — edit 已有
+35856	dup	hashline_edit block replace — edit 已有
+35857	boundary	trajectory copy commands — their UI
+35858	boundary	trajectory markdown copy — their UI
+35867	cand	k_best_guess K-candidate validation — 多候选采样
+35869	boundary	virtualize message list — their UI
+35898	dup	external sessions inline — 外部会话混合已有
+35899	cand	steer_inject external sessions — 外部会话转向注入
+35900	dup	hooks manifest tamper-detection — 审计/篡改检测已有
+35904	noise	lxml optional fallback internal
+35906	dup	toggleable external sessions — 会话可见性已有
+35916	boundary	triple_click native fill — their computer-use
+35935	cand	real-time risk-label streaming to parent — 风险标签流
+35947	cand	real-time risk-label streaming 同上
+35948	dup	act_and_observe loop — act-observe 已有
+35968	noise	as_function_subtoolspecs internal
+35970	boundary	offline demo CTA — their UI
+35972	dup	root-cause stuck_detect_hook — 卡住检测已有
+35973	noise	ToolSpec.from_function internal
+35975	noise	ToolFunction abstraction internal
+35977	dup	view/patch_anchored tools — 锚定编辑已有
+35981	noise	cursor pagination internal
+35982	boundary	star/unstar conversations — their UI
+35993	dup	cost_tracker extras — 成本跟踪已有
+35999	boundary	demo mode suppress fetches — their UI
+36000	dup	structured autofix gate — autofix 闸已有
+36002	boundary	demo mode fixtures — their UI
+36012	dup	artifact descriptors plots — artifact 已有
+36013	dup	recover dropped event streams — 流恢复已有
+36014	dup	tool outputs live SSE — 流式输出已有
+36019	noise	artifact descriptors metadata internal
+36022	noise	aw-watcher heartbeats internal
+36024	dup	CDP connect — browser CDP 已有
+36025	dup	turn.pre hook + watcher — hooks 已有
+36030	noise	Chrome LNA fetch internal
+36032	cand	vent tool real-time friction signals — 摩擦信号通道
+36042	noise	bounded-bugfix eval internal
+36044	dup	Windows agent scanning hooks — hooks 已有
+36060	cand	tool_target_instructions — 按工具下发 agent 指令
+36061	cand	tool-target instruction loading 同上
+36069	noise	pluggable transport internal
+36086	boundary	Re-run Setup button — their UI
+36088	dup	batch reads newline paths — 批量读已有
+36114	dup	truncation savings /context — 截断可见已有
+36123	noise	memory_mb agent tracking internal
+36140	noise	eval scenario internal
+36144	noise	eval scenario internal
+36146	dup	external sessions catalog — 会话目录已有
+36158	noise	eval suite internal
+36159	noise	eval suite internal
+36162	noise	eval suite internal
+36163	boundary	HTML leaderboard — their eval UI
+36167	noise	eval suite internal
+36173	noise	eval suite internal
+36178	dup	collapse tool steps — 工具步折叠已有
+36179	boundary	borderless messages — their UI
+36186	cand	delete individual messages — 单条消息删除
+36187	boundary	history calendar — their UI
+36188	boundary	conversation context menu — their UI
+36189	boundary	last message preview — their UI
+36190	boundary	hover timestamps — their UI
+36216	dup	auto-load cross-tool instruction files — 指令文件加载已有
+36220	dup	read_page_text — browser 读已有
+36252	dup	agent instruction vs context files 区分 — 已有
+36264	dup	binary file metadata — 文件处理已有
+36265	dup	list dir instead of error — 文件工具已有
+36266	boundary	first-run wizard — their UI
+36277	noise	server lifecycle IPC internal
+36279	noise	port conflict detection internal
+36282	noise	npm install first run internal
+36305	variant	autocompact semantic value-aware retention — 语义保留变体
+36317	dup	extractive compression long messages — compaction 已有
+36320	noise	compression analysis utils internal
+36322	dup	context selector infra — context 选择已有
+36323	dup	active context discovery 同上
+36325	dup	Context Selector Phase1 同上
+36327	dup	plugins command integration — plugins 已有
+36329	noise	gepa test set internal
+36342	dup	Context Selector Phase1 同上
+36344	dup	plugins command integration 同上
+36346	noise	gepa test set internal
+36363	noise	conversation ID goodbye minor
+36368	noise	gh commit_sha param internal
+36369	noise	gh status check internal
+36377	noise	save tool hint minor
+36380	noise	save tool feedback minor
+36418	boundary	tool sounds — their UI
+36420	dup	choice tool — ask_user 已有
+36422	dup	auto-detect agent workspaces — workspace 检测已有
+36423	dup	default project files inclusion — 已有
+36429	boundary	Ctrl+J newline — their UI
+36443	boundary	thinking dimmed — their UI
+36444	boundary	status emojis — their UI
+36451	dup	external module tools — 工具加载已有
+36453	noise	tool use response format internal
+36460	dup	always-fresh context message — context 刷新已有
+36494	dup	ask_execute ?/auto options — 批准模式已有
+36566	dup	placeholders in patches — patch 占位已有
+36571	noise	bot non-change Q&A internal
+36612	dup	assistant-driven browsing — browser 已有
+36654	dup	context programs/packages — context 已有
+36666	dup	auto-continue after exec — 自动续行已有
+36677	dup	memory writer provenance — provenance 已有
+36678	dup	persist memory selection+budget — memory 配置已有
+36723	dup	subagent persist+rehydrate — durable 子任务已有
+36724	dup	continue child conversations — 会话续接已有
+36747	dup	output_schema complete-block — 结构化输出已有
+36764	dup	max_concurrent semaphore — 并发闸已有
+36794	dup	skills CostTracker persist — 成本跟踪已有
+36796	dup	skills invocation outcomes — 审计已有
+36797	dup	skills lifecycle evidence — 审计已有
+36803	noise	extension truncated item internal
+36862	noise	temperature request-driven internal
+37006	dup	pre-action confirmation gate sensitive — 敏感动作闸已有
+37016	dup	auto n skip confirmations — 批量批准已有
+37042	noise	terminal startup delay doctor internal
+37053	dup	truncation thresholds env — 截断配置已有
+37067	dup	store truncated output — 输出保留已有
+37068	dup	store truncated output 同上
+37158	boundary	trajectory-to-env dataset — their eval
+37159	noise	root structure validator internal
+37186	boundary	self-heal CI workflow — their bot
+37188	noise	eval-ci gate expand internal

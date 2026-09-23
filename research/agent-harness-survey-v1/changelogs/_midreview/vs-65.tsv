@@ -1,0 +1,200 @@
+25909	dup	revert no spurious conflict — 回退冲突修复已有
+25910	dup	revert cancelled prompt — 取消回退已有
+25911	dup	/handoff untracked whole repo — 交接范围已有
+25912	noise	version noise
+25915	noise	version noise
+25918	noise	version noise
+25920	noise	version noise
+25921	noise	version noise
+25922	boundary	opt+backspace — their UI
+25923	noise	version noise
+25925	noise	message internal
+25927	dup	long sessions faster shutdown — 关闭优化已有
+25931	boundary	todo list — their UI
+25932	noise	link internal
+25933	noise	version noise
+25935	noise	date internal
+25936	noise	VT100 internal
+25938	dup	unrecognized slash error — 未知命令已有
+25939	noise	install internal
+25940	dup	same-turn edits no overwrite — 同轮写序已有
+25941	noise	version noise
+25942	dup	-p inline prompt — 内联提示已有
+25944	dup	tool failure reason shown — 错误理由已有
+25945	noise	symlink internal
+25946	noise	version noise
+25947	noise	CJK internal
+25948	noise	version noise
+25949	dup	-p inline prompt — 已有
+25950	dup	tool failure reason — 已有
+25951	noise	sort internal
+25954	noise	version noise
+25956	dup	interface mode in bug report — 诊断上下文已有
+25959	noise	version noise
+25960	dup	long question headers truncate — 截断已有
+25962	noise	prose noise
+25965	noise	prose noise
+25968	noise	prose noise
+25970	dup	thoughts explain action — 行动理由已有
+25972	dup	Exec(*) matches all — 通配权限已有
+25984	dup	denials identify layer — 拒绝归因已有
+25993	dup	recursive globs cover base — glob覆盖已有
+25997	dup	skill frontmatter auto-approvals — 技能权限已有
+26010	dup	skip_workspace_trust — 信任跳过已有
+26019	dup	permission level in border — 权限可见已有
+26027	dup	permission mode no reset — 权限持久已有
+26043	dup	confidence-gated approval — 置信门已有
+26045	dup	30s approval default — 批准超时已有
+26046	noise	prose noise
+26055	dup	shell no hang on close — 挂起修复已有
+26058	dup	read-only git detection shared — 只读识别已有
+26075	dup	read-only no revert warnings — 警告过滤已有
+26076	noise	perf internal
+26077	dup	PowerShell default windows — 默认shell已有
+26078	noise	prose noise
+26090	dup	handoff terminal context — 终端上下文已有
+26091	boundary	code block char — their UI
+26097	dup	disable_osc option — OSC开关已有
+26098	noise	docs internal
+26100	boundary	banner — their UI
+26101	dup	compound commands blocked denied — 复合命令拦截已有
+26109	dup	long-running no block — 后台不阻塞已有
+26112	dup	shell state after exit — 终端态恢复已有
+26118	boundary	ctrl+arrow — their UI
+26120	dup	/bug env info — 诊断信息已有
+26127	boundary	⌘K NL commands — their UI
+26132	dup	resume deleted dir no hang — 会话容错已有
+26151	dup	ATIF richer details — 转录详情已有
+26152	dup	cancel stops subagents — 子代理级联已有
+26154	dup	-r shows history — 恢复显示已有
+26155	dup	mode restored resume — 模式恢复已有
+26159	boundary	shift+insert — their UI
+26168	dup	mode restore resume — 已有
+26169	dup	Ctrl+C fast exit slow net — 快速退出已有
+26171	dup	malformed tool-call field errors — 错误定位已有
+26172	noise	auth internal
+26175	dup	grep hidden files — 隐藏搜索已有
+26176	dup	large images send — 大图已有
+26178	dup	/usage credits — 用量命令已有
+26179	dup	autocomplete /continue /rm-session — 命令补全已有
+26180	dup	mode restore — 已有
+26183	dup	/rm-session delete — 会话删除已有
+26184	dup	auto session titles — 标题生成已有
+26186	boundary	machine utilization — their UI
+26187	noise	link internal
+26188	dup	archive→sleep+archive — 归档已有
+26198	boundary	session filtering — their UI
+26203	dup	EXIT ends session — 退出命令已有
+26207	noise	prose noise
+26214	boundary	shortcuts — their UI
+26215	boundary	PR metrics — their product
+26219	dup	@ mention sessions — 会话引用已有
+26223	dup	model family remembers config — 配置记忆已有
+26236	dup	no compaction every turn — 压缩门已有
+26238	boundary	footer clickable — their UI
+26240	dup	autocomplete — 已有
+26241	dup	-force update flag — 强制更新已有
+26244	dup	thumbs feedback /feedback — 反馈已有
+26246	dup	/resume alias /ls — 别名已有
+26254	dup	SessionEnd hooks — 生命周期hook已有
+26255	dup	hooks block code 2 stderr — 阻塞约定已有
+26280	dup	personal plugins sync cloud — 插件同步已有
+26283	dup	uninstall removes MCP+flush registries — 卸载清理已有
+26285	dup	copilot skills discovery — 技能发现已有
+26287	dup	skill location prefix — 来源前缀已有
+26288	dup	hooks ancestor dirs — 祖先发现已有
+26291	dup	org disable plugins — 组织禁用已有
+26292	dup	plugins install source — 安装已有
+26295	dup	plugins remove — 卸载已有
+26296	dup	symlinked skills dirs — 链接发现已有
+26301	dup	true source path shown — 路径显示已有
+26302	dup	~/.config/devin+.devin — 配置目录已有
+26303	noise	prose noise
+26305	dup	OAuth redirect URI — 回调已有
+26308	dup	MCP connection timeout — 超时已有
+26316	dup	registry cache warmed — 缓存预热已有
+26322	boundary	callback pages — their UI
+26332	noise	mcp internal
+26336	dup	skip tool call agent continues — 跳过续行已有
+26338	dup	skip tool call — 已有
+26341	noise	prose noise
+26349	dup	plugin skills/rules/hooks labeled — 来源标记已有
+26350	dup	x kills selected subagent — 单独终止已有
+26353	dup	max-nesting frontmatter — 嵌套上限已有
+26358	dup	live stream subagent actions — 子代理流已有
+26368	dup	bash→Git Bash not WSL stub — shell解析已有
+26378	dup	model refusals warning — 拒绝提示已有
+26387	boundary	banner — their UI
+26389	dup	no email in banner — 隐私已有
+26392	boundary	selection UI — their UI
+26395	boundary	spinner — their UI
+26397	boundary	spinner — their UI
+26400	dup	ASCII mode tips — ASCII档已有
+26402	boundary	banner — their UI
+26405	noise	version noise
+26406	boundary	slack notifs — their product
+26407	noise	prose noise
+26409	boundary	browser notifs — their UI
+26413	boundary	navigate history — their UI
+26415	boundary	local UI test — their product
+26416	boundary	thoughts visible — their UI
+26417	boundary	pin sessions — their UI
+26421	dup	enterprise login policies CLI — 策略执行已有
+26422	dup	show_hints option — 提示开关已有
+26431	noise	spelling internal
+26440	dup	sandbox glob expansion hang fix — glob容错已有
+26449	dup	log gzip 48h — 日志压缩已有
+26451	noise	perf internal
+26457	noise	prose noise
+26458	noise	prose noise
+26460	noise	prose noise
+26463	dup	forbiddenPlugins globs — 插件封禁glob已有
+26467	dup	auto respond PR comments/CI — PR响应已有
+26481	noise	prose noise
+26482	noise	prose noise
+26483	noise	prose noise
+26496	noise	prose noise
+26502	dup	wake on PR comments/lint — 唤醒已有
+26510	dup	capacity exhaustion terminal — 错误分级已有
+26528	dup	transient not terminal — 已有
+26618	noise	test internal
+26631	dup	shell instructions optimize — 指令优化已有
+26667	noise	inline internal
+26686	noise	privacy internal
+26687	noise	test internal
+26689	noise	error internal
+26762	noise	test internal
+26875	dup	eval unsafe cloning — 克隆安全已有
+26998	noise	react internal
+27062	noise	default internal
+27114	noise	settings internal
+27116	noise	paths internal
+27208	noise	test internal
+27220	noise	test internal
+27235	noise	truncation internal
+27282	noise	branch noise
+27304	dup	Codebase Investigator all modes — 调查器放开已有
+27335	dup	skip fail-safe old_string test — 容错已有
+27345	noise	test internal
+27369	noise	test internal
+27406	noise	permissions internal
+27408	noise	permissions internal
+27486	noise	emoji internal
+27490	dup	At Command race non-interactive — 竞态已有
+27529	dup	path delimiter multi-root — 多根路径已有
+27545	noise	quit internal
+27550	noise	release internal
+27583	dup	tool calling error handling — 错误处理已有
+27642	dup	mcp list check disablement — 禁用检查已有
+27646	dup	issuer oauth discovery — 发现已有
+27666	noise	test internal
+27693	dup	rework MCP discovery/invocation — 发现调用已有
+27719	dup	stop logging tool errors clearcut — 遥测隐私已有
+27720	dup	registration endpoint config — 注册端点已有
+27721	dup	stop schema type def check — 校验收敛已有
+27732	dup	type while waiting MCP — 异步等待已有
+27734	dup	skip MCP untrusted folders — 信任门已有
+27738	dup	JSON params getDescription — 参数返回已有
+27757	dup	MCP init once startup — 单初始化已有
+27786	boundary	debugRainbow — their UI
+27808	noise	retry internal

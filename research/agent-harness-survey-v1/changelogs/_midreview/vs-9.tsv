@@ -1,0 +1,200 @@
+28677	dup	granular stop/block hooks — hooks 已有
+28710	noise	quota stats unused models internal
+28711	noise	investigator preview model internal
+28716	noise	availabilityService reset internal
+28719	boundary	multi-file drag images — their UI
+28755	dup	Hook Tool Exec integration — hooks 已有
+28757	dup	Hook LLM req/resp — hooks 已有
+28760	noise	Hook integration testing internal
+28762	boundary	auto-execute slash on Enter — their UI
+28779	dup	Hook Event Handling — hooks 已有
+28780	dup	Hook Agent Lifecycle — hooks 已有
+28781	dup	alternate system prompt — system prompt 已有
+28830	dup	Hook Execution Engine — hooks 已有
+28841	dup	Hook Result Aggregation — hooks 已有
+28883	dup	Hook Config Schema — hooks 已有
+28896	dup	Hook IO Contracts — hooks 已有
+28897	dup	Hook Planning/Matching — hooks 已有
+28952	boundary	auth dialog — their UI
+28954	dup	edit queued messages up-arrow — 队列编辑已有
+29169	boundary	Pro Quota Dialog — their SaaS
+29185	dup	nested gitignore — gitignore 已有
+29204	dup	disable YOLO/AUTO_EDIT untrusted — folder trust 已有
+29245	noise	share file list truncated
+29325	noise	inline content mod scheduler internal
+29327	noise	YOLO shortcut help internal
+29462	noise	sandbox status labels internal
+29471	dup	Windows sandbox expansion — sandbox 已有
+29482	dup	SandboxManager all process tools — sandbox 已有
+29491	dup	isolate truncated tool outputs — 输出隔离已有
+29499	noise	sandbox images dockerhub CI internal
+29526	dup	skill-creator integration — skills 已有
+29534	noise	dup-code review skill internal
+29537	noise	colon prefix ext skills internal
+29538	noise	behavioral-evals skill internal
+29569	dup	linking agent skills — skills 已有
+29587	noise	code-reviewer skill internal
+29588	noise	skill verbiage internal
+29596	noise	Agent Skills stable internal
+29598	noise	skills settings stable internal
+29606	dup	skill override conflict detect — 配置冲突已有
+29609	noise	admin.skills.enabled internal
+29610	noise	admin settings commands internal
+29619	dup	skill install/uninstall cmds — skills 已有
+29623	noise	admin-enforced skills internal
+29670	dup	prevent ansi ext MCP — 过滤已有
+29754	boundary	pending tool calls display — their UI
+29788	dup	folder trust ext install — trust 已有
+29795	noise	Plan Mode prompt refine internal
+29799	noise	approval mode cycle order internal
+29801	noise	Plan Mode rotation internal
+29812	noise	approval modes UI internal
+29820	dup	disable folder trust headless — trust 已有
+29821	dup	OAuth interactive consent — 同意闸已有
+29825	dup	user consent before MCP OAuth — 同意闸已有
+29831	noise	approval cycling internal
+29843	boundary	confirmations queue UX — their UI
+29860	dup	permissions cmd modify trust — trust 已有
+29886	noise	auto-approve pending yolo internal
+29941	noise	remote MCP url config internal
+30276	noise	otel trace instrumentation internal
+30355	noise	caretaker-triage hill-climbing internal
+30365	dup	persist subagent agentId — 子代理已有
+30366	dup	subagent workspace AsyncLocalStorage — 工作区隔离已有
+30371	noise	subagent routing evals internal
+30373	dup	subagent tool isolation — 隔离已有
+30377	dup	subagent rejection feedback — 反馈已有
+30378	boundary	subagent success UI — their UI
+30381	dup	sub-agent turn/time limits — 限制已有
+30387	boundary	subagent result display — their UI
+30399	cand	subagent model routing — 按子代理路由模型
+30404	dup	Hook System Orchestration — hooks 已有
+30672	dup	inject memory/JIT subagents — 上下文注入已有
+30704	dup	stop context overflow — 溢出防护已有
+30755	noise	adk subagent flag internal
+30795	boundary	customizable keybindings — their UI
+30798	boundary	remove keybindings '-' — their UI
+30800	noise	initiationMethod telemetry internal
+30806	noise	onboarding telemetry internal
+30819	dup	bg process logging+cleanup — bg jobs 已有
+30823	noise	quota language internal
+30831	noise	workspace policy dialog internal
+30835	boundary	billing credits flow — their SaaS
+30845	dup	policy engine replaces allowed-tools — 策略引擎已有
+30848	noise	ctrl-s shortcut internal
+30867	boundary	undo/redo keybindings — their UI
+30868	boundary	hooksConfig settings UI — their UI
+30899	noise	shortcuts link URL internal
+30903	dup	sub-agent YAML frontmatter — 子代理定义已有
+30913	noise	hooks clearcut logging internal
+30917	noise	cached token stats internal
+30933	noise	Hook Telemetry internal
+30967	noise	deprecated telemetry flags internal
+30990	dup	policy engine from settings — 策略已有
+31033	noise	compression telemetry internal
+31128	dup	Hook Session Lifecycle+Compression — hooks 已有
+31188	noise	glob/grep file patterns internal
+31267	noise	telemetry email/id internal
+32388	noise	Groq models internal
+32636	boundary	drag files into window — their UI
+32712	noise	empty extensions internal
+32731	dup	file-based secrets — secrets 已有
+32743	boundary	ext env vars editor — their UI
+32754	boundary	shareable goose bots — their SaaS
+32757	boundary	google_drive ops — their ext
+32771	noise	deny call response internal
+32789	dup	credentials keychain — secrets 已有
+32824	noise	ext settings-v2 internal
+32874	dup	extend system prompt — 已有
+32880	dup	current date system prompt — 已有
+33043	dup	retryDelay from rate-limit — retry 已有
+33612	dup	same permission flow ext — 权限统一已有
+33615	boundary	permission bottom menu — their UI
+33616	boundary	tool permission UI init — their UI
+33626	dup	tool-level permission control — 权限已有
+33627	dup	remove permission on ext delete — 权限回收已有
+33630	noise	permission confirmation struct internal
+33633	dup	tool annotation before permission — 注解闸已有
+33634	dup	goosed allowlist — allowlist 已有
+33636	dup	ext env var denylist — env denylist 已有
+33640	dup	parallel approve mode — 并行批准已有
+33649	dup	permission before tool call — 批准闸已有
+33906	dup	cancel tool calls — 取消已有
+34325	noise	Apify MCP docs internal
+34344	boundary	mcp-ui client — their UI
+34348	dup	OAuth credentials keyring — secrets 已有
+34364	noise	Gemini tool call quirks internal
+34366	noise	rmcp migrate internal
+34393	dup	MCP server notifications — MCP 已有
+34394	dup	mcp router skeleton — MCP 路由已有
+34418	noise	router disable ext internal
+34635	dup	recipe missing-secrets prompt — secrets 提示已有
+34657	dup	mcp router discovery/install — MCP 发现已有
+34682	dup	MCP prompts dev ext — MCP prompts 已有
+34934	boundary	session sharing URL — their SaaS
+34942	dup	sessions api view/resume — 会话已有
+34949	dup	resume session run — 恢复已有
+35039	dup	pause/unpause scheduled jobs — 调度暂停已有
+35280	dup	subagent execution consolidate — 子代理已有
+35282	dup	subagent independent ext manager — 隔离已有
+35283	dup	subagent turn count loop — 已有
+35603	boundary	toast close button — their UI
+35610	boundary	chain-of-thought panel — their UI
+35613	noise	scheduler alpha flag internal
+35633	boundary	Mac shortcuts — their UI
+35668	boundary	share sessions UI — their UI
+35738	dup	goose docker sandbox — sandbox 已有
+35775	boundary	gptme service URL — their SaaS
+35839	dup	audit harness update requests — 更新审计已有
+35854	dup	reviewer read-only toolset — 只读档已有
+35859	dup	snapshot-anchored edit format — 锚定编辑已有
+35864	noise	built-with badge internal
+35871	dup	layered lifecycle script hooks — hooks 已有
+35966	noise	structured-first backend internal
+35991	dup	stuck/loop detection hook — 环路检测已有
+36001	noise	replay demo internal
+36004	dup	import conversation JSON — 导入已有
+36016	boundary	shortcuts dialog — their UI
+36043	dup	trace sync hook spans — hooks 已有
+36063	dup	opt-in auto-snapshots rollback — 快照已有
+36073	noise	mcp_namespace_hint hook internal
+36229	noise	XML system prompt internal
+36236	dup	context dedup helper — 去重已有
+36328	dup	plugin Phase2 hooks — hooks 已有
+36336	noise	hook typing internal
+36345	dup	plugin Phase2 hooks 同上
+36353	noise	hook typing 同上
+36362	dup	token&time awareness — 已有
+36367	dup	save removed outputs compacting — 落盘已有
+36374	dup	auto-reply LOOP_CONTINUE hook — hooks 已有
+36393	dup	pwd+workspace system prompt — 已有
+36507	dup	platform info system prompt — 已有
+36710	dup	rag_index_conversations — 会话索引已有
+36729	cand	mid-turn steer STEP_PRE checkpoint — 子代理中注控
+36730	cand	subagent_steer running inject — 同上
+36732	dup	stop agents at checkpoints — 检查点已有
+36736	dup	cancel_on_failure fleet — 编队取消已有
+36741	dup	context_window subagent_batch — 窗口配置已有
+36742	cand	subagent_wait_any race/hedging — 竞速/对冲原语
+36743	cand	subagent_pipeline staged fan-out — 流水扇出
+36748	dup	subagent_parallel fan-out — 并行扇出已有
+36761	dup	progress tool parent notify — 进度回报已有
+36763	cand	subagent clarification pause-ask — 子代理反问父
+36766	noise	forward subprocess defaults internal
+36767	noise	eval waited completion internal
+36793	noise	subagent refactor internal
+36795	dup	skills lifecycle metrics+cost — 指标已有
+36799	dup	/skill:<name> slash invoke — skills 已有
+36802	boundary	reputation badges webui — their UI
+36808	dup	entry points plugin registration — plugin 已有
+36813	noise	codebase classification skill internal
+36815	noise	src/ layout discovery internal
+36816	dup	plugin infra Phase1 — plugin 已有
+36817	dup	plugin infra Phase1 同上
+36859	boundary	temperature controls webui — their UI
+36860	boundary	persist temperature sidebar — their UI
+36861	boundary	temperature controls 同上
+36996	dup	trust-on-first-use project shell — trust 已有
+37007	dup	hint-based allowlist+MCP hints — 注解闸已有
+37024	dup	background job control — bg jobs 已有
+37291	dup	date/time system prompt — 已有

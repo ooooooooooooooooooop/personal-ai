@@ -1,0 +1,200 @@
+71204	dup	one-click plugin install in templates — 模板装插件已有
+71206	dup	edited msgs send immediately — 编辑即发已有
+71207	dup	execution summary+duration per turn — 摘要耗时已有
+71208	noise	rename internal
+71209	noise	prose noise
+71210	dup	one-click plugin install — 同上dup
+71212	dup	edited send immediate — 同上dup
+71213	dup	exec summary duration — 同上dup
+71214	noise	rename internal
+71215	dup	draft refs after plugin select — 草稿引用已有
+71217	dup	update reminder+direct update — 更新提醒已有
+71220	dup	update notification direct — 同上dup
+71221	dup	plugin timeout not block recovery — 容错恢复已有
+71229	dup	draft/thinking kept on collapse — 草稿保留已有
+71232	noise	release header
+71235	dup	no dup windows locate — 窗口去重已有
+71236	dup	idle task limit friendly msg — 限制提示已有
+71238	dup	running bg workflow stays in list — 后台可见已有
+71239	dup	cancel/resume reject reason — 拒绝原因已有
+71243	noise	release header
+71248	dup	idle task tool limits — 限值已有
+71255	noise	ui prose
+71260	noise	release header
+71261	dup	no mid-conv model switch — 模型钉住已有
+71265	dup	search during generation — 生成中搜索已有
+71267	noise	ui prose
+71268	dup	empty thinking hidden — 空思考隐藏已有
+71269	dup	per-task browser isolation — 浏览器隔离已有
+71272	noise	release header
+71274	dup	auto retry blank/interrupted — 自动重试已有
+71276	dup	unified status wording — 状态措辞已有
+71278	dup	unread cleared on open — 已读清除已有
+71279	dup	paste-attachment threshold raised — 阈值提升已有
+71281	noise	fix prose
+71283	noise	ui prose
+71287	noise	release header
+71289	dup	auto retry blank — 同上dup
+71291	dup	status wording — 同上dup
+71293	dup	unread cleared — 同上dup
+71294	dup	paste threshold — 同上dup
+71296	noise	fix prose
+71297	dup	search no repeated retry — 重试收敛已有
+71298	noise	ui prose
+71302	noise	prose noise
+71303	dup	unnamed provider identity kept — 身份保留已有
+71326	dup	approval grants full access — 全权授予已有
+71331	dup	error display+incomplete cards fix — 错误显示已有
+71338	dup	PDF upload/read/preview — PDF已有
+71339	dup	PDF preview — 同上dup
+71399	dup	provider unconfigured error msg — 配置提示已有
+71403	dup	provider error msg — 同上dup
+71468	dup	reasoning effort fix — 推理档修复已有
+71470	dup	reasoning effort — 同上dup
+71551	dup	thought signatures gemini tools — 签名已有
+71561	noise	prose noise
+71568	dup	agent login on remotes fix — 远程登录已有
+71571	dup	gemini profile refusal fix — 兼容修复已有
+71579	dup	ACP uses proxy settings — 代理沿用已有
+71587	dup	subprocess leak on quit — 子进程泄漏已有
+71588	dup	subprocess leak — 同上dup
+71603	noise	config fragment
+71650	noise	ui fix
+71656	dup	gemini diff format edits — diff编辑已有
+71668	dup	max_tokens display fix — 显示修复已有
+71670	dup	claude multi-image fail fix — 多图修复已有
+71688	dup	gemini tool use fix — 工具修复已有
+71690	boundary	provider collapse UI — their UI
+71695	dup	per-provider temperature — 温度配置已有
+71706	dup	inline assistant gemini fix — 兼容修复已有
+71711	noise	fix prose
+71715	dup	MCP gemini compat — 兼容已有
+71799	noise	config fragment
+71951	dup	picker removed projects fix — 列表修复已有
+71997	dup	ACP fast mode restriction fix — 模式修复已有
+72002	noise	fix fragment
+72005	dup	ACP download not starting fix — 下载修复已有
+72041	noise	ui fix
+72064	noise	fix internal
+72098	dup	drafts silently discarded fix — 草稿保留已有
+72121	dup	partial JSON streaming fix — 流解析已有
+72122	noise	ui fix
+72134	dup	shift-enter cursor position fix — 键位修复已有
+72178	dup	config selectors refresh fix — 刷新修复已有
+72194	noise	fix internal
+72212	dup	old sessions icons fix — 会话兼容已有
+72213	dup	feedback buttons despite off fix — 设置生效已有
+72244	dup	devcontainer env vars fix — env修复已有
+72249	noise	fix internal
+72253	noise	fix internal
+72256	dup	metal fallback default device — 回退已有
+72258	noise	fix internal
+72259	noise	fix internal
+72264	dup	update loop fix — 更新环修复已有
+72267	noise	fix internal
+72289	dup	minimal profile tools all shown fix — 档案生效已有
+72292	noise	ui fix
+72293	noise	fix internal
+72320	dup	ACP follow tool calls fix — 跟进修复已有
+72327	noise	fix internal
+72341	dup	summary_model ignored fix — 模型字段已有
+72365	dup	update prompt loop fix — 同上dup
+72378	noise	fix internal
+72380	dup	insert at cursor not end — 光标插入已有
+72381	noise	fix internal
+72385	dup	ACP partial file read fix — 部分读修复已有
+72391	noise	prose noise
+72415	dup	empty model selector fix — 选择器修复已有
+72436	noise	fix internal
+72440	noise	fix internal
+72453	noise	fix internal
+72461	dup	backend error messaging — 后端错误已有
+72463	noise	fix internal
+72474	noise	fix internal
+72475	noise	fix internal
+72476	dup	backend error messaging — 同上dup
+72477	noise	fix internal
+72478	noise	fix internal
+72480	noise	fix internal
+72490	noise	fix internal
+72491	noise	fix internal
+72504	dup	exception breakpoint persist — 断点持久已有
+72572	noise	fix internal
+72573	dup	invalid RunInTerminal panic fix — 请求容错已有
+72594	dup	valid configs rejected fix — 配置修复已有
+72599	noise	fix internal
+72619	dup	missing thread names handled — 字段容错已有
+72637	noise	fix internal
+72638	noise	fix internal
+72666	dup	prompt field keybinds fix — 绑定修复已有
+72668	dup	max mode always used fix — 模式修复已有
+72669	noise	fix internal
+72672	dup	default user rules ignored fix — 规则生效已有
+72689	dup	malformed JSON streaming fix — 容错解析已有
+72709	noise	fix internal
+72732	dup	reject all partial fix — 全拒修复已有
+72733	noise	fix internal
+72735	noise	fix internal
+72741	dup	instruct fix not remove tests — 测试保护指令已有
+72786	noise	fix internal
+72824	noise	fix internal
+72875	noise	prose fragment
+72921	noise	fix internal
+72957	noise	fix internal
+72958	noise	fix internal
+72990	noise	prose noise
+73001	noise	fix internal
+73028	noise	fix internal
+73029	noise	prose noise
+73056	dup	busybox gunzip compat — 兼容修复已有
+73057	noise	fix internal
+73095	noise	fix internal
+73096	dup	less diagnostic incorporation — 诊断节制已有
+73104	noise	fix internal
+73227	noise	fix internal
+73256	noise	prose noise
+73260	noise	prose noise
+73378	dup	respect LS capabilities — 能力尊重已有
+73627	noise	fix internal
+73674	noise	release noise
+73675	noise	prose noise
+73682	noise	editor feature
+73694	noise	editor feature
+73703	noise	ui internal
+73708	noise	editor feature
+73729	noise	reaction noise
+73737	noise	editor feature
+73752	noise	config fragment
+73753	noise	editor feature
+73765	dup	fallback model selection — 回退选择已有
+73769	noise	ui prose
+73774	dup	fallback model selection — 同上dup
+73779	noise	contributor noise
+73781	noise	editor feature
+73782	noise	editor feature
+73783	noise	editor feature
+73792	noise	editor feature
+73796	noise	ui feature
+73800	noise	ui fix
+73816	noise	editor feature
+73820	noise	contributor noise
+73824	noise	editor feature
+73828	noise	editor feature
+73829	noise	prose noise
+73830	noise	editor feature
+73833	noise	editor feature
+73852	noise	fix internal
+73853	dup	reliability LLM edits — 编辑可靠已有
+73865	noise	editor feature
+73870	noise	editor feature
+73872	noise	editor feature
+73874	noise	prose noise
+73887	noise	editor feature
+73901	noise	editor feature
+73902	dup	top-down streaming auto-scroll — 顶向流式已有
+73906	noise	editor feature
+73907	noise	editor feature
+73908	noise	editor feature
+73910	dup	top-down streaming — 同上dup
+73911	dup	fewer tokens tool descriptions — 描述瘦身已有
+73920	noise	editor feature

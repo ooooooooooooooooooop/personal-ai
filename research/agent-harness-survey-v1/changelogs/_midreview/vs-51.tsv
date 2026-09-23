@@ -1,0 +1,200 @@
+15064	dup	inline hostname resolution — 解析已有
+15065	dup	centralize legacy projection — 投影归位已有
+15068	dup	carry fs sandbox profiles — 档案传递已有
+15069	dup	long-lived sessions windows — 会话复用已有
+15071	dup	require explicit fs cwd — 显式cwd已有
+15078	dup	devcontainer profile docs — 文档已有
+15079	dup	WSL1 limitations docs — 文档已有
+15084	dup	legacy deny paths elevated — 拒读已有
+15085	noise	helper internal
+15097	noise	template internal
+15102	noise	IPC internal
+15110	dup	private desktop — 桌面隔离已有
+15115	dup	copy exe .sandbox-bin — 二进制隔离已有
+15117	dup	split fs policies seatbelt — 分离策略已有
+15119	dup	split policies bwrap — 分离策略已有
+15127	dup	apps cwd sandbox setup — cwd指定已有
+15129	dup	restricted read-only+~/.ssh — 敏感目录已有
+15130	dup	no read ~/.ssh — 敏感目录已有
+15136	noise	setup internal
+15140	noise	metrics internal
+15145	noise	promote internal
+15156	noise	globals internal
+15165	noise	metrics internal
+15169	dup	Landlock fallback+no_new_privs — 降级已有
+15170	dup	mount read-only — 只读挂载已有
+15171	dup	prompt unsafe read-only — 提示已有
+15175	noise	NUX internal
+15177	dup	SandboxUsers group ACLs — 组ACL已有
+15178	dup	never write .codex/ — 保护已有
+15179	noise	hide users internal
+15181	dup	pipes restricted tokens — 管道已有
+15184	noise	setup internal
+15186	noise	naming internal
+15188	noise	artifacts internal
+15191	dup	elevated sandbox — 提权沙箱已有
+15192	dup	elevated sandbox — 提权沙箱已有
+15194	dup	elevated sandbox — 提权沙箱已有
+15195	dup	sendmsg/recvmsg allow — syscall放行已有
+15196	dup	sendmsg/recvmsg — syscall已有
+15197	dup	elevated sandbox — 已有
+15199	dup	execpolicy amendment on denial — 策略修正已有
+15209	dup	prompt sandbox auto mode — 提示已有
+15210	dup	cap_sid ~/.codex protected — 防覆盖已有
+15211	dup	codex-linux-sandbox exec — 沙箱已有
+15212	dup	Everyone-writable warning — 警告已有
+15214	dup	log to CODEX_HOME not cwd — 日志归位已有
+15222	noise	tests internal
+15223	dup	cwd conversation/sandbox separate — 关注点分离已有
+15226	dup	expand default sandbox — 默认扩展已有
+15227	dup	detach hooks controlling terminal — 终端解绑已有
+15228	dup	shell snapshot exports filter/replay — 快照已有
+15230	noise	metrics internal
+15231	dup	cache snapshots+capture cleanup — 快照缓存已有
+15232	noise	preview internal
+15235	dup	review terminal input permissions — 输入审查已有
+15236	dup	reject NUL reviewed input — 输入校验已有
+15239	dup	respond TTY queries — 查询应答已有
+15240	noise	instrument internal
+15244	dup	cache snapshots exec server — 快照缓存已有
+15245	dup	standardize unified exec — 统一执行已有
+15246	dup	standardize unified exec — 统一执行已有
+15247	noise	test internal
+15248	dup	preserve WINDIR — 环境保持已有
+15249	dup	honor request PATH snapshots — PATH遵从已有
+15251	dup	stop advertising local snapshots — 广告收敛已有
+15252	boundary	scrollback — their UI
+15254	dup	verify pinned zsh manifest — 清单校验已有
+15255	boundary	hyperlink viewport — their UI
+15256	noise	row clears internal
+15257	noise	size queries internal
+15258	dup	fail-closed PowerShell lowerer — 降级拒闭已有
+15263	boundary	input focus — their UI
+15264	dup	foreign paths listings — 路径保持已有
+15265	noise	cell widths internal
+15267	noise	test internal
+15268	dup	detach git metadata stdin — stdin解绑已有
+15270	dup	detach non-interactive stdin — stdin解绑已有
+15271	noise	header internal
+15283	dup	reject unlowered PowerShell AST — AST拒闭已有
+15286	boundary	resize reflow — their UI
+15288	noise	ownership internal
+15290	dup	bind snapshots thread envs — 绑定已有
+15291	dup	local env user shell — 环境已有
+15297	boundary	visualization gate — their UI
+15301	dup	PowerShell UTF-8 failures — 编码容错已有
+15302	dup	zsh fork bin PATH — PATH已有
+15305	dup	bundled zsh helper — 打包已有
+15306	noise	package internal
+15311	noise	artifact internal
+15314	dup	batched capability probes — 探测合批已有
+15316	noise	formatting internal
+15320	dup	unwrap PowerShell -Command — 包装解开已有
+15332	boundary	bash mode — their UI
+15343	noise	tests internal
+15347	dup	reuse parser process — 进程复用已有
+15351	noise	crate internal
+15360	noise	test internal
+15365	noise	test internal
+15366	noise	test internal
+15367	noise	test internal
+15374	boundary	double print — their UI
+15377	dup	host_executable zsh-fork — 解析已有
+15386	dup	direct commands no interrupt turn — 并发执行已有
+15392	dup	CODEX_THREAD_ID inject — 线程ID注入已有
+15393	noise	retention internal
+15394	dup	parallel shell tools — 并行已有
+15395	dup	inject CODEX_THREAD_ID — 注入已有
+15396	dup	snapshots no stdin — stdin隔离已有
+15397	noise	yml internal
+15398	noise	yml internal
+15402	noise	metric internal
+15413	dup	exit terminal dumb — 终端检测已有
+15419	dup	piped non-PTY no hang — 挂起修复已有
+15436	dup	concatenation nodes parser — 解析已有
+15438	noise	terminal metadata internal
+15440	noise	powershell internal
+15441	noise	powershell internal
+15453	dup	apply_patch parsing+tests — 解析已有
+15461	noise	truncate internal
+15463	noise	instructions internal
+15465	dup	shell detection+centralize generation — 检测集中已有
+15466	noise	npm internal
+15467	noise	parsing internal
+15470	noise	flush internal
+15474	noise	wrapper internal
+15478	boundary	highlighting — their UI
+15482	dup	dangerous checks core+Windows — 危险检查已有
+15484	dup	unified shell tell cache — 缓存一致已有
+15486	noise	description internal
+15489	noise	ci internal
+15491	noise	test internal
+15492	noise	ci internal
+15493	noise	ci internal
+15494	noise	test internal
+15495	noise	test internal
+15496	dup	shared env scrubber git-utils — 环境净化已有
+15497	dup	skip enrichment prewarm/Guardian — 跳过已有
+15498	noise	test internal
+15500	noise	release noise
+15501	boundary	branch picker — their UI
+15503	noise	branch internal
+15506	noise	message internal
+15507	dup	fall back HTTP Apple Git — 降级已有
+15516	dup	fsmonitor worktree reads — 监听已有
+15517	dup	ignore pending PR comments — 评论过滤已有
+15518	noise	analytics internal
+15521	noise	babysitter internal
+15523	dup	PR body avoid confidential refs — 信息卫生已有
+15526	noise	bazel internal
+15527	noise	cargo internal
+15528	noise	ci internal
+15529	noise	rules internal
+15530	noise	cargo internal
+15531	noise	ci internal
+15532	noise	ci internal
+15533	noise	merge internal
+15542	noise	ci internal
+15545	dup	cached metadata plugins — 缓存已有
+15546	noise	ci internal
+15553	noise	ci internal
+15559	noise	ci internal
+15567	noise	revert internal
+15584	noise	ci internal
+15592	dup	pin action immutable SHA — 供应链钉住已有
+15593	dup	pin SHA — 钉住已有
+15594	noise	ci internal
+15601	noise	ci internal
+15604	dup	remove git from dangerous checks — 检查收敛已有
+15614	dup	--yolo skip repo check — 跳过已有
+15623	noise	merge internal
+15634	noise	redraws internal
+15644	noise	exclude internal
+15647	noise	ci internal
+15648	noise	branch internal
+15652	noise	otel internal
+15653	noise	keybindings internal
+15654	noise	wrap internal
+15655	noise	log internal
+15658	noise	merge internal
+15662	noise	nit internal
+15664	noise	gitignore internal
+15665	noise	cla internal
+15666	dup	only wait mutating tools ghost commit — 等待收敛已有
+15669	noise	notes internal
+15678	noise	review internal
+15679	noise	ci internal
+15682	noise	codespell internal
+15685	dup	git tooling for undo — 撤销工具已有
+15689	noise	ci internal
+15690	noise	ci internal
+15695	noise	ci internal
+15700	noise	index internal
+15709	dup	honor plugin mentions MCP startup — 提及遵从已有
+15710	noise	analytics internal
+15714	noise	preload internal
+15715	dup	routing policy unauthenticated reads — 路由策略已有
+15716	noise	instrument internal
+15717	noise	preload internal
+15718	dup	app targets executor plugin hooks — hook目标已有
+15719	dup	history tools out of Guardian — 工具隔离已有

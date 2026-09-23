@@ -1,0 +1,83 @@
+4180	cand	hist-search: Ctrl+R reverse search prompt history+accepted slash commands recall
+4181	dup	TUI picker surfaced最新catalog — picker update
+4182	boundary	tab_bar.show_tab_bar_buttons
+4183	boundary	pane alternate file ctrl-6
+4184	cand	ui-interrupt: command palette中断running sessions
+4185	boundary	ActivatePaneInDirection docks导航
+4186	boundary	hide_hidden project panel
+4187	cand	bg-edit: Background Edits(不开diff view后台编辑)
+4188	boundary	move focused panel next dock position
+4189	boundary	open_file_on_paste
+4190	dup	split diff view agent review — diff view
+4191	dup	/file命令tab多文件 — multi-file
+4192	boundary	diff.plus/minus theme selectors
+4193	boundary	zed: import cursor settings
+4194	boundary	middle-click permanent tab
+4195	cand	mention-notify: chat内@-mention通知用户
+4196	boundary	hidden_files glob patterns
+4197	cand	reload-conn: Agent Panel重载broken external agent connection
+4198	boundary	multi workspace move project up/down
+4199	boundary	outline_panel.multi_buffer_hide_symbols
+4200	cand	next-action: 完成后预测next action灰字提示
+4201	cand	quote-ctx: assistant:quote selection编辑器选区入agent context
+4202	boundary	Agent Panel类型显示+command search排序
+4203	dup	agent feature关闭时commands不进palette — feature gate
+4204	dup	cmd-shift-n keybinding冲突修复 — keybinding fix
+4205	dup	message queue@-mentions preview修复 — preview fix
+4206	boundary	agent_buffer_font_size/agent_ui_font_size
+4207	dup	thinking block display去layout shift+stream可读 — thinking ux
+4208	cand	notify-filter: Android通知转发(package filtering/quiet hours/rate limit)
+4209	dup	fallback lifecycle verbose+/status active-model含fallback reason — fallback visibility
+4210	dup	后台通知不阻塞新messages — notify unblock
+4211	dup	loopback ws://归一化回HTTP(S)供/json/* — cdp normalize
+4212	dup	clawdbot status表格式+--all read-only debug — status
+4213	cand	cors-wildcard: CORS subdomain wildcard+allow-all模式
+4214	boundary	vim search cmd-f行为
+4215	dup	browser.tabCleanup keys入strict validation — config accept
+4216	cand	msg-meta: timestamp hover显示per-message token/context/model
+4217	dup	Reload按钮等gateway restart — update recovery
+4218	cand	auth-persist: plain-HTTP Control UI保留shared token/password auth(LAN)
+4219	boundary	Text size setting
+4220	boundary	DuplicateLineUp/Down拆分
+4221	dup	@vscode/ripgrep-universal per-platform解析 — dep fix
+4222	dup	正确user/account identity修login/feature-flag — auth fix
+4223	dup	agent diff Panel关闭时panic修复 — panic fix
+4224	dup	folders复制进自身防护 — copy guard
+4225	dup	built-in overrides复用schema仍honor自定义renderers — render honor
+4226	dup	rename/duplicate触发时panel打开 — panel fix
+4227	dup	Tab completion不立即链入argument autocomplete — completion fix
+4228	cand	model-split: inline assist用fast edit model+agent用thinking model
+4229	dup	chat.abort无runId+post-abort streaming抑制+stuck清理 — abort fix
+4230	cand	hook-panel: Hook配置面板(Prompt Hooks管理+blocking message显示)
+4231	cand	quota-notify: HTTP 429/14019 quota耗尽即时通知
+4232	boundary	fs/*完整方法集
+4233	boundary	rename/create已存在报错
+4234	dup	menu status detection延迟快捷键冲突修复 — menu fix
+4235	cand	rpc-core: JSON-RPC 2.0 app server单一runtime owner(TUI/-p/...)
+4236	boundary	点击外部auto-close菜单
+4237	boundary	Teams官方SDK迁移
+4238	boundary	debug shortcuts入command palette
+4239	dup	同4041 multi-workspace split view — multi-ws
+4240	dup	不支持provider的reasoning summaries默认关闭 — compat fix
+4241	noise	beta测试者注意事项
+4242	noise	Autocomplete legacy setting移除
+4243	cand	onboard-flow: hatch choice(TUI/Web/Later)+token explainer+dashboard seed
+4244	dup	lastConversationTraceId诊断面板持久 — trace persist
+4245	boundary	Playbooks Library/Past runs
+4246	dup	print mode静默notification不污染输出 — output hygiene
+4247	dup	Source Control panel定时polling fallback刷新 — refresh fix
+4248	dup	task detail view随status更新刷新 — refresh fix
+4249	boundary	task detail/list panels
+4250	boundary	Telegram Mini App web_app buttons
+4251	cand	reasoning-keys: Alt+,/Alt+.快捷reasoning调节+upgrade后reset
+4252	cand	tui-render: TUI fenced code/diff语法高亮+/theme live preview
+4253	boundary	Vercel AI Gateway+secret UI
+4254	dup	Vim NORMAL mode意外输入拦截 — input fix
+4255	cand	vim-draft: vim undo/redo保留drafts(含pasted/attachments)
+4256	dup	reconnect后thinking/body内容去重 — dedupe fix
+4257	boundary	Web UI workspace统一术语
+4258	boundary	multi-project dropdown
+4259	boundary	ShowInlineCompletion option-tab
+4260	dup	tab slash command+prompt info completion — completion
+4261	cand	nav-cmd: messages_last_user滚动到最后user消息
+4262	cand	sanitize-ui: iOS chat剥untrusted metadata/timestamp前缀+tool outputs格式化

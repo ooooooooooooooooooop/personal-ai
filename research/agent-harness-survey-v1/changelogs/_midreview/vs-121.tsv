@@ -1,0 +1,84 @@
+64199	noise	ci noise
+64200	noise	ci noise
+64201	noise	ci noise
+64204	noise	test internal
+64213	noise	ci noise
+64217	noise	ci noise
+64222	noise	ci noise
+64259	noise	ci noise
+64292	noise	docs internal
+64327	noise	test internal
+64362	noise	refactor internal
+64372	dup	TaskBase envelope + subagent persistence — 子代持久化已有
+64380	dup	fork params at construction — 构造期定参已有
+64390	noise	docs internal
+64412	noise	refactor internal
+64426	noise	docs internal
+64455	dup	pluggable DaemonTransport — 传输抽象已有
+64478	noise	ci noise
+64488	noise	dep bump
+64510	noise	chore internal
+64523	noise	refactor internal
+64530	dup	persistent Node REPL as MCP server — REPL服务化已有
+64571	noise	test internal
+64586	noise	docs internal
+64598	noise	docs internal
+64607	noise	docs internal
+64613	noise	test internal
+64617	noise	ci noise
+64627	noise	docs internal
+64631	noise	test internal
+64636	noise	docs internal
+64660	noise	docs internal
+64663	noise	test internal
+64688	noise	test internal
+64696	noise	internal
+64717	noise	docs internal
+64756	dup	output tokens not cumulative for subagents — 子代计量纠偏已有
+64823	noise	refactor internal
+64866	noise	refactor internal
+64879	noise	test internal
+64884	noise	refactor internal
+64930	noise	test internal
+64960	noise	docs internal
+64964	noise	refactor internal
+65029	noise	revert internal
+65033	dup	capability-based filtering over whitelist — 能力过滤已有
+65062	noise	chore internal
+65074	noise	revert internal
+65124	noise	ci noise
+65147	noise	ci noise
+65148	noise	test internal
+65150	noise	test internal
+65157	noise	ci noise
+65174	noise	test internal
+65175	noise	ci noise
+65177	noise	test internal
+65183	noise	ci noise
+67442	noise	test internal
+68720	noise	docs internal
+69422	dup	AGENTS.md respected by Cascade — 指令尊重已有
+69526	dup	AGENTS.md support/fixes — 同上dup
+71071	dup	SKILL.md frontmatter priority — 前置元数据优先已有
+71245	dup	retry interrupted streaming — 断流重试已有
+71813	dup	API key dialog when unset — 缺钥引导已有
+72425	noise	editor feature
+72554	noise	editor feature
+72823	noise	editor feature
+73027	noise	platform noise
+73325	noise	editor feature
+74104	noise	editor feature
+74366	noise	docs internal
+74463	noise	editor feature
+74518	noise	revert internal
+74961	noise	docs internal
+75141	noise	revert internal
+75142	dup	query docs only for visible completions — 按需查询已有
+75647	noise	editor feature
+76471	noise	docs internal
+77391	noise	i18n internal
+79140	dup	commit msg respects global AGENTS.md — 全局指令生效已有
+79161	dup	commit msg respects rules files — 同上dup
+79246	noise	internal
+80314	dup	handle API keys pasted with newlines — 凭据清洗已有
+80317	dup	pasted-with-newlines keys — 同上dup

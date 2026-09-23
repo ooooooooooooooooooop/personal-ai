@@ -1,0 +1,200 @@
+42628	dup	system prompt tz-only+time session_status — 缓存友好已有
+42631	dup	enqueue overrides embedded runs — 队列防死已有
+42637	noise	submodule internal
+42640	dup	doctor non-interactive+restart nudge — 诊后重启已有
+42644	noise	installer internal
+42647	dup	doctor offer update first — 更新引导已有
+42652	noise	section header
+42655	noise	action link
+42656	noise	action link
+42667	dup	positional CodeRegion inputs — 兼容输入已有
+42677	noise	truncated noise
+42681	noise	action link
+42684	dup	recover stale npm lock plugin update — 锁恢复已有
+42708	noise	action link
+42709	noise	prose noise
+42738	noise	plugin internal
+42760	noise	pr noise
+42768	noise	plugin internal
+42770	dup	assert lifecycle inspect output — 断言验证已有
+42771	dup	fail gauntlet missing summary — 缺报失败已有
+42775	noise	action link
+42782	noise	action link
+42789	noise	action link
+42791	noise	action link
+42808	dup	exclude SDK boundary work sweep — 范围限定已有
+42818	noise	prose noise
+42847	dup	align launcher floor+lint locking+cache metadata — 发布校验已有
+42868	dup	prune orphaned peer deps — 依赖修剪已有
+42883	noise	truncated noise
+42900	dup	retry transient publish+verify versions — 发布校验已有
+42929	dup	beta channel updates config-stable — 通道绑定已有
+43019	dup	jiti relative target plugin — 模块解析已有
+43020	dup	jiti relative — 已有
+43055	dup	align plugin compat metadata — 兼容对齐已有
+43119	boundary	zalo plugin — 外部平台出界
+43125	boundary	zalo CLI — 出界
+43144	noise	skill internal
+43168	dup	skill installer SSRF checks — SSRF防护已有
+43169	dup	CreateAgentSessionOptions prompt/skills/files — 选项扩展已有
+43170	dup	validate install paths reject traversal — 遍历拒绝已有
+43171	noise	path internal
+43176	noise	typings internal
+43187	dup	warn ignore unknown tool allowlists — 白名单警告已有
+43192	dup	download installs OS-filtered — 系统过滤已有
+43195	dup	/skill fallback command limits — 降级已有
+43196	boundary	/skill global — 平台出界
+43197	dup	channel catalog in manifests — 目录入单已有
+43198	dup	bundled channel disabled default — 默认禁用已有
+43203	dup	sync sources channel switches — 源同步已有
+43204	dup	share plugin update logic — 逻辑复用已有
+43209	dup	centralized target resolution — 解析集中已有
+43215	noise	typing internal
+43217	noise	breaking internal
+43219	dup	tab not found single Page — 页面回退已有
+43236	dup	doctor plugin diagnostics — 诊断已有
+43239	noise	skills internal
+43240	noise	config internal
+43241	noise	config internal
+43242	noise	config internal
+43246	dup	bun as node manager installs — 安装器已有
+43250	noise	brew internal
+43251	dup	gate macOS skills OS+block reasons — 系统门已有
+43255	dup	skills platform managed/bundled+installers — 平台化已有
+43256	boundary	skills UI — their UI
+43258	noise	waiver prose
+43279	dup	keep confirmed saves older reads — 竞态保护已有
+43293	dup	credentials out of logs+device pairing — 脱敏配对已有
+43369	noise	signing internal
+43378	boundary	settings column — their UI
+43385	dup	skip malformed pairing requests — 容错已有
+43433	dup	tolerate concurrent temp-dir repairs — 并发容错已有
+43521	dup	respect exec-approvals.json prompter — 批准文件已有
+43523	dup	honor raw guild_id missing hydrated — id回退已有
+43564	dup	canonicalize allowlist names to IDs fail-closed — 规范化已有
+43593	dup	"*" allowlist entries valid — 通配合法已有
+43595	dup	safeBins exec allowlist — 安全箱已有
+43608	dup	typed workflows+approval gates plugin — 批准门已有
+43625	dup	default groupPolicy allowlist+doctor warn — 白名单默认已有
+43626	dup	positional provider pairing — 参数兼容已有
+43635	dup	skills.allowBundled allowlist — 内置白名单已有
+43638	noise	entitlement internal
+43749	dup	no auto-prefix replies — 前缀可控已有
+43768	boundary	brand icons — their UI
+43773	dup	paired-node agent discovery — 节点发现已有
+43778	noise	prose noise
+43838	noise	ci internal
+43841	dup	respect provider/channel metadata persistence — 上下文保留已有
+43886	boundary	settings simplify — their UI
+43901	dup	strip <final> tags strict streaming — 标签剥离已有
+44166	dup	surface quota/reset details — 配额显示已有
+44291	boundary	usage section — their UI
+44297	dup	normalize timestamps keep raw — 时间戳归一已有
+44308	boundary	colorize — their UI
+44355	dup	reply tags replyToMode — 回复标签已有
+44361	boundary	colorize — their UI
+44364	dup	no strict:null no forced tags — 负载净化已有
+44388	noise	prose noise
+44406	dup	shared error formatter readable — 错误格式化已有
+44414	noise	prose noise
+44417	dup	fail closed truncated — 失败关闭已有
+44420	boundary	error wrap — their UI
+44423	dup	fail closed thread not found — 话题失败关闭已有
+44460	dup	polling stall detection liveness — 活探已有
+44516	dup	PATHEXT resolve codex.cmd shims — 垫片解析已有
+44536	dup	stop retry dup replies ambiguous — 重试去重已有
+44547	noise	release prose
+44563	dup	fail fast channel/binding collisions — 冲突快败已有
+44573	dup	tighten LaunchAgent permissions — 权限收紧已有
+44590	dup	strict IPv4 SSRF fail closed legacy forms — SSRF严格已有
+44610	noise	template internal
+44611	dup	announce failover race lifecycle — 竞态修复已有
+44612	noise	thread internal
+44624	dup	reject invalid config refuse start — fail-closed启动已有
+44634	dup	security audit --fix tighten paths — 审计收紧已有
+44646	dup	draft-only+poll retries+dedupe — 轮询去重已有
+44647	dup	tailnet IP local gateway — 绑定修正已有
+44648	dup	no duplicate sends streaming race — 去重已有
+44651	boundary	nodes section — their UI
+44663	dup	standard git isolated worktrees — worktree隔离已有
+44671	dup	preserve installs+isolate postinstall — 安装隔离已有
+44686	dup	cap logs/probes bounded proof — 限界验证已有
+44690	dup	harder wedge proof paths — 楔死防护已有
+44696	dup	preserve sandbox path style remap — 路径映射已有
+44801	noise	section header
+44811	dup	sandbox main DM exempt — 主会话豁免已有
+44889	dup	option terminators scripts — 终止符已有
+44911	boundary	settings rows — their UI
+44939	dup	prefer npm plugin over bundled — 插件优先已有
+44971	noise	truncated noise
+45149	noise	packaging internal
+45164	dup	compaction/pruning/streaming hardened — 循环加固已有
+45167	boundary	meeting library — their product
+45169	boundary	meeting capture — their product
+45174	dup	appearance per user profile — 外观分档已有
+45175	boundary	first-run setup — their product
+45180	boundary	roster facepile — their UI
+45186	boundary	composer footer — their UI
+45190	noise	section noise
+45208	dup	failures as visible assistant messages — 错误可见已有
+45220	boundary	settings panes — their UI
+45289	boundary	icon sizing — their UI
+45359	noise	cli internal
+45370	dup	no prompt under spinner — 提示抑制已有
+45386	boundary	mac settings — their UI
+45390	boundary	list view — their UI
+45393	dup	delete sessions UI — 会话删除已有
+45394	dup	reaction level minimal+notifications — 反应默认已有
+45396	dup	browser profile host control+attach errors — 附着错误已有
+45398	noise	section header
+45401	noise	section header
+45408	dup	doctor workspace mismatch+rebuild — 诊断修复已有
+45431	dup	keep scrolled latest on switch — 滚动保持已有
+45434	dup	stream updates external runs — 外部流已有
+45437	boundary	window defaults — their UI
+45446	dup	first-run without CLI — 免cli已有
+45450	dup	frontmatter coerced fallback — 前置容错已有
+45460	dup	bound log/probe waits no false-green — 限界防假绿已有
+45468	dup	shared error formatter — 已有
+45475	dup	plain empty-state — 空态文案已有
+45487	dup	offline reload actionable recovery — 恢复指引已有
+45488	dup	explain ambiguous channel next commands — 歧义指引已有
+45489	dup	defer status collection until selected — 延迟采集已有
+45499	dup	nodes remove command — 节点清理已有
+45515	noise	help internal
+45547	dup	~ for home paths — 路径缩写已有
+45555	dup	acp IDE integrations — IDE集成已有
+45556	dup	acp interactive debug harness — 调试已有
+45562	dup	hooks→webhooks split — 命令分层已有
+45567	dup	auto-update package manager installs — 自更新已有
+45577	noise	warning internal
+45578	noise	executable internal
+45581	dup	configure loops until Continue — 循环配置已有
+45588	dup	enter section return picker — 选择器流已有
+45592	dup	RPC health separate from connect — 健康分列已有
+45598	noise	branding internal
+45599	dup	doctor false warning fix — 误报修复已有
+45610	dup	log health refresh failures — 失败记录已有
+45612	dup	hint unauthorized — 授权提示已有
+45618	noise	section header
+45619	noise	logging internal
+45622	noise	shim internal
+45644	dup	validate replyToMessageId shared normalizer — 校验归一已有
+45655	noise	dep internal
+45661	dup	concrete API error details — 错误细节已有
+45673	noise	truncated noise
+45675	dup	part-index GUIDs reply tags — id回退已有
+45775	dup	skip expired warnings valid refresh — 警告抑制已有
+45780	dup	avoid false positives schema keywords — 误报抑制已有
+45788	dup	strip tool ids Gemini payloads — id剥离已有
+45795	noise	oauth internal
+45832	dup	show branch+changed files sessions — 分支显示已有
+45870	dup	channel send durable transcript mirror — 发送持久已有
+45876	dup	keep session locks during cleanup — 锁保持已有
+45910	boundary	menu wrap — their UI
+45927	noise	prose noise
+46000	dup	ACP blocked on write/auth blockers+wake parent — 阻塞上报已有
+46100	dup	centralize transcript sanitization — 净化集中已有
+46109	dup	fallback session labels — 标签回退已有
+46123	dup	/model updates chat session — 模型同步已有
+46139	dup	maxConcurrent global+per-session serial — 并发上限已有

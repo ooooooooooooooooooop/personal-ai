@@ -1,0 +1,200 @@
+77357	boundary	tooltips links — their UI
+77358	boundary	chat replies redesign — their UI
+77359	boundary	date time format — their UI
+77371	boundary	scroll restore — their UI
+77376	boundary	palette spaces selection — their UI
+77379	boundary	keymaps delete — their UI
+77381	boundary	dup channel names — their UI
+77390	boundary	case-only rename — their UI
+77393	noise	assistant panic shutdown internal
+77396	boundary	case rename dup entries — their UI
+77431	boundary	diagnostics overflow — their UI
+77432	boundary	notifications displays — their UI
+77433	boundary	toasts look — their UI
+77435	boundary	reset key screen — their UI
+77442	boundary	close-tab align — their UI
+77443	boundary	read-only tab insert — their UI
+77447	noise	tab drag close panic internal
+77448	boundary	panel toggle startup — their UI
+77456	boundary	context menu empty — their UI
+77459	boundary	search tab overflow — their UI
+77462	boundary	message editor style — their UI
+77463	boundary	role indicator style — their UI
+77464	boundary	tree branches style — their UI
+77465	boundary	filter input look — their UI
+77472	boundary	diagnostics refresh — their UI
+77473	boundary	diagnostics refresh — their UI
+77484	noise	IME bracket completion internal
+77517	boundary	copy_on_select jitter — their terminal UI
+77556	boundary	terminal focus X11 — their UI
+77558	boundary	terminal rename inactive — their UI
+77674	boundary	terminal keybind Czech — their UI
+77679	boundary	terminal keybind Czech — their UI
+77691	noise	stopped bg process internal
+77693	noise	heredoc highlight internal
+77710	boundary	tab title !! — their UI
+77712	boundary	cmd-click worktrees — their UI
+77727	boundary	terminal drag drop — their UI
+77740	boundary	ghost files panel — their UI
+77748	boundary	terminal tabs arrange — their UI
+77749	noise	shell env multi-worktree internal
+77751	noise	shell env multi-worktree internal
+77810	boundary	drag drop terminal — their UI
+77827	boundary	task tabs icons — their UI
+77850	noise	cmd-k latency keybindings internal
+77863	noise	tree-sitter grammar internal
+77873	boundary	reveal git multibuffer — their UI
+77878	boundary	Git Panel keybinds — their UI
+77888	boundary	bare repo worktrees — their UI
+77899	boundary	focus nav History — their UI
+77909	noise	Git Panel perf internal
+77916	boundary	diff stats staged — their UI
+77919	boundary	History highlight — their UI
+77921	dup	commit-msg hooks silently skipped — hook执行完整性已有
+77939	noise	Git Panel recheck perf internal
+77953	boundary	toggle focus commit — their UI
+77960	noise	access checks perf internal
+77961	boundary	menu selections — their UI
+78004	boundary	blame non-git files — their UI
+78005	boundary	file diff opening — their UI
+78029	boundary	Copilot model dropdown — their provider
+78037	boundary	text selection markdown — their UI
+78061	boundary	commit editor font — their UI
+78087	boundary	blank diff Windows — their UI
+78109	boundary	worktree button main — their UI
+78143	boundary	branch change responsive — their UI
+78162	boundary	cursor disappear — their UI
+78236	boundary	project picker icons — their UI
+78262	noise	utf8 truncate panic internal
+78292	boundary	partially staged — their UI
+78311	noise	ignored dirs Windows internal
+78332	noise	blame bg threads internal
+78337	boundary	git collab Windows/Unix — their collab
+78375	boundary	staging checkbox flicker — their UI
+78396	boundary	Stage All focus — their UI
+78411	noise	blame concurrent procs internal
+78425	boundary	commit progress feedback — their UI
+78474	boundary	display names handles — their collab
+78482	noise	sort_by_path panic internal
+78515	boundary	stash pop disabled — their UI
+78605	boundary	panel persist per-workspace — their UI
+78642	boundary	branch names overflow — their UI
+78751	noise	untracked files perf internal
+78752	boundary	disabled actions menu — their UI
+78762	noise	untracked files perf internal
+78890	noise	panel perf large repos internal
+78924	boundary	nested repo colors — their UI
+78941	boundary	bare repo worktrees — their UI
+79010	boundary	filter editor esc — their UI
+79047	noise	worktree .git hang internal
+79048	noise	worktree .git hang internal
+79085	noise	blame undo deletions internal
+79100	noise	.git worktree panic internal
+79102	noise	gitignore nested internal
+79108	boundary	panel icons git status — their UI
+79110	noise	LS release assets internal
+79111	noise	LS release assets internal
+79122	boundary	skill desc byte limit — their UI
+79123	boundary	manage skills palette — their UI
+79134	noise	dev extension install internal
+79155	noise	extension commands eof internal
+79158	noise	v0.0.4 API compat internal
+79200	boundary	mini.ai motions — their plugin
+79209	noise	plugin API read_text internal
+79266	noise	ACP terminal memory internal
+79276	noise	LSP log memory leak internal
+79337	noise	LSP rpc log memory internal
+79340	dup	undo/redo trashing unsaved files — 破坏操作确认已有
+79341	dup	undo/redo trashing unsaved files — 破坏操作确认已有
+79344	boundary	skill delete confirm+trash — their skills UI
+79346	dup	sandbox protects .git unless approved — 沙箱+审批已有
+79362	cand	审批解析检出 $((curl)) 算术嵌套命令 — 命令解析完备性真机制
+79366	boundary	subagent confirm UX — their UI
+79382	dup	worktree trust window reuse — 信任门已有
+79383	dup	LS blocked by worktree trust — 信任门已有
+79385	dup	worktree trust popup误触 — 信任门已有
+79388	dup	worktree trust multi-project — 信任门已有
+79615	boundary	ssh remoting revert — their product
+79629	noise	remote LSP requests internal
+79738	boundary	Trash remote projects — their UI
+79747	boundary	LS logs SSH — their UI
+79749	boundary	REPL remote disabled — their UI
+79772	boundary	diagnostics collab SSH — their collab
+79798	boundary	project restore SSH — their product
+79802	boundary	goto def outside worktree SSH — their product
+79803	boundary	LSP over collab SSH — their collab
+79807	boundary	rename over LS SSH — their product
+80025	dup	extension sandbox escape fix — 沙箱已有
+80081	dup	hot-exit unsaved restore — 会话恢复已有
+80093	boundary	debug session list — their UI
+80113	dup	agent checkpoint creation perf — 检查点已有
+80132	noise	collab hover panic internal
+80134	noise	reasoning before tool call internal
+80152	boundary	copy tool call text — their UI
+80156	dup	MCP connect gated by AI disabled — MCP生命周期门已有
+80181	boundary	read_file result message — their UI
+80210	noise	Copilot OAuth parse internal
+80212	boundary	audio health reports — their collab
+80216	noise	audio race collab internal
+80246	boundary	image auto-reveal — their UI
+80293	boundary	subagent preview scroll — their UI
+80344	noise	goto def repeat query internal
+20	noise	overeager flag internal
+93	noise	o1 shortcuts internal
+800	boundary	OpenRouter params fetch — their provider
+805	boundary	Ollama ctx dynamic — their provider
+806	boundary	ctx limit messaging — their provider
+808	boundary	Ollama 8k default — their provider
+814	boundary	gpt-4-1106 ctx — their provider
+815	boundary	gpt-3.5 ctx — their provider
+886	noise	OpenRouter dep check internal
+887	boundary	OpenRouter OAuth — their provider
+1020	boundary	MCP server cards — their marketplace
+1070	boundary	Ollama prompt options — their provider
+1102	dup	Langfuse 限定 provider — 遥测范围门已有
+1139	noise	Langfuse minify detect internal
+1149	noise	Langfuse minify detect internal
+1160	boundary	cost estimate Claude — their provider
+1195	noise	streamed tool call crash internal
+1196	noise	streamed tool call crash internal
+1198	noise	streamed tool call crash internal
+1200	noise	streamed tool call crash internal
+1216	noise	Vertex cred refresh internal
+1256	noise	Ollama timeout 5min internal
+1259	noise	Ollama retry+timeout internal
+1291	noise	Kimi native tools internal
+1300	noise	cumulative usage snapshots internal
+1313	noise	malformed tool call tolerance internal
+1343	noise	Bedrock empty replay internal
+1389	boundary	Bedrock parallel tools — their provider
+1408	noise	empty choices crash internal
+1411	noise	deepseek native tools off internal
+1422	noise	deepseek native tools on internal
+1424	dup	ollama abort on cancel — 取消传播已有
+1444	noise	Baseten/Kimi native tools internal
+1477	noise	openai compat auth internal
+1484	noise	telemetry domain internal
+1506	boundary	reasoning traces preserve — their provider
+1515	noise	GPT-5 prompts internal
+2089	boundary	parallel tools OpenRouter — their provider
+2229	noise	glm prompts internal
+2230	noise	GPT5 prompt snapshots internal
+2247	boundary	OpenRouter presets — their provider
+2444	noise	HostProvider auth URL internal
+2776	boundary	Hooks tab modal — their UI
+2816	boundary	MCP View modal — their UI
+3149	dup	MCP tool name 64cap — 工具名规范化已有
+3218	noise	request count reduction internal
+3413	noise	Cerebras rate limit internal
+3798	dup	auto-compact on overflow — 溢出压缩已有
+3825	noise	Cerebras models internal
+4000	noise	parallel tool guidance internal
+6983	dup	trace sent after disabled — 遥测关闭生效已有
+8512	noise	tracing exporter error internal
+8518	noise	trailing assistant msgs internal
+8519	noise	Bedrock empty content internal
+10106	noise	auth resolution refactor internal
+10261	boundary	/review Esc guidance — their UI
+12245	dup	resume guidance exit summary — resume引导已有
+12375	dup	rollout reconstruction resume/fork — 状态水合已有
+13048	cand	managed MITM CA trust注入子进程env — 代理环境CA传递真机制

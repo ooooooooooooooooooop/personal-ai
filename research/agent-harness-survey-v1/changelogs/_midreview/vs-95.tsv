@@ -1,0 +1,200 @@
+67833	noise	release header
+67834	dup	.trae/agents subagent defs — 子代理目录已有
+67835	dup	auto-retry -1/3003 recall tool cards — 重试+撤回已有
+67837	noise	release header
+67838	dup	deleted files to recycle bin — 回收站恢复已有
+67840	noise	release header
+67841	noise	enterprise feature
+67843	noise	release header
+67844	dup	global skills dir compat — 技能目录兼容已有
+67846	noise	release header
+67848	noise	release header
+67849	noise	prose noise
+67851	noise	release header
+67853	noise	release header
+67855	noise	release header
+67856	dup	commands 3-level nesting — 命令嵌套已有
+67858	noise	release header
+67860	noise	release header
+67861	dup	custom slash commands — 自定义命令已有
+67862	noise	prose noise
+67863	noise	release header
+67864	noise	release header
+67866	noise	release header
+67867	noise	prose noise
+67868	noise	prose noise
+67869	dup	nested rules 3 levels recursive — 规则嵌套已有
+67870	dup	per-subdirectory rules auto-apply — 目录规则已有
+67871	dup	custom model request URL — 端点配置已有
+67872	noise	release header
+67874	noise	release header
+67875	boundary	auto-open terminal — their UI
+67877	noise	release header
+67879	noise	release header
+67880	noise	fix prose
+67881	noise	release header
+67882	noise	fix prose
+67883	noise	fix prose
+67884	noise	release header
+67885	dup	reference history via # — 历史引用已有
+67886	dup	export history — 导出已有
+67887	dup	read-only terminal+bg command island — 只读终端+后台管理已有
+67888	noise	fix prose
+67889	noise	fix prose
+67890	noise	release header
+67891	dup	read-only terminal — 同上dup
+67893	noise	release header
+67894	dup	read-only terminal — 同上dup
+67896	noise	release header
+67897	dup	windows terminal sandbox fix — 沙箱修复已有
+67898	noise	fix prose
+67899	noise	release header
+67900	boundary	markdown preview — their UI
+67901	noise	fix prose
+67902	noise	release header
+67903	noise	fix prose
+67904	noise	release header
+67905	boundary	markdown preview — their UI
+67906	boundary	terminal card manual — their UI
+67907	noise	fix prose
+67908	noise	release header
+67909	noise	fix prose
+67910	noise	release header
+67911	dup	multiple rules config — 多规则已有
+67912	noise	fix prose
+67913	noise	release header
+67914	noise	fix prose
+67915	noise	release header
+67916	noise	prose noise
+67917	noise	fix prose
+67918	noise	release header
+67919	noise	fix prose
+67920	noise	release header
+67921	noise	prose noise
+67922	boundary	enterprise agents — their platform
+67923	boundary	enterprise docs — their platform
+67924	boundary	SOLO mode — their platform
+67925	dup	token quota per model/person — 配额维度已有
+67926	noise	release header
+67927	noise	fix prose
+67928	noise	release header
+67929	noise	fix prose
+67930	noise	release header
+67931	noise	prose noise
+67932	dup	copy/delete/rollback messages — 消息操作已有
+67933	noise	release header
+67935	dup	global+project skills — 技能作用域已有
+67936	dup	manual skill toggle — 技能开关已有
+67937	dup	skills in IDE/custom agents — 技能面已有
+67938	dup	agent commands not in terminal history — 历史隔离已有
+67939	noise	render feature
+67940	boundary	status bar — their UI
+67943	noise	release header
+67944	noise	fix prose
+67945	noise	release header
+67946	noise	prose noise
+67947	dup	manual skill upload — 上传已有
+67948	dup	auto-create skills via chat — 对话建技能已有
+67949	boundary	devtools entry — their UI
+67950	noise	render feature
+67952	noise	release header
+67953	noise	fix prose
+67954	noise	release header
+67955	noise	fix prose
+67956	noise	release header
+67957	dup	message send time — 时戳已有
+67958	dup	add issue panel item to chat — 问题入话已有
+67959	noise	prose noise
+67960	noise	prose noise
+67961	noise	release header
+67963	noise	release header
+67964	noise	fix prose
+67965	noise	release header
+67967	noise	release header
+67968	dup	Auto mode model routing — 自动路由已有
+67969	dup	switch+custom models — 自定义模型已有
+67970	noise	release header
+67971	noise	fix prose
+67972	noise	release header
+67973	dup	jump to file/dir from chat — 跳转已有
+67974	noise	release header
+67975	noise	release header
+67976	noise	release header
+67977	noise	fix prose
+67978	noise	release header
+67979	noise	fix prose
+67980	noise	release header
+67981	noise	fix prose
+67982	noise	release header
+67983	noise	fix prose
+67984	noise	fix prose
+67985	noise	release header
+67986	noise	prose noise
+67987	dup	sandbox run+whitelist — 沙箱白名单已有
+67988	dup	manual run all confirm — 手动确认已有
+67989	dup	auto run outside sandbox — 自动运行档已有
+67990	boundary	code flowchart — their UI
+67991	noise	prose noise
+67992	noise	enterprise noise
+67993	dup	Max mode complex tasks — 增强档已有
+67994	noise	release header
+67995	noise	fix prose
+67996	noise	release header
+67997	noise	fix prose
+67998	noise	release header
+67999	noise	fix prose
+68000	noise	release header
+68001	noise	prose noise
+68002	noise	prose noise
+68003	noise	release header
+68004	noise	fix prose
+68005	noise	release header
+68006	noise	fix prose
+68007	noise	release header
+68008	dup	auto-accept→code review 3 modes — 审查档已有
+68009	noise	release header
+68010	noise	fix prose
+68011	noise	release header
+68012	noise	fix prose
+68013	noise	prose noise
+68014	dup	Plan mode — 计划模式已有
+68015	dup	custom agents dispatch — 智能体分派已有
+68016	noise	prose noise
+68017	dup	multi-task parallel — 并行任务已有
+68018	dup	task breakdown auto-collapse summary — 任务摘要已有
+68019	dup	context usage+compression — 上下文管理已有
+68020	dup	change history tool — 变更历史已有
+68021	noise	release header
+68022	noise	fix prose
+68023	noise	release header
+68024	noise	fix prose
+68025	noise	release header
+68026	noise	fix prose
+68027	noise	release header
+68028	dup	global settings search — 设置搜索已有
+68029	dup	edit AI commands — 命令编辑已有
+68030	boundary	terminal card interactive — their UI
+68031	noise	release header
+68032	noise	fix prose
+68033	noise	release header
+68035	dup	exec modes manual/blacklist/whitelist/auto+risk detect — 命令模式已有
+68036	noise	release header
+68037	noise	fix prose
+68038	noise	release header
+68039	noise	prose noise
+68040	noise	release header
+68041	noise	release header
+68042	noise	fix prose
+68043	noise	release header
+68044	noise	fix prose
+68045	noise	release header
+68046	noise	fix prose
+68047	noise	release header
+68048	noise	fix prose
+68049	noise	release header
+68050	boundary	CUE shortcut — their UI
+68051	dup	per-turn code changes view — 变更查看已有
+68052	noise	prose noise
+68054	noise	release header
+68055	noise	fix prose
+68056	noise	release header

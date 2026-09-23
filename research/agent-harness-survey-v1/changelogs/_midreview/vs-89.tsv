@@ -1,0 +1,200 @@
+53919	dup	watcher only for tui — 作用域已有
+54001	boundary	dialog — their UI
+54002	boundary	focus tracking — their UI
+54003	boundary	quit dialog — their UI
+54005	dup	ctrl+v paste images — 图片粘贴已有
+54015	dup	auto-resize oversized images — 图缩放已有
+54016	dup	preserve original attachments — 原图保留已有
+54017	dup	auto-resize configurable limits — 缩放限值已有
+54020	dup	detect types from contents — 内容探测已有
+54022	boundary	filenames — their UI
+54030	dup	image attachments webfetch — 图返回已有
+54033	boundary	copy affordance — their UI
+54036	dup	OSC52 clipboard — 剪贴板已有
+54092	noise	screenshot noise
+54095	dup	terminal transport — 传输已有
+54098	boundary	rename — their UI
+54102	boundary	shortcuts — their UI
+54104	dup	terminal mounted tab switch — 挂载保留已有
+54110	boundary	gutter — their UI
+54115	dup	surface missing PTY errors — 错误上抛已有
+54116	dup	PTY error bodies API — 错误体已有
+54128	dup	shell mode editable — 编辑态已有
+54130	dup	cancellations clean — 取消清理已有
+54138	dup	shell from home dir — 家目录已有
+54139	dup	interrupted keep output+truncation — 中断保留已有
+54142	dup	Ctrl+Z undo windows — 键位已有
+54146	dup	bash desc cache hits — 缓存友好已有
+54155	dup	windows .cmd/.bat shims resolve — 垫片解析已有
+54158	noise	refactor internal
+54174	noise	dep internal
+54175	noise	dep internal
+54180	boundary	arrow — their UI
+54194	dup	onExit after output written — 回调序已有
+54195	dup	terminal disconnect resync — 重同步已有
+54203	dup	PTY buffer carryover sessions — 缓冲延续已有
+54204	boundary	resize — their UI
+54218	boundary	hyperlinks — their UI
+54235	noise	internal
+54258	dup	terminal sessions workspace-scoped — 作用域已有
+54274	boundary	expandable output — their UI
+54280	boundary	contrast — their UI
+54283	noise	config fragment
+54284	noise	config fragment
+54285	noise	config fragment
+54286	dup	permissions special bash commands — 特殊命令覆盖已有
+54304	dup	DISABLE_TERMINAL_TITLE env — 标题开关已有
+54313	dup	no -l fallback compat — 兼容回退已有
+54316	noise	rename internal
+54326	dup	bash cwd awareness+timeout — cwd感知已有
+54335	noise	internal
+54340	boundary	separator — their UI
+54345	dup	BASH_MAX_OUTPUT_LENGTH env — 输出上限env已有
+54346	dup	bash external dir permissions — 目录权限已有
+54354	dup	normalize unix ids Git Bash — 标识归一已有
+54359	dup	shell-specific arg handling — shell参数已有
+54380	dup	!shell commands — shell命令已有
+54382	dup	bash 1000 lines limit — 行限已有
+54384	dup	progressive combined output — 渐进输出已有
+54385	dup	re-export shell $ plugin — 插件暴露已有
+54388	noise	fix internal
+54393	dup	treesitter parse bash catch outside cwd — 越界解析已有
+54397	dup	append piped stdin prompt — stdin注入已有
+54410	noise	migrate internal
+54414	dup	no symlink follow grep — 链接禁随已有
+54418	dup	experimental flag websearch — 实验旗已有
+54419	noise	restrict internal
+54430	dup	startup failures shown — 失败显示已有
+54432	dup	invalid PERMISSION JSON no crash — 配置容错已有
+54434	dup	report all bootstrap failures — 全失败报告已有
+54435	dup	server in utility process — 进程隔离已有
+54439	dup	lazy-load CLI commands — 懒加载已有
+54440	noise	prose noise
+54444	dup	skip snapshot >2MB — 大小跳过已有
+54446	boundary	shortcuts — their UI
+54451	noise	revert internal
+54470	noise	perf internal
+54479	noise	perf internal
+54487	dup	startup error display — 错误显示已有
+54496	noise	bundle internal
+54497	noise	perf internal
+54499	noise	lsp internal
+54509	dup	file search reliability — 搜索可靠已有
+54512	noise	hack internal
+54514	dup	lazy LSP — 懒加载已有
+54520	dup	lazy formatters — 已有
+54523	noise	prose noise
+54543	boundary	styled container — their UI
+54558	dup	disable filewatcher fd leak — 句柄泄漏修复已有
+54567	noise	contributor noise
+54671	noise	contributor noise
+54691	noise	contributor noise
+54694	noise	contributor noise
+54696	noise	contributor noise
+54702	noise	prose noise
+54703	noise	contributor noise
+54721	noise	contributor noise
+54723	noise	contributor noise
+54727	noise	contributor noise
+54729	noise	contributor noise
+54731	noise	reaction noise
+54773	dup	queue messages during connect — 连接队列已有
+54776	boundary	pin tabs — their UI
+54778	noise	contributor noise
+54782	noise	search internal
+54787	noise	resolver internal
+54802	dup	LLM settings apply existing convs — 设置热施已有
+54804	noise	contributor noise
+54809	dup	max iterations 500 — 迭代上限已有
+54810	dup	unified config dir — 目录统一已有
+54812	dup	token persistence restarted — 令牌持久已有
+54817	dup	JSON serialize array params — 参数序列化已有
+54824	dup	PRs tracked metadata — PR追踪已有
+54825	noise	prose noise
+54830	dup	SESSION_API_KEY env — env读取已有
+54831	dup	only /workspace mounts workspace — 挂载限定已有
+54836	noise	contributor noise
+54840	dup	only images frontend — 上传限定已有
+54849	dup	think action collapsible — 思考折叠已有
+54850	dup	edited file paths headline — 路径显示已有
+54852	dup	microagents no header — 头可选已有
+54854	dup	LLM descriptions title — 标题生成已有
+54869	noise	bind internal
+54871	dup	start kubernetes cluster — 集群启动已有
+54873	dup	custom runtimes — 运行时自定义已有
+54874	dup	truncate half on limit — 截半已有
+54875	dup	condensers keep first user — 首消息保留已有
+54880	dup	filter lost+found — 目录过滤已有
+54882	noise	eval internal
+54886	dup	rename config trajectory_path — 改名已有
+54894	noise	dep internal
+54895	dup	draft PRs default no dupes — PR草稿已有
+54898	dup	download no DirectoryAPI — 兼容下载已有
+54901	noise	config internal
+54905	noise	config internal
+54906	dup	agent stuck closing — 关死修复已有
+54907	noise	contributor noise
+54908	noise	contributor noise
+54910	dup	reset iteration budget 500 — 预算重置已有
+54911	dup	turn limit from last interaction — 限值基准已有
+54916	dup	message per command — 命令提示已有
+54918	noise	dep internal
+54920	noise	eval internal
+54924	noise	priority internal
+54926	noise	contributor noise
+54927	noise	resolver internal
+54928	dup	convert fc to non-fc requests — 请求转换已有
+54929	dup	continuation after max iter — 续行已有
+54930	dup	reconnect websocket 5x — 重连已有
+54931	dup	display images/videos/pdfs — 媒体显示已有
+54933	boundary	loading indicator — their UI
+54935	dup	fewer redundant comments instruction — 注释抑制已有
+54940	noise	fix internal
+54942	noise	contributor noise
+54948	dup	respond to cancellation — 取消响应已有
+54950	dup	timeout/interrupt improvements — 超时改进已有
+54952	dup	prompt caching optional — 缓存可选已有
+54956	dup	files show updated content — 内容刷新已有
+54968	dup	warn unknown config key — 未知键警告已有
+54972	noise	css internal
+54973	dup	Jinja2 prompt templates — 模板化已有
+54977	dup	metrics at max iterations — 指标更新已有
+54979	noise	packaging internal
+54982	dup	u/a/u/a order — 消息序已有
+55008	dup	validate to_replace — 参数校验已有
+55013	noise	chore internal
+55049	noise	eval internal
+55057	noise	eval internal
+55062	dup	default LLM retries — 重试已有
+55065	noise	url internal
+55066	noise	lint internal
+55068	noise	eval internal
+55093	noise	arch internal
+55094	noise	arch internal
+55097	dup	append_file — 追加文件已有
+55103	noise	dep internal
+55107	noise	chore internal
+55108	dup	unset irrelevant env tests — env隔离已有
+55133	noise	eval internal
+55135	dup	bypass limits web GUI — 限值旁路已有
+55139	noise	eval internal
+55140	noise	eval internal
+55148	noise	eval internal
+55149	dup	retry internal server error — 重试已有
+55170	noise	eval internal
+55177	noise	config internal
+55186	dup	ManagerAgent handle rejection — 拒绝处理已有
+55189	noise	prose noise
+55190	dup	exit without revealing secrets — 秘密保护已有
+55211	noise	rename internal
+55212	noise	sentinel internal
+55213	dup	exit on known errors — 错误即退已有
+55223	noise	eval internal
+55234	dup	plugins once persistent sandboxes — 单次初始化已有
+55239	noise	eval internal
+55240	dup	cost metrics benchmarks — 成本指标已有
+55242	dup	reset configs finally — 清理已有
+55265	dup	tini init reap children — 子进程收割已有
+55275	noise	devcontainer internal
+55282	dup	DEBUG_RUNTIME optional logs — 日志开关已有
+55289	noise	docker internal

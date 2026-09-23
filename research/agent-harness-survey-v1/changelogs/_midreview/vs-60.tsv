@@ -1,0 +1,200 @@
+21002	noise	prose noise
+21016	noise	prose noise
+21017	noise	reaction noise
+21019	noise	prose noise
+21021	noise	prose noise
+21022	noise	prose noise
+21023	noise	names noise
+21025	noise	names noise
+21026	boundary	auto-scroll fix — their UI
+21031	noise	prose noise
+21033	noise	prose noise
+21035	noise	media noise
+21037	noise	prose noise
+21043	dup	auto-detect context windows — 上下文探测已有
+21045	noise	prose noise
+21051	noise	prose noise
+21052	noise	name noise
+21053	noise	prose noise
+21054	boundary	font colors — their UI
+21056	noise	prose noise
+21066	noise	prose noise
+21072	noise	prose noise
+21073	noise	config noise
+21074	noise	config noise
+21075	noise	prose noise
+21077	noise	prose noise
+21078	noise	prose noise
+21086	noise	prose noise
+21089	noise	prose noise
+21091	dup	hooks config — hook机制已有
+21093	noise	config noise
+21094	noise	config noise
+21095	noise	prose noise
+21096	dup	sockets XDG_RUNTIME_DIR — 套接字落位已有
+21098	noise	prose noise
+21102	noise	prose noise
+21103	noise	models internal
+21122	noise	names noise
+21124	noise	prose noise
+21125	noise	names noise
+21126	dup	CRUSH_CLIENT_SERVER mode — 客户端-服务端已有
+21134	noise	prose noise
+21135	noise	prose noise
+21137	noise	name noise
+21139	noise	prose noise
+21140	noise	prose noise
+21143	noise	media noise
+21145	boundary	ctrl+t — their UI
+21146	noise	media noise
+21147	dup	ctrl+y YOLO toggle — 自动批准切换已有
+21148	noise	media noise
+21149	noise	names noise
+21150	noise	prose noise
+21153	noise	prose noise
+21154	dup	CRUSH_CLIENT_SERVER opt-in — 已有
+21155	noise	prose noise
+21160	noise	prose noise
+21161	noise	prose noise
+21164	dup	CRUSH_CLIENT_SERVER=1 — 已有
+21168	noise	prose noise
+21169	noise	prose noise
+21177	noise	names noise
+21180	dup	client-server experimental — 已有
+21181	dup	mention gh/rg in system prompt — 工具感知提示已有
+21183	dup	shrunk system prompt — 提示压缩已有
+21184	noise	prose noise
+21186	noise	prose noise
+21187	noise	prose noise
+21199	noise	docs internal
+21201	noise	prose noise
+21202	noise	prose noise
+21203	dup	Assisted-by attribution — 归因尾签已有
+21204	noise	prose noise
+21205	dup	Assisted-by format — 已有
+21208	noise	prose noise
+21217	noise	prose noise
+21219	boundary	command filter — their UI
+21221	noise	config noise
+21222	dup	error on init fail — 初始化错误已有
+21224	noise	prose noise
+21226	noise	prose noise
+21227	noise	prose noise
+21233	noise	prose noise
+21234	noise	prose noise
+21235	noise	prose noise
+21245	noise	prose noise
+21247	noise	prose noise
+21248	noise	docs internal
+21252	noise	names noise
+21253	noise	prose noise
+21255	noise	prose noise
+21258	noise	prose noise
+21259	dup	reduced system prompt — 已有
+21260	dup	tool descriptions fewer tokens — 描述压缩已有
+21262	noise	prose noise
+21263	noise	prose noise
+21264	dup	diff detection heuristic — 差异识别已有
+21269	noise	names noise
+21270	noise	prose noise
+21271	boundary	iTerm2 progress — their UI
+21272	boundary	progress bar — their UI
+21273	noise	config noise
+21275	noise	prose noise
+21276	noise	prose noise
+21280	noise	prose noise
+21282	noise	prose noise
+21285	noise	names noise
+21286	dup	fewer tokens preview — 已有
+21287	noise	config noise
+21289	dup	crush_info attribution — 自查工具已有
+21290	noise	prose noise
+21297	dup	crush_info merged config — 配置自查已有
+21298	dup	crush_logs self-debug — 日志自查已有
+21300	dup	disabled_tools config — 工具禁用已有
+21301	noise	prose noise
+21313	noise	prose noise
+21314	noise	config noise
+21315	dup	disabled_skills config — 技能禁用已有
+21317	dup	client-server architecture — 已有
+21318	noise	prose noise
+21319	noise	prose noise
+21337	noise	prose noise
+21339	boundary	bigger prompt — their UI
+21340	boundary	prompt area grows — their UI
+21341	boundary	diff display fix — their UI
+21346	noise	prose noise
+21347	noise	prose noise
+21352	dup	AGENT env detection — 代理标识已有
+21353	dup	AI_AGENT env — 已有
+21354	noise	prose noise
+21355	noise	prose noise
+21356	noise	prose noise
+21358	noise	names noise
+21361	boundary	help dedup — their UI
+21363	noise	names noise
+21365	noise	prose noise
+21366	noise	prose noise
+21368	noise	alias internal
+21369	noise	prose noise
+21370	noise	prose noise
+21373	noise	names noise
+21374	noise	prose noise
+21378	noise	prose noise
+21380	noise	names noise
+21383	dup	auto_background_after param — 后台参数已有
+21384	dup	model-tunable background wait — 已有
+21385	noise	names noise
+21386	noise	prose noise
+21388	noise	prose noise
+21389	noise	prose noise
+21393	noise	prose noise
+21394	noise	prose noise
+21405	noise	prose noise
+21409	noise	prose noise
+21413	noise	prose noise
+21414	noise	names noise
+21424	noise	names noise
+21426	noise	prose noise
+21428	noise	prose noise
+21429	noise	names noise
+21434	noise	rls internal
+21441	noise	names noise
+21443	noise	prose noise
+21445	noise	prose noise
+21446	noise	names noise
+21447	noise	prose noise
+21448	noise	prose noise
+21449	noise	prose noise
+21450	noise	prose noise
+21451	noise	names noise
+21452	noise	prose noise
+21460	noise	prose noise
+21466	noise	prose noise
+21467	boundary	dialog visuals — their UI
+21481	noise	names noise
+21482	noise	prose noise
+21484	dup	LSP lazy start on file — 按需启动已有
+21496	noise	name noise
+21497	boundary	paste windows — their UI
+21499	noise	prose noise
+21500	noise	names noise
+21501	noise	prose noise
+21503	noise	prose noise
+21505	dup	session wipe/rename — 会话管理已有
+21506	noise	prose noise
+21510	boundary	expand items — their UI
+21511	boundary	click collapse — their UI
+21515	noise	prose noise
+21518	noise	prose noise
+21519	dup	respect OS HTTP proxy — 系统代理已有
+21536	noise	prose noise
+21537	dup	crush stats dashboard — 用量统计已有
+21544	noise	prose noise
+21545	noise	prose noise
+21554	noise	prose noise
+21562	noise	prose noise
+21563	noise	names noise
+21568	noise	prose noise
+21575	noise	prose noise
+21576	noise	prose noise

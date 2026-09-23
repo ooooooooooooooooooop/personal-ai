@@ -1,0 +1,200 @@
+10293	noise	cache intervals internal
+10294	noise	cap error internal
+10295	noise	npm publish internal
+10296	noise	publish internal
+10297	noise	artifacts internal
+10298	noise	lint internal
+10299	noise	adapter coverage internal
+10300	dup	surface runtime warnings exec — 警告暴露已有
+10303	noise	ref internal
+10306	noise	rusty_v8 internal
+10311	noise	advisory internal
+10314	dup	pair thread env settings — 环境配对已有
+10316	noise	otel internal
+10317	dup	typed file URIs — URI类型已有
+10318	noise	config internal
+10319	noise	citation prompt internal
+10320	dup	forked threads keep renamed titles — 标题保持已有
+10321	noise	prompt internal
+10322	dup	stop threading SandboxPolicy — 策略解耦已有
+10323	dup	copy settings worktrees — worktree配置已有
+10327	dup	-c config overrides — 覆盖已有
+10331	noise	websocket internal
+10333	dup	responses_lite override — 覆盖已有
+10336	dup	moderation metadata — 审核元数据已有
+10337	dup	v1 spawn metadata visible — 元数据已有
+10340	dup	require absolute cwd — 绝对路径已有
+10341	dup	diff tracker multi-env — 差异追踪已有
+10343	noise	serde internal
+10344	noise	lite tools internal
+10345	dup	v2 personal access tokens — 令牌已有
+10346	noise	header internal
+10347	noise	just internal
+10348	dup	credit limits+managed config bundles — 管控包已有
+10350	noise	formatting internal
+10351	noise	release mode internal
+10352	dup	parent_thread_id expose — 血统已有
+10353	dup	goal steering templates — 模板已有
+10354	dup	compressed rollouts materialize — 压缩物化已有
+10355	dup	renamed titles reconciliation — 标题保持已有
+10356	dup	compress cold rollouts — 冷压缩已有
+10358	noise	todo internal
+10359	dup	parallelize compression — 并行压缩已有
+10360	noise	justfile internal
+10361	noise	prompts internal
+10362	noise	counters internal
+10364	noise	histograms internal
+10368	noise	metadata internal
+10369	dup	reject directory rollout paths — 路径校验已有
+10370	noise	formatting internal
+10374	noise	stack internal
+10375	noise	bazel internal
+10376	dup	environmentId request_permissions — 环境ID已有
+10378	dup	stop SandboxPolicy guardian — 策略解耦已有
+10381	noise	rmcp internal
+10382	noise	storage internal
+10383	dup	refresh_token_reused relogin — 令牌复用检测已有
+10384	noise	memories root internal
+10385	noise	cache key internal
+10386	noise	metrics internal
+10387	dup	thread start contributor facts — 事实采集已有
+10388	dup	turn error lifecycle contributor — 生命周期已有
+10389	dup	pending response items store — 暂存已有
+10390	dup	gate goal tools eligibility — 资格门已有
+10392	noise	runners internal
+10393	noise	stdio alias internal
+10395	dup	internal fragments goal steering — 上下文片段已有
+10396	dup	inject_if_running steering — 注入转向已有
+10397	noise	manifest internal
+10399	noise	plumbing internal
+10400	noise	parsing internal
+10401	noise	helper internal
+10403	noise	prompt state internal
+10404	dup	goal usage limits turn errors — 限额处理已有
+10405	noise	tests internal
+10407	boundary	search activity — their UI
+10408	noise	helpers internal
+10409	dup	kill dropped fs helpers — 助手回收已有
+10411	dup	Ctrl-C tmux control-mode — 中断已有
+10412	dup	mentions exclude inaccessible — 可见性过滤已有
+10414	dup	function tools into tool hooks — hook默认已有
+10416	dup	centralize retry policy — 重试策略已有
+10417	dup	active turn singular — 单轮已有
+10419	noise	dedup internal
+10420	noise	slash input internal
+10421	dup	turn additional context — 附加上下文已有
+10422	dup	forked_from_thread_id metadata — fork溯源已有
+10423	dup	direct only caller websearch — 调用方限域已有
+10424	noise	description internal
+10425	noise	marker internal
+10426	noise	toolchain internal
+10430	dup	$ref/$defs preserve+compact schemas — schema保真已有
+10432	dup	Node tools honor proxy — 代理遵从已有
+10436	noise	trace internal
+10437	dup	tool executor specs mandatory — 规格强制已有
+10440	noise	manifest internal
+10442	noise	package internal
+10443	dup	thread search case-insensitive — 搜索已有
+10446	noise	profile internal
+10447	noise	profile internal
+10448	dup	avoid config snapshots traversal — 快照优化已有
+10450	noise	profile surface internal
+10453	noise	dotslash internal
+10456	dup	goals default dedicated storage — 目标存储已有
+10458	noise	wheels internal
+10459	noise	fields internal
+10461	noise	feature toggle internal
+10462	noise	undeferral internal
+10463	dup	context baselines full-history forks — fork基线已有
+10465	noise	tools config internal
+10466	dup	empty turn/start requests — 空请求已有
+10468	dup	steer input as user input — steer语义已有
+10470	dup	SubagentStart hook — hook事件已有
+10472	dup	role-defined spawn tiers — 层级已有
+10473	dup	CUA locked requirements — 锁定需求已有
+10476	dup	raw code-mode output default — 原始输出已有
+10478	dup	encryptedcontent functioncalloutput — 加密内容已有
+10484	dup	hide deferred tools code mode — 工具隐藏已有
+10485	noise	bwrap internal
+10486	noise	checksums internal
+10488	noise	archives internal
+10489	noise	dotslash internal
+10492	noise	zstd internal
+10494	noise	binaries internal
+10496	dup	client-resolved tier defaults — 层级默认已有
+10498	noise	python API internal
+10499	dup	goal continuations stop on limits — 循环熔断已有
+10500	noise	python internal
+10501	noise	python internal
+10504	noise	prompt internal
+10505	noise	CRT internal
+10508	noise	test internal
+10509	dup	apply_patch freeform default — 补丁格式已有
+10510	noise	comment internal
+10512	noise	tier commands internal
+10513	noise	GHA internal
+10515	noise	wheels internal
+10516	noise	display helper internal
+10517	dup	desktop attestation — 设备证明已有
+10518	noise	apply_patch internal
+10519	dup	remove legacy after-tool-use hooks — hook收敛已有
+10520	noise	cargo internal
+10523	dup	file watcher out of core — 监听解耦已有
+10524	dup	priority tier persist — 层级持久已有
+10526	dup	unknown tools default mutating — 默认变更类已有
+10529	dup	remove TCP listener — 攻击面收敛已有
+10532	dup	revoke superseded tokens — 令牌撤销已有
+10533	dup	page threads summary/full views — 分页视图已有
+10534	dup	view_image env resolve — 环境解析已有
+10535	dup	config changes no restart — 热加载已有
+10538	dup	diff tracking operation backed — 差异追踪已有
+10540	noise	crate internal
+10541	dup	live threads config snapshot — 配置刷新已有
+10542	noise	specs internal
+10543	noise	cargo internal
+10544	noise	cargo internal
+10546	noise	cargo internal
+10547	noise	cargo internal
+10550	noise	cargo internal
+10555	dup	/hooks browser — hook浏览已有
+10557	dup	external import completion — 导入事件已有
+10558	dup	apply_patch stateful parser — 流式解析已有
+10559	dup	codex_hooks alias — 特性别名已有
+10564	noise	transport internal
+10566	dup	elicitation capability shape — 征求能力已有
+10567	dup	clear live hook rows finalize — hook清理已有
+10568	noise	globals internal
+10570	noise	dispatch internal
+10571	noise	rename internal
+10573	noise	legacy internal
+10577	dup	interruption markers assistant-authored — 中断标记已有
+10579	dup	interrupt_message markers — 中断消息已有
+10580	dup	PID named pipe consumer — 管道校验已有
+10581	dup	package-manager install policy — 安装策略已有
+10582	boundary	disabled rows focus — their UI
+10583	dup	profile conversion cwd-free — cwd无关已有
+10584	dup	remove read-only modes — 模式收敛已有
+10585	noise	js_repl internal
+10591	dup	runtime config profile-backed — 档案化已有
+10592	dup	compatibility policies profiles — 档案化已有
+10593	noise	error boundary internal
+10594	noise	config internal
+10596	noise	end_turn internal
+10597	noise	policy internal
+10598	dup	agents.max_threads multi_agent — 并发上限已有
+10599	dup	profile-backed surfaces — 档案化已有
+10600	dup	requirements as profiles — 档案化已有
+10601	dup	legacy exec policies boundaries — 边界推导已有
+10603	noise	selection internal
+10606	noise	handlers internal
+10607	dup	remove cwd special path — 特判移除已有
+10608	noise	handler internal
+10609	noise	handlers internal
+10610	noise	handlers internal
+10611	noise	truncated noise
+10614	dup	reject max_threads multi_agent — 参数校验已有
+10615	dup	wait close after exit — 关闭等待已有
+10617	dup	Unix socket transport — 传输已有
+10618	noise	fixtures internal
+10619	noise	windowstyle internal
+10620	dup	no ACLs installed dir — 权限收敛已有

@@ -1,0 +1,200 @@
+9227	boundary	frame rate TUI — their UI
+9228	dup	bound replay buffers delta — 缓冲上限已有
+9231	dup	Guardian strict review notify — 审查通知已有
+9234	noise	http client internal
+9235	boundary	blocked goals stalled — their UI
+9237	boundary	reasoning summaries — their UI
+9238	noise	analytics clone internal
+9239	boundary	fork naming — their UI
+9240	noise	editor restore internal
+9241	noise	shutdown cmd internal
+9242	boundary	CUDA highlight — their UI
+9244	dup	keep TUI on turn fail — 失败保活已有
+9248	boundary	reasoning select — their UI
+9254	noise	test sync internal
+9255	boundary	mention visibility — their UI
+9256	dup	prompts auto-resolve countdown — 超时自答已有
+9260	boundary	url linkify — their UI
+9262	dup	preserve requirements across resets — 重置保持已有
+9270	boundary	paste in menus — their UI
+9275	dup	ui visibility meta tools — 工具可见性已有
+9287	boundary	mentions inaccessible — their UI
+9293	boundary	log opt-in — their UI
+9298	noise	package layout internal
+9301	noise	split modules internal
+9303	dup	turn notifications by ID — 通知路由已有
+9304	boundary	tier commands — their UI
+9309	boundary	unified mentions — their UI
+9310	noise	keymap config internal
+9312	boundary	copy/keys — their UI
+9313	dup	paste placeholders survive clear — 占位持久已有
+9314	noise	notification internal
+9317	noise	deprecate notify internal
+9327	boundary	tmux OSC9 — their UI
+9337	boundary	status line title — their UI
+9341	boundary	rate limits async — their UI
+9343	boundary	fast mode off — their UI
+9349	boundary	plugins TUI — their UI
+9350	boundary	plugins gate — their UI
+9351	boundary	plugins install — their UI
+9356	boundary	realtime end — their UI
+9360	boundary	subagents naming — their UI
+9361	noise	notify test internal
+9363	boundary	sound — their UI
+9364	boundary	steer follow-ups — their UI
+9372	dup	pending steers core acceptance — steer对齐已有
+9375	dup	client in hook payload — hook载荷已有
+9392	dup	archive/unarchive notifications — 事件通知已有
+9393	dup	archive notifications — 事件通知已有
+9399	boundary	tooltip links — their UI
+9403	boundary	statusline tooltip — their UI
+9409	boundary	slug — their UI
+9411	dup	APIs steering/features/resume/opt-out — 客户端API已有
+9419	boundary	arrows navigate — their UI
+9421	noise	personality internal
+9426	boundary	working shimmer — their UI
+9430	boundary	esc clear notes — their UI
+9432	boundary	credits tooltip — their UI
+9436	boundary	unarchive timestamp — their UI
+9439	boundary	/apps connectors — their UI
+9441	boundary	footer — their UI
+9442	boundary	input interactions — their UI
+9445	boundary	footer label — their UI
+9449	boundary	input wrap — their UI
+9453	boundary	turn timing — their UI
+9454	boundary	interruption ui — their UI
+9461	noise	UserTurn internal
+9466	boundary	collab tui — their UI
+9468	boundary	separator — their UI
+9473	dup	config parse errors reported not silent — 错误报告已有
+9474	dup	paste-burst state machine doc — 状态机已有
+9476	dup	send mid-turn queue by tab — 队列已有
+9477	boundary	queue hint — their UI
+9482	dup	offline cache migrations — 离线缓存已有
+9488	boundary	footer note — their UI
+9500	boundary	model family — their UI
+9503	boundary	scroll config — their UI
+9506	boundary	terminals — their UI
+9508	noise	tui2 sync internal
+9510	boundary	ansi log — their UI
+9512	dup	whitelist command prefix core — 前缀白名单已有
+9513	dup	execpolicy flow — 策略流已有
+9518	noise	models manager internal
+9520	dup	dup-length placeholders distinct — 占位去重已有
+9522	dup	thread_id/turn_id notifications — ID载荷已有
+9526	dup	world-writable check — 权限检查已有
+9532	boundary	ctrl-z job control — their UI
+9533	boundary	rate limit bar — their UI
+9534	boundary	ctrl-n/p — their UI
+9535	boundary	backtrack status — their UI
+9537	noise	notifications noise
+9540	boundary	word separator — their UI
+9542	dup	rateLimits notifications — 通知已有
+9543	boundary	aggregated output — their UI
+9546	boundary	queued messages — their UI
+9558	boundary	wrapping — their UI
+9559	boundary	spinner — their UI
+9560	noise	instruction hack internal
+9561	boundary	palette — their UI
+9562	boundary	palette off-by — their UI
+9564	boundary	working dim — their UI
+9565	boundary	dialog display — their UI
+9569	boundary	separator — their UI
+9571	boundary	rate limits UI — their UI
+9572	boundary	rate limits — their UI
+9573	boundary	backtracking — their UI
+9574	noise	notifier tests internal
+9575	boundary	notifications — their UI
+9576	dup	agent reply text in notifications — 通知文本已有
+9582	boundary	alt-delete — their UI
+9583	boundary	paste ctrl+v — their UI
+9585	noise	author噪声
+9586	noise	artifact噪声
+9587	noise	artifact噪声
+9588	noise	artifact噪声
+9591	noise	reaction噪声
+9593	dup	standalone pins daemon updates — 更新钉住已有
+9594	dup	updater on managed starts — 更新已有
+9596	dup	auto updates configurable — 更新开关已有
+9599	dup	Guardian reviewers thread manager — 审查管理已有
+9600	dup	shutdown grace configurable — 优雅关闭已有
+9601	dup	Guardian evidence centralize — 审查上下文已有
+9605	dup	Guardian context compose — 审查上下文已有
+9606	boundary	OIDC login — their product
+9607	boundary	/copy picker — their UI
+9608	dup	undefined JSON serialization — 序列化防护已有
+9609	dup	close proxy conns teardown — 连接清理已有
+9611	boundary	routing cookies — their product
+9612	dup	tool refreshes propagate threads — 刷新传播已有
+9613	dup	deny-read glob scan protocol — 拒读扫描已有
+9617	dup	gate submissions shutdown admission — 关闭准入已有
+9618	dup	gate work graceful shutdown — 关闭准入已有
+9619	noise	apostrophes internal
+9620	noise	author噪声
+9621	boundary	max/ultra effort — their product
+9623	noise	migration noise
+9625	noise	license noise
+9626	dup	inline answers while working — 内联答复已有
+9630	dup	managed worktree creation — worktree已有
+9631	noise	history notes internal
+9633	noise	zlib fetch internal
+9634	dup	retained answers steer rollbacks — 回滚保持已有
+9635	noise	binary paths internal
+9636	dup	thread unload delay config — 卸载延迟已有
+9637	dup	control socket rendezvous — 套接字加固已有
+9639	dup	free-form async user messages — 异步消息已有
+9640	noise	buffered replay internal
+9641	dup	rate limit usage capabilities — 配额能力已有
+9642	dup	graceful daemon shutdown Windows — 优雅关闭已有
+9643	dup	list managed worktrees — worktree列表已有
+9644	dup	SQLite history past invalid — 容错推进已有
+9645	noise	realtime sessions internal
+9646	dup	canonical JSON decoder rollout — 解码统一已有
+9647	dup	managed lifecycle Windows — 生命周期已有
+9648	noise	rmcp update internal
+9649	dup	context management activation — 上下文激活已有
+9650	dup	loaded thread environments — 环境暴露已有
+9651	dup	authorize apply_patch executor path — 授权路径已有
+9652	dup	daemon updates Windows — 更新已有
+9653	dup	version to commands/turn metadata — 版本暴露已有
+9654	dup	restored input misalignment errors — 输入恢复已有
+9656	dup	daemon Windows — 守护已有
+9657	noise	composer input internal
+9658	dup	misalignment-paused review/continue — 暂停续审已有
+9659	dup	network requirements expose — 需求暴露已有
+9660	dup	model requirements Guardian scoring — 评分遵从已有
+9661	noise	composer internal
+9662	boundary	live task details — their UI
+9665	dup	deprecate detached review — 交付路径已有
+9666	noise	metrics internal
+9667	dup	Noise handshakes bounded — 握手超时已有
+9669	dup	managed worktrees exec — worktree已有
+9673	noise	author噪声
+9675	noise	author噪声
+9676	boundary	usage warning — their product
+9678	dup	bounded context empty wake — 上下文绑定已有
+9679	dup	skip archived rollouts — 扫描优化已有
+9680	noise	schema crate internal
+9681	boundary	agents overview — their UI
+9682	dup	per-call sideband endpoints — 边带已有
+9684	noise	reconnect test internal
+9685	noise	WAV omit internal
+9686	dup	nested tool call tracing — 嵌套追踪已有
+9687	dup	raw usage metadata preserve — 元数据已有
+9688	dup	Guardian retention shared — 保留逻辑已有
+9689	noise	report diag internal
+9690	dup	shared histories compression — 压缩含历史已有
+9691	noise	metrics tag internal
+9692	dup	account selectors Apps calls — 账号选择已有
+9693	dup	Guardian history reconstruction — 历史重建已有
+9696	noise	vite install internal
+9698	dup	nested REPL reviews attribute — 归因已有
+9699	dup	Guardian context centralize — 上下文已有
+9700	noise	MXC internal
+9701	noise	otel crate internal
+9702	boundary	recent sessions — their UI
+9703	boundary	rate-limit actions — their UI
+9704	dup	thread/shellCommand timeouts >1hr — 超时配置已有
+9706	dup	reject untrusted URLs no redirects — 凭据保护已有
+9709	dup	Guardian context rollover — 滚动已有
+9710	dup	token budgets review rollover — 预算滚动已有

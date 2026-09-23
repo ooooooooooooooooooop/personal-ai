@@ -1,0 +1,200 @@
+12504	noise	install detect internal
+12505	dup	uploads resilient slow networks — 上传韧性已有
+12506	dup	harden diagnostic uploads — 上传加固已有
+12507	dup	telemetry limits configurable — 遥测上限已有
+12510	dup	log Guardian classifications — 分类日志已有
+12512	dup	endpoint protection doctor — 端点检查已有
+12513	dup	doctor network diagnostics — 诊断已有
+12515	noise	telemetry worker internal
+12516	dup	doctor desktop diagnostics — 诊断已有
+12517	dup	doctor update diagnostics — 诊断已有
+12518	noise	analytics internal
+12519	dup	reload telemetry account changes — 遥测刷新已有
+12520	noise	rename internal
+12521	dup	limit payload traces logs — 日志限界已有
+12523	noise	release internal
+12524	noise	logging internal
+12526	noise	telemetry internal
+12527	noise	trace internal
+12528	dup	connector caches diagnostics — 诊断附件已有
+12529	boundary	redemption picker — their UI
+12530	noise	flag internal
+12533	noise	lint internal
+12537	noise	analytics internal
+12540	noise	analytics internal
+12545	noise	analytics internal
+12546	noise	analytics internal
+12547	noise	flag internal
+12548	noise	analytics internal
+12549	dup	refresh near-expiry tokens — 令牌预刷已有
+12550	noise	entrypoint internal
+12554	noise	profile internal
+12555	noise	telemetry internal
+12559	noise	install internal
+12567	noise	analytics internal
+12569	noise	analytics internal
+12571	noise	ga flag internal
+12573	noise	analytics internal
+12574	noise	analytics internal
+12577	noise	dev dep internal
+12579	dup	defer tools feature flag — 延迟加载已有
+12580	dup	symlink flag fs metadata — 元数据已有
+12581	noise	analytics internal
+12582	noise	flag internal
+12583	noise	flag internal
+12592	dup	requirements.toml override local — 需求覆盖已有
+12597	noise	analytics internal
+12603	dup	SQLite log retention 10d — 日志保留已有
+12607	dup	nested tool responses rollout — 嵌套记录已有
+12608	noise	log internal
+12613	noise	model visible internal
+12614	noise	flag internal
+12616	dup	10 MiB log caps — 日志上限已有
+12618	noise	log level internal
+12627	noise	personality internal
+12632	dup	models refresh version mismatch — 刷新已有
+12636	noise	message internal
+12638	boundary	menu quit — their UI
+12645	noise	yaml internal
+12648	noise	logging internal
+12649	dup	end_turn flag — 结束标记已有
+12661	dup	web_search_cached flag — 缓存已有
+12670	dup	allowed_sandbox_modes requirements — 沙箱需求已有
+12672	boundary	tui2 flag — their UI
+12673	noise	logging internal
+12677	noise	logging internal
+12678	dup	browser/URL launches dangerous — 危险标记已有
+12680	noise	log internal
+12682	dup	debug seatbelt log-denials — 沙箱诊断已有
+12683	noise	artifacts internal
+12684	noise	encode internal
+12685	noise	release internal
+12690	noise	http wrapper internal
+12695	noise	log internal
+12701	noise	key noise
+12702	noise	gh internal
+12704	noise	cargo internal
+12753	dup	AGENTS loading warnings invalid UTF-8 — 指令加载已有
+12786	dup	stdio UTF-8 Windows — 编码已有
+12844	dup	Guardian image selection sections — 图片选择已有
+12847	boundary	voice transcripts — their UI
+12851	noise	voice meter internal
+12853	noise	audio sink internal
+12855	noise	analytics internal
+12856	noise	voice resources internal
+12861	noise	runtime internal
+12862	noise	pipe frames internal
+12863	dup	prompt image detail modes — 图片档已有
+12864	noise	gstreamer internal
+12866	noise	voice internal
+12869	noise	voice internal
+12871	noise	test internal
+12872	dup	PDF uploads creation context — 上传上下文已有
+12877	dup	responses after image gen — 生成后响应已有
+12878	noise	tools internal
+12879	dup	bounded image cache 64MB+uploads — 缓存限界已有
+12882	noise	data URL internal
+12883	dup	strip image detail Lite — 档位剥离已有
+12884	dup	preserve metadata resizing — 元数据已有
+12887	noise	spans internal
+12890	dup	preserve image fidelity original — 保真已有
+12891	dup	image detail inputs — 细节已有
+12892	noise	item internal
+12893	dup	cap original-detail token estimates — 估算上限已有
+12897	dup	image URL view_image — URL返回已有
+12899	noise	gate internal
+12901	dup	models opt original detail — 细节档已有
+12902	noise	enum internal
+12903	dup	image gen saves cwd — 落盘已有
+12909	noise	log internal
+12911	noise	image output internal
+12913	dup	multimodal custom tool outputs — 多模态输出已有
+12915	noise	test internal
+12917	dup	multimodal outputs — 多模态已有
+12926	dup	gate images by modalities — 模态门已有
+12931	dup	invalid uploads error not silent — 错误可见已有
+12937	noise	deps internal
+12939	noise	wayland internal
+12943	boundary	placeholder — their UI
+12944	boundary	viewed image — their UI
+12950	dup	discount own wrapper score lag — 评分修正已有
+12951	noise	registry internal
+12952	noise	context internal
+12956	dup	worktree owner+confirmed deletion — 删除确认已有
+12960	dup	target-native cwd approvals — cwd保持已有
+12961	dup	avoid PATH helpers before trust — 信任排序已有
+12962	dup	confirm safety-buffered retries — 重试确认已有
+12963	dup	discover permission profiles server — 档案发现已有
+12964	dup	target-native paths approvals — 路径已有
+12968	dup	transforms executor path context — 路径上下文已有
+12969	dup	executor path preapproval — 预批已有
+12974	dup	approval reviews longer transcript — 审查上下文已有
+12976	noise	retry internal
+12978	dup	cloud credentials trusted origins — 凭据限域已有
+12979	dup	approve first REPL no wait — 首执免等已有
+12983	dup	preserve profiles TUI sessions — 档案保持已有
+12984	dup	sandboxing/MCP errors/cached approvals — 审批缓存已有
+12989	dup	managed deny-read preserved — 拒读保持已有
+12990	dup	granular sandbox approvals exec — 粒度审批已有
+12992	boundary	nudge — their UI
+12993	dup	restore permission profile resume/fork — 档案恢复已有
+12994	dup	DNS exfiltration docs — 风险文档已有
+12995	dup	legacy :project_roots — 兼容已有
+12996	dup	reject obsolete profile fields — 字段校验已有
+12997	noise	test internal
+12999	dup	preserve foreign paths approvals — 路径保持已有
+13001	dup	permission path conventions — 约定已有
+13002	dup	reject lossy legacy projections — 有损拒绝已有
+13003	dup	persist profiles turn context — 档案持久已有
+13004	dup	restore profiles resume — 档案恢复已有
+13005	dup	approval dynamic shell words — 动态词审批已有
+13007	dup	restore approval policy resume — 策略恢复已有
+13008	dup	ignore reusable approvals cyber — 复用限域已有
+13009	dup	step environments Guardian reviews — 环境审查已有
+13010	dup	step context prefix rules — 前缀规则已有
+13013	dup	explicit trust unfamiliar projects — 信任门已有
+13014	noise	skills order internal
+13016	dup	preserve messages/errors/approvals across interruptions/forks — 持久全景已有
+13017	dup	preserve approvals reviewer forking — 审查者保持已有
+13019	dup	permission hooks auto-review — hook审查已有
+13020	dup	local path conventions approvals — 约定已有
+13021	dup	trust hooks materialized plugins — 插件hook信任已有
+13025	dup	approvals trigger elicitation pause — 征求暂停已有
+13027	noise	test internal
+13032	noise	test internal
+13034	dup	preserve executor-native dirs/shells — 跨边界路径已有
+13036	dup	PathUri permission paths — 路径已有
+13037	dup	hook trust bypass exec — 信任透传已有
+13038	dup	ApiPathString permission paths — 路径已有
+13042	dup	gate idle turns Plan mode — 空闲门已有
+13043	dup	managed profile allowlists — 白名单强制已有
+13051	dup	propagate approval env id — 环境ID已有
+13055	dup	fs profiles prompt context — 上下文已有
+13057	boundary	/permissions profiles — their UI
+13062	noise	plumb internal
+13066	dup	profile ids v2 params — 档案ID已有
+13068	dup	deny canonical fs entries — 拒绝规范化已有
+13071	dup	profiles elevated runner — 档案传递已有
+13073	dup	refresh active profiles runtime — 运行时刷新已有
+13075	dup	profiles through app commands — 档案传递已有
+13076	dup	profiles from snapshots — 快照已有
+13083	dup	hooks trust flow TUI — hook信任已有
+13088	dup	deferred denials/proxy bypass/IPv6/git -C — 网络管控已有
+13092	dup	approval consumers profiles — 档案迁移已有
+13094	dup	store only constrained profiles — 存储收紧已有
+13101	dup	profiles on user turns — 档案传递已有
+13102	dup	profiles in sandbox state — 沙箱状态已有
+13103	dup	resolved profiles escalation — 升级路径已有
+13108	dup	materialize cwd-relative globs — 相对物化已有
+13109	dup	derive active profiles — 档案推导已有
+13112	dup	profile overrides app-server — 覆盖已有
+13116	dup	profiles to app-server — 传递已有
+13117	dup	persist turn permission profiles — 持久已有
+13122	dup	command permission profiles — 档案已有
+13124	dup	fs entries permission requests — 条目已有
+13126	dup	glob scan depth profiles — 深度保持已有
+13127	dup	intersect profiles semantically — 语义交集已有
+13135	dup	thread unloads/trust persistence/symlinks — 稳定化已有
+13142	dup	auto-trust cwd thread start — cwd信任已有
+13143	dup	.codex protected first creation — 首建保护已有
+13146	noise	skill metadata internal

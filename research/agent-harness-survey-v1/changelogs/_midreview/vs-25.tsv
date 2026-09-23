@@ -1,0 +1,200 @@
+50179	boundary	Opus summarized thinking — their provider
+50188	boundary	GPT-5.5 ctx limits — their provider
+50597	noise	Bedrock reasoning cache internal
+50613	noise	Kimi system prompt internal
+50733	noise	Kimi schema sanitize internal
+50775	noise	agent loop tool calls internal
+50780	noise	Kimi system prompt internal
+50790	noise	Bedrock empty blocks internal
+50884	noise	Copilot beta headers internal
+50917	noise	Vertex thinking presets internal
+50921	noise	codex refresh tokens internal
+50925	noise	Bedrock inference profile internal
+50967	noise	Anthropic empty msgs internal
+50991	noise	empty image Anthropic internal
+50992	noise	empty image Anthropic internal
+51070	noise	anthropic prompts internal
+51087	noise	anthropic auth internal
+51158	boundary	gpt-5.5-pro hide — their product
+51168	noise	opencode MCP schema internal
+51199	noise	OpenAI OAuth restore internal
+51258	noise	streamObject oauth internal
+51345	noise	anthropic oauth cache internal
+52946	boundary	subagent modal — their TUI
+52995	boundary	anthropic oauth plugin remove — their product
+53110	noise	Anthropic plugin header internal
+54541	noise	bedrock container creds internal
+55566	boundary	jira-dc panel — their UI
+55942	boundary	skills modal actions — their UI
+55944	boundary	auto-accept invites — their product
+56050	noise	empty image URLs internal
+56160	noise	cache hit log internal
+56859	noise	Mistral tool calls internal
+56871	noise	Bedrock response hooks internal
+56877	noise	tool call namespaces internal
+56889	noise	header null markers internal
+56925	noise	Kimi thinking effort internal
+56990	noise	null content tolerance internal
+57033	noise	empty signature flag internal
+57045	noise	output token requests internal
+57046	noise	AUTH_TOKEN env internal
+57059	noise	interleaved deltas internal
+57060	noise	empty system prompt internal
+57081	noise	SDK audit bump internal
+57104	noise	DeepSeek replay 400 internal
+57140	dup	scratch buffer leak persisted calls — 持久化完整性已有
+57168	noise	network_error handling internal
+57177	noise	Bedrock thinking replay internal
+57197	dup	replayable signatures session history — 回放完整性已有
+57209	noise	AWS_PROFILE region internal
+57222	noise	trailing JSON tolerance internal
+57227	noise	trailing JSON tolerance internal
+57228	noise	model name revert internal
+57229	noise	ctx windows correction internal
+57277	noise	reasoning item replay internal
+57290	noise	bundled prompt update internal
+57415	noise	reasoning-effort metadata internal
+57483	noise	tool-selection guidance internal
+57690	boundary	device-code login — their product
+57739	boundary	Opus 5 Copilot — their provider
+57771	noise	Azure ctx metadata internal
+57777	noise	cache key 64char internal
+57785	noise	cache hit tracking internal
+57821	noise	ctx metadata internal
+58852	noise	reasoning_details order internal
+58857	noise	Vertex unsigned replay internal
+58864	dup	tool call ID normalize on resume — 恢复规范化已有
+59726	noise	GLM thinking revert internal
+59766	noise	system prompt strengthen internal
+59830	noise	openrouter auth internal
+60378	boundary	web-shell uploads — their UI
+60978	noise	test isolation internal
+61031	noise	DSW POC internal
+61089	noise	sandbox EPERM macOS internal
+61186	boundary	autofix skill — their skill
+61358	boundary	session history vscode — their UI
+61958	noise	cache breakpoint internal
+62812	noise	ReDoS hostname internal
+63208	dup	exit_plan_mode guidance error — 计划模式引导已有
+63349	noise	reasoning presets internal
+63371	noise	Vertex keyless auth internal
+63385	noise	Vertex ADC internal
+63466	noise	APIUserAbortError internal
+63475	dup	compression cache share — 缓存共享已有
+63476	dup	compression cache share — 缓存共享已有
+63538	dup	strip daemon secrets child env — 子进程密钥清洗已有
+63601	noise	Anthropic empty stream internal
+63614	noise	DeepSeek text-only internal
+63616	noise	text-only presets internal
+63622	boundary	computer-use fork — their product
+63625	dup	retry visibility span — 重试遥测已有
+63629	noise	CI review ack internal
+63632	boundary	computer-use fork — their product
+63641	boundary	serve daemon — their product
+63660	noise	reasoning_content inject internal
+63663	noise	auth status internal
+63677	boundary	hooks UI — their UI
+64366	dup	subagent span isolation — 子代理遥测隔离已有
+64370	dup	subagent JSON log tag — 日志标记已有
+64519	noise	MCP multi-part results internal
+64591	noise	Qwen OAuth drop internal
+64593	noise	MCP OAuth docs internal
+64633	boundary	Qwen OAuth cutoff — their provider
+64634	boundary	qwen-oauth block — their UI
+64655	noise	Qwen OAuth info internal
+64659	boundary	qwen-oauth fallback — their UI
+64666	noise	qwen-oauth hang internal
+64669	noise	tool call chunks logging internal
+65006	dup	hierarchical trace tree — 层级追踪已有
+66785	noise	Bedrock thinking revert internal
+66851	noise	cache usage tracking internal
+67401	noise	ctx error handling internal
+67705	noise	None tool_calls internal
+69025	boundary	settings as tabs — their UI
+69520	noise	GPT-5.1 tool calls internal
+71356	noise	Ollama tool images internal
+71359	noise	usage limits report internal
+71389	noise	Bedrock dup replies internal
+71442	boundary	Bedrock 1M ctx — their provider
+71445	boundary	Bedrock 1M ctx — their provider
+71504	noise	cancel mid-thought internal
+71511	boundary	BYOK 1M ctx — their provider
+71533	noise	DeepSeek reasoning tools internal
+71543	boundary	Gemini 3 OpenRouter — their provider
+71550	noise	Ollama tool calling internal
+71581	noise	empty delta skip internal
+71583	noise	empty delta skip internal
+71605	noise	grok-code tool internal
+71775	boundary	console link — their UI
+71793	noise	tool calling add internal
+71804	noise	system prompts drop internal
+71819	boundary	ctrl-x inline assist — their UI
+72150	noise	usage-only event internal
+72161	noise	usage-only event internal
+72205	noise	codestral URL auth internal
+72209	noise	codestral URL auth internal
+73822	boundary	read_file scroll — their UI
+74325	dup	OpenRouter auto-retry rate limit — 自动重试已有
+77077	boundary	outline focus — their UI
+77871	boundary	task rerun modal — their UI
+79320	dup	ctx exceeded handling — 溢出处理已有
+79419	boundary	feedback modal — their UI
+79605	boundary	commit tooltip — their UI
+79670	boundary	tasks modal tab — their UI
+79681	boundary	AWS creds delete — their product
+79724	boundary	Git modal sync — their UI
+79725	boundary	Git modal consistency — their UI
+412	noise	version import errors internal
+512	noise	cost estimate logic internal
+631	noise	repo map tree-sitter internal
+959	noise	ToS/Privacy internal
+1519	noise	Gemini rate limit internal
+1640	noise	gemini telemetry internal
+1830	boundary	rules toggle modal header — their UI
+2083	noise	hooks tests internal
+2097	noise	hooks docs internal
+2202	noise	new_task prompt remove internal
+2213	noise	Hermes-4 prompt internal
+2224	noise	hooks docs internal
+2283	dup	subscribeToCheckpoints proto — 检查点订阅已有
+2301	dup	Checkpoints+Task Locking — 检查点+任务锁已有
+2330	noise	watch build internal
+2331	boundary	multiroot mentions — their UI
+2334	noise	auth refactor internal
+2336	noise	multiroot docs internal
+2375	noise	focus chain revert internal
+2497	dup	plan/act model settings split — 分模式模型已有
+2525	noise	auth callback state internal
+2555	noise	auth flow validation internal
+2631	dup	checkpoints in messages — 检查点消息已有
+2634	boundary	drag&drop — their UI
+2640	boundary	slash commands — their UI
+2843	dup	subagent context compaction — 子代理压缩已有
+2893	boundary	notification hook UI — their UI
+3155	boundary	OAuth SDK centralize — their product
+3157	boundary	OAuth clickable — their TUI
+3170	boundary	MCP image display — their UI
+3196	noise	MCP debug logs internal
+3234	noise	workspace root read internal
+3356	noise	window dragging internal
+3388	noise	hook template escaping internal
+3392	noise	hooks tests internal
+3397	noise	auth ACP internal
+3400	noise	auth ACP flag internal
+3510	boundary	AutoApprove overflow — their UI
+3559	noise	McpHub import internal
+3585	dup	checkpoints fix — 检查点已有
+3635	dup	telemetry device_id — 遥测标识已有
+3737	noise	accounts telemetry internal
+3823	boundary	ctx window display — their UI
+3875	boundary	auto approve a11y — their UI
+3877	boundary	auto approve popups — their UI
+3903	noise	auto approve unset internal
+3914	dup	Auto-approve — 审批已有
+4012	noise	hostbridge telemetry internal
+5605	boundary	drag inertia — their UI
+6173	boundary	drag resize — their UI
+9112	noise	auth tests internal
+9552	dup	thread ID notifier metadata — 溯源已有
+9555	dup	sandbox_workspace_write — 沙箱档已有
+11052	noise	empty draft internal

@@ -1,0 +1,200 @@
+2180	boundary	panel settings删除/配置MCP servers
+2181	noise	MCP settings空态误渲染修复
+2182	dup	loopback custom provider保留blank API key — provider edge
+2183	dup	local CLI provider auth失败指向该CLI — auth UX
+2184	dup	managed external CLI OAuth凭据回写auth-profiles.json — auth persist
+2185	dup	/model ...@profile锁定session+user-locked auth — profile lock
+2186	dup	task_started/task_progress等独立system events — task events
+2187	boundary	Cascade conversation toolbar(MCP/Preview/Deployments)
+2188	dup	inherited model load errors附underlying cause — error chain
+2189	dup	oauthRef Codex profiles保持可用 — auth refresh
+2190	dup	codex/* image models走bounded app-server turns — media routing
+2191	dup	mcpServers JSONC注释保存保留 — config fidelity
+2192	dup	MultiAgentV2 thread limits冲突拒绝 — config validation
+2193	cand	remote-mcp: MCP stored prompts模板支持
+2194	cand	remote-mcp: mcp add figma --url免额外配置OAuth
+2195	dup	Anthropic OAuth localhost callback URI — OAuth fix
+2196	dup	长context中plain text tool call不中断任务 — tool parse
+2197	boundary	Gemini CLI OAuth免费模型(Cloud Code Assist)
+2198	dup	root worktree hooks一致+忽略repo hook/fsmonitor config — git hygiene
+2199	boundary	mcp CLI改进+MCP OAuth debug
+2200	dup	MCP validation过宽匹配修复 — auth matching
+2201	cand	remote-mcp: tools/list_changed通知自动刷新tool list
+2202	cand	remote-mcp: Elicitation(tool执行中交互prompt)
+2203	dup	模型双重编码tool params修复 — param decode
+2204	dup	ACP/embedded mode MCP tools不可见修复 — discovery fix
+2205	boundary	MCP panel按config source分组
+2206	dup	tool-result text含换行致次轮中断修复 — result hygiene
+2207	dup	mcp.*配置热apply(dispose cached runtimes) — config hot reload
+2208	cand	remote-mcp: streamable HTTP OAuth免feature flag
+2209	dup	setup-token/token auth profiles+auth order命令 — auth CLI
+2210	dup	invalid JSON tool args不再断session — error tolerance
+2211	dup	仅message明示才算context-overflow — error classify
+2212	cand	pdf: ClawPDF extraction+encrypted PDF+MCP structured content
+2213	boundary	Google Meet OAuth/doctor flows
+2214	dup	prewarm后.mcp.json project servers加载 — mcp prewarm
+2215	cand	remote-mcp: streamable HTTP server支持oauth时提示mcp login
+2216	dup	保留server返回tool call index — stream integrity
+2217	dup	tool call params截断retry优化 — retry
+2218	dup	tool discovery+image generation默认启用 — defaults
+2219	cand	remote-mcp: RFC 9207 issuer identification OAuth
+2220	dup	auth改oauth mid-session提示重启 — auth transition
+2221	cand	remote-mcp: tool progress updates TUI/SDK
+2222	boundary	native tool call feature flag
+2223	dup	/steer mid-run注入note — steer已实装
+2224	dup	memory mode/reset/deletion/extension cleanup控制 — memory controls
+2225	boundary	Web preview panels(desktop/mobile宽度)
+2226	dup	/tokens context usage — usage command
+2227	cand	compaction: /model --compaction专用压缩模型
+2228	dup	thread/compact async trigger RPC — compaction API
+2229	dup	command output进chat时token反馈 — token feedback
+2230	dup	compaction/branch summaries usage notices — usage notices
+2231	noise	DeepSeek V4 Pro/Flash 1M
+2232	dup	compaction后误用compact agent修复 — agent restore
+2233	dup	定期清理completed task records+过期member refs — memory cleanup
+2234	dup	compact agent file reading config修复 — agent config
+2235	boundary	Regenerate Thread Title
+2236	dup	split usage(input/output)显示一致 — usage display
+2237	dup	preflight compaction用Codex runtime context window — context sizing
+2238	dup	summary不能生成时取消safeguard compaction — compaction guard
+2239	cand	compaction: postCompactionSections部署可配
+2240	cand	compaction: maxActiveTranscriptBytes preflight触发
+2241	dup	deferred maintenance保留prompt-only token counts — token accounting
+2242	dup	tool-result overflow用resolved runtime budget — budget resolve
+2243	dup	session.compact()加safety timeout — compaction timeout
+2244	dup	external timeout aborts与internal同类处理 — timeout classify
+2245	dup	ANTHROPIC_AUTH_TOKEN gateway bearer — auth token
+2246	dup	app-server读account token usage+Codex v2 PAT — usage API
+2247	boundary	post-turn self-improvement fork降本
+2248	dup	compaction summaries省略edit tool大new_string — summary size
+2249	dup	compaction switch兼容逻辑 — config compat
+2250	dup	context compaction长会话压缩 — compaction核心
+2251	dup	compaction期间message enqueuing防卡修复 — compaction race
+2252	boundary	Tool Access panel compact chips
+2253	dup	某些操作size limit防context填满 — output cap
+2254	dup	chat compression复用主对话prompt cache — cache reuse
+2255	dup	compaction reserve token buffer — compaction budget
+2256	dup	max_output_tokens不支持时恢复参数处理 — compat fix
+2257	dup	retry/compaction/settlement用awaited lifecycle — lifecycle
+2258	dup	session status广播内存膨胀修复 — memory leak
+2259	dup	HTML collapsible blocks致boundary误判修复 — compaction boundary
+2260	cand	hook-events: session:compact:before/after+plugin compact
+2261	dup	trailing-image cap后不再每请求失效prompt cache — cache stability
+2262	dup	internal-task agents(compaction/title/summary)优化 — internal agents
+2263	cand	memory-local: CODEBUDDY.local.md个人偏好(排除version control)
+2264	dup	context overflow自动恢复稳定 — recovery
+2265	dup	listener累积内存泄漏修复 — memory leak
+2266	dup	context window满时智能移除旧file contents — context pruning
+2267	dup	memories可配置+debug clear-memories — memory ops
+2268	dup	wiki_lint输出vault内相对路径 — path hygiene
+2269	dup	manager shutdown时跳过post-close sync — shutdown race
+2270	dup	同2270 legacy memory.md(同1570) — memory hygiene
+2271	dup	recall保持在resolved channel+lexical改进 — memory routing
+2272	boundary	daily-memory file matcher加宽
+2273	dup	pre-compaction memory flush进plugin contract — memory contract
+2274	cand	memory-guard: memory_store拒绝prompt-like注入文本
+2275	dup	memory CLI+memory_search/memory_get snippets+line ranges — memory tools已实装
+2276	dup	defer vector probes+sqlite-vec timeouts防CLI hang — memory resilience
+2277	boundary	Mistral provider-side prompt caching
+2278	dup	无context window报告默认128K — context default
+2279	dup	Native Compaction(截断) — compaction
+2280	dup	command items暴露PID+token-usage/compaction events — observability
+2281	variant	model.goalTokenBudget配置/禁用
+2282	boundary	disabled Matrix/LanceDB roots指plugin-enable
+2283	dup	reply delivery降延迟(typing context/lazy slash) — perf
+2284	dup	rewind after compact幻影diff修复 — rewind fix
+2285	boundary	SWE-agent EnIGMA(安全agent,不相关域)
+2286	dup	/compact生成的session可显示恢复 — session recovery
+2287	dup	async compaction lastMessageId更新修复 — compaction sync
+2288	dup	session search覆盖全索引历史 — session search
+2289	dup	MEMORY guidance优先于generic TTS hints — prompt priority
+2290	boundary	TracesView LLM stats/cache hit metrics
+2291	dup	/settings统一菜单(thinking/theme/queue/auto-compact) — settings UI
+2292	boundary	Venus endpoint prompt cache adapter
+2293	noise	Windows status line quote escaping修复
+2294	dup	hermes backup/import全量配置恢复 — backup
+2295	variant	navigateTree() replaceInstructions自定义摘要prompt
+2296	boundary	/desktop /install-desktop命令
+2297	dup	Adaptive model选项(同2118) — model router
+2298	dup	AI SDK telemetry spans带user/session/model context — tracing
+2299	dup	settings配置API Key — auth config
+2300	boundary	Vertex AI Claude native tool calling
+2301	boundary	Claude Code provider native tool calling
+2302	cand	reasoning-effort: ACP reasoning effort levels(Default到Max)
+2303	boundary	AWS_BEARER_TOKEN_BEDROCK
+2304	boundary	Meta(Muse)登录+自动key refresh
+2305	boundary	Moonshot AI provider
+2306	boundary	Qwen Token Plan Individual
+2307	boundary	Together AI(同2307)
+2308	dup	onboarding可取消pending browser sign-in — onboarding UX
+2309	dup	auth.json env values可scope到Pi传播 — env scoping
+2310	boundary	llama.cpp router+/llama HF搜索
+2311	dup	openRouterRouting全字段(fallbacks/params/data collection) — routing config
+2312	boundary	instance.directory/workspace query
+2313	dup	Anthropic Prompt Caching降本 — prompt cache
+2314	boundary	GPT-6-Astra经API配置不进picker
+2315	noise	gemini-2.5系列
+2316	dup	同2313(重复发布)
+2317	dup	aborted runs干净停止+bounded response bodies+CLI credit失败 — fail hygiene
+2318	boundary	OpenAI Fast Mode(priority tier)
+2319	boundary	Bedrock API keys(bearer)auth
+2320	noise	Start New Thread不切换修复
+2321	dup	strict tool-schema downgrade诊断去重 — log hygiene
+2322	dup	internal completion events接generated media+delivery-loss报告 — media events
+2323	dup	model maxTokens作默认output-token limit — token defaults
+2324	variant	agents.defaults.models["provider/*"].agentRuntime provider-wide policy
+2325	dup	stream setup pending时也上idle watchdog — watchdog coverage
+2326	dup	provider-less model匹配多runtime policies时fail closed — policy disambiguation
+2327	boundary	OpenRouter API key onboarding
+2328	dup	agents add不做live catalog validation — add UX
+2329	dup	同1868 cache-friendly dynamic tool loading — tool loading
+2330	dup	ModelRuntime拥有final request assembly(getAuth含headers) — request assembly
+2331	dup	ChatGPT Subscription只列plan可用models — catalog honesty
+2332	dup	file Timeline显示每次edit diff — diff tracking
+2333	boundary	Computer Use browser launch
+2334	dup	auth-profile-backed media tools在OpenAI auth下可用 — auth scope
+2335	boundary	Pi/Codex contract-first parity
+2336	dup	openai-codex WebSocket-first(同1095) — transport
+2337	boundary	sidebar quota row移除
+2338	boundary	custom provider port支持
+2339	dup	空Temperature不再报错 — config tolerance
+2340	noise	runtime deps刷新
+2341	dup	hidden /model dispatch成功但bound session未更新修复 — model binding
+2342	boundary	provider picker Configured勾移除
+2343	boundary	Anthropic native tools默认+telemetry
+2344	dup	OpenAI adapter自动处理不兼容参数 — compat layer
+2345	cand	model-policy: modelPolicy.allow显式allowlist与aliases分离
+2346	cand	model-fast: /fast priority queue toggle(OpenAI/Anthropic)
+2347	noise	无AI provider时commit按钮disabled非hidden
+2348	dup	Bedrock endpoint resolution不再pin regional — endpoint fix
+2349	dup	gemini-3.1-flash-lite-preview入catalog — catalog
+2350	dup	kimi-coding UA header修复(同1133) — UA header
+2351	dup	1h prompt-cache write按2x input计价 — cost accounting
+2352	dup	catalog无capabilities声明的models tool calling不再静默禁 — capability fix
+2353	noise	GPT-5.1/5.1-Codex Windsurf
+2354	dup	crash-loop后control-plane-safe mode+persist boot outcomes — crash recovery
+2355	cand	api-surface: gateway /v1/chat/completions端点(auth+SSE+per-agent routing)
+2356	boundary	models.list/provider status/tailscale auth/bind-mode
+2357	boundary	Gemini CLI stream-json+session reuse
+2358	dup	SSE parsing自持+defensive JSON repair — stream robustness
+2359	variant	flat rate provider跳过cost计算(crush.json)
+2360	dup	image quality/output format hints+OpenAI background — image params
+2361	variant	sticky provider profile(task-level API config持久)
+2362	noise	Kimi K2.7 Code
+2363	boundary	ACP launch注记
+2364	dup	Antigravity CLI降为低优先image/video fallback — fallback ordering
+2365	boundary	MiniMax image-01 provider
+2366	dup	model compatibility handler自动适配API差异 — compat layer
+2367	dup	/models add弃用返回deprecation — command deprecate
+2368	dup	stale openai-codex inline entries抑制 — config hygiene
+2369	noise	Ant Ling/NVIDIA NIM/MiniMax-M3
+2370	noise	GPT-5.3-Codex
+2371	noise	Fireworks/DeepInfra providers
+2372	dup	malformed Codex auth-file诊断走debug logger非stdout — log hygiene
+2373	variant	expanded active-input context显式opt-in
+2374	boundary	doctor --fix迁移codex/* model refs
+2375	cand	model-fast: session-level fast toggles(/fast,TUI,Control UI,ACP)+持久
+2376	cand	model-fallback: ordered fallback provider chain(primary失败自动切换)
+2377	boundary	Parallel web search bundled
+2378	boundary	provider account priority暴露Gateway
+2379	boundary	Gemini Live realtime voice provider

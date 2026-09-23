@@ -1,0 +1,200 @@
+39426	dup	interactive plan clarify — 计划交互已有
+39427	noise	prose noise
+39428	noise	prose noise
+39429	noise	prose noise
+39431	noise	prose noise
+39432	dup	critic-augmented generation — 对抗评审已有
+39434	noise	prose noise
+39439	noise	prose noise
+39440	noise	prose noise
+39442	dup	snapshots auto-load next task — 快照恢复已有
+39443	noise	bun internal
+39444	boundary	icon — their UI
+39448	noise	prose noise
+39449	noise	prose noise
+39450	noise	prose noise
+39451	noise	prose noise
+39452	noise	prose noise
+39453	noise	prose noise
+39456	noise	env internal
+39457	noise	env internal
+39458	noise	env internal
+39459	noise	prose noise
+39463	noise	prose noise
+39470	noise	prose noise
+39471	noise	prose noise
+39478	noise	filelist noise
+39480	noise	filelist noise
+39481	noise	filelist noise
+39482	noise	filelist noise
+39483	noise	filelist noise
+39484	noise	filelist noise
+39485	noise	filelist noise
+39486	noise	filelist noise
+39487	noise	filelist noise
+39488	noise	filelist noise
+39490	noise	filelist noise
+39491	noise	filelist noise
+39492	noise	filelist noise
+39494	noise	filelist noise
+39496	noise	prose noise
+39498	noise	env noise
+39500	noise	env noise
+39508	noise	prose noise
+39510	noise	prose noise
+39515	noise	prose noise
+39517	noise	prose noise
+39520	noise	prose noise
+39528	noise	vm internal
+39534	noise	prose noise
+39535	noise	prose noise
+39538	dup	perf optimization detection — 优化检测已有
+39541	noise	prose noise
+39543	noise	prose noise
+39544	noise	prose noise
+39546	noise	env noise
+39549	noise	prose noise
+39550	noise	prose noise
+39552	noise	prose noise
+39555	dup	git patch format storage — 补丁存储已有
+39564	noise	cli noise
+39576	boundary	reactive mode setting — their product
+39585	boundary	screenshot send — their product
+39586	noise	env internal
+39608	dup	NO_AUTO_UPDATE disables preflight — 更新预检关已有
+39611	dup	/logout picker provider — 登出选择已有
+39612	noise	size noise
+39613	noise	size noise
+39614	noise	size noise
+39615	noise	size noise
+39620	noise	reaction noise
+39622	dup	Host/Origin checks + --host — 绑定检查已有
+39623	dup	public-binding hardening PASSWORD+TLS — 绑定加固已有
+39626	dup	multiline edits goals — 目标编辑已有
+39628	dup	! input shell — shell直通已有
+39630	dup	Ctrl+B background — 后台化已有
+39632	noise	link noise
+39636	boundary	sidebar computeds — their UI
+39638	noise	link noise
+39639	noise	prose noise
+39643	dup	merge consecutive user turns strict — 角色合并已有
+39649	boundary	plugins tabs — their UI
+39650	boundary	lazy catalogs — their UI
+39651	noise	crash internal
+39666	dup	cron 5-field — 调度语法已有
+39671	noise	arm64 internal
+39674	noise	prose noise
+39675	noise	python internal
+39731	noise	credit noise
+39737	noise	env internal
+39739	dup	FormatErrors weaker models — 格式容错已有
+39769	noise	fix internal
+39780	noise	template internal
+39784	dup	model registry fixed path — 注册表路径已有
+39799	noise	contributor noise
+39800	noise	reaction noise
+39805	noise	config internal
+39806	dup	finish_reason error template — 终止原因已有
+39808	dup	cap consecutive format errors — 错误上限已有
+39809	noise	contributor noise
+39810	noise	contributor noise
+39812	noise	contributor noise
+39815	noise	contributor noise
+39816	dup	generalize content string — 内容归一已有
+39817	noise	contributor noise
+39820	noise	contributor noise
+39821	dup	actions in error templates — 动作暴露已有
+39822	noise	contributor noise
+39824	noise	prose noise
+39826	noise	prose noise
+39827	noise	prose noise
+39828	noise	contributor noise
+39829	dup	exit behavior — 退出处理已有
+39830	noise	prose noise
+39832	noise	prose noise
+39834	noise	prose noise
+39837	noise	prose noise
+39838	noise	prose noise
+39839	noise	prose noise
+39840	noise	prose noise
+39841	noise	prose noise
+39844	noise	prose noise
+39846	dup	only ask task if unset — 任务询问已有
+39848	noise	contributor noise
+39849	noise	contributor noise
+39850	noise	contributor noise
+39851	noise	prose noise
+39852	noise	prose noise
+39853	noise	prose noise
+39854	noise	prose noise
+39855	noise	install noise
+39857	noise	prose noise
+39859	noise	contributor noise
+39861	boundary	progress bar — their UI
+39862	noise	contributor noise
+39863	dup	timestamps+actions traj — 轨迹字段已有
+39865	noise	prose noise
+39866	dup	configure model retries — 重试配置已有
+39867	noise	fix internal
+39868	noise	prose noise
+39869	noise	prose noise
+39870	noise	contributor noise
+39875	dup	print config location — 路径打印已有
+39876	noise	contributor noise
+39881	dup	raise undefined var — 未定义报错已有
+39882	noise	contributor noise
+39885	dup	save config with trajectory — 配置随轨迹已有
+39886	dup	set logger env — 日志器注入已有
+39888	noise	contributor noise
+39889	dup	merge_output_streams — 流合并已有
+39891	dup	persist task vars template — 变量持久已有
+39892	noise	contributor noise
+39893	noise	credit noise
+39894	noise	contributor noise
+39896	dup	--exit-immediately — 即退档已有
+39898	noise	refactor internal
+39899	noise	refactor internal
+39901	noise	prose noise
+39903	noise	prose noise
+39904	noise	prose noise
+39906	boundary	progress eta — their UI
+39907	boundary	quit app — their UI
+39908	dup	print save location — 位置打印已有
+39909	boundary	visual default — their UI
+39910	boundary	help shortcut — their UI
+39911	dup	save version in output — 版本落盘已有
+39912	boundary	keystrokes — their UI
+39914	noise	contributor noise
+39919	dup	always save last trajectory — 轨迹持久已有
+39923	noise	contributor noise
+39925	dup	no setup key if env — env检测已有
+39928	dup	step limit 250 — 步数上限已有
+39929	dup	timeout 60s — 超时已有
+39930	noise	docs internal
+39932	dup	print cost limit — 成本上限已有
+39940	boundary	actions palette — their UI
+39942	dup	multimodal input — 多模态已有
+39946	dup	compromised versions excluded — 供应链排除已有
+39947	noise	branch noise
+39951	noise	prose noise
+39952	dup	human mode mini -v — 人工档已有
+39953	dup	handle ```bash output — 块解析已有
+39954	dup	only accept ```bash — 块限定已有
+39955	dup	improve startup time — 启动优化已有
+39960	noise	fix internal
+39966	noise	prose noise
+39972	dup	output option swebench — 输出档已有
+39975	dup	config without .yaml — 后缀省略已有
+39980	noise	image internal
+39982	dup	--rm containers default — 容器清理已有
+39984	dup	retry sandbox build — 构建重试已有
+39986	dup	default executables — 可执行默认已有
+40005	dup	extra blocks thinking — 思考块已有
+40006	dup	temperature 0 default — 温度默认已有
+40011	dup	live subagent status+transcript — 状态转录已有
+40012	dup	subagent initial instruction visible — 指令钉住已有
+40014	dup	escape returns subagent transcript — 返回主会话已有
+40015	dup	quit confirm no leak — 确认隔离已有
+40016	dup	clear/resume no race transcripts — 竞态防护已有
+40021	dup	persisted-config read SSL parity — 配置读取已有
+40023	dup	subagent traces agents/ subfolder — 轨迹落盘已有

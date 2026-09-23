@@ -1,0 +1,200 @@
+73505	noise	gopls downloads internal
+73509	noise	fuzzy finder panic internal
+73527	boundary	channel membership — their collab
+73529	noise	LS logs loop internal
+73530	noise	telemetry log cmd internal
+73536	noise	LSP server creation internal
+73540	noise	panels boot internal
+73560	noise	LSP logs editor internal
+73563	noise	Copilot logs internal
+73569	noise	following unshare internal
+73571	boundary	drag folders split — their UI
+73576	boundary	pane flicker — their UI
+73584	noise	keymap selector internal
+73588	noise	LSP logs menu internal
+73606	noise	NPM config LS install internal
+73607	boundary	tabs scroll reopen — their UI
+73611	noise	diagnostics multicaret internal
+73616	noise	LS reinstall loop internal
+73619	noise	diagnostics multicaret internal
+73637	boundary	auto-import mouse click — their UI
+73639	noise	option key internal
+73687	noise	LS request routing internal
+73689	noise	worktree root fds internal
+73718	noise	LS completions filter internal
+73742	noise	LS dynamic register internal
+73745	noise	LSP Logs durations internal
+73767	noise	range formatting internal
+73780	noise	semantic highlight internal
+73811	boundary	call controls — their UI
+73897	boundary	About window — their UI
+73994	noise	legacy LS internal
+74050	noise	empty lines exec internal
+74074	boundary	window spawn — their UI
+74081	boundary	window spawn — their UI
+74096	noise	pull diagnostics internal
+74119	noise	LS update slow conn internal
+74133	boundary	reopen preview tabs — their UI
+74162	noise	LS progress internal
+74202	noise	document color internal
+74268	noise	cargo-workspace cmd internal
+74276	noise	GoForward keybind internal
+74343	noise	LSP over Collab internal
+74348	noise	Elixir LS settings internal
+74354	boundary	zoomed panels — their UI
+74405	noise	LS error reporting internal
+74416	noise	env vars LSP Logs internal
+74457	noise	project_notifications internal
+74474	noise	LS results merge internal
+74494	noise	assistant::Split internal
+74600	noise	macOS menu keybinds internal
+74706	noise	Helix keybinds internal
+74736	noise	completion ranking internal
+74737	noise	completion LSP priority internal
+74763	noise	task spawn perf internal
+74764	noise	copy trim internal
+74792	noise	Helix mode internal
+74848	noise	stderr prefix internal
+74851	noise	autocomplete matches internal
+74900	noise	ZED_WORKTREE_ROOT internal
+74913	noise	LS capability fallback internal
+74965	noise	edit_prediction_conflict internal
+74995	boundary	search parent dir — their UI
+75041	noise	keybinding precedence internal
+75055	noise	LS logs internal
+75114	noise	ElixirLS autocomplete internal
+75205	boundary	task tabs rerun — their UI
+75208	boundary	panel reveal — their UI
+75257	boundary	external worktree open — their UI
+75317	noise	LS reinstall remove internal
+75321	boundary	preview tabs permanent — their UI
+75435	noise	tree-sitter parsers internal
+75484	noise	Linux keybinds internal
+75541	boundary	inline assist focus — their UI
+75680	boundary	sign-out keychain — their desktop
+75781	boundary	resize hitbox — their UI
+75911	boundary	collab cursors — their UI
+75998	boundary	channels/collab — their UI
+76001	boundary	collab ergonomics — their UI
+76034	boundary	replace empty — their UI
+76060	noise	worktree scan perf internal
+76074	boundary	diff scroll perf — their UI
+76077	noise	file watcher perf internal
+76078	boundary	diff scroll perf — their UI
+76097	boundary	diff toggle perf — their UI
+76115	noise	startup spawn perf internal
+76119	boundary	collab diagnostics perf — their UI
+76147	boundary	buffer search perf — their UI
+76161	boundary	undo history perf — their UI
+76164	noise	large LSP responses internal
+76189	noise	LSP perf internal
+76282	boundary	drag text editing — their UI
+76283	boundary	drag text editing — their UI
+76458	boundary	ctrl-tab switch — their UI
+76465	dup	projects leaking via Agent Panel — 隔离泄漏已有
+76467	boundary	Agent Panel AI disabled — their UI
+76468	boundary	ask_user options wrap — their UI
+76472	boundary	palette recency sort — their UI
+76474	boundary	multiline paste indent — their UI
+76479	noise	LSP tooltip path internal
+76488	boundary	dock resize — their UI
+76490	boundary	Agent terminals shrink — their UI
+76499	boundary	sidebar headers Linux — their UI
+76500	boundary	channel tab icons — their UI
+76506	boundary	read-only tab controls — their UI
+76508	boundary	agent notifications focus — their UI
+76509	noise	column selections panic internal
+76515	noise	Wayland IME internal
+76517	boundary	double-click select — their UI
+76518	dup	OS attention for agent window — 通知已有
+76544	boundary	filename truncation — their UI
+76548	boundary	worktree nav — their UI
+76553	boundary	settings window drag — their UI
+76568	boundary	prediction popover — their UI
+76570	boundary	activity indicator cancel — their UI
+76574	boundary	@-mention menu — their UI
+76576	boundary	text selection markdown — their UI
+76583	noise	finished notification timing internal
+76591	boundary	plan files squashed — their UI
+76600	boundary	Outline nested methods — their UI
+76633	boundary	rules library hover — their UI
+76636	boundary	Outline off-by-one — their UI
+76651	boundary	picker double highlight — their UI
+76659	boundary	deletion prompts — their UI
+76663	boundary	panel focus modals — their UI
+76665	boundary	duplicate tabs — their UI
+76674	boundary	gitignored selection — their UI
+76677	boundary	pinned tab scroll — their UI
+76685	boundary	split diff spacers — their UI
+76728	boundary	tab reorder drag — their UI
+76758	boundary	preview tabs focus — their UI
+76813	boundary	collab labels resize — their UI
+76823	boundary	diagnostics collapse — their UI
+76831	boundary	focus visibility — their UI
+76861	boundary	tab switcher preview — their UI
+76873	boundary	tab buttons size — their UI
+76875	boundary	Outline nesting — their UI
+76891	boundary	sticky item scroll — their UI
+76895	boundary	sticky horizontal — their UI
+76909	boundary	agent errors display — their UI
+76910	boundary	agent panel scroll — their UI
+76927	boundary	debugger empty — their UI
+76943	boundary	Close Clean disabled — their UI
+76959	boundary	tab flicker — their UI
+76965	boundary	debug panel buttons — their UI
+76971	boundary	tooltip overlap — their UI
+76972	boundary	code actions gutter — their UI
+76994	boundary	old threads original model — their UI
+77006	boundary	drag cursor resize — their UI
+77032	boundary	prompt library focus — their UI
+77051	boundary	panel highlight — their UI
+77059	noise	didOpen notification internal
+77064	boundary	close pinned tabs — their UI
+77065	boundary	outline initial — their UI
+77092	boundary	outline unnamed — their UI
+77094	boundary	LS errors in UI — their UI
+77097	boundary	project panel predict — their UI
+77099	boundary	panel toggle — their UI
+77117	boundary	panel items dismissed — their UI
+77122	boundary	right click select — their UI
+77125	boundary	outline center — their UI
+77126	boundary	diagnostics flashing — their UI
+77138	boundary	drop into tab bar — their UI
+77149	boundary	outline keyboard — their UI
+77157	boundary	assistant search — their UI
+77158	boundary	panel focus — their UI
+77161	boundary	outline nav — their UI
+77167	noise	simulated IME internal
+77168	noise	outline panic internal
+77172	noise	outline panic internal
+77178	boundary	tab close history — their UI
+77179	boundary	tab switcher icons — their UI
+77182	boundary	LS log split — their UI
+77198	boundary	pinned tab NewFile — their UI
+77199	boundary	offset assistant — their UI
+77201	noise	LS multi-worktree notify internal
+77207	noise	LS multi-worktree notify internal
+77208	boundary	outline perf — their UI
+77209	boundary	tab slash completions — their UI
+77214	boundary	copy paths multi — their UI
+77216	boundary	assistant panel perf — their UI
+77217	boundary	assistant panel perf — their UI
+77224	boundary	edit perf slash insert — their UI
+77230	boundary	outline Rust static — their UI
+77232	boundary	dirs with dots — their UI
+77239	boundary	outline filter spaces — their UI
+77266	boundary	panel perf large — their UI
+77274	boundary	panel perf large — their UI
+77275	boundary	panel perf large — their UI
+77279	boundary	panel perf large — their UI
+77280	boundary	excluded entry workflow — their UI
+77284	boundary	drag to tab bar — their UI
+77285	boundary	drag to tab bar — their UI
+77299	boundary	WIP feature remove — their UI
+77303	boundary	edit perf many edits — their UI
+77331	boundary	diagnostics stale entries — their UI
+77336	noise	LS notifications large internal
+77342	noise	quote panic internal
+77345	noise	buffer dirty tab internal
+77353	boundary	chat replies redesign — their UI
+77356	boundary	tooltips links — their UI

@@ -1,0 +1,200 @@
+40433	dup	telemetry precedence — 已有
+40437	dup	extra_headers ProviderConfig — 自定义头已有
+40438	dup	scratchpad shared subagents — 暂存目录已有
+40439	dup	/copy slash — 复制命令已有
+40440	dup	hooks post-agent-turn — 生命周期钩子已有
+40441	dup	ConfigLayer layered — 配置层已有
+40442	dup	~/.vibe/prompts overrides — 提示覆盖已有
+40443	dup	auto_approve→bypass_tool_permissions — 改名已有
+40444	dup	--continue current workdir — 目录限定已有
+40447	noise	fix internal
+40448	dup	call_source metadata — 来源标记已有
+40451	boundary	keybinding — their UI
+40454	boundary	console view — their UI
+40457	dup	file name in result display — 文件名已有
+40458	noise	otel internal
+40459	noise	type internal
+40461	boundary	keybinding — their UI
+40463	noise	prompt internal
+40464	dup	HTTP 529 retried — 非标准码容错已有
+40466	dup	excluded injected field — 字段剥离已有
+40467	dup	preserve message_id chunks — id保留已有
+40468	noise	dep internal
+40473	dup	current date prompt — 日期注入已有
+40474	noise	typescript internal
+40476	boundary	color — their UI
+40478	boundary	keybinding — their UI
+40479	dup	empty TextChunk skipped — 空块过滤已有
+40481	noise	agent internal
+40482	dup	autocomplete filename matching — 补全改进已有
+40483	dup	history nav no prefix filter — 历史导航已有
+40485	dup	ask_user disabled prompt mode — 无头禁用已有
+40486	noise	lint internal
+40492	dup	empty assistant not displayed — 空消息过滤已有
+40493	dup	tool results correct order — 顺序保证已有
+40494	dup	pinned sessions across restarts — 钉住持久已有
+40496	dup	gauge drops after /clear — 计量即时已有
+40498	dup	context updates ACP — 频率已有
+40499	dup	cache-hit token stats — 缓存统计已有
+40502	dup	raw compaction messages preserved — 原文保留已有
+40505	dup	compaction summaries injected — 注入式压缩已有
+40508	dup	custom compaction instructions — 自定义指令已有
+40510	dup	context overrun friendly error — 友好错误已有
+40511	dup	KV cache warming affinity — 缓存预热已有
+40518	dup	grep chips no absolute paths — 路径脱敏已有
+40519	dup	NaN SGR mouse no leak — 序列过滤已有
+40523	dup	voice transcription errors surfaced — 错误上抛已有
+40526	noise	race internal
+40528	dup	ACP inline image blocks — 图片块已有
+40529	dup	image @-mentions vision — 提及图片已有
+40530	boundary	toast — their UI
+40533	dup	git branch/status/commits injected — git上下文已有
+40534	dup	no project-local Git executable — 影子化防护已有（#915同类）
+40536	dup	@ mentions Git-aware discovery — git感知已有
+40538	dup	fsmonitor hook disabled — 钩子禁用已有
+40539	dup	empty mapping absent merge — 合并容错已有
+40542	dup	git output UTF-8 — 编码已有
+40544	dup	teleport diff no mutate index — 索引保护已有
+40545	dup	no crash unowned folders — 容错已有
+40546	dup	teleport carries diff+commit — 迁移内容已有
+40548	noise	constraint internal
+40549	dup	teleport connection status — 状态轮询已有
+40550	dup	MergeFieldMetadata — 合并元数据已有
+40551	dup	MergeStrategy config — 合并策略已有
+40552	dup	parallel git subprocess — 并行git已有
+40555	dup	retrying status transient — 重试状态已有
+40564	dup	temperature respected reasoning — 温度遵从已有
+40591	dup	reasoning effort adapter — 推理适配已有
+40593	dup	cancel no hang wedge + force-quit hint — 中断超时已有
+40594	dup	no conflict worktree turn — 冲突防护已有
+40595	boundary	spinner — their UI
+40600	dup	list formatting copy preserved — 复制保真已有
+40605	noise	crash internal
+40606	dup	path work offloaded UI thread — 线程卸载已有
+40611	dup	diff shows all occurrences — 全量diff已有
+40612	boundary	popup layout — their UI
+40614	boundary	banner — their UI
+40615	boundary	blank fix — their UI
+40619	boundary	scroll — their UI
+40620	boundary	perf — their UI
+40621	boundary	popup dismiss — their UI
+40629	dup	notifier crash fix — 容错已有
+40632	dup	agent switch thread worker — 线程切换已有
+40633	dup	auto-scroll suspended scrolled up — 滚动暂停已有
+40634	dup	hook commands through shell — 管道钩子已有
+40640	dup	LLM session titles terminal title — 标题生成已有
+40641	dup	shell output not sent twice — 输出去重已有
+40642	dup	Git Bash paths no bogus dirs — 路径防护已有
+40643	boundary	drag-drop — their UI
+40644	noise	ab internal
+40646	dup	LC_CTYPE not LC_ALL — locale选择已有
+40647	dup	stdin kept no /dev/tty — stdin保留已有
+40649	dup	hardened bash permissions — shell加固已有
+40650	dup	managed bash sessions — shell会话已有
+40658	dup	TTY-keyed --continue — 终端作用域已有
+40659	dup	bang async subprocess — 异步bang已有
+40660	dup	/terminal-setup — 终端配置已有
+40664	dup	queued prompts single turn — 合并回合已有
+40666	boundary	PID display — their UI
+40667	dup	/log-level runtime — 日志级别已有
+40670	dup	experiment variants config schema — 变体配置已有
+40672	boundary	word nav — their UI
+40673	dup	conversation ID after teleport — id保留已有
+40676	dup	telemetry client-side redaction — 遥测脱敏已有
+40677	dup	experimental hooks flag+env — 钩子开关已有
+40678	dup	--disabled-tools flag — 工具禁用已有
+40679	dup	clear context on plan accepted — 计划清场已有
+40681	dup	ask_confirmation_on_exit — 退出确认已有
+40683	dup	/help alphabetical — 排序已有
+40684	dup	disabled_tools merged enforced — 配置合并已有
+40685	dup	--max-tokens flag — 令牌档已有
+40686	noise	script internal
+40688	dup	enable_connectors flag — 连接器开关已有
+40689	dup	default_agent config — 默认代理已有
+40690	noise	telemetry internal
+40694	dup	eager agent-loop warmup — 预热已有
+40696	noise	telemetry internal
+40698	noise	feedback internal
+40699	noise	telemetry internal
+40700	noise	malloc internal
+40703	noise	telemetry internal
+40704	noise	ux internal
+40706	dup	only type agent --agent — 类型限定已有
+40716	dup	custom login domain self-hosted — 自托管域已有
+40718	dup	teleport matched remote — 远程匹配已有
+40726	dup	model connections reused — 连接复用已有
+40727	noise	telemetry internal
+40728	boundary	scrolling — their UI
+40729	dup	GitPython deferred — 延迟加载已有
+40733	dup	gentler update-failure — 失败降噪已有
+40734	dup	lazy load heavy deps — 懒加载已有
+40736	dup	BFS folders startup — 遍历优化已有
+40738	dup	parallel tool execution — 并行执行已有
+40740	dup	elicitation-form ask_user — 表单回答已有
+40741	dup	/retry ACP — 重试暴露已有
+40742	dup	max_turn_requests stop reason — 停止原因已有
+40744	dup	ACP project links — 项目链接已有
+40746	dup	ACP honors default_agent — 默认遵从已有
+40747	dup	max tokens set_config_option — 配置已有
+40749	dup	teleport client title project — 标题沿用已有
+40750	dup	max_tokens graceful stop — 优雅停止已有
+40752	dup	delayed slash advertisement — 延迟宣告已有
+40754	dup	hide non-interactive tools ACP — 工具隐藏已有
+40757	dup	usage updates after tool results — 用量顺序已有
+40758	dup	deferred init subagents ACP — 延迟初始化已有
+40765	dup	structured ACP error classes — 错误类型已有
+40775	noise	crash internal
+40776	dup	MarkupError brackets tool error — 括号容错已有
+40777	dup	MarkupError brackets output — 已有
+40778	dup	/teleport explicit error prereqs — 前置报错已有
+40783	dup	non-retryable stop retry cause chain — 原因链已有
+40792	noise	rename internal
+40800	dup	non-UTF-8 graceful — 编码容错已有
+40812	dup	encoding detection fallback — 检测回退已有
+40813	dup	UTF-8 metadata — 编码强制已有
+40815	boundary	grep chip — their UI
+40817	noise	cleanup internal
+40819	noise	stats noise
+40827	noise	name noise
+40842	noise	version noise
+40846	noise	stats noise
+40848	noise	provenance noise
+40849	noise	publish noise
+40850	noise	waived noise
+40852	noise	prose noise
+40858	noise	audit prose
+40861	dup	LsToolDetails pagination contract — 分页契约已有
+40866	boundary	embedded settings — their product
+40879	boundary	beam links — their product
+40887	noise	version noise
+40888	noise	version noise
+40894	noise	prose noise
+40895	dup	CDP relay paired Chrome — 浏览器中继已有
+40896	dup	Gateway lifecycle supervision restart handoff — 监管交接已有
+40898	noise	link noise
+40901	noise	provenance noise
+40908	noise	name noise
+40913	dup	delivery receipts+recovery — 投递恢复已有
+40915	noise	audit prose
+40920	noise	audit prose
+40924	dup	worktree cleanup limits count/size — 清理上限已有
+40925	boundary	task previews — their UI
+40926	dup	progress drafts preamble headline — 进度草稿已有
+40935	noise	audit prose
+40937	noise	stats noise
+40939	noise	prose noise
+40942	noise	prose noise
+40965	noise	audit prose
+40967	noise	audit prose
+40990	noise	audit prose
+40994	noise	audit prose
+40997	noise	audit prose
+40999	noise	audit prose
+41002	noise	audit prose
+41003	noise	audit prose
+41006	noise	audit prose
+41010	noise	audit prose
+41015	noise	audit prose
+41025	noise	audit prose
+41029	noise	contributor noise
+41032	dup	local config pruning fallback offline delete — 离线回退已有

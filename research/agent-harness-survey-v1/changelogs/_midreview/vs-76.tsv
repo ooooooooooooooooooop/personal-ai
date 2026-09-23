@@ -1,0 +1,200 @@
+36405	noise	release prose
+36406	noise	section header
+36407	noise	section header
+36408	dup	workspace auto-detection — 环境检测已有
+36409	noise	section header
+36410	dup	morph tool fast patching — 补丁工具已有
+36412	dup	computer tool key chaining — GUI键序已有
+36414	noise	section header
+36415	dup	/setup command — 设置命令已有
+36431	noise	section header
+36432	noise	prose noise
+36433	noise	section header
+36435	noise	section header
+36437	noise	section header
+36440	noise	section header
+36442	noise	version header
+36447	noise	prose noise
+36449	dup	load tools external modules — 外部工具已有
+36450	noise	version header
+36454	noise	misc count
+36459	noise	version header
+36461	noise	misc count
+36472	noise	version header
+36473	noise	misc count
+36481	noise	excluded noise
+36484	dup	date&time in system prompt — 时间注入已有
+36485	noise	section header
+36487	noise	version header
+36488	noise	misc count
+36490	noise	contributor noise
+36493	noise	version header
+36504	noise	contributor noise
+36506	noise	version header
+36513	noise	version header
+36514	dup	whitelist commands — 命令白名单已有
+36515	noise	misc count
+36520	noise	version header
+36525	noise	version header
+36528	noise	version header
+36538	noise	version header
+36543	noise	version header
+36546	noise	excluded noise
+36548	noise	version header
+36550	noise	version header
+36556	noise	version header
+36558	noise	misc count
+36565	noise	version header
+36568	noise	format internal
+36570	noise	version header
+36575	noise	excluded noise
+36577	noise	version header
+36580	noise	version header
+36584	noise	version header
+36585	noise	misc count
+36591	noise	excluded noise
+36593	noise	version header
+36596	noise	version header
+36598	noise	prose noise
+36600	dup	tool examples in system prompt — 示例注入已有
+36610	noise	prose noise
+36615	noise	version header
+36616	noise	misc count
+36625	noise	version header
+36629	noise	version header
+36632	noise	version header
+36635	noise	version header
+36636	noise	misc count
+36643	noise	version header
+36646	noise	version header
+36649	noise	version header
+36653	noise	version header
+36657	noise	version header
+36660	noise	version header
+36665	noise	version header
+36668	noise	version header
+36669	noise	prose noise
+36712	dup	enhanced RAG LLM post-processing — 检索后处理已有
+36752	dup	workdir-subprocess eval + wait_any cancel — 子进程评测/取消已有
+36806	dup	skills discoverability — 技能发现已有
+37020	noise	format internal
+37082	dup	shell timeouts configurable — 超时配置已有
+37084	boundary	terminal status title — their UI
+37219	noise	commit noise
+37260	noise	install noise
+37312	noise	format internal
+37315	noise	format internal
+37345	noise	format internal
+37541	noise	contributor noise
+37553	dup	gptme-util CLI tools/chats mgmt — 管理CLI已有
+37554	dup	verbose logging tools call — 日志档已有
+37585	dup	webui rerun session id — 会话id修复已有
+38054	noise	prose noise
+38061	noise	prose noise
+38078	noise	prose noise
+38110	noise	section header
+38445	dup	vision auto rescaling — 图缩放已有
+38466	noise	merge noise
+38495	noise	section header
+38505	noise	release header
+38506	noise	date noise
+38511	noise	date noise
+38512	noise	section header
+38521	noise	release header
+38522	noise	date noise
+38523	noise	install noise
+38524	noise	deploy noise
+38525	noise	release header
+38526	noise	date noise
+38527	noise	stats noise
+38529	noise	section header
+38531	dup	data-training-tier warnings registry — 训练级警告已有
+38532	dup	pip providers entry points — 插件发现已有
+38533	noise	release header
+38534	noise	date noise
+38536	noise	install noise
+38537	noise	release header
+38538	noise	date noise
+38539	noise	release header
+38540	noise	date noise
+38541	noise	release header
+38542	noise	date noise
+38543	noise	release header
+38544	noise	release header
+38545	noise	date noise
+38546	noise	install noise
+38548	noise	release header
+38549	noise	date noise
+38550	noise	stats noise
+38551	noise	release header
+38552	noise	date noise
+38554	noise	install noise
+38555	noise	release header
+38556	noise	date noise
+38558	noise	release header
+38559	noise	date noise
+38561	noise	install noise
+38562	noise	install noise
+38563	noise	release header
+38565	noise	release header
+38566	noise	date noise
+38568	noise	prose noise
+38569	noise	prose noise
+38573	noise	priority noise
+38574	noise	priority noise
+38575	noise	prose noise
+38576	noise	truncated noise
+38577	noise	release header
+38578	noise	date noise
+38581	noise	section header
+38582	noise	release header
+38583	noise	date noise
+38585	noise	section header
+38587	noise	release header
+38588	noise	date noise
+38589	noise	section header
+38591	noise	release header
+38592	noise	stats noise
+38594	noise	section header
+38597	noise	section header
+38598	dup	hindsight observation-only recall — 召回收窄已有
+38601	noise	section header
+38604	noise	release header
+38605	noise	date noise
+38607	noise	release header
+38608	noise	date noise
+38610	noise	release header
+38611	noise	date noise
+38615	dup	providers as plugins ABC — 插件化已有
+38616	dup	curator archive/prune/list — 策展命令已有
+38619	noise	release header
+38620	noise	date noise
+38622	boundary	yuanbao gateway — 外部平台出界
+38623	noise	release header
+38624	noise	date noise
+38627	noise	section header
+38628	dup	transport ABC — 传输抽象已有
+38629	noise	release header
+38630	noise	date noise
+38631	noise	contributor noise
+38632	noise	release header
+38633	noise	date noise
+38634	noise	stats noise
+38640	dup	endpoint probe+cache — 探测缓存已有
+38642	dup	pluggable context engine slot — 引擎插槽已有
+38643	dup	watch_patterns output alerts — 输出监视已有
+38645	dup	/compress focus — 聚焦压缩已有
+38646	dup	tiered context pressure warnings — 压力分级已有
+38648	dup	empty response retry 3 — 空回重试已有
+38650	dup	strip thought tags — 标签剥离已有
+38652	dup	initOnSessionStart — 会话初始化已有
+38653	noise	release header
+38654	noise	date noise
+38655	noise	gating internal
+38657	dup	non-agentic model warning — 能力警告已有
+38662	dup	thinking-only prefill — 思考预填已有
+38663	noise	truncated noise
+38664	noise	release header
+38665	noise	date noise
+38675	dup	codex preflight harden — 预检加固已有
+38678	dup	profile-scoped host/peer resolution — 作用域解析已有

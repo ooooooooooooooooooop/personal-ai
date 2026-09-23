@@ -1,0 +1,200 @@
+32373	noise	annotations internal
+32378	dup	disable random thinking messages — 思考开关已有
+32379	noise	blog internal
+32381	dup	sub recipe path relative parent — 相对路径已有
+32383	noise	blog internal
+32395	noise	prose noise
+32396	noise	prose noise
+32398	noise	refactor internal
+32402	dup	client more secure — 客户端加固已有
+32403	noise	env internal
+32404	noise	internal
+32406	noise	branch noise
+32407	noise	docs internal
+32429	noise	ci internal
+32436	boundary	styling — their UI
+32451	noise	path internal
+32454	noise	npx internal
+32460	noise	blog internal
+32461	noise	regex internal
+32464	noise	prose noise
+32469	dup	subagents — 子代理已有
+32470	noise	jbang internal
+32471	noise	script internal
+32472	boundary	MCPs menu — their UI
+32478	noise	branch noise
+32479	noise	asset internal
+32489	noise	blog internal
+32491	noise	windows internal
+32494	noise	branch noise
+32503	noise	updater internal
+32506	noise	updater internal
+32507	noise	branch noise
+32512	dup	disable temporal default — 调度默认关已有
+32515	dup	dynamic port temporal — 端口动态已有
+32516	noise	example internal
+32517	noise	branch noise
+32519	noise	windows internal
+32520	noise	blog internal
+32521	noise	blog internal
+32523	dup	system prompt override — 提示覆盖已有
+32526	noise	test internal
+32528	noise	branch noise
+32531	noise	branch noise
+32538	noise	dev internal
+32539	noise	recipe internal
+32547	noise	branch noise
+32548	dup	large tool response handling — 大响应已有
+32550	noise	blog internal
+32553	noise	blog internal
+32557	noise	eval internal
+32559	dup	tool_params_max_length config — 参数长限已有
+32560	noise	kotlin internal
+32564	noise	recipe internal
+32567	dup	interactive session deletion — 会话删除已有
+32568	dup	tool_params_max_length — 已有
+32569	noise	gdrive internal
+32570	noise	kotlin internal
+32571	noise	eval internal
+32573	dup	convert message types toolshim — 消息转换已有
+32574	noise	build internal
+32576	noise	perms internal
+32577	dup	HTTPS recipes+cleanup temp — 拉取安全已有
+32579	dup	exec→spawn — spawn化已有
+32581	noise	link internal
+32582	noise	ts internal
+32583	dup	large tool response — 已有
+32585	noise	dev internal
+32586	boundary	version error — their UI
+32590	noise	docs internal
+32591	noise	docs internal
+32592	noise	docs internal
+32593	dup	list allowed deeplink commands — 深链白名单已有
+32594	noise	docs internal
+32595	noise	docs internal
+32598	noise	blog internal
+32599	noise	blog internal
+32600	dup	concise tools GUI default — 简洁档已有
+32606	noise	provider internal
+32612	noise	blog internal
+32618	noise	kotlin internal
+32620	noise	timestamp internal
+32624	noise	prose noise
+32635	noise	branch noise
+32637	boundary	path ellipsis — their UI
+32664	noise	message internal
+32669	boundary	menu bar — their UI
+32670	noise	docs internal
+32683	noise	branch noise
+32684	noise	types internal
+32689	noise	recipe internal
+32694	boundary	styles — their UI
+32705	noise	branch noise
+32713	noise	branch noise
+32714	boundary	esc toasts — their UI
+32715	boundary	styles — their UI
+32716	noise	docs internal
+32717	noise	shims internal
+32721	noise	blog internal
+32722	noise	editorial internal
+32728	noise	deeplink internal
+32732	boundary	styles — their UI
+32738	noise	author internal
+32739	boundary	modes settings — their UI
+32745	noise	path internal
+32756	boundary	styles — their UI
+32765	noise	branch noise
+32767	dup	extension display name — 显示名已有
+32787	dup	extensions background pending — 异步加载已有
+32791	noise	build internal
+32802	dup	workdirs async-safe — 异步安全已有
+32841	noise	blog internal
+32849	noise	tracing internal
+32863	noise	easter internal
+32865	noise	justfile internal
+32867	noise	branch noise
+32868	noise	revert internal
+32904	noise	name noise
+32958	noise	version internal
+32964	dup	desktop state-machine loop ACP — 状态机接入已有
+32965	dup	ACP socket redirect-resolved — 重定向解析已有
+32966	dup	preserve resource links ACP — 链接保留已有
+32967	noise	npm internal
+32968	noise	provider internal
+32969	noise	docs internal
+32971	dup	ACP thinking effort forward — 推理透传已有
+32972	dup	confine recipe library writes — 写限定已有
+32973	dup	bind ACP permissions to generations — 权限绑代已有
+32975	dup	thinking effort ACP — 已有
+32976	noise	build internal
+32978	noise	dep internal
+32980	noise	uniffi internal
+32981	dup	reconnect ACP after sleep — 重连已有
+32982	dup	TLS ACP serve — TLS已有
+32983	dup	UniFFI SDK bindings — 跨语SDK已有
+32984	noise	model internal
+32985	dup	gate label enrichment capability — 能力门已有
+32986	dup	preserve read lines reload ACP — 输出保留已有
+32988	dup	disable scheduler ACP default — 调度默认关已有
+32995	dup	agentInfo initialize — 初始化信息已有
+32998	dup	elicitation ACP — 询问已有
+32999	dup	opt-in last message snippets — 摘要开关已有
+33001	dup	steering messages ACP — 引导消息已有
+33002	dup	ACP list sessions — 会话列表已有
+33003	dup	ACP config extensions — 扩展管理已有
+33004	dup	uniffi cross-language — 已有
+33005	noise	databricks internal
+33006	dup	agentInfo init — 已有
+33007	dup	snippets opt-in — 已有
+33008	dup	sessions keyword filter — 过滤已有
+33009	dup	recipe discovery ACP — 配方发现已有
+33010	dup	streamable HTTP spec — 传输合规已有
+33014	dup	recipe ACP — 已有
+33015	dup	coalesce streaming one msg id — 流合并已有
+33018	noise	sdk internal
+33019	noise	refactor internal
+33021	dup	extensions mgmt ACP — 已有
+33022	dup	unique conversation id sessionId — 会话标识已有
+33024	noise	tools internal
+33026	noise	dictation internal
+33029	noise	reasoning internal
+33030	dup	WebSocket transport — WS传输已有
+33031	dup	streamable HTTP — 已有
+33032	dup	load configured extensions ACP — 扩展加载已有
+33036	dup	SessionManager ACP — 会话管理已有
+33037	noise	docs internal
+33042	noise	docs internal
+33055	dup	secure zip updater — 更新安全已有
+33061	noise	library internal
+33064	noise	provider internal
+33065	noise	provider internal
+33074	noise	provider internal
+33078	noise	provider internal
+33082	dup	provider save no overwrite — 配置保护已有
+33087	dup	explicit thinking disabled adaptive — 推理显式关已有
+33088	dup	stop exposing secret suffixes — 秘密隐藏已有
+33089	dup	protect system prompt transport — 提示保护已有
+33090	dup	redact URLs provider errors — URL净化已有
+33094	dup	provider save no overwrite — 已有
+33096	noise	provider internal
+33098	dup	honor provider overrides resume — 恢复遵从已有
+33100	dup	auth error ACP provider — 认证错误已有
+33101	dup	ignore ACP title use goose — 标题本地已有
+33104	boundary	search filter — their UI
+33106	noise	sdk internal
+33107	noise	provider internal
+33108	noise	provider internal
+33110	noise	provider internal
+33114	noise	provider internal
+33117	noise	provider internal
+33118	noise	provider internal
+33119	noise	provider internal
+33120	noise	provider internal
+33121	noise	provider internal
+33122	noise	provider internal
+33123	noise	provider internal
+33124	noise	provider internal
+33129	dup	CLI provider prompts out of argv — argv秘密防护已有
+33131	dup	truncate overlong function names — 名截断已有
+33134	boundary	search filter — their UI
+33140	dup	retry empty provider turns — 空轮回试已有

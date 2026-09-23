@@ -1,0 +1,200 @@
+11159	dup	dying sub-agent switch — 子代理生命周期已有
+11165	dup	customizable multi-agent roles — 角色已有
+11207	dup	mem slash commands — memory 命令已有
+11305	dup	codex-secrets crate — secrets 已有
+11395	dup	explorer collab — collab 已有
+11396	dup	disable collab at max depth — 深度限已有
+11398	dup	collab tools exec mapping — collab 已有
+11428	boundary	Expose personality — their surface
+11454	noise	Personality turn update internal
+11479	noise	model_personality config internal
+11493	dup	user commands under user snapshot — 快照执行已有
+11494	dup	collab wait multiple IDs — 多路等待已有
+11504	dup	collab event mapping — collab 已有
+11505	dup	agent roles collab — 角色已有
+11506	dup	send_input interrupt — 中断已有
+11522	noise	collab test harness internal
+11523	dup	collab wait tool — 等待已有
+11524	dup	collab close tool — 关闭已有
+11602	dup	ExecPolicyManager config layers — 策略层已有
+11621	dup	ExternalSandbox policy — sandbox 策略已有
+11671	dup	ghost snapshot v2 — 快照已有
+11818	dup	parallel tool calls — 并行已有
+11823	dup	execpolicy v2 — exec 策略已有
+11902	noise	time after aborting internal
+11939	dup	undo wiring — undo/回滚已有
+12347	dup	fork pattern v2 — fork 已有
+12371	dup	fork thread multi agent — fork 已有
+12421	dup	forked-from in /status — 谱系可见已有
+12431	dup	fork conversation — fork 已有
+13070	dup	async approval — 异步批准已有
+13072	dup	permission profile inheritance — 权限档继承已有
+13167	dup	RejectConfig request_permissions — 拒绝配置已有
+13198	dup	available decisions in approval — 批准选项已有
+13210	dup	distinct approval ids — 批准ID已有
+13251	noise	plan mode prompt internal
+13257	dup	approval propagation unsubscribed — 批准传播已有
+13262	noise	approval_policy values internal
+13412	dup	canonical dynamic tool call items — 工具项已有
+13413	dup	canonical collab tool items — collab 已有
+13434	dup	child MCP warnings out of transcript — 隔离已有
+13470	dup	memories mcp v1 — memory MCP 已有
+13472	dup	paginate MCP memories — memory 已有
+13473	dup	shallow memories list 同上
+13543	dup	drop MCP managing tools when none — 条件工具已有
+13553	noise	mcp-types→rmcp internal
+13568	dup	tool call duration metric — 指标已有
+13580	cand	hot reload mcp servers — MCP 热重载（对齐 #1435 缺口）
+13584	dup	threadId in MCP messages — MCP 已有
+13595	dup	disk value MCP status — MCP 状态已有
+13599	dup	list mcp servers app-server — MCP 已有
+14073	dup	memory usage metrics — memory 已有
+14088	dup	phase2 memory policy — memory 已有
+14145	dup	context compaction — 已有
+14179	dup	canonical sub-agent items — 子代理已有
+14194	noise	disable orchestrator skills internal
+14198	dup	multi-agent v2 config — 多代理已有
+14235	noise	multi-agent v2 desc internal
+14240	dup	multi-agent path-like ids — 寻址已有
+14241	dup	structured multi-agent output — 结构化已有
+14243	dup	custom watcher multi-agent — watcher 已有
+14244	dup	custom watcher 同上
+14245	dup	custom watcher 同上
+14255	dup	sub-agent approval TUI — 批准已有
+14262	noise	multi-agent prompt internal
+14267	dup	sub-agent injection — 注入已有
+15106	dup	restricted ReadOnlyAccess elevated sandbox — sandbox 已有
+15126	dup	preserve network read-only sandbox — sandbox 已有
+15131	dup	sandbox config in escalation — sandbox 已有
+15133	dup	bwrap ReadOnlyAccess — sandbox 已有
+15144	dup	bubblewrap sandbox — sandbox 已有
+15146	dup	ReadOnlyAccess configurable — sandbox 已有
+15185	dup	writable-root subfolder read-only — sandbox 已有
+15206	noise	windows sandbox strings internal
+15298	noise	zsh fork composition gate internal
+15412	noise	shell snapshot metrics internal
+15416	dup	async shell snapshot — shell 快照已有
+15429	noise	shell snapshot exists check internal
+15444	dup	shell snapshotting — 已有
+15890	dup	skills extension scaffold — skills 已有
+15907	dup	goal usage limits extension — 限额已有
+15928	noise	plugin list tabulate internal
+16041	noise	structured plugin parsing internal
+16051	dup	plugins mcps tracking — plugin 已有
+16052	dup	skills for artifacts — skills 已有
+16055	dup	skill disable config layer — 配置层已有
+16058	dup	load plugin apps — plugin 已有
+16059	dup	skills/changed notification — 通知已有
+16076	dup	skill invocation tracking — 审计已有
+16085	dup	SKILL.json metadata — skills manifest 已有
+16272	dup	thread/rollback API — rollback 已有
+16314	dup	secrets sanitizer redact — 脱敏已有
+16350	dup	invokable skills+import — skills 已有
+16354	dup	agent skills — skills 已有
+16356	dup	cli agent skills 同上
+16395	dup	custom llmstxt plugin — plugin 已有
+16412	boundary	jb plugin actions — their ext
+17215	dup	bg job perm check — 权限已有
+17256	dup	subagents — 已有
+17419	boundary	org profile sign in — their SaaS
+17540	noise	Granite FIM internal
+17619	dup	MCP cwd→workspace resolve — workdir 解析已有
+17707	boundary	ToolCallStatus clickable — their UI
+17739	boundary	diff button shortcuts — their UI
+17746	noise	duplicate toolCallId internal
+17811	boundary	Cmd+L/I select file — their UI
+17816	noise	empty diff message internal
+18062	noise	allow/blocklist blocks internal
+18067	dup	continue tool calls after rejection — 拒绝后续已有
+18218	noise	prompt templates internal
+18295	dup	tool policy alert sticky — 策略警示已有
+18314	noise	gemma tool calling internal
+18343	dup	parallel tool calling — 并行已有
+18623	boundary	prompt file edit click — their UI
+19319	dup	pause/resume cn — 暂停恢复已有
+19890	boundary	paste images cn — their UI
+19924	boundary	onboarding card — their UI
+20004	dup	export/import sessions — 导入导出已有
+20100	dup	message queueing — 队列已有
+20108	noise	skip telemetry offline internal
+20226	dup	limited MCP App — MCP 已有
+20227	noise	excluded tools badge internal
+20230	dup	mcp warning message — MCP 已有
+20234	dup	cli oauth MCPs — MCP auth 已有
+20262	noise	serverName registry internal
+20281	noise	tool call args preprocess internal
+20282	noise	mcp loading errors internal
+20284	noise	mcp install guides internal
+20290	dup	mcp connection status — MCP 状态已有
+20309	boundary	org policies indexing/mcp — enterprise
+20312	dup	Verify SSL MCP — TLS 校验已有
+20320	noise	--mcp/--model flags internal
+20326	dup	mcp oauth — MCP auth 已有
+20328	boundary	MCP Prompts display — their UI
+20362	cand	MCP connection refresh logic — 重连面（对齐 #1435）
+20363	boundary	tool call hover — their UI
+20392	boundary	paste image hint — their UI
+20458	boundary	tsc watch terminal — their UI
+20499	dup	plan mode sys prompt — plan mode 已有
+20710	dup	lock indexing until done — 索引锁已有
+20769	boundary	staging blueprint — their env
+20798	boundary	search/replace status icon — their UI
+20801	dup	multiple diffs per call — 批量编辑已有
+21756	noise	providers refactor internal
+22716	boundary	hypercredits sidebar — their SaaS
+26593	boundary	Tab focus switch — their UI
+26640	boundary	yolo/shell styles — their UI
+26655	noise	node-pty refactor internal
+26930	noise	language telemetry internal
+27064	noise	auth method /bug internal
+27269	noise	self-imports fix internal
+27343	noise	traceId propagate internal
+27619	dup	MCP resources list/read — MCP 资源已有
+27625	noise	oauth2→oauth rename internal
+27639	dup	truncate MCP tool output — 截断已有
+27648	dup	MCP tool annotations propagate — 注解已有
+27663	dup	server prefixes MCP tools — 前缀已有
+27688	noise	GoogleCredentialProvider headers internal
+27689	boundary	waiting MCP display — their UI
+27731	boundary	MCP slash discoverability — their UI
+27742	noise	MCP request error log internal
+27747	noise	oauth singleton internal
+27792	boundary	hook messages UI — their UI
+27831	boundary	keybinding hints — their UI
+27843	boundary	slash source indicators — their UI
+27891	noise	hooks UI decouple internal
+27908	boundary	hook execution indicators — their UI
+27932	noise	shortcut docs autogen internal
+27977	noise	useUI hook internal
+28090	noise	LocalSubagentProtocol internal
+28091	noise	RemoteSubagentProtocol internal
+28092	dup	snapshotter improvements — 快照已有
+28126	noise	disable topic updates subagents internal
+28212	dup	multi-registry tool filtering subagents — 工具过滤已有
+28215	noise	tracker protocol system prompt internal
+28227	dup	native Windows sandboxing — sandbox 已有
+28263	noise	tracker policy internal
+28272	dup	enable subagents — 已有
+28303	noise	model fallback toolcalls internal
+28332	noise	auth required state internal
+28402	dup	AfterTool tail calls — hooks 已有
+28452	dup	subagent execution limits — 限制已有
+28453	dup	remove local subagent policy bypass — 策略统一已有
+28469	noise	system prompt overhaul internal
+28485	dup	multiple context filenames — context 文件已有
+28504	dup	dynamic policy registration subagents — 策略注册已有
+28531	dup	eventDrivenScheduler default — scheduler 已有
+28532	dup	hooks default on — hooks 已有
+28533	dup	AgentRegistry subagent tracking — 注册已有
+28534	dup	subagents JSON schema input — 结构化输入已有
+28535	dup	[Pasted Text] placeholder — 粘贴占位已有
+28555	cand	model family-specific system prompts — 按模型族系统提示
+28579	dup	plan strict read-only halt — plan 约束已有
+28586	dup	project sub-agents first-run — 子代理已有
+28590	dup	subagents event-driven scheduler — 事件调度已有
+28594	dup	clearContext AfterAgent hooks — hooks 已有
+28606	dup	anchored iterative compression self-verify — compaction 已有
+28611	noise	hooks event names check internal
+28619	noise	HookSystem wrapper internal
+28626	dup	mcp_context hook inputs — hooks 已有
+28672	dup	STOP_EXECUTION hook decisions — hooks 已有

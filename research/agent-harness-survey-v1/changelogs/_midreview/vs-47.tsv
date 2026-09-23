@@ -1,0 +1,200 @@
+12023	noise	tool noise
+12025	noise	tool noise
+12030	noise	revert noise
+12032	noise	sample noise
+12033	noise	highlights noise
+12035	noise	copy internal
+12036	boundary	loading state — their UI
+12037	dup	custom prompts named/positional args — 参数化提示已有
+12038	boundary	cloud tasks — their product
+12039	boundary	effort picker — their UI
+12041	noise	color internal
+12042	noise	workflows internal
+12043	noise	ci internal
+12047	noise	cleanup internal
+12049	noise	doc internal
+12050	boundary	model switcher — their UI
+12051	noise	key hints internal
+12052	dup	CODEX_API_KEY exec — API键已有
+12053	dup	settings on thread not turn — 设置归属已有
+12054	dup	request ID in errors — 错误上下文已有
+12055	noise	imports internal
+12056	boundary	placeholder — their UI
+12057	noise	backslash internal
+12059	dup	remove legacy --json — 格式收敛已有
+12060	noise	proto internal
+12063	dup	named args custom prompts — 参数化已有
+12064	boundary	cloud tasks — their product
+12065	dup	originator for exec — 发起者已有
+12067	boundary	device auth — their product
+12068	dup	prompts prefix /prompts: — 命名空间已有
+12069	boundary	shortcuts — their UI
+12070	boundary	popup bg — their UI
+12071	dup	tail in rollout data — 尾部数据已有
+12072	dup	frontmatter custom prompts — 前置元数据已有
+12074	boundary	copy iTerm — their UI
+12075	boundary	/review — their UI
+12077	boundary	update nudge — their UI
+12081	boundary	shortcuts — their UI
+12082	boundary	styling — their UI
+12084	dup	reject dangerous cmds Never — 危险拦截已有
+12088	noise	cleanup internal
+12089	boundary	/status — their UI
+12091	boundary	exec output display — their UI
+12093	noise	refactor internal
+12094	dup	dangerous command check — 危险检查已有
+12095	noise	sse internal
+12096	noise	test helpers internal
+12098	noise	refactor internal
+12100	boundary	/status — their UI
+12101	noise	refactor internal
+12102	noise	env flags internal
+12104	boundary	status indicator — their UI
+12105	noise	tool impl internal
+12106	boundary	rate limits — their UI
+12108	noise	PRs noise
+12109	boundary	limits /status — their UI
+12110	noise	mock internal
+12111	noise	helpers internal
+12113	boundary	/review options — their UI
+12114	noise	test helper internal
+12117	boundary	limits — their UI
+12118	noise	controller internal
+12119	boundary	/limits — their UI
+12121	noise	copy internal
+12123	noise	headers internal
+12124	noise	default internal
+12125	noise	test internal
+12126	boundary	rate limit warning — their UI
+12128	boundary	/review — their UI
+12131	dup	uuid_v7 + ConversationId — ID收紧已有
+12135	dup	persist search items — 持久已有
+12136	dup	review mode core — 审查模式已有
+12137	boundary	thinking style — their UI
+12139	dup	OPENAI_API_KEY not env — 凭据纪律已有
+12140	noise	auth.json noise
+12157	boundary	header resume — their UI
+12170	dup	review mode — 审查已有
+12178	noise	enum internal
+12181	dup	fork reads rollout file — fork读取已有
+12184	dup	workspace roots env context — 根上下文已有
+12189	boundary	alt+delete — their UI
+12190	dup	rollout items — 回放项已有
+12191	noise	protocol internal
+12192	noise	tests internal
+12194	noise	backout internal
+12196	dup	apply_patch OSS compat — 补丁兼容已有
+12197	dup	rollout_path in responses — 路径回传已有
+12199	dup	no reasoning item IDs — ID收敛已有
+12200	noise	env var internal
+12201	dup	ArchiveConversation request — 归档已有
+12202	dup	mach-lookup opendirectoryd — 沙箱放行已有
+12203	noise	re-export internal
+12204	noise	types internal
+12205	dup	POSIX unification+snapshot sessions — 快照会话已有
+12210	noise	and more noise
+12211	noise	release script internal
+12213	boundary	ctrl+c clear — their UI
+12214	dup	ConversationId type — ID类型已有
+12218	boundary	command preview — their UI
+12222	noise	stale field internal
+12223	dup	storage metrics session dirs — 指标限域已有
+12224	dup	batch eviction preserve Guardian deltas — 驱逐保序已有
+12225	dup	Guardian transcript policy profiles — 转录策略已有
+12226	noise	test internal
+12229	noise	metrics internal
+12231	dup	clear stale transcript switching — 转录清理已有
+12233	boundary	copy formatting — their UI
+12238	noise	future internal
+12239	boundary	overlay restore — their UI
+12242	dup	shared transcript collection Guardian — 转录收集已有
+12243	boundary	agent navigation — their UI
+12244	dup	record realtime history Core — 历史记录已有
+12246	boundary	layout caches — their UI
+12247	dup	restore cwd+preserve permissions — cwd恢复已有
+12249	dup	shared Guardian transcript — 转录已有
+12250	dup	preserve permissions metadata update — 权限保持已有
+12251	dup	restore cwd owned snapshots — cwd已有
+12252	noise	future internal
+12253	noise	transcript limits internal
+12256	dup	queued messages wake idle — 队列唤醒已有
+12257	noise	timestamp maxima internal
+12258	noise	test internal
+12259	dup	bound legacy resume scans — 扫描限界已有
+12260	dup	Guardian risk scores lifecycles — 评分保持已有
+12262	dup	centralize persisted resume settings — 恢复设置已有
+12267	dup	archived sessions resume picker — 归档恢复已有
+12270	noise	concurrent titles internal
+12273	dup	external session detection limits — 检测限界已有
+12274	dup	protect fork history cleanup — 引用保护已有
+12275	noise	suspend internal
+12277	noise	scanning internal
+12278	dup	Guardian reviews session config — 审查对齐已有
+12280	dup	sanitize imported session titles — 标题净化已有
+12281	dup	inspect envs/descendants/fork turn — 会话API已有
+12282	noise	is_alive internal
+12285	dup	restore absolute turn cwd — cwd恢复已有
+12286	dup	resume exec-server disconnect — 断连恢复已有
+12289	dup	avoid reread cold resume — 冷恢复优化已有
+12295	dup	avoid reopen v2 descendants — 后代收敛已有
+12296	noise	import speed internal
+12297	dup	resume --last state DB — DB恢复已有
+12299	dup	bound external detection — 检测限界已有
+12301	dup	state DB resume --last — DB恢复已有
+12304	noise	stack internal
+12312	noise	image detail internal
+12316	noise	TurnInput internal
+12317	noise	plumbing internal
+12318	noise	resets internal
+12321	dup	hyphenated session/thread headers — 头部一致已有
+12328	dup	omit fork turns notifications — 通知收敛已有
+12332	noise	handoff internal
+12334	dup	realtime transcript deltas handoff — 移交增量已有
+12336	noise	modules internal
+12337	noise	module internal
+12350	dup	transcript under backpressure — 背压保真已有
+12353	noise	transcript internal
+12354	dup	transcript notification v2 — 通知已有
+12355	dup	snapshot fork startup injection — fork注入已有
+12357	noise	cell IDs internal
+12360	dup	handoff transcript context — 移交上下文已有
+12361	dup	realtime transcript handoff — 移交已有
+12364	noise	test internal
+12368	boundary	draft hints — their UI
+12372	dup	thread_id resume/fork cwd — cwd解析已有
+12373	noise	test internal
+12374	dup	replay pending item requests resume — 请求回放已有
+12376	dup	session ID compacting — 压缩溯源已有
+12379	noise	test internal
+12380	dup	restore phase from history — 阶段恢复已有
+12382	dup	thread resume rejoin — 重入已有
+12386	dup	resume rejoin semantics — 重入已有
+12387	dup	exit early init fail — 初始化fail-fast已有
+12402	dup	session-level model client — 会话客户端已有
+12406	boundary	status preamble — their UI
+12409	dup	persist dynamic tools rollout — 工具持久已有
+12419	dup	ask cwd resume different — cwd选择已有
+12423	boundary	session header — their UI
+12424	dup	resume --last respects cwd — cwd过滤已有
+12425	noise	rename internal
+12430	noise	test internal
+12443	noise	scroll internal
+12461	dup	resume branches+cwd filter — 分支过滤已有
+12462	dup	thread>turns>items resume — 结构恢复已有
+12464	dup	warning switch model resume — 切换警告已有
+12467	noise	metadata internal
+12471	dup	centralize truncation — 截断集中已有
+12472	dup	resume from history — 恢复已有
+12476	boundary	resume note — their UI
+12477	boundary	transcript display — their UI
+12481	dup	pageless session list — 列表已有
+12482	boundary	resume message — their UI
+12483	noise	transcript internal
+12485	noise	ci internal
+12486	dup	resume old conversations — 恢复已有
+12491	dup	enable-resume — 恢复已有
+12494	noise	lint noise
+12497	dup	warn service older than CLI — 版本警告已有
+12498	boundary	doctor settings — their UI
+12502	dup	turn cost telemetry — 成本遥测已有
+12503	dup	turn trigger/source analytics — 归因已有

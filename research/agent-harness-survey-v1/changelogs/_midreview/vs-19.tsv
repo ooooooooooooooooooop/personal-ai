@@ -1,0 +1,200 @@
+18977	noise	IDEA shortcut internal
+19220	noise	voyage rerank internal
+19313	noise	getCompleteStateSnapshot internal
+19700	noise	repo map internal
+19923	boundary	tool call context UI — their UI
+19937	boundary	inline edit models — their UI
+19980	boundary	chat sidebar — their UI
+20156	noise	telemetry logging internal
+20197	noise	chunker telemetry internal
+20247	noise	tool call truncation internal
+20261	noise	tool args null internal
+20275	noise	tool call error log internal
+20306	noise	mcp status internal
+20334	noise	tool call divs internal
+20355	noise	mcp unsubstituted var internal
+20409	noise	system-message parser internal
+20448	noise	getTerminalContents internal
+20496	noise	github-script permission internal
+20737	noise	indexing reliability internal
+20742	noise	circular dep internal
+20743	noise	circular dep internal
+21513	boundary	drag-drop files — their UI
+23429	noise	crush auth internal
+23477	noise	local models tool calls internal
+23583	noise	Hook Matcher internal
+23674	noise	LSP panic internal
+24058	dup	MCP OAuth server-client mode — OAuth 已有
+25505	noise	reduce subagents internal
+25917	noise	text before tool calls internal
+25998	dup	approval parsing PS $var prefixes — 前缀规范化已有
+26237	dup	/help lists skills — 发现已有
+26271	noise	config import notice internal
+26277	noise	faster startup rules internal
+26361	dup	stream subagent actions live — 流式已有
+26612	noise	pty resize windows internal
+26741	noise	web fetch ctrl-c internal
+27122	noise	scheduleToolCalls race internal
+27239	noise	extensions logging internal
+27243	noise	google_credentials headers internal
+27524	noise	ctrl-j keybindings internal
+27531	noise	missing import internal
+27584	noise	edit retrigger internal
+27658	dup	credential exposure to MCP fix — 凭据隔离已有
+27704	noise	ctrl-t binding internal
+27706	noise	MCP Tips internal
+27726	noise	MCP prompt slash internal
+27744	noise	GitHub MCP errors internal
+27943	noise	shift+tab kitty internal
+27957	noise	shift+tab regression internal
+27962	noise	paste timeout internal
+27972	noise	notifications internal
+27988	noise	paste \\n internal
+28304	noise	keybindings wildcard internal
+28311	dup	warn scripts on untrusted code — trust 警示已有
+28521	noise	remove fireAgent hook internal
+28721	noise	stats display internal
+29150	noise	auth components internal
+29297	noise	altName completion internal
+29465	noise	sandbox error matching internal
+29543	noise	ext link docs internal
+29555	noise	settings logic internal
+29717	dup	pending tools trust overrides — trust 已有
+29863	noise	cancel in progress internal
+29874	dup	auto-approval chained commands — 链式解析已有
+29893	dup	disable commands untrusted dirs — trust 已有
+29903	dup	confirmation decision non-interactive — 批准已有
+30291	noise	merge queue skipper internal
+30309	noise	merge queue skipper internal
+30395	noise	one tool per agent internal
+30666	noise	streamWrapper memory internal
+31042	noise	auth env validation internal
+31605	noise	OTLP flush exit internal
+31701	boundary	secrets path dialog — their UI
+31720	noise	tool call formatting internal
+32074	dup	subagent task tracking — 追踪已有
+32078	dup	tool call cancellation — 取消已有
+32099	dup	stable system prompts caching — 缓存稳定已有
+33265	noise	models panel delay internal
+33604	noise	permission copy internal
+33609	noise	permission scrolling internal
+33660	noise	ACP tool-call internal
+33728	boundary	right-click menus — their UI
+33738	noise	set_param race internal
+34031	noise	empty message internal
+34079	dup	forward context window to clients — 窗口通告已有
+34184	noise	Gemini OAuth deprecate internal
+34187	noise	Gemini OAuth deprecate internal
+34216	noise	custom headers OAuth internal
+34225	noise	CIMD OAuth internal
+34234	dup	filter tools by visibility metadata — 可见性过滤已有
+34247	noise	color-scheme iframe internal
+34248	noise	_meta forward internal
+34261	noise	goose-mcp dep internal
+34267	dup	MCP elicitation deadlock fix — elicitation 已有
+34268	dup	elicitation timeout deadlock — 同上
+34293	noise	server names code mode internal
+34323	noise	error propagation internal
+34402	dup	MCP notification messages — MCP 已有
+34434	noise	developer mcp windows internal
+34480	noise	skill file paths internal
+34487	noise	PATH plugin hooks internal
+34507	noise	skill categories internal
+34560	noise	deprecated skills internal
+34762	boundary	scroll latest resume — their UI
+34789	noise	resume deep links internal
+34891	noise	history loading internal
+34968	noise	attachment preamble internal
+35006	noise	scheduled content filter internal
+35028	noise	recipe schedule internal
+35033	noise	cron windows internal
+35262	boundary	delegate logs UI — their UI
+35267	dup	stream subagent tool calls — 流式已有
+35270	boundary	subagent calls display — their UI
+35415	dup	login-shell PATH subagents — env 继承已有
+35463	dup	serialize secret mutations — secrets 串行已有
+35475	dup	remove insecure default secret — secrets 硬化已有
+35518	boundary	sidebar macOS — their UI
+35524	boundary	sidebar nav — their UI
+35558	boundary	execute_code UX — their UI
+35585	noise	recipe metrics internal
+38745	dup	413 via compression — 压缩恢复已有
+39214	noise	dict tool args internal
+39279	dup	gateway race/flood/approval hardening — 网关硬化已有
+39542	noise	vague perf claim
+39735	noise	cost limit zero internal
+40013	noise	subagent list crash internal
+40018	dup	defer sub-agent instantiation resume — 恢复已有
+40166	noise	chunk before tool call internal
+40190	noise	connectors sort internal
+40247	noise	resume delete crash internal
+40267	dup	trust dialog shows detected risks — trust 揭示已有
+40268	dup	dedup permission prompts same-permission — 批准去重已有
+40269	dup	bash denylist matching — 名单已有
+40277	dup	permission globs out-of-cwd — 路径权限已有
+40553	noise	cached git ops internal
+40596	boundary	Interrupting label — their UI
+40724	noise	lazy imports internal
+40771	noise	@-mention crash internal
+40816	dup	index.lock leftover interrupted — 锁清理已有
+40928	dup	per-method rate limit buckets — 限流已有
+41617	dup	IPv6 loopback for 127.0.0.1 — 回环绑定已有
+41668	dup	reschedule heartbeats hot reload — 热载已有
+41738	noise	Gateway/Daemon/Sessions vague
+41745	noise	dev profile config internal
+41773	dup	invalid connect responses pre-close — 握手语义已有
+41867	noise	canvas host URL internal
+42629	noise	PATH delimiters internal
+43303	dup	gateway security/trust pass — 硬化已有
+43633	noise	allowlist refactor internal
+44567	dup	status --require-rpc fail-hard — 探测失败即败已有
+44724	dup	security/provenance hardening pass — 硬化已有
+45375	noise	auth error hints internal
+45554	noise	log filenames internal
+46180	dup	subagent details in status — 状态可见已有
+46739	noise	watch CPU profiles internal
+46746	noise	channel startup diagnostic internal
+47202	noise	tailscale ordering internal
+47290	dup	redact credential URLs in logs — 凭据脱敏已有
+47401	noise	composer lag internal
+47482	dup	MIME for URI attachments — 附件已有
+47593	boundary	collapse dirs diff tree — their UI
+47782	noise	LSP Effect refactor internal
+48018	noise	attachment IDs internal
+48116	noise	server spawn resilience internal
+48695	dup	filter dead worktrees — worktree 清理已有
+48702	noise	interrupted ops internal
+48836	noise	permissions granularity internal
+49062	noise	vtsls internal
+49063	noise	TS LSP per package internal
+49128	boundary	Free badge — their UI
+49142	noise	import share links internal
+49152	noise	keybinding desc internal
+49158	noise	/share hint internal
+49196	noise	Deno LSP internal
+49214	noise	empty thinking blocks internal
+49235	noise	empty try-catch internal
+49272	noise	LSP verbosity internal
+49354	dup	wildcard matching permissions — 通配匹配已有
+49562	boundary	hidden session panes — their UI
+49570	noise	tab busy indicators internal
+49911	boundary	session nav keys — their UI
+49969	dup	separate session/share IDs — ID 分离已有
+49971	dup	session/share IDs 同上
+49976	noise	image attachments prompts internal
+50141	noise	remote image URLs internal
+50404	noise	OIDC tokens internal
+50418	noise	copilot billing internal
+50483	dup	dead worktrees filter — 同上
+50492	noise	worktree branch internal
+50546	dup	snapshot history worktrees — 快照已有
+50553	noise	action triggers internal
+50579	noise	copilot auth dup internal
+51135	dup	MCP OAuth compat — MCP 已有
+51138	noise	legacy MCP state internal
+51171	noise	client capabilities internal
+51180	dup	MCP catalog timeouts — 超时已有
+51185	noise	status messages internal
+51207	dup	broken outputSchema refs — 容错已有
+51248	noise	OAuth error handling internal
+51305	noise	OAuth state internal

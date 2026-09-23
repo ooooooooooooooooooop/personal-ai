@@ -1,0 +1,200 @@
+16313	noise	test internal
+16316	dup	dynamic tool injection single transaction — 原子注入已有
+16319	dup	safer escalations — 提权安全已有
+16320	dup	unified exec escalation — 提权处理已有
+16321	dup	read-only escalations fix — 提权修复已有
+16323	noise	release noise
+16324	noise	release noise
+16325	dup	paths as PathUri — 路径类型已有
+16326	dup	turn diffs accurate partial failures — 差异诚实已有
+16327	noise	items internal
+16341	noise	crossterm internal
+16342	dup	patch parse don't run — 解析隔离已有
+16352	noise	snyk dep
+16355	noise	snyk dep
+16358	noise	snyk dep
+16359	noise	dep internal
+16360	noise	dep internal
+16361	noise	dep internal
+16362	noise	agent skills internal
+16364	noise	dep internal
+16365	noise	dep internal
+16375	boundary	diff sections — their UI
+16384	boundary	assist overview — their UI
+16398	boundary	errors to GUI — their UI
+16400	noise	reset instructions internal
+16417	noise	JSON parse internal
+16419	boundary	context providers Node — their arch
+16485	dup	context length truncation — 截断已有
+16533	noise	ts internal
+16534	noise	fixes noise
+16535	noise	fixes noise
+16536	noise	fixes noise
+16537	noise	fixes noise
+16538	noise	fixes noise
+16539	noise	fixes noise
+16540	noise	fixes noise
+16541	noise	fixes noise
+16542	noise	history index internal
+16543	boundary	config overflow — their UI
+16563	noise	report tool internal
+16571	noise	api internal
+16572	noise	imports internal
+16601	noise	error show internal
+16641	dup	error when -p no tool access — 能力错误已有
+16643	noise	test internal
+16644	noise	test internal
+16646	noise	crypto internal
+16647	dup	inline --rule+msg queue — 规则内联已有
+16678	noise	metrics internal
+16686	noise	test internal
+16687	noise	toolbar internal
+16688	noise	fixes internal
+16689	boundary	checkmark — their UI
+16711	noise	gh action internal
+16729	noise	warnings internal
+16733	noise	test internal
+16734	noise	test internal
+16735	noise	cross platform internal
+16736	noise	errors internal
+16738	noise	fix internal
+16739	boundary	border — their UI
+16740	noise	test internal
+16741	noise	coroutine internal
+16743	dup	failed tool calls handle — 失败处理已有
+16744	dup	failed tool result serve — 结果更新已有
+16760	noise	compliance internal
+16761	noise	redux internal
+16762	dup	truncate Read output context — 输出截断已有
+16764	noise	aliases internal
+16770	dup	lsTool exclusions — 排除已有
+16781	dup	exclude search_web unsigned — 能力门已有
+16782	noise	ts internal
+16783	noise	indexer internal
+16784	noise	rebase internal
+16785	noise	builds internal
+16786	boundary	color — their UI
+16787	noise	imports internal
+16788	noise	types internal
+16823	noise	commitlint internal
+16836	noise	sticky internal
+16846	noise	usage internal
+16849	noise	aborts internal
+16851	dup	clear corrupt globalContext.json — 腐态自愈已有
+16852	noise	countTokens internal
+16853	dup	exponential backoff token refresh — 退避刷新已有
+16857	noise	BrowserUtil internal
+16859	noise	dev data internal
+16868	noise	indexing internal
+16870	noise	fixes internal
+16886	noise	auth internal
+16922	noise	autocomplete internal
+16957	noise	mercury internal
+16959	noise	inception internal
+16968	noise	apply internal
+16979	noise	config internal
+16988	noise	fixes internal
+16992	noise	yaml internal
+16996	noise	llm-info internal
+17000	noise	toolSupport internal
+17001	noise	test internal
+17011	boundary	highlighting — their UI
+17032	noise	remount internal
+17034	noise	codebase internal
+17037	noise	profile internal
+17056	noise	account internal
+17057	noise	revert internal
+17063	noise	fixes internal
+17071	noise	yaml internal
+17076	noise	uri internal
+17090	boundary	Chinese input — their UI
+17117	noise	fixes internal
+17132	noise	fixes internal
+17146	boundary	diff lines — their UI
+17149	noise	process exit internal
+17151	noise	cache internal
+17161	boundary	font — their UI
+17162	boundary	css — their UI
+17177	noise	model selection internal
+17193	noise	encoding internal
+17221	noise	snyk dep
+17222	noise	snyk dep
+17223	noise	snyk dep
+17226	dup	remove chat dangerous warnings — 警告收敛已有
+17228	noise	snyk dep
+17229	noise	snyk dep
+17234	noise	reaction噪声
+17235	noise	path noise
+17236	noise	path noise
+17238	noise	snyk dep
+17243	noise	snyk dep
+17244	noise	snyk dep
+17251	noise	snyk dep
+17258	noise	snyk dep
+17261	noise	snyk dep
+17267	noise	publish internal
+17270	noise	rename internal
+17274	noise	reasoning field internal
+17275	boundary	reasoning toggle — their UI
+17276	boundary	blank input error — their UI
+17279	noise	fd check internal
+17284	noise	tokenizers internal
+17285	dup	cancelStream non-retryable — 取消正确已有
+17286	dup	duplicate tool messages — 去重已有
+17289	noise	lint internal
+17290	boundary	text color — their UI
+17293	dup	isComplete metadata agents — 完成标记已有
+17296	noise	link internal
+17297	noise	dep internal
+17300	noise	dep internal
+17301	noise	dep internal
+17302	noise	dep internal
+17306	dup	retry overloaded — 重试已有
+17309	noise	workflow internal
+17311	noise	workflow internal
+17312	noise	circular dep internal
+17313	noise	message internal
+17314	noise	parallel internal
+17316	dup	context length error detection — 错误检测已有
+17320	noise	fallback internal
+17321	noise	binaries internal
+17322	noise	usage internal
+17324	noise	tree-sitter internal
+17326	noise	prompt internal
+17327	dup	WSL2 workspace paths — 路径解析已有
+17328	noise	hub error internal
+17332	noise	dep internal
+17333	noise	dep internal
+17334	noise	test internal
+17335	noise	WSL2 internal
+17336	dup	subagents — 子代理已有
+17338	noise	snyk dep
+17345	noise	snyk dep
+17348	noise	ci internal
+17350	noise	snyk dep
+17351	noise	snyk dep
+17352	noise	models internal
+17362	noise	docs internal
+17363	noise	snyk dep
+17367	noise	snyk dep
+17368	noise	snyk dep
+17369	noise	snyk dep
+17383	noise	tests internal
+17384	noise	dep internal
+17385	noise	workflow internal
+17387	noise	workflow internal
+17388	boundary	cmd+a images — their UI
+17389	noise	logo internal
+17392	dup	case insensitive find-replace — 匹配策略已有
+17394	noise	lint internal
+17395	noise	config internal
+17397	noise	blueprint internal
+17398	dup	correct pending tools count — 计数已有
+17408	noise	fallback internal
+17410	noise	snyk dep
+17411	noise	snyk dep
+17414	noise	favicon internal
+17415	noise	snyk dep
+17422	noise	import internal
+17423	dup	usage metadata messages — 用量元数据已有
+17426	boundary	slash submit — their UI

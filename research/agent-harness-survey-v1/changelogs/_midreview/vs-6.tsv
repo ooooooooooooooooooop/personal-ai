@@ -1,0 +1,200 @@
+54061	boundary	console clipboard — their UI
+54093	dup	screenshot — 已有
+54105	boundary	terminal improvements — their UI
+54189	noise	ACP bash stream internal
+54262	boundary	Terminal Splits — their UI
+54263	noise	ZDOTDIR detect internal
+54272	boundary	cursor style focus — their UI
+54294	noise	shfmt formatter internal
+54374	noise	zshenv load internal
+54379	dup	bash commands — shell 已有
+54473	noise	shader improvements internal
+54527	boundary	discord recaps — their bot
+54536	boundary	discord redirect — their bot
+54564	dup	saved agent profiles — profiles 已有
+54569	boundary	Canvas arrivals track — their SaaS
+54618	boundary	automation creator-only — their SaaS
+54619	boundary	cloud automation edit — their SaaS
+54620	boundary	automation identity display — their SaaS
+54624	boundary	manifest value statements cards — their UI
+54625	boundary	cloud settings entrypoint — their SaaS
+54628	boundary	hover timestamps — their UI
+54640	boundary	automation live phase — their UI
+54642	boundary	chat file links Files drawer — their UI
+54648	boundary	workspace path Files view — their UI
+54649	boundary	automation catalog bundle — their SaaS
+54651	noise	template provenance setup internal
+54652	noise	onboarding link clicks internal
+54660	boundary	canvas structured errors — their UI
+54661	dup	LLM pre-flight profile validation — 校验已有
+54667	boundary	issue readiness gate — their bot
+54673	boundary	Customize nav reorder — their UI
+54680	boundary	manifest sub-pages — their UI
+54685	boundary	live agent activity chat — their UI
+54686	noise	setup contract mock internal
+54725	boundary	admin dashboard rename — their SaaS
+54726	boundary	user login timestamps — their SaaS
+54739	boundary	default org migration — their SaaS
+54740	boundary	automation events default org — their SaaS
+54741	boundary	conversation limits — their SaaS
+54742	boundary	automations menu all users — their SaaS
+54744	noise	resolver macro env internal
+55182	boundary	ToolQA benchmark — their eval
+55195	dup	append_file tool — 文件写已有
+55252	boundary	docker conversation runtime — their env
+55290	noise	devcontainer codespaces internal
+55343	boundary	Git Sync page — their SaaS
+55355	noise	GraphQL parallelize internal
+55539	boundary	automation disable reason — their UI
+55546	boundary	automation outcome UI — their UI
+55558	boundary	Canvas update UI — their UI
+55560	boundary	automation manifest UI — their UI
+55687	boundary	tag chips hovercard — their UI
+55967	noise	make run-wsl internal
+56011	dup	domain-neutral extension-manifest host — ext manifest 已有
+56028	cand	security microagent — 安全微代理
+56262	boundary	smtp/resend email — SaaS 集成
+56263	boundary	SMTP email service — SaaS 集成
+56264	boundary	invite links — their SaaS
+56265	boundary	invitations email match — their SaaS
+59019	dup	bwrap execution foundation — sandbox 已有
+59021	dup	429/5xx retry — retry 已有
+59032	noise	external reasoning profiles internal
+59033	dup	workflow grants pinned to script content — 批准绑定内容已有
+59034	dup	workflow source refs across runs/resumes — provenance 已有
+59036	dup	agent dispatch correlation nested — 关联已有
+59038	dup	workflow size preview+warning — 规模警示已有
+59040	noise	workflow runs args internal
+59045	dup	goal turn/time budgets — 预算已有
+59057	boundary	Chrome Native Messaging relay — their ext
+59086	dup	workflows from extensions — ext 工作流已有
+59092	noise	CUA coordinate env internal
+59107	noise	message prefix filter remove internal
+59110	dup	Goal stop at budget — 预算停止已有
+59112	noise	review static navigation internal
+59113	dup	Codex executor builtins — executor 已有
+59114	dup	CodeModeOnly tool exec — 模式限制已有
+59118	dup	auto-retry EOF — retry 已有
+59120	noise	256 workspaces internal
+59150	dup	goal spend vs window — 预算可见已有
+59153	dup	pause Goal no-progress — 停滞检测已有
+59180	cand	IPC refused-message notify+expiry — 消息拒收反馈
+59181	cand	peer inbox reachability — 对端可达性
+59182	cand	hold peer messages review classes — 消息扣留分级
+59183	noise	todo_write opt-in internal
+59184	noise	prefix message filter internal
+59187	cand	BTW side questions — 侧问通道
+59208	noise	NDJSON budget diagnostics internal
+59210	noise	bun/OpenTUI preview internal
+59211	cand	BTW through agent bridges 同上
+59212	dup	review fan-out workflow — 编排已有
+59215	dup	autofix convergence circuit breaker — 环路断已有
+59218	dup	sessions by name send_message — 会话寻址已有
+59220	noise	serve full truncated internal
+59235	dup	owner-scoped named sessions — 命名会话已有
+59236	dup	criticals regrow warn — 回归警示已有
+59238	noise	round status comment internal
+59240	dup	Goal early stop infeasible — 不可行停已有
+59241	dup	hand-off turn before budget stop — 交接已有
+59257	dup	typed findings contract — 类型化结果已有
+59262	noise	topology minimal arm internal
+59263	noise	goal summary view internal
+59268	noise	reachability/replay lenses internal
+59269	dup	inline anchors vs diff validate — 锚点校验已有
+59272	noise	comment-status presubmit internal
+59274	noise	do-not-refute verifier list internal
+59280	noise	posting volume ledger internal
+59281	noise	verifier disciplines internal
+59284	dup	workflow execution state — 执行态已有
+59288	dup	loop not-settling feedback — 环路反馈已有
+59303	dup	list_directory opt-in — 工具门控已有
+59306	boundary	Aone discussion gate — their platform
+59307	noise	self-MR presubmit internal
+59362	noise	takeover counter seed internal
+59367	noise	severity floor internal
+59420	noise	gh subcommands internal
+59421	noise	convergence posture internal
+59423	noise	round reduction clock internal
+59462	dup	adaptive live-journal caps — journal 容量已有
+59463	noise	anchor sha marker internal
+59465	dup	per-agent transcripts dispatch — 每agent转录已有
+59466	noise	unbounded finding classes internal
+59496	noise	bundle staleness warn internal
+59497	boundary	channel group pairing — their channels
+59502	dup	active work state expose — 状态面已有
+59527	noise	local gh auth internal
+59537	boundary	browser-ext diagnostics — their ext
+59539	dup	submitted prompt provenance — provenance 已有
+59540	dup	autofix retry deterministic — retry 已有
+59541	dup	Goal v3 state persist/replay — 状态持久已有
+59551	noise	Electron→Tauri bridge internal
+59555	noise	falsify-not-verify internal
+59556	noise	drive readiness internal
+59571	dup	SessionDelete event — 会话事件已有
+59572	dup	host tool invocation guard — 调用守卫已有
+59575	noise	max sessions 32 internal
+59594	noise	defer suggestions rounds internal
+59614	noise	generation timing internal
+59617	noise	medium effort pass internal
+59619	noise	review lenses internal
+59639	noise	workspace-level generation internal
+59640	dup	workspace channel config persist — 配置已有
+59641	dup	auto-rerun infra-dead check — retry 已有
+59662	dup	inspect conversation branches — fork 检查已有
+59665	boundary	workspace display names — their UI
+59670	noise	deep health aggregate internal
+59676	dup	prompt IDs to turn events — provenance 已有
+59682	dup	replay ChatRecord readonly — 回放已有
+59713	dup	persist workspace registrations — 已有
+59715	noise	review finders internal
+59720	boundary	Suggestion inline comments — their platform
+59730	noise	truncated stabili internal
+59741	noise	cua-driver vendor internal
+59744	dup	channel agent bridge — channel 桥已有
+59749	dup	listSessions bridge — 已有
+59750	dup	lifecycle status adapters — 已有
+59751	dup	autonomous /loop — loop 已有
+59767	dup	destructive-command guards auto mode — 危险命令闸已有
+59770	noise	archive install ext internal
+59786	dup	oversized tool results to disk — 输出落盘已有
+59787	boundary	Computer Use cua-driver — their runtime
+59810	dup	runtime.json sidecar — 运行态快照已有
+59811	cand	defer low-frequency built-in tools — 工具 schema 延迟加载
+59812	noise	standalone archive install internal
+59816	cand	ToolSearch on-demand deferred schemas — 工具按需检索
+59820	dup	FileReadCache unchanged short-circuit — 读缓存已有
+59824	dup	prior-read before Edit/Write — 读前写闸已有
+59840	dup	validation-retry loop stop directive — 环路检测已有
+59844	dup	stagnation+retry loop detection 同上
+59850	dup	disallowedTools per agent — 工具限制已有
+59856	dup	thinking block retention cleanup — 已有
+59866	boundary	Coding Plan auth — their SaaS
+59871	noise	export metadata internal
+59874	noise	truncated item internal
+59886	dup	AskUserQuestionTool — ask_user 已有
+59914	boundary	settings order — their UI
+59958	boundary	zed TodoWrite/TaskTool — their ext
+60000	dup	deterministic cache control — 缓存控制已有
+60075	dup	headless runaway-protection — 失控护栏已有
+60133	boundary	reading position nav — their UI
+60149	dup	terminal proposals judged by transcript — 判定已有
+60155	boundary	Web Shell Live Host — their UI
+60237	boundary	product name/logo config — their UI
+60248	boundary	answered questions visible — their UI
+60249	boundary	session overview nav — their UI
+60250	dup	goal spend display — 预算可见已有
+60258	boundary	OpenTUI parity — their UI
+60283	boundary	workflow run visualize — their UI
+60376	boundary	live-state timestamps — their UI
+60380	dup	prompt terminal ledger cold-load — 台账持久已有
+60383	dup	Goal v3 controls — 目标控制已有
+60396	boundary	turn expanded bg shell — their UI
+60430	noise	Terminal-Bench eval internal
+60432	noise	composer SSE rebuild internal
+60434	noise	review shell/CI lanes internal
+60540	noise	ext archive install internal
+60555	cand	read-only info commands mid-turn — 回合中只读即答
+60570	boundary	Channel pairing — their channels
+60572	cand	BTW side-question suggestion — 侧问建议
+60743	dup	liveness heartbeats foreground — 心跳已有
+60746	boundary	composer popovers — their UI

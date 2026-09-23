@@ -1,0 +1,200 @@
+17429	noise	CLA internal
+17430	noise	rename internal
+17432	noise	CLA internal
+17433	dup	secrets fetch nonblocking local — 秘密容错已有
+17434	dup	fallback env vars — env回退已有
+17435	noise	lint internal
+17436	noise	cwd uri internal
+17437	noise	cwd uri internal
+17438	noise	lock internal
+17439	noise	lock internal
+17440	noise	pin internal
+17441	noise	revert internal
+17442	noise	test internal
+17444	noise	edge cases internal
+17445	noise	dep internal
+17446	noise	dep internal
+17447	noise	dep internal
+17448	noise	reload action internal
+17449	boundary	rename rule — their UI
+17450	boundary	org profile — their UI
+17463	boundary	thinking colors — their UI
+17466	noise	tweak internal
+17467	noise	lint internal
+17469	dup	validate config secrets present — 秘密校验已有
+17471	dup	allow all tools if unspecified — 默认允许已有
+17474	noise	prompt internal
+17478	noise	feedback internal
+17481	noise	format internal
+17487	noise	lint internal
+17488	noise	lint internal
+17489	noise	mock internal
+17490	noise	ci internal
+17491	noise	providers internal
+17492	dup	prepend agent prompt serve — prompt注入已有
+17506	noise	ci internal
+17515	noise	names noise
+17520	noise	ci internal
+17521	noise	types internal
+17522	dup	typecheck write file args — 参数校验已有
+17523	noise	uri internal
+17524	noise	dep internal
+17525	noise	dep internal
+17526	noise	dep internal
+17527	noise	prompts internal
+17528	dup	yolo applying diff — 自动应用档已有
+17529	noise	slash internal
+17530	boundary	toggle — their UI
+17533	boundary	thinking space — their UI
+17536	noise	test noise
+17537	noise	model support internal
+17544	boundary	sections — their UI
+17545	noise	disable internal
+17548	noise	deps internal
+17549	noise	dup internal
+17551	noise	lint internal
+17552	noise	lint internal
+17553	noise	org id internal
+17554	noise	normalize internal
+17555	noise	normalize internal
+17556	noise	url internal
+17557	noise	args internal
+17559	noise	repo internal
+17560	noise	url internal
+17561	noise	slugs internal
+17562	noise	stash internal
+17563	noise	branch internal
+17564	noise	branch internal
+17565	noise	tests internal
+17566	noise	timestamp internal
+17567	noise	error internal
+17568	noise	types internal
+17569	noise	debugger internal
+17570	noise	message internal
+17571	noise	url internal
+17572	noise	takeover internal
+17573	dup	return fetch errors to agent — 错误返回已有
+17578	noise	agents internal
+17579	boundary	enter button — their UI
+17580	noise	test internal
+17581	noise	agents internal
+17582	noise	agents internal
+17583	noise	agents internal
+17584	noise	link internal
+17585	noise	org id internal
+17586	noise	agents internal
+17587	noise	requests internal
+17588	noise	agent internal
+17589	noise	types internal
+17590	noise	urls internal
+17591	noise	urls internal
+17592	noise	urls internal
+17593	noise	agents internal
+17594	noise	agents internal
+17595	noise	names noise
+17603	noise	rename internal
+17606	noise	inputs internal
+17608	dup	replace inputs with secrets — 秘密注入已有
+17615	noise	release noise
+17618	dup	detect invokable rules prompts dir — 规则发现已有
+17623	noise	articles internal
+17624	noise	rename internal
+17626	noise	esbuild internal
+17627	noise	esbuild internal
+17628	noise	test internal
+17629	dup	stop agent loop aborted — 中止已有
+17631	noise	null uri internal
+17632	noise	auth packages internal
+17634	noise	settings internal
+17635	noise	rule source internal
+17636	dup	premature close tool calls as error — 流关闭容错已有
+17639	noise	rename internal
+17641	noise	workflow internal
+17642	noise	circular internal
+17645	noise	feedback internal
+17646	noise	feedback internal
+17647	noise	MCP internal
+17648	noise	dismissal internal
+17649	noise	test internal
+17651	noise	format internal
+17653	noise	next edit internal
+17654	noise	json internal
+17655	noise	lint internal
+17656	noise	lint internal
+17657	noise	lint internal
+17658	noise	lint internal
+17659	noise	lint internal
+17660	noise	lint internal
+17661	noise	lint internal
+17662	noise	lint internal
+17663	noise	lint internal
+17664	noise	test internal
+17665	noise	rules internal
+17667	noise	workflow internal
+17668	noise	nitpicks internal
+17670	noise	test internal
+17674	noise	rename internal
+17675	noise	args internal
+17680	noise	types internal
+17681	noise	recordings internal
+17682	boundary	history back — their UI
+17688	noise	test internal
+17692	noise	workflow internal
+17693	boundary	mention action — their UI
+17694	boundary	mention action — their UI
+17697	dup	ref dirs+files same time — 引用面已有
+17698	noise	rename internal
+17699	dup	tool permissions workflow files — 工具权限已有
+17700	noise	workflow internal
+17701	noise	workflow internal
+17702	noise	names noise
+17704	noise	url check internal
+17722	dup	tool outcome errors preprocessing — 错误传播已有
+17729	boundary	edit input — their UI
+17754	noise	types internal
+17755	noise	feedback internal
+17756	noise	feedback internal
+17760	noise	promises internal
+17761	noise	publish internal
+17762	dup	ls tool relative paths — 相对路径已有
+17763	noise	coroutine internal
+17764	noise	condition internal
+17767	noise	revert internal
+17768	dup	dangerous command warning — 警告已有
+17770	noise	types internal
+17772	noise	coroutine internal
+17773	noise	env internal
+17774	boundary	fullscreen — their UI
+17776	noise	serve flag internal
+17778	boundary	hide sections — their UI
+17787	noise	feedback internal
+17788	noise	circular internal
+17789	noise	feedback internal
+17790	noise	feedback internal
+17792	noise	gitignore internal
+17793	noise	r.map internal
+17795	noise	lint internal
+17796	noise	lint internal
+17797	noise	lint internal
+17798	noise	lock internal
+17800	boundary	cards — their UI
+17801	boundary	border — their UI
+17804	dup	json schema tool definitions — schema已有
+17818	dup	invokable parsing — 调用解析已有
+17826	boundary	unread — their UI
+17827	noise	rule prompt internal
+17829	dup	duplicate toolCallId adapt — ID去重已有
+17831	noise	char diff internal
+17834	noise	NPE internal
+17835	noise	indent internal
+17837	noise	review internal
+17839	boundary	highlighted code send — their UI
+17840	boundary	icons — their UI
+17844	noise	tilde internal
+17845	noise	models internal
+17858	noise	paths internal
+17868	noise	feedback internal
+17870	dup	include content with tool calls — 消息合成已有
+17871	noise	lint internal
+17872	dup	missing secrets — 秘密校验已有
+17874	noise	req internal

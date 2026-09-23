@@ -1,0 +1,200 @@
+47617	noise	contributor noise
+47618	noise	docs internal
+47619	dup	dedupe consecutive prompt history — 历史去重已有
+47620	dup	preserve custom tool metadata Zod — 元数据保留已有
+47621	boundary	collapsed thinking view — their UI
+47622	noise	contributor noise
+47624	dup	ignore invalid exports tool modules — 容错加载已有
+47625	dup	ignore instruction lookup errors — 发现容错已有
+47628	dup	background subagents — 后台子代理已有
+47632	dup	invalid small_model fallback — 配置回退已有
+47633	dup	auto-create global config — 配置引导已有
+47635	dup	autocomplete @mentions — 提及补全已有
+47636	dup	preserve custom tool attachments — 附件保留已有
+47639	boundary	shortcuts — their UI
+47641	boundary	next project — their UI
+47645	dup	legacy sessions missing diffs load — 迁移容错已有
+47647	dup	throwOnError real Error+cause — 错误保真已有
+47653	dup	worktree name fallback parent — 命名回退已有
+47655	dup	stable tool ordering — 顺序稳定已有
+47656	dup	cleared prompts in draft history — 草稿恢复已有
+47662	dup	CORS before auth legacy — 头顺序已有
+47664	dup	editor selection stable until sent — 选择稳定已有
+47665	dup	keep selected model on refresh — 模型保持已有
+47666	dup	no auto-install on quit — 退出抑制已有
+47668	dup	respect HTTP_PROXY desktop — 代理遵从已有
+47669	dup	null instead of fail stored value — 读取容错已有
+47670	dup	cancel task cancels children — 取消传播已有
+47671	boundary	titlebar — their UI
+47672	dup	structured error bodies — 错误体已有
+47674	dup	worktree no hang bootstrap — 挂死修复已有
+47675	dup	custom basic auth usernames — 认证已有
+47677	dup	preserve auth-token reopen — 凭据保留已有
+47678	noise	contributor noise
+47680	noise	contributor noise
+47682	dup	no crash missing model restore — 容错已有
+47683	noise	contributor noise
+47684	noise	contributor noise
+47685	dup	relative workspace path — 相对路径已有
+47688	dup	file context toggle+clear after send — 上下文可控已有
+47690	dup	per-workspace icon subdirs — 图标继承已有
+47691	noise	contributor noise
+47695	dup	/connect tip no models — 引导提示已有
+47696	noise	contributor noise
+47698	noise	contributor noise
+47699	noise	contributor noise
+47700	dup	respect .npmrc registry — npmrc遵从已有
+47701	dup	npmrc installs — 已有
+47702	dup	custom icon override persist — 图标持久已有
+47703	dup	pull diagnostics LSP — LSP诊断已有
+47710	dup	concurrent edits same file preserved — 并发编辑保护已有
+47712	noise	contributor noise
+47713	noise	contributor noise
+47714	dup	no sync never-shared — 同步限定已有
+47715	dup	workspace history catch-up on connect — 追赶同步已有
+47717	noise	contributor noise
+47718	dup	real filenames not /dev/null revert — 名保真已有
+47719	dup	prompt input preserved unmount — 输入保留已有
+47721	dup	wait sync before writes — 写序已有
+47722	dup	paste no double insert — 粘贴去重已有
+47723	boundary	badge — their UI
+47725	dup	no bootstrap popups during sync — 弹窗抑制已有
+47726	dup	snapshots respect gitignore — 忽略遵从已有
+47727	dup	images no quota — 配额豁免已有
+47731	noise	contributor noise
+47733	boundary	variants — their UI
+47734	boundary	subscribe prompt — their UI
+47735	noise	contributor noise
+47741	dup	variants scoped model — 变体归属已有
+47745	boundary	kitty keyboard — their UI
+47748	boundary	org switching — their UI
+47749	noise	contributor noise
+47754	boundary	prompt cursor — their UI
+47755	boundary	text selection — their UI
+47756	dup	fallback first agent unavailable — 回退已有
+47758	boundary	focus restore — their UI
+47759	boundary	keyboard nav — their UI
+47760	boundary	dock scroll — their UI
+47768	noise	contributor noise
+47771	noise	refactor internal
+47774	noise	refactor internal
+47775	noise	refactor internal
+47776	noise	refactor internal
+47778	noise	refactor internal
+47783	boundary	dialog — their UI
+47787	boundary	file tree — their UI
+47788	dup	persist queued followups switches — 队列持久已有
+47789	noise	fonts internal
+47790	noise	contributor noise
+47791	boundary	keybindings — their UI
+47792	dup	ZlibError retryable — 错误分类已有
+47805	dup	streamlined fallback system prompt — 提示精简已有
+47811	dup	clean pending on abort — 清理已有
+47815	dup	chunk timeout 5min — 超时已有
+47817	noise	bridge internal
+47827	noise	test internal
+47829	noise	contributor noise
+47830	noise	types internal
+47831	noise	types internal
+47833	noise	types internal
+47834	noise	types internal
+47835	noise	types internal
+47837	noise	types internal
+47838	noise	types internal
+47841	noise	electron internal
+47844	dup	no access system directories — 系统目录屏蔽已有
+47845	dup	worktrees read project ID — 项目id已有
+47847	noise	refactor internal
+47848	noise	dep internal
+47849	noise	dep internal
+47850	noise	refactor internal
+47851	noise	refactor internal
+47859	noise	contributor noise
+47860	dup	no fallback free nano — 降级关闭已有
+47862	dup	sanitize store filenames windows — 名净化已有
+47865	noise	contributor noise
+47872	boundary	titlebar — their UI
+47874	noise	contributor noise
+47876	noise	dep internal
+47880	dup	abort sessions idle before cleanup — 清理序已有
+47886	noise	dep internal
+47887	noise	dep internal
+47888	noise	dep internal
+47889	noise	dep internal
+47890	noise	dep internal
+47891	noise	dep internal
+47892	noise	dep internal
+47893	noise	dep internal
+47894	noise	contributor noise
+47896	boundary	onClick — their UI
+47900	boundary	search — their UI
+47904	noise	refactor internal
+47906	noise	refactor internal
+47911	noise	contributor noise
+47917	boundary	keybindings — their UI
+47924	noise	script internal
+47928	noise	rust internal
+47951	noise	contributor noise
+47953	noise	test internal
+47954	dup	NTFS mtime tolerance — 时间容差已有
+47957	dup	normalize backslash windows — 路径归一已有
+47958	dup	preload cleanup EBUSY — 清理容错已有
+47960	noise	test internal
+47961	noise	dep internal
+47965	noise	publish internal
+47966	dup	endpoint list all sessions — 会话列表已有
+47968	dup	ignore stale part deltas — 过期丢弃已有
+47970	dup	native separators path helpers — 分隔符已有
+47979	dup	show/hide reasoning summaries — 摘要开关已有
+47981	noise	windows internal
+47983	dup	no sidecar localhost default — 边车抑制已有
+47985	noise	dep internal
+47986	noise	contributor noise
+47988	noise	contributor noise
+47993	noise	internal
+47996	noise	migrate internal
+47998	noise	migrate internal
+48009	noise	api internal
+48012	dup	no autoload — 自动加载关已有
+48014	dup	fs/promises all ops — fs统一已有
+48016	dup	recover state SSE reconnect+harden — SSE恢复已有
+48017	dup	message part order async — 顺序稳定已有
+48022	dup	localhost isLocal — 本机判定已有
+48025	boundary	tooltips — their UI
+48027	boundary	styles — their UI
+48035	boundary	toggle — their UI
+48058	dup	migration logs stderr — 日志分流已有
+48064	dup	IDs from file paths migration — id推导已有
+48065	noise	prose noise
+48067	dup	all project sessions any dir — 全局列表已有
+48068	dup	websearch desc no cache bust — 缓存友好已有
+48070	noise	code noise
+48071	noise	code noise
+48072	noise	code noise
+48073	noise	code noise
+48074	noise	code noise
+48075	noise	code noise
+48076	noise	code noise
+48080	noise	revert internal
+48081	dup	@-mention dir uses read tool — 工具路由已有
+48087	dup	loading window only if migration — 按需显示已有
+48090	noise	contributor noise
+48095	boundary	icons — their UI
+48097	noise	contributor noise
+48100	boundary	progress bar — their UI
+48107	dup	guard randomUUID insecure — 环境守卫已有
+48114	noise	contributor noise
+48121	dup	helpful message limit exceeded — 限额提示已有
+48124	dup	variant check available not exact — 变体容错已有
+48136	noise	revert internal
+48139	dup	no dispose after reset — 实例保留已有
+48146	dup	randomUUID fallback — 回退已有
+48163	boundary	hide button — their UI
+48171	boundary	maximize — their UI
+48172	boundary	menu bar — their UI
+48175	noise	internal
+48182	dup	tighten slash autocomplete — 补全收紧已有
+48188	boundary	hide input — their UI
+48189	boundary	color contrast — their UI
+48190	boundary	open external — their UI
+48199	dup	wait deps before custom tools — 依赖序已有

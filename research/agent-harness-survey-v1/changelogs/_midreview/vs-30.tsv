@@ -1,0 +1,200 @@
+64172	dup	silent triage empty-response check — 静默失败检测已有
+64367	dup	disabled skill delegation error — 委派错误已有
+64637	dup	MCP cwd missing error — 错误信息已有
+64640	dup	MCP listener cleanup — 资源清理已有
+64658	noise	OAuth fetch diagnostics internal
+64677	dup	drain notification queue on error — 队列排空已有
+64766	noise	LogToSpan bridge internal
+64838	boundary	tool calls ui — their UI
+66207	boundary	MCP hub drag — their UI
+66260	dup	cancel vs API failure — 错误分类已有
+66291	noise	tree-sitter indexing internal
+66346	noise	no workspace root internal
+66365	boundary	prompts tabs scroll — their UI
+67305	noise	orchestrator hang internal
+67350	dup	auto-approval intermittent — 审批已有
+68991	boundary	agent panel crash — their UI
+69024	dup	MCP auth self-hosted — MCP认证已有
+69195	boundary	editor keybinds chat — their UI
+69349	noise	rate limit message internal
+69351	dup	uncancellable commands — 可取消已有
+69386	noise	Terminal spawn Windows internal
+69417	dup	skill alt fields — 技能解析已有
+69442	noise	stdio MCP Windows internal
+69443	dup	MCP server bugs — MCP已有
+69444	dup	MCP OAuth — OAuth已有
+69452	noise	parallel tool call errors internal
+69455	dup	MCP reauth on open — 认证缓存已有
+69459	dup	MCP install — 安装已有
+69473	noise	tool call telemetry internal
+71216	boundary	plugin badge — their UI
+71218	dup	plugin errors session recovery — 恢复已有
+71219	boundary	plugin menu — their UI
+71224	dup	multi skill dirs list — 技能目录已有
+71227	dup	multi skill dirs — 技能目录已有
+71271	boundary	Linux shortcuts — their UI
+71275	dup	queued messages lost — 队列持久已有
+71284	dup	bg processes after exit — 进程清理已有
+71290	dup	queued messages lost — 队列持久已有
+71299	dup	bg processes after exit — 进程清理已有
+71332	dup	MCP connection issues — MCP已有
+71333	dup	MCP connection issues — MCP已有
+71335	dup	MCP oauth intermittent — OAuth已有
+71337	dup	MCP oauth intermittent — OAuth已有
+71423	noise	tool schemas incomplete internal
+71824	boundary	folder highlight drag — their UI
+71862	noise	LS references crash internal
+71880	boundary	file finder hover — their UI
+71914	noise	info/exclude worktree internal
+71932	dup	follow-up msg=denial pending tool — 拒绝语义已有
+71933	boundary	collab sync — their collab
+71937	boundary	breadcrumbs — their UI
+71942	boundary	LSP log buttons — their UI
+71943	boundary	LS entry flicker — their UI
+71966	noise	Text Finder crash internal
+72013	noise	npm registry metadata internal
+72017	noise	npm registry metadata internal
+72067	boundary	worktree recent — their UI
+72096	boundary	word movement — their UI
+72101	noise	semantic tokens internal
+72141	noise	formatter fallback internal
+72169	boundary	app icons — their product
+72208	boundary	reopen preview tabs — their UI
+72211	boundary	reopen preview tabs — their UI
+72342	noise	conflicting code actions internal
+72343	noise	gitignore crash internal
+72346	noise	tree-sitter crash internal
+72386	noise	dup diagnostics internal
+72399	noise	hover popovers internal
+72412	noise	rename imports internal
+72434	noise	Dart format internal
+72447	noise	extra } import internal
+72456	boundary	auto-height layout — their UI
+72465	noise	redo format internal
+72511	boundary	code actions lock — their UI
+72532	boundary	code actions lock — their UI
+72542	noise	max_tabs internal
+72543	boundary	drag selection — their UI
+72545	noise	completions cache internal
+72565	noise	debugger worktree internal
+72569	noise	JS debug stack internal
+72579	boundary	pinned tabs move — their UI
+72586	noise	task spaces spawn internal
+72605	boundary	hover popovers — their UI
+72616	boundary	StepOut keybind — their UI
+72622	boundary	child debug sessions — their UI
+72688	boundary	ctrl-enter assist — their UI
+72734	boundary	macOS crash — their product
+72738	boundary	macOS crash — their product
+72742	noise	large files LSP internal
+72773	noise	inactiveRegions clangd internal
+72782	boundary	native tabs — their UI
+72788	boundary	native tabs — their UI
+72827	noise	undo dirty buffer internal
+72836	noise	root_uri internal
+72839	noise	root_uri internal
+72851	boundary	unsaved warn — their UI
+72853	boundary	modifier click — their UI
+72857	noise	diagnostic codes internal
+72861	noise	diagnostic codes internal
+72950	noise	LS desktop entry internal
+73017	boundary	toolchain venvs — their UI
+73019	noise	completions multi-LS internal
+73022	boundary	dir drop self — their UI
+73023	boundary	pinned close — their UI
+73079	noise	PATH vs direnv LS internal
+73107	noise	import highlight internal
+73114	noise	file watching root internal
+73115	boundary	toolbar row — their UI
+73194	noise	inline assistant tabs internal
+73225	boundary	panel restore — their UI
+73266	boundary	modifier keys — their UI
+73287	noise	telemetry bug internal
+73313	noise	completion requests dup internal
+73346	noise	wrong LS format internal
+73349	noise	rename selection internal
+73364	noise	LSP settings extensions internal
+73365	noise	LSP settings extensions internal
+73382	noise	zls permissions internal
+73388	noise	zls permissions internal
+73403	noise	LS logs flicker internal
+73409	noise	search multi-worktree internal
+73416	boundary	empty panes dnd — their UI
+73520	noise	comment prefix internal
+73521	noise	fuzzy search internal
+73556	boundary	call controls unshare — their collab
+73566	boundary	keychain save — their product
+73580	boundary	pane drag handle — their UI
+73589	boundary	panel settings — their UI
+73590	boundary	tab label color — their UI
+73592	noise	Vue LS crash internal
+73595	noise	excluded files panic internal
+73605	noise	JS/TS LS internal
+73615	noise	Elixir LS arch internal
+73621	noise	Elixir LS arch internal
+73652	boundary	follow collaborators — their collab
+73659	noise	Next LS internal
+73664	boundary	dnd bug — their UI
+76065	noise	LSP hovers perf internal
+76072	noise	npm v12 LS internal
+76175	boundary	selection reset finder — their UI
+76457	boundary	panel scroll collapsed — their UI
+76476	boundary	bookmarks update — their UI
+76482	boundary	breakpoints reflect — their UI
+76483	boundary	selected agent forget — their UI
+76487	boundary	X11 urgency hint — their UI
+76562	boundary	diff unsplit crash — their UI
+76590	boundary	context menu pos — their UI
+76598	boundary	panel fs errors — their UI
+76599	boundary	preview tab — their UI
+76609	boundary	threads missing sidebar — their UI
+76611	boundary	panel resize — their UI
+76612	boundary	panel zoom scroll — their UI
+76613	boundary	project paths welcome — their UI
+76645	boundary	middle-click pinned — their UI
+76833	boundary	tab partial visible — their UI
+76854	boundary	palette text faded — their UI
+76880	boundary	read-only tab close — their UI
+76881	boundary	pinned count — their UI
+76882	boundary	read-only close — their UI
+76894	boundary	close others — their UI
+76897	boundary	sticky hover — their UI
+76948	boundary	pinned drag — their UI
+76949	boundary	pinned drag panes — their UI
+76950	boundary	pinned tabs — their UI
+76951	boundary	pinned drag split — their UI
+76960	boundary	scroll restore undo — their UI
+76970	boundary	Python indent — their UI
+77028	boundary	dock toggle settings — their UI
+77043	boundary	preview tab go back — their UI
+77073	boundary	git entry select — their UI
+77078	boundary	outline multi-worktree — their UI
+77093	noise	vtsls crash internal
+77123	boundary	panel color — their UI
+77129	boundary	panel selection — their UI
+77130	boundary	panel resize edge — their UI
+77145	noise	language selector internal
+77162	noise	outline perf internal
+77169	boundary	rename up/down — their UI
+77177	boundary	relative paths copy — their UI
+77238	boundary	overridden shortcuts — their UI
+77248	boundary	call notifications — their collab
+77271	boundary	ctrl-tab cycle — their UI
+77297	boundary	scroll on close — their UI
+77298	boundary	indent guides — their UI
+77312	boundary	collab menu esc — their UI
+77319	boundary	collapse entries — their UI
+77332	boundary	panel settings apply — their UI
+77335	boundary	LSP status bar — their UI
+77340	boundary	dirs with numbers — their UI
+77351	boundary	channel notifications — their collab
+77352	boundary	empty region menu — their UI
+77370	boundary	icon bounce rename — their UI
+77375	boundary	update notifications — their UI
+77408	boundary	panel selection — their UI
+77426	boundary	ignored files display — their UI
+77430	boundary	popovers zoomed — their UI
+77445	boundary	close icon hover — their UI
+77446	dup	guests paste read-only buffers — 只读执行已有
+77470	boundary	spaces in filenames — their UI
+77485	boundary	Open Notes action — their collab

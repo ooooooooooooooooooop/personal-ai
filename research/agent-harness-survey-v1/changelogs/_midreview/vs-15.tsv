@@ -1,0 +1,200 @@
+51530	noise	lost sessions worktrees internal
+51538	noise	snapshot acp internal
+51540	noise	auth headers run --attach internal
+51554	noise	agent validation internal
+51562	noise	trailing slashes internal
+51567	noise	schema URL docs internal
+51573	noise	synthetic pending status internal
+51574	boundary	cancel unhighlight — their UI
+51586	noise	Korean docs internal
+51593	noise	Wayland/X11 internal
+51598	noise	prompt history nav internal
+51619	noise	StructuredOutputs format internal
+51640	dup	orphaned worktree cleanup — worktree GC 已有
+51646	noise	/share existing link internal
+51656	noise	plugins reinstall internal
+51805	noise	bun cache module internal
+51857	boundary	message badges — their UI
+51863	noise	lsp telemetry internal
+51873	dup	forked sessions parent-child refs — fork 完整性已有
+51880	noise	ACP tool_call_update fields internal
+51898	noise	bg transparency internal
+51903	noise	slash commands initial internal
+51925	noise	opentui version internal
+51927	noise	bonjour import internal
+51938	boundary	drag file attach — their UI
+51963	dup	snapshot when finish-step unreached — 快照兜底已有
+51968	noise	stats workflow forks internal
+52004	noise	system prompt field internal
+52009	noise	LSP unzip windows internal
+52012	noise	path.delimiter internal
+52041	noise	latest version resolve internal
+52058	noise	Auth.all internal
+52073	dup	unignoring in .ignore — ignore 语义已有
+52086	noise	empty messages internal
+52192	noise	worktree cmd internal
+52202	noise	lsp spawn internal
+52203	noise	lsp extensions req internal
+52209	noise	aborted messages parts internal
+52211	noise	keybinds schema internal
+52219	dup	await cleanupRevert no dupe — revert 原子已有
+52227	noise	fuzzy search internal
+52235	dup	subdirectory subagents discovery — 子代理发现已有
+52236	dup	durable @ references — 引用持久已有
+52239	noise	exact match prefer internal
+52243	noise	gopls id internal
+52268	noise	keybinds config internal
+52281	noise	bin directory internal
+52282	dup	preserve env formatter spawn — env 已有
+52289	noise	collapsed tool calls internal
+52293	noise	first rule file internal
+52317	noise	unshare command internal
+52319	noise	UTF-8 attachments internal
+52323	noise	glob test internal
+52348	noise	snapshot commits sign internal
+52385	dup	shared previews truncated — 分享截断已有
+52390	noise	todos null args internal
+52394	dup	remove system prompts share page — 分享消毒已有
+52428	noise	path export check internal
+52440	dup	home-relative permission paths — 路径展开已有
+52448	dup	permission ordering layered — 权限层序已有
+52477	boundary	scrollbox style — their UI
+52483	noise	permission dialog keys internal
+52484	noise	apply_patch metadata internal
+52486	dup	file path in permission screen — 批准目标可见已有
+52490	dup	filename in permission titles — 同上
+52504	dup	worktree external_directory subdirs — 目录权限已有
+52508	noise	showDetails internal
+52558	noise	permission always internal
+52566	noise	permission state hang internal
+52569	dup	file paths permission window — 同上
+52722	noise	empty move path internal
+52723	noise	dnd-kit internal
+52748	noise	worktree patch internal
+52925	dup	keep primary model post-subagent — 模型归属已有
+52936	noise	subagent nav order internal
+52944	dup	--continue no subagent access — 隔离已有
+52948	dup	session_complete not on subagent — hook 作用域已有
+52955	noise	prompt.skills keybinds internal
+52977	noise	plugin tool metadata internal
+52997	noise	ordering descriptions internal
+53004	boundary	skill name in call — their UI
+53007	noise	plugin deps black screen internal
+53018	boundary	skills dialog — their UI
+53066	dup	skill filtering agent permissions — 权限过滤已有
+53099	dup	rejoin system prompt preserve cache — 缓存边界已有
+53123	noise	lsp extension internal
+53148	boundary	file tree clipping — their UI
+53161	boundary	keybind tooltips — their UI
+53212	noise	local cwd attach internal
+53220	boundary	variant_list toast — their UI
+53241	boundary	paste badge contrast — their UI
+53272	boundary	icon.url avatar — their UI
+53322	boundary	dismiss toasts questions — their UI
+53337	boundary	file tree tab — their UI
+53338	noise	/export toggling internal
+53353	boundary	middle-click tab — their UI
+53371	boundary	tab flash — their UI
+53376	boundary	shift+tab — their UI
+53381	boundary	undo history paste — their UI
+53386	noise	/share link internal
+53429	boundary	file tabs scroll — their UI
+53462	boundary	question tab visibility — their UI
+53488	boundary	aria-labels — their UI
+53500	boundary	sidebar height — their UI
+53515	boundary	palette dialog guard — their UI
+53518	boundary	unsupported filetype feedback — their UI
+53519	boundary	thinking effort keybind — their UI
+53526	boundary	tab nav questions — their UI
+53549	boundary	load more sidebar — their UI
+53551	boundary	question keybinds dialog — their UI
+53569	boundary	macOS search shortcuts — their UI
+53570	boundary	palette hover — their UI
+53574	noise	full path fuzzy internal
+53585	noise	forked message prompt internal
+53602	boundary	links new tab — their UI
+53625	boundary	lsp status muted — their UI
+53633	noise	agent not found toast internal
+53646	boundary	keybinds dialog guard — their UI
+53658	dup	exclude reverted reply on copy — revert 语义已有
+53666	noise	SSR guard internal
+53683	boundary	sidebar contrast — their UI
+53830	dup	resolve [pasted lines] as args — 粘贴占位已有
+53836	noise	commands sort internal
+53839	noise	keybind panic internal
+53840	boundary	text selection clear — their UI
+53899	noise	/mode trigger internal
+53927	dup	full paths attachments — 附件路径已有
+53931	dup	include orphaned tool calls — 孤儿工具已有
+53933	boundary	status bar always — their UI
+53976	boundary	upgrade notification — their UI
+54018	dup	tool image attachments updates — 附件透传已有
+54029	noise	pasteImage count internal
+54056	boundary	image dragging dialog — their UI
+54057	dup	image parts to custom commands — 附件入参已有
+54074	noise	attachment bound internal
+54076	noise	attachment wrapping internal
+54080	boundary	attachment highlight — their UI
+54172	dup	pty session handle leak — fd 回收已有
+54211	dup	shell() triggers loop queued — 队列语义已有
+54230	dup	treesitter redirected_statement permissions — 解析感知批准已有
+54233	dup	await SessionRevert.cleanup shell — 清理序已有
+54255	boundary	pty listener unmount — their UI
+54366	noise	paste collapse bash mode internal
+54367	noise	shell dropped revert internal
+54369	dup	shell cmds abortable — 取消已有
+54491	noise	debounce diagnostics internal
+55254	boundary	credentials banner Docker — their UI
+55430	noise	non-MCP integrations internal
+55431	dup	preserve MCP credentials mutations — 凭据保持已有
+55433	dup	MCP auth secrets GET round-trip — 同上
+55470	noise	telemetry lifecycle internal
+55545	boundary	Cloud settings tab — their UI
+55550	noise	run-history fan-out internal
+55553	boundary	drag-scroll rails — their UI
+55556	boundary	Load more folders — their UI
+55557	boundary	input drag-resize — their UI
+55562	noise	LLM Profile dedupe internal
+55648	boundary	kebab menu clip — their UI
+55649	boundary	disable save reverted — their UI
+55652	dup	auto-load workspace hooks on start — hooks 加载已有
+55668	dup	prevent silent profile downgrade — 档位保护已有
+55670	noise	LLM dropdown precedence internal
+55675	noise	function XML delta internal
+55693	noise	Default label internal
+55695	noise	composer gate internal
+55698	noise	start telemetry internal
+55707	noise	cookie-auth internal
+55718	noise	created_at webhooks internal
+55723	dup	webhook DB leaks — 资源回收已有
+55735	noise	hydrate profile form internal
+55741	noise	utf-8 exports internal
+55746	noise	profile switch UUID internal
+55752	noise	stream tokens internal
+55765	noise	conversation limit revert internal
+55766	boundary	Bitbucket DC comments — their bot
+55768	noise	auth fields dedupe internal
+55769	dup	prevent export overload — 界已有
+55869	noise	bg exit code internal
+55876	noise	torch version internal
+55887	noise	env var empty internal
+55894	noise	Runtime import internal
+55901	noise	test dockers internal
+55938	boundary	Cloud reconnect UI — their SaaS
+55974	noise	npm audit internal
+55980	dup	redact credentials PluginSpec.source — 凭据脱敏已有
+55984	noise	CVE otel core internal
+55998	noise	plugin sources catalog internal
+56003	noise	plugin queries backend internal
+56004	noise	cloud skills list internal
+56012	dup	exclude disabled skills context — skills 门控已有
+56014	noise	settings sidebar scroll internal
+56016	dup	skills without repository — skills 加载已有
+56069	noise	telemetry consent banner internal
+56086	dup	spawn without implicit shell — 无壳派生已有（#915 同族）
+59151	noise	pnpm bootstrap internal
+59494	noise	review wall-clock internal
+59503	dup	soft tool-call budget briefs — 预算已有
+60058	dup	concurrency-safe parallel headless — 并行已有
+60082	noise	OAuth URL headless internal
+60083	dup	PAT git remote parsing — 凭据处理已有

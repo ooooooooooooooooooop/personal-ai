@@ -1,0 +1,200 @@
+1761	noise	terminal TS rewrite internal refactor
+1768	dup	terminal background exec — pi durable jobs 已有
+1829	noise	welcome screen glitch fix
+1843	dup	git branch analysis — git tools 已有
+2179	boundary	settings deep-link — their nav UI
+2189	noise	storybook onboarding story internal
+2190	boundary	custom icon font — their UI assets
+2192	noise	edit tools conversion adapter internal
+2205	boundary	onboarding flow — their product UX
+2217	noise	baseUrl field refactor
+2264	boundary	task header expand — their UI
+2333	boundary	Oca internal mode
+2420	cand	Focus Chain & Deep Planning — 规划链机制
+2648	boundary	mermaid copy button — their viewer
+2907	boundary	version banner — their UI
+2910	boundary	welcome screen polish
+2912	boundary	banner carousel dismiss — their UI
+2943	boundary	env visual indicators — their UI
+2947	boundary	scroll-to-top — their UI
+2961	boundary	nav bar restructure — their UI
+3489	noise	CLI auth redirect fix
+3674	boundary	oracle code assist — their CLI product
+8858	noise	panic on unsupported Constrained — internal assert
+8860	noise	resource parsing bugfix
+8918	noise	features list formatting
+9390	boundary	agent picker — their TUI
+9400	cand	macOS idle-sleep prevention during turns — 电源断言机制
+9435	noise	stream chunk pacing internal
+9456	noise	retire tui2 experiment
+9471	boundary	basic TUI — their surface
+9519	boundary	Ctrl-P/N textarea nav — their TUI
+9530	boundary	unified_exec UI — their TUI
+9545	noise	Windows auto-mode doc clarification
+9581	boundary	TUI onboarding — their surface
+10129	dup	persist TurnItems paginated rollout — durable transcript 已有
+10137	noise	turn_id metadata field internal
+10158	noise	thread/items/list rename internal
+10250	noise	ResponseItem metadata field internal
+10282	noise	ThreadStore extension deps internal
+10310	noise	agent residency LRU internal
+10312	noise	V2 concurrency counting internal
+10339	noise	agent reload on delivery internal
+10371	boundary	enterprise credit limits — SaaS billing
+10372	dup	compressed rollout snippets — rollout compaction 已有
+10418	dup	gate memory tools in config — memory+cfg gate 已有
+10464	noise	dedicated goal DB internal
+10479	noise	rename 1 internal
+10480	noise	rename 3 internal
+10481	noise	rename 2 internal
+10482	noise	async turn item internal
+10483	dup	turn-start metadata to extensions — ext metadata 已有
+10506	noise	thread_id experimentalFeature internal
+10525	noise	drop CodexExtension internal
+10527	noise	move extensions tool internal
+10537	dup	built-in MCPs first-class — MCP client 已有
+10556	noise	ApplyPatchEnd limited-history internal
+10562	dup	ad-hoc instructions — custom instructions 已有
+10590	boundary	AgentIdentity from JWT — their auth surface
+10645	dup	auto-review short-circuit — review flow 已有
+10662	noise	cascade thread archive internal
+10676	noise	baseline lib internal
+10712	noise	config aliases minor
+10736	noise	codex sampler internal
+10753	noise	exec-server ownership internal
+10754	noise	root agent task restriction internal
+10767	noise	auto-vacuum state DB internal
+10771	noise	tasks/root-agent constraint internal
+10832	cand	mailbox concept for wait — agent 间信箱等待机制
+10872	noise	serde inter-agent comm internal
+10879	noise	package manager version centralize internal
+10880	noise	rename close agent internal
+10893	noise	artifacts packaging internal
+10929	noise	more spans internal telemetry
+10960	dup	prune old memories — memory pruning 已有
+10962	noise	drop discrepancy metrics internal
+10963	noise	TTFT/TTFM metrics internal
+10976	noise	simplify DB internal
+11000	noise	bind package manager internal
+11001	noise	polish package manager internal
+11010	dup	polluted memories — memory hygiene 已有
+11011	noise	memories config rename
+11012	noise	enable ma via /agent internal
+11018	dup	presentation artifact p1 — artifact surface 已有
+11019	dup	pres artifact 2 同上
+11020	dup	pres artifact 3 同上
+11021	dup	spreadsheet artifact 同上
+11022	dup	spreadsheet v2 同上
+11023	dup	presentation part4 同上
+11024	dup	spreadsheet part3 同上
+11025	dup	pres artifact part5 同上
+11026	dup	presentation multi-actions 同上
+11027	dup	artifact presentation part 7 同上
+11041	noise	ordinal nickname internal
+11042	dup	disable request input on subagent — delegate 无输入形态已有
+11044	dup	memories in workspace write — memory 写入已有
+11047	dup	external artifacts builder — artifact 已有
+11062	dup	gen memories config — memory config 已有
+11084	dup	memories forgetting — memory 遗忘已有
+11095	noise	e2e latency phases internal
+11096	noise	phase 2 usage internal
+11099	noise	rollout slug internal
+11109	noise	no-timeout mode internal
+11126	dup	allow_login_shell config — env/配置面已有
+11153	dup	memories config 已有
+11154	noise	windows workers stack internal
+11155	noise	slug in name internal
+11170	dup	agents config 入主 config — agent 配置已有
+11181	noise	thread listing internal
+11182	noise	split codex-common internal
+11185	dup	close mem agent after consolidation — memory 生命周期已有
+11196	noise	windows build machines internal
+11198	noise	windows binaries parallel internal
+11208	dup	mem drop cot — memory 已有
+11213	dup	metrics to memories — memory 已有
+11218	dup	resumable backfill — durable resume 已有
+11220	dup	repair DB missing lines — state DB 修复已有
+11225	noise	wait for backfill internal
+11231	noise	detailed runtime metrics internal
+11234	noise	async backfill internal
+11245	noise	experimental_network debug output internal
+11247	noise	permessage-deflate ws internal
+11250	noise	NetworkConfig env_context internal
+11252	noise	NetworkConfig ExecParams internal
+11253	dup	exec processes persist across turns — durable exec 已有
+11268	dup	phase1 mem client — memory 已有
+11272	dup	phase1 mem db — memory 已有
+11274	noise	configurable log_dir minor
+11289	dup	unified_exec — unified exec 已有
+11293	noise	experimental flags internal
+11297	noise	--experimental generate-ts internal
+11311	noise	find_thread_path internal
+11321	noise	runtime metrics console internal
+11326	noise	vendor protocol fixtures internal
+11339	dup	RequestRule — rules/hooks 已有
+11340	noise	auto-subscribe threads internal
+11341	noise	sqlite internal
+11342	noise	sort metadata internal
+11348	noise	async backfill internal
+11352	noise	reduce span exposition internal
+11359	noise	/ps output — their CLI
+11361	noise	backfill timing metric internal
+11366	noise	logs client internal
+11367	noise	heuristic log coloring internal
+11368	noise	CodexAuth invalid-state refactor
+11426	noise	proxy for ws internal
+11440	cand	ephemeral threads — 不落盘会话形态
+11444	dup	cap number of agents — 并发上限已有
+11450	noise	config schema publish internal
+11455	noise	archived threads list internal
+11461	noise	threads by created_at internal
+11470	noise	close all threads /new internal
+11471	noise	detach non-tty childs internal
+11478	noise	proxy for ws internal
+11483	noise	tui2 experimental menu — their UI
+11489	dup	max threads config — 并发配置已有
+11495	noise	CODEX_CI internal
+11513	noise	clb tool internal
+11536	noise	bazel justfile internal
+11559	noise	find_resource macro internal
+11561	noise	metrics capabilities internal
+11566	noise	a few metrics internal
+11568	noise	list loaded threads internal
+11584	dup	head-tail buffer unified_exec — exec buffer 已有
+11586	noise	forced tool tips internal
+11588	noise	agent controller internal
+11590	noise	drop agent bus internal
+11601	noise	open prompt in external editor minor
+11604	noise	cargo-bin test util internal
+11614	dup	justification arg in rules — rules 已有
+11624	noise	v2 deprecation notice internal
+11627	noise	add /ps — their CLI
+11630	noise	collapse waiting internal
+11657	noise	unified exec footer internal
+11660	noise	ConfigLayerName union internal
+11662	noise	unified_exec fallback internal
+11663	noise	experimental menu internal
+11664	noise	unified exec footer internal
+11667	noise	close unified_exec internal
+11672	dup	ghost commits config — checkpoint/快照已有
+11686	dup	more safe commands — 命令安全档已有
+11727	noise	linux sigstore codesign infra
+11739	dup	pycache excluded — ignore 规则已有
+11745	noise	tool tips internal
+11752	dup	ignore standard directories — ignore 已有
+11753	noise	intercept apply_patch internal
+11755	noise	one-off commands app-server internal
+11768	noise	unified exec pruning internal
+11776	noise	app-server config mgmt internal
+11782	noise	process ID event internal
+11784	dup	detached review — review 已有
+11800	noise	arcticfox codename internal
+11802	noise	large-commit warning minor
+11813	dup	review in app server — review 已有
+11905	dup	compactor 2 — compaction 已有
+11926	noise	end events unified_exec internal
+11941	noise	GetConversationSummary RPC internal
+11954	noise	deprecation warning internal
+11981	noise	stdio-to-uds subcommand internal
+11997	noise	emit events unified_exec internal
+12044	noise	write pid to server info internal

@@ -1,0 +1,400 @@
+0	dup	persistent memory across sessions — memory extension已实装
+1	boundary	ACP token-file/password-file auth surface
+2	cand	worktree: sidebar worktree creation
+3	boundary	Terminal Threads UI surface
+4	boundary	zed CLI -n/-a workspace flags
+5	boundary	panel layout switcher + LSP code lens (editor)
+6	cand	Team: multi-agent task assignment + message passing
+7	cand	session-insights: usage analysis feature
+8	boundary	desktop migration rerun
+9	dup	/status provider prefix + usage filtering — status exists
+10	dup	proactive notify on long/background task — notify exists
+11	dup	restore workspace+conversation to message — session_rewind+/reset
+12	cand	custom session-id flag (--create-with-session-id)
+13	boundary	/api/v1/workspace-dirs REST surface
+14	dup	spawned agent cwd/workspace separation — delegate isolation
+15	boundary	image-to-image generation
+16	noise	gateway session-metadata caching perf
+17	boundary	cloud Configuration Sync
+18	boundary	git diff dedicated tab (editor)
+19	cand	project purge: preview+remove sessions/tasks/history bulk cleanup
+20	dup	allow-always durable trust — M146已实装
+21	noise	switch_to_act_mode turn-end bug（其自身实现）
+22	boundary	mcp.servers projection into codex thread configs
+23	noise	computer use disclaimer文本调整
+24	dup	prewarm first-prompt MCP tools race — 我方boot期串行connect无此窗口
+25	dup	malformed numeric/timeout input rejection — 输入校验
+26	variant	memory tool atomic batch operations
+27	boundary	TUI多会话orchestrator窗口
+28	boundary	QQBot group toggle
+29	boundary	remote agent browser preview proxy
+30	variant	--brief SendUserMessage tool
+31	boundary	ACU billing sleep（其计费体系）
+32	noise	TTS override对齐修复
+33	cand	AskUserForStructuredInput: schema→UI表单ask
+34	boundary	trace list preview fields
+35	dup	skills snapshot version bump on config write — config版本化
+36	noise	install-record缓存/native JSON perf
+37	boundary	experimental rmcp client flag（其栈迁移）
+38	cand	remote-mcp: oauthResource RFC8707 override field
+39	variant	显式wait-for-MCP工具 vs 我方阻塞connect
+40	boundary	keymap editor/debugger views
+41	dup	provider HTTP timeout config — 已覆盖
+42	noise	startup-warning metadata reuse
+43	cand	delegate-modes: Agent tool Fork mode(省略type→后台fork)
+44	boundary	ACP Registry + message queuing
+45	variant	session hooks API: branch事件并入session事件
+46	boundary	#/canvas 终端瓦片无限画布
+47	variant	stdin-prompt-stream批处理协议
+48	boundary	Zed extension registry
+49	noise	typebox 0.34迁移
+50	boundary	plugin SDK surface改名(extension-api移除)
+51	dup	notify config option — notify exists
+52	dup	agent message queuing默认+编辑/打断 — queue exists
+53	boundary	project panel大项目perf(editor)
+54	noise	go test nested folder修复
+55	boundary	daemon start/stop/status CLI
+56	cand	tool def prepareArguments hook（参数归一化钩子）
+57	boundary	QQBot group chat全量支持
+58	variant	ACP-advertised slash commands面
+59	variant	发送前context usage检查(compact阈值)
+60	boundary	openclaw migrate dry-run/backup（其配置迁移）
+61	dup	project config pin model + persist switch — model_set
+62	variant	Active Memory插件(dedicated memory子代理)
+63	cand	plugins贡献rules/hooks/MCP/subagents — 扩展面
+64	dup	CODEBUDDY_REPL沙箱脚本编排 — js_repl已实装(M114)
+65	boundary	--startup-prof-md启动剖析报告
+66	boundary	project panel perf(remote)
+67	boundary	subpixel文本渲染
+68	boundary	edit prediction providers
+69	boundary	self-hosted edit predictions
+70	boundary	plugin-sdk agent-runtime test fixtures
+71	boundary	embedding批次拆分(向量memory)
+72	dup	queue/drain lane加固 — queue exists
+73	boundary	AgentSessionRuntime SDK closure
+74	cand	session export命令(markdown/html/quarto全量导出)
+75	boundary	V3 dashboard会话浏览
+76	dup	exec-approvals.json per-agent allowlists — M146/tools_deny
+77	dup	REPL auto-mode授权 — js_repl归exec族
+78	boundary	telegram groups空map语义
+79	noise	其自身测试命令注记
+80	dup	context-limit自动恢复 — compaction
+81	dup	auth persistence queue生命周期
+82	dup	model-facing config.patch拒绝启用工具 — config守护
+83	boundary	file history视图(editor)
+84	boundary	git panel branch history/custom commands
+85	boundary	stash picker/amend commit
+86	variant	pluggable memory provider接口(第三方backend)
+87	boundary	provider-executed web search
+88	dup	credential-surface hardening — G批同源
+89	boundary	A2A v1.0 plugin
+90	boundary	Ink TUI rewrite
+91	cand	Team: teammate idle awareness(查询队友实时状态)
+92	boundary	MCP command center桌面页
+93	noise	rust-analyzer PATH查找
+94	dup	openclaw secrets工作流(audit/configure/apply/reload) — secrets infra
+95	dup	CONFIG_DIR隔离 — config dir隔离
+96	variant	空输入框左箭头开agent view手势
+97	boundary	/api/v1/storage UI state API
+98	dup	status表provider详情
+99	dup	chat stream buffer reconcile
+100	cand	plugins注册slash commands+dispatch tools — 扩展命令面
+101	noise	stdin stream任务创建bug
+102	dup	browser token expiry + idempotency dedupe — G族
+103	boundary	plugin-sdk测试helpers
+104	dup	versioned ClawPack artifacts digest — manifest sha256同源
+105	boundary	kiro config sync
+106	boundary	HTTP API文档
+107	dup	Ctrl+P fuzzy palette + /model过滤 — M127批4在途
+108	boundary	codex native web-search metadata
+109	cand	hooks: before_tool_call async requireApproval(钩→ask升级)
+110	dup	node-scoped session capability URLs — auth scoping
+111	boundary	desktop e2e testing
+112	boundary	Windows Agent mode
+113	boundary	fal image edit routing
+114	dup	pre-generation 429/5xx指数退避 — retry exists
+115	dup	prewarm MCP user-config加载
+116	dup	MCP plug-and-play — mcp extension exists
+117	dup	--list-models fuzzy search — model list
+118	dup	memory_get canonical-file allowlist — memory boundary
+119	dup	thread/turn记录git info+cwd+version — session metadata
+120	boundary	image --background flag
+121	boundary	discord voice logs
+122	dup	import Claude Code/Codex/opencode历史 — session_import exists
+123	noise	getApiKeyAndHeaders改名(其SDK)
+124	boundary	HuggingFace provider
+125	noise	xiaomi provider端点切换
+126	boundary	per-agent TTS voices
+127	boundary	Termux/iMessage/WeChat + fast mode
+128	boundary	provider/media coverage wave
+129	dup	session start mode(user/automation/subagent/team) — provenance
+130	boundary	npm scope self-update迁移
+131	cand	remote-mcp: Settings OAuth授权流
+132	variant	file:line range在编辑器打开
+133	dup	browser snapshot URL SSRF校验 — G4
+134	dup	strict numeric/date解析
+135	variant	cron整点deterministic默认stagger
+136	boundary	简体中文desktop UI
+137	dup	security wave redaction默认ON — M116同源
+138	boundary	REST API程序化session
+139	dup	/fork+/branch命令 — session_rewind/fork exists
+140	dup	preview+execute全轮回滚 — /reset preview
+141	dup	checkpoint真workspace rewind — session_rewind
+142	dup	new task idle-state publish
+143	cand	model-invoked内置slash commands(/clear/model/config/resume)
+144	noise	mixed A2A stdout静默修复
+145	dup	skill installer metadata regex allowlists — manifest校验
+146	cand	delegate-params: skill/command/subagent frontmatter model字段
+147	variant	skill tool模型调用 vs 我方microagent注入
+148	dup	queue busy TUI prompts — queue
+149	boundary	marketplace auto-update toggle
+150	noise	parallel-agents sidebar迁移bug
+151	boundary	UUIDv7 turn ID via _meta
+152	boundary	voice input error toast
+153	variant	exec-policy show/preset/set CLI
+154	cand	approval prompt内"Edit command"微调后批准
+155	dup	MEDIA: passthrough锚定raw tool name — untrusted锚定
+156	dup	untrusted group prompt元数据出system prompt — M147
+157	boundary	iMessage thumb-approval reactions
+158	boundary	audio设备选择
+159	noise	冗余patch测试移除
+160	boundary	Ask Devin codebase Q&A
+161	boundary	WhatsApp per-group systemPrompt
+162	dup	--serve默认随机密码 — server token auth
+163	boundary	CBC account OAuth多登录方式
+164	dup	malformed options fail-fast — validation
+165	cand	remote-mcp: gateway proxy OAuth token exchange
+166	dup	malformed JSON retry cleanup — provider robustness
+167	cand	remote-mcp: mcp add positional URL(claude code兼容语法)
+168	variant	active-memory toolsAllow recall config
+169	boundary	VS Code SDK runtime
+170	variant	per-session context budget tier选择
+171	boundary	memory-wiki stack恢复
+172	cand	--no-session-persistence内存态会话(ephemeral)
+173	dup	context window增长警告 — context surfacing
+174	dup	generic SDK provider settings model picker
+175	cand	provider-failover: same-provider链在model不同时保持
+176	dup	auth-profile rate-limit重试封顶 — retry caps
+177	boundary	semantic search repository(向量)
+178	boundary	palette history/git remotes(editor)
+179	boundary	Claude Haiku+git stash view
+180	boundary	vision+project search(editor wave)
+181	cand	provider-failover: media跨provider自动fallback
+182	dup	root_request_id W3C baggage — tracing
+183	noise	rollup模块化
+184	boundary	Copilot embedding provider(memory)
+185	dup	hook forwarding不再throttle stream — 其架构perf
+186	boundary	SuperGrok OAuth 1M context
+187	boundary	移除legacy chrome extension relay
+188	boundary	Feishu group session scopes
+189	variant	tool profiles+group shorthands in sandbox policy
+190	dup	steer control_request注入消息 — steer exists
+191	dup	heartbeat gating+/stop在tool call间 — stop exists
+192	dup	cron agents加载/更新persistent memory — 调度agent同样具memory工具
+193	dup	cron isolated delivery收紧 — schedule delivery
+194	boundary	Cline Desktop task import
+195	dup	cron runner不整批阻塞 — schedule并发
+196	dup	prewarm missing built-in tools修复
+197	cand	session-insights: session分析+knowledge管理
+198	boundary	ACPX agent registry对齐
+199	boundary	Android onboarding/five-tab shell
+200	boundary	macOS IME支持
+201	boundary	Ruff extension
+202	cand	hook-events: session_directory extension event(自定义session目录)
+203	dup	~/.agents/plugins发现+manifest校验 — compat dirs已实装
+204	dup	MV3 worker debugger attachment跨relay保活 — browser relay韧性
+205	boundary	dashboard profile builder
+206	dup	gateway bearer per-request解析 — auth
+207	noise	prepared handles/schemas perf
+208	boundary	plugin-sdk command-status子路径
+209	boundary	/api/v1/plugins/update API
+210	noise	bundle session互斥bug
+211	dup	agent skills+global AGENTS.md — compat dirs已实装
+212	boundary	xAI Responses API+x_search
+213	boundary	turn-end正/负反馈按钮(评分UX)
+214	noise	/mode→/agent-mode改名
+215	dup	custom model管理settings页 — model management
+216	dup	rejection时trace UI空态修复 — observability
+217	variant	"always allow in ALL projects"全局授权 vs 我方session域
+218	dup	Configure Behaviors settings — behavior config
+219	boundary	experimental exp exec model
+220	boundary	claude code provider native tools修复
+221	boundary	Kylin OS KYSEC trusted execution
+222	dup	run结束退役one-shot bundled MCP runtime — mcp lifecycle
+223	dup	codex OAuth scopes+failure分类
+224	dup	ExitPlanMode批准展示plan内容 — plan mode
+225	boundary	plugin-sdk channel route helpers
+226	dup	protected agent-instruction files — file boundary已实装
+227	dup	smart approvals LLM reviewer默认 — judgeCall guardian已实装
+228	cand	worktree: Dev Containers+worktree trust机制
+229	boundary	discord event cover image
+230	dup	max output token fallback — capability defaults
+231	boundary	daemon CLI支持
+232	dup	context_server_timeout config — mcp timeout
+233	cand	proxy: config.json proxy.mode出站HTTP代理控制
+234	dup	.clinerules项目指令文件 — rules files已实装
+235	dup	EditTool old_string=''新文件无限循环修复 — edit robustness
+236	noise	六provider+Muse Spark目录
+237	boundary	desktop Projects侧边栏
+238	cand	structured output: --output-schema JSON Schema
+239	boundary	font rendering/vim panel nav
+240	noise	同239项(intra-corpus重复发布)
+241	boundary	Crush self-config
+242	cand	mcp-server: 暴露自身为MCP server给外部client
+243	dup	MCP config ${VAR}环境展开 — env expansion
+244	dup	专用mcp_config.json — mcp config file
+245	boundary	custom model用量上报
+246	dup	context compression深改 — compaction
+247	boundary	跨session 1h Claude prompt cache
+248	dup	recalled memory行注入untrusted <memory>块(memory.js:297)+常驻untrusted-content-policy envelope — 已覆盖
+249	noise	Kimi-K2.6 model add
+250	dup	cached token usage转发
+251	boundary	@-mention目录token usage
+252	boundary	fast mode toggle(agent panel)
+253	noise	enterprise model list降级修复
+254	boundary	setup security disclaimer样式
+255	dup	WebSocket warm-up response.create — perf
+256	boundary	Magistral/screen selector
+257	boundary	bookmarks/git commit palette/GIF
+258	cand	orchestration: Workflow工具编排多sub-agent多步任务
+259	dup	ANNOUNCE_SKIP spawn completion — announce控制
+260	dup	selected agent/session command targeting
+261	boundary	live subagent watch-windows UI
+262	dup	plan approval dialog对齐 — plan mode
+263	dup	plan sub-agent toolset team tools
+264	boundary	DeploySearch cmd-shift-f
+265	dup	stream-json长连接background commands — background exec
+266	dup	loopback browser control routes auth — G5族
+267	dup	write-scope拒persistent profile create/delete — browser boundary
+268	dup	共享browser control runtime — browser arch
+269	boundary	mac remote setup预配置
+270	boundary	disable browser tool setting/Bedrock
+271	variant	WebFetch并发竞速 vs 串行fallback
+272	dup	conversation-bound automations默认绑定 — automation scoping
+273	noise	npm globstar打包排除
+274	dup	multi-instance profiles — instance roots已实装
+275	dup	config文件写保护 — file boundary已实装
+276	dup	multi-instance+MCP server mode — instance已实装(docker属boundary)
+277	dup	sessionKey on outbound sends — provenance
+278	boundary	Teams media downloads
+279	boundary	OpenAI-compatible API server
+280	cand	hook-events: TurnStarted/UserPromptQueued/TaskStarted/SessionHeartbeat
+281	boundary	--prewarm standby mode
+282	cand	provider-failover: text+image链在allowlist下保持可达
+283	dup	checkpoint re-hash优化 — perf
+284	boundary	structured output modal
+285	dup	/add-dir空格路径解析 — arg parsing
+286	cand	REPL !<command>操作员shell直跑(输出进context)
+287	boundary	/theme picker(其TUI主题面)
+288	boundary	tab bar+菜单标准actions
+289	dup	code review agents结构化findings — structured review output
+290	dup	/add-dir空格路径(同285)
+291	noise	win32 input mode终端修复
+292	boundary	dashboard plugin system(其dashboard)
+293	dup	startup跳过plugin auth overlays secrets preflight — perf
+294	boundary	LINE group mention gating
+295	noise	hot path cache correctness
+296	boundary	bundled CLI inference defaults plugin surface
+297	dup	bundle MCP runnable tools in embedded Pi — mcp
+298	boundary	Continue VS Code final release
+299	dup	skills+global AGENTS.md — compat dirs已实装
+300	dup	auto-retry transient errors — retry exists
+301	dup	notify_on_complete background通知 — notify exists
+302	boundary	zed: extensions command palette
+303	cand	↑拉回queued message到编辑器 — queue-edit UX
+304	boundary	a2a+stream-json同stdin双协议
+305	boundary	SDK permission control
+306	dup	collect-mode followup按auth context分组drain — channel auth
+307	boundary	approval SDK breaking import
+308	dup	CDP Target.getBrowserContexts compat — browser
+309	boundary	openclaw attach/node context-path CLI
+310	dup	exec-approvals.json security defaults — policy defaults
+311	dup	approval runtime socket token共享 — auth
+312	dup	node exec events标untrusted — M147已实装
+313	variant	--mcp-config文件路径或直接JSON
+314	dup	sub-agent仅plan锁定时见exit tool — plan scoping
+315	dup	plugin LLM command auth绑定 — auth
+316	boundary	file-transfer plugin tools
+317	boundary	telegram ACP topic bindings
+318	dup	terminal notifications(finish/input/approval) — notify已实装
+319	boundary	SDK delayed control request sync
+320	dup	dashboard session lineage+webchat backscroll — UI state
+321	boundary	WeChat Work group chat
+322	noise	GLM-5v-Turbo model add
+323	dup	不支持图片flagged不静默丢弃 — capability honesty已实装
+324	boundary	debugger waitlist
+325	boundary	native debugger/zed --diff
+326	dup	New From Summary contextual mentions — summary mentions
+327	dup	model切换后auto-compression — compaction
+328	noise	LSP actions兼容注记
+329	boundary	custom-token auth env config
+330	noise	intranet auth 401修复
+331	noise	agent window内版本检查bug
+332	boundary	account sign-in prompt页
+333	cand	state backup/verify CLI(openclaw backup create/verify)
+334	dup	request lifecycle logging — audit/log
+335	boundary	Enter key行为toggle
+336	boundary	team task slash commands
+337	noise	auth probe output polish
+338	boundary	find-in-page Devin Review
+339	boundary	git.diff_base setting
+340	boundary	project search perf/branch from default
+341	boundary	WeChat/WeCom callback adapters
+342	boundary	Slack user-token normalization
+343	dup	/handoff live session transfer — handoff已实装
+344	dup	tool按Tool/MCP/custom启停 — tools_deny已实装
+345	boundary	embedding providers core/DeepInfra
+346	dup	Gemini OAuth project discovery fallback — auth
+347	cand	remote-mcp: transport"sse"legacy协议支持
+348	cand	remote-mcp: HTTP/SSE MCP隐式timeout修复
+349	dup	dashboard token端点auth加固 — auth
+350	cand	remote-mcp: pre-registered OAuth client(--oauth-client-id)
+351	variant	model ID注入MCP请求头(X-Model-*)
+352	variant	--allow-insecure-http明文MCP opt-in
+353	boundary	/journey学习timeline
+354	variant	memory file list summary注入system prompt vs 我方工具召回
+355	noise	Hy3 model add
+356	dup	request时复用plugin registry — perf
+357	dup	gateway auth-profile写竞态 — auth
+358	variant	pluggable compaction provider registry
+359	dup	emergency compression token-limit修复 — compaction
+360	dup	/new /reset memory artifacts绑workspace — memory scoping
+361	dup	stale agent_end ESC无响应修复 — turn lifecycle
+362	boundary	durable artifacts(文档/图作为artifact)
+363	boundary	Ollama embeddings memory
+364	boundary	sqlite-vec vs embedding readiness拆分
+365	boundary	vector search memory(已拒方向)
+366	dup	prompt cache prefix复用 — perf
+367	dup	compaction retry policy+branch summaries — compaction韧性
+368	dup	post-compaction卡死修复 — compaction
+369	boundary	/api/v1/metrics+envs
+370	dup	/compact手动触发 — compaction已实装
+371	boundary	video_generate URL delivery
+372	variant	websocket-cached transport(codex)
+373	dup	image description model静态catalog — image model config
+374	boundary	Moonshot video provider
+375	variant	/models add聊天侧注册model
+376	dup	provider-native web search默认(非yolo) — web search exists
+377	dup	bmp/tiff/ico→PNG重编码chokepoint — M137同源已实装
+378	boundary	Roo provider api-key
+379	dup	claude CLI凭据复用 — auth profile
+380	boundary	prompt_toolkit界面
+381	boundary	WhatsApp vCard
+382	dup	coder subagent toolset扩展(background/todo/plan) — delegate tools
+383	dup	account-scoped DM sends+media completions — delivery
+384	dup	session history root session可见性 — session listing
+385	variant	Project files跨session同步(B5文件级变体)
+386	dup	daemon status summary — status
+387	dup	Glob limit/offset分页 — glob pagination
+388	boundary	registerProvider refreshModels config form
+389	cand	proxy: operator-managed出站代理(proxy.enabled/OPENCLAW_PROXY_URL)
+390	cand	session-insights: /insights用量分析报告
+391	cand	remote-mcp: remote servers OAuth授权按钮
+392	boundary	remote Ollama URL+key
+393	boundary	remote dev server上跑MCP servers
+394	cand	remote-mcp: SSE/streamable 10s connect budget
+395	noise	prewarm argv/opts resolution顺序修复
+396	cand	remote-mcp: mcp.servers URL config+auth headers+redaction
+397	dup	plugin automation --json输出 — CLI json
+398	cand	remote-mcp: unreachable SSE server connect budget
+399	boundary	SSH remote clipboard OSC52

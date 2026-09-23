@@ -1,0 +1,200 @@
+37194	noise	shell_compact git log preview internal
+37202	dup	message editing/branch nav/tool state — 消息编辑已有
+37205	noise	gh run view internal
+37207	noise	short GH refs internal
+37208	dup	GitHub URL routing+extract — browser 已有
+37211	dup	git status in workspace prompt — context 已有
+37218	noise	tauri monorepo internal
+37231	dup	PR reading with context — git/PR 已有
+37239	dup	filter resolved PR comments — PR 处理已有
+37250	dup	auto-commit — governed commit 已有
+37263	dup	auto-rename conversations — 自动标题已有
+37266	dup	auto-run precommit on exhaustion — 检查已有
+37326	dup	screenshot tool — 截图已有
+37327	dup	vision tool — 视觉已有
+37328	noise	-t tools option internal
+37352	boundary	youtube tool — their integration
+37353	dup	read_chat function — 会话读已有
+37354	dup	list_chats tool 同上
+37362	noise	non-interactive prompting internal
+37412	dup	logmanager branching — fork 已有
+37444	dup	auto-naming conversations — 自动标题已有
+37456	dup	fatal error envelope+exit taxonomy — 错误封装已有
+37465	cand	LLM-slop detector quality gate — 生成质量检测
+37470	noise	ffmpeg doctor check internal
+37493	noise	402 diagnostic internal
+37513	noise	eval suite internal
+37532	noise	context output size warning
+37534	noise	context output size warning 同上
+37540	noise	Log repr internal
+37548	noise	ChatConfig server/CLI internal
+37555	noise	print tool returns internal
+37568	cand	request_tool_change mid-session — 会话中工具开关
+37569	dup	KB entries at session start — knowledge/memory 注入已有
+37575	boundary	S3 replication session logs — cloud
+37586	dup	append-only event log — audit JSONL 已有
+37600	boundary	voice transcript — AV 面
+37608	dup	read-only external session catalog — 会话目录已有
+37616	dup	conversation history context — context 已有
+37617	dup	auto-restore todo on resume — 状态恢复已有
+37620	dup	output costs request/session — 成本已有
+37908	noise	eval scenario internal
+37909	noise	eval scenario internal
+37913	boundary	message styling/avatar — their UI
+37915	noise	eval trend tracking internal
+37995	noise	gepa module internal
+37998	noise	gepa module internal
+38055	noise	eval system internal
+38056	boundary	Ctrl+Z/Ctrl-X-E keys — their UI
+38317	boundary	Alt+←/→ word nav — their UI
+38320	dup	external sessions inline — 已有
+38330	dup	wait_for_change action — 等待动作已有
+38341	boundary	SetupWizard banner — their UI
+38343	boundary	install step banner — their UI
+38347	boundary	welcome background — their UI
+38352	boundary	scroll-to-bottom button — their UI
+38354	dup	interactive browsing — browser 已有
+38363	boundary	ncurses ui — their UI
+38374	boundary	computer-use docker-compose — their env
+38376	noise	computer-use doctor checks internal
+38377	boundary	docker-compose self-host — their deploy
+38387	boundary	Docker eval env — their eval
+38404	dup	ephemeral_ttl context pruning — context 裁剪已有
+38410	noise	GEPA optimizer internal
+38417	noise	trajectory-rich tasks internal
+38431	dup	screenshot artifact descriptors — artifact 已有
+38446	noise	gnome-screenshot wayland internal
+38447	dup	vision tool image processing — 视觉已有
+38449	dup	copy to clipboard — 剪贴板已有
+38452	dup	vision tool 同上
+38482	dup	ACP subprocess health+orphan cleanup — 进程清理已有
+39807	boundary	reasoning_content toggle — their UI
+39864	noise	configurable action regex internal
+39958	boundary	SWE-bench startup — their eval
+39971	noise	minimal logging internal
+47461	boundary	cmd k menu styles — their UI
+47462	boundary	visual improvements — their UI
+47470	boundary	recently closed projects — their UI
+47476	boundary	composer improvements — their UI
+47486	boundary	design system — their UI
+47487	boundary	home screen styles — their UI
+47489	boundary	debug bar — their UI
+47490	boundary	timeline header — their UI
+47500	boundary	jump-to-latest — their UI
+47514	boundary	collapsible servers — their UI
+47526	boundary	oc-2 colors — their UI
+47546	boundary	project avatar — their UI
+47547	boundary	sessions list — their UI
+47548	dup	fff search tools — 搜索已有
+47562	boundary	select-v2 polish — their UI
+47563	boundary	update button — their UI
+47616	noise	nix electron derivation internal
+47627	boundary	auto-hide menu bar — their UI
+47709	noise	roslyn language server internal
+47763	noise	messageID ShellInput internal
+47936	boundary	recent projects palette — their UI
+48046	noise	e2e tests internal
+48062	boundary	font option — their UI
+48093	boundary	windows selection ctrl+c — their UI
+48113	boundary	mode input placeholders — their UI
+48178	noise	sidecarUrl state internal
+48180	noise	variant assistant messages internal
+48194	noise	workspace name timing internal
+48259	noise	ormolu formatter internal
+48349	noise	agent description internal
+48419	boundary	center selection dialogs — their UI
+48420	boundary	font choice — their UI
+48421	noise	desktop troubleshooting docs
+48428	boundary	app version in settings — their UI
+48449	boundary	Toggle-Review button — their UI
+48470	boundary	windows window controls — their UI
+48472	noise	laravel pint formatter internal
+48549	noise	question header limits internal
+48622	boundary	server removal icon — their UI
+48641	boundary	Copy to Messages — their UI
+48644	noise	sessionID transform internal
+48700	dup	url based instructions — 指令加载已有
+48829	noise	nixfmt formatter internal
+48886	noise	arm64 linux build infra
+48940	noise	oxfmt formatter internal
+49020	noise	uninstall command minor
+49038	boundary	tool details visibility — their UI
+49051	boundary	thinking blocks KV persist — their UI
+49250	boundary	changes view — their UI
+49278	noise	npm install windows internal
+49291	dup	include ignored files — ignore 面已有
+49292	noise	home dir app info minor
+49305	noise	top level tool config internal
+49307	boundary	rust-analyzer lsp — their ext
+49321	boundary	clangd — their ext
+49322	boundary	tool details toggle — their UI
+49323	boundary	pending message placeholder — their UI
+49332	boundary	assistant message visual — their UI
+49372	noise	zip.js windows compat internal
+49374	noise	mode into task tool internal
+49398	dup	ls ignore patterns — ignore 已有
+49418	noise	storage dir ensure internal
+49447	boundary	messages width — their UI
+49456	noise	elixir formatting internal
+49457	noise	golang formatting internal
+49464	dup	delete sessions — 会话删除已有
+49514	boundary	custom themes 0-255 — their UI
+49515	boundary	F9 tools dialog — their UI
+49518	dup	batch tool — 批量工具已有
+49524	boundary	codeAction tool — their ext
+49589	boundary	session UI styling — their UI
+49592	boundary	inline session title — their UI
+49594	boundary	sticky session header — their UI
+49595	boundary	session hover loader — their UI
+49609	boundary	session progress indicator — their UI
+49707	dup	session-affinity/parent headers — provenance 已有
+49795	boundary	session updated time palette — their UI
+49798	boundary	Session Review Images — their UI
+49948	boundary	load more sessions — their UI
+49963	noise	experimental flag websearch internal
+50025	dup	session children routes — 会话树已有
+50036	noise	sharing info header internal
+50069	boundary	wsl ui — their UI
+50215	boundary	compact ui — their UI
+50351	noise	ACP audience mapping internal
+50358	noise	acp track file modified internal
+50400	dup	non-interactive mode — headless 已有
+51160	dup	mcp server instructions to context — MCP 指令已有
+51373	boundary	traffic light position — their UI
+51379	boundary	papercut fixes — their UI
+51380	boundary	dropdown search fix — their UI
+51381	boundary	minor fixes — their UI
+52633	boundary	opentui markdown flag — their UI
+52639	noise	FILETIME_CHECK flag internal
+52640	noise	PROJECT_CONFIG env internal
+52641	noise	cli uninstall internal
+52646	dup	Windows JobObject tie — 进程组管理已有
+52658	boundary	frecency file autocomplete — their UI
+52713	noise	log levels config minor
+53182	boundary	v2 ui alignment — their UI
+53187	boundary	message part ui — their UI
+53208	boundary	servers UI — their UI
+53219	boundary	home projects list — their UI
+53225	boundary	prompt size responsive — their UI
+53282	boundary	mouse disablable — their UI
+53355	boundary	Windows UI loading — their UI
+53394	boundary	esc label hover — their UI
+53415	boundary	scroll fading — their UI
+53416	boundary	responsive breakpoints — their UI
+53485	boundary	layout icons — their UI
+53543	boundary	question prompt UX — their UI
+53842	boundary	scroll speed config — their UI
+53854	boundary	agents dialog — their UI
+53874	boundary	tui layout stretch — their UI
+53879	boundary	more quit ways — their UI
+53905	boundary	tui modes — their UI
+53906	noise	--mode flag internal
+53912	boundary	/editor auto-send — their UI
+53916	noise	logging to server logs internal
+53922	dup	command aliases — 命令别名已有
+53936	boundary	file viewer — their UI
+53982	boundary	toast messages — their UI
+53983	boundary	toast messages — their UI
+53995	noise	tui init speed internal
+53996	noise	tui init speed internal
+53997	noise	tui init speed internal

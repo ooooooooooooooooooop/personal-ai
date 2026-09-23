@@ -1,0 +1,200 @@
+48204	dup	file tree fs sync — 文件树同步已有
+48211	dup	tree sync projects/sessions — 已有
+48223	boundary	tooltips — their UI
+48230	dup	file status calc — 状态计算已有
+48233	dup	order tool calls multi-@ — 引用排序已有
+48261	dup	models config non-empty guard — 空守卫已有
+48269	noise	contributor noise
+48270	dup	guard destroyed input callback — 回调守卫已有
+48271	noise	contributor noise
+48272	dup	variants maxTokens — 变体兼容已有
+48277	noise	config internal
+48280	boundary	escape pane — their UI
+48288	dup	Instance.directory not cwd — 目录锚定已有
+48296	dup	no auto-navigate last project — 导航抑制已有
+48298	dup	no localhost over VPN — VPN排除已有
+48311	noise	css internal
+48314	boundary	tabs — their UI
+48315	boundary	icon — their UI
+48316	boundary	border — their UI
+48326	boundary	button — their UI
+48328	boundary	guide lines — their UI
+48346	dup	no workspaces non-VCS — 工作区限定已有
+48351	noise	tauri internal
+48362	boundary	textarea — their UI
+48366	boundary	popover — their UI
+48367	boundary	popover — their UI
+48369	boundary	dropdown — their UI
+48375	boundary	styling — their UI
+48376	boundary	dialog — their UI
+48377	boundary	popover — their UI
+48380	boundary	submit — their UI
+48384	boundary	placeholder — their UI
+48386	noise	api internal
+48388	boundary	workspace list — their UI
+48392	boundary	popover — their UI
+48398	boundary	truncate — their UI
+48399	boundary	truncate — their UI
+48403	boundary	truncate — their UI
+48406	boundary	icon — their UI
+48407	boundary	card — their UI
+48408	boundary	indent — their UI
+48431	noise	asset noise
+48432	dup	images as tool results — 图片结果已有
+48437	dup	no auto-navigate reset — 已有
+48459	noise	i18n internal
+48467	noise	i18n internal
+48474	dup	codex prompt discourage questions — 自主性提示已有
+48475	boundary	button — their UI
+48480	boundary	select — their UI
+48481	boundary	prop — their UI
+48482	boundary	icon — their UI
+48500	noise	cargo internal
+48531	noise	test internal
+48557	noise	contributor noise
+48558	dup	tool attachments not user messages — 附件路由已有
+48560	dup	websearch emphasize current date — 日期强调已有
+48562	dup	user agent inference requests — UA已有
+48565	noise	bug internal
+48567	boundary	menu — their UI
+48570	dup	persist workspace order/collapsed — 布局持久已有
+48571	dup	unified search commands+files — 统一搜索已有
+48576	dup	frontmatter same content — 前置兼容已有
+48582	boundary	button — their UI
+48603	dup	no custom-less questions — 问题限定已有
+48611	noise	contributor noise
+48613	dup	clear_thinking disabled zai — 开关已有
+48624	dup	OPENCODE_SERVER_PASSWORD rename — 命名明确已有
+48626	dup	wildcard permissions match args — 通配匹配已有
+48631	noise	refactor internal
+48637	dup	external dir validation shared — 校验共享已有
+48647	noise	contributor noise
+48651	noise	contributor noise
+48655	noise	dep internal
+48665	dup	gate hydration side-effects — 水合门已有
+48686	noise	ui internal
+48688	noise	bundle internal
+48697	noise	branch noise
+48701	noise	timeout internal
+48703	dup	worktree selection navigate — 导航已有
+48706	dup	default timeout 30s — 超时已有
+48712	boundary	icon — their UI
+48713	noise	prose noise
+48714	noise	config fragment
+48715	noise	config fragment
+48716	noise	config fragment
+48718	noise	config fragment
+48719	noise	config fragment
+48720	noise	config fragment
+48721	noise	config fragment
+48723	noise	config fragment
+48724	noise	config fragment
+48726	noise	config fragment
+48727	noise	config fragment
+48728	noise	prose noise
+48730	noise	api noise
+48732	noise	api noise
+48734	noise	rename noise
+48737	noise	rename noise
+48738	noise	prose noise
+48740	dup	Content-Type proxied assets — 头设置已有
+48741	dup	mDNS name includes port — 服务名已有
+48743	dup	maxSteps→steps deprecation — 参数迁移已有
+48744	dup	unknown agent props→options — 容错已有
+48749	dup	queued messages reminder wrap — 提醒包装已有
+48759	boundary	ctrl+a — their UI
+48763	noise	wip internal
+48769	dup	no 'not found' toast subagents — 提示抑制已有
+48773	noise	contributor noise
+48778	noise	defensive internal
+48781	noise	contributor noise
+48784	dup	mDNS no fail registered — 注册容错已有
+48787	dup	plural resource types — 复数容错已有
+48792	boundary	error page — their UI
+48800	noise	contributor noise
+48801	dup	CORS tauri localhost — CORS已有
+48803	dup	CORS subdomains — 已有
+48805	noise	contributor noise
+48806	noise	defensive internal
+48808	dup	no persist fallback URLs — URL防持久已有
+48810	noise	contributor noise
+48811	noise	dep internal
+48813	noise	reaction noise
+48814	noise	contributor noise
+48818	noise	dep internal
+48821	noise	build internal
+48833	dup	preserve imperative summary — 祈使保留已有
+48838	dup	sync last agent/model session — 同步已有
+48839	boundary	colors — their UI
+48840	boundary	edit project — their UI
+48842	noise	sync internal
+48847	boundary	diagnostics — their UI
+48854	noise	contributor noise
+48858	noise	contributor noise
+48859	boundary	tips — their UI
+48863	dup	socket closed retryable — 错误分类已有
+48867	dup	prompt stashing — 提示暂存已有
+48873	noise	contributor noise
+48885	noise	ci internal
+48892	noise	contributor noise
+48904	dup	no history nav dirty — 脏导航抑制已有
+48906	noise	contributor noise
+48910	noise	tauri internal
+48911	noise	tauri internal
+48915	noise	contributor noise
+48920	dup	plugins in /status — 状态列出已有
+48926	noise	tauri internal
+48927	dup	return after update failures — 失败返回已有
+48932	dup	EXPERIMENTAL_OUTPUT_TOKEN_MAX — 令牌覆盖已有
+48937	dup	draft release until builds done — 草稿发布已有
+48941	noise	script internal
+48942	noise	tauri internal
+48943	dup	kill sidecar before relaunch — 边车清理已有
+48944	dup	fuzzysort prefix priority — 前缀优先已有
+48946	noise	contributor noise
+48949	noise	contributor noise
+48951	boundary	dismiss — their UI
+48953	noise	tauri internal
+48956	noise	lsp internal
+48957	boundary	muted prompt — their UI
+48962	noise	tauri internal
+48964	noise	contributor noise
+48965	boundary	logo — their UI
+48966	dup	in-progress indicator sessions — 进度标记已有
+48970	dup	in-progress indicator — 已有
+48971	noise	tauri internal
+48972	noise	tauri internal
+48973	noise	tauri internal
+48975	boundary	keybinds — their UI
+48978	noise	build internal
+48979	noise	contributor noise
+48982	dup	auto find port not 4096 — 端口自选已有
+48992	noise	tauri internal
+48993	noise	tsconfig internal
+48994	noise	tauri internal
+48995	noise	tauri internal
+48996	noise	tauri internal
+48997	noise	contributor noise
+49006	noise	contributor noise
+49007	dup	project update timestamps — 时间戳已有
+49008	noise	tauri internal
+49009	noise	lsp internal
+49015	boundary	separator — their UI
+49025	dup	max steps supervisor+sub-agents — 步限已有
+49032	boundary	border — their UI
+49035	noise	contributor noise
+49039	noise	contributor noise
+49040	dup	close SSE on dispose — 流清理已有
+49043	noise	docs internal
+49045	noise	contributor noise
+49046	dup	explore agent navigation — 探索代理已有
+49047	dup	persist thinking display KV — 显示持久已有
+49055	noise	lsp internal
+49056	noise	lsp internal
+49065	dup	prompt_async return immediately — 异步提示已有
+49069	dup	alphabetical models output — 排序已有
+49070	dup	prompt_async — 已有
+49079	noise	artifact noise
+49084	noise	artifact noise
+49091	dup	navigate child sessions on permission — 批准导航已有
+48404	boundary	close icon — their UI

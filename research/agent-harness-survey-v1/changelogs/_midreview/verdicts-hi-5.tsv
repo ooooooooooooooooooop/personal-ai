@@ -1,0 +1,200 @@
+1180	boundary	BlueBubbles per-group systemPrompt
+1181	dup	catalog-driven model compatibility重构 — compat层
+1182	dup	/commands /models /usage /debug /config命令面 — command surface
+1183	dup	structured summaries+token-budget tail protection — compaction
+1184	boundary	E2E Record/Replay mode测试基建
+1185	variant	segment-boundary substring matching fallback(model兼容)
+1186	boundary	OPENCLAW_SUPERVISOR_MODE=external
+1187	dup	gateway HTTP security headers(HSTS) — transport security
+1188	cand	hook-events: message:transcribed/message:preprocessed+outbound enriched
+1189	dup	web search toggle Feature Settings — web search
+1190	noise	GLM-4.7 model add
+1191	dup	Enter把queued message送进running turn — steer/queue已实装
+1192	dup	reasoning/中间响应/tool activity按序进task history — transcript
+1193	boundary	warelay same-phone self-messaging
+1194	boundary	SearXNG native search backend+split web tools
+1195	boundary	agent驱动desktop内嵌browser
+1196	boundary	Jules repository级env vars
+1197	noise	iOS CalVer版本管理
+1198	dup	command backgrounds child不再挂起(child close settle) — exec lifecycle
+1199	dup	first-response timeout检测自动断开 — stream watchdog
+1200	dup	无API key可启动interactive — startup resilience
+1201	boundary	Feishu requireMention/bot-info timeout
+1202	dup	gateway auth默认token+自动生成持久 — auth bootstrap
+1203	variant	custom endpoint时跳过Gzip
+1204	noise	login link显示时序修复
+1205	boundary	enableModelOptimization全局开关(遥测)
+1206	dup	media/base64 decode超限归performance policy — policy classify
+1207	boundary	Telegram webhook mode替代polling
+1208	boundary	SSH/tmux下Claude Code Max认证难
+1209	boundary	SSH密码caps lock警告
+1210	boundary	同1209(重复发布)
+1211	boundary	self-hosted Sweep edit models
+1212	dup	OAuth master key不强建Keychain回落file-backed — auth storage
+1213	boundary	browser start --headless一次性覆盖
+1214	boundary	per-profile browser headless覆盖
+1215	boundary	+New建repo引导装CLI
+1216	boundary	Dashboard Plugins/Profiles页
+1217	boundary	multi edit prediction providers
+1218	boundary	edit prediction expected-patch输入
+1219	dup	remote dev用sh -lc加载profile — shell env
+1220	boundary	MCP in-session login/remote-branch review/signing
+1221	cand	remote-mcp: 401时弹OAuth授权prompt而非失败
+1222	dup	Skill Workshop Control UI+proposal view — M110族(其UI变体)
+1223	boundary	Gemini 3 Pro+SSH remoting agent server
+1224	boundary	同1223(重复发布)
+1225	boundary	Agent edits/Git Graph remote
+1226	dup	remote gateway token字段+non-plaintext保留 — auth config
+1227	variant	timeout→auto-background vs 我方mode表
+1228	boundary	docker network container join block
+1229	dup	credential-path保护不依赖command-text检查 — sandbox边界语义
+1230	boundary	Hub daemon directional upgrade
+1231	boundary	单gateway多profile消息路由
+1232	boundary	/sandbox启停命令
+1233	dup	Windows home dir路径匹配过宽修复 — path matching
+1234	dup	session-tree可见性+agent-to-agent access guards — access guards
+1235	variant	schedules统一user-level home vs instance-scoped
+1236	dup	缩短built-in tool descriptions+schema hints — schema瘦身
+1237	dup	WhatsApp event emitter stall watchdog — channel watchdog
+1238	dup	cron list列名Agent ID+Model列 — schedule list
+1239	cand	outbound-webhook: per-job webhook delivery+HTTP(S)校验
+1240	dup	cron payload.model "default"/null修复 — schedule migration
+1241	boundary	/api/v1/status任务heartbeat端点
+1242	dup	headless导出scheduled task能力 — schedule export
+1243	boundary	/subscription /topup计费命令
+1244	boundary	v2026.7.1 Control UI/onboarding大版本
+1245	boundary	cron delivery走modern target resolver
+1246	cand	hook-events: before-agent-finalize+cron jobId context+permission fingerprints
+1247	dup	SSH schedules按runtime分组隔离 — schedule scoping
+1248	variant	token-auth跨workspace schedule访问
+1249	dup	fastcontext.js:43-93本就workdir限定+subdir containment+realpath fail-closed,$HOME/fs-root索引面不存在 — 更强
+1250	dup	named model login profiles+凭据迁移 — auth profiles
+1251	dup	config写后secrets-resolved snapshots保持 — secrets snapshot
+1252	dup	constant-time secret比较 — timing-safe已实装
+1253	dup	thread fork endpoints — fork exists
+1254	dup	--restore-chat-history — session restore
+1255	variant	sessionDir setting自定义session存储目录
+1256	boundary	durable session-transcript SDK contract
+1257	boundary	OpenTUI live-session stream/composer
+1258	dup	image-only tool results soft-trim剪枝 — context pruning
+1259	dup	model fallback保留original prompt body — retry integrity
+1260	dup	image_generate走async media lifecycle — media task
+1261	boundary	Android chat settings重设计
+1262	dup	Cmd/Ctrl+Enter后台起会话 — session UX
+1263	dup	single message可开branch selector — fork UX
+1264	dup	Code Mode JS环境跨tool replies保持 — js_repl已实装
+1265	dup	browser refresh后stale connections修复 — connection hygiene
+1266	dup	tool result不重载全history — render perf
+1267	dup	编辑早前消息→fork+rewind workspace — message edit/rewind已实装
+1268	dup	traceId端到端(Galileo session/tool) — tracing
+1269	dup	steer注入时forward user message events — steer events
+1270	dup	main Agent等dynamic config init延迟修复 — boot ordering
+1271	dup	生成media存临时文件 — media attachments
+1272	dup	Web Search toggle — web search
+1273	boundary	clawdis agent command+Pi RPC worker
+1274	dup	queued delivery持久originating session context — delivery context
+1275	dup	thinking intensity sync性能修复 — perf
+1276	boundary	team member视图箭头切换
+1277	cand	revert空目录GC: fileops receipt-undo回收创建文件但mkdirSync recursive建的空目录残留 — 微缺口
+1278	dup	archive restore保留independently创建文件/symlinks — restore safety
+1279	dup	rewind/fork跨web+native — session_rewind已实装
+1280	dup	rewind/fork/branch切换+session boards — session_rewind
+1281	dup	session不绑错profile DB — profile isolation
+1282	dup	reset前清stale runtime model/context/system-prompt — reset hygiene
+1283	dup	double-ESC rewind(同1283) — M126族
+1284	cand	fork size guard: forkFrom复制全量父会话无size/entry上限,超大parent可砖化thread — 待加容量闸
+1285	dup	agent workspace内启动推断active agent — workspace inference
+1286	variant	dispatch输入@补session目录/sub-agent,/补view
+1287	boundary	mobile drawer交互
+1288	dup	trajectory export跳过malformed JSONL行 — torn-row tolerance已实装
+1289	dup	全类型user turns持久(CLI/WebChat/media/follow-up/hook) — turn persistence
+1290	boundary	Devin todo list用法
+1291	cand	win-containment: N-API Job Object进程树containment
+1292	boundary	Open customizations菜单
+1293	cand	secrets: auth.json apiKey支持!command shell解析
+1294	cand	secrets: models.json apiKey !command(如security find-generic-password)
+1295	dup	异常退出诊断(crash/window close/signal) — exit diagnostics
+1296	dup	右键selected text"Add to Cline" — M109批4
+1297	boundary	5个全局键盘快捷键
+1298	variant	loopback MCP bridge向background Claude CLI暴露工具
+1299	boundary	Codex runtime models优先路由
+1300	variant	--terminal-shell指定inline命令shell
+1301	boundary	semantic colors主题系统(success/warning/error/info)
+1302	dup	task运行时env var检测 — env plumbing
+1303	dup	migration终端输出redact — secret scrub
+1304	boundary	interactive dashboard TUI
+1305	variant	CODEBUDDY_ENV_FILE自动加载env文件
+1306	boundary	SKILL.md内!`command`行内shell执行 — 我方skills刻意只文本
+1307	boundary	TUI LaTeX/.env hot-reload/busy-indicator
+1308	boundary	#/canvas终端瓦片(同46)
+1309	boundary	terminal Cmd/Ctrl+F搜索
+1310	variant	!命令输出直接进timeline不折叠
+1311	dup	点击progress update看具体shell命令 — command visibility
+1312	dup	Web Shell history分页超page budget仍继续 — pagination
+1313	boundary	Customize marketplace(Skills/MCP/Plugins)
+1314	boundary	ModelRuntime canonical async SDK
+1315	boundary	ctx.ui.addAutocompleteProvider
+1316	boundary	ctx.ui.setWorkingIndicator
+1317	boundary	autoUpdateThirdPartyMarketplaces config
+1318	boundary	execPolicy SDK重构
+1319	boundary	session-key surfaces移plugin-owned
+1320	boundary	Cline Plugins(custom tools/workflows/skills/MCP)
+1321	dup	custom agent model declarations生效修复 — delegate model
+1322	dup	custom commands可覆盖built-in — command precedence
+1323	noise	enterprise policy task创建超时临时禁用
+1324	boundary	extension keyHint/keyText迁移
+1325	dup	Feishu monitor state safe defaults — mixed-version tolerance
+1326	noise	extension升级schema切换bug
+1327	dup	skill discovery含SKILL.md即停+忽略root *.md — discovery hygiene
+1328	dup	启动期WebSocket RPC可用+chat.history延迟 — startup ordering
+1329	dup	image MIME magic bytes检测 — attachment sniffing已实装
+1330	boundary	meeting-notes source-provider plugin
+1331	boundary	TTS directives在message-tool send前应用
+1332	noise	MiniMax-M2.5-highspeed
+1333	variant	git-subdir plugin source kind
+1334	cand	hook-forms: bounded resolve_exec_env(plugin提供exec env)
+1335	boundary	legacy provider compat subpaths弃用
+1336	boundary	plugin-config TUI onboarding prompts
+1337	variant	session_switch/session_fork并入session_start(event.reason)
+1338	boundary	RPC extension UI types exports
+1339	boundary	Parallel web-search plugin
+1340	dup	/skill:name在AgentSession展开(非interactive限定) — skill dispatch
+1341	boundary	sticky scroll scopes
+1342	boundary	diffs plugin tool(只读diff渲染)
+1343	noise	extension git track磁盘占用注记
+1344	dup	disable skills(built-in/global/project)config — skill toggle
+1345	boundary	cloud steering/agents/skills同步
+1346	noise	native tool calling API变迁注记
+1347	dup	/debug-config查effective config — config inspect
+1348	boundary	project panel remove action keybinding
+1349	boundary	outline panel
+1350	boundary	project search panel新建文件
+1351	boundary	tree-sitter tokens highlights tree view
+1352	dup	@-mention menu icon按钮 — composer UX
+1353	cand	worktree: draft thread选目标worktree
+1354	boundary	message_editor_min_lines setting
+1355	boundary	Android facing=both校验
+1356	dup	background task完成信号丢失修复 — notify durability
+1357	boundary	Devin browser内copy/paste
+1358	variant	hookOutputCollapsed折叠配置
+1359	boundary	gitignored不auto reveal
+1360	boundary	vim whole-word search option
+1361	boundary	Cline CLI+TUI(SDK重构)
+1362	dup	Activity tab/secret-prep traces/OTel spans — observability
+1363	boundary	Create repo保存到Origin
+1364	boundary	Quick Mode/Model switch菜单
+1365	dup	--agent优先于remembered mode — agent precedence
+1366	noise	paste特定escape sequences崩溃修复
+1367	dup	sessions.reset传explicit reason(new vs reset) — hook reason
+1368	dup	后台任务通知mailbox dedupe — notify dedupe
+1369	boundary	Web UI es locale
+1370	dup	Playbooks Library — playbooks已实装
+1371	variant	security.audit.suppressions白名单(有意接受的finding)
+1372	boundary	LINE+SimpleX Chat平台
+1373	dup	/usage cost summaries+menu charts — usage surface
+1374	dup	smart approve下session级approve覆盖整tool非单args — grant granularity
+1375	dup	feature-gated /plan命令 — plan mode
+1376	boundary	plan mode mermaid图
+1377	dup	"Always allow"传播到同tool pending calls — grant propagation
+1378	variant	domain hash matching(Security Center network allowlist复用)
+1379	dup	scoped workspace memory tasks(project/user targets+fs边界) — memory scoping已实装

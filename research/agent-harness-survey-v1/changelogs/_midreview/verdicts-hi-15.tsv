@@ -1,0 +1,200 @@
+3180	cand	worktree: EnterWorktree tool接可选path参数切入既有worktree
+3181	dup	review job异常死亡时发fallback comment+retry guidance — review resilience
+3182	noise	voice-cygwin-snapshot.json SHA-256 pins(其CI)
+3183	boundary	File History view/word-based diff
+3184	boundary	branch picker空格转连字符
+3185	boundary	Jules review? emoji标记已读
+3186	noise	runtime image build CI
+3187	cand	context-forms: rules作context添加
+3188	boundary	edits bar整行点击开review multibuffer
+3189	boundary	gptme-util review pr子命令
+3190	dup	hook system message前先commit pending AI response — ordering
+3191	cand	rpc-framing: strict LF-delimited JSONL(只\n分割)
+3192	dup	fromMe event匹配才丢echo webhook — echo dedupe
+3193	cand	channel-groups: per-group mention gating(*.groups+"*" defaults)
+3194	boundary	Slack upload-file action
+3195	cand	remote-mcp: configurable OAuth callback URL
+3196	cand	remote-mcp: startup_timeout_ms per-server
+3197	dup	OAuth refresh transient失败丢弃重试 — auth retry
+3198	cand	remote-mcp: /mcp login/logout/status TUI命令
+3199	dup	MCP连接进度显示(N/M) — progress
+3200	boundary	mcp add写OpenCode config
+3201	boundary	popout view history/mcp/new task
+3202	cand	ui-mcp: collapsible MCP response panels
+3203	dup	MCP config整体env var注入 — env injection
+3204	cand	remote-mcp: 可配置tool call timeout
+3205	cand	remote-mcp: GET /mcp连接状态监控端点
+3206	cand	tool-guard: external tool guard provider(managed serve pre-execution allow/deny)
+3207	boundary	Kimi Code OAuth device auth
+3208	cand	同3204(重复)
+3209	cand	tool-perms: settings editor per-tool permission页
+3210	boundary	连续tool call limit toast/sound通知
+3211	dup	MCP tools image output — mcp media
+3212	dup	bundle MCP tools materialize serverName__toolName — tool naming
+3213	cand	remote-mcp: 加HTTP/SSE server时自动触发OAuth
+3214	dup	browser sessions/CDP discovery/OAuth/SSE — connectivity
+3215	cand	browser-profiles: userDataDir attach Brave/Edge等
+3216	dup	model-only setup直接进provider auth — onboarding
+3217	cand	mcp-apps: interactive HTML tool interfaces sandbox渲染
+3218	dup	auth-profile media tools/MCP projection/thread rotation — codex paths
+3219	dup	重复tool call IDs修复 — tool id fix
+3220	dup	UI language存活update+expired OAuth一键重签 — session fixes
+3221	dup	OAuth tokens每次LLM call前refresh — token refresh
+3222	dup	SSE transport.start override限stdio修复 — transport fix
+3223	dup	MCP tool responses image content(同3211) — mcp media
+3224	dup	streamed tool-call按stable index合并deltas — stream assembly
+3225	boundary	Copilot API tokens换image understanding
+3226	dup	retired Gemini ids在OAuth patches归一 — id normalize
+3227	boundary	IDE 1.1 durable artifacts/ARM64
+3228	cand	schema-slim: tool call descriptions减98%(flag)
+3229	boundary	connectors app server+MCP集成
+3230	dup	ACP mode MCP config load timing修复 — init timing
+3231	dup	list()空后add()不显示修复 — cache invalidation
+3232	dup	OAuth callback redirect被request validation拒修复 — OAuth fix
+3233	cand	remote-mcp: env vars配置connection timeout
+3234	dup	connector-proxy non-deferred tools不注入修复 — tool injection
+3235	cand	remote-mcp: 首个/mcp add时建registry
+3236	dup	MCP registry fetch走platform cert store+proxy — cert/proxy
+3237	cand	cli-mcp: agentic CLI providers(Claude/Codex/Gemini)用MCP tools
+3238	dup	OpenCode归local CLI provider — provider classify
+3239	dup	daemon child processes继承父CLI参数(model/mcp-config) — param inherit
+3240	dup	xAI OAuth+loopback callback CORS — oauth fix
+3241	dup	启动跳过ChatGPT OAuth model refresh — startup perf
+3242	boundary	Slack multi-workspace OAuth token file
+3243	dup	plan-blocked command为唯一tool call时不算failed turn — turn verdict
+3244	boundary	macOS window tabbing/gamma correction
+3245	dup	/context只算enabled tools — token accuracy
+3246	dup	invalid JSON params立即400修复(重试) — param retry
+3247	boundary	button primitives consolidate/Knot theme
+3248	cand	remote-mcp: MCP notification支持
+3249	dup	send失败(如OAuth refresh)不丢prompt — send resilience
+3250	cand	remote-mcp: HTTP MCP servers OAuth
+3251	cand	remote-mcp: 非交互模式跑MCP prompt commands
+3252	cand	remote-mcp: mcp add OAuth flags
+3253	cand	remote-mcp: slash commands跑mcp prompt
+3254	boundary	--type alias for --transport
+3255	cand	remote-mcp: tool progress bar/throttling/validation
+3256	boundary	Qwen Code CLI OAuth
+3257	noise	mcp add tool test修复
+3258	cand	remote-mcp: oauth spec github+resource parameter
+3259	dup	slow MCP不阻塞SDK initialize — init decouple
+3260	cand	tree-summary: /tree branch summarization三选项(无/摘要/自定义prompt)
+3261	cand	memory-key: X-Hermes-Session-Key给memory providers稳定session id
+3262	cand	memory-scope: per-conversation allowedChatIds/deniedChatIds
+3263	dup	/compact压缩历史 — compact command
+3264	boundary	Venice prompt cache key
+3265	dup	streaming tool stats+token usage throttling — perf
+3266	cand	context-map: --map-tokens repo map预算+PageRank优先级
+3267	cand	thinking: --thinking-tokens预算控制
+3268	noise	Gemini-3.5-Flash
+3269	dup	ACP含MCP/file diffs//init//compact — ACP surface
+3270	dup	auto-compaction/pruning可config禁用 — compaction config
+3271	dup	/remember context refresh marker在retry中持久 — memory marker
+3272	cand	hook-events: session_compact_failed(reason/retry state)
+3273	dup	tools/compaction/branch summaries usage入persisted sessions — usage accounting
+3274	boundary	近context limit时建议burn mode
+3275	dup	compaction参数(截断,同3275区) — compaction
+3276	dup	更多provider context-overflow错误形状检测 — overflow detect
+3277	dup	OAuth refresh失败原因redact — secret scrub
+3278	dup	compaction summary reserve tokens clamp到model output limit — budget clamp
+3279	dup	/tools显示当前agent实际可用tools — tool inspect
+3280	dup	/verbose用compact explain-mode summaries — verbose mode
+3281	dup	compaction mode config+safeguard summarization+per-agent fallbacks — compaction config
+3282	cand	compaction: pre-compaction memory flush(agents.defaults.compaction.*)
+3283	dup	auth profiles per-session sticky+provider usage headers — auth sticky
+3284	boundary	bundled memory CLI package entry
+3285	dup	submit prompt前查compaction(不只turn后) — compaction timing
+3286	variant	Codex explicit compaction在app-server threads+Lossless经context
+3287	dup	slash commands限定authorized senders+/compact — command authz
+3288	dup	compaction尊重Max Output Tokens非1024硬编码 — compaction limit
+3289	dup	compaction前清>1h旧tool results — compaction prune
+3290	dup	token warning threshold降低早触发 — threshold tune
+3291	dup	/context显示MCP tools token占用 — context detail
+3292	dup	切model后auto-compaction threshold计算修复 — threshold fix
+3293	boundary	Imported Insights不调可选memory-wiki方法
+3294	dup	/usage用fresh context snapshot+cache-write tokens — usage accuracy
+3295	dup	ToolSearch返回full param schema供执行 — tool search
+3296	dup	有效新内容不足时compaction degenerate处理 — compaction edge
+3297	dup	/doctor含memory/task统计 — diagnostics
+3298	dup	doctor查gateway memory embedding readiness — doctor check
+3299	boundary	Ollama token usage+stream timeout
+3300	dup	大repo file/dir count限制防内存 — resource cap
+3301	dup	footer context%显示stale值修复 — display fix
+3302	dup	超threshold大tool results先compaction再发送 — compaction ordering
+3303	boundary	node.pending.enqueue/drain窄队列原语
+3304	noise	commit message询问(语料杂质)
+3305	cand	session-incognito: transcripts+compaction state只存Gateway memory(不落盘)
+3306	noise	GPT-5-Codex-Mini
+3307	dup	compaction/reuse时empty prompts与hook context分离 — compaction hygiene
+3308	dup	>50KB tool results存盘留summary — externalize已实装
+3309	dup	MCP server tool list顺序不稳致cache失效修复 — cache stability
+3310	dup	split usage显示一致(同3310) — usage display
+3311	dup	image/WASM deps按需加载 — lazy load
+3312	dup	session groups/titles/unread/checkpoints/goals/recovery — session suite
+3313	cand	memory-fts: Japanese-aware query expansion+stop-words
+3314	cand	memory-scope: memorySearch.qmd.extraCollections跨agent session search
+3315	cand	memory-search: FTS fallback+query expansion
+3316	dup	QMD recall默认search+telemetry — memory recall
+3317	variant	memorySearch.local.contextSize(4096默认)
+3318	dup	watch memory目录+忽略非markdown churn — memory watch
+3319	dup	session-start触发的sync不跳transcripts — index coverage
+3320	cand	memory-recall: memory/**/YYYY-MM-DD.md嵌套daily notes喂short-term recall
+3321	dup	memory status走cheap read-only路径 — perf
+3322	boundary	QMD rerank toggle
+3323	cand	memory-recall: fast active-memory+跨对话recall默认+guided imports
+3324	boundary	Gemini embeddings provider
+3325	dup	codex/gpt-*走Codex-managed app-server harness — provider harness
+3326	dup	SecretRef profiles/DeepSeek transports/static fallback — provider resilience
+3327	dup	OTel覆盖model calls/token/tool loops/exec/outbound — tracing
+3328	dup	lancedb embeddings前初始化proxy dispatcher — proxy bootstrap
+3329	dup	plugin-registry cache hits恢复memory artifacts — cache restore
+3330	dup	tokenjuice等tool-result middleware按需manifest加载 — lazy middleware
+3331	dup	SDK catalog model output token limits保留 — token limits
+3332	boundary	seatbelt/Wayland/brew/compaction QoL
+3333	dup	team members运行状态/token/tool计数实时推送 — progress push
+3334	dup	interrupted tool calls/stale bindings/compaction handoffs — resilience
+3335	dup	SDK mode auto-compaction断连修复 — compaction fix
+3336	dup	externalized tool results不再同步回内存 — externalize fix
+3337	cand	compaction: agent.compaction_threshold_tokens提前触发
+3338	boundary	SettingsManager setters即时内存+队列持久
+3339	dup	surface切换不重build system prompt保留cache — cache stability
+3340	dup	完成通知含duration/tool count等统计 — notify detail
+3341	variant	read_files大文件只读symbol outline
+3342	dup	envelope timestamps UTC紧凑格式 — timestamp format
+3343	dup	context_window=0时不再立即summarize — edge fix
+3344	cand	compaction: configurable auto-compact threshold+Stop hook context usage
+3345	dup	stream-json per-model token usage — usage detail
+3346	cand	memory-cli: memory search/export命令
+3347	cand	hook-events: experimental.session.compacting(pre-compaction注入)
+3348	noise	memory test重构用CLI metrics
+3349	dup	/context context window breakdown — context command
+3350	noise	feature flags默认stable测试
+3351	cand	model-flag: --model免--provider+provider/id语法+fuzzy+:<thinking>后缀
+3352	dup	/model overhaul shared switch_model+endpoint支持 — model command
+3353	boundary	Alibaba provider
+3354	dup	settings.json apiKeys字段 — auth config
+3355	cand	thinking: extended thinking Plan/Act不同budgets
+3356	cand	auth-header: Anthropic Authorization header选项(非X-Api-Key)
+3357	boundary	Databricks auth+gemini cli custom header
+3358	noise	GLM-4.7 thinking Zai
+3359	boundary	SAP AI Core provider
+3360	noise	gpt-5.2-codex
+3361	boundary	Baseten provider
+3362	noise	Gemini 3 Flash Preview
+3363	boundary	Roo Code Cloud embeddings
+3364	dup	免费models标"(free)"+专用error card — model labels
+3365	noise	GLM-4.5-turbo Chutes
+3366	cand	review-cli: fetch-pr --since增量review锚点
+3367	boundary	Alibaba provider+cache
+3368	boundary	Kimi For Coding provider
+3369	boundary	LLM Gateway provider
+3370	boundary	Fireworks provider
+3371	noise	GLM-5 z.ai/OpenRouter
+3372	noise	docs/telegram.md
+3373	boundary	Bedrock login/custom endpoint/GPT-5.6 Sol
+3374	noise	gemini-3.1-pro-preview
+3375	dup	models.json modelOverrides(同1141) — config override
+3376	dup	pi auth check preflight+可选credential输出 — auth check
+3377	boundary	GPT-5.1 priority processing
+3378	dup	sessions ps+live-state API列运行中sessions — session list
+3379	cand	http-headers: language_models.<provider>.custom_headers

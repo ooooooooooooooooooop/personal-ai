@@ -1,0 +1,200 @@
+38679	noise	release header
+38680	noise	date noise
+38683	dup	auxiliary client placeholder key — 占位钥已有
+38684	dup	omit empty tools param — 参数省略已有
+38687	dup	HERMES_HOME protected paths — 写拒路径已有
+38688	noise	section header
+38692	dup	handle deleted reply targets — 删除容错已有
+38693	boundary	DISCORD_IGNORE_NO_MENTION — 外部平台出界
+38694	dup	deferred thinking cleanup — 指示清理已有
+38696	boundary	LID phone alias — 平台出界
+38697	noise	release header
+38698	noise	date noise
+38702	dup	subagents independent iteration budgets — 预算隔离已有
+38703	dup	compression restarts count retry — 重试计入已有
+38704	dup	tool tokens preflight+probe persist — 预估持久已有
+38706	noise	model internal
+38708	dup	skip duplicate callback think — 回调去重已有
+38709	dup	preserve reasoning rewrite_transcript — 推理保留已有
+38712	dup	ratio-based scaling — 比例伸缩已有
+38713	dup	compression knobs expose — 压缩参数已有
+38714	noise	release header
+38715	noise	date noise
+38718	dup	/queue prompts — 队列命令已有
+38719	dup	/cost live pricing — 成本追踪已有
+38721	boundary	spinners — their UI
+38722	dup	reasoning blocks show — 推理显示已有
+38725	noise	release header
+38726	noise	date noise
+38730	dup	unlisted models warning — 警告接受已有
+38733	dup	sync session_id after compression — 压缩同步已有
+38734	dup	recall out of cached prefix — 缓存隔离已有
+38736	boundary	systemd service — 部署出界
+38738	dup	reasoning hot reload — 热重载已有
+38741	noise	release header
+38742	noise	date noise
+38746	dup	retry rebuilt payload compression — 负载重建已有
+38747	dup	auto-compress large sessions — 自动压缩已有
+38748	boundary	send_document/video — 外部平台出界
+38749	boundary	DISCORD_ALLOW_BOTS — 平台出界
+38750	boundary	native media — 平台出界
+38751	dup	port cleanup cross-platform — 端口清理已有
+38754	dup	REST tools + WS gateway — 网关集成已有
+38756	dup	slash commands — 命令已有
+38758	dup	stabilize system prompt cache — 缓存稳定已有
+38759	dup	session_db session_search — 会话检索已有
+38760	dup	/personality command — 人格命令已有
+38761	dup	quick commands bypass loop — 快捷命令已有
+38762	dup	/reasoning command — 推理命令已有
+38777	dup	npx resolve /usr/local/bin docker — 路径解析已有
+38789	dup	isolate honcho multi-user — 多用户隔离已有
+38792	boundary	forum topic isolation — 平台出界
+38793	dup	multi-user session isolation — 会话隔离已有
+38807	boundary	self-hosted firecrawl — 外部服务出界
+38811	noise	section header
+38815	noise	section header
+38839	noise	regex internal
+38840	boundary	DM interrupt — 平台出界
+38841	noise	mapping internal
+38844	noise	install noise
+38850	noise	install noise
+38851	noise	ci internal
+38855	dup	graceful max retries — 优雅退避已有
+38856	dup	kill stale SSE — 连接清理已有
+38858	dup	first delta reasoning — 流增量已有
+38859	dup	merge nested YAML config — 配置合并已有
+38862	noise	release header
+38865	noise	prose noise
+38869	noise	prose noise
+38875	noise	section header
+38879	boundary	shortcuts panel — their UI
+38889	dup	@file/@url completions — 引用补全已有
+38893	dup	context probing persistent cache — 探测缓存已有
+38894	dup	watcher notifications configurable — 通知可配已有
+38904	dup	sessions survive restarts — 重启续会已有
+38910	dup	persist compressed context — 压缩持久已有
+38913	dup	non-streaming fallback — 降级已有
+38918	dup	surface silent SessionDB failures — 失败上抛已有
+38919	dup	hygiene threshold 50% — 阈值已有
+38924	dup	filesystem checkpoints /rollback — 快照回滚已有
+38925	dup	session naming lineage — 命名谱系已有
+38926	boundary	session browser — their UI
+38928	dup	cross-session user modeling — 跨会话模型已有
+38929	dup	/resume named sessions — 命名恢复已有
+38930	dup	session reset policy — 重置策略已有
+38931	dup	channel topic context — 频道上下文已有
+38943	dup	credential exhaustion TTL — 凭据TTL已有
+38944	dup	staged inactivity warning — 闲置警告已有
+38945	dup	credential refresh 401 — 凭据刷新已有
+38946	dup	iteration budget via tool injection — 预算注入已有
+38954	dup	skills.sh sitemap catalog — 目录抓取已有
+38955	noise	usememo internal
+38956	dup	sitemap catalog — 已有
+38971	dup	plugin arch drop-in — 插件架构已有
+38980	boundary	email IMAP — 外部平台出界
+38981	boundary	email gateway — 出界
+38982	boundary	edit_message — 平台出界
+38985	dup	--insecure explicit opt-in env — 不安全显式已有
+38986	dup	turn-exit diagnostic logging — 退出诊断已有
+38987	dup	PORTAL_BASE_URL env — env覆盖已有
+38988	dup	env overrides URLs — 已有
+38991	noise	section header
+38992	dup	/browser interactive — 浏览器会话已有
+38994	dup	context pressure warnings — 压力警告已有
+38996	dup	${ENV_VAR} substitution config — 变量替换已有
+38998	dup	custom_models.yaml — 模型清单已有
+39030	noise	provider internal
+39032	noise	provider internal
+39033	noise	provider internal
+39043	dup	fallback provider empty responses — 空回降级已有
+39049	dup	context length detection — 长度检测已有
+39058	dup	credential reset windows failover — 重置窗已有
+39059	dup	402 payment fallback — 付费降级已有
+39060	dup	vision detection main first — 视觉优先已有
+39061	noise	ui internal
+39076	dup	unified setup/model single path — 路径统一已有
+39080	dup	ordered fallback provider chain — 降级链已有
+39084	dup	context length resolution — 已有
+39086	noise	logging internal
+39104	dup	preserve thought signatures streamed — 签名保留已有
+39105	dup	@file/@url context injection — 引用注入已有
+39113	dup	auto-detect provider switch — 自动检测已有
+39125	dup	sanitize chat payloads precedence — 负载净化已有
+39126	dup	centralized provider router — 路由集中已有
+39127	noise	provider internal
+39132	boundary	unified view — their UI
+39133	dup	fallback model resilience — 降级模型已有
+39134	dup	reasoning effort config — 推理档已有
+39140	noise	prose noise
+39182	dup	proactive async memory flush — 异步刷新已有
+39192	noise	oauth internal
+39197	dup	truncated streaming tool call detection — 截断检测已有
+39216	noise	oauth internal
+39217	dup	tool call repair middleware — 修复中间件已有
+39218	dup	MCP shutdown on exit — 退出清理已有
+39234	dup	propagate child activity parent — 活动上抛已有
+39236	dup	api_key fallback subagent — 凭据回退已有
+39238	dup	endpoint overrides auxiliary/delegation — 端点覆盖已有
+39269	dup	delivery-obligation ledger — 持久交付账本已有
+39281	dup	/approve /deny explicit — 显式批准已有
+39285	noise	stats noise
+39286	dup	workers images task bodies — 任务图片已有
+39296	dup	doc file processing PDF — 文档处理已有
+39297	boundary	MEDIA: protocol — 平台出界
+39300	noise	fix internal
+39303	dup	API error classification failover — 错误分类已有
+39308	dup	timeout 1800s — 超时已有
+39311	dup	validate /model live API — 在线校验已有
+39324	noise	prose noise
+39325	noise	prose noise
+39327	noise	prose noise
+39331	noise	prose noise
+39333	noise	json noise
+39335	noise	prose noise
+39339	noise	prose noise
+39340	boundary	PR from UI — their product
+39345	noise	prose noise
+39347	boundary	publish button — their UI
+39360	dup	MCP server tools trigger — 工具触发已有
+39364	noise	prose noise
+39367	noise	prose noise
+39368	noise	prose noise
+39369	noise	curl noise
+39370	noise	curl noise
+39371	noise	curl noise
+39373	noise	json noise
+39374	dup	OAuth resilient recovery — 认证恢复已有
+39376	noise	curl noise
+39377	noise	curl noise
+39378	noise	curl noise
+39380	noise	json noise
+39381	noise	json noise
+39382	noise	json noise
+39383	noise	json noise
+39384	noise	json noise
+39386	dup	pipe composable gh/jq — 管道组合已有
+39387	noise	prose noise
+39388	noise	install noise
+39389	noise	install noise
+39390	noise	install noise
+39391	noise	install noise
+39392	noise	prose noise
+39393	noise	prose noise
+39394	noise	prose noise
+39395	noise	prose noise
+39398	noise	prose noise
+39401	dup	save preferences nudges — 偏好持久已有
+39403	noise	prose noise
+39404	boundary	PR comments — their product
+39405	noise	prose noise
+39406	noise	prose noise
+39407	noise	prose noise
+39408	noise	prose noise
+39410	dup	5MB image limit — 附件上限已有
+39411	boundary	diff viewer — their UI
+39412	boundary	diff viewer — their UI
+39414	dup	critic contextual info — 评审上下文已有
+39416	boundary	sample prompts — their UI
+39419	noise	prose noise
+39422	noise	prose noise
+39424	dup	proactively find examples — 示例检索已有

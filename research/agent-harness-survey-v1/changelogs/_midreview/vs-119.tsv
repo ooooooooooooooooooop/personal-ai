@@ -1,0 +1,200 @@
+36789	noise	test internal
+36800	noise	docs internal
+36804	noise	refactor internal
+36820	noise	refactor internal
+36870	noise	refactor internal
+37001	noise	docs internal
+37005	noise	ci noise
+37032	dup	background whole tool calls fix stalls — 后台执行已有
+37346	noise	docs internal
+37433	noise	docs internal
+37439	noise	docs internal
+37496	noise	test internal
+37497	noise	docs internal
+37576	noise	docs internal
+37592	noise	docs internal
+37610	dup	shared session module ACP/server — 会话模块共享已有
+37691	noise	docs internal
+37746	noise	test internal
+38138	noise	docs internal
+38281	noise	docs internal
+38378	noise	test internal
+38493	dup	hook support server API v2 — API钩子已有
+38502	noise	docs internal
+38975	noise	ci noise
+39201	dup	OAuth token not used as API key — 令牌分离已有
+39203	dup	non-OAuth keys as API keys — 令牌分类已有
+39272	dup	media-delivery denylist-only — 投递校验放宽已有
+39304	dup	model name from profile — 档案派生已有
+39358	noise	prose fragment
+39588	dup	follow agents.md better — 指令跟随已有
+39589	dup	reads AGENTS.md — 指令加载已有
+39590	noise	docs internal
+40008	dup	look at claude.md — 指令文件已有
+40105	dup	AGENTS.md into system prompt — 指令注入已有
+40122	dup	symlinked SKILL.md no freeze — 链接容错已有
+40126	dup	BOM stripped from SKILL.md — 编码处理已有
+40127	dup	AGENTS.md surfaced in read_file — 读取可见已有
+40141	noise	prose fragment
+40142	dup	user-level AGENTS.md in ~/.vibe — 用户级指令已有
+40143	dup	subfolder+parent AGENTS.md — 层级指令已有
+41050	noise	test internal
+41153	dup	skip metadata for excluded plugins — 排除不广播已有
+41158	noise	build internal
+41336	dup	prefer ClawHub before npm — 注册表优先已有
+41350	noise	test internal
+41635	noise	docs internal
+41658	noise	build internal
+42576	noise	ci noise
+42654	noise	ci noise
+42707	noise	ci noise
+42774	noise	ci noise
+42781	noise	ci noise
+42788	noise	ci noise
+42790	noise	ci noise
+42874	noise	internal
+42878	noise	ci noise
+42880	noise	docs internal
+43206	noise	docs internal
+43207	noise	build internal
+43227	dup	per-agent auth stores+sandboxed skill bins — 分域凭据沙箱已有
+43233	noise	docs internal
+43234	noise	docs internal
+43609	dup	exec approvals elevated modes — 审批升级档已有
+43622	noise	docs internal
+44290	noise	docs internal
+44305	noise	docs internal
+44699	noise	test internal
+44700	noise	test internal
+44728	dup	CODEX_HOME isolates but HOME keeps .agents — 环境隔离语义已有
+44808	noise	test internal
+44825	noise	docs internal
+44829	dup	isolate HOME/XDG in tests — 测试隔离已有
+45202	noise	build internal
+45395	dup	gateway auth guidance on unauthorized — 认证引导已有
+45400	noise	docs internal
+45654	dup	strip line breaks from pasted keys — 凭据清洗已有
+45730	noise	docs internal
+46720	noise	build internal
+47062	noise	docs internal
+47175	boundary	override min-release-age for managed installs — 绕过隔离期属托管渠道取舍
+47249	noise	test internal
+47578	noise	docs internal
+47579	noise	docs internal
+47809	noise	docs internal
+47864	noise	docs internal
+48256	noise	test internal
+48278	noise	dep bump
+48488	noise	docs internal
+48646	noise	docs internal
+48699	noise	docs internal
+48746	dup	env read via permissions model — 权限模型收编已有
+48845	noise	docs internal
+48857	noise	docs internal
+48931	noise	docs internal
+48945	noise	ui feature
+48955	noise	internal
+48959	noise	internal
+48960	noise	docs internal
+48989	noise	docs internal
+49050	noise	docs internal
+49052	noise	docs internal
+49103	noise	revert internal
+49161	noise	docs internal
+49164	dup	cycle recent models F2 — 模型快切已有
+49268	dup	keep aborted msgs in context — 中止留上下文已有
+49326	noise	internal
+49380	noise	internal
+49390	noise	docs internal
+49411	noise	internal
+49470	noise	chore internal
+49797	noise	docs internal
+49880	noise	refactor internal
+50105	noise	docs internal
+50452	noise	test internal
+50455	noise	docs internal
+50528	noise	docs internal
+50580	noise	chore internal
+51021	noise	revert internal
+51190	noise	docs internal
+51279	noise	docs internal
+51290	dup	MCP tools need glob to disable — 模式禁用已有
+51298	noise	docs internal
+51333	dup	sanitize mcp server names — 名称清洗已有
+51336	noise	docs internal
+51338	dup	mcp servers include headers — 自定义头已有
+51447	noise	docs internal
+51499	noise	ci noise
+51847	noise	ci noise
+51888	noise	docs internal
+51936	noise	internal
+52007	noise	internal
+52010	noise	internal
+52027	noise	internal
+52028	noise	internal
+52161	noise	revert internal
+52249	noise	internal
+52479	noise	docs internal
+52493	noise	docs internal
+52495	noise	docs internal
+52502	noise	docs internal
+52590	dup	documented --dangerously-skip-permissions — 逃生舱文档化已有
+52599	noise	docs internal
+52825	noise	revert internal
+52918	noise	docs internal
+52929	noise	refactor internal
+52941	noise	docs internal
+52947	dup	agent/mode merge + @mention subagent — 角色统一已有
+52949	noise	docs internal
+52951	noise	docs internal
+52960	noise	docs internal
+52972	noise	docs internal
+52981	noise	refactor internal
+53001	noise	docs internal
+53002	noise	docs internal
+53027	dup	prioritize CONFIG_DIR for AGENTS.md — 配置目录优先已有
+53028	noise	docs internal
+53030	noise	docs internal
+53038	dup	prevent duplicate AGENTS.md injection — 注入去重已有
+53041	dup	no multi-load in parallel tools — 并行去重已有
+53042	noise	dep bump
+53044	dup	dynamic AGENTS.md resolve during explore — 懒发现已有
+53054	noise	dep bump
+53064	noise	docs internal
+53067	dup	CONFIG_DIR AGENTS.md into system prompt — 同上dup
+53068	noise	docs internal
+53075	noise	docs internal
+53076	noise	docs internal
+53079	noise	docs internal
+53080	noise	docs internal
+53084	noise	docs internal
+53089	noise	docs internal
+53090	noise	docs internal
+53091	noise	docs internal
+53092	noise	docs internal
+53101	noise	docs internal
+53102	noise	docs internal
+53103	noise	docs internal
+53128	noise	internal
+53136	noise	docs internal
+53138	noise	docs internal
+53139	noise	docs internal
+53396	noise	ui feature
+53516	noise	refactor internal
+53517	noise	ui feature
+53642	noise	docs internal
+53845	noise	docs internal
+54045	noise	revert internal
+54082	dup	pasted attachment references — 粘贴引用已有
+54310	noise	docs internal
+54333	noise	revert internal
+54364	dup	bash permissions key off command pattern — 模式权限已有
+54378	noise	docs internal
+54537	dup	preserve exec bits before docker build — 权限位保留已有
+54576	noise	test internal
+54595	noise	test internal
+55031	noise	dep bump
+55046	noise	dep bump
+55051	noise	test internal
+55253	dup	isolate mock LLM from ambient secrets — 凭据隔离已有
+55308	noise	docs internal

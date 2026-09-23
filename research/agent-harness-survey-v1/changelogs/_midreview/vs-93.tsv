@@ -1,0 +1,200 @@
+59955	noise	feat fragment
+59957	noise	contributor noise
+59960	noise	feat fragment
+59961	noise	contributor noise
+59966	noise	contributor noise
+59968	noise	contributor noise
+59971	noise	contributor noise
+59974	noise	contributor noise
+59978	dup	standardize tool output format — 输出格式已有
+59979	noise	contributor noise
+59980	dup	remove editCorrector escape injection — 校正器移除已有
+59982	noise	contributor noise
+59984	noise	contributor noise
+59985	noise	contributor noise
+59990	dup	subagents feature — 子代理已有
+59991	dup	shared line limit across files — 行限共享已有
+59992	noise	contributor noise
+59994	noise	contributor noise
+59997	noise	prose noise
+60001	noise	contributor noise
+60004	noise	contributor noise
+60005	noise	chore noise
+60010	noise	chore noise
+60011	noise	contributor noise
+60080	dup	merge models remove vision switch — 模型合并已有
+60394	dup	route shell by session activity — 活动路由已有
+60409	dup	execCommand copy fallback — 复制回退已有
+60412	noise	bench noise
+60414	noise	bench noise
+60417	noise	bench noise
+60426	dup	chain bench after SWE published — 序贯发布已有
+60439	noise	bench noise
+60445	noise	bench noise
+60446	noise	bench noise
+60451	noise	bench noise
+60463	noise	bench noise
+60466	noise	bench noise
+60468	noise	bench noise
+60471	noise	bench noise
+60472	noise	bench noise
+60477	noise	bench noise
+60481	noise	bench noise
+60482	noise	bench noise
+60483	noise	bench noise
+60500	noise	bench noise
+60501	noise	bench noise
+60579	boundary	desktop app lifecycle — their product
+60933	boundary	terminal screenshot CLI — their tool
+60942	dup	execFile memory-safe exec — execFile已有
+60996	noise	bench noise
+60997	noise	bench noise
+60999	dup	hidden runtime boundary isolate ownership — 边界隔离已有
+61016	dup	forked subagents sibling isolation — 兄弟隔离已有
+61030	noise	bench noise
+61085	noise	test internal
+61113	noise	feat fragment
+61215	dup	notify model capability changes — 能力变更通知已有
+61305	noise	branch noise
+61436	dup	reasoning controls synced session — 推理同步已有
+61471	dup	non-blocking slash+HITL resume — 恢复提示已有
+61472	dup	restore ask_user_question on resume — 同上dup
+61486	dup	omit bad MIME images not abort — 容错省略已有
+61495	dup	drain queued tasks 8s close refuse — 拒绝关闭排空已有
+61592	noise	branch noise
+61606	dup	subagent live context+timeline — 子代理可见性已有
+61719	dup	session-level history mgmt — 历史管理已有
+61883	dup	sub-command memory ops — 记忆命令已有
+61901	noise	prose fragment
+62171	dup	clear deferred findings write path — 挂起清理已有
+62182	dup	specific failure names diagnostics — 诊断命名已有
+62183	dup	clear deferred suggestions backlog — 同上dup
+62326	dup	outcome tracking success/fail/cancel — 结果分类已有
+62600	dup	daemon model filtering fix — 过滤修复已有
+62915	dup	checkpoint init non-repo dirs — 非仓初始化已有
+63036	noise	docs noise
+63053	noise	fix internal
+63068	noise	fix internal
+63104	noise	release fragment
+63159	cand	Critical findings require executed witness output — 声明须执行见证否则降置信，可用于评审闸
+63261	noise	fix internal
+63298	dup	rejected plan stays visible — 计划可见已有
+63722	noise	sync internal
+63738	noise	sync internal
+63739	noise	sync internal
+63856	dup	startup context→system reminders — 上下文迁移已有
+63886	noise	release fragment
+63977	dup	autofix audit simplicity not stop — 简约审计已有
+63980	dup	autofix audit minimal change — 同上dup
+64134	noise	bench noise
+64176	noise	pr noise
+64186	noise	ci internal
+64212	noise	ci internal
+64272	noise	pr noise
+64276	noise	ci internal
+64279	dup	parentToolCallId ACP tracking — 子代理追踪已有
+64303	dup	list_agents excludes teammates — 列表排除已有
+64387	noise	docs noise
+64407	noise	release fragment
+64453	dup	stop invalid param loops ACP — 循环中止已有
+64461	dup	persist ACP model selection — 选择持久已有
+64476	noise	branch noise
+64504	dup	awk/sed injection fix allowlist — 注入修复已有
+64514	noise	prose fragment
+64572	dup	gate browser MCP external adapter — 外设门已有
+64621	dup	mcp config cli — 配置命令已有
+64792	dup	monitor notifs subagents — 通知修复已有
+64794	dup	suppress OTEL diagnostics UI — 诊断抑制已有
+64840	noise	bundle noise
+64841	noise	bundle noise
+64842	noise	bundle noise
+64843	noise	bundle noise
+64844	noise	bundle noise
+64845	noise	bundle noise
+64846	noise	bundle noise
+64847	noise	bundle noise
+64848	noise	bundle noise
+64893	dup	daemon dup tool-call breaker→loop stop — 循环停止已有
+65000	noise	bundle noise
+65048	noise	bundle noise
+65140	dup	loops cite recurring files — 不稳定归因已有
+65141	dup	loops explain non-settling — 同上dup
+65197	noise	feat fragment
+65204	noise	prose noise
+65209	noise	prose noise
+65216	noise	prose noise
+65218	noise	prose noise
+65244	noise	prose noise
+65245	noise	prose noise
+65248	noise	release fragment
+65249	noise	usage fragment
+65250	noise	usage fragment
+65252	noise	release fragment
+65255	dup	skip paths outside cwd — cwd限定已有
+65257	noise	reaction noise
+65259	noise	contributor noise
+65263	noise	contributor noise
+65265	noise	contributor noise
+65266	noise	release fragment
+65280	noise	contributor noise
+65282	noise	contributor noise
+65289	noise	contributor noise
+65291	noise	release fragment
+65292	noise	release fragment
+65299	noise	contributor noise
+65301	noise	contributor noise
+65312	noise	usage fragment
+65314	noise	contributor noise
+65317	noise	contributor noise
+65319	noise	refactor prose
+65320	noise	refactor internal
+65321	noise	refactor internal
+65322	noise	refactor internal
+65324	noise	refactor internal
+65326	noise	refactor internal
+65335	boundary	BrowserTool display — their UI
+65336	boundary	ModeTool display — their UI
+65337	boundary	CompletionTool — their UI
+65339	boundary	HistoryTrigger — their UI
+65340	boundary	timestamps — their UI
+65341	boundary	keyboard nav — their UI
+65342	boundary	picker — their UI
+65347	noise	refactor internal
+65352	noise	contributor noise
+65356	noise	contributor noise
+65358	noise	contributor noise
+65363	noise	contributor noise
+65365	noise	contributor noise
+65369	noise	contributor noise
+65371	noise	contributor noise
+65375	noise	contributor noise
+65378	noise	contributor noise
+65381	noise	contributor noise
+65385	noise	contributor noise
+65388	noise	contributor noise
+65391	noise	contributor noise
+65398	noise	contributor noise
+65405	noise	contributor noise
+65413	noise	contributor noise
+65428	noise	contributor noise
+65443	noise	contributor noise
+65453	noise	contributor noise
+65461	noise	contributor noise
+65467	noise	contributor noise
+65476	noise	prose noise
+65490	noise	contributor noise
+65510	noise	contributor noise
+65512	dup	promote message parser default — 解析器升级已有
+65529	noise	contributor noise
+65531	noise	contributor noise
+65538	noise	contributor noise
+65547	dup	tolerant search/replace match — 模糊匹配已有
+65556	dup	apply_diff surgical edits desc — 描述强化已有
+65567	noise	dep internal
+65573	noise	contributor noise
+65584	noise	contributor noise
+65592	dup	commandExecutionTimeout setting — 超时配置已有
+65598	noise	contributor noise
+65605	noise	contributor noise
+65609	noise	contributor noise
+65620	dup	file restrictions architect mode — 模式限定已有

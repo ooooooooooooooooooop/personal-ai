@@ -1,0 +1,200 @@
+33141	dup	guard SIGILL llama init — 能力检查已有
+33150	noise	dep internal
+33152	noise	dep internal
+33154	noise	crate internal
+33155	noise	crate internal
+33173	noise	provider internal
+33179	noise	temperature internal
+33182	dup	fallback provider resume unavailable — 提供方回退已有
+33192	noise	mapping internal
+33197	dup	thinking content provider context — 思考保留已有
+33205	noise	temperature internal
+33210	dup	fallback provider resume — 已有
+33224	noise	catalog internal
+33226	noise	mapping internal
+33232	noise	provider internal
+33233	dup	thinking content — 已有
+33241	noise	schema internal
+33251	dup	seed provider handoff history ACP — 交接播种已有
+33256	noise	provider internal
+33257	noise	parallel internal
+33259	noise	typestates internal
+33260	dup	CLAUDE.mds mirror AGENTS — 镜像已有
+33267	noise	inventory internal
+33268	noise	consolidate internal
+33269	dup	default fallback provider/model — 默认回退已有
+33272	noise	links internal
+33275	noise	provider internal
+33288	noise	provider internal
+33292	dup	short-lived provider token review — 临时令牌已有
+33293	noise	thinking internal
+33294	dup	ACP providers claude/codex — 桥接已有
+33297	noise	provider internal
+33298	noise	provider internal
+33304	dup	restore provider/ext LRU-evicted — 会话恢复已有
+33308	noise	provider internal
+33320	noise	provider internal
+33322	noise	streaming internal
+33326	dup	goose inside claude code session — 嵌套检测已有
+33329	noise	logs internal
+33340	dup	provider custom headers — 自定义头已有
+33342	noise	defensive internal
+33351	noise	defensive internal
+33352	noise	lazy internal
+33374	noise	provider internal
+33384	noise	windows internal
+33390	noise	dialog internal
+33391	noise	config internal
+33394	dup	provider error proxy simulate — 错误注入已有
+33402	dup	error proxy — 已有
+33407	dup	Auto mode default claude code — 自动档已有
+33410	dup	Ctrl-C during provider requests — 中断已有
+33414	noise	connection internal
+33417	noise	logging internal
+33444	noise	section noise
+33459	noise	error internal
+33463	noise	test internal
+33512	noise	names internal
+33513	boundary	don't delete provider — their UI
+33573	dup	operator allowlist gateway pairing — 配对白名单已有
+33574	dup	terminal bell on finish/approval — 铃声通知已有
+33575	dup	CLI session naming trusted path — 信任路径已有
+33576	dup	authoritative approval details — 批准详情已有
+33577	dup	preserve permission revocations — 撤销保留已有
+33578	noise	provider internal
+33579	dup	tool inputs before approval — 批准可见已有
+33580	dup	permission denies precedence — 拒绝优先已有
+33581	dup	denies precedence — 已有
+33582	dup	MCP apps trusted ownership — 所有权元数据已有
+33583	dup	telegram approval prompt — 远端批准已有
+33584	dup	manual approval code mode — 手动批准已有
+33585	dup	smart approval scope by request — 请求作用域已有
+33586	dup	one-time permission scope — 一次性权限已有
+33587	dup	disable compaction during approval — 批准间禁压缩已有
+33588	dup	compaction disabled approval — 已有
+33590	dup	approve mode permission routing — 权限路由已有
+33591	dup	multi-request confirmation — 多请求处理已有
+33592	dup	smart-approve mode — 智能批准已有
+33594	dup	permission routing smart-approve — 已有
+33598	dup	permission policy MCP apps — 策略已有
+33602	dup	sessionId permission requests — 会话追踪已有
+33603	noise	windows internal
+33605	boundary	quit confirm — their UI
+33608	noise	video internal
+33610	dup	allowlist blocks SSE warning — 白名单告警已有
+33648	dup	skip read-only approval — 只读免批已有
+33655	dup	fail closed malformed visibility — fail-closed已有
+33656	dup	fail closed invalid ACP mode — 已有
+33657	dup	fail closed app visibility — 已有
+33661	noise	crash internal
+33662	dup	fail closed unverifiable provenance — 来源校验已有
+33665	dup	ACP cancel race — 竞态已有
+33666	noise	context internal
+33668	dup	reap ACP child SIGCHLD — 子进程回收已有
+33669	noise	elicitation internal
+33680	boundary	model selector — their UI
+33682	noise	panic internal
+33684	noise	build internal
+33685	noise	panic internal
+33686	boundary	recommended model — their UI
+33687	noise	build internal
+33720	boundary	mobile — their UI
+33725	noise	build internal
+33785	noise	refresh internal
+33816	noise	blog internal
+33830	dup	persist first message on failure — 消息持久已有
+33854	noise	build internal
+33855	noise	perms internal
+33861	noise	temporal internal
+33862	noise	branch noise
+33872	noise	branch noise
+33876	noise	ascii internal
+33881	noise	quit internal
+33898	dup	toolshim message convert — 已有
+33902	noise	scheduler internal
+33912	dup	cancel tool calls — 取消已有
+33913	noise	scheduler internal
+33921	noise	blog internal
+33922	noise	blog internal
+33949	noise	deeplink internal
+33958	boundary	highlighter — their UI
+34074	dup	honest compaction failure+fast-fail — 诚实失败已有
+34075	dup	validate memory categories — 类别校验已有
+34078	dup	group tool calls summary card — 工具聚合已有
+34082	dup	context window status bar — 用量显示已有
+34085	noise	usage internal
+34086	dup	user-facing compaction failure — 失败通告已有
+34088	dup	summarize tool deterministic — 摘要工具已有
+34089	dup	ContextLengthExceeded KV — 超限已有
+34090	dup	disable tool pair summarization — 摘要开关已有
+34093	dup	canonical context windows — 窗口归一已有
+34096	dup	smaller system prompt — 压缩已有
+34097	noise	term internal
+34103	dup	compaction loop small models — 压缩循环已有
+34111	noise	refactor internal
+34116	noise	summarize internal
+34117	dup	remove orphaned tool calls compact — 孤儿清理已有
+34119	dup	auto-compact on exceeded — 自动压缩已有
+34120	dup	offer summarize/clear long — 提示已有
+34123	dup	configurable compact threshold UI — 阈值可配已有
+34125	boundary	compact UX — their UI
+34129	noise	token internal
+34141	boundary	window pos — their UI
+34146	dup	no stop non-interactive summarize — 无头压缩已有
+34147	boundary	progress bar — their UI
+34150	dup	summarize button — 手动摘要已有
+34152	dup	two retries summarization — 重试限已有
+34153	boundary	summarize UI — their UI
+34170	dup	MCP preferred version+retries — 版本选择已有
+34171	dup	stop re-nudging goals — 提醒收敛已有
+34172	noise	rollback internal
+34173	dup	prefer latest MCP version — 已有
+34174	dup	pre-registered OAuth clients — 预注册已有
+34176	dup	keep valid tokens no refresh — 令牌保留已有
+34177	dup	MCP sampling reasoning-first — 采样已有
+34179	dup	pre-registered OAuth — 已有
+34181	noise	ci internal
+34182	dup	escape OAuth callback content — 回调转义已有
+34183	dup	sanitize unicode tags MCP prompts — 标签净化已有
+34185	dup	pre-registered OAuth — 已有
+34186	dup	secure token transport OAuth — 传输安全已有
+34189	noise	oauth internal
+34191	dup	GOOSE_OAUTH_CALLBACK_PORT — 端口固定已有
+34193	noise	plugins internal
+34196	dup	preserve tool call update fields — 字段保留已有
+34197	dup	protect OAuth token caches — 缓存保护已有
+34198	dup	exclude MCP App tools code mode — 工具隔离已有
+34200	dup	sanitize function call names — 名净化已有
+34201	noise	refactor internal
+34203	dup	structuredContent MCP — 结构化内容已有
+34204	dup	MCP elicitations tool streams — 询问路由已有
+34207	dup	OAUTH_CALLBACK_PORT — 已有
+34210	dup	clear rejected OAuth creds — 凭据清理已有
+34212	noise	plugins internal
+34213	dup	clear rejected creds — 已有
+34215	dup	MCP apps hydrate/replay — 负载回放已有
+34218	noise	capabilities internal
+34219	dup	hydrate/replay — 已有
+34223	dup	unix socket streamable HTTP — socket传输已有
+34226	noise	oauth internal
+34227	noise	auth internal
+34232	dup	cleanup MCP subprocesses abrupt exit — 子进程清理已有
+34233	noise	hostContext internal
+34236	noise	callback internal
+34238	dup	MCP Roots — roots已有
+34240	dup	register MCP on resume — 恢复注册已有
+34243	noise	registry internal
+34244	boundary	display modes — their UI
+34245	dup	MCP apps sampling — 采样已有
+34246	noise	config internal
+34255	noise	decoding internal
+34256	noise	bot internal
+34259	noise	decoding internal
+34260	dup	process_group(0) CLI providers — 进程组已有
+34262	noise	blog internal
+34279	noise	blog internal
+34280	noise	blog internal
+34282	noise	blog internal
+34289	noise	format internal
+34291	dup	MCP servers from Zed honored — 外部MCP已有
+34295	noise	plumbing internal

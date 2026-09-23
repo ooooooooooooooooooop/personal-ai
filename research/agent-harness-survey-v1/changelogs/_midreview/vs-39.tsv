@@ -1,0 +1,200 @@
+7740	boundary	UI write-back conversation — their product
+7741	dup	UI inject model context — 上下文注入已有
+7745	boundary	iframe logs sync — their product
+7755	dup	MCP connection idempotency — 连接幂等已有
+7758	dup	three failure types — 错误分型已有
+7794	dup	same tool 40x — 循环检测已有
+7798	dup	long numeric ID precision — 精度已有
+7805	dup	MCP transport conflict — 连接并发已有
+7806	dup	MCP tool list stability — 工具列表已有
+7816	dup	missing tool call results — 容错已有
+7829	noise	jsonc示例噪声
+7830	noise	jsonc示例噪声
+7831	noise	jsonc示例噪声
+7832	noise	jsonc示例噪声
+7833	noise	jsonc示例噪声
+7834	noise	jsonc示例噪声
+7835	noise	jsonc示例噪声
+7836	noise	jsonc示例噪声
+7874	dup	MCP fail silent+30s cooldown — 降级退避已有
+7890	boundary	WeCom env bot — their connector
+7911	boundary	multi auth envs — their product
+7918	boundary	headless build — their product
+7926	boundary	auth sync — their product
+7928	noise	IoC headless internal
+7938	dup	long requests no fixed timeout — 超时已有
+7951	boundary	Tailscale IP adapt — their product
+7957	dup	runTimeoutMs — 超时配置已有
+7959	dup	0 disables timeout — 超时开关已有
+7962	noise	deploy detect internal
+7964	dup	--plugin-dir headless — 插件加载已有
+7982	cand	effort per sub-agent spawn — delegate per-spawn推理档 真缺口
+7991	dup	SUBAGENT_MODEL env priority — 模型覆盖已有
+7994	dup	subagent own mcpServers — 子代理MCP已有
+7996	dup	string ref reuse MCP servers — MCP复用已有
+8009	dup	mcp__server__* whitelist patterns — 白名单模式已有
+8024	dup	sub-agent response interrupt — 中断已有
+8035	boundary	lite tier — their product
+8036	boundary	reasoning tier — their product
+8043	dup	subagent model env — 模型覆盖已有
+8061	dup	MaxListenersExceeded concurrent — 监听器上限已有
+8079	cand	approvals routed to leader via Permission Bridge — 审批桥 新机制
+8083	dup	leader templatization — 模板化已有
+8087	dup	SUBAGENT_PERMISSION_MODE env — 权限模式已有
+8088	dup	subagentPermissionMode setting — 权限模式已有
+8094	dup	subagent default independent context — 上下文隔离已有
+8212	dup	token% after compression — 压缩统计已有
+8251	dup	compaction auto-cancel loop+20min — 压缩等待已有
+8252	dup	residual XML tag — 标签清理已有
+8255	dup	compaction stuck retry — 压缩恢复已有
+8259	dup	history Unknown content — 续聊容错已有
+8260	boundary	real paths panels — their UI
+8274	dup	Windows中文编码 — 编码已有
+8275	dup	non-Latin agent names stable ID — 命名已有
+8292	noise	maintenance noise
+8301	dup	stats API — 统计接口已有
+8304	dup	scheduled-tasks API — 定时任务已有
+8318	dup	plugin cmd load isolation — 加载隔离已有
+8342	noise	skill scan speed internal
+8344	dup	skill on state default — 状态默认已有
+8345	dup	skill name-only state — 粒度降级已有
+8378	boundary	code structure browse — their product
+8386	boundary	plugin discover — their UI
+8387	boundary	plugin installed — their UI
+8389	boundary	error diagnostics — their UI
+8403	noise	menu dedup internal
+8405	dup	custom agent config — 自定义代理已有
+8410	dup	plugin skills load order — 加载顺序已有
+8417	noise	undefined display internal
+8425	boundary	plugin system — their product
+8426	boundary	npm/git plugin install — their product
+8463	dup	dangling symlinks abort scan — 扫描容错已有
+8464	dup	path.delimiter drive letters — 路径分隔已有
+8469	noise	truncation threshold internal
+8560	boundary	paste no image detect — their UI
+8569	dup	stripImageContent input_text — 类型修正已有
+8578	dup	concurrent WeCom messages — 并发消息已有
+8579	boundary	paste flicker — their UI
+8580	dup	ImageGen cancellation — 取消已有
+8588	dup	grep param autocorrect — 参数纠正已有
+8590	dup	empty result hint — 空结果提示已有
+8592	noise	traceId internal
+8599	noise	DI circular internal
+8605	dup	SystemReminder TODO-LIST removal — 注入精简已有
+8607	boundary	channels/rooms surfaces — their product
+8610	boundary	canvas — their product
+8614	dup	recover deferred envs — 恢复已有
+8615	dup	Guardian reviews to diagnostics — 诊断附件已有
+8616	dup	fail closed unsafe config — fail-closed已有
+8617	dup	fail closed nested wrappers — fail-closed已有
+8623	boundary	code-mode darwin — their product
+8624	boundary	v8 fallback — their product
+8625	dup	is_dangerous_command expand — 危险命令已有
+8627	boundary	installer backport — their product
+8633	noise	ConPTY input internal
+8634	noise	websocket trace internal
+8637	dup	SQLite WAL fix — 持久性已有
+8638	dup	SQLite WAL pin — 持久性已有
+8644	noise	proxy socket internal
+8645	noise	fixture internal
+8650	noise	bazel internal
+8652	noise	lint internal
+8673	dup	failed goal accounting flushes — 记账持久已有
+8675	noise	websocket compat internal
+8679	noise	test init internal
+8692	noise	one more fix noise
+8703	noise	dep alerts internal
+8705	dup	fail exec client after disconnect — 断连失败已有
+8708	noise	skip tests internal
+8711	noise	bazel internal
+8721	noise	parse msg internal
+8730	dup	rollout flush retry+durability surfaced — 持久诚实已有
+8759	noise	bazel internal
+8797	dup	js_repl bindings persist — 状态持久已有
+8799	dup	cloud_requirements fail close — fail-closed已有
+8812	dup	paste placeholders survive completion — 占位持久已有
+8816	noise	release fix internal
+8825	noise	flaky test internal
+8840	noise	kernel diag internal
+8842	noise	rmcp auth internal
+8848	noise	bazel internal
+8892	dup	exec shutdown on Interrupt — 中断关闭已有
+8897	dup	WS→HTTP fallback — 连接降级已有
+8899	noise	pwd windows internal
+8903	noise	elevated setup internal
+8906	dup	http fallback websockets — 降级已有
+8907	noise	db metadata internal
+8935	noise	macOS proxy internal
+8952	noise	flaky test internal
+8956	noise	config loading internal
+8959	noise	version parse internal
+8999	noise	release conflict internal
+9025	noise	thread_id internal
+9044	dup	fileChange/outputDelta emit — 事件发射已有
+9063	noise	truncation panic internal
+9065	noise	schema export internal
+9066	noise	failed tests list internal
+9067	dup	seatbelt hw.physicalcpu — 沙箱读取已有
+9068	dup	respect credentials config — 配置遵从已有
+9069	noise	warning phrasing internal
+9071	noise	generate_ts internal
+9072	noise	brew update internal
+9073	noise	otel tests internal
+9074	noise	auth info internal
+9076	dup	apply_patch rename/move — 补丁路径已有
+9082	noise	musl revert internal
+9095	noise	response annotation internal
+9117	noise	release noise
+9118	noise	dedup internal
+9132	noise	fix noise
+9133	noise	resize internal
+9134	noise	error msg internal
+9135	dup	esc queued messages draft — 草稿恢复已有
+9137	noise	parse order internal
+9138	boundary	slash popup align — their UI
+9139	boundary	pager overlay — their UI
+9140	noise	usage data internal
+9141	noise	rust nit internal
+9143	noise	gh --repo internal
+9144	noise	release noise
+9146	dup	EnvironmentContext SendUserTurn — 上下文记录已有
+9147	noise	pnpm internal
+9148	noise	ci job internal
+9161	noise	dead_code internal
+9162	noise	empty file internal
+9164	noise	no fail fast internal
+9165	noise	apply_patch msg internal
+9166	dup	rollout_path in response — 路径回传已有
+9167	noise	protocol-ts internal
+9168	noise	release flag internal
+9170	boundary	reasoning summaries TUI — their UI
+9171	boundary	timestamps TUI — their UI
+9172	boundary	computer actions group — their UI
+9173	boundary	tmux resize TUI — their UI
+9175	boundary	notices config TUI — their UI
+9179	boundary	reasoning TUI — their UI
+9182	dup	typed payloads UnknownNotification — 类型化负载已有
+9185	boundary	TUI prefs separate — their UI
+9186	dup	retry reconnects closing — 重连已有
+9189	noise	submodules internal
+9190	dup	discover collab modes server — 能力发现已有
+9191	dup	discover features server — 能力发现已有
+9192	dup	steers by submission ID — 幂等ID已有
+9193	boundary	startup warnings — their UI
+9194	dup	harden markup parsing — 解析加固已有
+9196	boundary	refusal notices TUI — their UI
+9197	dup	preserve sessions replacing threads — 会话保持已有
+9201	dup	reconnect preserve drafts+pause queued — 断线保持已有
+9203	boundary	commands display — their UI
+9204	dup	drafts preserved on disconnect — 草稿持久已有
+9205	boundary	status timing — their UI
+9206	dup	reconnect automatically — 自动重连已有
+9208	noise	tracking internal
+9209	dup	paste_burst under [tui] — 配置归位已有
+9214	boundary	rate-limit banners — their UI
+9216	dup	avoid rollout reads configured — 读取优化已有
+9219	boundary	cursor — their UI
+9222	noise	clone span internal
+9223	noise	keymaps internal
+9225	noise	shimmer internal
+9226	boundary	callable apps mentions — their UI

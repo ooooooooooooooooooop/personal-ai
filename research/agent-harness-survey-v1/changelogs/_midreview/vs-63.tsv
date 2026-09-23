@@ -1,0 +1,200 @@
+24065	noise	config noise
+24066	noise	config noise
+24074	noise	prose noise
+24077	dup	MCP prompts re-added — MCP提示已有
+24113	dup	glob empty result stall fix — 空结果容错已有
+24146	noise	prose noise
+24160	noise	prose noise
+24161	noise	prose noise
+24166	noise	prose noise
+24185	noise	config noise
+24186	noise	config noise
+24210	dup	.crushrc bash config — shell配置已有
+24227	boundary	history nav — their UI
+24233	noise	config noise
+24239	dup	hooks built-in shell interpreter — 内建shell已有
+24241	dup	shell expansion config values — 展开已有
+24242	dup	shell expansion regression — 已有
+24243	dup	embedded shell interpreter — 已有
+24244	noise	prose noise
+24262	dup	hooks ignored matcher fix — matcher生效已有
+24279	boundary	keybinding — their UI
+24286	boundary	tab title — their UI
+24293	boundary	loading feedback — their UI
+24296	boundary	progress bar — their UI
+24299	boundary	key double — their UI
+24300	boundary	esc key — their UI
+24308	noise	lsp noise
+24309	dup	compiled-in utilities faster — 内建工具已有
+24312	noise	prose noise
+24315	dup	.crushrc config migration — 配置迁移已有
+24322	noise	log internal
+24323	noise	log internal
+24324	noise	prose noise
+24332	dup	auto-detect LSPs — LSP发现已有
+24349	noise	lsp noise
+24416	noise	prose noise
+24422	noise	media noise
+24423	noise	media noise
+24440	dup	clipboard images paste — 图片粘贴已有
+24444	noise	prose noise
+24445	noise	image internal
+24447	noise	prose noise
+24449	dup	AI disclosure guidelines — 披露规约已有
+24453	boundary	exit banner — their UI
+24454	noise	config noise
+24455	noise	config noise
+24456	noise	prose noise
+24458	boundary	clear match Summarize — their UI
+24469	dup	no auto-send queued after summarize — 压缩队列已有
+24471	dup	summarize error shown — 错误展示已有
+24477	noise	config noise
+24485	noise	prose noise
+24486	dup	auto-summarize when big fix — 自动压缩已有
+24491	noise	prose noise
+24505	noise	prose noise
+24511	noise	cpu internal
+24515	noise	prose noise
+24516	noise	prose noise
+24517	dup	stale sockets cleaned startup — 套接字清理已有
+24523	noise	lsp internal
+24526	noise	sqlite internal
+24527	noise	perf internal
+24528	noise	perf internal
+24529	noise	prose noise
+24530	noise	prose noise
+24532	noise	caching internal
+24534	noise	perf internal
+24536	noise	crash internal
+24546	dup	LSP fd 99% reduction — fd治理已有
+24548	noise	prose noise
+24569	dup	client-server remote instances — 远端连接已有
+24574	dup	headless session management — 无头会话已有
+24590	dup	skill-path option — 技能路径已有
+24596	dup	skill invocable commands+desc — 技能命令已有
+24610	noise	logs internal
+24613	dup	model loads skill when should — 技能触发已有
+24639	dup	.agents/skills dir — 技能目录已有
+24640	dup	.crush/skills — 已有
+24641	dup	.claude/skills — 已有
+24642	dup	.cursor/skills — 已有
+24643	dup	windows global skills paths — 已有
+24650	noise	prose noise
+24651	dup	skill loaded visual indicator — 加载可见已有
+24659	noise	prose noise
+24676	dup	Docker MCP Catalog — 目录集成已有
+24677	dup	Docker MCP integrate — 已有
+24681	dup	api_key vault command expansion — 秘密命令展开已有
+24686	noise	nav noise
+24687	noise	nav noise
+24690	noise	nav noise
+24693	noise	prose noise
+24700	noise	prose noise
+24702	dup	/goal long-lived objective — 长期目标已有
+24703	boundary	follow-up send — their UI
+24709	noise	nav noise
+24710	noise	nav noise
+24713	noise	nav noise
+24716	noise	prose noise
+24723	noise	prose noise
+24725	dup	/goal — 已有
+24726	boundary	follow-up — their UI
+24733	noise	nav noise
+24734	noise	nav noise
+24737	noise	nav noise
+24740	noise	prose noise
+24747	noise	prose noise
+24749	dup	/goal — 已有
+24750	boundary	follow-up — their UI
+24756	noise	nav noise
+24757	noise	nav noise
+24760	noise	nav noise
+24763	noise	prose noise
+24770	noise	prose noise
+24772	dup	/goal — 已有
+24773	boundary	follow-up — their UI
+24806	noise	nav noise
+24817	noise	nav noise
+24819	noise	nav noise
+24820	noise	nav noise
+24822	noise	nav noise
+24832	noise	number noise
+24834	noise	number noise
+24836	noise	number noise
+24839	noise	number noise
+24841	noise	number noise
+24843	noise	number noise
+24845	noise	number noise
+24847	noise	number noise
+24849	noise	number noise
+24851	noise	number noise
+24853	noise	number noise
+24856	noise	number noise
+24862	noise	nav noise
+24867	noise	lang noise
+24868	noise	lang noise
+24869	noise	lang noise
+24870	noise	lang noise
+24898	noise	nav noise
+24909	noise	nav noise
+24911	noise	nav noise
+24912	noise	nav noise
+24914	noise	nav noise
+24924	noise	number noise
+24926	noise	number noise
+24928	noise	number noise
+24931	noise	number noise
+24933	noise	number noise
+24935	noise	number noise
+24937	noise	number noise
+24939	noise	number noise
+24941	noise	number noise
+24943	noise	number noise
+24945	noise	number noise
+24948	noise	number noise
+24954	noise	nav noise
+24959	noise	lang noise
+24960	noise	lang noise
+24961	noise	lang noise
+24962	noise	lang noise
+24990	noise	nav noise
+25001	noise	nav noise
+25003	noise	nav noise
+25004	noise	nav noise
+25006	noise	nav noise
+25016	noise	number noise
+25018	noise	number noise
+25020	noise	number noise
+25023	noise	number noise
+25025	noise	number noise
+25027	noise	number noise
+25029	noise	number noise
+25031	noise	number noise
+25033	noise	number noise
+25035	noise	number noise
+25037	noise	number noise
+25040	noise	number noise
+25046	noise	nav noise
+25051	noise	lang noise
+25052	noise	lang noise
+25053	noise	lang noise
+25054	noise	lang noise
+25082	noise	nav noise
+25093	noise	nav noise
+25095	noise	nav noise
+25096	noise	nav noise
+25098	noise	nav noise
+25108	noise	number noise
+25110	noise	number noise
+25112	noise	number noise
+25115	noise	number noise
+25117	noise	number noise
+25119	noise	number noise
+25121	noise	number noise
+25123	noise	number noise
+25125	noise	number noise
+25127	noise	number noise
+25129	noise	number noise
+25132	noise	number noise
+25138	noise	nav noise
+25143	noise	lang noise

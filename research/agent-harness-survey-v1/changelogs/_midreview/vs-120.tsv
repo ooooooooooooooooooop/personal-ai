@@ -1,0 +1,200 @@
+55330	noise	docs internal
+55350	noise	ci noise
+55416	noise	ci noise
+55427	noise	test internal
+55428	noise	test internal
+55429	noise	test internal
+55544	noise	test internal
+55755	noise	test internal
+55763	dup	decouple API-key auth from SSO sessions — 认证解耦已有
+55936	noise	test internal
+55973	noise	test internal
+55999	noise	test internal
+56000	noise	test internal
+56001	noise	test internal
+56002	noise	docs internal
+56007	noise	docs internal
+56008	noise	docs internal
+56009	noise	rename internal
+56034	noise	dep bump
+56035	noise	dep bump
+56036	noise	dep bump
+56037	noise	dep bump
+56038	noise	dep bump
+56039	noise	dep bump
+56040	noise	dep bump
+56041	noise	dep bump
+56042	noise	dep bump
+56043	noise	test internal
+56044	noise	test internal
+56066	noise	test internal
+56163	noise	ci noise
+56164	noise	ci noise
+56412	noise	docs internal
+56463	noise	code fragment
+56466	noise	code fragment
+56544	noise	docs internal
+56677	noise	docs internal
+56764	noise	code fragment
+56795	noise	refactor internal
+56797	dup	apiKeys→auth.json — 凭据归位已有
+56899	dup	catalog revalidate If-None-Match 304 — 条件刷新已有
+56901	dup	If-None-Match 304 — 同上dup
+57482	noise	catalog data
+57491	dup	resolve docs under absolute package paths — 绝对锚定已有
+57495	dup	replay tool-call with reasoning_content — 推理回放已有
+57525	noise	test internal
+57720	dup	truecolor except dumb/linux — 终端能力检测已有
+57775	noise	catalog data
+57801	noise	catalog data
+57971	dup	suppress transcript output custom renderers — 渲染抑制已有
+57987	noise	docs internal
+58110	noise	docs internal
+58116	dup	replace message_end + editor factories — 消息改写已有
+58121	dup	load AGENTS.MD case variant — 大小写变体已有
+58178	dup	typed tool_call returns — 类型契约已有
+58233	noise	code fragment
+58250	dup	packages bundling ext/skills/themes — 打包已有
+58252	dup	disable-model-invocation opt-out — 技能免调已有
+58324	noise	docs internal
+58325	noise	docs internal
+58385	dup	don't cancel catalog refresh on selector open — 刷新不中断已有
+58387	dup	file-backed SYSTEM.md in startup listing — 系统文件列示已有
+58557	noise	docs internal
+58664	dup	namespaced keybinding ids unified mgr — 键位命名空间已有
+58665	noise	docs internal
+58675	noise	docs internal
+58708	noise	docs internal
+58709	noise	docs internal
+58717	noise	docs internal
+58778	dup	fs.watch retry on EMFILE — 监听重试已有
+58784	dup	no auto-update unpinned + bg check notify — 更新策略已有
+58818	noise	docs internal
+58870	dup	registerProvider OAuth/SSO — 自定义提供者已有
+58884	dup	resolveApiKey settings/OAuth/env — 解析顺序已有
+58889	noise	docs internal
+58906	dup	exported run mode builders — 运行模式SDK已有
+58919	noise	docs internal
+59031	noise	refactor internal
+59037	noise	docs internal
+59041	noise	docs internal
+59050	noise	test internal
+59117	dup	every hook event in settings schema — 钩子全覆盖已有
+59139	noise	test internal
+59148	dup	Goal turns off legacy Stop hook — 路径收编已有
+59156	noise	docs internal
+59188	noise	dep bump
+59192	noise	docs internal
+59194	noise	test internal
+59237	noise	refactor internal
+59282	noise	catalog data
+59492	noise	docs internal
+59526	noise	test internal
+59569	noise	test internal
+59574	noise	docs internal
+59576	noise	refactor internal
+59613	noise	refactor internal
+59710	noise	docs internal
+59728	noise	docs internal
+59743	noise	docs internal
+59746	noise	docs internal
+59773	dup	decouple model identity from auth type — 身份解耦已有
+59784	noise	docs internal
+59788	dup	unify retry delay policy — 重试策略统一已有
+59789	noise	docs internal
+59804	dup	1 daemon = 1 workspace — 守护绑定已有
+59823	noise	refactor internal
+59841	noise	test internal
+59852	noise	docs internal
+59853	noise	refactor internal
+59868	dup	improve quota detection — 配额检测已有
+59870	noise	refactor internal
+59888	noise	refactor internal
+59893	noise	catalog data
+59901	noise	docs internal
+59998	noise	docs internal
+60209	noise	refactor internal
+60211	noise	test internal
+60360	noise	refactor internal
+60595	noise	refactor internal
+60955	noise	test internal
+60960	noise	test internal
+60961	noise	test internal
+60980	noise	test internal
+60992	dup	runner isolation for PAT steps — 凭据步骤隔离已有
+61003	noise	ci noise
+61046	noise	ci noise
+61051	noise	ci noise
+61052	noise	test internal
+61059	dup	isolate per-run agent state CI — 运行态隔离已有
+61060	noise	test internal
+61073	noise	test internal
+61077	noise	docs internal
+61079	noise	refactor internal
+61143	noise	refactor internal
+61144	dup	SKILL.md core+verdict-gated refs — 分层技能已有
+61146	noise	refactor internal
+61174	noise	refactor internal
+61199	dup	stage SKILL.md beside run-agent — 技能就位契约已有
+61200	noise	test internal
+61201	noise	ci noise
+61217	noise	docs internal
+61220	dup	agent prompts into project skill — 提示入技能已有
+61226	noise	ci noise
+61245	noise	docs internal
+61254	noise	docs internal
+61269	noise	docs internal
+61274	noise	chore internal
+61281	noise	ci noise
+61290	noise	rename internal
+61293	noise	docs internal
+61300	noise	chore internal
+61332	noise	refactor internal
+61333	noise	refactor internal
+61634	noise	ci noise
+61830	dup	fix ctx window custom models — 窗口修正已有
+61837	dup	reserved output subtracted from compact threshold — 预留感知压缩已有
+61840	dup	compaction→summary+restoration attachments — 摘要恢复式压缩已有
+61872	noise	chore internal
+62201	noise	test internal
+62597	noise	docs internal
+62651	noise	docs internal
+62759	noise	docs internal
+62950	noise	docs internal
+62955	noise	test internal
+62964	noise	i18n internal
+63108	noise	docs internal
+63112	dup	unregisterSkillHooks — 钩子注销已有
+63141	dup	reuse trusted workspace resolver — 信任解析复用已有
+63144	noise	ci noise
+63149	dup	npm provenance+id-token — 来源证明已有
+63150	dup	NPM_TOKEN→trusted publishing — 可信发布已有
+63180	dup	fork PRs to isolated pool — 分叉隔离已有
+63190	noise	test internal
+63215	noise	test internal
+63240	noise	i18n internal
+63254	noise	test internal
+63258	noise	rename internal
+63268	noise	ci noise
+63359	noise	docs internal
+63580	dup	no persistent 401 after key change — 认证刷新已有
+63582	dup	no false auth warning preflight — 预检纠偏已有
+63588	noise	docs internal
+63596	noise	docs internal
+63598	noise	ci noise
+63605	noise	refactor internal
+63630	noise	ci noise
+63642	noise	refactor internal
+63643	noise	refactor internal
+63650	dup	provider-first auth registry — 注册表统一已有
+63792	noise	docs internal
+64061	noise	ci noise
+64062	noise	ci noise
+64081	noise	ci noise
+64119	dup	critical-audit gate honest when npm down — 审计fail-closed已有
+64147	noise	ci noise
+64170	noise	ci noise
+64173	dup	per-issue concurrency cancel-in-progress — 并发收敛已有
+64175	dup	suspicious comment attachment guard — 附件守卫已有
+64183	noise	test internal
+64198	noise	ci noise

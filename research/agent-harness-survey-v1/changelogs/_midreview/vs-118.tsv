@@ -1,0 +1,200 @@
+30876	noise	chore internal
+30884	noise	refactor internal
+30891	noise	refactor internal
+30912	noise	docs internal
+30939	noise	docs internal
+30946	noise	chore internal
+30954	noise	docs internal
+30956	noise	refactor internal
+30960	noise	docs internal
+30976	noise	refactor internal
+30985	noise	test internal
+31052	noise	docs internal
+31124	noise	chore internal
+31133	noise	test internal
+31156	noise	refactor internal
+31159	noise	ci noise
+31160	noise	ci noise
+31162	noise	ci noise
+31169	noise	ci noise
+31171	noise	ci noise
+31183	noise	docs internal
+31243	noise	refactor internal
+31266	noise	docs internal
+31435	noise	docs internal
+31780	dup	SUBAGENT_MODEL/PROVIDER config — 子代模型配置已有
+31905	noise	docs internal
+32188	noise	docs internal
+32192	noise	dep bump
+32227	noise	test internal
+32294	noise	prose noise
+32301	noise	docs internal
+32415	noise	docs internal
+32425	noise	docs internal
+32446	noise	docs internal
+32534	noise	docs internal
+32537	noise	cleanup internal
+32603	noise	docs internal
+32615	noise	docs internal
+32671	noise	docs internal
+32673	dup	is_command_allowed for allowlisted ext — 命令白名单已有
+32698	noise	docs internal
+32794	noise	chore internal
+32828	noise	docs internal
+32876	noise	chore internal
+32881	noise	docs internal
+33000	dup	SECRET_KEY on ACP endpoint — 端点鉴权已有
+33033	dup	empty keys not shown configured — 凭据校验已有
+33057	dup	verify_secret_key all handlers — 统一验密已有
+33080	dup	custom provider cost fields — 成本字段已有
+33091	dup	clear transition secrets — 凭据清理已有
+33093	dup	provider cost fields — 同上dup
+33254	noise	ui feature
+33258	dup	provider-scoped credential mgmt — 分域凭据已有
+33276	noise	ui feature
+33557	noise	docs internal
+33593	noise	docs internal
+33607	noise	docs internal
+33611	noise	docs internal
+33614	noise	docs internal
+33619	noise	refactor internal
+33632	noise	revert internal
+33635	noise	docs internal
+33643	noise	docs internal
+33650	noise	docs internal
+33909	noise	test internal
+34064	noise	chore internal
+34067	noise	chore internal
+34122	noise	refactor internal
+34127	noise	docs internal
+34131	dup	auto-compact threshold 80% — 压缩阈值已有
+34134	dup	token counting via provider metadata — 元数据计数已有
+34149	noise	docs internal
+34155	noise	docs internal
+34220	dup	ACP capabilities→MCP init — 能力翻译已有
+34251	noise	docs internal
+34285	noise	docs internal
+34286	noise	docs internal
+34316	noise	test internal
+34321	noise	test internal
+34324	noise	docs internal
+34328	noise	docs internal
+34329	noise	chore internal
+34331	dup	identify when to try oauth — 认证检测已有
+34332	noise	test internal
+34335	noise	docs internal
+34340	noise	refactor internal
+34341	noise	refactor internal
+34346	noise	docs internal
+34347	noise	docs internal
+34357	noise	docs internal
+34362	noise	docs internal
+34363	noise	docs internal
+34367	noise	docs internal
+34368	noise	docs internal
+34369	noise	docs internal
+34374	noise	docs internal
+34375	noise	docs internal
+34376	noise	docs internal
+34377	noise	docs internal
+34378	noise	docs internal
+34379	noise	docs internal
+34383	noise	docs internal
+34384	noise	docs internal
+34386	noise	docs internal
+34387	noise	docs internal
+34389	noise	docs internal
+34395	noise	docs internal
+34396	noise	docs internal
+34397	noise	docs internal
+34398	noise	docs internal
+34399	noise	docs internal
+34400	noise	docs internal
+34403	noise	docs internal
+34404	noise	docs internal
+34405	noise	docs internal
+34406	noise	docs internal
+34408	noise	docs internal
+34409	noise	docs internal
+34411	noise	docs internal
+34413	noise	docs internal
+34414	noise	docs internal
+34415	noise	docs internal
+34416	noise	docs internal
+34417	noise	docs internal
+34424	noise	docs internal
+34426	noise	docs internal
+34427	noise	docs internal
+34429	noise	docs internal
+34432	noise	docs internal
+34436	noise	docs internal
+34438	noise	docs internal
+34441	dup	stop logging oauth config — 日志脱敏已有
+34443	noise	docs internal
+34445	noise	docs internal
+34446	noise	docs internal
+34450	noise	docs internal
+34470	dup	global hints ~/.agents/AGENTS.md — 全局提示已有
+34476	dup	global hints loading — 同上dup
+34485	dup	global hints loading — 同上dup
+34510	noise	docs internal
+34511	noise	docs internal
+34518	noise	docs internal
+34519	noise	docs internal
+34533	noise	docs internal
+34552	noise	docs internal
+34554	noise	docs internal
+34586	noise	docs internal
+34589	dup	SKILLS.md claude compat — 技能文件兼容已有
+34596	dup	AGENTS.md processing in core — 指令处理归核已有
+34600	dup	AGENTS.md loads correctly — 加载修复已有
+34606	noise	docs internal
+34611	noise	docs internal
+34622	dup	read AGENTS.md by default — 默认读取已有
+34624	dup	read AGENTS.md default — 同上dup
+34641	noise	docs internal
+34642	noise	docs internal
+34683	noise	docs internal
+34685	noise	docs internal
+34722	noise	docs internal
+34884	noise	ui feature
+34903	noise	docs internal
+34910	noise	docs internal
+34945	noise	docs internal
+34948	dup	tracing grouped by session — 会话追踪已有
+35030	noise	docs internal
+35035	noise	docs internal
+35117	noise	docs internal
+35148	noise	docs internal
+35194	noise	docs internal
+35276	noise	docs internal
+35279	noise	docs internal
+35300	noise	ci noise
+35381	noise	ci noise
+35538	noise	docs internal
+35596	noise	chore internal
+35605	noise	docs internal
+35678	noise	docs internal
+35716	dup	flatpak sandbox host cmd access — 沙箱互通修复已有
+35835	dup	TOOL_CONFIRM deny semantics — 拒绝契约已有
+35841	noise	docs internal
+35885	noise	refactor internal
+36048	noise	test internal
+36298	noise	docs internal
+36394	noise	refactor internal
+36478	noise	docs internal
+36479	noise	docs internal
+36526	noise	docs internal
+36586	noise	test internal
+36594	noise	docs internal
+36603	noise	docs internal
+36679	dup	cross-harness memory via AGENTS.md — 跨harness记忆已有
+36688	dup	compact modes trim/summarize — 压缩模式已有
+36697	noise	catalog data
+36701	noise	catalog data
+36726	noise	test internal
+36728	noise	test internal
+36751	noise	docs internal
+36765	dup	subagent_cancel() — 子代取消已有
+36774	noise	internal
+36783	noise	test internal

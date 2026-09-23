@@ -1,0 +1,200 @@
+1780	dup	NO_REPLY+messaging tool成功时mirror处理 — reply semantics
+1781	dup	async exec-event replies走persisted delivery context — delivery context
+1782	dup	cancel完成瞬间新session/prompt不误认为新会话 — cancel barrier
+1783	dup	strip [[reply_to_current]]等directive tags — directive strip
+1784	dup	per-session verbose off+hide tool cards — display prefs
+1785	dup	optimistic image messages不嵌large inline data — attachment hygiene
+1786	boundary	Crush web search(DuckDuckGo)
+1787	variant	x-session-affinity/x-session-id请求头
+1788	dup	concurrent named task control+context切换 — task control
+1789	boundary	Workflow inspect/cancel/pause/resume/retry daemon API
+1790	dup	导出markdown保留<file>标签渲染 — export fidelity
+1791	dup	proxied streams保留serializable subset — stream proxy
+1792	dup	session.prompt()等retry完成(agent_end同步建promise) — retry sync
+1793	dup	loopback dev allowance绑real socket clients非Host claims — origin check已实装
+1794	dup	restart continuations进session-delivery queue再删 — restart handoff
+1795	dup	首消息命名session标题+default/per-agent工具 — session naming
+1796	boundary	host可禁用embedded CLI history cleanup
+1797	dup	image data BlobStore去重+仅最近N轮保留 — attachment dedup
+1798	variant	session owners可publish公开transcripts
+1799	dup	移除ambient process.cwd() fallback — path hygiene
+1800	dup	/clear改名/new+hook reason更名 — command rename
+1801	dup	final assistant message反向搜索lookup — result lookup
+1802	boundary	warelay safety stop words(stop/esc/abort/wait/exit)
+1803	dup	ACP bridge duplicate-session refresh+idle reaping — session hygiene
+1804	dup	session fork更多参数组合(--resume源指定) — fork params
+1805	dup	SDK resume用hasPrompt信号优化history replay — resume control
+1806	boundary	SessionManager API sessionDir参数化
+1807	cand	hook-forms: before_branch返回skipConversationRestore
+1808	dup	/status走shared session-status command — status command
+1809	boundary	session page Detailed View按钮
+1810	boundary	Staged/Unstaged multibuffers
+1811	dup	/stats usage指标命令 — usage command
+1812	dup	stale connection显示session occupied修复 — connection hygiene
+1813	dup	refresh后duplicate thumbnails等修复 — UI fixes
+1814	dup	safety review终止时保留已产生内容 — safety output
+1815	cand	policy-inline: chat内联grant/deny session network policy
+1816	dup	serve --session-id持久history — serve persistence
+1817	variant	acp --model/DEVIN_MODEL设ACP server默认model
+1818	dup	reasoning-only response(无正文)崩溃修复 — response edge case
+1819	dup	session_logging.enabled=false生效 — logging toggle
+1820	dup	/debug写pi-debug.log(终端宽度等) — diagnostics
+1821	boundary	terminal-light/dark 16色主题
+1822	boundary	Terminal Threads sidebar/panel
+1823	boundary	tasks.json reveal:always|never字段
+1824	boundary	拖外部文件进main/terminal panes
+1825	boundary	.zip/.tar.gz本地安装extensions
+1826	boundary	#/canvas终端瓦片(同46/1308)
+1827	boundary	同1822 Terminal Threads(重复)
+1828	boundary	Agent View runtime supervisor
+1829	cand	approval-ux: "Always allow"按subcommand粒度(cargo * vs cargo build *)
+1830	dup	primary model lifecycle error后fallback仍deliverable — fallback delivery
+1831	variant	shell.exec_shell(bash/zsh/fish/pwsh)选agent exec shell
+1832	dup	agent/model/tool/channel等settings热改不重启 — hot reload
+1833	dup	WebChat delivery hints不进user prompts — prompt hygiene
+1834	boundary	VSCode shell integration+Proceed While Running
+1835	dup	context-window overflow错误检测+恢复 — error classify
+1836	dup	conversation API 200空响应不再rapid重试 — retry guard
+1837	variant	workspace-qualified ACP endpoints
+1838	variant	strict-prefer JSON-schema sampling默认(read/bash/edit/write)
+1839	boundary	GitLab Agent Platform
+1840	dup	Model Setup列account vs API-key access — auth visibility
+1841	dup	移除duplicated nodes.run wrapper — dedupe
+1842	boundary	OSC 9 iTerm2通知
+1843	dup	Windows不跑出workspace的同名程序 — PATH safety
+1844	dup	editor空时Up/Down浏览prompt history — input history
+1845	dup	config get输出redact敏感值 — secret scrub已实装
+1846	cand	input-forms: !!command执行显示进TUI存history但不进context
+1847	boundary	Unicode-bordered table rendering
+1848	dup	终端目录路径点击展开file tree — link handling
+1849	dup	成功无输出命令报"(no output)"类 — output clarity
+1850	dup	manual reconnect不丢历史terminal session — session keepalive
+1851	variant	Bash tool给child进程传MCP config snapshot
+1852	boundary	4组horizontal/vertical编辑器groups
+1853	boundary	terminal title动态loading指示
+1854	boundary	sticky scroll/window restoration
+1855	dup	Web UI Bash/REPL输出真terminal text — render fidelity
+1856	boundary	web shell new-session callback
+1857	boundary	Windsurf内Devin Local agent
+1858	cand	hook-forms: hooks.toml before_tool/after_tool shell scripts
+1859	boundary	agent.expand_terminal_card setting
+1860	dup	auth.json apiKey !command解析(同1293) — secrets command resolution
+1861	variant	codex exec prompt-plus-stdin工作流
+1862	boundary	web-shell git branch picker/PR flow
+1863	variant	CODEBUDDY_SKILL_DESC_MAX_OVERRIDES扩skill desc长度
+1864	boundary	ACPX内嵌ACP runtime
+1865	boundary	skill mode dropdown动态切换
+1866	variant	@plugin mentions自动带MCP/app/skill
+1867	cand	hook-events: after_provider_response(HTTP status/headers)
+1868	variant	tool results触发的extension tools cache-friendly dynamic loading
+1869	boundary	refreshModels(context)动态模型发现
+1870	cand	hook-context: chat.params/chat.message带sessionID/agent/model/messageID
+1871	boundary	authenticated HTTPS Git extension installs
+1872	variant	daemon API批量enable/disable ≤100 skills
+1873	dup	全局AGENTS.md(user-wide instructions) — instruction layers
+1874	dup	manifest-backed CLI provider descriptors缓存 — provider cache
+1875	noise	Zalo plugin不依赖外部CLI(其内部变更)
+1876	boundary	Chrome extension无Gateway时wake browser
+1877	dup	extension ws只在OPEN算connected+stale CLOSING重连 — ws lifecycle
+1878	variant	Claude importer(instructions/MCP/规则导入)
+1879	dup	缺失plugin alias提示bundled-but-disabled — error surface
+1880	boundary	bundled Policy plugin(channel conformance/doctor lint)
+1881	dup	lazy-load model/plugin/device helpers — startup perf
+1882	boundary	openclaw skills search|install|update+clawhub:
+1883	dup	slash command后completion menu消失修复 — completion
+1884	dup	auto-allowlist优先claiming plugin manifest id — plugin precedence
+1885	dup	DRS成built-in skill(非/drs命令) — skill conversion
+1886	noise	未用deps清理(@larksuiteoapi等)
+1887	boundary	tool_call input mutation API文档
+1888	boundary	CONFIG_DIR_NAME+edit diff helpers
+1889	boundary	ToolDefinition.execute签名变更
+1890	dup	/quit被skill fuzzy匹配shadow修复 — command precedence
+1891	dup	handoff示例用replacement-session context — handoff hygiene
+1892	dup	tool_call handlers观察stale sessionManager修复(drain queued) — state sync
+1893	boundary	Gemini TTS bundled google plugin
+1894	dup	HEIC/TIFF/SVG/BMP/ICO不可读格式拒绝 — format gate
+1895	boundary	MiniMax plugin auto-enable
+1896	boundary	session workspace rail/extension health/iOS Watch
+1897	dup	built-in commands不再当skills混列 — command/skill separation
+1898	dup	plugin metadata/package realpaths/cost indexes缓存 — perf cache
+1899	dup	plugin agent配置不受enabled state限制 — config flexibility
+1900	boundary	host env var恢复旧hook loading
+1901	boundary	marketplace auto-update toggle
+1902	dup	botToken类型SecretInput(SecretRef) — secret typing
+1903	boundary	channel contract fixtures迁移
+1904	boundary	generic channel-message poll sender SDK
+1905	boundary	plugin tool factories拿active model metadata
+1906	boundary	channel-config-schema-legacy迁移
+1907	cand	plugin-surface: plugins注册CLI subcommands+request-scoped hooks(correlation)
+1908	dup	plugin-declared MCP servers进/mcp+/mcp login — mcp plugin servers
+1909	boundary	QA-Lab Codex plugin lifecycle fixtures
+1910	boundary	Protocol Buffers转extension
+1911	dup	slash命令匹配skill slug可fallback执行 — skill fallback
+1912	dup	built-in skill被plugin cache覆盖desc修复 — skill precedence
+1913	variant	--skills glob patterns过滤+includeSkills
+1914	noise	numeric-only skill names修复
+1915	boundary	Team Reports plugin(GitHub报告)
+1916	dup	Skill tool直接执行slash commands+args参数 — skill exec
+1917	dup	task.mistake_limit_reached telemetry — telemetry
+1918	boundary	Mermaid renderer/skill import
+1919	variant	workspace-scoped extension skill state批量API
+1920	boundary	self-configure built-in skill
+1921	boundary	iOS share extension→gateway agent.request
+1922	cand	hook-events: transform_llm_output(reshape/filter LLM output)
+1923	boundary	Grok web-search plugin onboarding
+1924	dup	streamed tool完成后spinner停止 — spinner fix
+1925	boundary	markdown链接右键Copy Link
+1926	boundary	deprecated settings/keymaps迁移通知
+1927	boundary	workspace::NewSearch新tab
+1928	boundary	debug: Open Key Context View
+1929	boundary	project panel diagnostic badges
+1930	boundary	project panel rename/delete/duplicate
+1931	boundary	quietStartup静默启动输出
+1932	boundary	project panel拖文件/路径
+1933	boundary	project panel隐藏gitignored
+1934	boundary	/workflows panel(active+historical runs)
+1935	boundary	variantModels配置(lite映射)
+1936	dup	user message含context时新消息不再灰整线程 — render fix
+1937	cand	context-forms: @diagnostics把language-server诊断进对话
+1938	boundary	agent panel vs thread panel默认选择
+1939	boundary	Android notifications.list
+1940	dup	Activity tab/secret-prep/fast-mode status — observability
+1941	dup	safe tab URLs+CDP role snapshot fallback+iframe refs — browser snapshot
+1942	boundary	Windows stack-size respawn
+1943	boundary	channels list channel-only/--all
+1944	boundary	ClickClack guided setup
+1945	boundary	Env-Route移developer mode(/config --dev)
+1946	dup	Web UI @文件路径补全 — composer
+1947	dup	config reloader按persisted hash忽略startup writes — reload guard
+1948	boundary	per-workspace panel宽度持久
+1949	boundary	settings migration banner限定settings/keymap.json
+1950	boundary	登录方法排序(iOA末位)
+1951	dup	右侧栏打开文件修复+binary changes — file open
+1952	boundary	settings panel data-driven+REST API
+1953	boundary	同1952(重复)
+1954	dup	plan→execute handoff+mode selection简化 — mode UX
+1955	cand	ui-changes: Changes view实时显示agent改动文件
+1956	boundary	Web UI文件浏览+代码编辑
+1957	boundary	toast通知系统(info/success/warning/error)
+1958	dup	thinking+tool calls同事件时tool calls不丢 — stream parse
+1959	boundary	agent.expand_edit_card setting
+1960	boundary	Cline SDK API
+1961	boundary	--a2a隐藏模式(persistent stdio service)
+1962	dup	settings.json API keys的models进selector/--list-models — model listing
+1963	boundary	ModelRegistry.create(authStorage,modelsJson)构造
+1964	dup	SDK自定义system prompts — SDK config
+1965	dup	W3C trace context跨ACP/stream-json/SDK传播 — tracing
+1966	dup	trace file-based持久+SDK bridging — trace durability
+1967	noise	e2e mock service测试
+1968	dup	auto approve独立开关不丢配置 — toggle UX
+1969	cand	egress: allowPrivateNetworkHooks(HTTP hooks私网例外)
+1970	dup	app-server commands要真人/plugin approval+exec auto-review — approval authority
+1971	dup	同server/tool Always Allow后不重复prompt — grant dedupe
+1972	boundary	Markdown share自动设public read
+1973	variant	full access mode免batch delete阈值approval
+1974	dup	existing-session browser tabs attach后等usable — browser attach
+1975	cand	approval-channels: 经Channels(如微信)确认tool permission请求
+1976	dup	console device login pending authorization处理 — login flow
+1977	dup	daemon restart恢复初始CLI args — restart fidelity
+1978	cand	trust-ux: 信任当前/父/递归目录选择
+1979	variant	同stdin混合多协议消息交替驱动session

@@ -1,0 +1,200 @@
+46140	boundary	menu — their UI
+46142	boundary	menu reflow — their UI
+46143	boundary	menu rows — their UI
+46152	dup	voice-note transcription into prompts — 转录注入已有
+46174	dup	subagent registry SQLite — 注册持久已有
+46175	dup	workboard orchestration sqlite — 编排持久已有
+46177	dup	workboard metadata expand — 元数据已有
+46262	dup	prefer requesterOrigin announce — 路由源已有
+46267	dup	sessions_spawn thinking level override — 级别覆盖已有
+46268	dup	subagent announce thread routing — 路由保留已有
+46269	dup	accountId embedded runs routing — 账户路由已有
+46270	dup	/stop hard-abort queued+sub-agents — 中止传播已有
+46282	dup	retain action bodies+empty edits — 消息保留已有
+46287	dup	notify voice participants change — 事件通知已有
+46317	noise	music internal
+46381	noise	voice internal
+46416	dup	debounce by messageId preserve attachments — 防抖保留已有
+46434	dup	sanitize oversized image+surface errors — 图片净化已有
+46435	noise	audio internal
+46477	noise	pr noise
+46548	dup	respond PTY cursor queries — TTY应答已有
+46555	dup	probes resilient provider formatting — 探针容错已有
+46560	dup	login-shell env fallback opt-in — env回退已有
+46569	dup	Slack thread status+opt-in reactions — 状态指示已有
+46570	boundary	account email — their UI
+46583	dup	commentary progress drafts — 进度草稿已有
+46588	dup	malformed redirect unfollowable — 重定向容错已有
+46627	dup	opt-in interactive reply directives — 指令开关已有
+46668	noise	test internal
+46672	dup	access-group gating slash lookup fail — 失败关门已有
+46676	dup	gate media auth retries — 重试门已有
+46686	dup	reduce retries avoid dup sends — 重试收敛已有
+46703	noise	config prose
+46704	dup	requireMention replaces autoReply — 提及配置已有
+46707	noise	config internal
+46714	dup	per-guild allowlists — 白名单已有
+46715	dup	configurable textChunkLimit — 分块可配已有
+46716	dup	guild context+historyLimit — 历史量已有
+46719	dup	preserve newlines strip tags — 换行保留已有
+46728	dup	migration residue nonfatal — 迁移容错已有
+46729	dup	gateway metadata deadline — 死线传播已有
+46754	dup	retire timed-out clients bounded interrupts — 客户端退役已有
+46782	noise	qa internal
+46785	dup	packaged sidecars no missing dist — 打包修复已有
+46788	dup	debounce flush null guard — 防抖守卫已有
+46814	dup	per-channel debounce overrides — 防抖覆盖已有
+46818	dup	queue modes steer/collect/backlog — 队列模式已有
+46820	noise	build internal
+46825	dup	redact private values diagnostics — 诊断脱敏已有
+46997	dup	heartbeat DM policy allow/block — 心跳策略已有
+47025	dup	repair corrupt nextRunAtMs — 调度修复已有
+47052	dup	no duplicate deliveries isolated runs — 投递去重已有
+47054	dup	epoch timestamps --at — 时间解析已有
+47071	dup	plugin metadata drive UI/cron options — 元数据驱动已有
+47072	dup	gate heartbeat/webhook logging — 日志门已有
+47079	boundary	cron history UI — their UI
+47083	dup	ackMaxChars 300 internal — 应答上限已有
+47084	dup	ambiguous /model+media+heartbeat keep — 匹配容错已有
+47088	noise	prompt internal
+47098	dup	strip HEARTBEAT_OK tails — 应答剥离已有
+47102	dup	strip repeated HEARTBEAT_OK — 已有
+47104	dup	failure logs reason — 错误细节已有
+47105	dup	duration h parsing — 时长解析已有
+47114	dup	heartbeat tooling session-id — 心跳工具已有
+47120	dup	tolerate EROFS chmod already-private — 权限容错已有
+47162	noise	dep internal
+47170	boundary	settings fields — their UI
+47190	dup	coordinate clicks+action budgets+tab recovery — 浏览器操作已有
+47233	dup	headless node host system.run — 节点主机已有
+47242	dup	ws→wss https CDP — 协议升级已有
+47287	dup	integrity checks before package lanes — 完整性前置已有
+47289	noise	dep internal
+47303	dup	suppress relay-status placeholders — 占位抑制已有
+47305	dup	commentary fallback out of DMs — 规划隔离已有
+47328	dup	redact sensitive WS logs — 日志脱敏已有
+47330	dup	media server traversal block+log rotate — 遍历阻断已有
+47336	noise	yml artifact
+47338	noise	yml artifact
+47339	noise	yml artifact
+47341	noise	yml artifact
+47345	noise	attestation noise
+47347	noise	contributor noise
+47350	noise	contributor noise
+47351	dup	desktop client ID device auth — 设备认证已有
+47352	boundary	icon size — their UI
+47356	dup	streamed chunk timeouts 5min+disable — 块超时已有
+47358	noise	contributor noise
+47359	noise	contributor noise
+47363	noise	contributor noise
+47364	noise	contributor noise
+47366	noise	contributor noise
+47367	dup	continue on unknown finish reason — 未知终止续行已有
+47368	boundary	search results — their UI
+47370	dup	retry network-error variants — 网络重试已有
+47375	dup	ignore malformed pricing — 计价容错已有
+47378	dup	v1 db compat — 兼容已有
+47379	boundary	server dialog — their UI
+47382	dup	server default model not stale — 默认刷新已有
+47385	dup	ignore unknown config fields — 未知字段容错已有
+47386	dup	register projects Home — 项目注册已有
+47387	boundary	right-click — their UI
+47389	dup	keep running last window closes — 驻留已有
+47391	dup	chronological order out-of-order ids — 排序修复已有
+47392	dup	truncation cleanup file timestamp — 清理已有
+47394	dup	messages ordered creation time — 时序已有
+47396	noise	contributor noise
+47397	noise	contributor noise
+47398	dup	untitled fall back generated names — 命名回退已有
+47400	noise	contributor noise
+47403	dup	clear stale errors on resume — 错误清理已有
+47406	dup	external links system browser — 外链已有
+47407	boundary	dir picker — their UI
+47408	noise	contributor noise
+47409	boundary	variant selector — their UI
+47410	noise	contributor noise
+47413	dup	windows trailing separators expand — 路径容错已有
+47416	dup	local runs channel database — 通道库已有
+47418	noise	contributor noise
+47423	dup	server discovery flows — 发现已有
+47425	dup	detect legacy+current servers — 版本探测已有
+47426	boundary	hide legacy features — their UI
+47427	dup	preserve mentions legacy servers — 兼容保留已有
+47429	boundary	file tabs — their UI
+47431	noise	contributor noise
+47432	dup	preserve command drafts — 草稿保留已有
+47434	dup	dedupe file entries diffs — 去重已有
+47436	noise	contributor noise
+47439	noise	ui internal
+47440	dup	null archive times visible — 空值容错已有
+47441	boundary	drawer — their UI
+47442	dup	load more timeline history — 历史回填已有
+47443	dup	resync timeline reconnect — 重连同步已有
+47444	dup	preserve composer caret — 光标保留已有
+47446	dup	timeline bottom anchoring — 锚定已有
+47451	boundary	file tree — their UI
+47453	noise	contributor noise
+47455	boundary	popup — their UI
+47456	boundary	open folder — their UI
+47457	boundary	review pane — their UI
+47458	dup	full diffs capped initial — 全量加载已有
+47460	boundary	unread tabs — their UI
+47463	noise	contributor noise
+47465	boundary	title bar — their UI
+47468	boundary	unfocused typing — their UI
+47469	boundary	tabs persist — their UI
+47472	noise	contributor noise
+47477	noise	contributor noise
+47478	dup	better default small models — 小模优选已有
+47479	dup	autocomplete configured references — 引用补全已有
+47496	dup	drafts attached correct server — 草稿归属已有
+47497	boundary	todo docks — their UI
+47498	dup	close tabs dead sessions — 清理已有
+47501	noise	contributor noise
+47503	dup	structured error details — 错误细节已有
+47504	dup	wait plugins before config load — 顺序门已有
+47508	dup	sessions through tabs — 路由已有
+47509	dup	scoped drafts server/project — 作用域已有
+47511	dup	persist drafts state — 已有
+47516	dup	honor step limits force final text — 步限收尾已有
+47517	dup	custom headers Copilot — 头传递已有
+47519	dup	no steering wrap cache effective — 缓存友好已有
+47521	noise	contributor noise
+47524	boundary	titlebar tabs — their UI
+47529	dup	subagents own permissions — 权限独立已有
+47530	noise	contributor noise
+47539	boundary	move dialog — their UI
+47541	dup	drafts preserved tab switch — 草稿保留已有
+47542	dup	attachments open active project — 项目归属已有
+47543	dup	updates persist restarts — 更新持久已有
+47549	boundary	hunk nav — their UI
+47550	dup	subagents to background — 后台化已有
+47551	dup	persist system context updates — 上下文持久已有
+47552	dup	/mo prefers models — 补全优先已有
+47553	dup	managed workspace cloning dirty files — 克隆保留已有
+47554	dup	move sessions workspaces — 会话迁移已有
+47559	boundary	update actions — their UI
+47567	dup	background agents push no polling — 推送已有
+47569	dup	config fallback no user info — 容错已有
+47572	dup	editors open worktree dir — 目录已有
+47573	noise	deploy internal
+47574	dup	dedupe server connections — 连接去重已有
+47580	noise	flow internal
+47581	boundary	diff viewer — their UI
+47582	dup	clearer invalid model errors — 错误明确已有
+47584	dup	clearer upgrade errors — 已有
+47586	dup	preserve reasoning continuation — 推理延续已有
+47590	dup	sessions default local project — 默认项目已有
+47592	noise	contributor noise
+47594	dup	Zed context only Zed terminals — 环境限定已有
+47595	dup	OpenAPI preserves error responses — 错误保留已有
+47596	noise	default internal
+47597	dup	names resolve relative config — 相对解析已有
+47598	boundary	diff focus — their UI
+47608	dup	file refs scoped workspace — 作用域已有
+47609	dup	preserve pasted content copying — 粘贴保真已有
+47610	boundary	usage dialogs — their UI
+47611	dup	install newest not stale — 更新新鲜已有
+47612	boundary	h1 styling — their UI
+47613	noise	contributor noise
+47615	dup	pinned sessions append order — 钉序已有

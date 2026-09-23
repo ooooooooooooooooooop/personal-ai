@@ -1,0 +1,200 @@
+29098	noise	ci internal
+29099	noise	release internal
+29101	noise	release internal
+29102	noise	release internal
+29104	noise	ci internal
+29105	noise	ci internal
+29106	noise	ci internal
+29107	noise	ci internal
+29109	noise	ci internal
+29110	noise	ci internal
+29111	noise	ci internal
+29112	noise	ci internal
+29113	noise	ci internal
+29114	noise	ci internal
+29115	noise	ci internal
+29117	noise	name noise
+29118	noise	name noise
+29130	noise	refactor internal
+29136	boundary	extensions list — their UI
+29145	noise	security internal
+29147	noise	name noise
+29154	noise	settings internal
+29155	noise	refactor internal
+29163	dup	limit recursion .gitignore — 递归限已有
+29164	dup	ignore workspace ext in user dir — 扩展隔离已有
+29178	dup	citations default — 引用已有
+29182	noise	rename internal
+29188	noise	refactor internal
+29190	dup	OAuthTokenStorage non static — 凭据实例化已有
+29191	noise	test internal
+29192	noise	docs internal
+29194	dup	system defaults vs overrides — 默认分层已有
+29195	dup	extensions uninstall — 卸载已有
+29196	dup	error not abort on tool fail — 容错已有
+29197	dup	extensions list — 列表已有
+29199	dup	extensions update — 更新已有
+29202	noise	imports internal
+29203	noise	deps internal
+29205	dup	undefined=true isTrustedFolder — 信任默认已有
+29206	dup	no nextSpeakerCheck on stream error — 流错误已有
+29208	dup	extensions disable — 禁用已有
+29212	noise	config internal
+29213	dup	strictly alternating history — 交替历史已有
+29215	boundary	colors — their UI
+29217	noise	build internal
+29224	noise	hotfix internal
+29225	noise	refactor internal
+29226	dup	ignore workspace settings untrusted — 信任隔离已有
+29227	dup	permissions specs token gen — 权限规格已有
+29237	boundary	string settings — their UI
+29238	noise	refactor internal
+29241	dup	all content types Zed prompts — 内容类型已有
+29242	noise	types internal
+29247	noise	metrics internal
+29256	noise	refactor internal
+29260	dup	/chat save empty system context — 保存已有
+29261	boundary	shortcut — their UI
+29262	dup	write port file ide-server — 端口文件已有
+29267	boundary	/ide commands — their UI
+29268	noise	docs internal
+29272	noise	revert internal
+29274	noise	test internal
+29275	dup	pending tool calls before IDE context — 上下文序已有
+29282	dup	no uncompressed history fn response — 历史边界已有
+29283	dup	loop detection service — 循环检测已有
+29285	noise	refactor internal
+29287	noise	migrate internal
+29292	noise	revert internal
+29298	noise	migrate internal
+29301	dup	/ide status+install — IDE命令已有
+29311	noise	migrate internal
+29313	noise	tag internal
+29320	noise	name noise
+29323	noise	release internal
+29324	noise	prompt internal
+29326	noise	dep internal
+29331	dup	excludeTools/includeTools mcpServers — 工具过滤已有
+29334	noise	release internal
+29338	noise	slash internal
+29341	noise	install internal
+29347	dup	cyclic tool refs warning — 循环引用警告已有
+29351	dup	auto-omit bad schema tools — 坏schema省略已有
+29355	noise	migrate internal
+29363	boundary	diff options — their UI
+29365	noise	keybinding internal
+29402	noise	rename internal
+29404	noise	update internal
+29422	noise	vuln internal
+29434	noise	vuln internal
+29475	noise	test internal
+29476	dup	sandbox write-protected governance files — 治理文件保护已有
+29510	noise	build internal
+29520	dup	skills-based composition — 技能组合已有
+29560	noise	skill internal
+29578	noise	config internal
+29580	noise	skills internal
+29584	dup	match extension ID on stop — 扩展标识已有
+29589	noise	skill internal
+29594	dup	extension settings hooks/agents/skills — 设置面已有
+29614	boundary	skill UX — their UI
+29618	noise	ci internal
+29625	dup	extension settings /extensions list — 设置展示已有
+29629	boundary	skill counts status — their UI
+29633	noise	skills internal
+29643	dup	per-extension settings commands — 设置命令已有
+29644	noise	test internal
+29649	noise	logging internal
+29651	dup	reload respect exclude tools — 重载遵从已有
+29659	dup	extension settings on install — 安装询问已有
+29660	dup	ExtensionManager class — 扩展管理已有
+29667	dup	extension name in mcp list — 来源标记已有
+29668	dup	extension IDs — 扩展标识已有
+29673	noise	test internal
+29684	noise	rename internal
+29700	dup	extension variables — 变量已有
+29702	boundary	suggest name — their UI
+29721	dup	tighten memory patch allowlist — 白名单收紧已有
+29739	dup	relax sandbox plan mode match defaults — 模式对齐已有
+29741	boundary	approve button — their UI
+29749	boundary	privacy consent — their UI
+29817	dup	@-includes outside workspace w/ permission — 权限外引已有
+29833	boundary	scrollable approvals — their UI
+29857	dup	chained workflows permission — 链权限已有
+29868	boundary	colors — their UI
+29873	dup	install path in consent+trust check — 同意对话已有
+29878	dup	re-request consent on update — 更新再同意已有
+29899	dup	force restart trust change — 信任重启已有
+29906	noise	names noise
+29940	dup	previewFeatures remote flag — 特性旗标已有
+29946	noise	ci internal
+29948	noise	ci internal
+29950	dup	custom commands headless — 无头命令已有
+29953	noise	names noise
+29954	noise	name noise
+29957	noise	names noise
+29959	noise	names noise
+29960	noise	names noise
+29962	noise	names noise
+29963	noise	names noise
+30021	noise	docs internal
+30024	noise	names noise
+30032	dup	error codes process exit — 退出码已有
+30052	noise	names noise
+30053	noise	test internal
+30065	noise	names noise
+30069	noise	name noise
+30070	noise	names noise
+30080	noise	metrics internal
+30082	noise	docs internal
+30085	noise	ci internal
+30090	dup	schema error handling auth — 认证容错已有
+30093	noise	link noise
+30094	noise	link noise
+30100	noise	constants internal
+30101	noise	perf internal
+30134	noise	metrics internal
+30137	dup	model availability background — 后台检查已有
+30190	noise	ci internal
+30192	noise	ci internal
+30197	noise	merge internal
+30198	noise	merge internal
+30199	noise	merge internal
+30206	noise	desc internal
+30220	noise	ci internal
+30229	noise	review internal
+30232	noise	ci internal
+30241	dup	disable checkpointing no git — 无git降级已有
+30252	dup	don't commit unless asked — 提交门已有
+30255	noise	ci internal
+30258	noise	ci internal
+30259	noise	ci internal
+30264	noise	metrics internal
+30269	dup	disable github extensions setting — 扩展禁用已有
+30272	noise	ci internal
+30273	noise	ci internal
+30280	dup	no git clone fallback extensions — 安装收敛已有
+30285	noise	ci internal
+30293	noise	ci internal
+30299	noise	release internal
+30303	noise	ci internal
+30307	noise	ci internal
+30311	noise	release internal
+30317	dup	merge general settings sources — 配置合并已有
+30328	noise	release internal
+30330	noise	release internal
+30351	noise	docs internal
+30406	dup	subagent recovery turn on failure — 恢复轮已有
+30526	noise	patch internal
+30623	noise	patch internal
+30627	dup	regex search/replace smart edit — 正则编辑已有
+30631	noise	patch internal
+30632	noise	migrate internal
+30685	boundary	header — their UI
+30707	dup	warn memory >7GB — 内存警告已有
+30740	noise	instructions internal
+30741	noise	dep internal
+30743	dup	--allowed-tools non-interactive — 工具白名单已有
+30744	dup	--allowed-tools — 已有
+30746	dup	JSON errors auth validation — 认证校验已有
+30748	dup	no nextSpeakerCheck API error — 已有

@@ -1,0 +1,200 @@
+22142	noise	prose noise
+22144	noise	prose noise
+22148	noise	prose noise
+22186	dup	no .crush/.gitignore in diff — 忽略治理已有
+22269	noise	ci internal
+22295	noise	prose noise
+22370	noise	prose noise
+22371	noise	prose noise
+22507	dup	.crush dir parent discovery — 目录上溯发现已有
+22520	noise	prose noise
+22565	noise	prose noise
+22566	noise	prose noise
+22567	noise	prose noise
+22573	noise	prose noise
+22574	noise	prose noise
+22575	dup	Plan Mode — 计划模式已有
+22598	noise	prose noise
+22601	noise	prose noise
+22602	dup	notification on permission/finish — 注意通知已有
+22606	boundary	dialog responsive — their UI
+22616	noise	config noise
+22617	noise	config noise
+22619	noise	prose noise
+22620	noise	config noise
+22621	noise	config noise
+22622	noise	config noise
+22625	boundary	indent fix — their UI
+22632	noise	prose noise
+22634	boundary	scrollable sidebar — their UI
+22635	boundary	sidebar focus — their UI
+22636	boundary	tab focus — their UI
+22656	noise	prose noise
+22679	noise	prose noise
+22684	dup	better notifications — 通知已有
+22700	boundary	UI perf — their UI
+22738	boundary	@ filter sorting — their UI
+22743	noise	prose noise
+22748	boundary	notif toggle — their UI
+22763	dup	LSP unstarted shown — 状态展示已有
+22776	boundary	empty message — their UI
+22786	noise	prose noise
+22787	noise	rewrite internal
+22788	boundary	UI perf — their UI
+22868	noise	prose noise
+22880	boundary	notif time — their UI
+22891	noise	prose noise
+22899	boundary	notifs — their UI
+22912	dup	too many files open fix — fd治理已有
+22914	noise	prose noise
+22915	boundary	multiline paste windows — their UI
+22936	dup	LSP/MCP status in UI — 状态指示已有
+22943	noise	prose noise
+22947	boundary	quit splash hint — their UI
+22955	dup	session affinity — 会话亲和已有
+22964	dup	session name gen command — 命名已有
+22980	noise	prose noise
+22989	noise	prose noise
+22990	noise	alias internal
+22992	dup	crush --continue last session — 会话续接已有
+22993	dup	run --continue non-interactive — 已有
+22997	dup	--continue flag — 已有
+22998	dup	--session flag — 已有
+22999	dup	run --session id — 已有
+23000	dup	run --continue — 已有
+23002	dup	session list — 会话列表已有
+23003	dup	session list --json — 机器可读已有
+23005	noise	prose noise
+23011	dup	only relevant servers kept on switch — 服务回收已有
+23014	noise	prose noise
+23015	dup	session last updated time — 时间显示已有
+23029	dup	lsp_rename — 符号重命名已有
+23030	dup	gh/rg in system prompt — 工具提示已有
+23033	noise	prose noise
+23037	dup	reasoning effort valid values — 参数校验已有
+23040	noise	prose noise
+23098	dup	no reasoning effort unsupported — 能力门已有
+23113	noise	config noise
+23119	dup	claude code hooks compat — hook兼容已有
+23122	dup	omit max_tokens=0 — 参数省略已有
+23142	dup	adaptive thinking level — 自适应推理已有
+23182	noise	prose noise
+23186	dup	crush login claude — 登录已有
+23191	dup	Claude Code Max support — 订阅支持已有
+23203	dup	useful API error messages — 错误信息已有
+23209	noise	panic internal
+23213	noise	config noise
+23219	noise	prose noise
+23237	noise	prose noise
+23244	noise	prose noise
+23250	dup	disable provider auto-updates offline — 离线档已有
+23254	dup	turn off provider auto-update — 已有
+23289	noise	prose noise
+23294	noise	prose noise
+23304	noise	prose noise
+23305	noise	prose noise
+23306	noise	prose noise
+23311	noise	prose noise
+23315	noise	prose noise
+23316	noise	prose noise
+23317	noise	prose noise
+23318	noise	prose noise
+23320	boundary	scroll follow — their UI
+23323	noise	prose noise
+23324	dup	MCPs async again — 异步加载已有
+23325	dup	title gen race fix — 竞态已有
+23326	noise	prose noise
+23334	noise	prose noise
+23335	noise	prose noise
+23337	noise	prose noise
+23339	noise	config noise
+23341	noise	prose noise
+23345	noise	prose noise
+23346	dup	remove provider timeout long sessions — 超时治理已有
+23349	noise	prose noise
+23362	noise	prose noise
+23385	noise	prose noise
+23386	noise	lsp internal
+23395	noise	prose noise
+23463	noise	prose noise
+23474	noise	prose noise
+23485	noise	prose noise
+23490	noise	models internal
+23491	noise	prose noise
+23501	noise	prose noise
+23504	dup	client-server fixes — 架构修复已有
+23508	noise	prose noise
+23509	dup	client-server fixes — 已有
+23519	dup	client-server fixes — 已有
+23520	noise	prose noise
+23530	dup	client-server hardening — 已有
+23533	noise	prose noise
+23534	dup	client-server fixes — 已有
+23538	dup	.crush dir wrong place fix — 目录定位已有
+23557	noise	prose noise
+23566	noise	prose noise
+23567	dup	init fail shown status bar — 状态展示已有
+23569	noise	prose noise
+23577	noise	prose noise
+23580	noise	prose noise
+23584	noise	prose noise
+23585	dup	job_kill prompt regression fix — 工具回滚已有
+23593	noise	provider internal
+23602	noise	prose noise
+23605	noise	prose noise
+23606	noise	prompt internal
+23607	noise	prompt internal
+23610	dup	tool calls during streaming corrupt — 流序治理已有
+23621	noise	prose noise
+23626	noise	prose noise
+23634	noise	prose noise
+23641	noise	prose noise
+23648	noise	prose noise
+23655	dup	non-UTF8 LSP encodings — 编码容错已有
+23659	noise	lsp internal
+23667	noise	prose noise
+23671	noise	prose noise
+23673	boundary	char clipping — their UI
+23682	noise	prose noise
+23705	dup	LSP auto-discovery reliable — 发现可靠性已有
+23737	noise	prose noise
+23753	dup	reduce count requests sub-agents — 请求治理已有
+23761	noise	prose noise
+23770	noise	prose noise
+23780	noise	prose noise
+23790	dup	multi-arg $EDITOR — 编辑器解析已有
+23794	noise	prose noise
+23802	noise	prose noise
+23805	dup	retries capped 2 extra — 重试上限已有
+23809	dup	crush run TTY fixes — 交互修复已有
+23819	noise	prose noise
+23826	noise	prose noise
+23868	noise	prose noise
+23872	dup	token limit exceed fix — 限额已有
+23888	noise	prose noise
+23921	noise	prose noise
+23922	boundary	escape key — their UI
+23938	boundary	selector freeze — their UI
+23942	noise	panic internal
+23950	noise	prose noise
+23951	noise	prose noise
+23956	noise	prose noise
+23980	noise	panic internal
+23990	noise	prose noise
+23995	noise	prose noise
+24000	noise	prose noise
+24001	dup	non-interactive reasoning — 无头推理已有
+24003	dup	client-server mode — 已有
+24004	noise	prose noise
+24006	dup	client-server experimental — 已有
+24011	dup	crush run non-interactive — 无头已有
+24015	noise	prose noise
+24016	noise	prose noise
+24017	noise	prose noise
+24032	dup	subagent URL fetch reason — 子代理抓取已有
+24045	noise	mcp internal
+24050	dup	MCP misconfig reliability — 容错已有
+24056	noise	prose noise
+24057	dup	slow MCP timeout reduced — 超时治理已有
+24063	noise	config noise
+24064	noise	config noise

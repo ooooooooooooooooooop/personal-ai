@@ -1,0 +1,200 @@
+2580	dup	terminal WebSocket应用层heartbeat防反代断连 — keepalive
+2581	boundary	devin.agentWindow.location分栏
+2582	boundary	semantic search score threshold slider
+2583	variant	USE_BUILTIN_RIPGREP选system/bundled
+2584	cand	security-cmd: /security-review代码安全审计命令
+2585	dup	gateway credential+ws auth handshake共享typed auth context — auth refactor
+2586	dup	/undo把tool results误算user turns修复 — undo fix
+2587	dup	browser_console评估180x提速 — perf
+2588	dup	checkpoint restore fork不再卡Thinking — restore fix
+2589	dup	ACP child runs persist transcripts — transcript persist
+2590	cand	resume-state: fetch-pr --resume校验on-disk state复用worktree
+2591	boundary	Session Workflow依赖图视图
+2592	boundary	git: restore and next action
+2593	dup	daemon session API(create/list/resume/archive/delete) — session API
+2594	boundary	newSession/tree/fork keybindings
+2595	cand	goal-flows: persisted /goal workflows+APIs+model tools+continuation
+2596	cand	hook-events: session.started event
+2597	boundary	project search history持久
+2598	boundary	daemon turn navigation(bounded indexing/snapshots)
+2599	dup	/steer <message>queue-independent steering(同2223) — steer
+2600	dup	orphan recovery bounded+persisted attempts+tombstone — recovery bound
+2601	dup	workspace外图片(~/Downloads)attach不再失败 — attach fix
+2602	noise	billing注记(quota+extra usage)
+2603	dup	CLI routed turns恢复inbound image refs — media refs
+2604	dup	manual message send写入resolved session transcript — transcript write
+2605	dup	connector threads(Slack等)session删除后恢复 — thread recovery
+2606	dup	logs tab/focus mode/tool output caps/windowed — UI fixes
+2607	dup	session picker search+Load More分页 — picker pagination
+2608	dup	Sessions table显示agent runtime+过滤 — session labels
+2609	variant	Discord thread bindings inactivity idleHours替代fixed TTL
+2610	boundary	voice session含bounded IDENTITY/USER/SOUL.md
+2611	dup	正常结束但空content不再异常 — empty response
+2612	dup	长transcripts时UI保持响应 — perf
+2613	dup	3.0.15回归:停止重启Cline卡死修复 — restart fix
+2614	dup	API error时user feedback进history — feedback persist
+2615	dup	session reuse支持file paths+IDs文档一致 — docs
+2616	dup	任一channel先发消息即建session(对称) — session creation
+2617	dup	malformed agent:-prefixed session keys拒绝 — key validation
+2618	dup	legacy-role fallback+silent local role — role fallback
+2619	dup	mode:UI main-session sends走internal surface — routing
+2620	dup	custom templated session.store下发现disk-only/retired stores — store discovery
+2621	dup	archived transcripts计入usage totals — usage totals
+2622	boundary	Google Meet accessType/end-active-conference
+2623	dup	resume+prompt场景history processing优化 — resume flow
+2624	dup	长option labels wrap/Tab steer提交/history修复 — input fixes
+2625	dup	/status readiness/context%/thinking/verbose — status command
+2626	boundary	0.0.16-track onboarding重设计
+2627	dup	异步context compression后台触发 — compaction
+2628	cand	hook-visibility: workspace hook缺失/非零退出阻塞时可见提示
+2629	dup	context-limit恢复成功不再报failure — recovery report
+2630	boundary	Team可见性默认+private切换
+2631	boundary	Slack @mention初始化Devin
+2632	dup	Protocol Mode多轮配置丢失修复 — config persist
+2633	dup	HEAD已过checkpoint commit时拒绝restore — restore guard
+2634	dup	新版创建的session旧版resume提示--check-upgrade — version guard
+2635	noise	dev branch session logo回退
+2636	dup	title generation捕获真实task name — title gen
+2637	dup	resume时创建新branches — branch on resume
+2638	dup	session lock延迟到实际使用减少泄漏 — lock timing
+2639	dup	/rename快速重命名(直接参数) — rename command
+2640	dup	spawn-child sessions分类kind:"spawn-child" — session kind
+2641	dup	parent-session forking+thread-history跨轮保持 — thread persist
+2642	boundary	Slack DM reply overhead/runtime defaults
+2643	dup	session remaining显示default/selected/reason/clear hint — status detail
+2644	dup	legacy-task migration不再spam telemetry — telemetry hygiene
+2645	dup	resume/fork picker重设计+raw scrollback+/ide — picker UX
+2646	dup	/tasks chat-native后台任务板 — task board
+2647	dup	group/channel task completions经requester session路由 — completion routing
+2648	dup	inbound <media:audio>替换为preflight transcript — media transcript
+2649	variant	resume picker排序切换(created vs last-updated)
+2650	boundary	Todo panel respect Session Workflow setting
+2651	dup	durable event log cap 64MiB — log cap
+2652	dup	带images session切model(截断,image attach mode fix) — media fix
+2653	variant	session search范围可选+V2 harness flag
+2654	dup	/new /clear /fork不丢cloud-managed requirements/flags — reset hygiene
+2655	dup	progress updates显示Knowledge使用+code updates — visibility
+2656	boundary	createTime range cursor filter
+2657	dup	running task中切换session不冻结 — switch fix
+2658	dup	tools.message replies路由active turn+mirror history — reply routing
+2659	dup	X-Agent-Intent header ask误报craft修复 — intent header
+2660	dup	Agent View直接attach background session继续对话 — attach
+2661	dup	double-ESC+/rewind rewind — rewind已实装
+2662	boundary	iOS ChatSheet RPCs走operator session
+2663	boundary	agent::NewTerminalThread自定义shortcut
+2664	variant	default terminal profile setting
+2665	dup	terminal output size constraint — output cap
+2666	dup	Windows shell mode(! command)cmd/PowerShell — shell mode
+2667	boundary	terminal::Toggle ctrl-`
+2668	dup	task context providers访问local shell env — env access
+2669	boundary	composer add menu(attachments/files/extensions/MCP/skills)
+2670	boundary	同2669(重复)
+2671	dup	codex doctor(runtime/auth/terminal/network/config/state) — diagnostics
+2672	variant	terminal working_directory:"current_file_directory"
+2673	dup	Web Shell inline edit+resend最新user message — message edit
+2674	boundary	shell tab completion路径/--edit-format
+2675	dup	Web Shell拖文件/@file panel上传workspace files — upload
+2676	dup	同2675(重复)
+2677	boundary	agent: rename selected thread
+2678	dup	recoverable interrupted sessions Continue execution — resume action
+2679	boundary	embedded Web Shell隐藏session source switch
+2680	boundary	stop button行为设置(cancel/kill)
+2681	dup	terminal output controls不隐藏live progress — output controls
+2682	cand	sandbox-scope: terminal commands按host申请network access
+2683	boundary	built-in tools可扩展ToolDefinition override渲染
+2684	boundary	readToolDefinition等built-in definitions导出
+2685	dup	command output先stream完再发done — stream ordering
+2686	dup	/diff不跑repo Git helpers/hooks+PS parser安全 — command safety
+2687	dup	command output运行中stream进transcript — live output
+2688	dup	cmd &/nohup background child不再挂到timeout — exec lifecycle
+2689	cand	tool-policy: dynamic tool policies(terminal tool先行)
+2690	boundary	authenticated HTTPS installs/Extension state批量/PTY worker
+2691	cand	env-expose: PI_SESSION_ID/FILE/PROVIDER/MODEL/REASONING_LEVEL给commands
+2692	dup	Windows output capture/PS handling/running-state修复 — terminal fixes
+2693	boundary	markdown list indent/task-list checkbox渲染
+2694	boundary	Kitty/iTerm2 inline images
+2695	boundary	stdin-stream protocol集成测试
+2696	dup	live shell output流式进session — live output
+2697	dup	agent/!bash运行中messages排队+Esc处理 — message queue
+2698	dup	retries/terminal outcomes/post-compaction usage/reply修复 — recovery
+2699	cand	hook-events: post_compaction event(summary stdin)
+2700	dup	system prompt明确tool output/unsupported reads/long-running — prompt guidance
+2701	dup	corrupt shell snapshots/suspicious configs/malformed limits拒绝 — input validation
+2702	boundary	setup hatch TUI fresh process
+2703	dup	terminal-interaction命令兼容 — exec compat
+2704	dup	仅additional env vars时用eval wrapper — exec optimize
+2705	dup	config/policy/snapshots/prechecks/script limits严格化 — validation
+2706	boundary	Ctrl-P/N navigation/screen-line-capped output
+2707	dup	task config(custom modes/disabled tools)经stdin-prompt-stream — config forwarding
+2708	dup	Web UI PTY sessions进程退出清理 — resource leak
+2709	dup	split-screen不重置terminal — terminal stability
+2710	boundary	Kitty/Alacritty/Zed识别
+2711	boundary	terminal tab双击新建
+2712	dup	PTY从SSE+HTTP改WebSocket双向 — transport
+2713	boundary	transcript/review视图Download artifacts
+2714	dup	rewind dialog同terminal选项(conversation/code) — rewind UX
+2715	dup	/mode切换cli/ptc等Main Agent modes — mode switch
+2716	boundary	GPU-accelerated rendering+inline images
+2717	boundary	tokenjuice plugin压缩exec/bash tool输出
+2718	dup	tool完成后terminal refresh debounce — render perf
+2719	boundary	Web Shell Qwen 3.8 reasoning controls
+2720	dup	Web Shell拖PNG/JPEG/GIF/WebP/BMP — attachments
+2721	dup	background job output过大截断防context填满 — output cap
+2722	dup	大session attach/move background不冻结 — attach fix
+2723	boundary	Add Workspace目录autocomplete
+2724	boundary	model role/context window配置
+2725	dup	/newrule创建rules文件 — rules command
+2726	cand	remote-mcp: plugin MCP servers+install时OAuth授权
+2727	boundary	TODO高亮comment injections
+2728	dup	.agents/skills项目skill自动发现 — skill discovery已实装
+2729	cand	hook-forms: message_end result替换finalized messages
+2730	cand	hook-events: session_shutdown带reason+targetSessionFile
+2731	dup	MCP server来源显示(extension/custom) — source labels
+2732	boundary	extension agents human-readable names
+2733	cand	tool-policy: per-sender tool policies(channel-scoped sender keys)
+2734	dup	Chrome MCP diagnostics redact attach-details — secret scrub
+2735	dup	/extension /cdp要gateway-token auth — auth gate
+2736	dup	plugin-load logs走stderr+completion scripts走stdout — output hygiene
+2737	dup	help/version不加载config — CLI hygiene
+2738	dup	hook-pack install/update走openclaw plugins — plugin routing
+2739	dup	infer web --provider解析scoped SecretRefs — secret resolution
+2740	boundary	Buzz plugin/Slack identity modes/Telegram blocks
+2741	cand	hook-forms: Codex app-server async tool_result middleware
+2742	boundary	Editor构造签名变更(tui,theme)
+2743	dup	session reads/metadata fingerprints/auth env snapshots — perf
+2744	noise	0.85.0误发布internal code修复
+2745	dup	ctx.newSession/fork/switchSession/imported-session修复 — session replace
+2746	cand	hook-forms: HookInputProcessor注入context fields
+2747	dup	/config查看agents/MCP/Powers/Steering/Skills/Hooks — config view
+2748	boundary	Devin Extension macros/Playbooks
+2749	cand	hook-forms: tools/call AbortSignal转发plugin handlers
+2750	boundary	marketplaces auto-update API
+2751	dup	marketplace config writes serialization lock — write lock
+2752	dup	dynamic catalog→async ModelRuntime.refresh() — catalog refresh
+2753	boundary	autocomplete trigger characters(#等)
+2754	cand	hook-events: after_provider_response(同1867)
+2755	cand	worktree: built-in worktree plugin($VIBE_HOME/worktrees创建/复用/清理)
+2756	noise	Actual Computer/CommandCode providers
+2757	boundary	plugin contract helpers SDK test subpaths
+2758	boundary	channel plugin base/web-search config contract导出
+2759	dup	static catalogs/manifest rows/lazy providers — startup perf
+2760	dup	Git marketplace无version用commit SHA缓存 — cache key
+2761	dup	plugin command name/description注册边界校验 — registration validation
+2762	boundary	npm plugin publish要compatibility metadata
+2763	dup	plugin state caps时evict namespace+tool-search catalog复用 — state eviction
+2764	boundary	Chutes bundled provider
+2765	boundary	Matrix plugin(matrix-js-sdk)
+2766	cand	hook-forms: before_prompt_build prependSystemContext/appendSystemContext
+2767	boundary	plugin config load/write→runtime snapshots+transactions
+2768	cand	hook-context: llm_output暴露contextTokenBudget+source metadata
+2769	boundary	describeMessageTool共享message tool发现
+2770	dup	unscoped catalog readers复用workspace-compatible — perf
+2771	dup	cold manifest/capability lookups走installed plugin index — lookup perf
+2772	dup	runtime preloads限定effective plugin ids — preload scope
+2773	dup	api.registerTool descriptors缓存供prompt planning — tool cache
+2774	cand	outbound-webhook: bundled webhook ingress plugin(外部自动化驱动TaskFlows)
+2775	dup	provider auth registry+models auth login plugin flows — auth registry
+2776	noise	VS Code extension回滚pre-SDK codebase
+2777	dup	createAgentSession() factory(model/tools/hooks/skills/session) — SDK factory
+2778	dup	SecretRef inspect-vs-strict跨preload/status对齐 — secret handling
+2779	dup	session-profile skills进/skill列表 — skill listing

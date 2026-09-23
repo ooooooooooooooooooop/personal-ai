@@ -284,3 +284,85 @@ G1 kernel commandArgs + decide COMMAND_ARG_KEYS 加 schedule_task（创建时分
 补判为 dup/verify-closed 的代表：#420 IP 校验+safeFetch≈M63/M66、#1916 XML 转义≈M147/U5、#329 FolderTrust≈M85、#1498 损坏权限文件 panic≈policy fail-closed（已核销）、#6072 /copy-context≈context_map/export、#97 workboard 编排≈delegate/mailbox、#144 .devinignore≈.paiignore。
 
 台账列：`idx | novelty | cluster | src | verdict | detail | pass`；pass=prior（早前逐条标注）/fill（本轮补判）。
+
+## batch24 — score 8–29 高分带逐条处置（4,263/4,263，2026-09-23 续）
+
+**缺口成因**：`_midreview` 语料 = `_candidates-C-dedup.jsonl` 中 score 4–7 切片（18,405 条）；score 8–29 的 4,263 条此前只有功能级判定、无逐条台账。本批补齐——高分带恰是机制密度最高区（持久 memory、worktree、fork/resume、委派、调度、审批、密钥面），逐条过完。
+
+**方法**（纠正后）：`hiscore-skeleton.tsv` 机械抽取 `idx|score|cluster|src`（JSONL 无 idx，按归一化文本对齐 hiscore.txt 行序）；判定列 `verdict|detail` 由人工按 200 条/批逐条手写进 `verdicts-hi-0..20.tsv`（21 批，零簇级默认）；join 成 `hiscore-dispositions.tsv`（`idx|score|cluster|src|verdict|detail|pass`，pass=manual）。源对齐校验：4,263 行 score 全一致、idx 0–4262 连续无缺零重复。
+
+**处置分布**：dup×1,936（我方已实装/已裁决的同型机制）· boundary×1,414+4=1,418（编辑器/provider/产品面出界）· cand×487（真实机制缺口候选）· noise×257 · variant×165（我方异构实现）· verify×0（6 条已核销转化）。
+
+**verify 核销结果**（均落到执行面代码）：
+- #248 召回 memory untrusted 标记 → **dup**：`host/src/core/memory.js:297` 召回行进 untrusted `<memory>` 块 + `envelopes.js` 常驻 untrusted-content-policy
+- #981 relative globs 锚定 → **dup**：`pi/src/bootstrap/decide.js:84` `resolve(workdir,p)` 锚 workdir 非启动 cwd
+- #1249 $HOME/fs-root 不建索引 → **dup（更强）**：`pi/src/adapter/fastcontext.js:43-93` 本就 workdir 限定 + subdir containment + realpath fail-closed，家目录索引面不存在
+- #915 path-shadowing（repo 内 git.exe 影子化批准命令）→ **cand**：`jobs.js:505` `shell:true` 下 cmd.exe 先搜 cwd；待加 `NoDefaultCurrentDirectoryInExePath` 或绝对 PATH 解析
+- #1277 revert 删 agent 创建的空目录 → **cand**：fileops receipt-undo 回收创建文件，但 `mkdirSync recursive` 建的空目录残留
+- #1284 oversized 父会话 fork 砖化 → **cand**：`forkFrom` 无 size/entry 容量闸
+
+**cand 487 条高分候选的代表性机制族**（全量在 hiscore-dispositions.tsv 逐条）：token 预算闸（rollout budgets+abort）、事件驱动唤醒（sched-wake）、自适应 /loop、per-contact 模型路由、forked-context 委派、subagent 分级参数面、审批持久化（granular Always-Allow）、工作区快照回滚、会话归档/倒带、跨工作区会话、共享 task lists、三态目标评估、plugin 安装治理闸（operator install policy）、MCP OAuth 2.1 PKCE + OSV 扫描、per-thread MCP 激活、manifest modelCatalog 契约、skill 评审工坊（proposals+rollback）、消息级元数据透视、reasoning 快捷键、未信源前缀剥离。
+
+**全量对账闭环**：低分带 item-dispositions.tsv 18,405 + 高分带 hiscore-dispositions.tsv 4,263 = **22,668 条去重候选全数有逐条处置**，对应 80,369 信号条目 / 89,544 原始条目 / 35 家 harness 的完整采集链。
+
+## batch25 — 高分带 verify→cand 三项落地修复（2026-09-23）
+
+batch24 核销转化的 3 个真缺口已在**执行路径**修复（非文档/非测试补丁），各带哨兵：
+
+| # | 缺口 | 修复位点（生成器源码） | 哨兵证据 |
+|---|---|---|---|
+| #915 | repo 内 git.exe/rg.exe 影子化已批准命令（cmd.exe cwd 先搜） | `pi/src/bootstrap/host.js` 进程级 + `pi/src/adapter/jobs.js` spawn 点双写 `NoDefaultCurrentDirectoryInExePath=1`——覆盖 cmd.exe shell:true 解析与 argv spawn 的父进程 CreateProcess 两个面 | jobs-executor: `spawned children carry NoDefaultCurrentDirectoryInExePath`（子进程回显 SHADOWENV=1） |
+| #1277 | revert 不清 agent `mkdir -p` 建的空目录 | `fileops.js` write() 记 receipt `dirsCreated`（workdir 内含域、最深优先）；tombstone restore 对仍空目录 `rmdirSync` 回收（非递归=竞态 fail-safe）；`FileOpsGuard` 新增 `workdir` 构造参，host.js 接线 | fileops: `tombstone restore reaps agent-created empty dirs, keeps dirs holding user content` |
+| #1284 | `forkFrom` 无容量闸，超大父会话砖化 thread | `host.js` `assertForkableSource`（64MB cap + FORK_REFUSED 审计）挂在 `fork` 与 `importSession` 双入口 | bootstrap: `session_fork refuses an oversized source transcript`（cap+1B 拒绝且无残留目标文件） |
+
+回归：受影响三套件 72/72 全绿。全套 pi 跑中出现 2 个**外来引入**失败（boundary 扫描误捕外来注释字面量 `from "not installed"`；外来 loopGovernance 无条件安装改动导致 teardown EPERM）——归因外来在途，非本批。
+
+## batch26 — 人工复核工作清单 sigwork 24,484 条逐条处置（2026-09-23）
+
+**语料**：`sigwork.txt` = 第一轮规则收割后剩余的 24,484 条人工复核工作清单（flag 桶全量——unmatched/fix-mech/feat-mech/docs+mech 等无法规则化定判的行）。本批把该清单**逐条过完**，无抽样、无跳过。
+
+**方法**：122 个 `vs-*.tsv` 批次账本（vs-0..vs-121），每批 200 行（末批 84 行），每行 `id⇥verdict⇥detail` 手写判定；每批写完即对源区间做 id 集合校验（missing/extra 必须全空）。全程修正 5 处笔误（53794→53798、49591→49600、74858→74859、53505→53515、60205→60206）+ 2 处错档归位（vs-0 的 11445→11444、vs-9 的 35601→35603）+ 补漏 4 行（54871、68544、13377、11027）——全部即时修正并复验。
+
+**产物**：`sigwork-dispositions.tsv`（`id|class|flag|verdict|detail|pass`，pass=manual，24,484 行 + 表头），由 vs-* 批次账本 join sigwork 源列生成；全量校验 missing=[]/extra=[]/cross-file-dup=[]。
+
+**处置分布**：noise×13,101（发布头/日期/贡献者/文档碎片/编辑器内部/dep-bump/CI/test 内部）· dup×8,007（我方已实装同型机制：批准门、沙箱、MCP、AGENTS.md 加载、会话恢复、权限档等）· boundary×3,310（编辑器/IDE/协作/平台面出界但内容真实）· cand×65（新候选机制）· variant×1。
+
+**对账更新**：本批 24,484 条属 **flag 桶**（规则无法定判的行），与早前 noflag 自动处置（~33,217 条）、低分带 18,405、高分带 4,263 合计覆盖全部 **80,369 信号条目**逐条处置——上溯 89,544 原始 / 35 家 harness。链路上每层都可从台账反查到原始行。
+
+## batch27 — 全量主台账 signal-dispositions.tsv（80,369/80,369，2026-09-23）
+
+batch26 的 "~33,217 noflag 自动处置" 当时是估算口径；本批物化并复核了完整链路：
+
+**三层处置来源**（互斥、并集=全量）：
+
+| 层 | 行数 | verdict 来源 | pass 标记 |
+|---|---|---|---|
+| flag 桶（规则无法定判） | 24,484 | sigwork-dispositions.tsv 逐条人工 | `manual` |
+| 规则自动处置（非 flag 且非 dedup 成员） | 31,495 | sig-classify 规则逐条定判（含 cdet 规则标签） | `rule` |
+| dedup 成员继承（低分带成员） | 20,032 | item-dispositions.tsv 簇处置逐字继承 | `dedup-l` |
+| dedup 成员继承（高分带成员） | 4,358 | hiscore-dispositions.tsv 簇处置逐字继承 | `dedup-h` |
+
+**产物**：`signal-dispositions.tsv`（`id|harness|dom|kind|verdict|detail|pass`，80,369 行 + 表头），id 与 `_items.json`/`_signal-items.jsonl`/`sig-skel` 行序逐字段对齐（misaligned=0）。
+
+**全量 verdict 分布**：noise×41,072 · annotated×19,656（dedup 簇级注解处置，detail 为该簇注解本体）· dup×10,094 · boundary×8,795 · cand×576 · variant×174 · verify-closed×2。
+
+**对账修正**：
+- `_signal-items.jsonl` 实为 **80,369 行**（早前 80,368 系末行计数误差），与 `_items.json`、`sig-skel` 三源一致。
+- 去重候选台账口径：item-dispositions 18,405 数据行 + hiscore-dispositions 4,263 数据行 = 22,668（早前 18,406/4,264 系含表头行数）。
+- 继承完整性：24,390 条 dedup 成员的 detail 100% 能在对应带台账中逐字命中；`inh.v` 非 `annotated` 者即簇 verdict 本身。
+
+## batch28 — 未落实候选独立清单 candidates-open.tsv（648 条，2026-09-23 修订×2）
+
+初版只收了台账 `cand` verdict（566）——**漏了 findings.md 散文层的 cand/verify/dir 标记**（那些条目在台账里是 `annotated` 簇级处置，cand 判定散记在各 batch 小节）。第二版又踩了 id 空间错位：findings `#idx` 是 compact/item-dispositions 行号空间，却拿去跟 dedup 偏移基址去重，误丢 6 条（1112/1985/2135/2215/2375/3323），并有 #3613 双记。修订后七段全收：
+
+| 来源 | 条数 | id 口径 |
+|---|---|---|
+| dedup-h（hiscore-dispositions cand） | 487 | `_candidates-C-dedup.jsonl` 行号 0–4262 |
+| dedup-l（item-dispositions cand） | 14 | 同上，行号 4263+ |
+| manual（sigwork-dispositions cand） | 65 | 信号 id |
+| findings-cand（各 batch `[cand] #idx`，全 36 唯一 id） | 36 | compact.txt 内嵌行号；其台账 verdict 均为 `annotated`（散文层判定未被台账回写） |
+| findings-cand-inline（无 # 散文候选） | 13 | 无（onboarding 一条因 U14 已落剔除） |
+| findings-verify（`[verify]` 未核销） | 20 | compact.txt 内嵌行号；batch22 已核销 18 条不在列 |
+| findings-dir（`[dir]` 方向观察） | 13 | compact.txt 内嵌行号或散文 |
+
+合计 **648 条**。G1–G12 / U1–U15 / D1–D6 经 §28 回写全部关闭（已有或有意拒绝），verify-closed（#915/#1277/#1284）已修复——均不在列。

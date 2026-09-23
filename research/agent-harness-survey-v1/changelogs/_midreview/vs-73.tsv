@@ -1,0 +1,200 @@
+34296	dup	code mode structuredContent — 结构化访问已有
+34298	dup	MCP-hermit path expansion — 路径展开已有
+34299	dup	avoid repeated MCP queries streaming — 查询去重已有
+34300	noise	guide internal
+34301	noise	blog internal
+34302	noise	registry internal
+34304	noise	guide internal
+34305	noise	sampling internal
+34306	noise	blog internal
+34311	dup	MCP UI proxy message handling — 代理处理已有
+34314	noise	gitignore internal
+34315	dup	MCP sampling support — 采样已有
+34317	dup	schema-aware numeric coercion — 类型强制已有
+34319	noise	dep internal
+34320	dup	numeric coercion — 已有
+34322	noise	cleanup internal
+34333	noise	branch noise
+34352	noise	iframe internal
+34356	noise	blog internal
+34382	noise	registry internal
+34392	noise	blog internal
+34401	dup	MCP router skeleton — 路由器已有
+34407	noise	blog internal
+34419	noise	blog internal
+34420	noise	blog internal
+34421	noise	blog internal
+34422	noise	blog internal
+34431	noise	blog internal
+34435	noise	blog internal
+34448	boundary	tool call UI — their UI
+34452	dup	require dev extension doctor — 扩展门槛已有
+34454	dup	bind MCP app tools to owners — 所有权绑定已有
+34455	dup	extension directory policy — 目录策略已有
+34458	dup	preserve session extension identities — 身份保留已有
+34459	dup	bound local image reads — 读限定已有
+34461	dup	honor plugin enablement skills — 启用门已有
+34463	boundary	toast suppress — their UI
+34464	dup	contain skill file reads — 读收容已有
+34466	dup	spec-valid skill name — 命名合规已有
+34468	dup	open plugins skills support — 插件技能已有
+34469	dup	summon peek async tasks — 后台查看已有
+34471	boundary	skills composer — their UI
+34472	dup	refresh skill instructions each turn — 指令刷新已有
+34473	dup	list skills token counts — 令牌计数已有
+34474	dup	preserve command args forms — 参数保留已有
+34475	boundary	toggle state — their UI
+34481	boundary	toggle — their UI
+34482	dup	windows backslash preserved — 路径保留已有
+34483	dup	unparseable entries preserved — 容错保留已有
+34486	dup	backslash paths — 已有
+34488	noise	label internal
+34489	dup	change cwd via ACP — cwd切换已有
+34490	noise	extension internal
+34491	dup	sanitize extension env maps — 环境净化已有
+34493	dup	open plugins skills — 已有
+34495	boundary	skills composer — their UI
+34496	dup	unparseable preserved — 已有
+34497	noise	acp internal
+34498	boundary	extension UI — their UI
+34500	dup	open plugins — 已有
+34502	boundary	composer — their UI
+34503	noise	python3 internal
+34504	boundary	detail view — their UI
+34508	noise	refactor internal
+34509	boundary	skills library — their UI
+34512	dup	/skills command — 技能命令已有
+34513	noise	extension internal
+34514	boundary	ext screen TUI — their UI
+34515	dup	harden code review skill async — 异步加固已有
+34516	dup	skills as sources ACP — 技能源已有
+34520	noise	section noise
+34521	boundary	skills UI — their UI
+34522	dup	skills platform extension — 平台扩展已有
+34523	dup	recursive nested skill discovery — 嵌套发现已有
+34524	dup	configurable extension timeouts — 超时可配已有
+34528	dup	platform-appropriate commands — 平台命令已有
+34529	dup	parallelize extension loading — 并行加载已有
+34530	noise	docs internal
+34531	noise	config internal
+34532	dup	coerce string args inner LLM — 参数强制已有
+34534	noise	migrate internal
+34535	dup	skill supporting files loadable — 文件加载已有
+34536	dup	secret interpolation streamable URLs — 秘密插值已有
+34537	dup	pass session_id loading extensions — 会话传递已有
+34538	dup	sanitize extension names from URLs — 名净化已有
+34540	boundary	toast — their UI
+34545	noise	extension internal
+34546	noise	sdk internal
+34547	dup	skill files+directory in load output — 输出已有
+34548	dup	truncated LLM detection — 截断检测已有
+34549	boundary	selector — their UI
+34550	boundary	detail page — their UI
+34551	noise	rename internal
+34553	noise	extension internal
+34559	boundary	selector — their UI
+34561	dup	concurrent tool execution same MCP — 并发执行已有
+34562	boundary	selector sync — their UI
+34564	dup	AGENT_SESSION_ID env to children — 会话env已有
+34565	noise	dep internal
+34567	dup	hourly skill fetching — 周期拉取已有
+34568	dup	case-insensitive builtin names — 大小写匹配已有
+34580	boundary	ext errors CLI — their UI
+34582	noise	code mode internal
+34583	dup	.agents/skills dirs support — 目录支持已有
+34584	noise	note internal
+34585	dup	skills discovery paths — 发现路径已有
+34593	noise	extension internal
+34601	noise	cli internal
+34602	noise	recipe internal
+34604	boundary	ext search — their UI
+34620	dup	extension malware check — 恶意扫描已有
+34621	dup	block messages until extensions ready — 就绪门已有
+34630	boundary	tooltips — their UI
+34632	noise	library internal
+34643	noise	cli internal
+34648	dup	GUI warning deeplink extension — 深链警告已有
+34660	boundary	copy button — their UI
+34661	noise	branch noise
+34667	boundary	error toast — their UI
+34673	boundary	shortcut — their UI
+34686	dup	return failure interrupted headless — 中断失败已有
+34697	dup	--text mode decoupled — 无头档已有
+34723	dup	no prompt headless recipes — 免提示已有
+34738	dup	session ID header — 会话头已有
+34740	dup	restrict session storage permissions — 存储权限已有
+34745	dup	session extensions apply — 扩展应用已有
+34747	dup	deeplink recipe params startup — 参数绑定已有
+34748	noise	sdk internal
+34758	boundary	encrypted nostr sharing — 外部协议出界
+34759	dup	session working_dir to on_call_tool — 目录传递已有
+34763	noise	pnpm internal
+34764	dup	session mode from offered ids — 模式选择已有
+34765	noise	edit internal
+34766	dup	restore cursor configure exits — 光标恢复已有
+34767	dup	propagate cleanup errors delete — 错误传播已有
+34768	dup	dedupe nostr imports — 导入去重已有
+34769	boundary	settings tab — their UI
+34774	dup	goose://resume deep link — 恢复深链已有
+34777	dup	cleanup errors propagation — 已有
+34778	dup	nostr import dedup — 已有
+34788	dup	resume deep link — 已有
+34793	dup	ACP manage config/extensions — 管理已有
+34796	dup	load session ACP — 加载已有
+34799	dup	conversationBefore ACP forking — 分叉上下文已有
+34800	dup	ACP get session info — 信息查询已有
+34801	dup	ACP search session — 搜索已有
+34802	dup	session keyword/type filter — 过滤已有
+34803	dup	replay ACP images session load — 图片回放已有
+34804	dup	ACP session system prompt setter — 提示设置已有
+34807	dup	ACP session management — 已有
+34808	dup	session import — 导入已有
+34810	dup	paginate session list — 分页已有
+34811	dup	session cwd to providers — cwd传递已有
+34813	dup	pagination — 已有
+34814	dup	cwd param — 已有
+34816	dup	preserve user-set session name — 名保留已有
+34818	dup	paginate — 已有
+34822	boundary	sidebar — their UI
+34823	dup	paginated list — 已有
+34824	dup	notify generated session names — 名通知已有
+34825	dup	exclude preprompt title — 标题排除已有
+34826	noise	goose2 internal
+34827	dup	preprompt after loading — 加载行为已有
+34829	noise	goose2 internal
+34830	dup	panics→errors session builder — 错误处理已有
+34831	dup	strip wrapper title gen — 标题剥离已有
+34832	dup	session/set_config — 配置已有
+34833	dup	persist GooseMode per-session — 模式持久已有
+34834	dup	session.id to OTel spans — 遥测关联已有
+34835	dup	session/set_mode — 模式设置已有
+34836	dup	broken pipe session list — 断管处理已有
+34838	noise	logging internal
+34839	noise	schema internal
+34841	dup	restore system prompt subagents — 子代理提示已有
+34842	boundary	sidebar — their UI
+34843	dup	working dir from session — 目录恢复已有
+34844	dup	search conversation history — 历史搜索已有
+34845	noise	id internal
+34846	dup	disable AI session naming — 命名开关已有
+34848	dup	fork session fix — 分叉修复已有
+34849	dup	session content search API — 内容搜索已有
+34850	dup	disable auto naming config — 命名开关已有
+34852	noise	manager internal
+34861	dup	avoid cliclack non-interactive — 无头容错已有
+34863	dup	edit in place or fork — 原位/分叉已有
+34865	boundary	action icons — their UI
+34866	dup	session storage migration — 存储迁移已有
+34867	dup	session IDs as task IDs — 标识复用已有
+34868	dup	session name standardization — 命名规范已有
+34870	dup	--resume --name session IDs — 恢复接受已有
+34882	dup	restore cli projects cleanup — 清理恢复已有
+34883	dup	fetch tokens only idle — 空闲拉取已有
+34889	noise	recipe internal
+34895	dup	no-session file optionality — 无会话档已有
+34907	dup	Ctrl+C ESC menu continue — 中断续会已有
+34909	dup	no-session flag — 已有
+34914	dup	load all messages --resume — 全量恢复已有
+34917	boundary	localstorage — their UI
+34918	noise	dev internal
+34926	dup	multiple runs appending — 追加修复已有

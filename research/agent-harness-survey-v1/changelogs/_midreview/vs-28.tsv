@@ -1,0 +1,200 @@
+53531	boundary	sidebar toggle — their UI
+53632	boundary	keybind tooltip — their UI
+53635	boundary	notification icon — their UI
+53650	boundary	keybind tooltips — their UI
+53730	boundary	modified files sidebar — their UI
+53748	boundary	expandable sections — their UI
+53751	noise	BUN_OPTIONS reset internal
+53752	boundary	toast system — their UI
+53779	boundary	modified files display — their UI
+53782	boundary	escape keybind — their UI
+53801	boundary	tab autocomplete — their UI
+54054	boundary	image attachments app — their UI
+54112	dup	shell cancellation races — 取消竞态已有
+54178	boundary	terminal tabs — their UI
+54279	boundary	terminal copy paste — their UI
+54298	boundary	shell prompt history — their UI
+54448	boundary	share loads perf — their product
+54516	noise	Elixir LSP startup internal
+54539	dup	terminal PTY isolation — 隔离已有
+54888	noise	static assets rate limit internal
+54925	dup	rate limiting — 限流已有
+54946	dup	task cancellation — 取消已有
+54953	dup	rate limit errors — 限额处理已有
+55059	noise	global config auth internal
+55272	dup	Daytona sandbox — 沙箱已有
+55276	dup	custom sandbox resolver — 沙箱已有
+55283	dup	custom sandbox — 沙箱已有
+55291	noise	swe-bench sandbox internal
+55299	noise	sandbox config internal
+55304	noise	sandbox guide internal
+55311	noise	sandbox config refactor internal
+55438	boundary	Tavily MCP key — their config
+55568	boundary	App tab remove — their UI
+55573	boundary	refresh button — their UI
+55577	boundary	Jupyter tab remove — their UI
+55599	boundary	settings tab — their UI
+55630	boundary	Jupyter overflow — their UI
+55631	boundary	copy paste chat — their UI
+55927	noise	persist_sandbox Makefile internal
+56081	dup	docker permission — 权限已有
+56087	boundary	read-only terminal tab — their UI
+56153	dup	ctx exceeded detection — 溢出检测已有
+56245	noise	jwt_secret persist internal
+56287	dup	agent delegation — 委派已有
+56640	noise	prompt templates migrate internal
+56709	dup	hooks migration — hooks已有
+57349	dup	telemetry — 遥测已有
+59277	boundary	gh-attach assets — their product
+59294	dup	slash commands+tools — 命令已有
+59299	dup	SDKs+permissions — 权限已有
+59352	boundary	daemon local control — their product
+59412	noise	reverse-audit internal
+59736	noise	username noise internal
+59760	boundary	hooks matcher display — their UI
+61005	noise	isolated validation internal
+61088	dup	sandbox docker mode — 沙箱已有
+62613	noise	ACP daemon loop internal
+63306	noise	permission test skip internal
+64304	dup	agent orchestration — 编排已有
+64352	dup	subagent loop detection — 循环检测已有
+64355	dup	subagent result tag sanitize — 消毒已有
+64667	noise	tool call coercion internal
+65206	dup	expanded audit logs — 审计已有
+65212	dup	expanded audit logs — 审计已有
+65213	boundary	audit logs link — their product
+65554	dup	queue messages images — 队列已有
+65563	dup	custom slash commands — 命令已有
+65572	dup	auto-deny commands — 自动拒绝已有
+65769	dup	stderr capture execa — stderr捕获已有
+65796	boundary	export icon — their UI
+66148	noise	telemetry re-enable internal
+66151	noise	title telemetry internal
+66152	noise	diff telemetry internal
+66317	boundary	settings export — their UI
+66426	dup	MCP tool disabling — 工具禁用已有
+67340	boundary	approve chained cmds UI — their UI
+67348	boundary	auto-approve UX — their UI
+67417	dup	ACP cancellation — 取消已有
+67463	boundary	account tab — their UI
+67521	dup	checkpoints faster — 检查点已有
+67744	boundary	PR from fork — their UI
+68572	boundary	PDF export — their product
+68643	boundary	quota billing — their product
+68679	boundary	cascade panes — their UI
+68681	dup	Cascade hooks — hooks已有
+68695	dup	hooks on user prompts — hooks已有
+68718	dup	Cascade hooks — hooks已有
+68722	boundary	shortcuts — their UI
+68746	dup	queued messages — 队列已有
+68822	boundary	Cascade plugins — their product
+68995	boundary	tab fixes — their UI
+69001	boundary	tab autocomplete — their UI
+69003	boundary	tab completion — their UI
+69014	boundary	fast tab — their product
+69015	boundary	memories tab — their UI
+69017	boundary	Jupyter tab — their UI
+69111	boundary	ctx indicator — their UI
+69143	dup	Plan Mode — 计划模式已有
+69156	dup	git worktree support — worktree已有
+69406	boundary	native terminal — their UI
+69429	boundary	plugin panel — their UI
+69447	dup	MCP improvements — MCP已有
+69454	dup	MCP servers — MCP已有
+69457	dup	MCP servers — MCP已有
+69461	dup	MCP improvements — MCP已有
+69465	dup	MCP enhancements — MCP已有
+69472	boundary	MCP options teaser — their product
+69491	boundary	SWE image — their provider
+69548	noise	MCP tools models internal
+69602	boundary	empty files deploy — their product
+71256	noise	thinking content internal
+71328	boundary	plan mode menu — their UI
+72092	noise	tsgo LSP internal
+72382	boundary	syntax shortcuts — their UI
+73124	boundary	privacy link — their UI
+73385	noise	drag panic internal
+73390	noise	drag panic internal
+73743	boundary	collaboration — their product
+74091	boundary	preview tabs — their UI
+74442	noise	code lens internal
+74448	boundary	keybinding input — their UI
+75457	boundary	channel tabs — their UI
+76528	boundary	Esc dismiss notify — their UI
+76602	boundary	tab tooltip — their UI
+76846	boundary	overly notify — their UI
+76917	boundary	outline panel — their UI
+76996	boundary	waitlist — their product
+77055	boundary	keybind improvements — their UI
+77127	noise	tab panic internal
+77258	boundary	panel ergonomics — their UI
+77288	boundary	project panel — their UI
+77361	boundary	message hover — their UI
+77369	boundary	tooltip projects — their UI
+77377	boundary	collab panel — their UI
+77449	boundary	chat panel — their UI
+77963	boundary	git panel — their UI
+715	noise	tree-sitter scm internal
+919	dup	docker --user perms — 权限已有
+923	dup	docker perms — 权限已有
+1867	dup	checkpoints git hooks — hook联动已有
+2762	dup	remote MCP 404 — MCP连接已有
+2919	boundary	auth errors UI — their UI
+2932	boundary	checkpoint error layout — their UI
+2964	dup	checkpointing blocked UI — 非阻塞检查点已有
+2981	boundary	menu sidebar — their UI
+2982	boundary	menu buttons — their UI
+3062	dup	checkpoint restore reopen — 检查点恢复已有
+3093	dup	hooks cancel-resume — hook取消已有
+3161	dup	MCP object validation — 校验已有
+3329	dup	daemon shutdown clean — 关闭清理已有
+3335	dup	daemon shutdown clean — 关闭清理已有
+3366	noise	empty content msg internal
+3370	dup	run_commands stdout on failure — 输出捕获已有
+3444	noise	hooks proto lint internal
+3471	noise	empty content internal
+3500	noise	fontsource import internal
+3511	noise	slash commands prompt internal
+3518	noise	diff editor lockup internal
+3520	noise	lint-staged revert internal
+3549	noise	diffViewProvider brick internal
+3580	dup	task restoration resume — 任务恢复已有
+3589	noise	autocapture telemetry internal
+3598	noise	cancel thinking stream internal
+3601	boundary	checkpoints popover — their UI
+3602	dup	duplicate checkpoints — 检查点去重已有
+3605	dup	checkpoints hanging — 检查点已有
+3606	boundary	accounts popout — their UI
+3899	boundary	auto-approve menu — their UI
+5886	noise	token logout internal
+6981	noise	enterprise ID quota internal
+7783	dup	reasoning interrupts loop detection — 循环检测已有
+8833	noise	js_repl stability internal
+9101	noise	image attach hang internal
+9158	dup	sandbox error timeouts — 超时已有
+13138	dup	symlinked writable roots sandbox — 沙箱边界已有
+13284	dup	approval issue — 审批已有
+13602	dup	MCP missing type field — 容错已有
+16068	dup	watcher spurious skills events — watcher已有
+16474	noise	rule files errors internal
+16481	dup	autocompact ctx length — 压缩已有
+16522	dup	secrets fetch nonblocking — 密钥降级已有
+16582	dup	premature close tool calls — 断开处理已有
+16585	dup	tool outcome telemetry — 遥测已有
+16670	noise	aborterror stream internal
+16694	noise	aborterror stream internal
+16887	noise	empty config internal
+16906	noise	import error internal
+16991	noise	system prompt error internal
+17118	noise	ImportDefinitions internal
+17179	boundary	teams auth — their product
+17183	noise	indexing bugs internal
+17185	noise	indexing errors internal
+17195	noise	indexing bugs internal
+20224	boundary	MCP UI hide errors — their UI
+20233	dup	MCP error output — 错误输出已有
+20236	dup	unresolved MCP secrets warnings — 密钥告警已有
+20239	noise	cn mcp bugs internal
+20250	noise	tool call error log internal
+20330	boundary	mcp errors virtual file — their UI
+20374	dup	PATH bug MCP startup — 环境已有

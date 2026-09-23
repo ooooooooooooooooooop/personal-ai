@@ -1,0 +1,200 @@
+70905	noise	dl fragment
+70906	noise	dl fragment
+70907	noise	dl fragment
+70908	noise	dl fragment
+70929	noise	dl fragment
+70930	noise	dl fragment
+70931	noise	dl fragment
+70932	noise	dl fragment
+70963	noise	dl fragment
+70964	noise	dl fragment
+70965	noise	dl fragment
+70966	noise	dl fragment
+70982	noise	prose noise
+70983	noise	prose noise
+70984	dup	multi-device sync+MCP session recovery — 会话恢复已有
+70985	dup	direct mcp.json edit instant — 直编生效已有
+70986	dup	probe retry+auto reconnect — 探活重连已有
+70987	dup	builtin MCP connect fix — 连接修复已有
+70988	dup	first prompt stuck connecting fix — 卡死修复已有
+70989	dup	CJK/uppercase service names fix — 命名容错已有
+70990	dup	search experts+MCP confirm stuck fix — 确认修复已有
+70991	dup	disconnect/auth-cancel fix — 恢复已有
+70992	dup	long MCP tool not preempted — 中断防护已有
+70993	boundary	tencent docs MCP — their platform
+70994	dup	timeout no config+progress renewal — 续期已有
+70995	dup	multi-end misroute+session recovery — 同上dup
+70996	dup	auth param compat fix — 参数兼容已有
+70997	dup	webview keepalive+canvas isolate — 保活隔离已有
+70998	noise	perf prose
+70999	dup	tool injected wrong mode fix — 注入隔离已有
+71000	boundary	oauth app mgmt — their platform
+71001	dup	builtin vs custom MCP conflict — 冲突修复已有
+71002	dup	MCP progress display+Resource — 进度+资源已有
+71003	dup	install trust guide — 信任引导已有
+71004	dup	default UA+static headers — 请求头已有
+71005	dup	suite MCP cleanup on uninstall — 级联清理已有
+71006	dup	disabled tool still callable fix — 禁用生效已有
+71007	dup	logs to install dir blocks update — 写位置修复已有
+71008	dup	OAuth fail+loop fix — 授权修复已有
+71010	dup	custom SSE unusable fix — 传输修复已有
+71011	dup	type field misconfig fix — 配置校验已有
+71012	dup	rapid toggle JSON parse fix — 竞态修复已有
+71013	dup	OAuth retrigger after close fix — 重触已有
+71014	noise	fix prose
+71015	dup	proactive token refresh+auto reconnect — 主动刷新已有
+71017	dup	disabled tool callable — 同上dup
+71018	noise	fix prose
+71019	dup	OAuth not effective fix — 授权生效已有
+71020	dup	model ID passthrough HTTP — 模型透传已有
+71021	dup	http type OAuth trigger fix — 触发修复已有
+71022	noise	prose noise
+71023	dup	MCP OAuth flow — OAuth已有
+71024	dup	authorized but not connected fix — 状态同步已有
+71025	noise	prose noise
+71026	dup	MCP integration panel — 集成面板已有
+71027	boundary	markdown tab edit keep — their UI
+71028	noise	ui prose
+71029	dup	proxy timeout blocks UI fix — 启动阻塞修复已有
+71030	noise	ui prose
+71031	noise	ui prose
+71032	noise	fix prose
+71033	noise	fix prose
+71034	dup	# in filename garbled+tab fix — 文件名修复已有
+71035	noise	fix prose
+71036	noise	fix prose
+71037	noise	fix prose
+71038	dup	plan auto-enter skips approval fix — 审批旁路修复已有
+71039	noise	fix prose
+71040	noise	fix prose
+71041	noise	fix prose
+71042	dup	hide filtered thinking+answer — 过滤隐藏已有
+71043	dup	history order/loss on task switch — 同上dup
+71044	dup	tab switch kills task on confirm fix — 确认期保护已有
+71045	noise	ui prose
+71046	noise	fix prose
+71047	noise	fix prose
+71048	noise	fix prose
+71049	noise	ui prose
+71050	noise	ui prose
+71051	dup	IME backspace fix — 输入法修复已有
+71052	dup	expert info pollution on switch fix — 污染修复已有
+71053	noise	fix prose
+71054	boundary	custom model UI config — their UI
+71055	boundary	font size — their UI
+71056	noise	ui prose
+71057	dup	tool display forms — 展示形态已有
+71058	noise	fix prose
+71059	dup	powershell console window fix — 弹窗修复已有
+71060	dup	powershell popup fix — 同上dup
+71061	dup	cmd path resolve in PS fix — 路径解析已有
+71062	dup	cmd path resolve PS — 同上dup
+71063	noise	fix prose
+71064	dup	skill security check hang fix — 扫描修复已有
+71065	dup	intent capsule recommends skill/plugin/connector — 意图推荐已有
+71066	dup	enterprise skill update stale fix — 更新生效已有
+71067	dup	search enterprise skills — 企业搜索已有
+71068	dup	new skill misjudged idle fix — 误判修复已有
+71069	dup	enterprise custom skill e2e — 企业技能已有
+71070	dup	disabled skill still visible fix — 禁用生效已有
+71073	dup	load stability across restart — 加载稳定已有
+71074	dup	plugin command unusable fix — 命令修复已有
+71075	dup	deeplink skill install — 深链安装已有
+71076	dup	desc truncation strategy — 截断策略已有
+71077	dup	nested skill dirs unscanned fix — 嵌套扫描已有
+71078	noise	ui prose
+71079	dup	nested dirs unscanned — 同上dup
+71081	dup	extension host crash recovery — 宿主恢复已有
+71082	dup	recommend tags filter — 标签筛选已有
+71083	noise	fix prose
+71084	dup	yaml header display fix — 头部显示已有
+71085	dup	dup update prompt fix — 提示去重已有
+71086	dup	skill import security check — 安检流程已有
+71087	dup	install concurrency+loading — 并发控制已有
+71088	dup	update prompt mismatch fix — 提示一致已有
+71089	noise	ui prose
+71091	dup	market update strategy — 更新策略已有
+71092	dup	dynamic icon fetch — 图标获取已有
+71093	noise	fix prose
+71094	noise	ui prose
+71095	noise	prose noise
+71096	dup	pre-install security scan — 安装扫描已有
+71097	dup	skill version mgmt+batch update — 版本管理已有
+71098	dup	skill with login state — 登录态调用已有
+71099	dup	sort by install time — 排序已有
+71100	dup	/ invokes skill list — 斜杠唤起已有
+71101	noise	ui prose
+71102	noise	ui prose
+71103	boundary	wecom skill — their platform
+71104	noise	i18n prose
+71105	noise	ui prose
+71106	dup	SkillHub market install — 市场安装已有
+71107	dup	capsule detects plugin skills — 胶囊识别已有
+71108	dup	desc i18n auto — 国际化已有
+71110	dup	skill menu misses market installs fix — 列表修复已有
+71112	noise	prose noise
+71113	dup	recommend list — 推荐已有
+71114	dup	skill extension system — 技能扩展已有
+71115	dup	git branch display+safe switch+terminal panel — 分支切换已有
+71116	boundary	teams invite no-review — their platform
+71117	dup	first turn no error fix — 错误提示已有
+71118	noise	fix prose
+71119	noise	fix prose
+71120	dup	ErrorBanner missing fix — 错误横幅已有
+71121	noise	fix prose
+71122	dup	@mention search experts — 联想搜索已有
+71123	noise	fix prose
+71124	dup	stuck state+invite entry fix — 状态修复已有
+71125	noise	fix prose
+71126	dup	model fallback/switch first turn fix — 回退修复已有
+71127	boundary	teams collab — their platform
+71128	dup	external datasource+webhook triggers — webhook触发已有
+71129	dup	webhook signature false-block fix — 签名校验已有
+71136	dup	provider brand识别 — 品牌标识已有
+71140	noise	fix prose
+71141	noise	fix prose
+71142	noise	fix prose
+71143	noise	fix prose
+71144	dup	PDF/CSV preview — 预览已有
+71145	dup	binary preview garbled fix — 二进制修复已有
+71146	dup	SDK preview wrongly disabled fix — 预览生效已有
+71147	dup	send no feedback after ACP close fix — 反馈修复已有
+71148	dup	prefetch+ACP connect parallel — 并发切换已有
+71149	dup	no ConPTY sandbox fallback — 兼容沙箱已有
+71150	dup	SSE chunk splits UTF-8 fix — 边界修复已有
+71151	dup	prefer unpacked path startup — 路径优先已有
+71152	dup	PATH inject+ENAMETOOLONG fix — 注入修复已有
+71153	dup	cli connector stuck connecting fix — 连接修复已有
+71154	dup	managed node runtime+progress — 托管运行时已有
+71155	dup	cloud agents override builtin fix — 覆盖修复已有
+71156	dup	CLI restart resume on switch — 重启续接已有
+71157	dup	/compact display+attachment loss fix — 附件修复已有
+71158	dup	memory personalization disabled edition — 版本门控已有
+71159	dup	queue dispatch+compact chain sync — 链路同步已有
+71160	dup	hide compact cmds no history — 条件隐藏已有
+71161	dup	hide compact/summarize — 同上dup
+71162	dup	compact state not restored fix — 状态恢复已有
+71163	dup	/clear /summarize fail fix — 命令修复已有
+71165	dup	working memory per workspace — 工作区隔离已有
+71166	dup	rust panic IPC hang fix — panic修复已有
+71167	dup	rust panic IPC — 同上dup
+71168	noise	fix prose
+71169	dup	instance error blocks flow fix — 异常阻断修复已有
+71170	dup	transcript/replay write strategy — 写策略已有
+71171	dup	batched write+yield replay — 分批写盘已有
+71172	dup	expert task session cleanup fix — 会话清理已有
+71173	noise	fix prose
+71174	dup	clear expert affects other sessions fix — 隔离修复已有
+71175	dup	subagent card+queue push-all fix — 推送修复已有
+71176	dup	subagent register fail fix — 注册修复已有
+71177	dup	trusted types iframe bootstrap fix — TT兼容已有
+71180	noise	release fragment
+71183	dup	office/coding mode switch — 模式切换已有
+71186	noise	prose noise
+71191	dup	media preview in conv — 媒体预览已有
+71192	dup	per-workspace plugins — 工作区插件已有
+71193	dup	blocked reason shown — 阻断原因已有
+71197	dup	media preview — 同上dup
+71198	dup	per-workspace plugins — 同上dup
+71199	dup	blocked reason — 同上dup
+71203	noise	prose noise

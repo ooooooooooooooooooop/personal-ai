@@ -1,0 +1,200 @@
+3980	dup	slim CLI crash时persisted exit diagnostics — crash diagnostics
+3981	boundary	Web Shell管理GitHub/GitLab channels
+3982	boundary	devin acp子命令(ACP启动)
+3983	dup	同3956系 inline terminal images(Kitty/Ghostty) — terminal images
+3984	cand	write-contract: review submissions严格write契约+bypass tripwire检测
+3985	boundary	mTLS/Shell/model env配置文档
+3986	dup	同3964(重复) — terminal_input interception
+3987	dup	SIGTERM/SIGHUP保持handlers到cleanup完成 — shutdown fix
+3988	dup	path:row:col:description格式识别修复 — path parse
+3989	dup	$ prompt挂起(syntax error/unsupported shell)修复 — hang fix
+3990	dup	startup notices在resource listing后渲染 — startup order
+3991	dup	print mode合并piped stdin进prompt — stdin merge
+3992	dup	benchmark timing在TUI shutdown后打印 — timing order
+3993	boundary	addSource=1 URL param
+3994	dup	workspace:new terminal继承zed启动env — env inherit
+3995	boundary	resize reflow/list spacing/popup layout修复
+3996	boundary	cmd-n terminal center pane
+3997	dup	Web Shell sidebar session管理(同系列) — sidebar
+3998	cand	review-ui: structured finding-centric review view(severity/confidence)
+3999	dup	terminal URL/file path可点击 — link click
+4000	boundary	Local Control开Desktop session
+4001	cand	tui-pty: inline terminal可直接输入(Python REPL等)
+4002	dup	PowerShell经UTF-8 stdin非命令行 — encoding fix
+4003	dup	SDK/pipeline模式terminal序列不污染JSON — output hygiene
+4004	dup	SSE subscriptions计入liveness检测 — idle fix
+4005	cand	shell-safety: PowerShell CLM type whitelist(~90)+Git防护(bare/NTFS 8.3)
+4006	dup	streamed shell output在ACP chat保持可见 — output persist
+4007	boundary	Spawn task context menu
+4008	boundary	v2 prompt input重写
+4009	dup	SDK core tools尊重createAgent cwd — cwd respect
+4010	dup	Bash收session/model metadata+RPC streaming — bash integration
+4011	dup	env info含默认Shell type提示 — shell hint
+4012	cand	shell-snapshot: 自动捕获user shell config(functions/aliases/options)
+4013	dup	slow dynamic completion迁移cached files — completion perf
+4014	cand	env-marker: OPENCLAW_SHELL跨runtimes标记shell环境
+4015	dup	Skill/slash执行后result格式优化 — result format
+4016	cand	task-share: CODEBUDDY_TASK_LIST_ID跨session共享task lists
+4017	cand	goal-eval: 三态评估(achieved stop/not-achieved continue/unachievable)
+4018	boundary	Warp OSC 9通知+opt-in
+4019	dup	PTY session IDs+cwd随canvas state持久 — pty persist
+4020	dup	early keystrokes保留+paired-node actions授权 — keystroke
+4021	dup	one-shot foreground命令立即释放shell session — pty leak fix
+4022	boundary	status line theme colors+PR/branch摘要
+4023	boundary	file finder乱序匹配+Focus Follows Mouse
+4024	cand	tool-registry: --tools限量时registry仍含全部built-ins
+4025	dup	Workflow/Bash/PS后台任务统一通知 — task notify
+4026	dup	checkout后branch chip即更新 — ui freshness
+4027	dup	user messages渲染extension/skill/MCP tags — tag render
+4028	boundary	VS Code context menus
+4029	boundary	Web Shell channel policy配置
+4030	boundary	Web Shell artifact panel+settings
+4031	boundary	contextual task panels
+4032	dup	同4033(前置版) — attachments
+4033	cand	composer-attach: composer/@插入file attachments进active turn
+4034	boundary	visionModelId provider status
+4035	boundary	sidebar customization API
+4036	boundary	vision model selection UI
+4037	cand	git-mode: new session git mode selector
+4038	boundary	session created callback
+4039	boundary	token usage panel
+4040	boundary	daemon web-shell改进集
+4041	cand	multi-ws: multi-workspace split view(cross-workspace sessions)
+4042	cand	draft-hint: new-topic drafts建议新session发送
+4043	cand	grant-persist: persistent "Always Allow" granular shell&MCP policies
+4044	boundary	terminal bell设置
+4045	dup	daemon auth下session refresh — auth fix
+4046	dup	shell pipeline语法支持+测试 — pipeline syntax
+4047	boundary	visual test scenarios
+4048	boundary	deterministic visual captures
+4049	dup	/skills panel显示custom slash commands+group headers — skills panel
+4050	boundary	image generation extension feature-gated
+4051	boundary	ClinePass onboarding/provider/subscription
+4052	dup	同4172 plugin client directory param — multi-project
+4053	dup	Agent Skills reusable packages(Roo) — skills
+4054	boundary	Extension UI Protocol RPC文档
+4055	dup	cline skill命令(对齐plugin/mcp install) — skill cli
+4056	dup	plugin system加载skills/MCP/app connectors+local marketplace — plugin system
+4057	dup	slash command+skill fallback precedence测试 — precedence test
+4058	boundary	built-in features搜索banner
+4059	cand	hook-provider: before_provider_request检查/替换provider payloads
+4060	cand	marketplace: codex marketplace add(GitHub/git/local)+app-server
+4061	boundary	emmet extension
+4062	dup	缺失resource paths错误诊断(-e/--skill等) — error diagnostics
+4063	boundary	minimal-mode.ts tool render override示例
+4064	cand	pricing-tiers: input-token pricing tiers(custom models/models.json/extension)
+4065	boundary	snippets language server
+4066	boundary	code block语言文件扩展名
+4067	dup	blocked tool_call terminate支持(全terminate批次跳过follow-up) — terminate support
+4068	cand	skill-scope: skills.disabledLevels隐藏bundled/project/user/extension级
+4069	boundary	Agent Plugins+Powers session pinning
+4070	cand	agent-model: per-custom-agent default_model
+4071	dup	array tool params加permissive item schemas防provider拒 — schema compat
+4072	dup	static Chrome helpers不进activated runtime — hygiene
+4073	boundary	built-in chrome profile+extension relay auto-start
+4074	boundary	pre-configured官方plugin marketplace
+4075	dup	cold registry metadata期间web-search prompts保留 — prompt persist
+4076	dup	message命令plugin registry失败时nonzero退出 — fail-closed
+4077	boundary	CLI/nodes(截断)
+4078	dup	self-update允许旧protocol health probes — update compat
+4079	dup	plugins list --json走snapshot-only路径 — list path
+4080	dup	plugins list --json走parsed fast path+response budgets — fast path
+4081	boundary	QQ Bot bundled channel plugin
+4082	cand	sdk-turn: normalized command turn facts+plugin helpers
+4083	boundary	Yuanbao channel plugin注册
+4084	dup	Apple link-preview payload忽略保URL文本 — payload filter
+4085	boundary	ClawRouter provider plugin
+4086	boundary	Code Mode MCP平台扩展
+4087	dup	OpenAI agent models视为Codex runtime requirements — requirement gate
+4088	cand	plugin-cmd: owner-gated /plugins /plugin命令(list/show/enable/disable)
+4089	cand	ui-recovery: app module未注册时plain HTML recovery panel
+4090	boundary	Crush内建jq
+4091	cand	hook-config: custom agent frontmatter hooks配置
+4092	cand	agent-default: settings.agent plugin默认Agent(最低优先级)
+4093	cand	diag-labels: bounded skill metrics+tool source/owner labels(core/plugin/MCP/channel)
+4094	dup	/skills直接输入不跳转/不发送 — input handling
+4095	cand	ext-async: async extension factories(dynamic imports/lazy deps)
+4096	dup	reply delivery与slow follow-up分离 — reply perf
+4097	boundary	test-finder developer extension
+4098	dup	triggerTurn:false消息不插入tool call中间 — message ordering
+4099	dup	project/user resources覆盖package precedence — resource precedence
+4100	boundary	REPL progress flooding等修复
+4101	dup	preset snapshot active model/thinking/tools on first apply — preset snapshot
+4102	dup	session replacement/reload期间transient UI消息可见 — ui persist
+4103	dup	startup/session-listing/task-maintenance/plugin-loading热路径精简 — perf
+4104	dup	slow-host startup+reusable model catalogs+event-loop readiness — startup
+4105	dup	channel-config schema parsing不发现plugin metadata — parse hygiene
+4106	dup	startup HTTP-listen vs gateway-ready timing分离 — timing split
+4107	cand	install-gate: operator install policy取代dangerous-code scanner(治理化安装)
+4108	cand	hook-sdk: SDK注册tool execution hooks(自定义拦截)
+4109	cand	mcp-oauth: MCP OAuth 2.1 PKCE+OSV malware scanning
+4110	dup	MCP config scan时机+首轮等待防config changes — timing fix
+4111	boundary	codex-review skill(closeout reviews)
+4112	dup	marketplace config跨进程file lock+atomic writes — config lock
+4113	boundary	VS Code extension迁Cline SDK
+4114	dup	provider auth-state map启动pre-warm — startup warm
+4115	boundary	Cascade Migration Wizard
+4116	dup	plugin ZIP流式解压+write backpressure — install perf
+4117	cand	output-style: plugins提供custom output styles
+4118	dup	bundled plugin deps去test/spec cargo+npm validation fail — dep prune
+4119	cand	skill-lib: shared Gateways上personal skill libraries
+4120	cand	sdk-seam: provider-owned transport/auth/follow-up seams+harness result classification
+4121	cand	sdk-hook: reply payload sending hook(channel-owned replies)
+4122	boundary	Plugin SDK legacy subpaths deprecate
+4123	boundary	legacy alias exports deprecation metadata
+4124	boundary	plugin icon assets/icon.png
+4125	boundary	marketplaces/<name> uniform placement
+4126	cand	hook-ctx: message hook contexts暴露run/message/sender/session/trace字段
+4127	cand	install-scope: plugin安装scope选择(user/project级)
+4128	boundary	marketplace CLI/version-aware sharing
+4129	boundary	typed tool-plugin helpers/RPC metadata
+4130	boundary	oc-path plugin(oc:// access)
+4131	dup	short-lived install后不import loader清cache — perf
+4132	boundary	ClawHub artifact metadata
+4133	dup	install时按active runtime version解析API compat — compat check
+4134	boundary	Google Meet participant plugin
+4135	boundary	Windows plugin SDK alias刷新
+4136	cand	model-catalog: manifest modelCatalog contract(provider-owned rows/aliases/suppressions)
+4137	dup	plugins.entries引官方ext时发install hints — migration hints
+4138	dup	modelCatalog.aliases/suppressions接入catalog planning — catalog wiring
+4139	dup	x_search settings迁plugin-owned路径 — config migration
+4140	cand	tool-allowlist: optional agent tools显式allowlists+authoring guide
+4141	dup	install/update自动迁移local plugin registry — registry migration
+4142	dup	load.paths目录含package.json+extension时视为package roots — root detect
+4143	dup	plugin安装后first-run不跳credential prompt — onboarding fix
+4144	boundary	Arcee AI provider plugin
+4145	boundary	Tencent Cloud provider plugin
+4146	boundary	Pixverse video provider
+4147	boundary	QA-Lab tool fixture coverage
+4148	noise	README/onboarding文档
+4149	dup	relative plugin refs按declaring entity解析 — path resolve
+4150	dup	updates保留active settings/enabled skills/default-agent — update preserve
+4151	boundary	Gemini CLI/Antigravity built-in移除
+4152	boundary	Customize菜单重组
+4153	dup	resource precedence project-first(同4099) — precedence
+4154	cand	secrets: config.get响应redact credentials+skill/plugin安全scanner
+4155	cand	mcp-per-thread: executor plugins按thread激活stdio MCP servers
+4156	dup	sign-out移除provider entry+runtime不re-import — logout persist
+4157	cand	skill-slash: Skills暴露为slash commands(会话直调)
+4158	cand	skill-review: Skill Workshop(pending proposals+CLI/Gateway review+rollback)
+4159	dup	skill fallback仅在无matching slash command时 — precedence
+4160	dup	suite auto-update background refresh修复 — update fix
+4161	boundary	Telegram forum-topic targets
+4162	boundary	Chrome extension daemon/browser-automation onboarding
+4163	boundary	Customizations panel全局搜索
+4164	boundary	Top of Mind内置extension
+4165	dup	run-scoped typing suppression统一(cross-channel/internal) — typing leak
+4166	dup	core updates不阻塞于plugin repair缺失 — update resilience
+4167	cand	snapshot-restore: 每次tool使用snapshot workspace(可回滚)
+4168	noise	docs OAuth flags
+4169	cand	mcp-toggle: 选择性enable/disable extension内MCP servers
+4170	boundary	tui.session.select API
+4171	boundary	custom agent names CLI/TUI
+4172	dup	同4052(重复) — directory param
+4173	cand	hook-task: task tool execution hooks+command context tracking
+4174	boundary	sidebar empty project groups+按钮
+4175	boundary	webp preview+paste file paths
+4176	noise	release announcement
+4177	boundary	Command Palette New Task
+4178	boundary	Open Markdown Preview context menu
+4179	cand	ui-diff: "Suggest Edit"按钮+experimental live_diffs

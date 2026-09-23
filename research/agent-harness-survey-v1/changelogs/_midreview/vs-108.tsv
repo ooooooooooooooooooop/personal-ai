@@ -1,0 +1,200 @@
+74427	dup	hide copilot cmds when AI disabled — 禁用隐藏已有
+74432	noise	editor feature
+74438	noise	platform noise
+74439	noise	editor feature
+74441	dup	context servers spawned in active project root — 根锚定已有
+74443	noise	editor feature
+74444	noise	editor feature
+74445	noise	editor feature
+74447	noise	editor feature
+74462	noise	editor feature
+74465	noise	editor feature
+74466	dup	project_notifications disabled default — 通知默认关已有
+74470	noise	platform noise
+74471	noise	editor feature
+74479	noise	internal
+74480	noise	editor feature
+74481	noise	editor feature
+74483	noise	editor feature
+74484	noise	internal
+74488	dup	warnings unknown settings fields — 配置校验已有
+74489	dup	regex errors under search bar — 错误内联已有
+74490	noise	platform noise
+74495	noise	editor feature
+74496	noise	editor feature
+74497	noise	editor feature
+74498	noise	editor feature
+74501	noise	editor feature
+74502	noise	collab internal
+74509	noise	editor feature
+74510	dup	cleanup debug procs on force quit — 退出清理已有
+74511	noise	editor feature
+74516	noise	editor feature
+74521	noise	prose fragment
+74523	noise	editor feature
+74525	noise	editor feature
+74526	noise	editor feature
+74531	dup	improved locating edits — 编辑定位已有
+74534	noise	editor feature
+74535	noise	editor feature
+74537	noise	editor feature
+74538	noise	editor feature
+74540	noise	prose noise
+74543	noise	collab internal
+74545	noise	editor feature
+74550	dup	save profile per thread — 线程档案已有
+74556	noise	editor feature
+74558	noise	editor feature
+74561	noise	editor feature
+74566	noise	noise
+74568	noise	editor feature
+74571	noise	editor feature
+74573	noise	editor feature
+74582	dup	pinned tabs +1 slot — 钉住豁免已有
+74591	noise	editor feature
+74597	noise	editor feature
+74603	noise	editor feature
+74605	noise	ui feature
+74606	noise	config fragment
+74607	noise	config fragment
+74608	dup	reliability on malformed edits — 畸形编辑容错已有
+74612	noise	editor feature
+74614	noise	editor feature
+74615	noise	editor feature
+74616	noise	editor feature
+74620	noise	config fragment
+74623	noise	editor feature
+74626	noise	editor feature
+74627	noise	editor feature
+74628	noise	editor feature
+74635	noise	editor feature
+74636	noise	editor feature
+74637	noise	editor feature
+74638	noise	editor feature
+74639	noise	billing prose
+74640	noise	editor feature
+74643	noise	editor feature
+74644	noise	editor feature
+74645	noise	editor feature
+74646	noise	editor feature
+74649	noise	editor feature
+74650	noise	config fragment
+74651	noise	config fragment
+74652	noise	config fragment
+74653	noise	config fragment
+74663	noise	editor feature
+74669	noise	editor feature
+74670	noise	editor feature
+74672	noise	editor feature
+74673	noise	editor feature
+74676	noise	editor feature
+74677	noise	editor feature
+74685	noise	editor feature
+74686	noise	editor feature
+74688	noise	ui feature
+74689	dup	title generation error handling — 标题容错已有
+74692	dup	preserve selection in history — 历史选择保留已有
+74698	dup	correct timezone separators — 时区修正已有
+74699	noise	ui prose
+74702	noise	editor feature
+74704	noise	editor feature
+74708	noise	editor feature
+74710	noise	editor feature
+74713	dup	action rename back-compat keymaps — 兼容别名已有
+74718	dup	diff display on edit/rewrite — 差异呈现已有
+74719	dup	stop generation on message edit — 编辑中止已有
+74725	dup	remove obsolete tools — 工具裁剪已有
+74727	noise	ui feature
+74730	dup	@-mentions work with large files — 大文件提及已有
+74733	dup	long-running cmds discouraged — 长命令劝退已有
+74734	noise	editor feature
+74739	noise	config fragment
+74741	noise	config fragment
+74742	noise	config fragment
+74743	noise	config fragment
+74744	noise	config fragment
+74745	noise	config fragment
+74747	noise	rename internal
+74750	dup	editable thread titles — 标题可改已有
+74753	dup	reliability incl tool results — 工具结果容错已有
+74759	noise	editor feature
+74761	noise	editor feature
+74766	noise	editor feature
+74768	noise	editor feature
+74771	noise	contributor noise
+74774	dup	correct model over-indentation — 缩进纠偏已有
+74776	noise	contributor noise
+74777	dup	fuzzy @mentions — 模糊匹配已有
+74786	noise	editor feature
+74790	dup	temporarily stop LSP servers — 服务暂停已有
+74791	noise	editor feature
+74793	noise	platform noise
+74797	dup	start LS on tool file access — 按需起服已有
+74802	dup	fuzzy @mentions — 同上dup
+74803	noise	prose fragment
+74805	noise	prose fragment
+74806	dup	never act on TODO comments — TODO 不触发已有
+74810	noise	ui feature
+74812	noise	editor feature
+74813	noise	editor feature
+74814	noise	editor feature
+74815	noise	editor feature
+74816	noise	editor feature
+74817	noise	editor feature
+74818	noise	collab internal
+74820	noise	platform noise
+74821	noise	platform noise
+74822	noise	prose noise
+74826	noise	prose fragment
+74833	dup	caching files in context — 上下文缓存已有
+74837	noise	prose noise
+74839	dup	persist editor folds across restarts — 折叠持久已有
+74840	noise	editor feature
+74850	noise	editor feature
+74852	noise	editor feature
+74853	noise	editor feature
+74854	dup	expand empty sel to block — 块扩展已有
+74855	noise	editor feature
+74859	noise	editor feature
+74864	noise	editor feature
+74866	noise	editor feature
+74867	noise	editor feature
+74868	noise	editor feature
+74870	noise	editor feature
+74872	noise	editor feature
+74877	noise	editor feature
+74880	noise	editor feature
+74881	noise	editor feature
+74885	noise	editor feature
+74890	noise	editor feature
+74891	noise	config fragment
+74892	noise	config fragment
+74893	noise	config fragment
+74894	noise	config fragment
+74895	noise	config fragment
+74896	noise	config fragment
+74897	noise	config fragment
+74898	noise	config fragment
+74899	noise	config fragment
+74908	noise	rename internal
+74936	noise	editor feature
+74938	dup	disable predictions on provider none — 开关联动已有
+74939	dup	disable predictions — 同上dup
+74940	noise	editor feature
+74942	noise	prose fragment
+74943	noise	editor feature
+74948	noise	config fragment
+74949	noise	config fragment
+74950	noise	config fragment
+74951	noise	config fragment
+74955	noise	file list
+74956	noise	file list
+74957	noise	file list
+74958	noise	file list
+74967	noise	revert internal
+74968	noise	prose noise
+74971	noise	prose noise
+74976	noise	file list
+74977	noise	file list
+74978	noise	file list
+74979	noise	file list

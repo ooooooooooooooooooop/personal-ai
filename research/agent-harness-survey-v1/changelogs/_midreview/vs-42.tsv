@@ -1,0 +1,200 @@
+9981	dup	drive-letter canonicalization — 路径规范化已有
+9986	noise	release version internal
+9987	dup	thread settings goal-first/forked — 设置保持已有
+9988	dup	CAINFO proxy envs — 证书透传已有
+9989	dup	proxy routes redirects — 路由重解已有
+9992	noise	http factory internal
+9994	dup	proxy in updater — 代理遵从已有
+9995	dup	custom arg0 sandboxed — 参数保持已有
+9997	noise	R2 internal
+9998	noise	codespell internal
+9999	dup	compacted rollout items centralize — 压缩项已有
+10000	dup	handshake buffers sized — 缓冲适配已有
+10001	noise	setters internal
+10002	noise	tests internal
+10004	dup	rollout boundaries materialized — 边界记录已有
+10005	dup	page inherited history — 分页继承已有
+10006	dup	exact values managed config — 精确遵从已有
+10007	dup	permitted loopback proxies — 回环白名单已有
+10010	dup	paginated context lineages — 分页上下文已有
+10012	dup	process trees job objects — 进程树杀已有
+10015	dup	findings attribute rules — 归因规则已有
+10017	dup	managed proxy sandboxed — 代理沙箱已有
+10018	noise	http internal
+10019	dup	always assign item IDs — ID完备已有
+10020	dup	proxy policy auth routing — 策略传播已有
+10021	dup	auth managers routing config — 路由配置已有
+10023	dup	proxy routes auth refresh — 刷新遵从已有
+10028	noise	R2 internal
+10029	noise	serialization internal
+10030	dup	retry missing response — 响应缺失重试已有
+10031	noise	serialization internal
+10033	boundary	popup sizing — their UI
+10035	dup	live parent history forking — fork历史已有
+10036	noise	bazel internal
+10037	dup	reject envs named local — 保留名防护已有
+10038	noise	test setup internal
+10039	noise	token estimate internal
+10041	noise	truncated noise
+10042	noise	http factory internal
+10044	dup	capability roots without executors — 惰性解析已有
+10045	dup	stop persisting RMCP traces — 追踪收敛已有
+10046	noise	proxy wrapper internal
+10049	dup	materialize workspace roots — 根物化已有
+10050	noise	bench internal
+10051	noise	bench internal
+10052	dup	remove legacy exec policy — 策略收敛已有
+10055	dup	bound stdio JSON-RPC — 消息限界已有
+10058	noise	tracing internal
+10059	dup	bounded output collection — 输出限界已有
+10060	noise	reasoning params internal
+10061	dup	unique IDs review rollouts — ID唯一已有
+10062	dup	workspace roots sandboxes — 根传播已有
+10064	noise	migration internal
+10065	dup	repair unterminated rollout — 日志修复已有
+10066	dup	personality none — 人格开关已有
+10067	noise	safety prompt internal
+10070	dup	prefer home socket — 套接字优先已有
+10071	noise	upload diag internal
+10072	dup	prefixes outbound IDs — ID前缀已有
+10074	noise	link notice internal
+10075	dup	ordinals paginated rollouts — 序号已有
+10076	dup	thread-idle after interrupts — 空闲事件已有
+10077	noise	completion internal
+10078	noise	snapshot internal
+10079	dup	spawned-agent models backend — 模型限域已有
+10080	noise	turn metadata internal
+10081	dup	reap exited PID children — 子进程回收已有
+10082	noise	histogram internal
+10083	noise	console windows internal
+10084	boundary	popup dismissal — their UI
+10086	noise	migration prep internal
+10088	noise	author噪声
+10090	noise	author噪声
+10093	noise	author噪声
+10095	noise	package detect internal
+10098	noise	bio policy internal
+10100	noise	bundle schema internal
+10102	dup	mixed-case URLs safety — 大小写安全已有
+10103	noise	popup internal
+10109	dup	pruning hidden dirs walks — 目录剪枝已有
+10111	noise	test internal
+10112	noise	install detect internal
+10116	dup	bound pending RPCs — RPC限界已有
+10120	dup	preserve WS system proxy — 代理保持已有
+10124	dup	omit internal fields payloads — 载荷净化已有
+10125	noise	prompting internal
+10127	dup	preserve reviewer resume — 审查者保持已有
+10128	noise	ownership internal
+10132	dup	Windows proxy resolver — 代理解析已有
+10133	noise	CDP internal
+10134	noise	openssl internal
+10135	noise	esbuild internal
+10138	noise	path-uri internal
+10139	noise	formatter internal
+10140	dup	macOS proxy resolver — 代理解析已有
+10142	dup	safety buffering metadata — 缓冲元数据已有
+10143	noise	stylistic internal
+10144	noise	input items internal
+10145	noise	client handling internal
+10146	noise	cache guard internal
+10147	noise	client setup internal
+10148	dup	path lexical containment — 包含判断已有
+10149	dup	share resumed rollout history — 历史共享已有
+10150	noise	rmcp internal
+10151	noise	metrics internal
+10152	dup	UUID7 IDs — ID方案已有
+10155	dup	view_image paths env — 环境解析已有
+10156	dup	current step envs tools — 环境已有
+10157	dup	report working directory — cwd暴露已有
+10159	noise	rename internal
+10161	noise	path-uri internal
+10162	noise	handshake protocol internal
+10163	dup	surface budget exhaustion — 预算暴露已有
+10164	dup	RPC ownership separation — 协议分离已有
+10165	noise	instructions internal
+10166	dup	thread-level originator overrides — 发起者覆盖已有
+10167	dup	wait_for_environment — 环境等待已有
+10171	dup	IDs forked history — ID分配已有
+10173	noise	provenance types internal
+10174	noise	metadata types internal
+10177	dup	agent messages response items — 项持久已有
+10178	dup	bounded fs walk RPC — 遍历限界已有
+10179	noise	usage warning internal
+10180	dup	trace JSON-RPC — 追踪已有
+10181	dup	follow dir symlinks walks — 符号链接已有
+10184	noise	release noise
+10186	dup	model lacks metadata warn — 元数据警告已有
+10188	noise	formatter quiet internal
+10190	noise	author噪声
+10193	dup	compress cold rollouts — 冷压缩已有
+10195	noise	path error internal
+10196	dup	stream files chunks — 分块流已有
+10198	dup	warn output truncated — 截断警告已有
+10199	noise	test internal
+10201	noise	test internal
+10202	noise	path types internal
+10203	dup	path migration invariants — 不变量已有
+10204	dup	target-native env cwd — cwd已有
+10205	noise	serde internal
+10207	noise	test internal
+10208	noise	fields internal
+10209	dup	back off retries exec recovery — 退避已有
+10211	noise	cache warm internal
+10212	noise	service rename internal
+10213	noise	format notice internal
+10214	dup	PathUri through exec-server — 路径透传已有
+10216	noise	path parsing internal
+10218	dup	optional IDs response items — ID可选已有
+10219	dup	unique IDs realtime turns — ID唯一已有
+10220	noise	append text internal
+10221	dup	signed URLs refresh reconnect — 签名刷新已有
+10225	dup	turn-scoped context contributions — 轮域贡献已有
+10226	dup	time reminders config — 提醒已有
+10227	dup	rollout budget impl — 预算已有
+10228	dup	time reminders clock — 提醒已有
+10229	dup	current-time impl — 提醒已有
+10230	noise	app ID internal
+10234	noise	packaging internal
+10235	dup	cwd as PathUri — 路径类型已有
+10237	dup	cap feedback upload subtrees — 上传限界已有
+10238	dup	dynamic tools namespaces — 命名空间已有
+10241	noise	clone internal
+10242	noise	serialize internal
+10243	noise	clone internal
+10244	noise	import internal
+10245	noise	encoded bodies internal
+10246	dup	explicit environment cwd — cwd已有
+10247	dup	steer interrupt wait_agent — steer中断已有
+10252	noise	test internal
+10253	dup	retain resolved envs turns — 环境保持已有
+10254	boundary	speech append — their product
+10255	dup	Noise relay transport — 传输已有
+10256	noise	histogram internal
+10257	dup	interruptible sleep tool — 可中断睡眠已有
+10258	noise	test internal
+10260	dup	corrupted SQLite backup+rebuild — 自愈已有
+10265	dup	clear stale watches interruption — 监听清理已有
+10266	noise	goal routing internal
+10267	dup	global instruction lifecycle — 指令生命周期已有
+10268	dup	Ctrl-C non-TTY — 中断已有
+10269	dup	stop mirroring input realtime — 镜像收敛已有
+10270	noise	goal ops internal
+10271	dup	retry HTTP initialize — 初始化重试已有
+10272	noise	spans internal
+10273	noise	spans internal
+10274	noise	PathUri API internal
+10275	noise	LLD internal
+10276	noise	handler internal
+10277	noise	async_trait internal
+10278	dup	remove blocking migration — 非阻塞迁移已有
+10279	noise	recursion limit internal
+10280	dup	retry Guardian failures — 重试已有
+10283	noise	bazel internal
+10284	dup	/import external agents — 外部导入已有
+10285	noise	npm staging internal
+10286	dup	forward output realtime — 转发已有
+10287	noise	gauge internal
+10288	noise	annotations internal
+10289	noise	search text internal
+10292	dup	search metadata dynamic tools — 元数据已有

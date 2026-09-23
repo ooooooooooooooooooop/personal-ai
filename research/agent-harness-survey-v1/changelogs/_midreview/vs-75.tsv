@@ -1,0 +1,200 @@
+35486	dup	injection detection simplified — 模式匹配已有
+35492	boundary	usage stats UI — their UI
+35493	boundary	resizable sidebar — their UI
+35495	boundary	collapsible groups — their UI
+35496	boundary	TUI diff viewer — their UI
+35497	dup	confirm pending steer queuedSteer — 引导确认已有
+35499	noise	cleanup internal
+35500	boundary	apps UI — their UI
+35502	dup	stop resolving TUI scripts from cwd — cwd脚本屏蔽已有
+35503	noise	migration internal
+35505	boundary	tui command — their UI
+35507	dup	ACP compat TUI — 兼容已有
+35508	boundary	tui command — their UI
+35509	boundary	mention icon — their UI
+35510	boundary	recipes UI — their UI
+35511	boundary	chat reply ACP — their UI
+35512	dup	notifications only capability — 能力门已有
+35519	boundary	diff viewer — their UI
+35521	noise	binary internal
+35522	noise	revert internal
+35523	noise	refactor internal
+35525	dup	desktop notification task done — 完成通知已有
+35526	boundary	ext settings — their UI
+35529	boundary	sidebar — their UI
+35530	boundary	sidebar — their UI
+35534	boundary	sub recipes UI — their UI
+35536	boundary	TUI UX — their UI
+35539	boundary	TUI client — their UI
+35540	boundary	iframe — their UI
+35541	boundary	nav settings — their UI
+35544	boundary	inline rename — their UI
+35546	dup	UI injection update — 注入更新已有
+35547	dup	sync desktop_prompt — 提示同步已有
+35550	boundary	elicitation visual — their UI
+35560	boundary	shortcut — their UI
+35561	boundary	sidebar firefox — their UI
+35563	dup	auto scroll threshold — 滚动阈值已有
+35564	boundary	quick launcher — their UI
+35566	noise	package internal
+35567	boundary	param controls — their UI
+35568	boundary	capitalization — their UI
+35572	boundary	CMD+T — their UI
+35580	boundary	param activities — their UI
+35581	boundary	filter params — their UI
+35586	dup	stop auto scroll on respond — 滚动行为已有
+35588	boundary	model selection — their UI
+35590	boundary	metrics — their UI
+35599	noise	redesign noise
+35601	boundary	alphabetize — their UI
+35609	noise	lint internal
+35611	dup	UPDATES_ENABLED flag check — 更新旗已有
+35614	dup	context length CLI — 上下文显示已有
+35615	noise	ui-v2 internal
+35617	boundary	tile/chart — their UI
+35619	boundary	bossui — their UI
+35620	boundary	titlebar — their UI
+35621	boundary	timeline — their UI
+35624	boundary	playground — their UI
+35626	boundary	titlebar — their UI
+35627	boundary	timeline — their UI
+35628	boundary	routing — their UI
+35629	boundary	tile/chart — their UI
+35630	boundary	bossui — their UI
+35639	boundary	display name — their UI
+35641	boundary	recipe agents — their UI
+35645	boundary	radio — their UI
+35647	boundary	tool number — their UI
+35648	boundary	default model — their UI
+35650	boundary	env ux — their UI
+35651	boundary	model refresh — their UI
+35652	boundary	radio — their UI
+35653	boundary	bottom bar — their UI
+35655	boundary	env detection — their UI
+35662	boundary	providers — their UI
+35663	boundary	shim — their UI
+35666	boundary	extensions — their UI
+35667	boundary	toggle — their UI
+35669	boundary	toasts — their UI
+35670	boundary	modals — their UI
+35671	boundary	startup — their UI
+35672	boundary	dropdown — their UI
+35673	boundary	scroll — their UI
+35674	boundary	extensions — their UI
+35676	boundary	logs — their UI
+35677	boundary	settings — their UI
+35679	boundary	ext start — their UI
+35680	boundary	ext settings — their UI
+35681	boundary	ext state — their UI
+35682	boundary	builtins — their UI
+35684	boundary	update card — their UI
+35685	boundary	settings — their UI
+35686	boundary	icon — their UI
+35689	boundary	providers — their UI
+35712	dup	isolate prepare tools test — 状态隔离已有
+35714	dup	isolate recipe temp paths — 路径隔离已有
+35715	dup	isolate gym cargo workspace — 工作区隔离已有
+35719	noise	topic internal
+35720	dup	macOS sandboxing — 沙箱已有
+35722	dup	isolated claude-code sessions — 会话隔离已有
+35724	dup	stream-json session_id — 已有
+35725	dup	session isolation — 已有
+35728	noise	playwright internal
+35740	dup	streamed tool calls no indexes — 无索引流已有
+35745	dup	LanceDB vector tool selection — 向量选择已有
+35747	dup	purge phantom sessions startup — 幻影清理已有
+35748	dup	dedupe providers RPC startup — RPC去重已有
+35750	dup	staged phases startup — 分阶启动已有
+35751	dup	DISABLE_KEYRING config — keyring开关已有
+35753	noise	ink internal
+35754	dup	stop collecting stderr — stderr收敛已有
+35756	dup	static regex compile — 编译缓存已有
+35760	noise	optimize internal
+35761	dup	recipe deeplink loading speed — 加载加速已有
+35765	dup	direct to disk limit — 磁盘限已有
+35771	noise	version header
+35772	noise	release header
+35789	noise	whl artifact
+35790	noise	whl artifact
+35795	noise	version header
+35798	noise	misc count
+35803	noise	version header
+35805	noise	misc count
+35811	noise	version header
+35814	noise	version header
+35816	noise	misc count
+35818	noise	version header
+35820	noise	misc count
+35825	noise	excluded noise
+35826	noise	contributor noise
+35828	noise	version header
+35830	noise	misc count
+35837	noise	version header
+35840	noise	misc count
+35842	noise	excluded noise
+35846	noise	misc count
+35848	noise	version header
+35874	noise	version header
+35876	noise	contributor noise
+35878	noise	version header
+35880	noise	misc count
+35881	noise	contributor noise
+35883	noise	version header
+35887	noise	version header
+35889	noise	contributor noise
+35891	noise	version header
+35896	noise	version header
+35907	dup	semantic verification contract prototype — 验证契约已有
+35909	noise	version header
+35920	noise	version header
+35937	noise	version header
+35939	noise	version header
+35942	noise	version header
+35945	noise	version header
+35949	noise	truncated noise
+35953	noise	version header
+35959	noise	version header
+35960	noise	misc count
+35961	noise	excluded noise
+35964	noise	version header
+35985	noise	version header
+35998	noise	version header
+36005	noise	excluded noise
+36008	noise	version header
+36028	noise	version header
+36041	noise	version header
+36050	noise	contributor noise
+36053	noise	version header
+36058	noise	version header
+36067	noise	version header
+36078	noise	contributor noise
+36081	noise	version header
+36084	noise	version header
+36092	noise	version header
+36095	noise	version header
+36098	noise	version header
+36101	noise	version header
+36105	noise	version header
+36109	noise	version header
+36112	noise	version header
+36116	noise	contributor noise
+36119	noise	version header
+36148	noise	contributor noise
+36244	noise	excluded noise
+36251	noise	version header
+36255	noise	version header
+36259	noise	version header
+36275	noise	version header
+36283	noise	logo noise
+36285	noise	misc count
+36292	noise	tauri internal
+36293	noise	excluded noise
+36309	noise	version header
+36358	noise	version header
+36379	noise	version header
+36383	noise	version header
+36387	noise	reaction noise
+36389	noise	version header
+36400	noise	excluded noise
+36401	noise	contributor noise
+36404	noise	version header

@@ -1,0 +1,200 @@
+12146	noise	onboarding strings tweak
+12150	noise	splash update
+12156	boundary	reasoning level in header — their UI
+12176	noise	reasoning_effort response field internal
+12344	boundary	guardian transcript deltas — their guardian feature
+12416	noise	session source otel tag internal
+12439	boundary	multi-click transcript select — their TUI
+12541	dup	doctor env diagnostics — diagnostics 已有
+12551	dup	doctor environment diagnostics 同上
+12575	noise	min log level internal
+12587	noise	log db maintenance internal
+12601	noise	drop sqlite feature flag internal
+12602	noise	limit log rows internal
+12617	noise	experimental extended history internal
+12621	noise	--search just log internal
+12629	noise	ws timing metrics internal
+12631	noise	drop sqlx logging internal
+12639	noise	log db internal
+12640	noise	log db client internal
+12641	noise	log retention 90d internal
+12658	boundary	requirementList — their app-server surface
+12668	noise	/etc/codex/config.toml honor — config path
+12934	dup	bad image error — attachment 校验已有
+12935	dup	retroactive image placeholder — attachment fallback 已有
+12938	dup	undecodable image placeholder 同上
+13686	noise	timer turn metrics internal
+13687	noise	timer tags internal
+13787	boundary	remote-control pairing — their remote surface
+13788	boundary	pairing status transport 同上
+13789	boundary	pairing status RPC 同上
+13797	boundary	pairing start 同上
+13812	noise	remote compaction parity internal
+13828	boundary	installation ID remote enrollment — their remote
+13938	noise	remote branch review internal
+13946	dup	remote compaction — compaction 已有
+14026	dup	compact large tool schemas — schema 压缩已有
+14039	dup	ad-hoc memory extension instructions — memory ext 已有
+14042	dup	git-backed workspace diffs memory — memory 已有
+14069	dup	memory mode phase1 extraction — memory 已有
+14072	dup	memory usage for selection — memory 已有
+14087	dup	new memory prompts — memory 已有
+14090	dup	memory read path — memory 已有
+14115	dup	skip compact on last user turn — compaction 已有
+14117	dup	alias compaction — compaction 已有
+14134	dup	configurable compaction prompt — compaction 配置已有
+14951	dup	reasoning effort optional — reasoning 配置已有
+15279	dup	canonical command exec items — exec/audit 已有
+15378	noise	zsh exec bridge internal
+15410	noise	shell command sorting internal
+15415	dup	display raw command — 命令透明已有
+15435	noise	powershell utf-8 internal
+15443	noise	locate pwsh util internal
+15522	noise	guard git enrichment internal
+15598	dup	git info to memories — memory 已有
+15608	noise	remove cargo check CI internal
+15663	dup	git branch tooling — git tools 已有
+15672	dup	async ghost commit — snapshot 已有
+15925	noise	goal progress extension internal
+16269	noise	--config flags SDK internal
+16318	cand	dynamic tools injection — 动态工具注入面
+16344	boundary	connected account email — their app reviews
+16509	dup	report failure tool — 失败回报已有
+16662	boundary	ctrl+c input behavior — their TUI
+16955	noise	filepath apply fix
+17081	boundary	VSC quick fix disable — their ext
+17224	noise	/rename alias minor
+17239	noise	react best practices consolidate
+17240	dup	rule tools disabled default — rules gating 已有
+17248	boundary	message counter — their UI
+17262	dup	resubmit overloaded errors — retry 已有
+17263	boundary	remove rule button — their UI
+17344	dup	reusable workflow — workflows 已有
+17346	boundary	cmd+a select images — their UI
+17373	boundary	stream error toggle — their UI
+17374	boundary	thinking block layout — their UI
+17377	boundary	autocomplete cache — their ext
+17406	boundary	JCEF reload — their ext
+17416	boundary	rename rule dialog — their UI
+17504	dup	fetch errors to agent — 错误回传已有
+17514	dup	instant find/replace — edit 工具已有
+17596	boundary	asciinema recordings — their surface
+17597	boundary	onboarding billing — their SaaS
+17602	noise	workflows rename internal
+17705	noise	environment.json internal
+17706	noise	agents to guides internal
+17709	noise	environment.json serve internal
+17710	noise	cn serve boolean internal
+17716	noise	status tool cn internal
+17717	noise	workflows docs internal
+17730	noise	tool icon names internal
+17734	noise	global req internal
+17735	noise	~ uses block resolve internal
+17738	boundary	block icons — their UI
+17741	boundary	next edit char diff — their editor
+17747	boundary	mark unread — their UI
+17750	noise	response tone rule internal
+17806	boundary	fullscreen cmd — their UI
+17810	boundary	thinking tags dim — their UI
+17813	noise	autoformat detection internal
+17815	noise	readiness guide docs
+17817	noise	no-any type rule internal
+17821	dup	find/replace improvements — edit 已有
+17855	boundary	settings tooltips — their UI
+17856	noise	edit tools tweaks internal
+17863	boundary	notch cleanup — their UI
+17976	dup	resource monitoring — metrics 已有
+17977	noise	eyes reaction gimmick
+17979	boundary	assistant menu — their UI
+17982	noise	GEO docs update
+17983	cand	security-sensitive values salvage in Glob — 敏感值保护面
+17988	noise	next edit docs
+17989	noise	rebrand assistants internal
+17994	boundary	assistant select polish — their UI
+17999	dup	prevent unsafe file reads — file guard 已有
+18060	dup	resource monitoring — metrics 已有
+18061	boundary	focus chat input — their UI
+18211	boundary	disable edit prompt — their UI
+18219	boundary	Org Policies — enterprise 面
+18290	boundary	staging yellow border — their UI
+18297	boundary	chain next edits — their editor
+18299	dup	parallelization instructions — 并行工具已有
+18301	boundary	disabled tool tooltips — their UI
+18320	cand	plug-and-play system-message tool frameworks — 工具框架插拔
+18322	boundary	next edit capabilities — their editor
+18327	boundary	local block loading hub — their ext
+18329	dup	System Message tools — system msg 已有
+18358	boundary	Pause->Stop — their UI
+18362	noise	static contextual test internal
+18448	noise	init prompt internal
+18457	boundary	sessions loading indicator — their UI
+18462	boundary	generate rule dialog — their UI
+18476	boundary	mermaid diagrams — their viewer
+18485	dup	colocated rules folder prefix — rules 作用域已有
+18490	noise	fatal error message improve
+18503	noise	repo rules internal
+18507	boundary	AssistantAndOrgListbox — their UI
+18513	noise	llms.txt generation
+18529	dup	search&replace tool — edit 已有
+18542	dup	requestRule tool — rules 已有
+18552	noise	sourcemaps internal
+18572	boundary	onboarding card — their UI
+18576	boundary	markdown rules notch — their UI
+18581	noise	chatInteraction dev data internal
+18592	boundary	StreamError dialog — their UI
+18594	noise	remove edit mode internal
+18614	dup	display rules used — rules 可见性已有
+18618	boundary	Hub link — their SaaS
+18634	dup	markdown rules — rules 已有
+18635	boundary	JB showFile — their ext
+18653	boundary	assistant refresh submenus — their UI
+18664	boundary	JB thread limit — their ext
+18669	dup	globs on rules — rules glob 已有
+18702	dup	create_rule_block tool — rules 已有
+18703	noise	apply e2e tests internal
+18705	dup	instant apply diff rejection — apply 流已有
+18716	noise	ProtocolClient init internal
+18725	dup	baseSystemMessage — system msg 已有
+18727	boundary	assistant select — their UI
+18728	boundary	codeblock toolbar — their UI
+18733	boundary	StepContainer — their UI
+18735	boundary	create file button — their UI
+18747	dup	prompt blocks — prompt 块已有
+18748	boundary	assistant polish — their UI
+18767	boundary	code styling — their UI
+18776	boundary	animated ellipsis — their UI
+18794	noise	remove tools schema internal
+18795	boundary	headings sizing — their UI
+18796	noise	nvm check install script
+18815	boundary	assistant polish — their UI
+18818	boundary	explore btn — their UI
+18819	boundary	bookmark prompts — their UI
+18833	boundary	conversation starters — their UI
+18838	noise	schema v1 internal
+18872	boundary	org assistants cache — their SaaS
+18886	noise	vectordb arm64 dep
+18926	boundary	assistant select — their UI
+18965	boundary	autocomplete visited ranged — their ext
+18998	noise	meyers diff internal
+19016	boundary	account dialog buttons — their UI
+19049	noise	redux schemas internal
+19051	boundary	move Edit to Chat — their UI
+19062	boundary	preserve edit on reject — their UI
+19085	boundary	URL peek icon — their UI
+19095	dup	multifile edits — multifile edit 已有
+19140	dup	accept/reject MFE — apply 流已有
+19166	dup	multifile edit slash cmd 同上
+19167	dup	bm25 fts — search-index 已有
+19193	boundary	JB apply button — their ext
+19215	boundary	JB esbuild — their ext
+19219	cand	Automatic Chat Titles — 会话自动标题
+19298	noise	remove applied rules internal
+19310	dup	dangerous command shown once — 批准态记忆已有
+19312	noise	split chat blocks internal
+19324	noise	parallel build internal
+19343	noise	focus session id cmd internal
+19755	dup	headless no-TTY — headless 运行已有
+19783	boundary	remote sessions in cn ls — their remote
+19785	dup	headless error exit codes — headless 已有
+19788	noise	mercury-coder apply compat
+19849	dup	compaction — 已有

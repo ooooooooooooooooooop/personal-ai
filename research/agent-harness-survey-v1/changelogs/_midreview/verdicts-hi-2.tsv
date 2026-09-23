@@ -1,0 +1,200 @@
+580	dup	ACP session创建时推command list — protocol
+581	boundary	codex cloud exec --branch+status/diff/apply
+582	boundary	Discord proxy/reactions/model picker
+583	cand	remote-mcp: remote HTTP transport type
+584	boundary	memory-lancedb cloud storage(向量)
+585	variant	skill scripts声明产出文件/远程资源
+586	boundary	Telescope式resizable pickers(editor)
+587	boundary	drag-drop上传到remote projects
+588	variant	sandbox.excluded allow/ask/deny(sandbox外运行清单)
+589	boundary	E2E/QA Crabbox覆盖
+590	cand	worktree: --worktree//worktree隔离checkout
+591	dup	Active Memory bounded同agent private recall — memory
+592	dup	hermes profile create/list/switch/delete — instance roots已实装
+593	boundary	sandbox.docker.gpus passthrough
+594	variant	sandbox.scope agent vs session隔离粒度
+595	dup	browser URL+LLM响应密钥模式扫描 — secrets egress已实装
+596	variant	schedules居~/.cline/schedules(同408) — instance域对照
+597	dup	malformed auth/cron/session条目忽略不hydrate — torn store
+598	dup	cron.skipMissedJobs+blockedHostnames — config knobs
+599	dup	cron per-run model/provider telemetry — schedule telemetry
+600	dup	migrated cron jobs保留恢复 — schedule migration
+601	dup	session history按来源(Desktop/CLI/ext/scheduled)过滤 — session origin
+602	dup	warelay IPC复用running relay — channel relay
+603	dup	scheduled runs路由configured model+session group — schedule routing
+604	boundary	ntfy第23消息平台
+605	boundary	/acp spawn --bind Discord/BlueBubbles/iMessage
+606	dup	--fork <path|id> CLI — session fork exists
+607	dup	session forking+edit earlier prompt API — rewind/edit exists
+608	dup	browser SSRF默认policy hostname导航+strict mode — G4
+609	boundary	Codex CLI fallback resume JSONL — external provider
+610	dup	chat session picker agent-first过滤 — session picker
+611	boundary	Feishu replyInThread路由
+612	dup	gateway send透传agentId — provenance
+613	variant	# trigger task history fuzzy autocomplete
+614	variant	experimental.sessionWorkflow Plan&Review
+615	boundary	/cloud-attach cloud Devin session
+616	dup	--enable-session-tracking非交互 — session tracking
+617	dup	image/video generation session attribution headers — provenance
+618	dup	session命名idle后+大列表切换 — session UX
+619	dup	tool summary streaming+steering queue — steer/queue
+620	dup	web UI新会话+fork修复 — session ops
+621	noise	NewThread在terminal聚焦时误触发修复
+622	variant	CODEBUDDY_CODE_DISABLE_BACKGROUND_TASKS host开关
+623	noise	canvas terminal刷新后reconnect修复
+624	boundary	canvas terminal standalone browser
+625	dup	SDK tool-result/provider-message budgeting截断 — C2同源
+626	dup	stdin-stream images字段 — protocol input
+627	boundary	本地web dashboard
+628	boundary	PTY SSE/HTTP端点
+629	noise	产品改名Devin for Terminal→Devin CLI
+630	dup	child sessions+structured output schemas+playbooks — delegate+playbooks
+631	dup	Web UI /clear时CLI视图同步 — session sync
+632	noise	Windows Terminal truecolor修复
+633	boundary	PyPI包发布
+634	dup	/skill /workflow不再dump body进消息 — dispatch hygiene
+635	boundary	SDK MCP Server类型
+636	boundary	Mem0 external-context extension skeleton
+637	boundary	openclaw agents bind/unbind路由CLI
+638	variant	browser profile="user"/"chrome-relay"内置profile
+639	dup	built-in plugins不列"Not loaded" — plugin listing
+640	dup	malformed numeric options拒绝 — validation
+641	dup	channel plugin ingress monitors durable admission — monitor infra
+642	boundary	Synology Chat channel plugin
+643	dup	--no-builtin-tools只禁built-in — tool selection
+644	dup	plugin route注册要auth+ownership guards — extension security
+645	dup	skill bundles从git repo/URL/folder安装 — skill install
+646	boundary	Microsoft Teams端到端
+647	boundary	plugin-sdk channel-target-testing
+648	boundary	plugin-sdk channel contract helpers
+649	boundary	bundled plugin runtime sidecars
+650	noise	Firecrawl config路径迁移
+651	noise	Gemini Pro 3+sticky scroll
+652	cand	platform-level tool descriptor planner(descriptor-first可见性)
+653	boundary	Firecrawl web search provider
+654	boundary	x_search first-class X tool
+655	cand	orchestration: /deep-research多角度并行研究预设
+656	boundary	单folder时隐藏project panel根
+657	dup	thread右键rename/regenerate title — C1族批4
+658	dup	gateway.auth.mode显式要求(token+password并存时) — auth config
+659	noise	cold-start -19s perf wave
+660	boundary	piConfig品牌/config dir/env改名(fork支持)
+661	dup	queue double-drain竞态修复 — queue integrity
+662	dup	SecretRef全credential面覆盖(64 targets) — secrets indirection已实装
+663	boundary	Web UI群聊气泡sender/summary/body
+664	boundary	Edit Prediction subtle显示模式
+665	boundary	SDK AskUserQuestion tool
+666	boundary	/tools/invoke HTTP端点
+667	noise	SDK版本同步
+668	dup	permission profile config language — policy DSL
+669	dup	/add-dir查workspace trust — trust gate已实装
+670	cand	request_permissions: turn内运行时请求权限工具
+671	dup	session-scoped MCP tool "allow and remember" — M146族
+672	boundary	client-side payment authorization card
+673	boundary	getAvailableModes/Models SDK方法
+674	dup	permission-profile语言+fs/net拆分 — policy表达力
+675	variant	profiles×permission modes正交矩阵
+676	dup	canonical session keys进outbound hooks — provenance
+677	dup	Code mode自动批准workspace edits — mode semantics
+678	dup	automatic plugin approvals+SecretRefs+skill provenance — provenance
+679	dup	/allowlist add/remove要owner授权 — owner gate已实装
+680	dup	path traversal防护+shell injection中和 — security batch同源
+681	variant	SANDBOX_APPROVAL_TIMEOUT_MS可配
+682	dup	/compact极端场景recovery稳定 — compaction
+683	boundary	Crestodian agent-loop onboarding
+684	boundary	同683(重复发布)
+685	dup	model-facing config.apply/patch禁改exec approval paths — config守护已实装
+686	boundary	月度用量limit alert+Request more链接
+687	dup	project级MCP tool permission+"Don't ask again" — mcp_deny C3族
+688	boundary	Matrix live approval scenarios
+689	dup	429 retry allowlist(只transient) — retry discipline
+690	boundary	plan/act配色
+691	variant	trusted dir内project allow覆盖dangerous拦截 — trust precedence
+692	dup	/plan预览plan文件+plan mode权限 — plan mode
+693	dup	Plan mode作为Cascade模式 — plan mode
+694	dup	plan approval prompt专属选项 — plan mode
+695	dup	plan mode只读研究+persistent plan文件 — plan mode
+696	dup	untrusted workspace plugins不得撞bundled auth ids — extension id保护
+697	cand	credentials: agent经masked prompt请求credential(值不进chat/model)
+698	dup	named auth profiles+Codex resume/timeout — auth profiles
+699	dup	PowerShell -File/-f包装形式识别 — G族wrapped commands
+700	dup	session permission mode锚定记录态 — mode anchoring
+701	dup	smart approve固定跑fast Mistral — feature-model(judgeCall)已实装
+702	dup	Smart mode不弱于Code mode — mode coherence
+703	boundary	Artifact/ShareLink公开链接
+704	boundary	streaming/plugins/provider release wave
+705	boundary	bot默认streaming/permission cards
+706	boundary	Zalo group policy sender auth
+707	boundary	iOS/Watch exec approvals后台
+708	boundary	文件preview(zoom/drag/checkerboard+PDF/SVG)
+709	boundary	同708(重复发布)
+710	dup	工具统一20000 token limit(图片除外) — C2已实装
+711	boundary	Discord components/Slack blocks optional
+712	boundary	PDF输出fileQuality/Scale/MaxWidth
+713	boundary	music_generate Lyria/MiniMax
+714	noise	--help async init挂起修复
+715	noise	CodeLLDB pretty-printers改动
+716	dup	tool_result含exitCode — event payload
+717	dup	custom model output quota默认上限 — capability defaults
+718	noise	daemon mode auto-update跳过修复
+719	noise	iTerm2 Forward Delete修复
+720	boundary	file tree返回工作目录按钮
+721	dup	LOG_LEVEL控制CLI verbosity — log config
+722	noise	SDK embedded ENOENT修复
+723	dup	interceptor自动重试后view层输出修复 — retry display
+724	dup	cache-heavy token统计5x虚高修复(disjoint统计) — telemetry accuracy
+725	boundary	Edit Prediction beta加速发布
+726	dup	短会话<60s监控数据丢失修复 — telemetry durability
+727	cand	proxy: PAC/WPAD系统级代理支持
+728	dup	redact_private_values+private_files censor — secret masking M116族
+729	boundary	split方向设置
+730	boundary	INTERNET_ENVIRONMENT env指南
+731	boundary	/app handoff到Codex Desktop
+732	dup	Write/MultiEdit并发覆盖保护 — write lease已实装
+733	boundary	Publish Branch开PR下拉
+734	boundary	Enterprise API v3 bulk create
+735	boundary	commit history diff split toggle
+736	dup	repo-local .codex/config.toml+project_root_markers — config layering
+737	dup	W3C Trace Context+Baggage透传 — tracing
+738	dup	strip empty assistant/error blocks防corruption — session hygiene
+739	dup	MCP prompts进slash菜单 — mcp prompts已实装
+740	cand	remote-mcp: GitHub MCP OAuth device flow
+741	dup	stdio handshake被慢MCP阻塞修复 — mcp boot
+742	variant	SDK mcpServers文件路径格式
+743	variant	MCP调用透传model ID头
+744	boundary	AgentSession OAuth/model config exports
+745	dup	空Ollama turn在model boundary重试 — empty-turn retry
+746	dup	prewarm project MCP加载失败修复 — mcp boot
+747	boundary	Models页重设计(Connected/Popular/All)
+748	dup	非交互模式等MCP server启动慢 — boot ordering
+749	boundary	Vercel provider+MCP UX
+750	dup	tool call id/name跨chunk拆分修复 — stream parsing
+751	dup	xAI OAuth复用web_search+model aliases — auth profile
+752	variant	# shortcut存memory到CODEBUDDY.md
+753	cand	session-picker: /resume threaded按fork关系树形排序
+754	dup	blob-store外置大tool outputs — outspool已实装
+755	dup	compaction.model统一解析 — compaction config
+756	dup	compaction.recentTurnsPreserve+quality-guard knobs — compaction knobs
+757	dup	resume后context usage查询修复 — context query
+758	dup	request markers残留修复 — compaction marker
+759	dup	ctx.compact()统一compaction events — compaction events
+760	dup	memory context prompts优化+implicit memory source — memory prompt
+761	boundary	built-in local embedding provider manifest
+762	boundary	gemini-embedding-2 memory-search
+763	dup	history image blocks不再每轮重注入 — attachment token优化
+764	dup	browser/web内容默认untrusted包裹 — M147已实装
+765	boundary	Telegram blocking memory recall
+766	boundary	Web UI Metrics页
+767	dup	/context token usage分布 — context_map M106已实装
+768	dup	tool call groups折叠单行 — UI compaction
+769	boundary	Web UI Metrics页(重复)
+770	noise	AI SDK provider迁移(Moonshot/DeepSeek/Cerebras)
+771	noise	Xiaomi MiMo Token Plan provider
+772	dup	retry.maxDelayMs上限 — retry caps
+773	noise	--model gpt-4-0125/4turbo别名
+774	dup	paste images进Assistant Panel — attachments
+775	dup	Usage.totalTokens必填 — telemetry
+776	dup	image-runtime generic fallback — media fallback
+777	dup	async media generation失败直投 — delivery
+778	dup	blank visible user prompts跳过 — input hygiene
+779	dup	empty-stream provider failures归timeout failover — failover信号

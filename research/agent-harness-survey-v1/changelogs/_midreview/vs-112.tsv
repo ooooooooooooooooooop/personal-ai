@@ -1,0 +1,200 @@
+77514	noise	editor feature
+77527	noise	editor feature
+77529	noise	terminal feature
+77545	noise	terminal feature
+77554	noise	ui feature
+77561	dup	individual subcommand permissions — 子命令级权限已有
+77566	noise	terminal feature
+77574	noise	editor feature
+77577	noise	internal
+77585	noise	terminal feature
+77597	noise	platform noise
+77598	noise	perf internal
+77601	noise	ui feature
+77604	noise	platform noise
+77606	noise	terminal feature
+77607	noise	terminal feature
+77608	noise	terminal feature
+77614	noise	editor feature
+77615	noise	platform noise
+77621	noise	terminal feature
+77626	dup	aligned shell path in prompt with actual — 提示一致性已有
+77635	noise	terminal feature
+77651	noise	terminal feature
+77653	noise	terminal feature
+77658	noise	internal
+77659	noise	platform noise
+77662	noise	internal
+77664	dup	handling large terminal output — 大输出处理已有
+77665	dup	env passed to terminal requests — 环境传递已有
+77681	noise	editor feature
+77708	noise	terminal feature
+77721	noise	terminal feature
+77722	noise	terminal feature
+77728	noise	editor feature
+77734	noise	terminal feature
+77736	noise	terminal feature
+77737	dup	check venv script exists before activate — 存在性检查已有
+77741	noise	terminal feature
+77763	noise	terminal feature
+77764	noise	terminal feature
+77774	noise	config fragment
+77775	noise	config fragment
+77776	noise	config fragment
+77788	noise	terminal feature
+77799	noise	terminal feature
+77806	noise	terminal feature
+77836	noise	terminal feature
+77847	noise	prose fragment
+77858	noise	terminal feature
+77876	noise	config fragment
+77883	noise	editor feature
+77917	noise	editor feature
+77926	noise	prose noise
+77931	dup	GPG passphrase prompts in-app — 签名解锁已有
+77933	noise	editor feature
+77952	dup	hide non-working actions in terminals — 动作过滤已有
+77974	noise	internal
+77975	noise	ui feature
+77976	noise	platform noise
+77985	noise	editor feature
+77990	noise	ui feature
+77996	dup	download indicator ACP servers — 下载指示已有
+77999	noise	editor feature
+78016	noise	editor feature
+78018	noise	ui feature
+78022	noise	editor feature
+78023	noise	editor feature
+78024	noise	editor feature
+78030	dup	worktree create when default-branch resolve fails — 兜底已有
+78031	noise	internal
+78045	noise	editor feature
+78046	noise	editor feature
+78047	noise	ui feature
+78050	dup	drop git blame procs — 进程回收已有
+78066	noise	editor feature
+78072	noise	editor feature
+78083	noise	ui feature
+78085	dup	cleanup sessions on archive — 归档清理已有
+78088	dup	cleanup sessions on archive — 同上dup
+78095	noise	ui feature
+78097	noise	editor feature
+78099	noise	ui feature
+78102	noise	ui feature
+78104	dup	npm agents resolve per project — 项目级解析已有
+78105	noise	editor feature
+78122	noise	editor feature
+78123	noise	editor feature
+78126	dup	agent resolve merge conflicts affordance — 冲突解决入口已有
+78127	noise	editor feature
+78132	noise	ui feature
+78133	noise	perf internal
+78138	noise	editor feature
+78139	noise	editor feature
+78140	noise	platform noise
+78145	noise	editor feature
+78149	dup	save thread state before close — 关闭前存态已有
+78151	dup	error on unsupported ACP method — 方法拒付已有
+78152	noise	internal
+78157	noise	platform noise
+78160	noise	editor feature
+78161	noise	ui feature
+78167	dup	built-in agents removable via registry — 注册表管理已有
+78170	noise	collab internal
+78172	noise	ui feature
+78179	noise	editor feature
+78180	noise	platform noise
+78181	dup	stage ACP downloads for robustness — 分段下载已有
+78182	noise	editor feature
+78184	noise	editor feature
+78185	noise	platform noise
+78195	noise	platform noise
+78196	dup	don't override manually-edited titles — 手改标题保护已有
+78200	noise	prose fragment
+78201	noise	editor feature
+78206	noise	editor feature
+78207	dup	diff respects active worktree — 工作区锚定已有
+78208	dup	don't open all files on missing excludes — 缺失容错已有
+78210	dup	shutdown kernels on exit — 退出清理已有
+78211	noise	platform noise
+78212	noise	editor feature
+78214	noise	editor feature
+78219	noise	editor feature
+78221	dup	clear copilot on window close — 窗口清理已有
+78222	noise	collab internal
+78223	noise	editor feature
+78225	dup	stage/unstage large file counts — 大批量容错已有
+78226	dup	git worktrees panel update — 工作树联动已有
+78228	noise	ui feature
+78231	noise	editor feature
+78232	noise	editor feature
+78238	noise	ui feature
+78239	dup	editor not stealing focus — 焦点保护已有
+78241	noise	editor feature
+78245	dup	queue prompts during generation — 排队已有
+78248	dup	env vars applied to ACP agents — 环境注入已有
+78251	noise	ui feature
+78253	noise	platform noise
+78254	noise	ui feature
+78255	dup	copilot per-window isolation — 窗口隔离已有
+78257	noise	editor feature
+78261	noise	editor feature
+78274	noise	ui feature
+78276	noise	editor feature
+78277	noise	editor feature
+78279	noise	editor feature
+78285	noise	auth internal
+78286	noise	prose fragment
+78288	noise	ui feature
+78290	noise	editor feature
+78291	noise	editor feature
+78297	noise	auth internal
+78300	noise	prose noise
+78301	noise	prose noise
+78302	noise	prose noise
+78303	noise	editor feature
+78304	dup	focus merge conflicts in project diff — 冲突聚焦已有
+78306	noise	editor feature
+78307	noise	editor feature
+78308	noise	editor feature
+78314	noise	platform noise
+78315	noise	collab internal
+78318	noise	platform noise
+78319	dup	persist stack frame filter — 过滤持久已有
+78320	noise	prose fragment
+78322	noise	editor feature
+78327	noise	prose noise
+78328	noise	prose noise
+78329	noise	prose noise
+78331	noise	editor feature
+78335	dup	askpass timeout 300s — 超时延长已有
+78338	noise	editor feature
+78339	noise	platform noise
+78340	noise	platform noise
+78341	noise	platform noise
+78342	noise	ui feature
+78345	dup	editable thread markdown — 可编辑线程已有
+78346	noise	prose noise
+78348	noise	ui feature
+78349	dup	compress large diffs for msg gen — 差异压缩已有
+78350	dup	preserve file mode on commit — 权限位保留已有
+78352	noise	contributor noise
+78355	noise	editor feature
+78356	dup	reuse GITHUB_TOKEN env — 令牌复用已有
+78357	noise	platform noise
+78358	noise	platform noise
+78359	noise	platform noise
+78360	noise	platform noise
+78361	noise	platform noise
+78362	dup	don't scramble edits on external modify — 外改冲突保护已有
+78366	noise	prose fragment
+78369	noise	prose noise
+78370	noise	prose noise
+78372	noise	editor feature
+78373	noise	editor feature
+78374	noise	ui feature
+78376	noise	editor feature
+78379	noise	platform noise
+78380	noise	collab internal
+78381	noise	ui feature
+78382	noise	platform noise

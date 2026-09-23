@@ -1,0 +1,200 @@
+49092	dup	name export files — 导出名已有
+49093	dup	/export cwd — 导出目录已有
+49096	dup	bun install retries — 安装重试已有
+49097	dup	lsp:false/formatter:false — 全局开关已有
+49101	boundary	toast — their UI
+49104	dup	respect server default model — 默认遵从已有
+49119	dup	hide /share disabled — 命令门已有
+49130	dup	cap max retry wait — 重试上限已有
+49131	boundary	badge — their UI
+49133	noise	prompt internal
+49134	noise	model internal
+49145	dup	incremental session load — 增量加载已有
+49146	dup	ask not throw outside cwd — 越界询问已有
+49147	dup	@ agents mid-prompt — 提及位置已有
+49154	noise	revert internal
+49163	dup	/init default server-side — 初始化命令已有
+49168	noise	prose noise
+49169	noise	prose noise
+49170	noise	prose noise
+49171	noise	install noise
+49172	noise	prose noise
+49173	noise	install noise
+49175	noise	prose noise
+49178	noise	keymap noise
+49179	noise	keymap noise
+49180	noise	keymap noise
+49181	noise	keymap noise
+49182	noise	keymap noise
+49184	noise	keymap noise
+49185	noise	keymap noise
+49186	noise	keymap noise
+49187	noise	keymap noise
+49188	noise	keymap noise
+49189	noise	keymap noise
+49190	noise	keymap noise
+49191	noise	keymap noise
+49192	noise	keymap noise
+49193	noise	keymap noise
+49194	noise	keymap noise
+49204	dup	conservative plan whitelist — 白名单收紧已有
+49206	dup	surface retries user — 重试可见已有
+49213	noise	revert internal
+49219	dup	stack traces error responses — 栈返回已有
+49223	dup	read tool images — 图读已有
+49225	dup	timeout messages — 超时消息已有
+49228	dup	readiness wait+random port — 就绪等待已有
+49230	dup	dynamic tool registration plugins — 动态注册已有
+49239	noise	build internal
+49242	dup	webfetch content negotiation — 协商已有
+49243	noise	zen internal
+49244	noise	zen internal
+49245	noise	validation internal
+49248	dup	validate config directory — 目录校验已有
+49251	noise	zen internal
+49252	noise	zen internal
+49253	noise	zen internal
+49255	noise	zen internal
+49256	noise	zen internal
+49257	noise	auth internal
+49259	noise	zen internal
+49260	noise	zen internal
+49262	dup	custom tools — 自定义工具已有
+49263	dup	rework custom tools — 已有
+49264	dup	prune messages >2 turns — 修剪窗口已有
+49265	dup	disable .env auto-read — env隔离已有
+49274	noise	dep internal
+49279	noise	script internal
+49282	dup	CONFIG_CONTENT env — 内容env已有
+49283	dup	catch migration failures — 迁移容错已有
+49287	dup	single rust LSP workspace — LSP单例已有
+49290	dup	--command run — 命令档已有
+49293	dup	slash commands ~/ — 家路径已有
+49297	dup	await config hooks — 钩子等待已有
+49298	dup	non-existing cache folder — 缓存容错已有
+49302	noise	auth internal
+49304	noise	model internal
+49315	noise	prompt internal
+49320	noise	lsp internal
+49324	dup	models key optional — 配置可选已有
+49328	dup	agent options — 代理选项已有
+49329	noise	package internal
+49331	dup	reenable todo tool — 工具开关已有
+49333	dup	permissions disallow — 拒绝规则已有
+49335	dup	hint tool not exist — 不存在提示已有
+49338	dup	models.dev hourly — 轮询间隔已有
+49340	dup	efficient snapshots parallel — 并行快照已有
+49345	dup	configurable lsp — LSP可配已有
+49346	dup	top_p configurable — 参数可配已有
+49347	dup	force refresh on login — 登录刷新已有
+49350	dup	poll models.dev — 轮询已有
+49353	dup	errored not aborted — 状态区分已有
+49355	dup	formatter config — 格式化配置已有
+49356	dup	disable formatter — 开关已有
+49357	dup	configurable permissions — 权限可配已有
+49360	dup	undo/redo — 撤销已有
+49362	dup	well-known auth — 发现认证已有
+49363	noise	backend internal
+49365	noise	title internal
+49369	dup	todo tools default off agent — 默认关已有
+49370	noise	display internal
+49371	noise	build internal
+49373	dup	configurable subagents — 子代理可配已有
+49375	noise	disable internal
+49376	noise	disable internal
+49379	noise	config internal
+49381	dup	no copy empty strings — 空串过滤已有
+49382	boundary	toast — their UI
+49383	dup	newline between copy — 复制格式已有
+49384	dup	no snapshot nongit — 快照限定已有
+49385	noise	artifact noise
+49386	dup	todo off in task — 已有
+49393	noise	cleanup internal
+49394	dup	small model title gen — 小模命名已有
+49396	dup	task tool — 任务工具已有
+49399	dup	sharing config auto/disabled — 共享配置已有
+49401	dup	global config path — 配置路径已有
+49403	dup	step finish part — 步完成事件已有
+49404	dup	escape file: content — 转义已有
+49406	dup	run respects mode — 模式遵从已有
+49408	dup	respect go.work LSP — workspace遵从已有
+49409	dup	modes concept — 模式概念已有
+49410	dup	no wait LSP ready — 非阻塞已有
+49412	dup	single tsserver root — LSP单例已有
+49413	dup	lsp timeout fail start — 超时已有
+49414	noise	lsp internal
+49415	dup	typescript lsp subpaths — 子路径已有
+49419	noise	artifact noise
+49420	dup	truncate prompt run — 提示截断已有
+49423	dup	full filepath — 全路径已有
+49425	dup	file attachments — 附件已有
+49426	dup	file attachments — 已有
+49428	noise	disable internal
+49434	dup	max retries 10 — 重试上限已有
+49435	dup	no gopls without go — 条件安装已有
+49440	dup	snapshot functionality — 快照已有
+49441	dup	file watcher — 监视器已有
+49445	noise	lsp internal
+49450	noise	restructure internal
+49451	noise	formatter internal
+49455	dup	shebang /bin/sh universal — 兼容性已有
+49458	dup	output length errors — 长度报错已有
+49459	noise	disable internal
+49460	noise	artifact noise
+49462	dup	no error ctrl+c prompts — 中断静默已有
+49467	noise	registry internal
+49468	dup	bundle models.dev ignore refresh — 打包容错已有
+49474	dup	config validation — 校验已有
+49477	noise	url internal
+49479	dup	no models.dev global config — 配置隔离已有
+49481	noise	prose noise
+49485	noise	prose noise
+49486	dup	global config merge — 配置合并已有
+49487	noise	config internal
+49488	dup	diff trimming — diff裁剪已有
+49490	dup	cache read/write data — 缓存数据已有
+49493	dup	no autoupgrade snapshot — 快照免升已有
+49495	dup	autoupgrade — 自更新已有
+49499	dup	limit 4 cached prompts — 提示缓存上限已有
+49500	dup	track cache token counts — 缓存计数已有
+49502	dup	leaner system prompt — 提示精简已有
+49504	noise	internal
+49506	noise	revert internal
+49507	dup	ctrl+d quit — 退出键已有
+49508	noise	docs internal
+49509	dup	dot files discovery — 点文件已有
+49510	noise	script internal
+49512	noise	model internal
+49525	dup	auto LSP discovery — LSP发现已有
+49526	boundary	logs page — their UI
+49531	dup	session renames save — 重命名持久已有
+49539	dup	export transcripts JSON — 导出已有
+49540	dup	chronological boundaries — 时序已有
+49541	dup	sort persisted activity time — 活动排序已有
+49542	dup	wait queued ACP updates turn end — 回合刷新已有
+49549	dup	session actions current-server — 服务端动作已有
+49551	boundary	optimistic timeline — their UI
+49552	dup	paginated timelines order — 分页顺序已有
+49553	dup	directory-scoped status legacy — 目录作用域已有
+49554	dup	reload progress hydration — 水合重载已有
+49555	dup	no fail missing parent links — 容错已有
+49556	boundary	variant a11y — their UI
+49561	boundary	revert dock — their UI
+49563	dup	legacy drafts routed — 草稿路由已有
+49565	dup	session routes correct layout — 路由已有
+49566	dup	tab titles after reload — 标题恢复已有
+49569	boundary	review pane — their UI
+49573	dup	failure scoped tab — 故障隔离已有
+49576	dup	tabs per window — 窗口作用域已有
+49581	boundary	prompt cursor — their UI
+49585	dup	tabs scoped server — 服务作用域已有
+49600	boundary	home actions — their UI
+49601	dup	clear notifications on open — 通知清理已有
+49606	dup	stable fast navigation — 导航稳定已有
+49607	dup	clear viewed notifications — 已有
+49610	dup	timelines faster no jumps — 加载优化已有
+49621	boundary	move flow — their UI
+49623	boundary	home list — their UI
+49627	dup	run --replay — 回放已有
+49630	dup	question responses right dir — 路由已有
+49632	dup	session location v2 — 位置暴露已有

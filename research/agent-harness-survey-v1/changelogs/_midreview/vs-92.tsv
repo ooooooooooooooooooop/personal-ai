@@ -1,0 +1,200 @@
+58306	noise	prose fragment
+58307	dup	subdir index.ts single extension — 单文件扩展已有
+58308	noise	code fragment
+58311	noise	code fragment
+58312	noise	code fragment
+58317	dup	symlinked skill dirs discovered — 符号链接发现已有
+58327	dup	skills API export — API导出已有
+58332	dup	bundled clipboard helpers OSC52 — 剪贴板助手已有
+58375	noise	rename internal
+58396	dup	fire-and-forget startup — 非阻塞已有
+58416	dup	commands→prompts auto-rename — 目录迁移已有
+58417	dup	hooks/tools→extensions move warnings — 迁移警告已有
+58418	dup	auto-rename symlinks too — 同上dup
+58420	dup	PI_TIMING startup breakdown — 计时插桩已有
+58422	dup	duration min/sec formatting — 时长格式已有
+58431	dup	PowerShell native tool windows — PS执行已有
+58454	noise	rename internal
+58499	dup	OSC 9;4 progress opt-in — 进度上报开关已有
+58572	dup	hardware cursor opt-in env — 光标env已有
+58573	dup	editor scroll large prompts — 大提示滚动已有
+58581	dup	pi.exec() shell — shell执行已有
+58582	dup	ctx.ui.setTitle — 标题API已有
+58598	dup	tail truncation temp file — 尾截断+全文已有
+58609	boundary	selection copy controls — their UI
+58632	noise	dep internal
+58641	dup	ctx.ui.getEditorComponent wrap — 编辑器包装已有
+58657	dup	setHiddenThinkingLabel — 标签定制已有
+58711	dup	ctx.ui.confirm/select/input — 提示API已有
+58712	dup	ctx.ui.notify toasts — 通知已有
+58713	dup	ctx.ui.setStatus footer — 状态栏已有
+58714	dup	ctx.ui.setWidget — 部件已有
+58715	dup	ctx.ui.custom TUI component — 自定义组件已有
+58721	dup	Alt+Enter queue follow-up — 排队键已有
+58742	boundary	truncation warnings yellow — their UI
+58763	dup	checksummed source archives rebuild — 可复现发布已有
+58807	dup	ctx.branch(entryId) — 分支API已有
+58809	noise	rename internal
+58810	noise	rename internal
+58812	noise	rename internal
+58843	dup	OAuth refresh <5min validity — 提前刷新已有
+58894	dup	legacy stream aliases compat — 兼容别名已有
+58898	dup	asset path helpers export — 路径助手已有
+58908	noise	prose fragment
+58909	noise	prose fragment
+58911	noise	prose fragment
+58912	noise	rename internal
+58917	noise	prose fragment
+58918	noise	prose fragment
+58922	noise	prose fragment
+58923	noise	prose fragment
+58926	noise	prose fragment
+58929	noise	prose fragment
+58957	dup	emoji deletion cursor multi-codepoint — 多码点编辑已有
+58986	dup	multi-file extension package resolution — 包解析已有
+58990	noise	rename internal
+58994	noise	prose noise
+59009	noise	reaction noise
+59025	dup	hint external source extensions — 安装提示已有
+59026	noise	branch noise
+59081	noise	contributor noise
+59087	noise	prose fragment
+59089	noise	release fragment
+59090	noise	release fragment
+59091	noise	release fragment
+59093	noise	config fragment
+59094	dup	MCP_MODEL_PAYLOAD_FILTER=1 — 载荷过滤env已有
+59128	noise	prerelease prose
+59131	noise	release fragment
+59132	noise	release fragment
+59134	noise	release fragment
+59135	noise	release fragment
+59161	noise	contributor noise
+59185	dup	goal readiness reject not throw — 异步拒绝已有
+59221	noise	contributor noise
+59239	noise	release fragment
+59279	noise	prose fragment
+59289	noise	feat fragment
+59298	dup	list_directory opt-in disabled default — 默认禁用已有
+59300	dup	idle watchdog excluded timeout cap — 超时豁免已有
+59309	dup	ledger records comment counts — 计数追踪已有
+59310	dup	review verifiers fresh state per row — 新鲜态校验已有
+59311	dup	clamp posting volume at origin — 源头限流已有
+59312	dup	blocker in COMMENT every softening — 阻塞保留已有
+59316	dup	autofix idempotent replies — 幂等回复已有
+59323	dup	reject run_in_background false teammates — 参数拒绝已有
+59326	noise	bench noise
+59327	noise	bench noise
+59328	noise	bench noise
+59329	noise	bench noise
+59331	noise	bench noise
+59332	noise	bench noise
+59333	noise	bench noise
+59334	noise	bench noise
+59337	noise	bench noise
+59338	noise	bench noise
+59339	noise	bench noise
+59340	dup	spam blocklist on creation — 创建即查已有
+59343	dup	plain reviewer prose comments — 评审散文已有
+59350	dup	dispatch team tasks to owner — 任务分派已有
+59351	dup	takeover round counter seed — 轮次种子已有
+59369	noise	bench noise
+59371	noise	bench noise
+59372	noise	bench noise
+59375	noise	bench noise
+59377	noise	bench noise
+59378	noise	bench noise
+59379	noise	bench noise
+59380	noise	bench noise
+59383	noise	bench noise
+59384	noise	bench noise
+59385	noise	bench noise
+59387	noise	bench noise
+59388	noise	bench noise
+59390	noise	bench noise
+59391	noise	bench noise
+59392	noise	bench noise
+59394	noise	bench noise
+59395	noise	bench noise
+59396	noise	bench noise
+59398	noise	bench noise
+59404	dup	duplicate suggestions dedicated paragraph — 重列已有
+59408	dup	deny-by-default footprint gate — 默认拒门已有
+59410	dup	prepare-time measurement instant — 基准时刻已有
+59414	dup	reverse-audit cap conditional — 上限调节已有
+59415	dup	retirement diagnostics+separators — 诊断细化已有
+59418	dup	summarise last Goal no permit — 目标摘要已有
+59428	noise	bench noise
+59429	noise	bench noise
+59431	noise	bench noise
+59433	noise	bench noise
+59434	noise	bench noise
+59436	noise	bench noise
+59437	noise	bench noise
+59438	noise	contributor noise
+59445	noise	bench noise
+59446	noise	bench noise
+59448	noise	bench noise
+59449	noise	bench noise
+59467	noise	bench noise
+59469	noise	bench noise
+59471	noise	bench noise
+59472	noise	bench noise
+59479	noise	prose noise
+59480	noise	bench noise
+59481	noise	bench noise
+59488	noise	bench noise
+59558	noise	contributor noise
+59591	noise	bench noise
+59592	noise	bench noise
+59623	noise	bench noise
+59624	noise	bench noise
+59644	noise	bench noise
+59645	noise	bench noise
+59646	noise	contributor noise
+59648	noise	bench noise
+59649	noise	bench noise
+59651	noise	bench noise
+59652	noise	bench noise
+59653	noise	bench noise
+59654	noise	bench noise
+59690	noise	contributor noise
+59739	cand	proactive channel loop tools — 主动通道循环工具，本仓 loop 机制可比照
+59752	dup	avoid full-history clones OOM — 浅克隆已有
+59759	dup	PermissionDenied hooks AUTO blocks — 拒钩已有
+59794	noise	contributor noise
+59798	noise	contributor noise
+59822	noise	branch noise
+59826	noise	contributor noise
+59834	noise	contributor noise
+59835	noise	contributor noise
+59836	noise	contributor noise
+59855	noise	contributor noise
+59867	noise	contributor noise
+59875	dup	OUTPUT_TOKEN_LIMIT 16K — 令牌上限已有
+59876	noise	contributor noise
+59880	noise	contributor noise
+59895	noise	feat fragment
+59898	noise	contributor noise
+59910	noise	contributor noise
+59912	noise	contributor noise
+59913	noise	contributor noise
+59917	dup	ipynb code selection — notebook选区已有
+59919	noise	branch noise
+59920	noise	docs noise
+59921	dup	record thoughtsTokenCount — 思考计数已有
+59923	noise	contributor noise
+59924	noise	version pump
+59926	noise	version pump
+59928	noise	version pump
+59931	noise	version pump
+59935	noise	contributor noise
+59936	noise	contributor noise
+59937	noise	contributor noise
+59938	noise	contributor noise
+59939	noise	contributor noise
+59940	noise	version pump
+59941	noise	test internal
+59943	noise	contributor noise
+59945	noise	contributor noise
+59946	noise	contributor noise

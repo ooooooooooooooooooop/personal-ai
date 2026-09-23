@@ -1,0 +1,200 @@
+60750	boundary	PR visual previews — their SaaS
+60756	boundary	sessions awaiting action — their UI
+60774	boundary	git branch composer — their UI
+60833	boundary	chat UI polish — their UI
+60838	dup	foreground timeout warn — 超时提示已有
+60862	boundary	Excel-style tables — their UI
+60863	boundary	thinking duration — their UI
+60886	dup	direct session shell opt-in — 门控已有
+60891	boundary	tool detail collapse — their UI
+60906	dup	hint to bg long commands — 后台建议已有
+60910	dup	managed bg shell pool /tasks — bg jobs 已有
+60911	boundary	elapsed+timeout indicator — their UI
+60917	dup	Kind-based tool parallelism+readonly detect — 并行/只读识别已有
+60982	dup	reviewed-repo commands in container — sandbox 评审已有
+61193	dup	skills default-disabled override — skill 门控已有
+61234	dup	agent reproduction workflows — workflows 已有
+61244	dup	skills user-invocable frontmatter — skill 配置已有
+61253	noise	ExtensionConfig description internal
+61265	dup	skills parallel load+path-conditional — 条件激活已有
+61291	noise	hooks ext dir files internal
+61329	cand	cross-session messaging default — 跨会话消息
+61340	dup	web_search per-session cap — 工具配额已有
+61398	dup	session writer leases — write lease 已有
+61423	boundary	Aone session PR bindings — their platform
+61442	dup	cross-session inbound gate — 入站闸已有
+61465	dup	session activity watermark — 水位线已有
+61556	dup	writer lease opt-in — lease 已有
+61565	dup	sub-session concurrency caps — 并发上限已有
+61573	dup	caller-supplied sessionId — 自定义会话ID已有
+61615	dup	bound persisted transcript pages — 分页界已有
+61619	dup	session artifacts across restarts — 重启持久已有
+61627	dup	batch session load replay — 批量回放已有
+61639	dup	session status by id — 会话查询已有
+61674	noise	rewind disabled warn internal
+61681	dup	per-request sessionScope — 作用域覆盖已有
+61745	dup	remember effort per project — 项目记忆已有
+61750	dup	managed auto-memory lifecycle — memory 已有
+61801	dup	natural memory references — memory 已有
+61802	dup	confirm natural memory mutations — memory 已有
+61803	dup	multi-fact memory save — memory 已有
+61816	dup	structured channel memory — memory 已有
+61836	dup	sessionless workspace remember — memory 已有
+61844	dup	memory pressure diagnostics dump — memory 诊断已有
+61875	dup	auto-memory+auto-dream — memory 整理已有
+62010	dup	failed agents journal settle — 失败结算已有
+62107	noise	incremental review rounds internal
+62108	noise	fixConstraint premises internal
+62133	noise	fix test ruling internal
+62360	noise	verify sibling shapes internal
+62425	noise	autofix stale base internal
+62826	dup	fail impossible goals — 目标失败判定已有
+62837	dup	reactive compression on overflow — compaction 已有
+63164	noise	executed witness Critical internal
+63310	boundary	/init confirmation — their UI
+63468	dup	reasoning effort ACP — reasoning 配置已有
+63592	dup	unified /effort command — 同上
+63780	dup	multimodal routing image — 图像路由已有
+63788	dup	vision-bridge capability — 图像能力已有
+63791	boundary	voice dictation — AV 面
+63799	boundary	voice dictation native — AV 面
+63806	dup	screenshot max dimension — 图像配置已有
+63813	dup	PDF fallback+Jupyter parse — 文件解析已有
+63849	noise	auto mode startup text internal
+63869	dup	task tools concurrent — 并行已有
+63872	noise	unfriendly error msg fix
+63893	noise	omni media pipeline internal
+63913	dup	bounded self-review pre-commit — 自评审已有
+63946	boundary	triage owner assign — their bot
+63963	noise	pr-context Aone internal
+63969	noise	ext HTTPS git auth internal
+64011	noise	autofix bilingual comments internal
+64052	boundary	auto-assign area owners — their bot
+64070	dup	PR/issue/comment URL artifacts — artifact 已有
+64074	noise	E2E dedup comments internal
+64102	noise	bundle check CI internal
+64103	boundary	gitlab award emoji — their bot
+64106	boundary	verify lane triage — their bot
+64130	noise	autofix push fail stop internal
+64164	boundary	PR failure patrol — their bot
+64216	noise	tmux real-user testing internal
+64227	noise	minimal-change check internal
+64236	noise	stream redirect registry internal
+64238	noise	typed_event_schema internal
+64241	dup	git ls-files+ripgrep — git 感知列文件已有
+64247	dup	fg→bg promote — 后台提升已有
+64268	noise	custom QC commands internal
+64396	noise	output formats internal
+64397	dup	budget-based ACP admission — 准入控制已有
+64398	dup	idle ACP child reclaim — 空闲回收已有
+64419	dup	ACP transport liveness — 活性已有
+64427	dup	repeated tool failure protect — 失败保护已有
+64438	noise	ACP preheat internal
+64440	dup	handshake timeout config — 超时配置已有
+64452	noise	/cd ACP internal
+64481	noise	TypeScript SDK internal
+64489	noise	autofix escalate pauses internal
+64580	noise	tool schema order internal
+64745	boundary	VP mode UX — their UI
+64758	dup	collapsePreviewCount resume — 会话折叠已有
+64763	boundary	tool display partition — their UI
+64769	boundary	IME cursor — their UI
+64790	boundary	ask_user always-visible — their UI
+64799	boundary	banner customize — their UI
+64804	boundary	background-agent UI — their UI
+64822	boundary	hooks disabled state UI — their UI
+64831	boundary	welcome+settings redesign — their UI
+64854	noise	Goal lifecycle metrics internal
+64871	boundary	OSC 8 click — their UI
+64878	noise	context usage span internal
+64885	dup	standalone projectless sessions — 会话已有
+64889	dup	loaded context files display — context 可见已有
+64890	noise	a1 CLI reviews internal
+64895	noise	plain-prose review comments internal
+64902	noise	Goal v3 ACP internal
+64915	noise	tool outcome metrics internal
+64931	boundary	VP selection copy — their UI
+64935	boundary	mouse selection VP — their UI
+64944	dup	ask_user answers via SDK — ask 已有
+64946	boundary	reasoning expand — their UI
+64953	dup	archived sessions list — 会话归档已有
+64954	noise	long /goal conditions internal
+64957	noise	auto-retry port internal
+64975	noise	sensitive span limit internal
+64979	boundary	statusline options — their UI
+64980	boundary	virtual viewport — their UI
+64981	noise	file-history housekeeping internal
+64985	boundary	turn timestamps — their UI
+64992	dup	Workflow P4 phase-tree — workflow 已有
+64994	noise	/copy arg hint internal
+64997	cand	prevent system sleep while running — 防休眠
+64998	noise	dir completion space internal
+65001	noise	TTFT semconv internal
+65002	boundary	OSC 8 markdown links — their UI
+65007	boundary	Ctrl+P/N history — their UI
+65009	noise	interaction span internal
+65017	noise	sensitive span opt-in internal
+65038	boundary	active setting desc — their UI
+65054	noise	--acp flag graduate internal
+65063	dup	UTF-8 BOM preserve — 编码保留已有
+65068	noise	verify report Chinese internal
+65107	noise	Smart Edit remove internal
+65178	dup	second-resolution wakeup engine — scheduler 已有
+65181	boundary	collapsible thinking timer — their UI
+65195	dup	grep satisfies prior-read — 读前写已有
+65196	dup	search tools simplify — 搜索已有
+67571	noise	multilingual eval internal
+67573	noise	quick-stats tool minor
+67612	noise	shallow cloning internal
+67633	boundary	SWE-smith multimodal — their eval
+1510	boundary	Cline Auth Provider — their auth
+2157	dup	PreCompact hook — hooks 已有
+2186	dup	TaskComplete hook — hooks 已有
+2231	dup	OTel exporters — telemetry 已有
+2300	dup	OTel settings schema — telemetry 已有
+2310	noise	PATH export instruction
+3183	dup	native tool call default — 工具调用已有
+3659	dup	hooks in CLI — hooks 已有
+3665	dup	OTel metrics infra — telemetry 已有
+3693	dup	OTel integration — telemetry 已有
+3876	dup	apply_patch auto approve — 批准已有
+9291	boundary	interruption keybind config — their UI
+9322	boundary	reasoning level shortcuts — their UI
+9348	dup	mcpServer startupStatus notify — MCP 状态已有
+9389	boundary	TUI sub-agents — their UI
+9401	dup	Permissions update history — 权限历史已有
+9437	boundary	personality migration — their UI
+9447	boundary	/personality — their UI
+9452	boundary	tui collab beta — their UI
+9458	dup	/permissions flow — 权限面已有
+9498	boundary	copy selection shortcut — their UI
+9544	boundary	TUI undo op — their UI
+9548	dup	cwd in notify payload — 通知载荷已有
+10101	dup	canonical collab wait items — collab 已有
+10113	dup	review mode items — review 已有
+10118	dup	hook prompt items — hooks 已有
+10563	dup	export/replay config locks — 配置锁已有
+10616	noise	spawned-agent instructions internal
+10643	dup	auto-review policy config — review 已有
+10669	dup	request_permissions handling — 权限已有
+10762	noise	spawn_agent messages restrict internal
+10813	noise	spawn task name mandatory internal
+10819	dup	spawn v2 inter-agent comm — delegate 已有
+10847	dup	turn spans websockets — tracing 已有
+10854	dup	turn_id span tags — tracing 已有
+10871	dup	sub-agents comm op — delegate 已有
+10903	dup	traces across tasks — tracing 已有
+10937	dup	persist request_permission — 批准持久已有
+10955	dup	safe tracing — telemetry 已有
+10972	noise	schema naming conflicts internal
+10988	noise	OTel metric names internal
+10996	dup	persist trace_id turns — tracing 已有
+11015	dup	app-server API tracing — tracing 已有
+11017	dup	test-client tracing 同上
+11037	dup	app-server trace context 同上
+11045	dup	turn span 同上
+11072	noise	DynamicToolCall item internal
+11117	dup	sub-agent nick names — delegate 已有
+11120	noise	phase2 enqueue internal
+11143	dup	introduce Permissions — 权限已有
+11151	dup	network-proxy policy signaling — 代理策略已有

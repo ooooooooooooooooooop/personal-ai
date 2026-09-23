@@ -1817,3 +1817,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | M139 附件落盘路径 | **REAL** | path 源附件：`describeAttachment` 加 `path` 属性，模型拿到可编辑/可引用的真路径；inline（粘贴）源：`persistAttachment` 落盘 `<instance>/exports/attachments/` 并在 `<attachment>` 标签通告该路径。**顺手修真 bug**：path 源图片走 native 通道时 `source.data` 是 undefined——`materializeImageSource` 物化字节（BMP path 源照样过 bmpToPng），不可读则诚实降级进 degraded |
 
 回归：pi 335+1skip / host 312 全绿。
+
+### 28.30 高分带逐条台账收口：score 8–29 全量 4,263 条（2026-09-23）
+
+28.10 记录的是信号层（80,369 条）评分口径；去重后候选层为 22,668 条，其中 `_midreview` 批次台账（batch23）只覆盖 score 4–7 的 18,405 条。本节补齐剩余 score 8–29 的 **4,263 条逐条处置**——高分带恰是机制密度最高区，不允许簇级默认。
+
+**方法**：`hiscore-skeleton.tsv` 机械抽取 `idx|score|cluster|src`（候选 JSONL 无 idx，按归一化文本与 `hiscore.txt` 行序对齐）；判定列 `verdict|detail` 人工按 200 条/批逐条手写进 `verdicts-hi-0..20.tsv`（21 批，先读全批原文再写判定，零簇级默认/零"剩余行兜底"）；join 成 **`changelogs/_midreview/hiscore-dispositions.tsv`**（`idx|score|cluster|src|verdict|detail|pass`，pass=manual）。机械校验：4,263 行 idx 0–4262 连续、零重复、verdict/detail 全非空、score 与源一致。
+
+**处置分布**：dup×1,936（我方已实装/已裁决同型）· boundary×1,418 · cand×487 · noise×257 · variant×165 · verify×0。
+
+**6 条 verify 落码核销**：#248 memory 召回 untrusted 标（`memory.js:297`，dup）；#981 globs 锚 workdir（`decide.js:84`，dup）；#1249 家目录索引面不存在（`fastcontext.js` workdir 限定，dup——更强）；#915 repo 内 exe 影子化批准命令（`jobs.js:505` shell:true + cmd.exe cwd 搜索，**cand**）；#1277 revert 不清 agent 建的空目录（**cand**）；#1284 fork 无容量闸（**cand**）。
+
+**全量对账闭环**：item-dispositions.tsv 18,405（score 4–7）+ hiscore-dispositions.tsv 4,263（score 8–29）= **22,668 条去重候选逐条处置完备**，上溯 80,369 信号 / 89,544 原始 / 35 家 harness 采集链不断层。

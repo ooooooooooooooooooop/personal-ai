@@ -1,0 +1,200 @@
+30758	dup	logPrompts flag sensitive fields — 敏感日志门已有
+30781	noise	flag internal
+30818	dup	extensionRegistryURI — 注册表URI已有
+30830	dup	maxAttempts plumb config — 重试配置已有
+30832	dup	OTEL traces attributes — 遥测已有
+30898	noise	path internal
+30900	noise	prompt internal
+30910	noise	metrics internal
+30922	boundary	space toggle — their UI
+30923	dup	previewFeatures a2a — 特性旗标已有
+30937	noise	logging internal
+30941	noise	flag internal
+30942	noise	flag internal
+30986	dup	no error -e none — 空扩展容错已有
+30989	noise	metrics internal
+30991	noise	gh internal
+30992	noise	flags internal
+30997	noise	arg internal
+30999	noise	metrics internal
+31002	dup	token file storage base — 凭据存储已有
+31019	dup	storage interface — 已有
+31020	dup	token storage base — 已有
+31046	dup	OTEL debug only — 遥测门已有
+31051	dup	no double config load — 加载收敛已有
+31053	dup	close diffs on CLI close — 清理已有
+31056	noise	log internal
+31057	noise	metrics internal
+31119	dup	Rewind data structure — 回滚结构已有
+31139	boundary	keyboard mode — their UI
+31142	noise	metrics internal
+31144	dup	fork regulation — 分叉治理已有
+31157	noise	migrate internal
+31161	noise	ci internal
+31165	noise	ci internal
+31167	noise	ci internal
+31174	noise	docs internal
+31185	noise	port internal
+31190	noise	dep internal
+31199	dup	image pasting Wayland/X11 — 剪贴板已有
+31207	noise	screenshot internal
+31270	dup	real cause connection failures — 错误归因已有
+31273	dup	streamed thinking ahead — 思考流序已有
+31274	dup	context mgmt dep resolution — 依赖解析已有
+31275	noise	model internal
+31276	dup	pair functionResponse names — 响应对齐已有
+31277	dup	protect gateway pairing codes — 配对码保护已有
+31278	dup	recipes from validated snapshot — 快照验证已有
+31281	boundary	RTL — their UI
+31284	noise	build internal
+31285	noise	artifact noise
+31286	noise	artifact noise
+31287	noise	artifact noise
+31288	noise	artifact noise
+31291	dup	tool calling goose-agent — 工具调用已有
+31292	noise	config internal
+31293	dup	require HTTPS Snowflake — TLS强制已有
+31294	dup	content capture opt-out tracing — 遥测退出已有
+31295	dup	durable background turns summon — 后台轮已有
+31296	dup	breakpoints agentic tail — 断点已有
+31297	dup	preserve cwd child status — 状态保留已有
+31301	noise	packaging internal
+31304	boundary	auto-focus — their UI
+31308	noise	discovery internal
+31310	dup	dedup parallel tool-pair summaries — 摘要去重已有
+31311	dup	bound non-streaming JSON — 响应限已有
+31312	dup	reject non-object schemas — schema校验已有
+31313	dup	coalesce thinking blocks — 块合并已有
+31314	dup	decouple source/response limits — 限额分离已有
+31315	noise	GGUF internal
+31316	boundary	menu flip — their UI
+31317	dup	recalled history agent-visible — 召回可见已有
+31318	dup	bound handoff memo resumable — 交接限已有
+31319	dup	dedup enabled builtins — 内建去重已有
+31321	dup	annotations replayed items — 回放标注已有
+31322	dup	validate recipe params — 参数校验已有
+31323	noise	builtins internal
+31324	dup	per-turn tool allowlists — 轮级白名单已有
+31325	dup	restrict code mode callback output — 回调限定已有
+31326	dup	restrict app management tools — 工具限定已有
+31327	noise	inference internal
+31328	dup	confine agent listing source roots — 列举限定已有
+31329	noise	runner internal
+31330	dup	restrict updates visible sessions — 会话限定已有
+31331	dup	reject symlinked check sources — 链接拒绝已有
+31332	dup	refuse symlink diagnostics outputs — 输出防护已有
+31333	dup	suppress sensitive OTLP — 遥测净化已有
+31334	dup	bound call graph traversal — 遍历限已有
+31335	dup	bound recursive mention scans — 扫描限已有
+31336	dup	confine temp extraction cleanup — 清理限定已有
+31342	dup	require fresh file param input — 参数新鲜度已有
+31343	dup	avoid predictable editor symlink — 链接预测防护已有
+31346	dup	thinking tokens usage — token统计已有
+31349	dup	gate external URL protocols — 协议门已有
+31352	dup	no file params recipe explain — 参数隔离已有
+31354	dup	reject context commands — 命令限定已有
+31355	boundary	hamburger — their UI
+31356	dup	bound XLSX reads — 读取限已有
+31357	noise	dep internal
+31358	dup	narrow file read IPC — IPC收窄已有
+31359	dup	bound action-required stream — 流限已有
+31360	dup	bound partial thinking tags — 标签限已有
+31361	dup	avoid untracked review symlinks — 链接防护已有
+31363	dup	generic unrolled loop — 状态机已有
+31365	dup	unrolled agent loop — 代理循环已有
+31367	dup	cache tokens cost — 缓存token已有
+31368	dup	interactive menu elicitations — 询问菜单已有
+31369	dup	LOCAL_WHISPER_LANGUAGE — 转录配置已有
+31371	dup	output-token-limit info — 限额提示已有
+31372	dup	collapse const-union enums schemas — schema压缩已有
+31373	noise	metrics internal
+31374	noise	metrics internal
+31378	dup	/goal self-eval before finish — 自评已有
+31379	dup	/status — 状态命令已有
+31380	dup	unified thinking effort — 推理统一已有
+31381	dup	worktree-aware dir switcher — worktree切换已有
+31382	dup	MAX_CODE_BLOCK_LINES env — 行限可配已有
+31385	noise	eval internal
+31386	dup	import sessions — 会话导入已有
+31387	noise	vulkan internal
+31388	boundary	view interactions — their UI
+31389	noise	ffi internal
+31391	noise	providers internal
+31396	dup	preserve adversary tool args — 参数保全已有
+31397	dup	XML in JSON as data — 数据隔离已有
+31398	noise	title internal
+31401	noise	dep internal
+31402	noise	model internal
+31404	boundary	viewer — their UI
+31406	noise	provider internal
+31409	dup	confine app file ops — 文件限定已有
+31410	noise	model internal
+31411	noise	schema internal
+31414	dup	absolute goose path roots — 绝对路径已有
+31416	dup	preserve content audience boundaries — 受众边界已有
+31417	dup	JSON-RPC errors not kill — 错误返回已有
+31418	dup	secure spill files — 溢出文件保护已有
+31419	dup	tighten secrets file perms — 权限收紧已有
+31421	dup	reject duplicate recipe keys — 键去重已有
+31422	dup	kill orphaned backends — 孤儿清理已有
+31423	dup	break $ref cycles — 循环断开已有
+31424	boundary	hide nested config — their UI
+31425	dup	timezone-explicit timestamps — 时区已有
+31426	boundary	setup indicator — their UI
+31427	noise	cost internal
+31428	noise	entitlements internal
+31431	dup	bound code-mode timeout/cancel — 执行限已有
+31433	dup	effective context limit /model-info — 限额查询已有
+31436	noise	docs internal
+31438	noise	docs internal
+31439	noise	name noise
+31440	boundary	project names — their UI
+31443	noise	deeplink internal
+31444	noise	tls internal
+31445	noise	help internal
+31446	dup	tolerate partial Responses items — 部分容错已有
+31447	dup	no retry permanent 400s — 永久错误不重试已有
+31448	noise	reqwest internal
+31449	dup	reject non-object args — 参数校验已有
+31450	dup	/edit prompts to history — 历史已有
+31451	dup	actionable truncated args errors — 截断错误已有
+31453	noise	hermit internal
+31454	dup	timezone timestamps — 已有
+31455	dup	disable thinking fast-model — 快模推理门已有
+31456	noise	diagnostics internal
+31457	boundary	setup indicator — their UI
+31458	noise	docs internal
+31459	noise	docs internal
+31461	noise	hints internal
+31462	noise	toolchain internal
+31463	noise	crate internal
+31464	noise	declarations internal
+31467	noise	providers internal
+31472	noise	deeplink internal
+31475	dup	summon peek async tasks — 后台查看已有
+31476	dup	structured metadata summon — 元数据已有
+31482	dup	/goal self-eval — 已有
+31484	dup	MAX_CODE_BLOCK_LINES — 已有
+31487	dup	unified thinking effort — 已有
+31491	dup	/edit history — 已有
+31492	dup	no retry 400s — 已有
+31493	noise	reqwest internal
+31494	dup	reject non-object args — 已有
+31495	noise	pricing internal
+31498	noise	hermit internal
+31499	noise	visualiser internal
+31500	dup	turn on /goal|/grind set — 目标启动已有
+31503	noise	hermit internal
+31508	dup	elicitation decline/cancel propagated — 拒绝传播已有
+31510	dup	context exceeded precise — 超限检测已有
+31511	noise	config internal
+31514	noise	pagination internal
+31515	dup	actionable truncated errors — 已有
+31516	boundary	icon — their UI
+31517	dup	non-recipe configs skipped — 配置过滤已有
+31518	dup	dedup tool-call ids in turn — ID去重已有
+31519	dup	bundled extensions discovery — 发现已有
+31521	noise	discovery internal
+31522	dup	remove fetch-metadata SSRF — SSRF收口已有
+31525	noise	build internal
+31526	boundary	window — their UI

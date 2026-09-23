@@ -1,0 +1,200 @@
+13152	dup	request profile app server — 档案已有
+13157	dup	tool-name normalize+preserved params — 名称规范已有
+13159	dup	pre-approved in zsh fork — 预批已有
+13160	noise	rename internal
+13161	noise	prompt internal
+13176	noise	helper semantics internal
+13182	dup	guardian approval MVP — 审查审批已有
+13183	dup	skill metadata approval requests — 元数据载荷已有
+13185	noise	test internal
+13186	noise	test internal
+13187	dup	profiles merged per-turn sandbox — 档案合并已有
+13202	dup	MCP approval custom servers — 审批已有
+13204	noise	plan behavior internal
+13207	noise	plan flow internal
+13213	dup	seatbelt permission files — 沙箱档案已有
+13229	noise	prompt internal
+13231	noise	plan rules internal
+13241	noise	prompt internal
+13242	boundary	/approvals hidden — their UI
+13243	noise	prompt internal
+13245	noise	prompt internal
+13250	dup	defer backtrack trim rollback confirms — 回滚确认已有
+13252	dup	config only trusted folders — 信任加载已有
+13255	dup	no approval just fix — 豁免已有
+13256	dup	approvals from spawned threads — 跨线程审批已有
+13259	dup	dynamic sandbox/approval/network prompts — 动态提示已有
+13273	dup	bypass sandbox policy approved — 批准直通已有
+13274	noise	approvals internal
+13280	boundary	shortcuts inline — their UI
+13291	dup	reduce repetitive approval read-only — 审批收敛已有
+13292	boundary	approval UI — their UI
+13294	boundary	approvals view — their UI
+13295	noise	docs internal
+13297	dup	notifications approvals/turn end — 通知已有
+13305	dup	close MCP stderr teardown — 资源清理已有
+13306	dup	surface reconnect expired OAuth — 重连信号已有
+13307	noise	metadata internal
+13309	noise	entry point removed noise
+13310	dup	native spawning bare commands — 原生spawn已有
+13311	dup	startup error logging — 启动日志已有
+13314	dup	preserve auth challenges — 挑战保持已有
+13315	dup	discovery errors in status — 状态报告已有
+13321	dup	preserve cached tools binding — 缓存绑定已有
+13322	dup	refreshed caches binding — 缓存已有
+13326	noise	test internal
+13330	dup	structured MCP errors preserved — 错误保真已有
+13331	dup	startup grace configurable — 宽限配置已有
+13332	dup	extensions process tool results — 扩展处理已有
+13333	noise	telemetry internal
+13337	dup	standalone function call outputs — 输出已有
+13338	dup	bearer tokens executor envs — 令牌解析已有
+13339	dup	issuer binding OAuth — 颁发者绑定已有
+13340	dup	discover servers executors — 发现已有
+13341	dup	honor required servers — 必需服务已有
+13343	dup	MCP compat older executors — 兼容已有
+13345	dup	strict auto-review outcomes — 审查保持已有
+13346	dup	runtime connection status — 状态已有
+13347	noise	types internal
+13348	noise	retained data internal
+13349	dup	restrict redirects configured origin — SSRF防护已有
+13351	dup	scope resource reads call — 作用域已有
+13354	dup	lazy start cached subagents — 懒启动已有
+13355	dup	reuse handlers sampling — 复用已有
+13356	dup	recover after OAuth reauth — 重连恢复已有
+13358	dup	process tree cleanup — 进程树清理已有
+13359	dup	call IDs requests — ID载荷已有
+13361	noise	credential reads internal
+13362	noise	credential reads internal
+13365	noise	deps internal
+13366	dup	cached tools before startup — 预热暴露已有
+13369	dup	nonblocking optional startup — 非阻塞已有
+13370	dup	concurrent catalogs — 并发解析已有
+13371	noise	test internal
+13374	dup	cleanup cancelled elicitation — 征求清理已有
+13375	noise	prevalidation internal
+13376	dup	connectors by server name — 名解析已有
+13377	dup	step envs MCP file uploads — 环境上传已有
+13378	dup	unrelated tools during startup — 启动并行已有
+13379	dup	bound namespace descriptions — 描述限界已有
+13382	dup	env-native paths uploads — 路径已有
+13383	dup	shared startup grace — 宽限共享已有
+13384	dup	cloud-managed servers CLI — 管控服务已有
+13385	dup	limit catalog pagination — 分页限界已有
+13386	dup	distinguish unknown auth — 状态分型已有
+13388	dup	read-only hints — 只读提示已有
+13389	dup	reconnect closed keep healthy — 粒度重连已有
+13390	noise	modules internal
+13392	noise	modules internal
+13393	dup	bind calls catalog revisions — 版本绑定已有
+13394	noise	rename internal
+13395	dup	clients latest runtime — 运行时跟随已有
+13399	noise	trace internal
+13401	noise	types internal
+13406	dup	startup timeouts client creation — 超时已有
+13408	dup	nonblocking OAuth discovery — 非阻塞已有
+13409	noise	analytics internal
+13414	noise	error msg internal
+13416	noise	auth internal
+13418	dup	tool search MCP default — 工具搜索已有
+13419	dup	shutdown superseded managers — 替换关闭已有
+13425	dup	stdio servers executor plugins — 发现已有
+13426	noise	oauth internal
+13431	dup	unusable credentials logged out — 凭据状态已有
+13432	noise	API visibility internal
+13433	dup	fallible startup — 启动可失败已有
+13435	dup	latest-wins manager — 替换已有
+13436	dup	preserve disabled overlays — 禁用保持已有
+13440	dup	exclude external output memories — 记忆排除已有
+13446	dup	server info in status — 状态已有
+13449	noise	test internal
+13450	noise	plumbing internal
+13454	noise	naming internal
+13456	dup	read-only concurrent readOnlyHint — 只读并发已有
+13462	dup	preserve result meta — 元数据已有
+13466	noise	maps internal
+13469	dup	tool calls turn items — 项已有
+13477	dup	reject symlink traversal — 遍历防护已有
+13479	noise	placement internal
+13480	dup	forward call IDs backend — ID透传已有
+13481	noise	prune internal
+13482	noise	ordering internal
+13483	noise	modules internal
+13488	dup	MCP tools in hooks — hook集成已有
+13500	noise	defer internal
+13511	noise	crate internal
+13512	noise	crate internal
+13514	noise	schema internal
+13515	noise	adapters internal
+13516	dup	tool grouping hyphenated names — 分组已有
+13525	dup	scopes_supported OAuth — 范围已有
+13527	noise	test internal
+13529	dup	normalize names code-mode — 规范化已有
+13546	dup	required fail fast start/resume — fail-fast已有
+13547	dup	required failures components — 失败处理已有
+13558	dup	OAuth error descriptions — 错误描述已有
+13574	dup	elicitation empty JSON — 征求兼容已有
+13575	dup	propagate disabled reason — 原因传播已有
+13582	dup	restrict servers requirements.toml — 需求限域已有
+13585	noise	function internal
+13587	dup	sanitize names Responses — 名称净化已有
+13601	dup	MCP elicitations — 征求已有
+13605	dup	refresh OAuth expires_at — 令牌刷新已有
+13606	noise	log internal
+13612	noise	rmcp internal
+13613	noise	rmcp internal
+13614	noise	startup errors internal
+13625	noise	improvements noise
+13627	dup	scopes during login — 范围已有
+13631	dup	mcp__ prefix — 前缀已有
+13633	dup	PAT error message — 错误提示已有
+13645	noise	rmcp internal
+13646	dup	parallel tool calls — 并行调用已有
+13659	boundary	styling — their UI
+13661	dup	timeouts mcp calls — 超时已有
+13668	dup	persist model/reasoning — 持久已有
+13669	noise	user_agent internal
+13670	noise	UA suffix internal
+13671	noise	UA internal
+13674	dup	per-server startup timeout — 超时已有
+13675	dup	init error handling — 错误处理已有
+13678	noise	log filter internal
+13691	boundary	thinking timer — their UI
+13695	noise	devcontainer internal
+13697	dup	cancel enrollment shutdown — 注销取消已有
+13699	noise	remote sites internal
+13701	dup	refresh runtimes plugin state — 运行时刷新已有
+13703	dup	report affected capabilities — 能力报告已有
+13708	dup	plugin cache reconcile — 缓存和解已有
+13710	noise	host identify internal
+13712	dup	drop descendant updates compaction — 更新裁剪已有
+13714	noise	plugins internal
+13715	dup	discovery timeout cleanup — 超时清理已有
+13716	noise	client internal
+13717	dup	install attempt IDs — ID追踪已有
+13721	dup	tie exec servers parent stdin — 生命周期绑定已有
+13722	dup	remote Code Mode WS — 远程执行已有
+13725	dup	system proxy remote plugins — 代理遵从已有
+13727	dup	bound remote stdio lines — 行限界已有
+13731	dup	refresh expired auth connector — 认证刷新已有
+13733	noise	redirects internal
+13735	dup	compaction parity skill catalogs — 一致性已有
+13736	noise	hosted default internal
+13741	noise	docs internal
+13742	noise	featured IDs internal
+13743	dup	remote images error text — 降级文本已有
+13745	dup	reject remote images ingress — 入站拒绝已有
+13746	dup	foreign absolute cwd remote — 远端cwd已有
+13747	noise	analytics internal
+13758	dup	authenticated Noise relay E2E — 加密通道已有
+13764	noise	plugin order internal
+13765	dup	default Noise transport — 传输默认已有
+13766	dup	/goal preserves attachments — 附件保持已有
+13770	noise	routing internal
+13775	dup	cache catalog failures thread — 失败缓存已有
+13781	noise	log internal
+13784	dup	preserve plugin default prompts — 提示保持已有
+13792	dup	pairing/grants revoke RPCs — 授权管理已有
+13795	dup	manifest order/dedup/malformed warnings — 加载健壮已有
+13799	noise	ci internal
+13800	dup	hosted tools code-only — 可见性已有

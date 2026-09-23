@@ -1,0 +1,200 @@
+3780	dup	EnterWorktree/ExitWorktree通用worktree工具 — worktree族
+3781	boundary	iMessage remote attachments
+3782	dup	Gateway startup负载/大roster恢复+malformed cron隔离 — startup resilience
+3783	cand	sched-api: REST API查usage/traces/scheduled tasks(HTTP)
+3784	dup	ACP sessions统一Goal v3 runtime(create/edit/pause/resume/clear) — goal runtime
+3785	dup	configurable daemon update schedules+saved threads恢复 — update schedule
+3786	cand	sched-session: per-run scheduled task sessions(fresh child+unique timestamps)
+3787	dup	azure-openai入Responses store override — provider routing
+3788	cand	commitments: opt-in inferred follow-up commitments(hidden batched extraction,per-agent/channel)
+3789	cand	prompt-override: agents.defaults.systemPromptOverride受控实验
+3790	boundary	cron→Automations改名
+3791	dup	cron show lookup分页bound — pagination bound
+3792	boundary	expand-to-canvas+session导航
+3793	dup	cron Gateway-owned+JSONL run history+isolated summary — cron ownership
+3794	dup	one-shot/startup catch-up恢复+restart存活 — cron resilience
+3795	dup	isolated payload.model不再allowlist时回默认 — cron fallback
+3796	dup	nested cron嵌套runner work上nested lane — lane routing
+3797	cand	cron-announce: isolated jobs announce delivery mode
+3798	dup	legacy array jobs.json保留加载 — migration preserve
+3799	cand	cron-lane: main-session scheduled work走cron-owned wake lane
+3800	dup	malformed job rows跳过留doctor修 — quarantine
+3801	dup	curator routine runs不花aux-model — cost optimize
+3802	dup	startup避免重复plugin/channel/session检查 — startup perf
+3803	dup	remote hub schedule命令注册workspace client授权 — auth fix
+3804	dup	sidecars完成前defer scheduled services — startup order
+3805	boundary	desktop 0.0.20含Windows/full-history search
+3806	dup	active-memory recall走最强channel+managed dreaming — memory channel
+3807	dup	plugin recovery+失败后restart gateway — recovery
+3808	cand	sched-wake: scheduled work只在有变化时wake(事件驱动)
+3809	cand	sessions-maint: sessions cleanup命令+per-agent store+disk-budget
+3810	boundary	doctor-contract sidecar
+3811	cand	sched-loop: /loop每轮后model决定是否继续(自适应)
+3812	boundary	Telegram resolveSessionTarget hook
+3813	cand	self-maintain: Curator自主评级/修剪/合并skills(后台)
+3814	boundary	Web UI statistics/traces/tasks视图
+3815	cand	sched-allowlist: implicit scheduled/system delivery强制allowlist路由
+3816	boundary	clawdis health探针(link/latency/heartbeat)
+3817	boundary	Cascade legacy entry points移除
+3818	noise	cygwin source archives
+3819	cand	search-conv: context search-conversations(RAG会话搜索)
+3820	dup	LLM idle watchdog经profile rotation+model fallback — watchdog escalation
+3821	dup	auth-profile upserts本地直写跳过CLI sync — profile persist
+3822	noise	Bot ID误入Secret输入框
+3823	dup	credential存在检查+备选auth fallback — credential check
+3824	dup	compressed continuation重复注入user context修复 — dedupe fix
+3825	boundary	uuid@11 npm audit修复
+3826	dup	MPIM group DMs分类group+抑制verbose progress — chat classify
+3827	dup	binary reply context sanitize+ZIP extraction防.epub/.mobi — sanitize
+3828	dup	usage hooks内建footer+per-turn usage state — usage display
+3829	dup	sortable resume picker(created/updated toggle) — picker sort
+3830	dup	turn.failed+thread started事件 — event naming
+3831	cand	clone-cmd: /clone当前branch复制新session
+3832	dup	同3523(重复) — export schema
+3833	dup	/resume会话中切换+交互selector — resume cmd
+3834	dup	/resume命令文本不写入history — history hygiene
+3835	dup	named-only filter toggle(同3892) — named filter
+3836	dup	worktree session先repo启动后迁入 — worktree boot
+3837	dup	ACP切model后续会话修复 — model persist
+3838	dup	session/new+session/set_model ACP — acp model
+3839	dup	ACP持久化恢复titles/modes/usage — acp persist
+3840	boundary	ACP Session Config options
+3841	cand	resume-turns: resume/fork include_turns+turn_service_tier+source metadata
+3842	dup	--session-id精确project-local ID — session id
+3843	boundary	Restore File丢弃未提交改动
+3844	variant	fullscreen exit输出选transcript/resume hint
+3845	cand	notify-os: native OS通知(session完成/需要输入)
+3846	dup	Duplicate session分叉 — session fork
+3847	boundary	恢复退出时所有窗口
+3848	boundary	未保存buffers自动恢复
+3849	dup	session-scoped media references刷新持久 — media persist
+3850	dup	session forking(api) — fork api
+3851	dup	fast-mode state存活retries/fallback/progress — mode persist
+3852	dup	oversized+aggregate tool-result恢复单遍+total-context恢复 — overflow recovery
+3853	cand	exec-defaults: per-agent tools.exec defaults(无directive/override时)
+3854	noise	alt-[a-z]快捷键rebind
+3855	cand	worktree-preserve: attached session退出永不删worktree(用户已有workspace)
+3856	boundary	Android chat agent selector
+3857	dup	thread/list title搜索+status暴露 — thread api
+3858	dup	/resume slash command+resume性能 — resume UX
+3859	boundary	local+cloud sessions浏览管理
+3860	boundary	chat session list scroll state
+3861	dup	checkpoint文件统计vs backup对比优化 — checkpoint perf
+3862	dup	checkpoint文件读取异步并行 — checkpoint perf
+3863	cand	cli-bridge: node-backed Codex CLI session listing+binding(继续既有CLI会话)
+3864	cand	queue-modes: /queue modes+per-session overrides+agent.maxConcurrent
+3865	dup	/btw side questions(tool-less,不改future context) — side questions
+3866	cand	context-viz: /context map发treemap图(context contributors)
+3867	boundary	UTC quarter-hour token buckets Usage Mosaic
+3868	boundary	dashboard breadcrumbs active agent
+3869	dup	删除queued prompt不留phantom transcript消息 — transcript hygiene
+3870	cand	share-sanitize: Share Conversation上传sanitized transcript(system prompts/tool剥除)
+3871	boundary	Discord /vc STT/TTS realtime
+3872	dup	session titles重复生成修复 — title dedupe
+3873	cand	exec-cfg: /exec per-session exec defaults(host/security/ask/node)
+3874	variant	fast mode默认开启+header显示
+3875	boundary	Roo models cache session token
+3876	noise	macOS extra window修复
+3877	dup	agentDir派生persisted session path — path derive
+3878	cand	fork-cli: --fork <path|id>复制session
+3879	dup	codex exec fork+TUI resume picker archive/restore — fork+archive
+3880	dup	device-auth bypass恢复+connect failure分类 — auth classify
+3881	cand	hook-scope: BOOT.md per-agent scope(per-agent session-key)
+3882	dup	Gateway probe warnings按identity去重+pairing限流 — dedupe+ratelimit
+3883	cand	health-api: per-agent session summaries+selective probes
+3884	dup	history cache service — history cache
+3885	cand	hook-events: message:received/message:sent桥接内部hooks
+3886	cand	rewind: "Rewind to here"恢复session到该消息前状态
+3887	dup	image edits用确切referenced file paths — path accuracy
+3888	cand	resume-proto: task tool protocol锁定resume一致性
+3889	dup	outbound sends镜像target session keys — session mirror
+3890	cand	model-temp: t键model只适用当前session不改config
+3891	boundary	named agent onboarding/--agent-name
+3892	dup	同3835 named filter — named filter
+3893	boundary	/tools enable/disable session persist hook例
+3894	cand	feature-flag: subagents_enabled配置开关
+3895	cand	onboard-gate: security checkpoint prompt+--non-interactive需--accept-risk
+3896	dup	outbound webhooks推送events — webhook push
+3897	dup	同scope内queued请求不重复弹授权 — auth dedupe
+3898	dup	persistent aiohttp session复用 — http reuse
+3899	dup	session-team退出清理防20+孤儿 — cleanup net
+3900	boundary	ACP process pool
+3901	boundary	realtime transcription+v2 handoff
+3902	noise	UI刷新(Inter font/pill tabs)
+3903	cand	model-scope: model change选session/agent/global作用域
+3904	noise	tooltip移除
+3905	dup	repo map基于chat history+files优化 — repo map
+3906	cand	repoless-api: REST API repoless sessions(serverless)
+3907	dup	interactive stops经teardown的telemetry恢复 — telemetry
+3908	dup	collaborative session恢复member runtime status/context — collab restore
+3909	dup	resumed sessions从transcript seed prompt history — history seed
+3910	dup	session restoration+interaction优化 — sdk perf
+3911	dup	preserve newer config+incomplete migration不认成功 — upgrade safety
+3912	cand	quote-to-chat: transcript选文本"Add to chat"(?L/Ctrl+)
+3913	dup	CLI session ID管理+persist修复 — session id
+3914	dup	空session(无真实输入)过滤出restore list — list filter
+3915	dup	session/load history+artifact恢复 — restore
+3916	dup	resume panel移除agent type过滤 — resume filter
+3917	boundary	resume panel界面优化
+3918	cand	search-server: server-side full-text session index+hub command
+3919	dup	resume picker type-to-filter(同3919系列) — picker filter
+3920	boundary	session rows status/elapsed/dir/PR+peek
+3921	cand	archive-cmd: /archive+codex archive/unarchive
+3922	dup	agent context不匹配时preserve store roots — path preserve
+3923	cand	session-rollover: idle/daily//new//reset rollover关闭tracked tabs+archive
+3924	cand	reset-policy: daily reset policy+per-type overrides+idle windows(默认4am)
+3925	boundary	sidebar拖拽宽度
+3926	boundary	Slack announce multi-account路由
+3927	dup	implicit-conversation channels路由thread-scoped sessions — thread routing
+3928	cand	bg-session: New Session直接建background session(不跳页)
+3929	dup	totalTokens不再clamp到context-window — token honesty
+3930	dup	ACP同步session topics到IDE — topic sync
+3931	dup	picker derived titles+fuzzy+relative times+preview — picker UX
+3932	boundary	sort toggle显示目标模式
+3933	dup	session-level tool禁用粒度 — tool disable
+3934	cand	api-unify: GET /api/v1/sessions统一endpoint
+3935	dup	--session/--continue flags — resume flags
+3936	dup	daemon启动主动warm main session — warmup
+3937	boundary	Render集成(failed builds检测)
+3938	boundary	WhatsApp ack identity/QQ media
+3939	dup	reopen前drain pending creds save queue — creds drain
+3940	dup	--replay-user-messages echo恰一次 — replay dedupe
+3941	boundary	Team成员Shift+Up/Down切换
+3942	dup	同3906 serverless dev environment — repoless
+3943	dup	workspace transcript reader per-workspace持久 — transcript persist
+3944	cand	resume-schema: exec resume --output-schema(续session仍enforce schema)
+3945	cand	rewind-files: /rewind文件恢复支持
+3946	boundary	session dialog新建
+3947	boundary	ACP session/set_config_option
+3948	cand	policy-scope: "Allow all server tools" session policy
+3949	dup	/compress reload+quota-fallback tool response修复 — compress fix
+3950	dup	session_before_switch/switch含reason:new|resume — event context
+3951	boundary	terminal connection timeout设置
+3952	boundary	terminal context menu
+3953	boundary	--shell-completions
+3954	boundary	composer add menu(files/commands/context/shell)
+3955	cand	shell-cfg: configurable default shell(terminals+agent commands)
+3956	cand	tui-image: display_image工具(terminal native/chafa,8MiB)
+3957	boundary	terminal git diff filepaths可点击
+3958	cand	toolset-alt: agent.codex_tools(GPT用Codex tool set)
+3959	cand	tui-pty: opt-in interactive browser terminal(per-tab PTY+persist)
+3960	cand	spawn-hook: bash tool spawn hook调command/cwd/env
+3961	boundary	renderShell:"self"自定义渲染
+3962	boundary	TUI scroll acceleration
+3963	boundary	terminal vi_mode keybinding context
+3964	cand	input-hook: terminal_input事件拦截/消费/transform
+3965	boundary	terminal背景view/color分离
+3966	noise	create-group tooltip
+3967	boundary	terminal "Add to Agent Thread"修复
+3968	dup	exec tool约束写进mode prompt(JS/TS,no Node,catalog-bridge) — constraint docs
+3969	dup	session pages刷新无auth错误+API subscription保留 — refresh fix
+3970	dup	nohup僵尸进程stdout/stderr处理 — zombie fix
+3971	dup	tool描述明示"completion triggers" — description honesty
+3972	cand	env-inject: Bash subprocess自动传$CODEBUDDY_PROJECT_DIR等
+3973	boundary	openclaw docs --limit
+3974	boundary	terminal progress/QR helpers internalize
+3975	dup	setup/onboarding/configure/channel wayfinding — onboarding
+3976	boundary	terminal.clearOnShrink
+3977	dup	command含特殊字符时root识别修复 — parse fix
+3978	dup	非POSIX login shells(fish)兼容 — shell compat
+3979	dup	provider quota显示+stale in-progress恢复 — quota display

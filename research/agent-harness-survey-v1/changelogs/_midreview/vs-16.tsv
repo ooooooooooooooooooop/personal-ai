@@ -1,0 +1,200 @@
+60131	noise	PowerShell Shift+Tab internal
+60135	noise	PTY load reason internal
+60174	noise	node-pty prebuilds internal
+60194	noise	PTY EIO teardown internal
+60206	noise	abort toasts preflight internal
+60229	dup	release conout worker PTY — fd 回收已有
+60232	dup	cite matching deny rule — 拒绝溯源已有
+60235	dup	ConPTY bundled stop orphan conhost — 孤儿防护已有（G7 同族）
+60255	noise	scroll timers internal
+60287	noise	PTY test sessions internal
+60315	dup	reconcile queued prompts cross-client — 队列一致已有
+60342	boundary	transcript visuals — their UI
+60363	boundary	sidebar drawer — their UI
+60379	noise	sidebar sessions sync internal
+60400	noise	hasActivePrompt internal
+60437	dup	backend-authoritative queue — 队列权威已有
+60557	dup	pending bg agents active — bg 已有
+60559	boundary	pasted text composer — their UI
+60599	boundary	pasted text visible — their UI
+60681	noise	batch transcript dispatch internal
+60742	noise	duplicate import internal
+60814	boundary	sidebar text width — their UI
+60817	boundary	sidebar footer — their UI
+60918	dup	node-pty FD leak — fd 回收已有
+60919	noise	Git Bash path internal
+60920	noise	command substitution check internal
+60924	noise	rapid pty outputs internal
+60928	noise	broken ConPTY internal
+60929	noise	Ctrl+F PTY internal
+60930	noise	pty resize race internal
+60965	noise	sandbox identifier internal
+60966	noise	E2E sandbox reap internal
+60967	noise	E2E isolation internal
+60969	noise	E2E fork pressure internal
+60970	noise	E2E fork pressure internal
+60973	noise	sandbox image prep internal
+60975	noise	release validation internal
+60983	noise	sandbox image name internal
+60986	noise	image eviction internal
+60991	dup	bind sandbox image digest — digest 锁定已有
+61007	dup	probe sandbox runtime — 探测已有
+61020	dup	isolate managed memory by workspace — 隔离已有
+61025	dup	normalize empty working_dir worktree — 规范化已有
+61026	noise	component styles internal
+61047	noise	QWEN_CODE_SESSION_ID internal
+61049	noise	PowerShell Get-Command internal
+61053	noise	transform_data internal
+61056	noise	autofix image fallback internal
+61057	noise	isolated home tests internal
+61058	dup	avoid shell injection sandbox detect — 注入防护已有
+61061	noise	QWEN_HOME tests internal
+61062	noise	sandbox schema internal
+61066	noise	update feed internal
+61075	noise	punycode internal
+61081	noise	modelConfigUtils tests internal
+61082	noise	sandbox UID/GID internal
+61086	noise	Seatbelt files package internal
+61098	dup	skill content BOM/CRLF normalize — 规范化已有
+61101	noise	Skill status CI internal
+61107	noise	skill identity catalog internal
+61110	dup	re-apply Skill side effects on resume — 恢复语义已有
+61133	noise	Skill toggles settings internal
+61140	dup	teammate count under cap — 上限已有
+61141	dup	loaded-skill state history eviction — 同步已有
+61142	dup	skill announcements declared-only — 宣告闸已有
+61153	noise	disabled skills context details internal
+61170	noise	Qoder test internal
+61191	dup	distinct ext ids same repo — 身份已有
+61202	noise	skill descriptions internal
+61208	dup	skill results in microcompaction — 压缩已有
+61214	noise	disabled skill settings internal
+61219	noise	memoize skill scans internal
+61227	dup	skill slash cmds when ACP down — 降级已有
+61238	noise	uppercase URL schemes internal
+61243	noise	ext commands daemon internal
+61256	dup	redact credentialed diagnostics — 脱敏已有
+61258	dup	prevent auto-skill overwrite — 覆盖保护已有
+61260	noise	skill base dir internal
+61263	noise	symlinks outside skills internal
+61266	noise	discovered result paths internal
+61270	dup	limit skill watcher depth — FD 界已有
+61289	noise	bundled skills package internal
+61303	dup	frontmatter CRLF/BOM — 解析已有
+61304	noise	skills setting namespace internal
+61335	dup	refuse resume without journal — 日志门控恢复已有
+61337	noise	recovery notifications internal
+61347	noise	checkpoint replay stall internal
+61372	noise	checkpoint retry budget internal
+61376	noise	worktree-task routes internal
+61379	noise	unanswered checkpoint stall internal
+61425	dup	cancel timed-out session init — 超时取消已有
+61428	dup	preserve source metadata resume — provenance 已有
+61437	noise	delta-resume test internal
+61453	dup	resume evidence-limited Goal — 恢复已有
+61503	noise	OTel session ownership internal
+61530	dup	separate hook context from transcript — 隔离已有
+61543	dup	safe session restore timeouts — 超时已有
+61566	dup	resume streams cut by socket close — 断流恢复已有
+61585	dup	fork subagents discoverable — 发现已有
+61586	noise	empty history pages internal
+61603	dup	reject fractional limits — 输入校验已有
+61631	dup	preserve rewind parents resume — 谱系已有
+61635	noise	CI_BOT_PAT internal
+61643	dup	shallow/tail clone no OOM resume — 恢复内存界已有（#1284 同族）
+61656	noise	graphemes search internal
+61657	dup	stale worktree session markers — 标记清理已有
+61661	noise	IME cursor internal
+61662	noise	fork subagents default internal
+61689	noise	shrink diff records internal
+61697	dup	preserve reasoning_content resume — 恢复保真已有
+61703	dup	preserve session subagents cache refresh — 一致性已有
+61709	noise	export session ID internal
+61710	noise	streaming logs internal
+61777	dup	reuse prompt cache compression — 缓存复用已有
+61778	dup	clear tool results watermark preserve cache — 水位已有
+61779	dup	maxDepth flat memory imports — 深度限已有
+61784	dup	prompt cache chat compression — 同上
+61791	dup	volatile memory section last — 提示排序已有
+61805	dup	cache channel memory recall — 缓存已有
+61825	dup	clamp max_tokens retire reservation — 窗口已有
+61835	dup	lazy-load memory prompt — 懒载已有
+61841	noise	compaction label internal
+61868	dup	memory recall non-blocking — 异步召回已有
+61876	dup	latest token count on resume — 恢复记账已有
+61905	dup	heredoc command substitution guard — 解析闸已有
+61906	dup	enforce tool restrictions subagents — 限制已有
+61916	dup	count Stop-hook blocks round trips — hooks 语义已有
+61917	noise	false interruption slash internal
+61918	noise	daemon drain internal
+61921	dup	system-scope hooks own source — hooks 来源已有
+61959	noise	stop_hook_active internal
+61963	noise	hook timeout seconds internal
+61967	noise	worktree bootstrap hooks internal
+61984	dup	reject pre-aborted queued requests — 队列校验已有
+61999	noise	Debian pin internal
+62003	noise	worktree path canonical internal
+62008	noise	capability totals internal
+62018	noise	exact slash live input internal
+62020	noise	OpenTUI slash internal
+62023	noise	capability count internal
+62024	noise	slash after bot mentions internal
+62028	noise	ACP initialize budget internal
+62035	dup	end daemon turns at checkpoints — checkpoint 已有
+62037	noise	architecture diagram internal
+62049	noise	SDK daemon threads internal
+62053	dup	backpressure NDJSON saturation — 背压已有
+62062	noise	propose_goal decline internal
+62064	noise	bootstrap --help internal
+62068	dup	agent-definition model routes teammates — 按代理路由已有
+62072	dup	settle cancelled workflow at once — 取消结算已有
+62073	dup	fire-and-forget hooks survive exit — hooks 已有
+62078	boundary	@ completion tabs — their UI
+62087	dup	teammate messages at round boundaries — 消息时序已有
+62099	noise	test mock internal
+62100	noise	test registry internal
+62103	dup	reclaim command hook process trees — 进程树回收已有（G7）
+62110	dup	teammate result settled pre-bridge — 序已有
+62124	noise	TLS daemons internal
+62128	noise	sandboxed SDK clients internal
+62140	noise	worktree cleanup perms internal
+62144	dup	report remaining bg agents — bg 可见已有
+62155	dup	duplicate tool-call breaker visible — 环路检测已有
+62156	noise	run_in_background teammates internal
+62163	dup	verifier probes private worktree — 隔离验证已有
+62204	noise	tracing edge cases internal
+62211	dup	bound ACP pre-attach buffers — 缓冲界已有
+62217	noise	inline-quotation gate internal
+62228	dup	close ACP resource guard gaps — 资源闸已有
+62236	noise	hook context titles internal
+62237	noise	verbatim prefix internal
+62249	noise	PAT jobs secrets internal
+62250	noise	status comment cancel internal
+62251	boundary	slash names narrow — their UI
+62260	noise	worker limits internal
+62265	dup	ESC cancels work before queue pop — 取消序已有
+62270	noise	OTel exporter selectors internal
+62292	noise	reverse-audit loop internal
+62347	noise	E2E timeouts internal
+62352	dup	prevent subagents asking users — 子代理问禁已有
+62356	dup	recover XML tool calls plain text — 畸形恢复已有（G8 同族）
+62376	dup	sweep worktree leases per turn — 租约清扫已有
+62411	noise	empty working_dir internal
+62412	noise	yield single-slot internal
+62422	dup	validate max_tool_calls/depth ints — 输入校验已有
+62423	boundary	queued message ordering — their UI
+62446	noise	dev daemon ports internal
+62458	dup	bound usage streams abort on quit — 界已有
+62462	noise	empty tool-result retry internal
+62467	dup	adaptive per-turn tool-call cap — 自适应上限已有
+62500	noise	preserve existing work prompt internal
+62503	noise	system prompt mode internal
+62531	dup	keep YOLO on enter_plan_mode — 模式保护已有
+62561	noise	qqbot idle-flush internal
+62562	dup	agent concurrency cap foreground — 并发上限已有
+62564	noise	timeout 0 disabled internal
+62565	dup	@-attached counts prior-read — 读前写已有
+62567	noise	LSP limit inputs internal
+62568	dup	hook matchers to tool ids — hooks 匹配已有
+62573	noise	/clear unblock internal
+62580	noise	seatbelt path internal

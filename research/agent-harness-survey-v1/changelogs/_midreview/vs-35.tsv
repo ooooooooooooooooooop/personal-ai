@@ -1,0 +1,200 @@
+3746	dup	telemetry opt-in tracking — 遥测同意已有
+3778	dup	agentic compaction — 压缩已有
+3781	boundary	compaction progress TUI — their UI
+3782	dup	no compaction during turn — 压缩时序已有
+3803	boundary	model settings page — their UI
+3826	dup	token usage telemetry — 用量遥测已有
+3840	boundary	IME Enter — their UI
+3845	boundary	session trash hover — their UI
+3857	boundary	view changes fade — their UI
+3861	dup	auto-approval over ACP — 审批贯通已有
+3871	dup	markdown image consent — 同意门已有
+3895	dup	delete task confirm — 确认已有
+3901	dup	delete all confirm — 确认已有
+3916	dup	request limit approval — 审批上限已有
+3925	noise	npm audit internal
+3926	dup	hook contextModification inject — hook载荷已有
+3940	boundary	Telegram slash intercept — their connector
+3942	noise	AskSage URL internal
+3945	dup	.clinerules no abort — 容错已有
+3961	dup	prefer non-interactive — 非交互已有
+3963	noise	field mask internal
+3964	noise	refresh models internal
+3969	noise	api folder move internal
+3974	noise	typed clients internal
+3975	dup	request ID in error — 溯源已有
+3989	dup	no foreign plugin-sandbox bootstrap — 沙箱来源校验已有
+3993	dup	plugins contribute rules sandbox — 插件规则已有
+3999	noise	feature flags internal
+4001	dup	parallel tool calls — 并行调用已有
+4008	noise	preconnect ws internal
+4018	noise	lazy coding prompt internal
+4031	dup	BOM frontmatter — 编码容错已有
+4032	dup	BOM frontmatter — 编码容错已有
+4047	noise	华为页面噪声
+4048	noise	华为页面噪声
+4049	noise	华为页面噪声
+4050	noise	华为页面噪声
+4054	noise	华为页面噪声
+4055	noise	华为页面噪声
+4056	noise	华为页面噪声
+4057	noise	华为页面噪声
+4058	noise	华为页面噪声
+4062	noise	华为页面噪声
+4063	noise	华为页面噪声
+4065	noise	华为页面噪声
+4066	noise	华为导航噪声
+4067	noise	华为导航噪声
+4068	noise	华为导航噪声
+4069	noise	华为导航噪声
+4070	noise	华为导航噪声
+4071	noise	华为导航噪声
+4072	noise	华为导航噪声
+4073	noise	华为导航噪声
+4074	noise	华为导航噪声
+4075	noise	华为导航噪声
+4077	noise	华为导航噪声
+4078	noise	华为导航噪声
+4079	noise	华为导航噪声
+4080	noise	华为导航噪声
+4081	noise	华为导航噪声
+4082	noise	华为导航噪声
+4083	noise	华为导航噪声
+4084	noise	华为导航噪声
+4085	noise	华为导航噪声
+4086	noise	华为导航噪声
+4087	noise	华为导航噪声
+4088	noise	华为导航噪声
+4090	noise	华为导航噪声
+4091	noise	华为导航噪声
+4092	noise	华为导航噪声
+4093	noise	华为导航噪声
+4094	noise	华为导航噪声
+4095	noise	华为导航噪声
+4096	noise	华为导航噪声
+4097	noise	华为导航噪声
+4098	noise	华为导航噪声
+4099	noise	华为导航噪声
+4100	noise	华为导航噪声
+4101	noise	华为导航噪声
+4102	noise	华为导航噪声
+4103	noise	华为导航噪声
+4104	noise	华为导航噪声
+4105	noise	华为导航噪声
+4106	noise	华为导航噪声
+4107	noise	华为导航噪声
+4108	noise	华为导航噪声
+4109	noise	华为导航噪声
+4110	noise	华为导航噪声
+4111	noise	华为导航噪声
+4112	noise	华为导航噪声
+4113	noise	华为导航噪声
+4114	noise	华为导航噪声
+4115	noise	华为更新噪声
+4119	noise	华为修复噪声
+4120	noise	华为修复噪声
+4121	noise	华为修复噪声
+4122	noise	华为修复噪声
+4125	noise	华为修复噪声
+4127	boundary	华为Wiki/Agent记忆 — 其产品
+4129	noise	华为优化噪声
+4130	boundary	华为工具调用展示 — 其产品
+4131	boundary	华为飞书定时 — 其产品
+4133	boundary	华为计费高亮 — 其产品
+4135	dup	华为项目级跨会话记忆 — 项目记忆已有
+4136	dup	华为记忆延续 — 同上
+4137	boundary	华为企业知识 — 其产品
+4138	boundary	华为每日反思 — 其产品
+4139	boundary	华为Token明细 — 其产品
+4140	dup	华为缓存命中展示 — 用量可见已有
+4141	boundary	华为Token控制台 — 其产品
+4142	boundary	华为Credits计费 — 其产品
+4143	boundary	华为订阅 — 其产品
+4144	boundary	华为多图上传 — 其产品
+4145	boundary	华为多模态 — 其产品
+4146	noise	华为优化噪声
+4147	boundary	鸿蒙Agent性能 — 其产品
+4148	boundary	华为文件跳转 — 其产品
+4149	boundary	华为自定义智能体 — 其产品
+4150	boundary	华为提示词优化取消 — 其产品
+4151	boundary	华为思考强度 — 其产品
+4154	noise	华为修复噪声
+4155	noise	华为修复噪声
+4156	noise	华为修复噪声
+4157	boundary	华为压缩提示 — 其产品
+4159	boundary	华为福利活动 — 其产品
+4161	boundary	华为CodeBase检索 — 其产品
+4162	boundary	华为向量检索 — 其产品
+4163	boundary	华为大仓检索 — 其产品
+4164	boundary	华为依赖图谱 — 其产品
+4165	boundary	华为混合检索 — 其产品
+4166	boundary	华为Token优化 — 其产品
+4168	boundary	华为联邦登录 — 其产品
+4169	boundary	盘古模型上线 — 其产品
+4170	boundary	盘古模型 — 其产品
+4171	boundary	华为上下文卡片 — 其产品
+4172	boundary	华为Token面板 — 其产品
+4173	boundary	华为控制台 — 其产品
+4174	boundary	华为审计日志交互 — 其产品
+4175	boundary	华为模型可见范围 — 其产品
+4176	boundary	华为可见团队 — 其产品
+4177	boundary	华为批量导入 — 其产品
+4178	boundary	华为联邦导入 — 其产品
+4181	noise	华为修复噪声
+4182	noise	华为修复噪声
+4183	noise	华为历史会话修复噪声
+4186	noise	华为修复噪声
+4187	noise	华为修复噪声
+4188	noise	华为修复噪声
+4189	noise	华为修复噪声
+4191	boundary	华为浅色主题 — 其产品
+4193	boundary	华为产品路标 — 其产品
+4194	boundary	华为路标 — 其产品
+4196	boundary	华为自动开启 — 其产品
+4197	boundary	华为体验版 — 其产品
+4198	boundary	华为开通流程 — 其产品
+4199	boundary	华为模型配置 — 其产品
+4200	boundary	华为模型生效 — 其产品
+4201	boundary	华为权限解耦 — 其产品
+4202	boundary	华为IAM解耦 — 其产品
+4206	boundary	华为多模态 — 其产品
+4207	boundary	华为语音输入 — 其产品
+4208	boundary	华为图片理解 — 其产品
+4209	boundary	华为文档解析 — 其产品
+4210	boundary	华为Agent升级 — 其产品
+4211	boundary	华为单元测试Agent — 其产品
+4212	boundary	鸿蒙Agent — 其产品
+4213	noise	空白噪声
+4214	boundary	华为DevOps集成 — 其产品
+4215	boundary	华为协作链路 — 其产品
+4216	boundary	华为测试框架 — 其产品
+4217	boundary	华为多端 — 其产品
+4218	boundary	华为Agent Space — 其产品
+4219	boundary	华为IM接入 — 其产品
+4220	noise	空白噪声
+4221	dup	华为定时任务调度 — 调度已有
+4222	boundary	鸿蒙PC适配 — 其产品
+4223	boundary	华为模型计费 — 其产品
+4224	boundary	华为第三方模型 — 其产品
+4225	noise	空白噪声
+4226	boundary	华为MaaS计费 — 其产品
+4227	boundary	华为可靠性 — 其产品
+4228	boundary	华为APIG/ELB — 其产品
+4229	boundary	AgentKernel可靠性 — 其产品
+4230	boundary	华为云端可靠性 — 其产品
+4231	boundary	华为监控告警 — 其产品
+4232	boundary	华为安全隐私 — 其产品
+4233	boundary	华为隐私防护 — 其产品
+4234	dup	华为目录信任机制 — 目录信任已有
+4235	boundary	华为运营生态 — 其产品
+4236	boundary	华为心愿墙 — 其产品
+4237	noise	空白噪声
+4238	boundary	华为商用服务 — 其产品
+4240	boundary	华为配额刷新修复 — 其产品
+4242	boundary	华为云端协同 — 其产品
+4243	noise	空白噪声
+4244	boundary	华为CodeBase多端 — 其产品
+4245	noise	空白噪声
+4246	boundary	华为本地LSP — 其产品
+4247	boundary	华为LSP集成 — 其产品
+4248	noise	空白噪声

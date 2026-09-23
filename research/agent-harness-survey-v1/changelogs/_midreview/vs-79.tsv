@@ -1,0 +1,200 @@
+40027	dup	session logs owner-only — 权限收紧已有
+40029	dup	restore last picked model — 模型恢复已有
+40030	dup	model change no stop display — 切换不断显已有
+40033	dup	retained chats restore worktrees — worktree恢复已有
+40034	dup	POSIX owner-only logs — 权限已有
+40035	dup	merged listing once per walk — 列表缓存已有
+40037	dup	no drop on touch paging — 分页稳定已有
+40038	dup	background titles off default — 标题开关已有
+40041	dup	cached variants cold start — 变体缓存已有
+40045	dup	session-scoped model pinning — 模型钉住已有
+40046	dup	agents/list no session id — 免id列表已有
+40047	dup	prompt queueing controls — 队列操作已有
+40050	dup	resume picker crash fix — 容错已有
+40051	dup	invalid model fallback default — 回退已有
+40055	dup	worktrees shown transcript — 可见已有
+40056	dup	worktrees cleaned on delete — 清理已有
+40060	dup	compacted history preserved — 压缩保留已有
+40063	dup	/rewind fork vs in-place — 回退选择已有
+40064	dup	config catalogue no session — 免会话已有
+40067	dup	cached-token counts stats — 统计已有
+40068	dup	/rewind truncates in place — 原位截断已有
+40070	dup	double Esc rewind — 键触发已有
+40072	dup	rewind in place — 已有
+40074	dup	--continue resolved workdir — 目录匹配已有
+40075	dup	ambiguous teleport retry — 重试已有
+40076	dup	/resume faster — 加速已有
+40078	dup	delete from picker — 删除已有
+40080	dup	update prompt before session — 更新提示已有
+40082	dup	@mention titles — 标题格式化已有
+40083	dup	SessionInfoUpdate first prompt — 信息推送已有
+40085	noise	release internal
+40088	dup	/clear no parent chain — 谱系断链已有
+40089	dup	telemetry no fire resume — 遥测抑制已有
+40092	dup	double Ctrl+C quit — 双击退出已有
+40093	dup	session ID preserved ACP — id保留已有
+40094	dup	command messages skipped rewind — 跳过命令已有
+40101	dup	skill on/off browser — 开关已有
+40103	dup	invalid policy explicit-only — 无效隔离已有
+40104	dup	pre/post hooks skill tool — 技能钩子已有
+40113	dup	skills browser groups — 分组已有
+40115	dup	pruning preserves pinned — 钉住保留已有
+40119	dup	same-name plugin MCP rows — 分列已有
+40123	boundary	ghost-text — their UI
+40125	dup	registry content store — 注册存储已有
+40128	dup	user-invoked skills synthetic call — 合成调用已有
+40129	boundary	autocomplete — their UI
+40136	dup	~/.agents/skills shared — 共享目录已有
+40137	dup	builtin skills self-awareness — 内置技能已有
+40138	noise	refactor internal
+40139	dup	up-arrow recent skill — 历史导航已有
+40140	dup	skill tool task lists — 任务技能已有
+40144	dup	skills extract arguments — 参数提取已有
+40146	boundary	r refresh — their UI
+40147	dup	fewer keychain reads — 凭据缓存已有
+40149	dup	enabled/disabled globs MCP — 通配适用已有
+40155	boundary	grey indicator — their UI
+40157	boundary	refresh mark — their UI
+40158	dup	refused toggle notice — 拒绝通告已有
+40159	boundary	auto-size — their UI
+40160	dup	no paint failing enabled — 状态诚实已有
+40161	dup	/mcp cache 60s refresh — 缓存刷新已有
+40163	dup	/mcp login routes — 认证路由已有
+40164	dup	surface startup failures — 失败上抛已有
+40165	dup	proactively refresh OAuth — 令牌刷新已有
+40168	dup	connection errors TUI — 错误显示已有
+40169	dup	discovery failures ACP — 已有
+40170	dup	tokens not dropped transient — 令牌保留已有
+40171	boundary	background refresh — their UI
+40172	boundary	titles wrap — their UI
+40174	dup	no login prompt disabled — 禁用免提示已有
+40179	dup	stdio persist — 连接持久已有
+40184	boundary	banner count — their UI
+40186	dup	OAuth flow menu — 认证流已有
+40188	dup	cwd config stdio — cwd配置已有
+40191	dup	deferred MCP/git I/O — 延迟加载已有
+40192	dup	/mcp status — 状态命令已有
+40193	dup	errored excluded banner — 计数诚实已有
+40195	dup	discovery cache survives switches — 发现缓存已有
+40196	boundary	args streamed — their UI
+40197	boundary	per-tool UI — their UI
+40201	dup	workspace trust ACP session+workdir — 信任限定已有
+40206	dup	approvals no cover side-effects — 副作用分离已有
+40211	dup	sort --files0-from approval — 文件批门已有
+40212	dup	WebFetch redirect approval — 重定向批准已有
+40213	dup	smart approve confirm risky — 风险确认已有
+40216	dup	no prompt read .vibe/.git — 只读免批已有
+40218	dup	reclassify each risky call — 逐次分级已有
+40219	dup	no stall notifications — 通知免卡已有
+40221	dup	escalate confirmation reason — 升级理由已有
+40238	dup	system trust store sign-in — 信任库已有
+40239	dup	skip trust prompt granted — 免重复提示已有
+40240	dup	live bypass propagates children — 权限下传已有
+40242	dup	trust cwd no untrust .vibe — 信任边界已有
+40246	dup	trust dialog default folder — 默认信任已有
+40251	boundary	scroll — their UI
+40253	dup	denylist heredocs — 文档串修复已有
+40255	dup	trust capability gate — 能力门已有
+40256	boundary	clipboard inline — their UI
+40257	dup	read-only commands allowed — 只读放行已有
+40258	dup	git ancestor trust target — 祖先信任已有
+40264	dup	debounce approvals — 防抖已有
+40265	dup	strip wildcard persist — 通配归一已有
+40266	dup	--trust session-only fail-fast — 会话信任已有
+40270	dup	fine-grained permissions — 细粒度权限已有
+40271	dup	system certs truststore — 证书注入已有
+40272	dup	windows allowlist — 已有
+40273	dup	windows allowlist — 已有
+40279	noise	harness internal
+40280	noise	harness internal
+40281	dup	connectors display name — 显示名已有
+40284	dup	model change mid-turn next boundary — 边界应用已有
+40285	dup	images fall back file links — 降级链接已有
+40288	dup	home dir owner-only — 权限已有
+40289	dup	hooks in subagents — 子代理钩子已有
+40290	dup	enqueued message worktree — 队列容错已有
+40291	dup	stop worktree next queued — 队列续行已有
+40292	dup	dropped first-turn worktree — 恢复已有
+40293	dup	dropped stop worktree — 已有
+40294	dup	/loop errors surfaced — 错误上抛已有
+40295	dup	teleport no diff helpers — 助手隔离已有
+40296	dup	teleport no monitor hooks — 钩子隔离已有
+40304	noise	rename internal
+40306	dup	15 worktrees cleanup skip active — 清理豁免已有
+40311	dup	worktree sessions retain attachments — 附件保留已有
+40312	dup	autocomplete prefix priority — 前缀优先已有
+40313	noise	featureflag internal
+40314	noise	featureflag internal
+40315	dup	validation errors name field — 错误定位已有
+40316	dup	! non-zero shows output — 输出显示已有
+40319	noise	update internal
+40320	dup	skip unsupported protocols — 协议过滤已有
+40321	dup	split-horizon tenant domains — 租户解析已有
+40322	dup	queued flash immediate — 状态即时已有
+40323	dup	escape interrupt immediate — 中断即时已有
+40325	dup	queue selection edit — 队列编辑已有
+40326	dup	adaptive backoff pacing — 退避节奏已有
+40327	dup	retry state authoritative — 状态权威已有
+40328	dup	close connections pool — 连接关闭已有
+40329	boundary	display name — their UI
+40330	dup	deps advisories — 漏洞清理已有
+40331	dup	bootstrap failures surfaced — 失败上抛已有
+40332	dup	relative paths headers — 相对路径已有
+40333	dup	admin fetch backoff — 重试退避已有
+40335	boundary	path picker — their UI
+40336	dup	escape sequences flood — 序列抑制已有
+40337	dup	otel correct endpoint — 端点修正已有
+40339	noise	rename internal
+40343	dup	home not project root — 根排除已有
+40345	dup	scope sensitive-file grants — 敏感限定已有
+40346	dup	POSIX separators home — 分隔符已有
+40349	dup	sessions start worktree — worktree启动已有
+40350	boundary	autocopy — their UI
+40352	dup	refused config picker — 拒绝保留已有
+40357	noise	binary internal
+40358	dup	whoami extra fields — 字段容错已有
+40359	dup	whoami tolerate — 已有
+40360	dup	tool descriptions compressed — 描述压缩已有
+40361	dup	unsigned thinking dropped — 签名丢弃已有
+40362	noise	mouse internal
+40364	dup	OSError over-long mention — 容错已有
+40365	noise	link internal
+40367	dup	ConfigOrchestrator — 配置编排已有
+40368	dup	checkpointer engine — 检查点已有
+40372	dup	copy() forking — 分叉复制已有
+40373	boundary	mouse select — their UI
+40377	dup	fallback first model — 回退已有
+40378	dup	NO_PROXY CIDR — CIDR支持已有
+40379	dup	no pydantic URLs errors — 错误净化已有
+40381	boundary	selection — their UI
+40385	dup	duplicate mcp_servers rejected — 重名拒绝已有
+40386	dup	>4 options questions — 选项扩展已有
+40388	dup	exit synonyms slash — 退出同义已有
+40390	boundary	diff widgets — their UI
+40391	dup	macOS keychain credentials — 钥匙串已有
+40394	noise	brew internal
+40395	noise	reaction noise
+40396	dup	--check-upgrade — 更新检查已有
+40400	dup	collapsed output default — 折叠默认已有
+40402	dup	refusal stop surfaced — 拒绝上抛已有
+40403	dup	user messages preserved compactions — 消息保留已有
+40404	dup	plain-string web_search — 容错已有
+40406	dup	EnvironmentLayer VIBE_ — env层已有
+40407	dup	write_file create-only — 创建限定已有
+40409	boundary	keybinding — their UI
+40411	dup	teleport web sessions — 会话迁移已有
+40412	dup	config layers — 分层配置已有
+40413	boundary	styling — their UI
+40414	noise	docs internal
+40415	dup	date injected prompt — 日期注入已有
+40416	dup	minimal system prompt eval — 精简提示已有
+40417	dup	connectors disabled default — 默认禁用已有
+40418	dup	layered config read — 已有
+40419	noise	featureflag internal
+40420	noise	endpoints internal
+40421	boundary	indent — their UI
+40425	dup	avoid closing backend reload — 重载保护已有
+40429	dup	combined SSL context — SSL统一已有
+40430	dup	telemetry precedence — 优先级已有
+40431	dup	reload history parallel — 并发安全已有
+40432	dup	read_file truncated flag — 截断标记已有

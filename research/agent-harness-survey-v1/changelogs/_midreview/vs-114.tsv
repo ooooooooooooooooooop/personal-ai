@@ -1,0 +1,200 @@
+78865	noise	editor feature
+78866	noise	editor feature
+78867	noise	editor feature
+78868	dup	no double-save on discard — 保存去重已有
+78869	noise	ui feature
+78870	dup	diff state after index write fail — 失败回滚已有
+78871	noise	perf internal
+78872	noise	editor feature
+78873	noise	perf internal
+78874	noise	perf internal
+78875	noise	editor feature
+78877	dup	suggested commits as placeholders — 建议占位已有
+78878	noise	internal
+78879	dup	don't treat $HOME as repo — 家目录保护已有
+78880	noise	editor feature
+78881	noise	ui feature
+78882	noise	ui feature
+78883	noise	ui feature
+78884	noise	editor feature
+78886	dup	correct repo for hunk ops — 多仓路由已有
+78887	noise	ui feature
+78888	noise	prose noise
+78906	noise	editor feature
+78907	noise	editor feature
+78908	noise	prose noise
+78913	noise	platform noise
+78914	noise	file list
+78922	noise	ui feature
+78930	noise	editor feature
+78934	noise	editor feature
+78936	noise	collab internal
+78943	noise	platform noise
+78946	noise	editor feature
+78950	noise	editor feature
+78952	noise	platform noise
+78955	noise	editor feature
+78956	noise	platform noise
+78957	noise	platform noise
+78960	noise	editor feature
+78961	noise	editor feature
+78963	noise	prose fragment
+78965	noise	platform noise
+78966	noise	platform noise
+78967	noise	platform noise
+78968	noise	editor feature
+78974	noise	platform noise
+78976	noise	editor feature
+78977	noise	ui feature
+78978	noise	platform noise
+78979	noise	platform noise
+78980	noise	platform noise
+78986	noise	platform noise
+78989	noise	editor feature
+78995	noise	release noise
+78996	noise	release noise
+78997	noise	editor feature
+79001	noise	platform noise
+79002	noise	platform noise
+79003	noise	platform noise
+79004	noise	platform noise
+79005	noise	platform noise
+79015	noise	editor feature
+79016	noise	editor feature
+79017	dup	shutdown kernels on close — 关闭清理已有
+79018	noise	editor feature
+79019	noise	platform noise
+79020	noise	platform noise
+79022	dup	restore last workspace on startup — 工作区恢复已有
+79024	noise	prose fragment
+79026	noise	platform noise
+79029	noise	ui feature
+79030	noise	platform noise
+79031	noise	platform noise
+79032	noise	platform noise
+79033	noise	platform noise
+79035	noise	platform noise
+79036	noise	editor feature
+79037	noise	platform noise
+79038	noise	platform noise
+79039	noise	platform noise
+79040	noise	platform noise
+79041	noise	platform noise
+79042	noise	platform noise
+79043	noise	platform noise
+79060	noise	editor feature
+79069	noise	editor feature
+79070	noise	editor feature
+79071	noise	editor feature
+79079	noise	editor feature
+79082	noise	prose fragment
+79099	noise	editor feature
+79115	noise	editor feature
+79130	dup	skills mgmt in settings UI — 技能管理界面已有
+79131	dup	communicate skill problems — 问题透传已有
+79145	dup	file editing for global skills — 全局技能编辑已有
+79156	noise	rename internal
+79172	noise	ui feature
+79174	dup	dev ext replaces release ext — 开发替换已有
+79181	noise	rename internal
+79193	noise	editor feature
+79195	noise	editor feature
+79203	dup	error toast on dev ext fail — 安装报错已有
+79207	noise	release noise
+79215	noise	internal
+79224	dup	auto-install extension on startup — 按需安装已有
+79261	noise	perf internal
+79275	noise	perf internal
+79289	noise	perf internal
+79305	noise	ui feature
+79314	dup	token count in textthread — 计数显示已有
+79324	dup	6GB file size cap — 大小闸已有
+79328	dup	raise LS memory limit — 内存上限已有
+79343	noise	ui feature
+79351	dup	fix failed permission requests — 权限修复已有
+79354	noise	ui feature
+79367	dup	subagent confirmation UX — 子代确认已有
+79376	noise	ui feature
+79390	dup	visible waiting-for-confirmation — 待确认可见已有
+79393	dup	full command in confirm state — 命令全显已有
+79397	dup	delete_path requires confirmation — 删除确认已有
+79398	dup	delete_path confirmation — 同上dup
+79399	dup	always_allow bypasses permission — 总是允许已有
+79400	dup	fetch tool requires confirmation — 抓取确认已有
+79401	dup	fetch confirmation — 同上dup
+79406	noise	ui feature
+79411	dup	batch confirm only flagged subset — 子集确认已有
+79418	dup	modifier suppresses delete confirm — 快捷跳确认已有
+79453	noise	editor feature
+79471	noise	editor feature
+79475	dup	reuse SSH ControlMaster — 连接复用已有
+79478	noise	editor feature
+79504	noise	platform noise
+79543	dup	self-hosted backend no login — 自建免登已有
+79550	dup	resilient init script output — 输出容错已有
+79551	dup	respect pushRemote/pushDefault — 推送配置已有
+79552	noise	platform noise
+79557	dup	agent server ext over SSH — 远程扩展已有
+79558	noise	config fragment
+79563	noise	platform noise
+79564	noise	editor feature
+79571	noise	editor feature
+79573	noise	editor feature
+79580	dup	60s initial connect timeout — 超时调优已有
+79585	noise	platform noise
+79596	noise	platform noise
+79597	noise	platform noise
+79612	dup	sync local user settings remote — 设置同步已有
+79617	noise	platform noise
+79618	noise	editor feature
+79622	noise	editor feature
+79626	noise	editor feature
+79638	noise	platform noise
+79639	noise	platform noise
+79640	dup	no endless restart on SSH adapter fail — 重启收敛已有
+79642	noise	platform noise
+79647	noise	platform noise
+79649	noise	editor feature
+79654	noise	ui feature
+79655	dup	actions when headless — 无头运行已有
+79656	noise	editor feature
+79657	noise	editor feature
+79679	noise	editor feature
+79685	dup	prefer upstream remote — 上游优先已有
+79695	noise	editor feature
+79697	dup	respect existing GIT_ASKPASS — 外部助手复用已有
+79709	dup	extended connect timeout — 同上dup
+79715	noise	editor feature
+79761	dup	fallback upload binary on download fail — 上传兜底已有
+79764	noise	prose noise
+79773	noise	release noise
+79777	dup	reuse SSH across hosts — 连接复用已有
+79780	noise	prose fragment
+79781	noise	prose fragment
+79782	noise	prose fragment
+79784	noise	release noise
+79805	noise	ui feature
+79806	dup	LS binaries on SSH host — 远端探测已有
+79815	noise	prose noise
+79816	noise	prose noise
+79821	noise	release noise
+79844	noise	collab internal
+80036	noise	editor feature
+80037	noise	editor feature
+80058	dup	external agents in docker remotes — 容器远程已有
+80085	noise	editor feature
+80086	noise	platform noise
+80088	noise	editor feature
+80092	noise	editor feature
+80094	noise	editor feature
+80095	noise	ui feature
+80097	noise	ui feature
+80104	dup	restore checkpoint on cancel — 取消可恢复已有
+80107	noise	ui feature
+80111	noise	prose fragment
+80116	dup	short-lived session tokens — 短时令牌已有
+80117	dup	disable hunk restore for created files — 新建不可恢复已有
+80119	noise	prose noise
+80120	noise	editor feature
+80125	noise	editor feature
+80153	dup	MCP tools schema compat — 模式兼容已有

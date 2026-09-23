@@ -1,0 +1,200 @@
+20514	noise	release noise
+20515	noise	release noise
+20516	noise	release noise
+20517	noise	release noise
+20518	noise	yaml internal
+20519	noise	release noise
+20520	noise	release noise
+20521	noise	release noise
+20522	noise	release noise
+20526	noise	ci internal
+20529	noise	release noise
+20530	noise	merge internal
+20531	noise	release noise
+20532	noise	release noise
+20533	noise	release noise
+20534	noise	release noise
+20536	noise	release noise
+20537	noise	release noise
+20538	noise	release noise
+20539	noise	release noise
+20540	noise	release noise
+20541	noise	release noise
+20542	noise	release noise
+20543	noise	release noise
+20544	noise	release noise
+20545	noise	release noise
+20546	noise	release noise
+20547	noise	release noise
+20548	noise	release noise
+20549	noise	merge internal
+20551	noise	ci internal
+20552	noise	release noise
+20553	noise	release noise
+20557	noise	ci internal
+20558	noise	ci internal
+20565	noise	release noise
+20566	noise	release noise
+20567	noise	release noise
+20569	noise	release noise
+20571	noise	ci internal
+20573	noise	release noise
+20574	noise	release noise
+20575	noise	release noise
+20576	noise	release noise
+20577	noise	github internal
+20578	noise	release noise
+20579	noise	release noise
+20580	noise	release noise
+20581	noise	release noise
+20583	noise	merge internal
+20584	noise	release noise
+20586	noise	release noise
+20587	noise	ci internal
+20589	noise	ci internal
+20591	noise	release noise
+20592	noise	ci internal
+20593	noise	release noise
+20594	noise	release noise
+20596	noise	release noise
+20597	noise	release noise
+20598	noise	flag internal
+20599	noise	release noise
+20601	noise	release noise
+20607	noise	release noise
+20608	noise	release noise
+20609	noise	release noise
+20610	noise	revert internal
+20611	noise	release noise
+20615	noise	release noise
+20616	noise	release noise
+20617	noise	release noise
+20618	noise	release noise
+20619	noise	release noise
+20620	noise	release noise
+20621	noise	release noise
+20623	noise	release noise
+20628	noise	imports internal
+20629	noise	release noise
+20630	noise	logging internal
+20631	noise	ts internal
+20633	noise	debugger internal
+20647	noise	build internal
+20649	noise	review internal
+20659	noise	ci internal
+20662	noise	branch noise
+20663	noise	ci internal
+20673	dup	refresh opened files on change — 文件刷新已有
+20678	noise	config internal
+20680	noise	branch noise
+20697	dup	check ripgrep before using — 工具探测已有
+20699	dup	max depth file indexing — 索引深度已有
+20701	dup	grep search tool — 搜索工具已有
+20702	dup	ignores for grep — 忽略规则已有
+20703	noise	isHome internal
+20707	dup	grep escaped chars — 转义容错已有
+20708	dup	.continue indexing ignore — 忽略归类已有
+20709	dup	ide/venv indexing ignores — 已有
+20711	dup	maxDepth number — 配置类型已有
+20713	dup	refresh index config change — 索引刷新已有
+20716	boundary	icon — their UI
+20722	dup	repo map signatures — 签名面已有
+20725	boundary	z-index — their UI
+20731	noise	embeddings internal
+20732	noise	embeddings internal
+20735	noise	indexing internal
+20736	noise	indexing internal
+20740	dup	LanceDB embeddings — 向量索引已有
+20741	dup	codebase retrieval auto-context — 检索注入已有
+20744	dup	background agent creation — 后台代理已有
+20768	noise	teams internal
+20770	dup	staging blueprint isolated — 隔离测试已有
+20775	noise	localhost internal
+20781	dup	encourage multi edits — 编辑策略已有
+20785	noise	error internal
+20787	noise	fallback internal
+20789	dup	exclude single file edit capable — 模型档编辑已有
+20793	noise	copy internal
+20794	dup	multi edit+search replace tools — 编辑工具面已有
+20799	dup	always read before search/replace — 读前置已有
+20802	boundary	codeblocks — their UI
+20810	noise	dep internal
+20823	noise	prose noise
+20824	noise	prose noise
+20825	noise	prose noise
+20829	noise	prose noise
+20831	noise	prose noise
+20833	noise	prose noise
+20834	noise	prose noise
+20839	noise	artifact noise
+20840	noise	artifact noise
+20841	noise	artifact noise
+20842	noise	artifact noise
+20845	noise	names noise
+20846	noise	prose noise
+20851	noise	prose noise
+20852	noise	prose noise
+20853	noise	prose noise
+20861	noise	config noise
+20862	noise	config noise
+20865	noise	prose noise
+20866	noise	prose noise
+20867	noise	prose noise
+20871	noise	config noise
+20872	noise	config noise
+20873	noise	config noise
+20877	noise	prose noise
+20883	noise	prose noise
+20884	noise	prose noise
+20885	noise	names noise
+20886	noise	prose noise
+20889	noise	prose noise
+20893	noise	names noise
+20896	boundary	text selection — their UI
+20897	boundary	hotkey — their UI
+20898	boundary	hotkey — their UI
+20899	boundary	hotkey — their UI
+20900	boundary	hotkey — their UI
+20901	boundary	selection — their UI
+20902	boundary	dialog — their UI
+20903	noise	prose noise
+20907	noise	prose noise
+20909	noise	names noise
+20911	noise	prose noise
+20913	boundary	ctrl+end — their UI
+20915	noise	prose noise
+20918	noise	prose noise
+20921	noise	prose noise
+20925	noise	config noise
+20926	noise	prose noise
+20927	noise	prose noise
+20929	noise	prose noise
+20930	noise	config noise
+20931	noise	config noise
+20935	noise	prose noise
+20938	noise	prose noise
+20950	noise	prose noise
+20952	noise	prose noise
+20954	noise	prose noise
+20955	noise	prose noise
+20956	noise	prose noise
+20957	noise	config noise
+20959	noise	prose noise
+20960	noise	prose noise
+20961	noise	prose noise
+20968	noise	prose noise
+20971	dup	lsp_replace_symbol — 符号级编辑已有
+20972	boundary	keys — their UI
+20973	boundary	keys — their UI
+20974	boundary	keys — their UI
+20975	boundary	keys — their UI
+20977	boundary	mouse attachments — their UI
+20989	noise	prose noise
+20990	noise	prose noise
+20991	noise	prose noise
+20994	noise	prose noise
+20995	noise	prose noise
+20997	noise	prose noise
+20999	dup	auto retries auth — 认证重试已有
+21001	noise	prose noise
+20811	dup	terminal encoding garbled fix — 编码处理已有

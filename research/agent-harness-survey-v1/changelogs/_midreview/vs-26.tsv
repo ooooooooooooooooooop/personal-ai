@@ -1,0 +1,200 @@
+11420	dup	multi-agent limits — 编排限制已有
+11634	noise	ghost snapshot toggle internal
+11913	dup	Java sandboxing — 沙箱已有
+11977	dup	graceful interruption — 中断已有
+12007	boundary	capslock shortcut — their UI
+12143	boundary	auth UX — their product
+12171	boundary	interrupt msg styling — their UI
+12489	dup	abort in resume — 恢复展示已有
+12493	dup	clear composer on fork — fork清场已有
+12705	dup	cf-ray trace header — 追踪头已有
+13285	dup	approvals coverage — 审批已有
+13286	dup	auto update approval — 审批已有
+13288	boundary	approval wrap — their UI
+13619	noise	mcp truncate internal
+13629	boundary	MCP docs link — their docs
+13636	dup	MCP support — MCP已有
+13662	dup	JSON-RPC/MCP — MCP已有
+14279	dup	delegate review — 委派已有
+14280	dup	delegate header — 委派已有
+15220	dup	sandbox denied logs — 沙箱审计已有
+16415	boundary	plugin UI artefact — their UI
+16881	boundary	pending tool backspace — their UI
+16929	noise	profile persist internal
+17065	noise	prompt logs internal
+17096	noise	empty message internal
+17120	noise	indexing fixes internal
+17170	boundary	teams auth — their product
+17265	noise	imports refactor internal
+17850	noise	telemetry service internal
+18313	dup	tool policy in defs — 工具策略已有
+18475	boundary	agent mode default — their product
+18497	dup	manual rules toggle — 规则开关已有
+18498	noise	barrel exports internal
+18506	dup	regex rule trigger — 规则触发已有
+18521	noise	empty json args internal
+18593	dup	cancelable apply stream — 可取消流已有
+18646	boundary	tabs edit mode — their UI
+18701	noise	auth bugfixes internal
+18836	boundary	Agent Mode — their product
+18858	boundary	tabs feature — their UI
+18949	noise	plugin actions internal
+18967	noise	context providers audit internal
+19050	boundary	auth redirect — their product
+19053	noise	test prompt internal
+19074	noise	import snippets internal
+19101	noise	non-empty msgs on error internal
+19123	noise	messaging audit internal
+19225	boundary	help shortcut — their UI
+19253	dup	.prompt files — 提示文件已有
+19290	boundary	usage stats — their UI
+19333	dup	clear history button — 历史清理已有
+19725	dup	secret storage reliable — 密钥存储已有
+19959	boundary	sidebar opening — their UI
+19972	boundary	Cmd+I sidebar — their UI
+19981	boundary	indexing UI — their UI
+19982	boundary	indexing progress — their UI
+19986	boundary	autocomplete spinner — their UI
+19987	boundary	tab-autocomplete — their UI
+19991	boundary	sidebar focus Linux — their UI
+19992	boundary	autocomplete display — their UI
+19993	boundary	autocomplete hotfix — their UI
+20219	boundary	usage analytics — their product
+20339	boundary	truncate icon — their UI
+20340	dup	tool call interruptions — 工具中断已有
+20347	dup	server names in tool names — 命名空间已有
+20348	noise	tool name merge internal
+20350	dup	MCP streamable http — 传输已有
+20351	noise	tool call delta internal
+20353	boundary	tool args overflow — their UI
+20361	dup	MCP fixes — MCP已有
+20369	noise	tool call error internal
+20370	dup	MCP text resources — 资源已有
+20371	boundary	tool args show — their UI
+20386	boundary	watsonx image — their provider
+20404	boundary	image support — their provider
+20492	noise	CLA allowlist internal
+20504	dup	Plan Mode — 计划模式已有
+20691	noise	redux perf internal
+20969	dup	LSP tools — LSP工具有
+20976	boundary	removable attachments — their UI
+21090	dup	Named hooks — 命名hook已有
+21182	noise	old prompt removed internal
+21359	boundary	long paste — their UI
+21364	noise	copilot tool calls internal
+21410	dup	background jobs — 后台任务已有
+21483	boundary	LSP on-demand — their editor
+21523	boundary	LSP auto-discovery — their editor
+21525	boundary	Auto-LSP — their editor
+21858	boundary	LSP power nap — their editor
+21997	dup	Yolo on Demand — 权限模式已有
+22023	boundary	LSP status — their UI
+22184	dup	custom gitignore — gitignore已有
+22591	dup	permission prompts — 权限提示已有
+22633	boundary	scrollable sidebar — their UI
+22682	boundary	permissions UX — their UI
+22685	boundary	notifications — their UI
+22731	boundary	LSPs sidebar — their UI
+22747	boundary	notifications — their UI
+22920	boundary	Windows paste — their UI
+23329	boundary	attachments patch — their UI
+23657	noise	LSP connection internal
+23966	boundary	drag race — their UI
+24043	dup	GitHub MCP fixes — MCP已有
+24044	dup	GitHub MCP — MCP已有
+24049	dup	MCP fixes — MCP已有
+24052	dup	MCP improvements — MCP已有
+24067	dup	MCP OAuth enhanced — OAuth已有
+24075	dup	MCP OAuth — OAuth已有
+24076	dup	MCP prompts restored — 提示已有
+24094	dup	Hyper OAuth — OAuth已有
+24106	noise	Hyper OAuth fix internal
+24114	dup	invalid tool call handle — 容错已有
+24131	boundary	One MCP marketing — their product
+24142	dup	MCP fix — MCP已有
+24151	dup	MCP Prompts — 提示已有
+24167	dup	MCP notifications — 通知已有
+24183	dup	MCP stability — MCP已有
+24327	boundary	LSP auto-start setting — their editor
+24504	boundary	LSP perf — their editor
+24591	boundary	Claude Channels ext — their product
+24595	dup	user-invocable skill commands — 技能命令已有
+24603	boundary	dup skills UI — their UI
+24612	dup	reliable skills — 技能可靠性已有
+24616	boundary	skills sidebar — their UI
+24620	dup	skill discovery — 发现已有
+24629	dup	disable skill — 禁用已有
+24632	dup	skills on session — 会话技能已有
+24636	dup	project skills — 项目技能已有
+24637	dup	project skills — 项目技能已有
+24684	noise	secret refactor internal
+24791	dup	Plugins — 插件已有
+24793	dup	Subagents — 子代理已有
+24794	dup	Hooks — hooks已有
+24883	dup	Plugins — 插件已有
+24885	dup	Subagents — 子代理已有
+24886	dup	Hooks — hooks已有
+24975	dup	Plugins — 插件已有
+24977	dup	Subagents — 子代理已有
+24978	dup	Hooks — hooks已有
+25067	dup	Plugins — 插件已有
+25069	dup	Subagents — 子代理已有
+25070	dup	Hooks — hooks已有
+25432	dup	Skills — 技能已有
+25434	dup	Skills — 技能已有
+25437	dup	Skills — 技能已有
+25439	dup	Skills — 技能已有
+25449	dup	PR routing approval — 审批路由已有
+25451	dup	PR routing approval — 审批路由已有
+25453	dup	PR routing approval — 审批路由已有
+25455	dup	PR routing approval — 审批路由已有
+25525	dup	Plugins — 插件已有
+25734	boundary	member page tabs — their UI
+26102	dup	terminal notifications — 终端通知已有
+26529	boundary	OSC 777 — their terminal
+27024	boundary	dnd escaping — their UI
+27087	noise	empty settings internal
+27098	dup	Esc cancel streaming — 取消流已有
+27672	noise	tool lookup internal
+27673	noise	mcp instructions internal
+27690	dup	MCP server instructions — 服务指令已有
+27700	dup	Extensions MCP refactor — MCP已有
+27703	boundary	oauth routing disable — their product
+27740	dup	stdio MCP IDE — stdio传输已有
+27750	dup	MCP refactor reuse — MCP已有
+27754	dup	MCP OAuth infra — OAuth已有
+27763	noise	oauth cred cache internal
+27880	boundary	paste simplify — their UI
+27890	boundary	sidebar item — their UI
+27892	boundary	bracketed paste — their UI
+27931	boundary	tabs on paste — their UI
+27956	boundary	todo list tab — their UI
+27959	boundary	screen reader notify — their UI
+27996	boundary	notification template — their UI
+28418	dup	credentials exposure revert — 密钥保护已有
+28550	boundary	debug slash cmd — their UI
+28645	noise	keybindings migrate internal
+28706	dup	429 retryable — 重试分类已有
+28724	dup	refresh hooks on ext change — 扩展联动已有
+28740	noise	e2e trigger internal
+28888	dup	subagent timeout — 子代理超时已有
+28891	dup	PolicyEngine core — 策略引擎已有
+28919	noise	paste workaround internal
+28935	boundary	F12 debug — their UI
+28940	boundary	BYOID auth — their product
+28988	noise	auth tests internal
+29108	noise	release triggering internal
+29123	noise	rollback internal
+29149	dup	hidden slash commands — 隐藏命令已有
+29240	dup	retry empty chunks — 空块重试已有
+29483	dup	Linux sandbox bubblewrap — 沙箱已有
+29484	dup	Linux sandbox seccomp — 沙箱已有
+29504	noise	sandbox build error internal
+29507	noise	sandbox npm internal
+29559	dup	ext MCP env loading — 扩展env已有
+29583	dup	MCP remove on uninstall — 卸载清理已有
+29585	dup	reload skills ext change — 热加载已有
+29806	dup	permission check fix — 权限检查已有
+29877	dup	shell approval rework — 审批已有
+29882	dup	PR approval broaden — 审批已有
+30245	noise	CI forks internal

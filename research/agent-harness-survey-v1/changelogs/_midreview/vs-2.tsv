@@ -1,0 +1,200 @@
+19897	boundary	diff UI find/replace — their viewer
+19952	boundary	SVG tooltip — their UI
+19967	boundary	edit UI enhancements — their UI
+19996	boundary	devbox blueprint suggestions — their env
+19997	noise	CLI quiz answers internal
+20003	noise	checks dir discovery internal
+20005	noise	curl install scripts
+20022	noise	skip update check dev mode
+20024	boundary	context percentage display — their CLI
+20029	noise	filter >1000char lines internal
+20047	noise	remove auto-accept setting internal
+20074	dup	auto-accept edits setting — auto-approve 已有
+20088	noise	CLI auto-updates
+20091	noise	--id flag cn serve
+20099	noise	cli fetch tool internal
+20107	noise	dot spacing chat input
+20110	noise	diagnostics /info — their CLI
+20111	noise	press enter continue
+20124	boundary	on-prem proxy — their enterprise
+20125	noise	cli tips
+20126	dup	home-dir warning — workdir 提示已有
+20132	noise	--prompt flag
+20133	noise	message format align
+20136	dup	CLI message titles — 自动标题同 #19219
+20165	noise	rule parsing to config-yaml internal
+20175	noise	markdown yaml description internal
+20286	noise	oauth asExternalUrl fix
+20403	cand	clipboard content as context — 剪贴板上下文源
+20405	dup	bash background exec — bg jobs 已有
+20430	dup	CLI shell mode — shell mode 已有
+20440	dup	Unified Terminal — terminal 已有
+20455	dup	terminal OS/shell aware — shell env 已有
+20456	dup	terminal tool+ui — terminal 已有
+20484	noise	assistant optional sdk internal
+20486	noise	continue sdk internal
+20523	dup	AI-authored code git tracking — provenance 已有
+20568	dup	disable commit signature env — commit sign/provenance 已有
+20590	boundary	global rule creation UI — their UI
+20604	dup	cli commit signature — provenance 已有
+20605	noise	show git branch minor
+20612	noise	reusable github action internal
+20652	noise	issue/PR stats workflow internal
+20686	noise	lazy apply reintroduce internal
+20718	noise	manual ripgrep download JB
+20728	noise	Go pre-indexed docs internal
+20733	boundary	SageMaker Embeddings — cloud provider
+20783	noise	search/replace error codes internal
+20792	dup	multi-edit + search-replace — edit 已有
+20809	boundary	JB scroll to top — their ext
+21236	boundary	hyper beta — their product
+21274	boundary	iterm2 progress bar — their env
+26534	noise	shell desc display internal
+26569	noise	terminal-setup prompt internal
+26574	noise	ctrl+f prompt conditional internal
+26575	noise	shell efficiency guidelines internal
+26577	dup	background shell commands — bg exec 已有
+26580	noise	shell inactivity monitoring internal
+26588	dup	shell redirection transparency/security — exec 审计已有
+26600	dup	env vars to shell exec — env 传递已有
+26610	noise	custom loading phrase internal
+26616	dup	cwd in shell desc — workdir 透明已有
+26621	noise	slash/shell queue prevention minor
+26628	noise	shell exec reliability internal
+26659	dup	block reason shows disallowed — deny 原因已有
+26662	boundary	hide cursor unfocused — their UI
+26977	noise	A2A streaming reassembly internal
+26982	noise	fetch timeout internal
+27113	boundary	maintainer-only automation — their bot
+27289	noise	lychee-action link check
+27739	dup	mcp 401 handling — MCP 错误处理已有
+27790	boundary	TerminalBuffer flicker — their UI
+27800	boundary	Composer layout — their UI
+27805	boundary	todo tool UI tips — their UI
+27811	boundary	Ultra /upgrade hint — their SaaS
+27815	boundary	tracker UI polish — their UI
+27816	boundary	focus colors — their UI
+27827	boundary	thinking UI overhaul — their CLI
+27850	boundary	clean UI toggle — their UI
+27854	boundary	startup warnings UX — their UI
+27863	boundary	truncate dots tables — their UI
+27867	boundary	user identity header — their UI
+27886	boundary	AskUserDialog — their UI
+27887	boundary	user tier about — their SaaS
+27897	boundary	agents UI feedback — their UI
+27902	dup	retry mechanism UX — retry 已有
+27911	noise	hooks log verbosity internal
+27912	dup	'allow all future sessions' behind setting — 持久批准已有
+27938	boundary	response UI — their UI
+27946	dup	unified event system errors — 错误面已有
+27952	boundary	Esc hint dialog — their UI
+27958	dup	context overflow message — context 提示已有
+27960	noise	flicker detection metrics internal
+27978	boundary	EnumSelector component — their UI
+27983	boundary	IDE install UX — their ext
+27987	dup	message queuing during streaming — 消息队列已有
+27989	boundary	hideFooter setting — their UI
+28000	boundary	narrow terminal layout — their UI
+28030	boundary	caretaker Firestore — their backend
+28031	noise	caretaker-evals internal
+28033	boundary	caretaker Pub/Sub — their backend
+28039	noise	caretaker-triage worker internal
+28042	noise	triage worker loop internal
+28046	boundary	auto-close issues — their bot
+28068	noise	context simplification internal
+28079	dup	agent registration first-wins project priority — agent 注册序已有
+28080	noise	LocalSessionInvocation internal
+28082	noise	RemoteSessionInvocation internal
+28104	noise	extensions uninstall alias minor
+28109	dup	message queuing during compression — 队列已有
+28110	noise	bot spend metric internal
+28120	dup	Inquiry constraints — 约束防越权已有
+28127	noise	topic narration default internal
+28132	dup	@ recommendations file watcher — MonitorRegistry 已有
+28144	dup	chat recording JSONL — audit JSONL 已有
+28158	noise	ContextManager/Sidecar arch internal
+28163	dup	ContextCompressionService — compaction 已有
+28173	noise	topic tool discourage internal
+28176	noise	experiment flags timeouts internal
+28183	dup	browser read-only tool discovery — 工具分类已有
+28206	noise	LegacyAgentSession internal
+28217	dup	blocked task status — 任务态已有
+28221	noise	content-utils internal
+28231	noise	AgentLoopContext internal
+28246	dup	webfetch stage1 — fetch 已有
+28249	noise	trajectoryId internal
+28254	dup	browser sensitive-action controls — browser 控制已有
+28256	noise	AgentLoopContext migrate internal
+28257	cand	fs tools JIT context discovery instrumentation — 即时上下文发现
+28259	dup	TodoList display — todo 已有
+28274	noise	thought signature retry internal
+28282	dup	tracker CRUD tools — todo 已有
+28289	boundary	@file autocomplete — their UI
+28295	noise	fast ack hints internal
+28298	boundary	custom footer — their UI
+28305	noise	tracker SI changes internal
+28315	noise	A2A normalization internal
+28333	noise	ask_user evals internal
+28341	noise	AgentLoopContext internal
+28352	dup	task tracker foundation — todo 已有
+28356	noise	include_pattern rename internal
+28359	dup	generalist agent — agent 已有
+28361	noise	A2A extraction internal
+28362	dup	complexity-adaptive planning — plan 已有
+28366	dup	multi-select plan options — plan 已有
+28369	noise	error messages improve
+28373	dup	parallel admission Kind.Agent — 并行工具已有
+28379	noise	devtools monorepo internal
+28382	cand	in-progress steering hints 2/2 — 运行中引导提示
+28383	boundary	admin settings gating — their admin
+28385	noise	TrueColor detection internal
+28395	dup	parallel FC read-only tools — 并行已有
+28413	dup	5-phase planning workflow — plan 已有
+28421	dup	strict seatbelt profiles — sandbox 档已有
+28431	dup	direct web fetch — fetch 已有
+28432	dup	allow_multiple replace — edit 已有
+28449	cand	in-progress steering hints 1/3 同上
+28451	boundary	getUserTierName — their SaaS
+28455	boundary	ask_user label limit — their UI
+28456	dup	enter_plan_mode tool — plan mode 已有
+28460	dup	planning artifacts — plan artifact 已有
+28461	noise	verify-release macOS/Win internal
+28503	dup	preserve EOL — 行尾保留已有
+28506	noise	ToolConfirmationPayload union internal
+28512	noise	tool name aliasing internal
+28530	noise	disableLLMCorrection default internal
+28543	noise	remove legacy settings internal
+28574	dup	awaitConfirmation scheduler — scheduler 已有
+28578	dup	generalist agent 同上
+28583	noise	settings rename internal
+28598	noise	stale-exempt labels internal
+28608	noise	flash lite fallback internal
+28612	dup	activate_skill tool — skills 已有
+28618	boundary	admin extensions disabled — their admin
+28661	noise	A2A client manager internal
+28676	noise	Invocation constructors internal
+28697	noise	GenerateContentConfigs resolve internal
+28703	boundary	background color detect — their UI
+28714	noise	error parsing internal
+28733	noise	message bus default internal
+28739	noise	maintainer labels stale internal
+28775	noise	BaseLlmClient internal
+28791	dup	interactive errors to recording — audit 已有
+28806	boundary	first-request tip — their UI
+28816	noise	surface adhesion internal
+28817	noise	verticality normalize internal
+28840	dup	2-stage loop detection — 环路检测已有
+28877	noise	release channel detection internal
+28878	boundary	issue triage workflow — their bot
+28906	noise	venv yamllint internal
+28947	noise	release confidence doc internal
+28948	boundary	witty loading phrases — their UI
+28959	noise	remove deprecated flags internal
+28980	dup	generalized path correction — path 校正已有
+29069	dup	content-based JSON retries — retry 已有
+29120	boundary	status color threshold — their UI
+29131	noise	ripgrep license internal
+29132	boundary	IDE diff capabilities — their ext
+29134	noise	rg re-download internal
+29148	noise	bot-triaged label internal
+29151	dup	large tool output to file+truncate — 输出截断已有

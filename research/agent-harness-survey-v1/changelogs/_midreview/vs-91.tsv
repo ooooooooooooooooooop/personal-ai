@@ -1,0 +1,200 @@
+56614	noise	rename internal
+56615	noise	rename internal
+56616	noise	prose fragment
+56617	noise	code fragment
+56618	noise	code fragment
+56619	noise	code fragment
+56620	noise	code fragment
+56621	noise	code fragment
+56622	noise	code fragment
+56623	noise	code fragment
+56624	noise	code fragment
+56625	noise	code fragment
+56626	noise	code fragment
+56628	noise	code fragment
+56629	dup	registerTool LLM-callable — 工具注册已有
+56630	dup	registerCommand slash — 命令注册已有
+56631	dup	registerShortcut keys — 快捷键注册已有
+56633	dup	sendMessage inject — 消息注入已有
+56634	dup	get/setActiveTools — 动态工具已有
+56635	dup	getAllTools list — 工具列举已有
+56636	noise	prose fragment
+56637	noise	config fragment
+56638	noise	config fragment
+56643	noise	rename internal
+56644	noise	rename internal
+56645	noise	rename internal
+56646	noise	rename internal
+56647	noise	rename internal
+56648	noise	rename internal
+56649	noise	rename internal
+56650	noise	rename internal
+56651	noise	rename internal
+56652	noise	prose fragment
+56653	noise	rename internal
+56654	noise	rename internal
+56655	noise	rename internal
+56656	noise	rename internal
+56657	noise	prose fragment
+56658	noise	rename internal
+56659	noise	rename internal
+56660	noise	rename internal
+56661	noise	prose fragment
+56662	noise	rename internal
+56663	noise	rename internal
+56664	noise	rename internal
+56665	noise	rename internal
+56666	noise	rename internal
+56667	noise	rename internal
+56668	noise	prose fragment
+56669	noise	rename internal
+56670	noise	rename internal
+56671	noise	rename internal
+56673	dup	single extensions array — 统一配置已有
+56674	dup	hooks/tools→extensions dirs — 目录统一已有
+56675	noise	prose fragment
+56676	dup	extensions own package.json — 包依赖已有
+56678	noise	prose fragment
+56681	dup	hook errors full stack — 栈显示已有
+56685	dup	hook commands immediate — 即行命令已有
+56686	dup	file commands steer/followUp queue — 排队已有
+56688	dup	streamingBehavior field — 流行为已有
+56689	dup	steer() mid-run interrupt — 中断注入已有
+56690	dup	followUp() after finish — 完成后投递已有
+56691	noise	prose fragment
+56692	noise	rename internal
+56693	noise	rename internal
+56694	noise	rename internal
+56695	noise	rename internal
+56696	noise	rename internal
+56697	dup	clearQueue returns typed lists — 队列分类已有
+56698	noise	rename internal
+56699	noise	rename internal
+56700	noise	rename internal
+56701	noise	rename internal
+56705	dup	type guards runtime export — 运行时导出已有
+56707	dup	sessions auto-migrate v1→v2 — 自动迁移已有
+56716	dup	registerCommand HookCommandContext — 命令上下文已有
+56718	noise	rename internal
+56719	noise	rename internal
+56720	noise	prose fragment
+56721	dup	ctx.waitForIdle — 等待空闲已有
+56726	noise	rename internal
+56727	noise	rename internal
+56728	noise	rename internal
+56730	noise	prose fragment
+56731	noise	code fragment
+56735	dup	ctx.isIdle streaming check — 状态检查已有
+56736	dup	ctx.hasQueuedMessages — 队列检查已有
+56737	dup	ctx.abort fire-and-forget — 中止已有
+56739	dup	onSession shutdown cleanup — 清理钩子已有
+56740	noise	prose fragment
+56741	noise	rename internal
+56742	noise	rename internal
+56743	noise	rename internal
+56744	noise	rename internal
+56745	dup	reset→newSession parentSession lineage — 谱系已有
+56746	dup	newSession Promise<bool> cancel — 可取消已有
+56747	dup	navigateTree in-place — 树导航已有
+56748	noise	prose fragment
+56749	noise	rename internal
+56750	dup	parentSession lineage — 同上dup
+56751	noise	rename internal
+56752	dup	appendCompaction firstKeptEntryId — 压缩追加已有
+56753	dup	tree methods getBranch/getLeaf — 树方法已有
+56754	dup	appendCustomEntry/LabelChange — 自定义条目已有
+56755	noise	prose fragment
+56756	noise	code fragment
+56757	noise	code fragment
+56759	noise	code fragment
+56760	noise	code fragment
+56761	noise	code fragment
+56762	noise	code fragment
+56765	noise	prose fragment
+56766	noise	rename internal
+56767	noise	rename internal
+56769	noise	rename internal
+56770	noise	prose fragment
+56771	noise	rename internal
+56772	noise	rename internal
+56774	dup	auto_compaction_end willRetry — 重试字段已有
+56776	dup	compaction sections Goal/Progress — 压缩分节已有
+56777	dup	readFiles/modifiedFiles tracking — 文件追踪已有
+56779	noise	prose fragment
+56780	boundary	tree search — their UI
+56783	noise	prose fragment
+56784	dup	entry bookmark labels — 书签已有
+56785	dup	labels persist LabelEntry — 标签持久已有
+56786	noise	config fragment
+56787	noise	config fragment
+56788	noise	config fragment
+56793	dup	discoverAuthStorage/discoverModels — 发现函数已有
+56794	dup	authStorage/modelRegistry options — 注入已有
+56798	dup	messagesToKeep vs summarize — 保留区分已有
+56800	dup	buildSessionContext — 上下文构建已有
+56805	dup	/hotkeys shortcut table — 键表已有
+56809	dup	full content array — 内容数组已有
+56812	dup	hook result content format — 返回格式已有
+56813	dup	tool details types export — 类型导出已有
+56814	dup	type guards narrowing — 守卫已有
+56821	dup	2000 lines OR 50KB limits — 截断限已有
+56822	dup	result limit notices — 限值提示已有
+56823	noise	pr noise
+56827	dup	binary no platform suffix — 产物命名已有
+56890	dup	refresh returns result not discard — 错误透传已有
+56892	dup	generation-guarded publications — 代际守卫已有
+56913	boundary	llama.cpp router — their provider
+56940	dup	xhigh/max thinking levels — 思考档已有
+56972	noise	rename internal
+57202	dup	scoped thinking inherit session level — 继承语义已有
+57271	boundary	provider in footer — their UI
+57299	dup	setModel/getThinkingLevel ext API — 运行时换模已有
+57317	dup	thinking blocks→text cross-model — 签名兼容已有
+57351	dup	disable install telemetry — 遥测开关已有
+57352	dup	unknown flags error — 旗校验已有
+57372	dup	pi.setLabel per-entry — 标签API已有
+57376	dup	registerFlag CLI flags — 旗注册已有
+57377	noise	prose fragment
+57378	noise	prose fragment
+57380	dup	inline ExtensionFactory[] — 内联扩展已有
+57384	dup	hookTimeout removed Ctrl+C — 中止已有
+57508	dup	self-update detection — 更新检测已有
+57650	dup	context_length_exceeded detect — 溢出识别已有
+57654	dup	compaction reason field — 原因字段已有
+57667	dup	-p errors exit 1 — 错误码已有
+57668	dup	bun binary detection — 检测修复已有
+57842	dup	getSessionFile undefined in-memory — 内存会话已有
+57851	dup	previousSummary preserved — 摘要延续已有
+57862	dup	summarize old keep recent 20k — 压缩语义已有
+57864	dup	HTML collapsible compaction — 导出折叠已有
+57871	boundary	transcript controls — their UI
+57890	boundary	sticky dock — their UI
+57913	dup	--name session name startup — 命名已有
+57914	dup	--name/-n display name — 同上dup
+57947	noise	prose fragment
+57948	noise	code fragment
+57949	noise	code fragment
+57950	noise	code fragment
+57951	noise	code fragment
+57976	dup	transport changes immediate — 热施已有
+57996	dup	/share preview URLs — 分享链接已有
+58001	noise	rename internal
+58002	noise	rename internal
+58003	noise	rename internal
+58004	noise	rename internal
+58007	dup	SessionInfo.cwd field — cwd字段已有
+58012	dup	ctx.sessionManager read entries — 读取API已有
+58022	dup	ctx.navigateTree — 树导航已有
+58025	dup	getEntries excludes header — 头分离已有
+58026	noise	prose fragment
+58032	noise	rename internal
+58036	dup	SessionManager factories — 工厂已有
+58085	dup	pi update only pi --all — 更新粒度已有
+58173	noise	rename internal
+58174	noise	rename internal
+58213	dup	-ne/-ns/-np disable aliases — 禁用别名已有
+58216	dup	disable flag aliases — 同上dup
+58226	dup	ignore unknown skill frontmatter — 容错已有
+58256	dup	pi install/remove/update/list — 包管理已有
+58294	dup	systemPrompt full replacement — 提示替换已有
+58305	noise	prose fragment

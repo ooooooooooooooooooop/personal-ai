@@ -1,0 +1,200 @@
+10623	dup	device key bindings sqlite — 设备键持久已有
+10624	dup	profiles represent enforcement — 档案强制已有
+10627	boundary	fast tier default — their product
+10628	dup	config via ConfigManager — 配置管理已有
+10629	dup	device key v2 methods — 设备键已有
+10630	dup	preserve cookies — cookie保持已有
+10631	boundary	statusline normalize — their UI
+10632	noise	tests internal
+10633	noise	snapshots internal
+10637	noise	instructions internal
+10639	noise	lib internal
+10640	dup	multiple cwd filters thread list — 过滤已有
+10642	noise	wheels internal
+10644	dup	arg0 aliases alive — 别名保持已有
+10647	noise	feature keys internal
+10648	dup	executor-backed RMCP client — 客户端已有
+10651	dup	fast tier default eligible — 默认档已有
+10652	dup	codex_hooks stable — 稳定标记已有
+10654	dup	persist reasoning on upgrade — 推理保持已有
+10657	dup	canonicalize fs permissions — 权限规范化已有
+10663	dup	realtime silence tool — 静默工具已有
+10665	noise	preview internal
+10670	dup	remote_sandbox_config requirements — 沙箱需求已有
+10671	noise	fragments internal
+10674	noise	config internal
+10677	noise	device key protocol internal
+10678	noise	test internal
+10680	dup	split DeveloperInstructions fragments — 指令分片已有
+10681	noise	crate internal
+10682	boundary	installer — their product
+10686	noise	install deps internal
+10687	noise	re-enable internal
+10688	noise	installer internal
+10690	dup	async config loading — 异步加载已有
+10691	boundary	Fed auth edge — their product
+10692	noise	min values internal
+10693	noise	flake internal
+10695	noise	expect internal
+10699	noise	connectors internal
+10700	noise	op handlers internal
+10701	dup	OTEL metrics hook runs — hook遥测已有
+10703	noise	turn logic internal
+10704	dup	auto-review for guardian — 自动审查已有
+10706	dup	stream apply_patch — 流式补丁已有
+10707	noise	tool suggestion internal
+10708	dup	revoke tokens logout — 注销撤销已有
+10710	noise	ephemeral internal
+10713	dup	tool hint defaults pessimistic — 悲观默认已有
+10715	noise	truncated noise
+10717	dup	reviewed pnpm build scripts — 构建审查已有
+10719	dup	turn id feedback uploads — ID载荷已有
+10721	dup	budget realtime context — 预算已有
+10723	dup	mirror user text realtime — 镜像已有
+10725	noise	model internal
+10727	dup	unload unused threads — 卸载已有
+10728	noise	tests internal
+10729	dup	cap mirrored turns — 镜像上限已有
+10730	noise	description internal
+10731	noise	helpers internal
+10732	noise	ICU internal
+10733	dup	tighten handoff finalization — 移交定稿已有
+10735	noise	timestamps internal
+10737	noise	debug output internal
+10738	noise	rpcs internal
+10739	noise	pathbuf internal
+10741	noise	search caps internal
+10744	dup	disable hooks guardian sessions — hook隔离已有
+10746	dup	preserve search ordering — 顺序保持已有
+10748	dup	remove windows gate hooks — hook启用已有
+10749	dup	preserve search order — 顺序已有
+10751	dup	rename background_agent — 重命名已有
+10752	noise	handlers internal
+10757	dup	clear SessionStart source — 来源标记已有
+10764	noise	spawn internal
+10765	noise	send_message internal
+10766	noise	assign_task internal
+10768	noise	desc internal
+10770	noise	deny field internal
+10772	dup	fuzzy search case insensitive — 模糊搜索已有
+10774	noise	crate internal
+10775	noise	feature internal
+10776	noise	helpers internal
+10777	noise	helpers internal
+10778	noise	spec internal
+10779	noise	re-exports internal
+10783	noise	config types internal
+10784	noise	normalization internal
+10785	noise	collection internal
+10786	noise	re-exports internal
+10787	noise	planning internal
+10789	noise	config types internal
+10790	noise	shim internal
+10792	noise	lint internal
+10794	noise	state machine internal
+10798	noise	compile time internal
+10799	noise	compile time internal
+10800	noise	truncated internal
+10803	noise	transport internal
+10804	dup	protect .codex creation sandboxes — 沙箱放行已有
+10805	noise	token_data internal
+10806	dup	OsString program — 参数安全已有
+10808	noise	bazelrc internal
+10811	boundary	device-code login — their product
+10814	noise	template internal
+10815	noise	template internal
+10816	noise	template internal
+10817	noise	template internal
+10820	noise	adapters internal
+10821	noise	definitions internal
+10823	dup	no redundant write roots apply_patch — 写根精简已有
+10825	noise	specs internal
+10826	noise	specs internal
+10828	noise	tests internal
+10829	noise	specs internal
+10830	noise	specs internal
+10831	noise	specs internal
+10833	noise	specs internal
+10834	noise	models internal
+10835	noise	instructions internal
+10836	dup	external bearer auth tokens — 认证已有
+10837	dup	AuthManager bearer — 认证已有
+10840	dup	propagate tool errors code mode — 错误传播已有
+10843	noise	result internal
+10844	noise	result internal
+10846	dup	remove stdio transport — 传输收敛已有
+10848	boundary	dir mentions — their UI
+10850	noise	env abstraction internal
+10853	noise	URL handling internal
+10856	noise	v8 internal
+10857	noise	login crate internal
+10860	dup	guardian follow-up reminder — 提醒已有
+10864	noise	platform param internal
+10865	noise	v8 internal
+10866	noise	JIT internal
+10868	dup	remove smart_approvals alias — 别名收敛已有
+10869	boundary	shift+left queued — their UI
+10870	noise	rename internal
+10878	dup	reduce self-interruptions playback — 中断收敛已有
+10882	noise	schema internal
+10883	dup	framed IPC elevated runner — IPC框架已有
+10884	noise	test internal
+10885	dup	disable desktop elevated IPC — 功能收敛已有
+10886	noise	rename internal
+10889	dup	reject websocket Origin headers — CSRF防护已有
+10890	dup	FS abstraction view_image — 抽象已有
+10892	dup	workspace requirements guardian override — 覆盖已有
+10894	boundary	js_repl helpers — their product
+10895	dup	js_repl U+2028 hang — 字符容错已有
+10898	boundary	js_repl helpers — their product
+10899	boundary	word-motion keys — their UI
+10904	dup	clarify spawn authorization — 授权明确已有
+10905	noise	code_mode internal
+10906	dup	granted permissions apply_patch — 授权应用已有
+10907	dup	dispatch tools not awaited — 派发已有
+10908	noise	files internal
+10909	noise	descriptions internal
+10910	dup	no unified_exec sandboxed Windows — 沙箱限域已有
+10914	noise	prompts internal
+10916	dup	persist js_repl helpers cells — 状态持久已有
+10917	noise	globals internal
+10920	dup	custom CA handling — 证书已有
+10921	noise	pragma internal
+10923	dup	simplify request permissions — 权限简化已有
+10926	noise	diagnostics internal
+10928	dup	platform os init response — 平台暴露已有
+10931	dup	v2 filesystem APIs — 文件API已有
+10932	noise	defaultPrompt internal
+10934	noise	truncated internal
+10938	dup	health endpoints — 健康检查已有
+10940	boundary	plugins sort — their UI
+10942	dup	single tool output type — 输出一致已有
+10943	noise	runner internal
+10944	noise	truncation internal
+10945	dup	delay cleanup until aborts — 延迟清理已有
+10947	noise	test internal
+10948	noise	test internal
+10949	noise	result internal
+10950	noise	handler internal
+10951	dup	incomplete resumed turns interrupted — 状态修正已有
+10956	dup	replay thread rollback rollout — 回滚回放已有
+10961	dup	recover HTTP 404 sessions — 会话恢复已有
+10965	dup	sqlite logs dedicated db — 日志分库已有
+10973	dup	derive effective file access — 权限推导已有
+10974	dup	absolute cwd windowsSandbox — 路径校验已有
+10975	dup	honor carveouts apply_patch — 豁免遵从已有
+10977	dup	preserve denied paths widening — 拒绝保持已有
+10978	dup	root carveouts sandboxed — 根豁免沙箱已有
+10979	noise	test internal
+10981	noise	test internal
+10982	noise	tweaks internal
+10983	noise	test internal
+10984	noise	test internal
+10985	noise	test internal
+10986	noise	handshake internal
+10987	noise	test internal
+10989	noise	test internal
+10990	noise	fixture internal
+10991	dup	SIGTERM graceful shutdown — 信号关闭已有
+10992	dup	surface diagnostics earlier — 诊断前置已有
+10993	dup	SIGTERM graceful shutdown — 信号关闭已有

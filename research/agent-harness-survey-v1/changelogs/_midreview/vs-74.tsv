@@ -1,0 +1,200 @@
+34931	boundary	session sharing UI — their UI
+34932	noise	docs internal
+34952	dup	bound audio resampling — 重采样限已有
+34953	dup	no images to non-vision models — 视觉门已有
+34955	dup	bound local image reads — 读限定已有
+34956	dup	image read tool — 图读工具已有
+34957	dup	classify image access capabilities — 能力分类已有
+34958	dup	unicode punctuation image terminators — 终止符已有
+34962	dup	media marker parts vision — 视觉标记已有
+34963	dup	User-Agent URL image fetch — UA已有
+34964	dup	UA image fetch — 已有
+34965	dup	media marker vision — 已有
+34966	dup	parallel image no interleave — 交错防护已有
+34967	dup	image interleave — 已有
+34969	noise	dictation internal
+34971	noise	dictation internal
+34972	noise	codex internal
+34981	noise	image internal
+34982	boundary	screenshot — their UI
+34988	dup	screenshot paste — 截图粘贴已有
+35007	dup	guard recipe-before-inference ordering — 顺序守护已有
+35009	dup	select saved recipes schedule — 配方调度已有
+35011	dup	skip scheduled implicit resume — 隐式跳过已有
+35012	dup	--parameters scheduled — 参数调度已有
+35013	dup	session.message_count listing — 计数列表已有
+35014	dup	--parameters — 已有
+35015	dup	message_count — 已有
+35016	dup	scheduled recipe params — 已有
+35017	dup	--parameters — 已有
+35018	dup	--parameters — 已有
+35019	dup	quarterly scheduling — 季调度已有
+35021	noise	cleanup internal
+35022	boundary	countdown — their UI
+35024	dup	cron error catching — 错误捕获已有
+35025	noise	cleanup internal
+35026	boundary	schedule button — their UI
+35027	noise	reliability internal
+35043	dup	cron scheduler — 调度已有
+35045	dup	task cancellation scheduled — 取消已有
+35046	dup	edit schedule — 编辑已有
+35047	dup	pause/unpause scheduled — 暂停已有
+35048	dup	live tracking schedules — 追踪已有
+35052	dup	extensions background CLI — 后台加载已有
+35053	dup	roaming opt-in — 漫游开关已有
+35054	dup	disable auto update downloads — 更新开关已有
+35055	dup	GOOSE_FAST_MODEL env — 快模env已有
+35056	dup	quarterly — 已有
+35058	dup	/status slash — 状态命令已有
+35060	dup	OTLP logging schema — 日志schema已有
+35061	dup	disable update downloads — 已有
+35064	dup	/status — 已有
+35065	dup	FAST_MODEL — 已有
+35066	dup	OTLP schema — 已有
+35067	noise	build internal
+35068	dup	thinking effort config — 推理配置已有
+35069	dup	FAST_MODEL — 已有
+35070	dup	FAST_MODEL — 已有
+35071	dup	FAST_MODEL — 已有
+35072	dup	DISABLE_TOOL_CALL_SUMMARY env — 摘要开关已有
+35075	noise	build internal
+35076	dup	logs dir before write — 目录预建已有
+35082	dup	CONTEXT_LIMIT config — 上限配置已有
+35087	dup	TLS env configurable — TLS配置已有
+35091	dup	no debug default — 日志默认已有
+35092	dup	configurable OTel level — 级别可配已有
+35094	dup	reasoning content CLI — 推理显示已有
+35096	noise	env internal
+35097	noise	guide internal
+35098	dup	OTel standard env vars — 标准env已有
+35100	dup	manpage generation — 手册生成已有
+35101	noise	otel internal
+35103	boundary	type-to-search — their UI
+35105	dup	manpage — 已有
+35106	dup	unlisted models CLI providers — 未列模型已有
+35108	dup	skip profile extensions flag — 跳过档已有
+35109	boundary	keybinding — their UI
+35118	dup	JSONL streaming output — JSONL输出已有
+35119	dup	recipe download copy YAML — 配方导出已有
+35121	dup	recipe deeplink/open param — 深链参数已有
+35122	dup	disable update CLI — 更新关已有
+35123	dup	YAML special chars — 转义已有
+35126	noise	cleanup internal
+35127	noise	build internal
+35128	dup	recipes quiet flag — 静默档已有
+35129	noise	cli internal
+35130	dup	GOOSE_PATH_ROOT env — 根路径env已有
+35138	dup	platform tools CLI — 平台工具已有
+35140	noise	build internal
+35141	noise	build internal
+35142	noise	analytics internal
+35143	dup	GOOSE_DEBUG env — 调试env已有
+35146	noise	logs internal
+35157	noise	build internal
+35160	dup	structured output CLI/desktop — 结构化输出已有
+35161	noise	analytics internal
+35166	noise	storage internal
+35172	noise	build internal
+35179	dup	tool router env prefix — env前缀已有
+35185	dup	GOOSE_RECIPE_PATH env — 配方路径已有
+35186	boundary	input hint — their UI
+35187	dup	env prefix — 已有
+35191	noise	example internal
+35213	boundary	verbose output — their UI
+35220	noise	prerelease noise
+35233	boundary	plain prompt — their UI
+35234	boundary	prompt — their UI
+35237	dup	alerts suspicious unicode recipe — 可疑字符警告已有
+35238	dup	sanitize Tags Unicode prompt — 标签净化已有
+35246	dup	enforce subagent platform guards — 子代理护栏已有
+35247	dup	isolate concurrent subagent notifications — 通知隔离已有
+35248	dup	isolate notifications summon — 已有
+35249	dup	summon context/working_dir delegate — 委派参数已有
+35250	dup	no bleed request_params delegate — 参数隔离已有
+35251	dup	summon context param — 已有
+35252	dup	working_dir override — 已有
+35254	dup	unmatched extension warning delegate — 扩展警告已有
+35255	dup	context+working_dir delegate — 已有
+35256	dup	context param — 已有
+35257	dup	working_dir — 已有
+35258	dup	summon subagent instructions — 指令已有
+35259	dup	re-apply canonical limits delegate model override — 限值重施已有
+35260	noise	blog internal
+35263	dup	orchestration support — 编排已有
+35264	dup	ACP read tool delegate fs I/O — 委派IO已有
+35266	dup	monitoring subagent section — 监控已有
+35268	dup	unified summon extension — 统一扩展已有
+35269	dup	unified summon — 已有
+35273	dup	unified subagent+subrecipe tool — 工具统一已有
+35278	noise	manager internal
+35285	boundary	git branch indicator — their UI
+35286	dup	exclude git metadata hints — 元数据排除已有
+35288	dup	goose review local — 评审命令已有
+35289	dup	preserve fixed subrecipe values — 值保留已有
+35291	dup	goose review — 已有
+35292	noise	copilot internal
+35294	noise	copilot internal
+35296	dup	preserve branch project chats — 分支保留已有
+35297	noise	copilot internal
+35298	noise	header internal
+35301	boundary	git widget — their UI
+35302	noise	crate internal
+35305	noise	merge internal
+35306	noise	blog internal
+35308	dup	propagate PATH to subprocess — PATH传播已有
+35315	dup	PR reviewer workflow — 评审流已有
+35316	noise	release internal
+35319	boundary	issue solver workflow — their CI
+35320	noise	copilot internal
+35323	noise	html noise
+35325	noise	copilot internal
+35326	noise	ci internal
+35329	noise	copilot internal
+35330	noise	ci internal
+35332	dup	unified execution pipeline subagents — 管线统一已有
+35334	noise	ci internal
+35336	noise	monitoring internal
+35341	noise	typo internal
+35345	noise	panic internal
+35347	noise	copilot internal
+35355	noise	test internal
+35359	noise	gitlog noise
+35365	noise	provider internal
+35399	dup	reject cmd.exe newlines — 换行拒绝已有
+35403	dup	clear stale pending ACP — 悬挂清理已有
+35406	dup	AGENT_SESSION_ID shell — env暴露已有
+35408	dup	empty finish_reason non-terminal — 终止符已有
+35409	noise	color internal
+35410	dup	desktop ACP shell PATH — PATH已有
+35411	dup	unescape shell-escaped image paths — 转义还原已有
+35417	dup	inherit login-shell PATH subagents — PATH继承已有
+35420	dup	flag login shell PATH — 已有
+35423	dup	warm PATH lookup init — PATH预热已有
+35424	noise	section noise
+35426	dup	GOOSE_SHELL env preferred shell — shell选择已有
+35428	dup	avoid word splitting windows — 分词防护已有
+35430	noise	rust internal
+35432	dup	pass env to shell commands — env传递已有
+35435	noise	install internal
+35436	noise	bash internal
+35437	noise	docs internal
+35438	boundary	static output — their UI
+35439	noise	blog internal
+35442	dup	read paths login shell — 路径读取已有
+35443	dup	login shell paths — 已有
+35446	dup	tell system shell — shell标识已有
+35447	dup	prefer users SHELL — shell优先已有
+35449	dup	no shell env on startup — 启动隔离已有
+35464	dup	redact telegram tokens — 令牌净化已有
+35465	dup	projects backend prompt injection — 注入源已有
+35466	dup	projects injection — 已有
+35467	dup	pattern injection confidence — 置信度已有
+35468	dup	injection mitigation default — 默认开启已有
+35470	dup	replace raw config/secret methods ACP — 接口收紧已有
+35471	dup	command injection patterns — 模式更新已有
+35472	noise	dep internal
+35473	noise	cve internal
+35476	dup	only command content to classifier — 分类器隔离已有
+35480	dup	confidence levels injection — 假阳调整已有
+35481	dup	merged assistant messages check — 检查豁免已有
+35483	dup	scanner redact env vars — env净化已有

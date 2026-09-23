@@ -1,0 +1,200 @@
+17875	noise	icon names internal
+17876	noise	service internal
+17878	noise	feedback internal
+17879	noise	tests internal
+17881	noise	memoize internal
+17887	noise	emoji noise
+17888	noise	tool move internal
+17889	noise	review internal
+17890	noise	stream internal
+17891	noise	dep internal
+17892	noise	filter internal
+17893	noise	tests internal
+17895	boundary	diff viewer — their UI
+17896	boundary	drag overlay — their UI
+17898	noise	deps internal
+17899	boundary	diff colors — their UI
+17901	noise	JCEF internal
+17902	dup	don't stream apply fast models — 流式应用档已有
+17903	noise	actionPerformed internal
+17904	noise	imports internal
+17905	dup	dynamic policies — 策略动态已有
+17906	noise	edit internal
+17907	noise	output internal
+17911	noise	test internal
+17912	noise	test internal
+17913	noise	test internal
+17914	noise	test internal
+17915	noise	test internal
+17916	noise	test internal
+17917	noise	test internal
+17918	noise	release internal
+17919	noise	format internal
+17920	noise	format internal
+17921	noise	format internal
+17922	noise	format internal
+17923	noise	format internal
+17924	noise	format internal
+17925	noise	format internal
+17926	noise	format internal
+17927	noise	format internal
+17928	noise	format internal
+17929	noise	format internal
+17933	noise	lock internal
+17938	noise	memoize internal
+17939	noise	async internal
+17940	noise	packages internal
+17943	noise	phrase internal
+17944	noise	errors internal
+17945	noise	debug internal
+17946	noise	tests internal
+17947	noise	tests internal
+17948	noise	tests internal
+17949	noise	type internal
+17951	noise	lint internal
+17952	boundary	diff stats — their UI
+17954	noise	stream internal
+17956	noise	lint internal
+17957	noise	lint internal
+17958	noise	lint internal
+17959	noise	lint internal
+17960	noise	EDT internal
+17968	noise	revert internal
+17969	noise	name noise
+17974	noise	mention internal
+18003	noise	test internal
+18004	noise	test internal
+18005	noise	feedback internal
+18006	noise	feedback internal
+18007	noise	test internal
+18008	noise	test internal
+18009	noise	test internal
+18010	noise	test internal
+18011	noise	test internal
+18012	noise	lint internal
+18013	noise	docs internal
+18015	boundary	styles — their UI
+18016	noise	test internal
+18017	boundary	ModelRecommendations — their UI
+18018	noise	test internal
+18019	noise	feedback internal
+18020	noise	feedback internal
+18021	noise	feedback internal
+18022	noise	feedback internal
+18023	noise	feedback internal
+18024	noise	filepath internal
+18025	noise	build internal
+18026	noise	cleanup internal
+18029	noise	build internal
+18030	dup	don't handle streamed if aborted — 中止丢弃已有
+18033	noise	format internal
+18035	noise	debug internal
+18036	noise	import internal
+18039	noise	install internal
+18041	noise	lint internal
+18042	noise	lint internal
+18043	noise	lint internal
+18044	noise	lint internal
+18045	noise	lint internal
+18046	noise	lint internal
+18047	noise	label internal
+18050	dup	recover process after exceptions — 崩溃恢复已有
+18056	noise	action internal
+18057	boundary	ascii art — their UI
+18058	noise	name internal
+18066	noise	branch noise
+18071	noise	feedback internal
+18072	noise	feedback internal
+18073	noise	feedback internal
+18074	noise	utils internal
+18077	noise	hotfix internal
+18078	noise	model switcher internal
+18079	noise	boolean internal
+18082	noise	autodetect internal
+18084	noise	blocks internal
+18086	boundary	single replace tool — their UI
+18089	noise	feedback internal
+18090	noise	feedback internal
+18091	noise	feedback internal
+18093	noise	comments internal
+18095	noise	error status internal
+18096	noise	test internal
+18099	noise	test internal
+18100	noise	tool internal
+18101	noise	tests internal
+18102	noise	name internal
+18103	noise	test internal
+18104	noise	pin internal
+18105	dup	prune before compacting — 压缩前裁剪已有
+18106	noise	redirect internal
+18108	noise	message internal
+18109	noise	tests internal
+18110	noise	prompt internal
+18111	noise	workflow internal
+18112	noise	slash internal
+18113	noise	monitoring internal
+18114	noise	instructions internal
+18116	noise	review internal
+18117	noise	space internal
+18119	dup	last-write-wins — 并发写策略已有
+18121	dup	Respect useReranking config — 配置遵从已有
+18126	noise	name noise
+18129	noise	key format internal
+18130	noise	build internal
+18131	noise	copy internal
+18132	noise	format internal
+18133	noise	permissions internal
+18134	noise	ignore internal
+18135	noise	lint internal
+18136	noise	lint internal
+18137	noise	aliases internal
+18140	noise	slash internal
+18141	noise	slash internal
+18142	noise	tests internal
+18144	noise	type internal
+18146	noise	ignore internal
+18147	noise	security ignores internal
+18148	noise	test internal
+18150	boundary	/exit — their UI
+18151	noise	desc internal
+18153	noise	feedback internal
+18154	noise	feedback internal
+18155	noise	feedback internal
+18156	noise	feedback internal
+18157	noise	feedback internal
+18158	noise	feedback internal
+18159	noise	feedback internal
+18160	noise	feedback internal
+18161	noise	placeholder internal
+18162	noise	message internal
+18164	noise	slash internal
+18165	dup	automatically reload policy — 策略热载已有
+18166	noise	backspace internal
+18167	noise	release internal
+18168	boundary	diff bg — their UI
+18169	noise	binary internal
+18170	noise	test internal
+18171	noise	build internal
+18175	noise	checklist internal
+18176	noise	uses internal
+18177	noise	slash internal
+18178	boundary	word diff color — their UI
+18179	noise	arg internal
+18180	noise	cursor internal
+18181	dup	delete hallucinated tools — 幻觉工具过滤已有
+18182	noise	diff internal
+18184	noise	filter internal
+18185	boundary	dot color — their UI
+18186	noise	message internal
+18188	noise	docs internal
+18189	noise	format internal
+18190	noise	format internal
+18191	noise	format internal
+18192	noise	test internal
+18193	noise	test internal
+18195	noise	imports internal
+18200	noise	schema internal
+18201	dup	install rg+tool errors — 依赖兜底已有
+18203	boundary	column — their UI
+18205	noise	link internal
+18206	noise	lint internal

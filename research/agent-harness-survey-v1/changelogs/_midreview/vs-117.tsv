@@ -1,0 +1,200 @@
+24040	noise	dep bump
+24662	noise	prose noise
+25431	noise	docs internal
+25436	noise	docs internal
+26300	noise	docs internal
+26526	noise	docs internal
+26819	noise	docs internal
+26889	noise	chore internal
+26901	noise	docs internal
+27037	noise	docs internal
+27151	noise	internal
+27284	noise	test internal
+27321	noise	docs internal
+27349	noise	docs internal
+27470	noise	test internal
+27547	noise	docs internal
+27596	dup	remove hardcoded API key — 密钥剔除已有
+27607	noise	docs internal
+27620	dup	MCP error code not string match — 错误码判定已有
+27622	noise	docs internal
+27624	dup	/mcp refresh→reload — 重载语义已有
+27636	noise	refactor internal
+27637	noise	docs internal
+27643	dup	mcp_ FQN naming — 全限定名已有
+27678	dup	limit MCP resources display — 展示上限已有
+27695	noise	docs internal
+27707	noise	test internal
+27723	noise	docs internal
+27756	noise	rename internal
+27829	noise	docs internal
+27830	noise	refactor internal
+27871	noise	refactor internal
+27937	noise	docs internal
+27961	noise	docs internal
+27964	noise	docs internal
+27967	noise	docs internal
+27973	noise	refactor internal
+27974	noise	docs internal
+28108	dup	SubagentState enum — 子代状态机已有
+28116	noise	docs internal
+28135	dup	consolidate read-only policy rules — 只读规则合并已有
+28143	noise	docs internal
+28146	noise	docs internal
+28151	noise	docs internal
+28174	noise	docs internal
+28184	noise	docs internal
+28194	noise	docs internal
+28202	noise	refactor internal
+28204	noise	refactor internal
+28222	noise	docs internal
+28232	noise	refactor internal
+28253	noise	refactor internal
+28258	noise	docs internal
+28300	noise	docs internal
+28328	dup	declarative policy rules — 声明式策略已有
+28347	noise	refactor internal
+28349	noise	docs internal
+28360	noise	test internal
+28390	noise	chore internal
+28426	noise	refactor internal
+28439	noise	refactor internal
+28472	noise	chore internal
+28475	noise	chore internal
+28481	noise	refactor internal
+28482	noise	chore internal
+28497	noise	docs internal
+28501	noise	revert internal
+28509	noise	docs internal
+28538	noise	docs internal
+28547	noise	docs internal
+28553	noise	ui feature
+28556	noise	docs internal
+28568	noise	ui feature
+28571	noise	ci noise
+28591	noise	docs internal
+28621	noise	docs internal
+28629	noise	refactor internal
+28635	dup	hooks stop/block execution control — 钩子阻断已有
+28637	noise	refactor internal
+28638	noise	refactor internal
+28641	noise	refactor internal
+28666	noise	refactor internal
+28701	noise	docs internal
+28729	noise	docs internal
+28737	noise	docs internal
+28759	noise	revert internal
+28861	noise	docs internal
+28867	noise	refactor internal
+28868	noise	docs internal
+28874	noise	refactor internal
+28886	noise	refactor internal
+28982	noise	chore internal
+29128	noise	docs internal
+29142	noise	test internal
+29200	noise	chore internal
+29209	noise	chore internal
+29228	noise	docs internal
+29273	noise	docs internal
+29354	noise	docs internal
+29389	noise	refactor internal
+29409	noise	docs internal
+29418	noise	dep bump
+29420	noise	dep bump
+29441	noise	docs internal
+29443	noise	docs internal
+29450	dup	centralized sandbox paths macOS — 路径集中已有
+29451	dup	centralized sandbox paths Linux — 同上dup
+29454	noise	docs internal
+29456	dup	centralized sandbox path utils — 同上dup
+29461	dup	fix native write in windows sandbox — 沙箱写修复已有
+29468	noise	test internal
+29469	noise	test internal
+29470	noise	docs internal
+29478	noise	refactor internal
+29487	noise	test internal
+29495	noise	docs internal
+29515	noise	internal
+29523	noise	docs internal
+29524	noise	docs internal
+29525	dup	require recurrence evidence for skill extraction — 取证门已有
+29530	noise	chore internal
+29535	noise	docs internal
+29550	noise	docs internal
+29561	noise	chore internal
+29567	dup	.agents/skills alias+precedence — 别名发现已有
+29570	noise	chore internal
+29575	noise	docs internal
+29581	noise	docs internal
+29586	noise	chore internal
+29597	noise	revert internal
+29601	noise	docs internal
+29605	dup	harden skill frontmatter parsing — 解析加固已有
+29607	noise	docs internal
+29615	noise	chore internal
+29622	noise	docs internal
+29637	noise	docs internal
+29698	noise	ci noise
+29719	noise	chore internal
+29724	noise	docs internal
+29761	noise	docs internal
+29762	dup	require approvers for prompt files — 提示文件审批已有
+29765	noise	docs internal
+29767	noise	ci noise
+29768	noise	docs internal
+29776	dup	edit plan files during approval — 审批中编辑已有
+29780	noise	docs internal
+29783	noise	docs internal
+29792	noise	docs internal
+29808	noise	chore internal
+29815	noise	docs internal
+29849	noise	refactor internal
+29850	dup	deprecate legacy confirm enforce policy engine — 策略引擎已有
+29870	noise	docs internal
+29875	noise	test internal
+29895	dup	folder trust gates GEMINI.md — 信任门已有
+29925	noise	docs internal
+29988	dup	gateway auth bypasses api key req — 网关认证已有
+30034	noise	internal
+30049	noise	internal
+30054	dup	token caching auth provider — 令牌缓存已有
+30077	noise	docs internal
+30086	dup	don't default to API key auth — 认证优先序已有
+30098	dup	GEMINI.md @file imports — 模块化导入已有
+30149	noise	ci noise
+30160	noise	ci noise
+30171	noise	ci noise
+30184	noise	docs internal
+30201	noise	ci noise
+30221	noise	ci noise
+30226	noise	test internal
+30228	noise	refactor internal
+30247	noise	ci noise
+30248	noise	ci noise
+30260	noise	refactor internal
+30347	noise	docs internal
+30360	noise	refactor internal
+30363	noise	refactor internal
+30369	dup	sandbox denial parsing in SandboxManager — 拒绝解析归位已有
+30375	noise	refactor internal
+30398	noise	test internal
+30400	dup	decouple scheduler orch/policy/confirm — 分层解耦已有
+30402	dup	DelegateToAgentTool union — 委派建模已有
+30408	noise	chore internal
+30648	noise	docs internal
+30684	dup	deny policy excludes tools from memory — 记忆排除已有
+30716	noise	dep bump
+30721	noise	docs internal
+30722	noise	docs internal
+30738	noise	refactor internal
+30747	noise	internal
+30750	dup	permissive Seatbelt → deny-default — 默认拒绝已有
+30797	noise	docs internal
+30807	noise	docs internal
+30816	noise	docs internal
+30820	noise	ui feature
+30844	noise	refactor internal
+30846	noise	refactor internal
+30854	dup	handle invalid model in quota/fallback — 兜底校验已有
+30862	noise	refactor internal
+30863	noise	refactor internal

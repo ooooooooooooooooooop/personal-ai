@@ -1,0 +1,200 @@
+3380	noise	Copilot Chat o1/Claude 3.5
+3381	boundary	edit prediction providers API key
+3382	cand	transport-cfg: transport setting(sse/websocket/auto)per-provider
+3383	noise	Gemini 2.5 thinking config
+3384	dup	SDK reasoning effort/models/usage控制 — SDK surface
+3385	dup	同1599 SSE retry delays — retry config
+3386	boundary	Gemini images context
+3387	boundary	Copilot Chat gpt-4.1/o4-mini tool calling
+3388	variant	allow_extended_context Bedrock 1M
+3389	dup	thread选择时thinking mode/effort持久 — thinking persist
+3390	noise	GPT-5.3-Codex BYOK
+3391	noise	Grok 4.1 Fast 2M
+3392	boundary	Zed provider thinking effort
+3393	noise	mistral-nemo Ollama
+3394	cand	model-param: params.context1m:true→1M beta header(Opus/Sonnet)
+3395	dup	Claude CLI structured output提取嵌套API错误 — error surface
+3396	dup	Codex final-answer partials→live previews+ACP metadata SQLite — stream preview
+3397	dup	gpt-5.4-mini有function tools时omit reasoning_effort — param compat
+3398	dup	fallback classification限current attempt — error scoping
+3399	dup	phaseless OpenAI WS text buffer到real phase — stream ordering
+3400	dup	"input item ID does not belong"归replay类错误 — error classify
+3401	dup	custom provider keys决定media/image/video工具可用 — capability gate
+3402	dup	video reference-audio参数按provider能力显示 — param gating
+3403	dup	fallback model metadata保持typed(params/caps/limits) — metadata typing
+3404	dup	context-build时sanitize tool results+CCA tool IDs — sanitize已实装
+3405	boundary	Baseten(同1595)
+3406	boundary	Crestodian first-run/planner fallback
+3407	dup	cache_control breakpoint在last tool definition — cache breakpoint
+3408	dup	Claude Code/OpenCode不再问从不读的API key — auth honesty
+3409	dup	同3408(重复)
+3410	boundary	@openclaw/codex私有task-runtime SDK helper
+3411	boundary	PWA/Web Push/Crestodian first-run
+3412	dup	i18n用installed workspace runtime刷locales — locale refresh
+3413	dup	disabled时Copilot仍给建议修复 — provider off
+3414	dup	cost data upstream format误传修复 — stream format
+3415	boundary	DeepInfra bundled provider
+3416	dup	custom DeepSeek V4 thinking兼容 — compat
+3417	boundary	默认workspace ~/Documents/Qwen首启
+3418	dup	Discord model picker alpha-bucket select — picker paging
+3419	dup	/model autocomplete匹配provider/model queries — completion
+3420	dup	qwen-chat-template compat mode — provider compat
+3421	dup	compat.supportsEagerToolInputStreaming等接受 — config accept
+3422	dup	errored assistant messages后orphaned tool results修复 — transcript hygiene
+3423	dup	npx fresh install quick-start lane — onboarding
+3424	cand	provider-ext: extensions注册完整pi-ai providers(auth/refresh/filter)
+3425	noise	GPT-5.1系列
+3426	dup	startup/restart/migration/auth/fallback/streaming可靠性 — reliability
+3427	boundary	VoiceClaw realtime brain WS(Gemini Live)
+3428	dup	provider usage缺失时从transcripts估context usage — usage estimate
+3429	cand	api-gate: /v1/chat/completions端点默认禁用(显式enable)
+3430	variant	Gemini 1.5 Pro diff-fenced edit format
+3431	dup	Google aliases解析传实际runtime id — alias resolve
+3432	boundary	Gradium TTS provider
+3433	dup	image base URLs不再推断private-network access — SSRF hygiene
+3434	dup	provider fallback前warn记录失败候选 — fallback logging
+3435	boundary	External Context Provider profiles+qwen review flags
+3436	boundary	Kimi内置provider(国际/中国端点)
+3437	dup	pi-ai provider modules lazy-load — startup perf
+3438	dup	/model跨CLI/Telegram/Discord/Slack切换 — model switch
+3439	boundary	recipe config指定provider/model
+3440	boundary	Ollama节点自动发现
+3441	noise	GPT-5.2-Codex命名
+3442	cand	model-scope: configurable model-selection scopes
+3443	dup	ModelRegistry管理discovery+API key解析 — registry
+3444	boundary	DashScope中国/全球端点
+3445	noise	GPT-5.6兼容/Tencent Hy3
+3446	dup	chat/CLI加的Codex models保留provider metadata — metadata
+3447	dup	bare Google API roots归一化 — url normalize
+3448	dup	Codex WS/SSE bounded waits+retry.provider.maxRetries — retry bounds
+3449	dup	无credentials时welcome显示Connect a model — onboarding
+3450	noise	GPT-5.4 272K
+3451	dup	codex logout清auth.json凭据说明 — auth logout
+3452	boundary	官方provider packages(BytePlus/ComfyUI/Mistral等)
+3453	dup	Ollama可变context lengths+max_tokens可配 — context config
+3454	dup	Ollama provider-policy defaults先行于config validation — discovery order
+3455	dup	/api/show context-window/capability缓存 — discovery cache
+3456	dup	Codex audio transcription路由 — media routing
+3457	dup	OpenAI Responses自动用native web_search — native tools
+3458	variant	openai/chat-latest显式override
+3459	boundary	Xiaomi Token Plan
+3460	dup	fallback后自动恢复primary provider — fallback restore
+3461	boundary	inbound.reply.agent.kind只接"pi"(Pi限定)
+3462	cand	context-probe: 无显式limit时context-overflow不再stepdown探测
+3463	dup	OpenAI-compatible TTS/Realtime/OpenRouter replay修复 — provider fixes
+3464	boundary	Claude CLI backend从onboarding移除
+3465	noise	sonnet-4.6/4.5 Copilot catalog
+3466	boundary	Deepgram/ElevenLabs/Mistral STT
+3467	boundary	inferrs string-content兼容
+3468	noise	Qwen/Fireworks/StepFun bundled
+3469	dup	/config reasoning effort五级(auto/low..) — reasoning UI
+3470	boundary	API key onboarding刷新
+3471	noise	同3471 catalog刷新
+3472	noise	deprecated entries移除
+3473	dup	context满自动force-compact恢复 — overflow recovery
+3474	dup	web search key audit认Gemini/xAI/Kimi/Moonshot/OpenRouter凭据 — audit coverage
+3475	boundary	MoA ensemble各model reasoning可见
+3476	boundary	pi-ai/base+pi-agent-core选择性entry points
+3477	dup	size-triggered microcompaction清旧tool results向low watermark — microcompaction
+3478	dup	/status cost+/cost+auth snippet+usage windows — status
+3479	dup	/status Runner:字段(embedded Pi/CLI/...) — status detail
+3480	boundary	tts.providers registry+Piper local TTS
+3481	dup	voice-note delivery保留 — media delivery
+3482	boundary	provider-agnostic Talk config
+3483	boundary	xAI/Alibaba Wan/Runway video providers
+3484	dup	scrollintoview action+tool param aliases+xhigh thinking — tools
+3485	dup	video live tests bound polling — test bound
+3486	dup	缺signature headers先拒+pre-auth body 64KB — webhook harden
+3487	boundary	Gemini protocol video/audio
+3488	boundary	mistral proxy fix
+3489	dup	subagent classification events进telemetry — telemetry
+3490	cand	delegate-depth: maxSpawnDepth=2(depth-1 orchestrator可spawn)
+3491	dup	sessions_spawn任务进child首条可见[Subagent Task]消息 — task delivery
+3492	dup	网络error时agent_end过早emit修复 — event timing
+3493	dup	bound channel会话加载configured agent的workspace files — workspace binding
+3494	variant	threadBindings.spawnSessions统一toggle
+3495	cand	hook-safety: non-product built-in frontmatter hooks默认禁用
+3496	variant	daemon默认Delegate Mode
+3497	dup	delegate_task fan-out多subagents — delegate-modes已实装
+3498	boundary	Discord thread-bound subagent sessions
+3499	dup	doctor修legacy openai-codex/* routes(primary/fallback/heartbeat/compaction) — route migration
+3500	dup	parallel mode返回per-task output+failed诊断 — parallel results
+3501	dup	runtime reloads保留isolated-agent config — config persist
+3502	dup	IDE mode sub-agent Read/Write/Edit修复 — tool routing
+3503	dup	sub-agent完成后释放session history — memory cleanup
+3504	dup	background agent progress实时stream+follow-up排队 — progress stream
+3505	dup	"Don't ask again for this session"在sub-agent执行中同步 — grant sync
+3506	cand	guardian-review: Smart Approvals经guardian subagent路由
+3507	dup	Stop停掉session启动的一切(child agents含) — stop cascade
+3508	dup	sub-agent result events去重 — event dedupe
+3509	boundary	MiniMax-M2.5/Kimi-K2.5 relatedModels
+3510	dup	sub-agent未声明model继承父(同1166) — model inherit
+3511	dup	settings.agent plugin main session重复注册修复 — registration
+3512	dup	chat_message_send等事件含parentConversationId — call chain tracing
+3513	dup	subagent带model override时保留fallbacks — fallback preserve
+3514	cand	taskflow: managed child task spawning+sticky cancel intent
+3515	dup	one-task ACP/subagent updates经parent task-flow owner — task routing
+3516	dup	team subagent完成历史不驻留 — memory cleanup
+3517	cand	subagent-tools: Explore subagent可web search(超出codebase)
+3518	dup	general-purpose sub-agent含ImageGen/ImageEdit — subagent tools
+3519	cand	delegate-params: per-subagent-type model指定(Explore/general/Plan)
+3520	cand	delegate-forms: subagent async Phase1(subprocess mode/hook notifications/batch)
+3521	cand	delegate-fork: fork subagent feature gate+"Don't peek/race"纪律
+3522	boundary	websocket proxy env support
+3523	dup	/export HTML含tool input schema折叠区 — export detail
+3524	boundary	task history按workspace过滤
+3525	boundary	project directory text选择
+3526	boundary	agent color ASCII+高亮名
+3527	boundary	JSON→SQLite迁移命令
+3528	dup	stats input/output token breakdown — stats
+3529	boundary	/experimental命令
+3530	boundary	task metadata os/cline-ver/host-info
+3531	boundary	Go debug locator
+3532	dup	file tool titles OSC 8 file://超链接 — hyperlinks
+3533	cand	proxy: WS_PROXY/WSS_PROXY websocket代理
+3534	boundary	ZED_RELATIVE_DIR task variable
+3535	boundary	ZED_RELATIVE_FILE/ZED_DIRNAME
+3536	boundary	diagnostics: display current file
+3537	boundary	format selections
+3538	boundary	spawn nearest task
+3539	boundary	file finder rename建子目录
+3540	boundary	空pane双击新建文件
+3541	boundary	dock size actions
+3542	boundary	gopls binary path配置
+3543	boundary	edit_predictions allow_data_collection
+3544	boundary	dev::ToggleInspector
+3545	dup	同2450 Auto Recall profile — memory recall
+3546	boundary	areExperimentalFeaturesEnabled guard
+3547	boundary	bookmarks
+3548	boundary	Go runnables/tasks
+3549	boundary	outline collapse
+3550	boundary	model selector/tree filter keybinding ids
+3551	boundary	ctrl-w o/n
+3552	boundary	opencode debug config JSON
+3553	boundary	ToggleComments ignore_indent
+3554	boundary	pane::SplitAndMove
+3555	boundary	.editorconfig向上遍历
+3556	boundary	Ctrl-w ]split definition
+3557	cand	render: GFM alert callouts(> [!NOTE]等)markdown渲染
+3558	boundary	ty beta下载
+3559	boundary	language server clickable links
+3560	dup	read file tool header点击跳文件位置 — file jump
+3561	cand	file-open: file.rs:1-20行范围打开语法
+3562	boundary	owner-scoped named sessions(≤8/channel)
+3563	boundary	anonymous file descriptors读取
+3564	boundary	markdown data URL images
+3565	boundary	keybinding spawned tasks center pane
+3566	boundary	vtsls language server
+3567	boundary	vim-surround
+3568	boundary	task contexts env vars
+3569	dup	slash menu加/new — command menu
+3570	boundary	language server env vars
+3571	boundary	type.class.builtin高亮
+3572	cand	ui-changes: thread view diff preview cards
+3573	dup	编辑消息时可增删context — message edit
+3574	dup	file context picker选images — context picker
+3575	dup	create/edit file tools流式tool descriptions — tool stream
+3576	dup	per-project记住当前used agent — agent memory
+3577	boundary	cmd-n new thread discoverable
+3578	dup	model不支持images时context pill警告 — capability warn
+3579	dup	read auto-page跨chunks+per-call output budget缩放 — read paging

@@ -1,0 +1,200 @@
+21582	noise	names noise
+21583	noise	names noise
+21584	noise	prose noise
+21587	noise	prose noise
+21588	noise	names noise
+21589	boundary	drag/paste — their UI
+21590	noise	prose noise
+21591	noise	prose noise
+21592	noise	names noise
+21594	noise	prose noise
+21601	noise	prose noise
+21602	noise	prose noise
+21607	noise	prose noise
+21612	noise	prose noise
+21616	noise	prose noise
+21617	dup	first-class to-do list — 待办工具已有
+21618	noise	prose noise
+21619	dup	crush run pipe — 管道执行已有
+21623	noise	prose noise
+21626	noise	prose noise
+21627	noise	model internal
+21634	noise	names noise
+21635	dup	sort sessions by activity — 会话排序已有
+21636	noise	prose noise
+21638	noise	name noise
+21641	noise	prose noise
+21644	noise	prose noise
+21646	noise	prose noise
+21649	noise	prose noise
+21650	noise	prose noise
+21651	dup	parallel tool calls — 并行调用已有
+21654	noise	prompt internal
+21656	noise	prose noise
+21662	noise	names noise
+21664	noise	names noise
+21665	noise	name noise
+21667	noise	names noise
+21668	noise	prose noise
+21671	noise	names noise
+21672	noise	prose noise
+21673	noise	prose noise
+21676	noise	names noise
+21677	noise	prose noise
+21678	noise	prose noise
+21683	noise	prose noise
+21685	noise	prose noise
+21689	noise	names noise
+21690	dup	customize filename behavior — 命名可配已有
+21691	noise	prose noise
+21692	noise	prose noise
+21693	noise	prose noise
+21694	noise	prose noise
+21695	dup	recent models top chooser — 最近模型已有
+21697	noise	prose noise
+21698	noise	prose noise
+21706	noise	prose noise
+21707	noise	prose noise
+21708	noise	prose noise
+21710	noise	prose noise
+21712	noise	prose noise
+21713	boundary	model hotkey — their UI
+21717	noise	prose noise
+21718	dup	agentic fetch tool — 代理抓取已有
+21719	dup	choose agentic vs plain fetch — 工具选择已有
+21720	boundary	@ filepicker — their UI
+21721	noise	prose noise
+21724	noise	prose noise
+21725	noise	prose noise
+21726	dup	config %USERPROFILE%\.config — 跨平台路径已有
+21727	noise	prose noise
+21728	noise	prose noise
+21734	noise	prose noise
+21735	noise	prose noise
+21738	noise	prose noise
+21744	noise	prose noise
+21746	noise	prose noise
+21750	noise	manifest internal
+21752	noise	prose noise
+21753	noise	prose noise
+21754	noise	refactor internal
+21755	noise	prompt internal
+21769	noise	prose noise
+21775	noise	prose noise
+21790	noise	prose noise
+21792	noise	names noise
+21793	noise	prose noise
+21794	noise	prose noise
+21796	noise	prose noise
+21797	noise	prose noise
+21801	noise	prose noise
+21802	noise	prose noise
+21804	noise	names noise
+21806	noise	media noise
+21807	noise	prose noise
+21810	noise	prose noise
+21812	dup	SSE MCPs fix — SSE传输已有
+21813	noise	prose noise
+21814	noise	prose noise
+21815	dup	crush dirs discovery — 目录发现已有
+21816	noise	prose noise
+21817	noise	prose noise
+21821	noise	prose noise
+21822	noise	prose noise
+21823	noise	names noise
+21824	noise	prose noise
+21825	noise	names noise
+21826	noise	prose noise
+21827	noise	prose noise
+21832	noise	prose noise
+21833	noise	prose noise
+21839	noise	prose noise
+21849	noise	release noise
+21850	noise	prose noise
+21851	noise	names noise
+21853	dup	removed file watchers — watcher收敛已有
+21855	noise	name noise
+21856	noise	prose noise
+21857	noise	prose noise
+21859	noise	prose noise
+21860	noise	prose noise
+21861	noise	prose noise
+21867	noise	prose noise
+21868	dup	too many files open fix — fd治理已有
+21869	noise	prose noise
+21871	noise	names noise
+21872	noise	prose noise
+21873	noise	prose noise
+21874	noise	names noise
+21875	dup	reasoning controls+offline+tool disabling — 控制面已有
+21876	noise	prose noise
+21877	noise	prose noise
+21879	noise	prose noise
+21880	noise	config noise
+21881	dup	disable_provider_auto_update — 更新开关已有
+21882	dup	env disable provider update — 已有
+21891	noise	config noise
+21892	noise	config noise
+21893	dup	disabled_tools — 已有
+21894	noise	config noise
+21895	noise	config noise
+21896	noise	config noise
+21897	noise	config noise
+21898	noise	prose noise
+21899	noise	prose noise
+21910	boundary	ctrl+c — their UI
+21914	noise	names noise
+21915	noise	prose noise
+21916	noise	prose noise
+21917	noise	prose noise
+21921	noise	names noise
+21922	noise	prose noise
+21923	noise	prose noise
+21925	noise	prose noise
+21926	noise	prose noise
+21929	noise	names noise
+21930	noise	prose noise
+21932	dup	tell path on init prompt — 路径提示已有
+21934	noise	prose noise
+21938	noise	prose noise
+21939	noise	prose noise
+21942	noise	prose noise
+21943	noise	prose noise
+21951	noise	names noise
+21952	noise	prose noise
+21953	dup	command allowlist security — 命令白名单已有
+21954	dup	custom env vars LSP — LSP环境已有
+21965	noise	prose noise
+21966	noise	prose noise
+21967	noise	config noise
+21968	noise	config noise
+21969	noise	config noise
+21971	dup	restrict LSP filetypes — 类型限定已有
+21972	noise	config noise
+21973	noise	config noise
+21974	noise	config noise
+21976	noise	lsp noise
+21977	noise	lsp noise
+21978	noise	lsp noise
+21979	noise	lsp noise
+21980	noise	lsp noise
+21991	noise	prose noise
+21992	noise	prose noise
+21993	dup	diff_mode unified — 差异模式已有
+21995	noise	prose noise
+21996	noise	prose noise
+22002	dup	coreutils built-in windows — 内建工具已有
+22005	noise	prose noise
+22011	noise	prose noise
+22012	boundary	mouse select — their UI
+22013	noise	prose noise
+22019	noise	prose noise
+22037	dup	.crushignore gitignore syntax — 忽略文件已有
+22046	noise	names noise
+22065	noise	prose noise
+22068	noise	prose noise
+22082	noise	prose noise
+22109	noise	prose noise
+22114	noise	prose noise
+22117	noise	prompt internal
+22141	dup	thinking toggle respected — 推理开关已有

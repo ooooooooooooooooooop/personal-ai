@@ -1,0 +1,200 @@
+1948	boundary	fonts — their UI
+1949	dup	involuntary logout report — 认证失败透传已有
+1952	boundary	tool row colors — their UI
+1953	boundary	thinking indicator — their UI
+1955	boundary	copy button — their UI
+1956	dup	queued prompts survive abort — 队列持久已有
+1957	dup	turn phase settle on abort — 状态机已有
+1961	noise	/team core internal
+1971	boundary	universal macOS — their product
+1972	boundary	header drag — their UI
+1974	boundary	border focus sync — their UI
+1980	dup	hub restart wrapper — 守护重启已有
+1982	noise	error helpers export internal
+1983	noise	version noise internal
+1984	boundary	settings shared — their product
+1985	noise	bundle version internal
+1987	dup	.clinerules no abort scan — 容错解析已有
+1988	noise	OTEL header internal
+1989	noise	--help paths internal
+1994	dup	connector sessions persist+reconnect — 重连已有
+1998	boundary	queued list UI — their UI
+1999	boundary	toggle color — their UI
+2000	dup	abort doesn't kill hub — 进程隔离已有
+2001	dup	status delivery non-fatal — 失败降级已有
+2004	boundary	dnd attach — their UI
+2005	boundary	title bar — their UI
+2013	boundary	mistake limit msg — their UI
+2015	boundary	usage-limit error — their UI
+2018	noise	str_replace diffs internal
+2020	boundary	markdown mode tint — their UI
+2021	boundary	thinking picker — their UI
+2022	dup	recover missing sessions — 恢复已有
+2023	noise	history export format internal
+2025	noise	capability warning internal
+2044	boundary	costs hidden — their product
+2048	boundary	device auth URL — their product
+2049	dup	single shared hub respawn — 守护单例已有
+2050	noise	console flicker internal
+2051	dup	no command echo in results — 输出卫生已有
+2054	boundary	debug section — their UI
+2060	boundary	Poolside routing — their provider
+2063	boundary	toggle hint — their UI
+2066	boundary	dash prompts after -- — their CLI
+2067	dup	hub abort cleanup recover — 取消恢复已有
+2068	boundary	Telegram ids — their connector
+2069	boundary	searching state — their UI
+2072	noise	install noise internal
+2073	noise	nightly noise internal
+2075	dup	detailed error row — 错误透传已有
+2076	noise	axios bump internal
+2078	noise	use_subagents prompt internal
+2086	boundary	logged in msg — their UI
+2090	dup	tool handlers graceful errors — 容错已有
+2093	dup	hooks toggle — hooks已有
+2096	noise	test retries internal
+2104	dup	path containment check — 路径校验已有
+2106	noise	featured models internal
+2107	noise	recommended models internal
+2108	boundary	GLM promo — their product
+2114	noise	install noise internal
+2120	dup	strip notebook outputs — 上下文缩减已有
+2121	noise	version headers internal
+2127	noise	binary diffs internal
+2128	noise	file endings internal
+2129	boundary	history filters — their UI
+2134	noise	username noise internal
+2136	noise	username noise internal
+2141	noise	modal component internal
+2142	dup	getAvailableSlashCommands rpc — 命令枚举已有
+2153	noise	webfetch handler internal
+2159	boundary	santa cline — their product
+2166	boundary	hooks subpages — their docs
+2178	boundary	task history docs — their docs
+2191	boundary	workflows docs — their docs
+2195	noise	new_task params internal
+2201	noise	package updates internal
+2203	noise	username noise internal
+2211	boundary	deep-planning variants — their product
+2216	boundary	remote rules — their product
+2221	noise	auth task manager internal
+2223	dup	hook output JSON trim — 输出解析已有
+2225	boundary	hooks examples — their docs
+2226	dup	hooks dir excluded from rules — 目录隔离已有
+2235	noise	proto internal
+2237	noise	native tool calling internal
+2240	boundary	styles — their UI
+2241	noise	api config internal
+2242	boundary	hooks toggle hide — their UI
+2249	dup	TaskStart hook — hook事件已有
+2250	noise	detail restore internal
+2254	noise	autoApprovalSettings internal
+2258	dup	TaskResume hook — hook事件已有
+2259	dup	TaskCancel hook — hook事件已有
+2260	noise	rpc wrappers internal
+2263	noise	WorkOS user info internal
+2265	noise	WorkOS refresh internal
+2268	noise	username noise internal
+2270	noise	secrets proto internal
+2271	noise	proto internal
+2275	noise	config manager internal
+2276	noise	kebab case internal
+2278	boundary	instance list — their UI
+2281	dup	hooks foundation — hooks已有
+2284	dup	stale instance cleanup — 清理已有
+2285	boundary	root command — their CLI
+2286	noise	cleanup internal
+2288	noise	env override internal
+2290	noise	task send guard internal
+2291	noise	fetch config internal
+2293	dup	ephemeral auth instance — 隔离实例已有
+2294	dup	task list from disk — 磁盘读取已有
+2297	dup	task pause — 暂停已有
+2298	noise	hooks tests internal
+2302	noise	task view internal
+2303	noise	task settings rpc internal
+2304	noise	man page internal
+2311	noise	version noise internal
+2312	noise	node bundled internal
+2313	noise	host bridge internal
+2314	noise	core compiled internal
+2315	noise	deps internal
+2317	boundary	cline version — their CLI
+2318	boundary	cline auth — their CLI
+2319	boundary	cline help — their CLI
+2321	noise	username noise internal
+2322	dup	hooks foundation — hooks已有
+2323	noise	node module path internal
+2325	dup	checkpoints multiroot warning — 检查点已有
+2328	dup	logout reason tracking — 审计已有
+2329	boundary	send command — their CLI
+2335	boundary	oneshot command — their CLI
+2337	boundary	historical messages — their UI
+2342	noise	task constructor internal
+2347	noise	globalStorage internal
+2349	noise	storage dir internal
+2350	noise	username noise internal
+2351	noise	no proxy internal
+2354	dup	StateManager checkpoints — 检查点状态已有
+2355	noise	globalStorage internal
+2357	noise	model add internal
+2358	noise	username noise internal
+2359	dup	checkpoints multiroot array — 多根检查点已有
+2370	noise	reconstruct taskHistory internal
+2373	boundary	infobanner — their UI
+2376	noise	username noise internal
+2379	noise	username noise internal
+2382	noise	state-helpers internal
+2386	noise	username noise internal
+2390	noise	map files internal
+2394	noise	clineMessages preserve internal
+2395	noise	clineignore chokidar internal
+2396	noise	context mgmt switch internal
+2400	noise	tabs host bridge internal
+2401	noise	nectarines internal
+2405	dup	truncate first msg on condense — 压缩已有
+2407	noise	problems RPC internal
+2409	noise	active editor RPC internal
+2410	noise	stealth model internal
+2414	boundary	timeline style — their UI
+2415	boundary	focus chain edit — their UI
+2416	noise	prompt families internal
+2417	dup	user msg overwritten condense — 压缩完整性已有
+2424	noise	activate() internal
+2425	noise	test timeout internal
+2426	noise	token count internal
+2427	noise	integration endpoint internal
+2429	dup	teardown on stop — 清理已有
+2431	noise	diagnostics diff internal
+2437	noise	browser settings internal
+2439	noise	closeAllDiffs internal
+2440	noise	ulid internal
+2441	boundary	plan_mode buttons — their UI
+2453	noise	gpt5 release internal
+2454	noise	username noise internal
+2458	boundary	mentions spaces — their UI
+2459	noise	showSaveDialog internal
+2464	noise	username noise internal
+2465	noise	username noise internal
+2472	noise	moduleopen internal
+2475	noise	proto int64 internal
+2476	noise	OutputChannel internal
+2480	dup	read_file images — 图像读取已有
+2482	boundary	credits purchase — their product
+2484	noise	open tabs internal
+2486	boundary	auto focus — their UI
+2487	noise	username noise internal
+2489	noise	showInputBox internal
+2493	noise	Message.create internal
+2494	noise	diff classes internal
+2499	dup	checkpoints timeout+errors — 检查点健壮已有
+2500	noise	runclinecore internal
+2501	noise	saveDocument errors internal
+2502	noise	protobuf util internal
+2504	noise	hostBridge internal
+2505	noise	hostBridge internal
+2508	noise	protobus handlers internal
+2513	noise	compile warning internal
+2515	noise	port numbers internal
+2516	noise	standalone script internal
+2519	noise	diff algo internal

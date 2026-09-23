@@ -1,0 +1,200 @@
+2520	boundary	auto refresh accounts — their UI
+2523	noise	build-proto internal
+2528	noise	generated files internal
+2533	noise	request id balance internal
+2536	noise	username noise internal
+2540	noise	openDiffEditor internal
+2541	noise	DiffViewProvider internal
+2543	noise	script rename internal
+2544	noise	useEffect refactor internal
+2545	noise	linter errors internal
+2548	boundary	balance dashes — their UI
+2549	noise	host bridge internal
+2551	boundary	resignin button — their UI
+2554	noise	buy_credits_url internal
+2556	noise	username noise internal
+2559	noise	username noise internal
+2560	noise	username noise internal
+2570	noise	getCwd internal
+2573	noise	showOpenDialogue internal
+2574	noise	search state sync internal
+2577	noise	username noise internal
+2578	noise	username noise internal
+2586	noise	username noise internal
+2588	noise	username noise internal
+2598	boundary	settings page — their UI
+2600	noise	username noise internal
+2601	noise	username noise internal
+2602	noise	username noise internal
+2606	boundary	recommended extensions — their product
+2607	noise	username noise internal
+2609	boundary	workspace task filter — their UI
+2610	noise	username noise internal
+2611	noise	username noise internal
+2612	boundary	task timeline — their UI
+2616	noise	npm script internal
+2625	dup	larger file read limit — 读取上限已有
+2628	boundary	truncation notice — their UI
+2637	boundary	task header expand — their UI
+2646	noise	tailwind internal
+2649	dup	tools outside workspace indicators — 越界标记已有
+2650	dup	global rules fetch — 全局规则已有
+2653	noise	username noise internal
+2657	noise	username noise internal
+2659	boundary	auto focus text — their UI
+2661	noise	username noise internal
+2666	noise	username noise internal
+2668	noise	username noise internal
+2669	noise	username noise internal
+2674	boundary	selectable options — their UI
+2681	noise	username noise internal
+2683	noise	username noise internal
+2684	noise	username noise internal
+2685	noise	username noise internal
+2688	noise	username noise internal
+2692	noise	.clinerules noise internal
+2694	noise	demo link internal
+2698	noise	demo link internal
+2702	noise	version noise internal
+2705	dup	retry empty tool calls — 重试已有
+2706	dup	explicit list tools — 工具拆分已有
+2707	boundary	export markdown — their product
+2713	dup	global rules ~/Cline/Rules WSL — 规则路径已有
+2721	dup	global rules WSL/headless — 规则路径已有
+2727	boundary	SSH remote POC — their product
+2734	noise	opener binary internal
+2751	noise	remote-config reuse internal
+2752	dup	exclude new_task in yolo — 模式条件工具已有
+2757	dup	stdin redirect CI — headless输入已有
+2765	noise	model name noise internal
+2772	boundary	remote rules editor — their product
+2788	boundary	remote config providers — their product
+2797	boundary	remote config login — their product
+2800	noise	remote config fetch internal
+2801	noise	remote config state internal
+2802	boundary	remote config ui — their product
+2830	dup	parallel sub-agents same step — 子代理并发已有
+2833	dup	abort cancels subagents — 取消传播已有
+2835	dup	abort cancels subagents — 取消传播已有
+2841	dup	subagent status in app — 状态可见已有
+2846	dup	native use_subagents tool — 子代理工具已有
+2854	noise	backend startup internal
+2880	boundary	focus chain settings — their UI
+2884	boundary	rejected tool calls — their UI
+2891	boundary	spend limit UI — their product
+2899	boundary	ViewHeader — their UI
+2900	boundary	feature settings — their UI
+2903	noise	revert regressions internal
+2905	boundary	update notification — their UI
+2906	boundary	banner carousel — their UI
+2909	noise	stories internal
+2929	boundary	hooks UI — their UI
+2936	boundary	cli version banner — their UI
+2941	boundary	help wanted — their UI
+2942	boundary	UI enhancements — their UI
+2945	boundary	markdown streaming — their UI
+2949	boundary	task header UI — their UI
+2951	boundary	compact tooltip — their UI
+2954	noise	ProtoBus internal
+2956	noise	ProtoBus logging internal
+2963	noise	scroll RPC internal
+2966	noise	diff scroll internal
+2979	noise	shoutout internal
+2992	dup	hook per-chunk round trip perf — hook流式开销已有
+2999	boundary	history rows overlap — their UI
+3012	boundary	run now session — their UI
+3017	dup	continue surviving session resume — 恢复已有
+3027	boundary	hover cards — their UI
+3029	dup	checkpoint restore trims transcript — 恢复一致已有
+3038	dup	run.started requestId/clientId — 溯源已有
+3041	boundary	composer wedge — their UI
+3044	dup	checkpoint untracked+mid-session git — 检查点覆盖已有
+3049	dup	session open keeps model — 状态保留已有
+3051	dup	failed turns surface error — 错误透传已有
+3053	dup	checkpoint mid-session git — 检查点已有
+3056	dup	queued turn failures shown — 错误透传已有
+3065	dup	rewound msg plain text — 恢复UX已有
+3073	boundary	image attachments inline — their UI
+3074	boundary	thinking label — their UI
+3075	dup	session id preserved — 会话ID已有
+3081	dup	connector sessions by ID — 会话路由已有
+3082	boundary	resume loading dialog — their UI
+3103	dup	.clinerules excluded checkpoint — 检查点排除已有
+3106	boundary	checkpoint indicator — their UI
+3108	dup	checkpoints compare/restore — 检查点已有
+3122	dup	connectors OAuth revocation — OAuth生命周期已有
+3125	dup	-- separator install args — 参数解析已有
+3137	dup	per-server MCP errors — 错误定位已有
+3142	dup	per-server timeout — 超时已有
+3146	dup	retry after OAuth refresh — 刷新重试已有
+3147	dup	retry after OAuth refresh — 刷新重试已有
+3158	boundary	restart button disabled — their UI
+3175	boundary	mcp messages cli — their CLI
+3178	noise	autoCondense skip internal
+3186	noise	mcp key internal
+3188	boundary	MCP tab rename — their UI
+3189	boundary	screen reader a11y — their UI
+3199	noise	download proto internal
+3207	boundary	MCP popover settings — their UI
+3211	dup	delete failed MCP servers — 生命周期已有
+3215	boundary	MCP custom tools — their product
+3227	boundary	plugin real names — their UI
+3228	boundary	plugin real names — their UI
+3231	noise	ripgrep packaging internal
+3233	noise	ripgrep bundled internal
+3235	noise	index.ts internal
+3255	boundary	routine templates — their product
+3258	boundary	schedule cards — their UI
+3259	boundary	schedule details — their UI
+3274	dup	run reports exec context — 报告上下文已有
+3276	dup	run reports context — 报告上下文已有
+3281	dup	one-time routines — 调度已有
+3282	dup	notify on schedule fail — 失败通知已有
+3323	dup	refreshed token kept — 令牌刷新已有
+3325	dup	reject truncated tool-call JSON — 失败闭合解析已有
+3331	dup	hub clean shutdown — 关闭已有
+3332	dup	reject truncated JSON — 失败闭合已有
+3339	dup	queued-turn run.failed — 失败事件已有
+3340	dup	queued-turn run.failed — 失败事件已有
+3344	dup	telemetry model attribution — 归因已有
+3350	noise	root / sessions internal
+3421	noise	link fix internal
+3425	boundary	markdown styling — their UI
+3429	dup	taskHistory parse fail — 容错已有
+3473	noise	e2e flake internal
+3502	noise	docs fix internal
+3525	noise	playwright teardown internal
+3529	noise	ProtoBus commands internal
+3545	noise	bug template internal
+3562	noise	modelpicker state internal
+3616	boundary	PagerDuty — their product
+3639	dup	telemetry off hub contexts — 遥测边界已有
+3643	boundary	ClinePass CLI — their product
+3656	noise	websearch handler internal
+3657	noise	distribution telemetry internal
+3664	noise	webfetch internal
+3668	noise	hook debug log internal
+3670	noise	CLI samples internal
+3671	noise	cli polish internal
+3672	dup	token deletion on logout — 凭据清理已有
+3673	noise	e2e cli internal
+3675	noise	auto update internal
+3678	noise	host stubs internal
+3679	noise	updateSettings rpc internal
+3681	dup	cli config secrets — 密钥配置已有
+3684	boundary	auth wizard — their CLI
+3689	noise	error handling internal
+3691	noise	cli cleanup internal
+3699	noise	install noise internal
+3703	noise	binary noise internal
+3712	noise	cli sync internal
+3713	noise	cli alpha internal
+3715	noise	host version rpc internal
+3718	noise	settings parsing internal
+3719	boundary	yolo flag — their CLI
+3721	noise	feature flag internal
+3728	noise	gitignore internal
+3730	noise	auto-condense telemetry internal
+3734	noise	timestamp tz internal
+3735	noise	ULID telemetry internal
+3740	noise	config env internal

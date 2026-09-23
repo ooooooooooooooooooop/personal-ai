@@ -1,0 +1,200 @@
+29180	noise	skip speaker check default internal
+29216	noise	error messages informative internal
+29229	noise	release process nightly internal
+29231	noise	special chars file search internal
+29232	noise	workspace path port file internal
+29236	noise	error path type annotate internal
+29239	boundary	license selection visibility — their UI
+29249	dup	ChatRecordingService auto save — 会话记录已有
+29250	noise	settings generic setter internal
+29252	noise	/ide subcommands status internal
+29253	noise	tools cleanup internal
+29259	noise	genai dep bump
+29263	dup	untrusted status in Footer — untrusted 标记已有
+29270	noise	MockTools declarative internal
+29271	noise	/about IDE name internal
+29289	noise	node<20 warning
+29321	noise	min node version
+29329	noise	isCommandAllowed errors internal
+29349	noise	DeclarativeTool internal
+29353	boundary	fzf path completion — their UI
+29366	noise	humorous phrases internal
+29379	dup	infinite loop protection — 环路检测已有
+29394	dup	per-command restrictions ShellTool — 命令级策略已有
+29397	boundary	/stats breakdown — their CLI
+29403	boundary	issue triage workflows — their bot
+29429	noise	MessageBus injection internal
+29500	noise	docker GHCR packaging internal
+29516	dup	extension loader path hardening — 路径校验已有
+29558	noise	string-reviewer guidelines internal
+29577	noise	skills promotion cleanup internal
+29590	dup	refresh agents after ext load — ext 热载已有
+29665	noise	extension explore subcommand
+29738	boundary	tool confirmation UI — their CLI
+29822	boundary	AskUser confirmation reuse — their UI
+29853	boundary	confirmation labels — their UI
+29881	boundary	loop detection disable dialog — their UI
+29883	noise	Tool Confirmation bus internal
+29910	boundary	caretaker cloud run — their backend
+29917	boundary	inline agentCardJson remote agents — their remote
+29944	boundary	remote experiments config — their remote
+30114	noise	Clearcut startup logging internal
+30127	noise	startup profiler internal
+30145	boundary	caretaker egress octokit — their bot
+30157	noise	Auto modes merge internal
+30186	boundary	scroll momentum — their UI
+30195	dup	JIT context cap at git root — JIT 上下文界已有
+30222	boundary	markdown table wrap — their UI
+30287	noise	release env vars internal
+30289	noise	npx run testing internal
+30294	noise	smoke testing CI internal
+30321	noise	workflow configs internal
+30324	noise	setup-github gitignore internal
+30327	noise	self-assign workflow internal
+30333	boundary	issue triage — their bot
+30349	boundary	/setup-github — their workflow
+30634	noise	patch release automate internal
+30679	boundary	ASCII header redesign — their UI
+30686	dup	summarize after plan — plan 摘要已有
+30702	dup	granular memory loaders JIT — memory loader 已有
+30715	noise	ClearcutLogger leak internal
+30725	noise	acp /help — their protocol
+30727	noise	User-Agent differentiate internal
+30732	dup	acp set_mode — mode 接口已有
+30733	noise	sdk bootstrap internal
+30735	noise	ToolKind mapping internal
+30736	dup	dynamic system instructions — system msg 已有
+30760	noise	/commands list — their CLI
+30762	noise	/agents refresh logging internal
+30773	noise	loadingPhrases off internal
+30777	noise	LegacyAgentSession migrate internal
+30778	noise	topic summary priority internal
+30782	noise	ctrl+g keybind change
+30791	noise	AgentLoopContext threading internal
+30793	noise	ask_user exclude ACP internal
+30803	boundary	Clearcut billing instrumentation — their SaaS
+30824	noise	/tools desc subcommand internal
+30828	noise	gemma settings hide internal
+30829	noise	extensions parallel load internal
+30836	boundary	Alt+D word delete — their UI
+30839	noise	loading phrases enum internal
+30847	boundary	Ctrl-Z suspension — their env
+30874	boundary	plan placeholder — their UI
+30875	dup	disable loop detection setting — 环路检测配置已有
+30879	noise	ANSI sanitize non-interactive internal
+30886	boundary	triage issue state — their bot
+30888	noise	undeprecate --prompt internal
+30918	noise	a2a /init internal
+30921	noise	enableAgents flag internal
+30948	noise	auth_type otel internal
+30964	noise	OTel log standard internal
+30965	noise	yargs nargs internal
+30969	noise	debug logging utility internal
+30970	dup	continue after loop-disable — 环路检测已有
+31000	noise	IDE context filtering CLI internal
+31003	noise	deprecate CLI flags internal
+31023	noise	prompt completion internal
+31026	noise	language CLI events internal
+31031	noise	skipNextSpeakerCheck internal
+31036	boundary	CTRL+C clear input — their UI
+31039	boundary	perfect-match execute — their UI
+31040	boundary	ascii art small screens — their UI
+31105	dup	30-day session retention — 保留策略已有
+31123	dup	cleanup activity logs — 日志清理已有
+31125	noise	MessageBus optionality internal
+31134	dup	interactive session browser — 会话列表已有
+31173	noise	ripgrep SEA bundle internal
+31182	dup	ripgrep advanced options — 搜索已有
+31186	dup	ripgrep default — 搜索已有
+31187	noise	ripgrep runtime download internal
+31203	noise	terse image paths internal
+32120	dup	search sessions recall — 会话搜索已有
+32180	noise	nightly build shas internal
+32190	boundary	screen-reading — their OS 集成
+32214	dup	AgentManager unified execution — 编排已有
+32315	noise	rmcp upgrade dep
+32329	noise	client init robustness internal
+32341	dup	sub recipe parallel — 并行子任务已有
+32344	noise	rmcp workspace dep internal
+32355	dup	recipes retry success criteria — 重试判据已有
+32358	noise	recipe install warning
+32375	noise	GetPromptResult rmcp internal
+32380	noise	JSON env parse warning
+32399	noise	rmcp upgrade dep
+32401	noise	hints filename config minor
+32408	noise	windows download_cli.ps1
+32413	dup	recipe list — recipes/workflows 已有
+32417	dup	stream LLM responses — 流式已有
+32440	dup	structured output recipes — 结构化输出已有
+32445	dup	structured output recipes 同上
+32448	boundary	path truncate suffix — their UI
+32452	noise	recipe naming menu internal
+32473	dup	sub recipe tools — 子任务工具已有
+32495	noise	newline EOF internal
+32498	boundary	Help&Feedback section — their UI
+32508	cand	LLM tool selector router — 模型驱动工具路由
+32601	noise	recipe explanation — their UI
+32602	dup	tool repetition monitoring — 环路检测已有
+32609	noise	recipe params config internal
+32627	boundary	version check menu — their UI
+32639	noise	combine comment tools internal
+32655	noise	goose-llm crate internal
+32658	boundary	bottom bar truncation — their UI
+32659	boundary	spellcheck editable — their UI
+32660	dup	options on context exceed — context 溢出选项已有
+32661	boundary	gdrive tools — SaaS 集成
+32680	noise	OPENAI_CUSTOM_HEADERS config
+32686	boundary	copy button fields — their UI
+32688	noise	tool loading improve internal
+32693	boundary	extensions cards — their UI
+32695	noise	settings V2 internal
+32701	noise	recipe regex anchor internal
+32702	noise	goosebench metrics internal
+32709	boundary	spellcheck — their UI
+32710	dup	non-editable bundled extensions — managed ext 已有
+32711	noise	NO_COLOR support
+32718	noise	efficient benching internal
+32719	boundary	gdrive uri verification — SaaS 集成
+32723	noise	env var name spaces internal
+32724	noise	settingsV1→V2 migrate internal
+32725	boundary	show added extensions — their UI
+32727	boundary	gdrive file tool — SaaS 集成
+32729	boundary	frontend tools — their UI
+32735	boundary	session viewing styling — their UI
+32746	noise	google retry internal
+32747	noise	StdioProcessError display internal
+32748	noise	temp dir extract internal
+32750	boundary	install-link-generator — their ext site
+32763	boundary	google sheets read/write — SaaS 集成
+32772	noise	register eval refactor internal
+32773	boundary	gdrive comment read — SaaS 集成
+32776	noise	default eval metrics internal
+32778	boundary	gdrive write tools — SaaS 集成
+32781	boundary	copy error toast — their UI
+32786	noise	extensions read config internal
+32788	noise	goose selection update internal
+32792	noise	eval results dir internal
+32793	noise	goosebench evals internal
+32798	dup	docs/xls/html read — 文件读取已有
+32799	noise	auto-include dirs bench internal
+32801	dup	store working dir sessions — workdir 已有
+32803	noise	required_extensions split internal
+32807	boundary	Ctrl+↑/↓ history nav — their UI
+32808	noise	remove tools chat mode internal
+32809	boundary	goose dropdown — their UI
+32811	dup	PDF read — 文件读取已有
+32813	noise	chat tool response adjust internal
+32814	boundary	copy message content — their UI
+32820	noise	intel mac build infra
+32821	boundary	goosehints menu — their UI
+32825	noise	uvx python shim internal
+32827	boundary	ext install link — their site
+32829	dup	.gooseignore restrict access — ignore/policy glob 已有
+32831	boundary	chat input disable state — their UI
+32833	noise	rust messages ts internal
+32834	noise	interactive after run internal
+32835	noise	settings v2 scaffold internal
+32840	noise	longform prompt remove internal
+32843	noise	settings consolidate internal
+32870	dup	images in messages — attachment 已有
+32871	boundary	remove extensions — their UI

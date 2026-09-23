@@ -1,0 +1,200 @@
+80160	dup	disabled MCP persist in UI — 禁用态持久已有
+80166	dup	don't start disabled MCP for ACP — 禁用联动已有
+80168	noise	config fragment
+80169	noise	internal
+80173	dup	no proxy for local MCP — 本地免代理已有
+80176	noise	internal
+80180	dup	MCP tools require authorization — 授权闸回归修复已有
+80183	dup	standardised MCP config format — 配置标准化已有
+80192	dup	redact sensitive env in MCP logs — 日志脱敏已有
+80196	dup	error on same-name MCP tools — 命名冲突检测已有
+80198	noise	internal
+80203	dup	MCP connection status clarity — 状态可见已有
+80204	dup	tool schema compat Gemini — 模式兼容已有
+80207	dup	MCP Gemini compat — 同上dup
+80221	noise	editor feature
+80229	noise	ui feature
+80239	dup	image insert at cursor — 光标插入已有
+80258	dup	vision header by content — 按需头已有
+80271	noise	prose noise
+80276	noise	prose noise
+80277	noise	prose noise
+80294	noise	ui feature
+80299	dup	ACP access all working dirs — 多目录访问已有
+80300	dup	min-release-age for npx agents — 供应链龄期已有
+80301	dup	better ACP start errors — 启动报错已有
+80302	dup	min-release-age — 同上dup
+80303	dup	ACP start errors — 同上dup
+80309	dup	ACP init timeout error — 初始化超时已有
+80310	noise	ui feature
+80311	noise	prose noise
+80312	dup	informative read_text_file errors — 错误类型已有
+80313	dup	proxy passthrough to ACP — 代理透传已有
+80320	dup	ACP support — 协议接入已有
+80321	dup	background install agent updates — 后台更新已有
+80324	noise	editor feature
+80328	noise	editor feature
+80338	dup	async-tar CVE patch — 依赖安全修复已有
+80347	noise	editor feature
+80352	dup	grep output syntax info — 语法富化已有
+80360	noise	prose noise
+80366	noise	rename internal
+80	dup	fuzzy model match without provider info — 模糊匹配兜底已有
+366	dup	--model shortcut — 模型快参已有
+697	dup	fuzzy model match — 同上dup
+1068	noise	ci noise
+1111	dup	strip invisible chars in API keys — 凭据清洗已有
+1162	noise	ui feature
+1181	dup	recommended/free tier ordering — 分层排序已有
+1185	noise	ui feature
+1326	noise	refactor internal
+1331	noise	revert internal
+1332	noise	revert internal
+1417	noise	ui feature
+1497	dup	per-provider secret keys — 密钥隔离已有
+1836	noise	ci noise
+2150	noise	docs internal
+2167	noise	docs internal
+2215	noise	docs internal
+2219	noise	refactor internal
+2292	noise	test internal
+2406	noise	lint internal
+2481	noise	test internal
+2708	dup	strip invisible chars all credential fields — 清洗扩展已有
+2876	noise	ui feature
+2920	noise	chore internal
+2934	noise	docs internal
+2950	noise	docs internal
+3160	dup	OAuth catalog matches tier — 订阅级目录已有
+3174	dup	require native tool call Responses API — 原生调用已有
+3192	noise	refactor internal
+3194	noise	ui feature
+3463	noise	test internal
+3536	noise	test internal
+3591	dup	inference profile model ID — 推理档已有
+3714	noise	refactor internal
+3736	noise	refactor internal
+3821	dup	gpt5 max_tokens fix — 令牌修正已有
+3834	dup	prompt cache to 3rd-to-last msg — 缓存断点已有
+4003	noise	ci noise
+5342	noise	docs internal
+5436	dup	subagents follow user language — 语言跟随已有
+5675	dup	OTEL env vars — 遥测配置已有
+5760	noise	docs internal
+5926	noise	docs internal
+6215	noise	docs internal
+6428	noise	docs internal
+7144	noise	docs internal
+7455	noise	docs internal
+7692	noise	docs internal
+8092	noise	docs internal
+8391	noise	docs internal
+8402	noise	docs internal
+8436	noise	docs internal
+8707	noise	ci noise
+8877	noise	test internal
+9062	noise	docs internal
+9184	noise	refactor internal
+9253	noise	revert internal
+9323	noise	chore internal
+9359	noise	chore internal
+9371	noise	chore internal
+9398	noise	ci noise
+9408	noise	chore internal
+9433	noise	chore internal
+9438	dup	bump updated_at on unarchive — 排序刷新已有
+9497	noise	chore internal
+9523	dup	rmcp custom client notifications — 自定义通知已有
+9529	noise	test internal
+9724	noise	test internal
+9801	noise	test internal
+9860	dup	no ambient auth for custom providers — 认证隔离已有
+10026	noise	chore internal
+10121	noise	ci noise
+10153	noise	chore internal
+10301	noise	revert internal
+10439	noise	chore internal
+10605	noise	refactor internal
+10621	noise	refactor internal
+10625	dup	truncation policy unified_exec — 截断策略已有
+10661	dup	guardian disables mcps/plugins — 守卫锁定已有
+10763	noise	chore internal
+10769	dup	interrupted as state — 中断态已有
+10797	noise	test internal
+10810	dup	explicit domain/socket rule maps — 网络规则表已有
+10851	noise	chore internal
+10867	noise	test internal
+10900	dup	centralize fs permission precedence — 权限优先集中已有
+10902	noise	chore internal
+10912	noise	chore internal
+10971	noise	rename internal
+11048	noise	test internal
+11145	noise	test internal
+11261	noise	chore internal
+11276	noise	test internal
+11292	noise	chore internal
+11322	noise	test internal
+11323	noise	chore internal
+11324	noise	chore internal
+11345	noise	chore internal
+11346	noise	chore internal
+11347	noise	chore internal
+11358	noise	chore internal
+11369	noise	chore internal
+11376	noise	chore internal
+11400	noise	chore internal
+11417	dup	halve max sub-agents — 子代上限已有
+11425	noise	chore internal
+11477	noise	chore internal
+11533	noise	chore internal
+11541	dup	clamp yield empty write_stdin — 空写钳制已有
+11562	noise	chore internal
+11587	dup	clear bg terminals on interrupt — 中断清理已有
+11595	noise	chore internal
+11596	noise	docs internal
+11702	dup	escalated perms via SandboxPermissions — 权限提升建模已有
+11711	noise	refactor internal
+11719	noise	docs internal
+11721	noise	refactor internal
+11740	dup	unified exec sandboxing detection — 沙箱检测已有
+11747	noise	refactor internal
+11773	noise	ci noise
+11796	noise	docs internal
+11903	noise	docs internal
+11909	noise	test internal
+11940	noise	chore internal
+12151	noise	dep bump
+12216	noise	dep bump
+12381	noise	test internal
+12444	noise	docs internal
+12514	dup	API-key turn cost telemetry — 成本遥测已有
+12604	noise	docs internal
+12653	noise	chore internal
+12930	noise	revert internal
+13024	dup	catalog approval messages — 审批消息目录已有
+13077	noise	test internal
+13105	noise	test internal
+13147	dup	no skill metadata in approval payloads — 载荷精简已有
+13149	dup	guardian approval context — 守卫上下文已有
+13150	dup	approvals reviewer in UserTurn — 审批角色已有
+13172	noise	chore internal
+13212	noise	chore internal
+13214	noise	test internal
+13237	dup	plan mode no freeform+isOther — 计划提问约束已有
+13238	dup	smart approvals — 智能审批已有
+13244	noise	chore internal
+13263	noise	ci noise
+13271	noise	docs internal
+13272	noise	docs internal
+13277	noise	test internal
+13283	dup	drop approve-all — 去全批已有
+13298	noise	ci noise
+13342	noise	test internal
+13380	noise	test internal
+13452	noise	chore internal
+13478	noise	chore internal
+13490	dup	threadless MCP reads + namespaced dyn tools — 动态工具已有
+13540	dup	bump MCP call timeout — 超时调整已有
+13545	noise	chore internal
+13554	noise	chore internal
+13559	noise	docs internal

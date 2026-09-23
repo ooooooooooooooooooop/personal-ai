@@ -1,0 +1,200 @@
+1380	dup	commit changes时改进review体验 — review UX
+1381	dup	Codex auth fallback state修复+legacy auth接受 — auth fallback
+1382	dup	approval-runtime credentials转发agent-owned Gateway calls — approval cred forwarding
+1383	dup	file read/write/delete权限跟Security Center决策 — policy alignment
+1384	boundary	Slack notifications跨web sessions
+1385	dup	/approve经trusted approval runtime — approval routing
+1386	dup	auto fast mode短会话快启+长任务回落normal — fast/normal mode
+1387	dup	task output files user+workspace隔离temp目录 — output isolation
+1388	dup	各类failure解释性报错 — error surface
+1389	boundary	WeChat回复q退出plan mode(deny_and_exit_plan)
+1390	cand	mcp-profile: mcp.servers.<name>.context按agent id范围限定
+1391	dup	Allow Always对MCP tool持久 — M146已实装
+1392	cand	approval UX: 点permission card编辑命令再批/ wand action
+1393	cand	policy hot-reload: workspace trust changes daemon内即时生效
+1394	dup	exec-approvals.json启动时剥invalid值 — config sanitize
+1395	boundary	tree-sitter shell command explainer(approval UI)
+1396	dup	approval.list走轻量policy-summary路径 — perf
+1397	dup	退出plan mode注入mode-change公告 — mode announce
+1398	cand	origin-gate: browser-originated WS全量origin校验
+1399	dup	trusted-proxy拒mixed shared-token+local-direct要config — proxy auth
+1400	dup	auto permission mode智能决定逐tool批准 — decide已实装
+1401	dup	HTTP_PROXY时auto-upgrade trusted env-proxy — proxy
+1402	cand	egress: allowPrivateNetwork per-provider开关(自托管例外)
+1403	dup	Telegram typing/progress/forum topics — channel richness
+1404	dup	Plan/Act toggle(architect模式) — plan mode
+1405	boundary	trusted diagnostics channels抓tool I/O
+1406	cand	secrets: 1Password broker可选SecretRef解析
+1407	dup	ACP permission broadcast重启后恢复dialogs — dialog restore
+1408	dup	ignored files不入search+filesystem approvals — file boundary
+1409	dup	plan mode确认界面优化 — plan UX
+1410	dup	plan mode硬阻file-editing shell commands(不靠prompt) — plan enforcement
+1411	boundary	extractStructuredWithModel plugin API
+1412	boundary	plugin依赖声明+semver tag
+1413	dup	provider detection被动直到用户选择 — consent flow
+1414	noise	sandbox permission timeout对话框不关修复
+1415	dup	50+开发工具命令入allowlist — allowlist expansion
+1416	dup	logout吊销managed tokens+hooks/exec policies要确认 — auth revoke
+1417	dup	高风险tools(sessions_spawn/gateway/whatsapp_login)从HTTP /tools禁 — tool scoping
+1418	dup	trusted-proxy pairing bypass要operator role — role gate
+1419	boundary	Slack native Stop/session状态同步
+1420	dup	custom commands细粒度tool权限 — command perms
+1421	variant	TUI local embedded mode免Gateway但保留plugin approval gates
+1422	boundary	PermissionNext模块permission events重构
+1423	boundary	basedpyright默认/external agents
+1424	boundary	websocket proxy/thread archive通知schema
+1425	dup	/memory refresh与初始load一致 — memory refresh
+1426	dup	Brokered Host注册temporary auto-allow rules — macOS sandbox
+1427	dup	per-agent exec approval settings含allowlist fallback — per-agent policy
+1428	boundary	video_generate内置工具
+1429	boundary	browser tabs live repaint+screenshot fallback
+1430	dup	non-HTTPS clipboard copy fallback — clipboard
+1431	dup	TTS audio replies持久webchat history+tool card配对 — transcript
+1432	boundary	Feishu media type处理
+1433	dup	WSL2 clipboard BMP→PNG转换 — image decode已实装
+1434	dup	Read tool直接读图 — attachments已实装
+1435	dup	/add-clipboard-image — clipboard ingest
+1436	dup	/clipboard命令替代前者 — clipboard ingest
+1437	boundary	v2 WebRTC voice sessions
+1438	dup	temp voice outputs入managed outbound media — media lifecycle
+1439	boundary	Termux/Android native运行
+1440	boundary	reorder channels/per-thread profiles/image thinking
+1441	noise	--debug hooks output修复
+1442	noise	New Thread keybinding回归修复
+1443	dup	doctor把fallback allowFrom拷进groupAllowFrom — config migration
+1444	dup	rename后legacy disable settings失效修复 — setting migration
+1445	noise	buffer search options不重置修复
+1446	noise	buffer font size改用户配置修复
+1447	dup	parsing/connection/TLS/5xx重试(同1447) — retry
+1448	boundary	Matrix room history context
+1449	dup	non-interactive gateway token auth持久+WS wizard — auth persist
+1450	dup	精确failure消息(file too large/content-review) — error surface
+1451	dup	prewarm进程丢--model/--effort/--settings修复 — boot args
+1452	dup	tool retry参数hint方案回退 — retry params
+1453	dup	SDK/serve mode lazy tools无限retry修复 — retry bound
+1454	dup	同轮多代streaming grouping修复 — render
+1455	noise	update误报up-to-date修复
+1456	dup	同版本hub不再prompt update — update flow
+1457	variant	--add-gitignore-files纳入.gitignore文件
+1458	boundary	首次运行CLI alias setup(openhands/oh)
+1459	boundary	Local Control QR pairing LAN access
+1460	boundary	seed_search_query_from_cursor
+1461	boundary	elixir-ls workspace配置
+1462	dup	diff内option-enter跳文件 — diff UX
+1463	dup	Configure选auth model为default — onboarding
+1464	dup	backup归档命名/config-only mode/加固 — backup
+1465	dup	CLI忽略model给的background timeouts — timeout authority
+1466	boundary	同1459 Local Control QR
+1467	boundary	helix_mode setting
+1468	variant	--output-format脚本化输出
+1469	boundary	SDK注入UA header含版本
+1470	boundary	language server $PATH查找
+1471	boundary	cost_tracking: ignore_errors开关
+1472	boundary	window title格式/new windows内容
+1473	dup	token telemetry分桶(uncached/cache read/cache write) — usage buckets
+1474	boundary	onboarding新旧view flag
+1475	cand	multi-root workspace feature flag
+1476	boundary	hermes peer bot-to-bot DMs
+1477	dup	clawpatch edge cases(gateway auth cleanup/session id/plugin activation) — hardening
+1478	dup	diff折叠为file chip+Plain diffs setting — diff UX
+1479	boundary	markdown语法高亮
+1480	boundary	builtin cd输出改进
+1481	noise	cherry-pick patch release内务
+1482	boundary	Roo models动态settings
+1483	cand	custom tools: npm包+.env访问支持
+1484	boundary	/review GitLab Aone read path
+1485	boundary	branch diff一键送review
+1486	boundary	git: view commit命令
+1487	boundary	git blame sidebar toggle
+1488	dup	cmd-y接受changes(同173) — approve keybind
+1489	boundary	zed://agent?prompt= URL
+1490	boundary	profile picker搜索
+1491	dup	config layers key-by-key合并 — config merge
+1492	boundary	GitHub org connect→Repo Knowledge
+1493	boundary	git panel file type icons
+1494	boundary	Teams fileConsent/invoke协议
+1495	boundary	qa mantis discord-smoke runner
+1496	boundary	git graph view替代file history
+1497	boundary	SWE-bench-Live评估
+1498	boundary	TTS channel/account overrides deep-merge
+1499	boundary	vim :[range]w {file}
+1500	variant	--agent-path包含agent context
+1501	boundary	iOS/Gateway speech/localization
+1502	boundary	Telegram webhook callback-mode JSON
+1503	dup	first-token timeout重试×2线性延迟 — retry
+1504	cand	remote-mcp: MCP Apps tool call支持
+1505	dup	OAuth token优先于settings.json API key — auth precedence
+1506	boundary	Poe OAuth provider
+1507	cand	remote-mcp: MCP 2026协议+MCP Apps host daemon渲染
+1508	boundary	ts-language-server function call completion
+1509	cand	remote-mcp: OAuth client pre-registration(client ID+secret)
+1510	dup	Chutes OAuth PKCE+refresh+onboarding — OAuth flow
+1511	dup	models auth login存--profile-id — auth profiles
+1512	boundary	app-server context projection/code-mode
+1513	dup	pi auth print-api-key/bearer-token导出(同1057) — credential export
+1514	cand	remote-mcp: OAuth discovery/authorization转发custom headers
+1515	dup	无参custom tool给valid empty JSON Schema — schema fix
+1516	boundary	MCP app views dashboard widgets+sandboxed leases
+1517	dup	OAuth callback对齐(Anthropic/Gemini/Antigravity/Codex) — OAuth align
+1518	noise	GPT-5.5 Codex OAuth
+1519	dup	完成session清active runs+MCP inventory缓存 — session hygiene
+1520	boundary	GitHub Copilot OAuth /login
+1521	cand	remote-mcp: stdio+HTTP transports+reconnection+resource/prompt
+1522	noise	MCP config文件位置文档
+1523	dup	IDE plugin MCP disable持久化修复 — disable persist
+1524	dup	OAuth token exchange丢resource参数修复 — OAuth fix
+1525	dup	MCP prompts与slash命令context拼接统一 — prompt unification
+1526	dup	MCP工具返图识别修复 — mcp image passthrough
+1527	dup	PreToolUse hook对MCP tools生效 — mcp hook coverage
+1528	cand	remote-mcp: streamable-http/streamableHttp/_别名兼容
+1529	dup	OAuth前初始化proxy dispatchers — proxy bootstrap
+1530	noise	xAI/MiMo native providers
+1531	noise	Featherless/Sonnet5/Mythos5/Spark/ClawRouter
+1532	dup	refresh response expiry校验 — OAuth refresh
+1533	dup	不再从Codex CLI auth导入 — auth isolation
+1534	dup	MCP注册与prompt处理竞态修复 — init race
+1535	variant	MCP HTTP请求带product UA header
+1536	boundary	llama.cpp provider/inline_blame
+1537	dup	tool params过长truncation retry给hint — retry params
+1538	cand	remote-mcp: streamable http servers+bearer token
+1539	dup	/session-stats全维度usage渲染 — usage surface
+1540	dup	auto-compaction内部abort/error不外泄 — compaction hygiene
+1541	noise	Sonnet4 Vertex 1M context
+1542	noise	Gemini 2.5 Flash Preview
+1543	noise	GLM-5.0 200K context
+1544	dup	/summarize /clear /resume /continue别名 — command aliases
+1545	dup	compaction summary helpers带routing session IDs — routing persist
+1546	cand	compaction: agent.compaction_model指定摘要模型
+1547	dup	unsupported CLI-backed fail closed — provider fail-closed
+1548	dup	bootstrap file snapshots per session key缓存+reset清 — bootstrap cache
+1549	dup	safeguard summarization经embedded runtime拿model metadata — compaction
+1550	dup	lookupContextTokens从auth-available metadata取最小值 — context sizing
+1551	dup	provider login writes串行经auth-profile lock — auth serialization
+1552	dup	/memory面板独立toggle — memory UI
+1553	noise	plugin-sdk bundling构建优化
+1554	dup	compressed context注入机制重构 — compaction
+1555	dup	/context显示skills/custom commands — context inspect
+1556	dup	conversation history内存优化 — memory perf
+1557	dup	New messages scroll pill样式恢复 — UI fix
+1558	dup	doctor暴露auth-profile/workspace/device-pairing等 — diagnostics
+1559	boundary	ChatGPT import→memory palace(其产品向)
+1560	dup	agentic compaction在OpenAI-compatible上fallback修复 — compaction
+1561	dup	session status updates带内存膨胀修复 — memory leak
+1562	dup	persisted compaction checkpoints+branch/restore — compact boundary已实装
+1563	noise	model-catalog test helpers等保留
+1564	dup	--no-session模式in-memory branching — ephemeral branch
+1565	boundary	thread memory summaries初始plumbing
+1566	dup	Memory feature默认启用 — memory default
+1567	boundary	hybrid search暴露vectorScore/textScore
+1568	boundary	sqlite-vec load failures vs missing embeddings区分
+1569	boundary	memorySearch asymmetric inputType
+1570	dup	legacy memory.md不再当second root collection — memory hygiene
+1571	boundary	REM backfill lane/diary flows
+1572	dup	embedding model refs保留non-OpenAI前缀 — embedding refs
+1573	dup	sqlite-vec不可用时JS fallback vector path — memory fallback
+1574	boundary	custom OpenAI-compatible embedding endpoints/node-llama-cpp
+1575	noise	GPT-5.6/Nemotron 1M context
+1576	dup	context window progress bar — context UI
+1577	boundary	embeddingProviders capability contract
+1578	dup	导入session标注来源+foreign history摘要 — session_import
+1579	dup	skill <location>路径~压缩 — prompt hygiene

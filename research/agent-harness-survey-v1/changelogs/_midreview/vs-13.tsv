@@ -1,0 +1,200 @@
+26892	noise	footer dup cancel internal
+26893	noise	tool_call_update meta internal
+26902	noise	LSP 3.18 identifiers internal
+26908	noise	policy ALLOW exit_plan_mode internal
+26914	dup	'ask' decision BeforeTool — hooks 决策已有
+26915	boundary	Esc instruction footer — their UI
+26934	noise	keybinding formatters internal
+26948	noise	preserve prompt cancel internal
+26975	noise	OTLP paths internal
+26976	noise	auth handshake spec internal
+26988	noise	policies auto-save revert internal
+27000	noise	rejections telemetry internal
+27008	dup	exclude EnterPlanMode YOLO — 模式工具限制已有
+27013	noise	policy persistence race internal
+27019	noise	sub-agents register internal
+27020	noise	shortcuts help dismiss internal
+27035	noise	corrupted token file internal
+27036	dup	loop detection false positives prefixes — 环路检测精度已有
+27041	noise	safeJsonStringify internal
+27047	noise	hook registration logging internal
+27050	noise	Windows agent prompt internal
+27057	noise	escaped interpolation internal
+27090	noise	/policy display internal
+27096	noise	policy rule source internal
+27123	noise	telemetry truncate internal
+27124	dup	warnings invalid hook events — 配置校验已有
+27135	noise	default all tools subagents internal
+27138	noise	home/end conflict internal
+27145	noise	hooks migrate internal
+27152	noise	yolo redirection internal
+27161	noise	/hooks disable internal
+27174	noise	dedup hooks tests internal
+27180	noise	interactive check internal
+27217	noise	acp auth field internal
+27253	dup	prevent server name spoofing — 防冒名已有
+27258	dup	DiscoveredTool policy engine — 策略引擎已有
+27303	noise	compression tests internal
+27314	noise	auth type integ test internal
+27386	noise	model reverting changes internal
+27438	noise	empty chunk retry internal
+27442	noise	FolderTrust restart internal
+27443	noise	import.meta polyfill internal
+27451	noise	tool args mutate internal
+27452	dup	oauth_creds.json permissions — 文件权限已有
+27477	noise	GEMINI_API_KEY empty internal
+27491	noise	checkpoints docs path internal
+27535	noise	YOLO custom slash internal
+27579	dup	restrict oauth_creds perms — 同上
+27594	noise	MCP tool titles internal
+27597	dup	prevent SSRF MCP OAuth discovery — SSRF 防护已有（G5 同族）
+27598	noise	proxy redirect URI internal
+27600	noise	OAuth client ID internal
+27602	dup	prevent blacklist bypass mcp list — 名单绕过防护已有
+27603	noise	MCP compliance internal
+27604	noise	GCal date field internal
+27605	noise	OAuth refresh tokens internal
+27606	dup	respect NO_PROXY MCP — 代理已有
+27609	noise	nullable array types internal
+27610	noise	tool explanation stream internal
+27611	noise	mcp list untrusted internal
+27613	noise	streaming ID collision internal
+27616	noise	quota_project_id internal
+27617	noise	oauth false cancel internal
+27623	noise	premature MCP discovery internal
+27627	noise	handleFallback oauth internal
+27629	noise	messageBus policy internal
+27631	noise	incomplete configs internal
+27635	noise	OAuth hang non-interactive internal
+27638	noise	acp/zed race internal
+27640	dup	subagents qualified MCP names — 命名限定已有
+27641	dup	sanitize MCP qualified names — 名称消毒已有
+27647	noise	WWWAuthenticate OAuth internal
+27650	noise	MCP discovery skipped internal
+27651	noise	GEMINI_CLI env internal
+27655	noise	mcp init wait acp internal
+27656	noise	tool call IDs internal
+27662	noise	OAuth message server name internal
+27667	noise	MCP init non-interactive internal
+27668	dup	oauth 127.0.0.1 not localhost — 回环绑定已有
+27669	noise	RFC 9728 discovery internal
+27671	noise	http type mcp list internal
+27679	noise	unhandled rejection internal
+27692	noise	prompts spaces name internal
+27699	noise	dynamic OAuth port internal
+27702	noise	oauth scopes precedence internal
+27710	noise	mcp removal persist internal
+27727	boundary	MCP tag color — their UI
+27728	noise	positional args prompts internal
+27753	noise	genai v1.9.0 internal
+27760	noise	mcp allowed settings internal
+27778	noise	backspace regression internal
+27813	dup	escape @ on paste prevent expansion — 粘贴注入防护已有
+27821	noise	empty tool-group stubs internal
+27826	dup	expand paste placeholders on submit — 粘贴占位已有
+27838	noise	empty history items internal
+27840	noise	auto-completion Shift+Tab internal
+27879	boundary	short path pasted images — their UI
+27895	noise	systemMessage hooks UI internal
+27898	boundary	tab+window title — their UI
+27947	noise	update-notifier internal
+27981	noise	Kitty protocol internal
+27985	noise	diff view focus internal
+27986	noise	Kitty cherry-pick internal
+27998	noise	Tab auto-exec internal
+28234	noise	parallelize quota fetch internal
+29419	dup	dispose Scheduler listener leak — 资源回收已有
+29421	dup	secure argsPattern revert escalation — 模式收紧已有
+29425	noise	minimatch cross-spawn internal
+29431	dup	sanitize hook command expansion — 注入防护已有
+29432	noise	npm audit internal
+29433	noise	credential cache internal
+29435	dup	sandbox filesystem boundaries — sandbox 已有
+29439	dup	gitconfig read-only sandbox — sandbox 已有
+29440	noise	clear entrypoint internal
+29442	dup	randomize container names — sandbox 已有
+29445	noise	sandbox state auto-update internal
+29446	noise	proxy cleanup internal
+29448	dup	sandbox cleanup all paths — 清理已有
+29449	dup	windows symlink bypass — symlink 防护已有
+29460	noise	includeDirectories internal
+29463	noise	windows sandbox reliability internal
+29464	dup	temp dir sandbox allowed paths — 路径已有
+29466	dup	isolate concurrent browser agents — 隔离已有
+29497	noise	deflake script internal
+29511	noise	sandbox stderr routing internal
+29517	dup	path traversal skill install — 路径穿越防护已有
+29521	dup	disconnect ext MCP stopExtension — 生命周期已有
+29529	noise	skills truncated internal
+29531	noise	directory junctions internal
+29536	noise	skills stdout internal
+29544	noise	ext removal revert internal
+29546	noise	command conflict internal
+29604	noise	colons frontmatter internal
+29636	noise	skills settings dialog internal
+29646	noise	missing ext config internal
+29716	dup	workspace trust+task isolation anti-RCE — 隔离已有
+29720	noise	sandbox NixOS internal
+29722	noise	classifier args internal
+29725	dup	subagents aware approval modes — 模式感知已有
+29726	dup	approval race condition — 竞态已有
+29727	noise	consent dialog internal
+29732	noise	confirmation queue count internal
+29737	dup	sandbox approvals persisted+matched — 批准匹配已有
+29759	noise	ToolGroupMessage filter internal
+29763	dup	symlinks preserved ext trust — symlink+trust 已有
+29766	noise	flash steering plan internal
+29769	noise	plan truncation internal
+29770	noise	plan mode tests internal
+29779	noise	plan constraints internal
+29782	noise	duplicate approval entries internal
+29794	dup	conditional policy rules priority — 策略优先级已有
+29826	dup	folder trust settings/skills/context — trust 覆盖已有
+29836	boundary	label enforcement automation — their bot
+29847	noise	disableYoloMode internal
+29852	dup	default folder trust untrusted — 默认不信任已有
+29855	boundary	trust dialog border — their UI
+29862	noise	shell allowlist align internal
+29872	noise	trust flags FileCommandLoader internal
+29876	boundary	esc trust dialog — their UI
+29879	noise	IDE trust listener internal
+29888	noise	hide tips trust dialog internal
+29891	noise	trust hook settings internal
+29896	boundary	parent name trust confirm — their UI
+29912	noise	OAuth headless hang internal
+29931	noise	yolo headless internal
+29933	dup	PAT tokens git remote parsing — 凭据处理已有
+30089	noise	gha bot internal
+30181	noise	branch indicator worktrees internal
+30191	noise	auth race flicker internal
+30202	noise	stale PR closer internal
+30203	noise	duplicate imports internal
+30210	noise	APP_ID internal
+30217	noise	duplicate imports internal
+30218	noise	duplicate imports internal
+30225	noise	GitHub App token perms internal
+30282	noise	release-rollback internal
+30323	noise	self assign internal
+30367	dup	skill instructions into subagent prompts — 技能注入已有
+30368	noise	browser cleanup subagent internal
+30379	dup	subagent context to policy engine — 策略传播已有
+30382	noise	subagent histories deletion internal
+30384	noise	toolRegistry subagent internal
+30391	dup	subagent tool calls no UI leak — 隔离已有
+30392	dup	prevent subagent bypass plan mode — 模式约束已有
+30403	noise	subagent invocation temp internal
+30624	dup	cancel edit tool — 取消已有
+30663	noise	oauth timeouts internal
+30689	dup	MCP transport closed leaks — 传输回收已有（G3 同族）
+30699	noise	PDF overflow warning internal
+31060	noise	credentials restore internal
+31064	boundary	pull_request_target fork PRs — their CI
+31066	dup	PolicyEngine ACP deadlock — 策略接入已有
+31074	dup	resume legacy sessions — 恢复已有
+31087	noise	active sessionId logger internal
+31090	noise	/clear /resume cleanup internal
+31091	dup	preserve tool descriptions resume — 恢复保真已有
+31100	dup	graceful --resume no sessions — 恢复容错已有
+31101	dup	flush transcript BeforeTool complete — 转录完整已有
+31107	boundary	esc cancel position — their UI
+31168	noise	dry-run nightly internal

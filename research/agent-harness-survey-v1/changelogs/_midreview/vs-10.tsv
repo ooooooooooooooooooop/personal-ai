@@ -1,0 +1,200 @@
+37467	dup	autonomy presets — 自治档已有
+37473	dup	risk-level audit-log — 审计已有
+37476	noise	plugins in --help internal
+37479	dup	act_and_observe audit-log — 审计已有
+37481	dup	browser interactions audit-log — 审计已有
+37492	boundary	inline auth first use — their UI
+37499	dup	queue prompts running — 队列已有
+37530	noise	trace quality internal
+37537	noise	tool_format telemetry internal
+37573	dup	per-step timing session records — 计时已有
+37588	dup	fork from any message — fork 已有
+38282	boundary	RichToolCall viz — their UI
+38290	dup	MCP health checks — 健康检查已有
+38292	dup	ACP tool call reporting — 已有
+38309	cand	prompt before fetching pasted URLs — URL 抓取闸
+38314	boundary	tab-completion overlay — their UI
+38324	boundary	BranchMapPanel — their UI
+38325	boundary	external sessions sidebar — their UI
+38332	boundary	live_app panel — their UI
+38333	boundary	server health panel — their UI
+38336	boundary	nav sidebar — their UI
+38338	boundary	sandboxed iframe panel — their UI
+38351	boundary	group by date sidebar — their UI
+38364	boundary	webui sidebar style — their UI
+38419	dup	OpenTelemetry integration — telemetry 已有
+38437	boundary	attachment UX — their UI
+38486	noise	shared executor module internal
+38503	boundary	latency badges — their UI
+40693	noise	at_mention telemetry internal
+47484	boundary	hide separators tabs — their UI
+47485	boundary	draggable error view — their UI
+47499	boundary	draggable tabs — their UI
+47937	boundary	queued messages shown — their UI
+48176	boundary	drag-n-drop @mention — their UI
+48227	boundary	.slnx LSP root — editor 面
+48471	boundary	settings shortcuts search — their UI
+48623	dup	local server password — auth 已有
+48659	dup	dedup plugins priority — plugin 已有
+48768	boundary	kotlin lsp — editor 面
+48853	boundary	haskell lsp — editor 面
+48883	boundary	nixd lsp — editor 面
+48958	boundary	texlab — editor 面
+49021	boundary	terraform-ls — editor 面
+49026	dup	max steps supervisor/subagents — 步数上限已有
+49249	boundary	fuzzy file open — their UI
+49275	boundary	svelte lsp — editor 面
+49276	dup	dynamic tool registration — 工具注册已有
+49311	boundary	queued visual — their UI
+49368	boundary	csharp lsp — editor 面
+49469	noise	copilot headers internal
+49496	noise	share/init commands internal
+49517	dup	named args custom commands — 命令参数已有
+49572	boundary	session tab preview — their UI
+49593	boundary	session search — their UI
+49820	boundary	unread session keybinds — their UI
+49824	noise	forked title numbering internal
+49906	dup	Fork Session desktop — fork 已有
+50569	dup	git diff reverted messages — revert 可见已有
+51181	dup	cwd on local MCP — workdir 已有
+51245	boundary	auto-open oauth links — their UI
+51289	dup	mcp prompts as slash — MCP prompts 已有
+51299	dup	tools/list_changed — MCP 已有
+51346	boundary	collapsed tool visuals — their UI
+52461	boundary	GitLab DWS approval — their platform
+52492	boundary	mouse permission buttons — their UI
+52563	dup	webfetch permission — fetch 闸已有
+52680	noise	userId sessionId telemetry internal
+52908	boundary	subagent UI v2 — their UI
+52922	boundary	subagent back button — their UI
+52940	noise	sub-agent steps format internal
+52945	noise	subagent cache cycling internal
+53057	dup	disable .claude loading flag — 加载开关已有
+53082	dup	server URL to plugins — plugin 已有
+53180	boundary	reopen closed tabs — their UI
+53181	boundary	review panel overhaul — their UI
+53186	boundary	projects sidebar — their UI
+53251	boundary	working indicator sidebar — their UI
+53419	boundary	tab close keybind — their UI
+53540	boundary	dialog keybinds config — their UI
+53608	boundary	collapsed project highlight — their UI
+53697	boundary	tool_details keybind — their UI
+53847	dup	navigate child sessions — 子会话导航已有
+53855	boundary	F2 cycle models — their UI
+53867	boundary	paste minimizing — their UI
+53870	boundary	disable keybinds — their UI
+53876	noise	share cmds help hide internal
+53884	boundary	shift+tab cycle — their UI
+53910	boundary	@symbol attachments — their UI
+53913	boundary	home path status bar — their UI
+53914	dup	pasted paths as file refs — 附件解析已有
+53921	boundary	paste images/pdfs — their UI
+53925	dup	tui file attachments — 附件已有
+53934	noise	unshare command internal
+53949	dup	lsp diagnostics edit/write — 诊断接入已有
+53989	boundary	configurable keybinds — their UI
+54008	boundary	status bar — their UI
+54077	dup	attachment pasting — 附件已有
+54091	boundary	copy share url — their UI
+54329	boundary	bash-language-server — editor 面
+54563	dup	secrets per agent profile — 密钥域已有
+54627	boundary	automation view/manage perms — their SaaS
+54674	boundary	Automations pane — their UI
+54698	boundary	LLM selector tools menu — their UI
+54710	noise	archive manifests internal
+54713	noise	repo metadata traces internal
+54746	noise	default_sandbox_spec internal
+54749	dup	workspace state snapshot+archive — 快照已有
+55183	noise	hidden special paths revert internal
+55432	dup	enable/disable MCP card — MCP 开关已有
+55548	boundary	pin home route — their UI
+55549	boundary	Canvas Extensions frontend — their UI
+55563	boundary	budgets monitoring UI — their UI
+55565	dup	interrupt endpoint pause UI — 中断已有
+56006	dup	explicit allow-list skills — skills 门控已有
+56010	boundary	skills faceted rail — their UI
+56045	boundary	image attachment fullsize — their UI
+56208	dup	per-run LLM cost Activity Log — 成本可见已有
+56209	dup	activity log export — 导出已有
+59047	dup	hook invocations progress events — hooks 可见已有
+59054	dup	hooks enabled/disabledReason — hooks 状态已有
+59085	dup	hook progress events — hooks 已有
+59152	boundary	channel multiline instructions — their channels
+59264	dup	Goal stop stalled checkpoints — 停滞停已有
+59302	noise	autofix audit approach internal
+59361	noise	Local Control daemon internal
+59364	dup	pollable daemon turn status — 状态面已有
+59366	boundary	exported HTML expand — their UI
+59368	dup	deterministic flakiness gate — 验证闸已有
+59419	dup	deny-by-default footprint gate — 足迹闸已有
+59425	noise	out-of-footprint defer internal
+59485	dup	Agent Plugins v1 — plugin 已有
+59543	dup	loop tools daemon sessions — loop 已有
+59573	noise	TTFC tracing internal
+59635	dup	completed bg agents resident — 驻留已有
+59666	noise	verify/reverse audit prove internal
+59672	dup	daemon sessions channel source tag — provenance 已有
+59674	dup	sourceId channel instance — provenance 已有
+59711	dup	MessageDisplay hook mid-turn — hooks 已有
+59714	dup	recover daemon sessions restart — 恢复已有
+59729	dup	opt-in per-tool-call timeout — 超时已有
+59732	dup	bound replay snapshot history — 界已有
+59733	boundary	dmPolicy config — their channels
+59735	noise	autofix real-time triggers internal
+59738	noise	LSP hot reload internal
+59753	dup	disallow plan tools in subagents — 工具限制已有
+59765	noise	reasoning discipline prompt internal
+59774	dup	configurable agent ignore files — ignore 已有
+59799	dup	TodoCreated/Completed hooks — hooks 已有
+59847	dup	StopFailure/PostCompact hooks — hooks 已有
+60002	noise	concurrent query submit internal
+60036	noise	headless Browse hide internal
+60078	dup	background subagents headless/SDK — 后台子代理已有
+60132	boundary	active pill tabs — their UI
+60173	dup	bg result across daemon/web — bg 追踪已有
+60207	dup	continue interrupted sessions web — 恢复已有
+60288	boundary	subagents live status transcript — their UI
+60368	boundary	composer skills refresh — their UI
+60597	noise	tool-call telemetry normalize internal
+60783	boundary	sub-agents timeline transcript — their UI
+60811	boundary	metrics charts daemon — their UI
+60847	boundary	Esc interruption UX — their UI
+60892	boundary	input shortcuts discoverable — their UI
+60899	dup	TRACEPARENT inject shell children — trace 传播已有
+60957	dup	container execution subagents — 沙箱子代理已有
+61000	dup	isolate Conversations runtime — 隔离已有
+61018	dup	daemon adapter state per workspace — 隔离已有
+61083	dup	customize sandbox env — sandbox 已有
+61094	noise	skill-as-tool error msg internal
+61099	noise	Agent Skills stable internal
+61100	noise	enumerate ext skills daemon internal
+61111	noise	authoring ref bundled skill internal
+61112	noise	ext skills named by ext internal
+61124	noise	public-only ext network relax internal
+61168	noise	Qoder plugin ext internal
+61185	dup	disabled skill levels — skills 门控已有
+61187	noise	auto-skill curator internal
+61221	noise	dataviz bundled skill internal
+61225	noise	/skills ACP desc internal
+61232	noise	skill RT optimization internal
+61233	noise	simplify bundled skill internal
+61247	boundary	/skills picker dialog — their UI
+61262	dup	reload slash on skill change — 热载已有
+61284	dup	hooks extension mechanism — hooks 已有
+61331	dup	Goal state session exports — 导出已有
+61336	dup	checkpoint every run+interrupted surface — checkpoint 已有
+61359	dup	daemon sessions registry+peer msgs — 注册已有
+61375	dup	concurrent daemons session fencing — fencing 已有
+61380	noise	verifier timeout sizing internal
+61397	dup	transcript html export — 导出已有
+61452	noise	Electron→Tauri internal
+61515	dup	session lifecycle OTel — telemetry 已有
+61516	noise	session list cancel internal
+61529	noise	fork-PR review lane internal
+61532	dup	workflows cooperative pause/resume — 暂停恢复已有
+61534	dup	checkpoint Goal evidence — checkpoint 已有
+61571	dup	session source lifecycle hooks — hooks 载荷已有
+61590	noise	maintainer-fork takeover internal
+61591	noise	bot fork PRs internal
+61593	noise	cold startup trace internal
+61648	dup	Dynamic Workflows resume/saved — workflow 已有

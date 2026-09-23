@@ -1,0 +1,200 @@
+62601	noise	thought parts Stop hook internal
+62603	boundary	clip live markdown viewport — their UI
+62605	noise	npm scan triggers internal
+62614	noise	runtime audit deps internal
+62627	dup	command substitution ask not deny — 解析感知批准已有
+62632	noise	statusline ordering internal
+62639	dup	preserve uid atomicWriteFile — 原子写已有
+62641	noise	insight facet internal
+62654	noise	integer stop hook cap internal
+62671	noise	bare fast model internal
+62673	dup	always-on identical-call guard — 环路检测已有
+62680	noise	USE_OPENAI auth internal
+62685	noise	dot-prefix ignore internal
+62686	noise	lsp socket ports internal
+62725	dup	per-turn tool-call circuit breaker — 断流器已有
+62728	noise	stdout fd redirects internal
+62742	dup	stop after cancelled ask_user — 取消语义已有
+62746	dup	explicit forking awaitable — fork 语义已有
+62752	noise	exit_plan_mode desc internal
+62757	noise	daemon_status E2E internal
+62765	dup	drop tool calls after cancel — 取消语义已有
+62767	noise	StrictMode disposal internal
+62771	dup	hard-stop repeated identical calls — 同上
+62776	dup	honor skipLoopDetection — 环路开关已有
+62792	noise	shared baseUrl internal
+62814	noise	empty-query exit internal
+62815	noise	cross-auth side queries internal
+62822	noise	boundedPromise timers internal
+62824	dup	record mid-turn queued prompts — 队列记录已有
+62842	dup	close bound-tool gap YOLO wrapper — 封装漏洞已有
+62845	noise	ESC bg dialog internal
+62854	noise	file paths not slash internal
+62856	noise	model precedence internal
+62858	noise	LSP isPathSafe internal
+62870	noise	empty pages param internal
+62875	dup	ACP Agent concurrent — 并行已有
+62877	noise	queued slash dispatch internal
+62878	noise	StreamingToolCallParser internal
+62893	noise	tsx node --import internal
+62897	noise	abort listener cleanup internal
+62911	noise	refill input cancel internal
+62913	dup	getDefaultPermission+allowExternalPaths ripGrep — 权限面已有
+62914	noise	tree-sitter WASM internal
+62928	cand	ACP spawn retry+auto-reconnect — 重连面（#1435 同族）
+62933	noise	exit_plan_mode yolo internal
+62939	noise	tree-sitter path internal
+62943	noise	hooks lag /clear internal
+62945	noise	wasm symlink internal
+62948	noise	lsp lang support internal
+62965	noise	empty choices internal
+62966	noise	hooks schema type internal
+62970	noise	duplicate exports internal
+62997	noise	workspaceFolders internal
+62998	noise	unblock input ESC internal
+63010	noise	skip ENOENT imports internal
+63028	noise	windows bg cleanup internal
+63059	noise	tool calls cancellation internal
+63062	noise	trace cancellation internal
+63063	noise	auth dialog quit internal
+63070	noise	system prompt malformed internal
+63074	noise	re-auth expired internal
+63082	noise	trimEnd revert internal
+63096	noise	Bash comments permission internal
+63097	dup	explicit trust undecided workspaces — trust 闸已有
+63101	boundary	approval sheet resize — their UI
+63115	dup	close trust-gate/bystander gaps — 文件桥信任已有
+63116	dup	host-trusted out of container writable — 隔离已有
+63125	noise	trust mock internal
+63133	dup	approval mode standalone sessions — 模式传播已有
+63134	dup	CI profile from trusted base SHA — 溯源信任已有
+63135	dup	ask_user behind allow rules — 规则闸已有
+63137	dup	uncovered tools as deferred — 延迟注册已有
+63142	noise	permission alias internal
+63145	dup	win32 drive-case approval keys — 规范化已有
+63163	noise	bot PATs approve internal
+63167	dup	resolve symlinks before grant — symlink 解析已有（G2 同族）
+63170	dup	explicit distrust over inherited — 不信任优先已有
+63212	noise	senderId allowlist internal
+63213	dup	only bot's own approval counts — 批准归属已有
+63222	dup	plan mode entry boundary — plan 约束已有
+63223	dup	preserve cancellation permission prompts — 取消已有
+63229	dup	canonicalize permission paths — 规范化已有
+63236	dup	trust for read-only auto-approval — trust 已有
+63244	dup	pivot to read-only when blocked — 降级已有
+63247	noise	maintainer label fast-path internal
+63249	dup	relay ACP permission requests — 批准转发已有
+63255	dup	permission votes across connections — 多客户端表决已有
+63257	boundary	auto approval indicators — their UI
+63260	dup	no auto-approve cross-repo refactor — 批准约束已有
+63262	dup	confirmation manual plan mode — 确认已有
+63263	dup	backend-aware publish confirmation — 确认已有
+63264	dup	opt-in plan mode prompt — 同意已有
+63269	dup	always declare exit_plan_mode — 工具声明已有
+63274	boundary	approval mode text — their UI
+63275	noise	computer-use auto-approve internal
+63277	dup	env off read-only allowlist — 名单收紧已有
+63282	dup	malformed rules no catch-all — 规则校验已有
+63286	dup	env-prefixed commands match rules — 前缀规范化已有
+63290	noise	non-core tools bypass internal
+63292	dup	trust check getDefaultPermission — trust 已有
+63294	noise	permission flow clients internal
+63300	dup	plan mode ACP sessions — 模式强制已有
+63334	dup	Claude tool names in hook matchers — 跨harness别名已有
+63388	dup	duplicate tool-call ids replay-on-match — 重放判定已有
+63599	noise	spawnSync wrapper internal
+63615	noise	duplicate ids ignore internal
+63748	dup	reattached snapshots outdated — 附件时效已有
+63798	dup	pasted image paths to attachments — 附件已有
+63807	noise	platform clipboard internal
+63835	noise	lazy undici internal
+63839	dup	accept post-startup subagents — 动态注册已有
+63847	noise	NDJSON stream internal
+63853	noise	daemon startup internal
+63854	noise	cpu profile internal
+63866	noise	lazy channel plugins internal
+63890	noise	runner labels internal
+63909	noise	packaging perms internal
+63916	noise	PR spacing internal
+63926	noise	handshake budget internal
+63934	noise	ECS concurrency internal
+63945	noise	Ruff CI internal
+63953	noise	shared-pool internal
+63959	noise	macOS/Win lanes internal
+63971	noise	wedged runs internal
+63975	noise	fallback comment internal
+64090	dup	recover interrupted inbound tasks — 恢复已有
+64092	noise	runner reconciliation internal
+64131	noise	route labels internal
+64151	noise	silent triage internal
+64156	noise	system prompt mode internal
+64162	noise	empty SDK PR internal
+64192	noise	precheck perms internal
+64195	noise	publish credentials internal
+64196	noise	merge queue internal
+64215	noise	read .git branch internal
+64219	boundary	branch badge edge — their UI
+64280	dup	stream subagent text+reasoning — 流式已有
+64294	dup	abort subagent on unmount — 生命周期已有
+64299	dup	nested approvals under bg parents — 批准冒泡已有
+64300	noise	list_agents excludes internal
+64307	noise	live replay journal internal
+64312	noise	reserved chars ids internal
+64326	dup	redact sibling directives forked history — 隔离消毒已有
+64336	boundary	singleton subagent details — their UI
+64342	dup	deliver bg agent replies — bg 已有
+64343	dup	persist resolved subagent model — 元数据已有
+64350	dup	suppress nested subagent output — 隔离已有
+64354	boundary	transcript scroll multi-agent — their UI
+64356	boundary	scroll snap-back — their UI
+64363	dup	preserve bg agent launch flags — 标志保持已有
+64365	noise	proactive reminder internal
+64376	dup	auto-compact subagent context — 压缩已有
+64378	noise	per-subagent ToolRegistry internal
+64379	boundary	SubAgent display height — their UI
+64386	noise	stale diff confirmation internal
+64391	noise	subagent improvements internal
+64492	dup	escalate abort termination — 终止升级已有
+64493	noise	vsce scanner internal
+64495	dup	validate channel credential types — 校验已有
+64508	dup	cleanup MCP subprocesses exit — 进程回收已有（G7）
+64512	noise	MCP App warnings internal
+64517	dup	persisted MCP config after preheat — 加载序已有
+64518	noise	MCP management internal
+64522	noise	hashbang serve-mcp internal
+64533	dup	restore deferred MCP tools resume — 恢复已有
+64535	dup	time out silent MCP SSE — 超时已有
+64536	cand	refresh MCP metadata without reconnect — 轻量刷新（#1435 同族）
+64541	noise	top-tier MCP servers internal
+64542	dup	no replay unsafe MCP calls — 重放安全已有
+64545	noise	harden MCP deps internal
+64548	dup	harden OAuth callback — OAuth 已有
+64559	noise	OAuth challenges internal
+64566	noise	cua-driver MCP internal
+64569	noise	URL query suffix internal
+64573	noise	process.env direct internal
+64577	noise	coord-norm internal
+64581	boundary	wrap descriptions — their UI
+64582	boundary	MCP dialog border — their UI
+64583	dup	no blocking on MCP readiness — 渐进加载已有
+64589	noise	persist removals internal
+64600	noise	empty-parts message internal
+64602	noise	OAuth metadata params internal
+64603	noise	empty mcp json internal
+64604	noise	expires_in internal
+64605	noise	empty prompt args internal
+64606	noise	coerce numeric strings internal
+64608	noise	discontinued OAuth internal
+64609	noise	sanitize logs internal
+64612	noise	duplicate call IDs internal
+64616	dup	refresh systemInstruction setTools — 渐进注册已有
+64618	dup	drop disabled MCP health registry — 状态一致已有
+64620	dup	coalesce MCP rediscovery — 去重已有
+64624	noise	blank lines internal
+64630	dup	normalize Windows PATH MCP — PATH 规范化已有
+64632	boundary	clickable OAuth URL — their UI
+64638	noise	tool call UI leak internal
+64641	noise	stringified JSON internal
+64642	dup	orphan ACP processes tab close — 孤儿回收已有
+64648	noise	QR code flicker internal
+64653	dup	detect truncated tool output — 截断检测已有

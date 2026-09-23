@@ -1,0 +1,200 @@
+31833	noise	reaction noise
+31836	dup	escape Jinja variables recipes — 模板转义已有
+31837	dup	pctx code mode — 代码模式已有
+31842	dup	proxy Windows/macOS — 代理已有
+31843	dup	local whisper — 本地转录已有
+31845	noise	deeplink internal
+31847	noise	build internal
+31848	dup	tool_calls content field — 已有
+31849	boundary	reduced-motion — their UI
+31850	noise	instructions internal
+31851	noise	observability internal
+31852	dup	thinking status hook — 思考hook已有
+31853	noise	apps internal
+31855	noise	key internal
+31856	noise	trait internal
+31857	noise	dictation internal
+31858	noise	dep internal
+31860	dup	centralize audience filtering — 受众过滤归位已有
+31861	noise	warnings internal
+31862	noise	metrics internal
+31863	noise	docs internal
+31865	noise	release noise
+31881	dup	default gooseignore create — 忽略文件已有
+31882	noise	prose noise
+31883	noise	prose noise
+31885	boundary	clock icon — their UI
+31886	boundary	urgent red — their UI
+31890	noise	names noise
+31906	noise	streaming internal
+31910	dup	issue solver activation comments — 评论触发已有
+31912	boundary	expandable — their UI
+31919	noise	canonical internal
+31922	noise	removal internal
+31925	dup	default todo message — 待办已有
+31927	dup	bracket notation code exec — 导入语法已有
+31928	noise	tool names internal
+31929	noise	timestamp internal
+31930	dup	recipe slash parsing — 斜杠解析已有
+31931	noise	recipe internal
+31932	noise	solver internal
+31934	noise	preview internal
+31936	noise	privacy internal
+31938	noise	release noise
+31941	noise	pricing internal
+31943	noise	code mode internal
+31944	noise	reviewer internal
+31945	noise	reviewer internal
+31947	dup	default_enabled platform ext — 默认启用已有
+31948	noise	PATH internal
+31949	noise	tool count internal
+31951	noise	session internal
+31952	dup	ephemeral ext not persisted — 临时扩展已有
+31954	noise	dep internal
+31956	noise	docs internal
+31960	noise	release noise
+31961	dup	external goosed server — 外部后端已有
+31962	dup	canonical models providers — 模型归一已有
+31964	noise	recipe internal
+31965	dup	default_enabled — 已有
+31966	noise	session internal
+31968	noise	role internal
+31969	dup	old sessions tool results load — 会话兼容已有
+31971	noise	crash internal
+31973	noise	PATH internal
+31974	noise	params internal
+31975	dup	subagents no extensions disallowed — 子代理约束已有
+31976	dup	tool reply metadata — 回复元数据已有
+31977	noise	config internal
+31979	noise	cleanup internal
+31980	noise	font internal
+31981	boundary	icon — their UI
+31984	noise	recipe internal
+31987	noise	blog internal
+31988	noise	governance internal
+31989	noise	release noise
+31990	noise	crash internal
+31991	noise	section noise
+31993	dup	recipe deeplink params pre-populate — 深链参数已有
+32004	noise	params internal
+32006	dup	lock single tunnel — 隧道锁已有
+32010	dup	conversationCompacted backcompat — 消息兼容已有
+32014	noise	cleanup internal
+32015	boundary	bottom bar — their UI
+32017	noise	fetch internal
+32033	noise	docs internal
+32037	noise	section noise
+32039	dup	recipe security scanning save — 配方扫描已有
+32040	noise	hermit internal
+32041	noise	registry internal
+32042	dup	CredentialStore auth — 凭据存储已有
+32043	dup	context progress reset /clear — 进度重置已有
+32044	noise	tray internal
+32045	noise	section noise
+32048	noise	removal internal
+32049	boundary	dock menu — their UI
+32050	noise	recipe internal
+32051	boundary	quick launcher — their UI
+32053	noise	blog internal
+32054	noise	release noise
+32056	dup	stop accessing deleted sessions — 删除容错已有
+32057	dup	dedup recipe list — 列表去重已有
+32058	boundary	context menu — their UI
+32060	noise	display internal
+32062	noise	prose noise
+32065	noise	section noise
+32068	noise	copilot internal
+32069	noise	release noise
+32070	boundary	dock icon — their UI
+32071	boundary	launcher — their UI
+32072	dup	env vars auth config — env认证已有
+32075	boundary	token counter — their UI
+32076	noise	prompt internal
+32077	dup	Ctrl-C cancel AI requests — 取消已有
+32079	noise	docs internal
+32080	noise	docs internal
+32082	dup	tool descriptions null — 可空描述已有
+32083	noise	cache internal
+32087	noise	release noise
+32089	dup	instructions as prompt scheduler — 调度提示已有
+32090	noise	release noise
+32091	noise	import internal
+32093	noise	crash internal
+32094	noise	deps internal
+32095	dup	auto-create recipe dirs — 目录自建已有
+32096	dup	system diagnostics tools — 诊断工具已有
+32097	noise	snippet internal
+32100	noise	recipe internal
+32102	noise	deps internal
+32104	noise	docs internal
+32105	dup	recipe list — 配方列表已有
+32107	dup	recipe open — 配方打开已有
+32108	noise	release internal
+32109	noise	docs internal
+32110	noise	content internal
+32112	noise	test internal
+32113	noise	test internal
+32114	noise	dev internal
+32115	noise	test internal
+32116	noise	test internal
+32117	noise	revert internal
+32119	noise	blog internal
+32123	noise	recipe internal
+32126	dup	disable subagents non-autonomous — 模式限定已有
+32127	noise	blog internal
+32136	noise	clean room internal
+32138	noise	env internal
+32144	noise	devtools internal
+32149	noise	recipe internal
+32152	noise	recipe internal
+32155	noise	import/export internal
+32157	noise	workflow internal
+32158	boundary	autofocus init — their UI
+32165	noise	electron internal
+32182	noise	test internal
+32184	noise	props internal
+32187	noise	rename internal
+32189	noise	dep internal
+32198	noise	singleton internal
+32204	noise	case internal
+32208	noise	ci internal
+32216	noise	release internal
+32217	noise	ci internal
+32218	boundary	autofocus — their UI
+32219	noise	electron internal
+32223	noise	standalone internal
+32229	noise	prompt internal
+32234	boundary	activities top — their UI
+32235	noise	release internal
+32237	dup	message metadata visibility — 可见性控制已有
+32242	noise	recipe internal
+32243	noise	workflow internal
+32244	noise	streaming internal
+32251	noise	section noise
+32253	noise	section noise
+32258	dup	recipe error handling — 配方容错已有
+32259	dup	auto-submit no artificial delay — 自动提交已有
+32262	noise	docs internal
+32269	noise	headers internal
+32273	dup	no replace window cwd change — 窗口保留已有
+32282	boundary	quit confirm — their UI
+32290	noise	blog internal
+32304	noise	blog internal
+32305	noise	blog internal
+32308	dup	deeplinks single window closed — 深链窗口已有
+32318	boundary	window title — their UI
+32323	boundary	settings form — their UI
+32324	dup	detect client disconnect cancel tools — 断连取消已有
+32330	noise	build internal
+32339	noise	branch noise
+32348	noise	types internal
+32351	noise	debug internal
+32352	noise	json internal
+32356	noise	types internal
+32357	noise	types internal
+32360	dup	agent loop defensive — 循环防御已有
+32361	noise	test internal
+32364	dup	reuse cancellation token — 取消令牌已有
+32366	noise	security internal
+32368	noise	recipe internal
+32369	noise	grant internal

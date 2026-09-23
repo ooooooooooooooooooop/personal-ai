@@ -1,0 +1,200 @@
+24467	dup	ctx window bg jobs — 上下文已有
+25891	boundary	diff viewing autonomous — their UI
+25967	boundary	gh auth Devin machine — their env
+26205	dup	session-scoped secrets — 密钥域已有
+26289	dup	skill alt fields — 技能解析已有
+26512	dup	PTY resize harden — PTY健壮已有
+26513	noise	PTY EBADF suppress internal
+26527	dup	fail-closed YOLO parse fail — 失败闭合已有
+26559	dup	retryable>5min=quota — 错误分类已有
+26589	noise	Windows pty crash internal
+26608	dup	hook runner EPIPE stdin — hook健壮已有
+26615	noise	Windows pty crash internal
+26624	noise	pty exited errors internal
+26669	noise	AbortError logs internal
+26679	noise	stale cancellation internal
+26717	dup	zero-quota fail fast — 快速失败已有
+26789	noise	generalist profile internal
+26800	dup	loop detection crash — 循环检测已有
+26805	noise	cloudshell auth internal
+26830	noise	AbortError logs internal
+26860	noise	loader error formatting internal
+26866	noise	tail tool calls internal
+26868	noise	error types telemetry internal
+26935	dup	AbortError loop detection — 循环检测已有
+26941	noise	AbortError internal
+26944	noise	AbortError ESC internal
+26954	noise	AbortError telemetry internal
+26970	noise	AbortError processTurn internal
+26996	noise	unknown slash cmd internal
+27005	noise	cpus empty crash internal
+27006	noise	error type telemetry internal
+27066	dup	dedup hook failure warnings — 告警去重已有
+27092	noise	auth crash internal
+27187	dup	accepting-edits off enforce — 模式执行已有
+27228	noise	zed cancel errors internal
+27248	noise	aborted logs internal
+27457	noise	auth test internal
+27487	noise	cancelled requests crash internal
+27561	boundary	auth dialog esc — their UI
+27571	noise	spawn errors internal
+27575	noise	tool errors telemetry internal
+27595	dup	RFC9207 issuer MCP OAuth — OAuth校验已有
+27634	noise	OAuth project ID internal
+27644	dup	MCP errors dedup — 诊断去重已有
+27652	noise	OAuth server crash internal
+27675	dup	PKCE length+port — OAuth已有
+27682	noise	MCP tool errors internal
+27698	noise	OAuth issuer path internal
+27717	dup	prompt-only MCP discovery — 发现已有
+27876	boundary	sidebar link — their UI
+27906	boundary	Windows paste — their UI
+29458	dup	sandbox ARG_MAX — 沙箱已有
+29459	noise	sandbox usability internal
+29498	dup	PTY spawn sandbox — 沙箱已有
+29540	noise	skill uninstall internal
+29579	noise	docs-writer skill internal
+29621	noise	skills install arg internal
+29714	dup	fail-closed trust+filter mcpServers — 信任门已有
+29823	dup	YOLO auto-approve parse fail — 模式语义已有
+29856	dup	non-interactive confirm error — 审批门已有
+30274	noise	merge queue internal
+30277	noise	merge queue internal
+30325	dup	checkpointing git errors — 检查点已有
+30372	dup	subagent failure UI reflect — 状态透传已有
+30376	noise	subagent thoughts append internal
+31083	dup	dynamic session ID resume — 会话ID已有
+31110	boundary	Rewind/Resume verbose — their UI
+31126	dup	resume relaunch loop — 恢复防护已有
+31155	dup	checkpoint silent fail non-Git — 检查点已有
+31179	noise	ripgrep cancel internal
+33754	noise	path dup tool calls internal
+33788	boundary	smart_approve help — their CLI
+34916	dup	resume invalid path — 恢复防护已有
+34928	noise	302 shared session internal
+35031	dup	cron parsing — 调度已有
+35303	boundary	Copilot browser auth — their product
+37612	dup	autocompact exception type — 压缩诊断已有
+37627	noise	auth exchange log internal
+37630	noise	export write error internal
+37657	noise	export errors suppress internal
+37795	noise	Jest ESM crash internal
+37872	noise	auth HTTP status internal
+37986	noise	empty LLM response internal
+38009	noise	autocompact NameError internal
+38015	noise	hook args internal
+38021	noise	hooks disable default internal
+38190	noise	codeblock langtag internal
+38286	dup	mcp exit nonzero — CLI语义已有
+38293	dup	MCP tool loading — 加载已有
+38827	boundary	hermes perm error — their UI
+38829	noise	Kitty protocol internal
+39727	dup	malformed tool-call≠truncation — 错误分类已有
+39935	noise	banner emoji crash internal
+39939	boundary	palette crash — their UI
+46018	noise	auth bypass internal
+50052	dup	continue after abort — 恢复已有
+50575	dup	git hooks fail — hook联动已有
+51220	dup	MCP survive transient errors — 生命周期韧性已有
+51224	dup	OAuth auto-connect — OAuth已有
+51317	dup	MCP error handling — MCP已有
+51320	dup	MCP status state — 状态机已有
+51326	dup	MCP errors in prompts — 错误透传已有
+51334	noise	phantom tool call internal
+51400	noise	snapshot decode internal
+51444	noise	runtime re-entry internal
+51451	dup	custom agents plugins — 插件代理已有
+51557	boundary	usage limit errors — their UI
+51577	dup	errored tool calls output — 错误展示已有
+51648	dup	abort queued messages — 中止已有
+51716	noise	models snapshot cache internal
+51867	noise	build import internal
+51915	noise	share NotFoundError internal
+52026	noise	LSP diagnostics internal
+52029	noise	lsp diagnostics internal
+52038	dup	hook error suppression — hook错误透传已有
+52091	boundary	share page — their UI
+52128	noise	MATLAB LS internal
+52141	noise	ACP slash bug internal
+52170	noise	rg spawn ENOENT internal
+52173	noise	sourcemapping internal
+52174	dup	snapshot undo — 快照撤销已有
+52176	noise	LSP file ops internal
+52214	noise	todo empty crash internal
+52246	noise	lsp debug internal
+52253	noise	lsp spawn diagnostics internal
+52260	noise	lsp bug internal
+52416	noise	empty dir run internal
+52424	noise	aborting internal
+52425	dup	follow-up tool calls cancel — 取消已有
+52445	dup	malformed path permission views — 容错已有
+52482	boundary	plan mode a11y — their UI
+52534	dup	session memory leaks — 会话管理已有
+52557	dup	bash permission merging — 权限合并已有
+52561	dup	permission prompting — 权限提示已有
+52565	dup	bash permission asks — 权限已有
+52980	dup	plugin install aliases/git — 安装已有
+53115	noise	plugin dep crash internal
+53144	boundary	RTL layout — their UI
+53185	boundary	context menu — their UI
+53382	boundary	sidebar remount — their UI
+53654	boundary	sidebar UX — their UI
+53714	boundary	SVG paste — their UI
+53715	boundary	bootstrap errors TUI — their UI
+53908	boundary	textarea attachments — their UI
+53941	boundary	share cmd errors — their UI
+54079	boundary	attachment highlight — their UI
+54081	boundary	attachment bugs — their UI
+54507	noise	LSP perf internal
+55587	boundary	Jupyter tab — their UI
+55676	dup	no persist on discovery fail — 失败不写已有
+55743	noise	sandbox API failures internal
+55757	noise	rate limiter crash internal
+55776	noise	export dup events internal
+55810	noise	setup scripts interrupt internal
+55827	noise	temp files copy internal
+55844	noise	resolver empty desc internal
+55994	dup	secret replacement timestamps — 脱敏完整性已有
+56147	dup	ctx truncation — 截断已有
+56169	dup	stuck initializing resume — 恢复已有
+56279	dup	infinite loop delegated agent — 循环检测已有
+56283	dup	step count delegate fail — 步数一致性已有
+56830	noise	/bug hints internal
+57426	dup	buffer failures retry — 重试已有
+57573	dup	fuzzy edit Unicode normalize — 归一化已有
+57590	dup	auth errors drainErrors — 错误缓冲已有
+57664	noise	tsgo import internal
+57929	noise	startup selector path internal
+58150	dup	tool_result isError forward — 错误透传已有
+58184	dup	session_start hook timing — hook时序已有
+58353	noise	clipboard sandbox internal
+58430	noise	taskkill missing internal
+58737	dup	custom tools path resolve — 工具加载已有
+60601	noise	bg task polling internal
+60922	noise	PTY race internal
+60974	noise	CI retry internal
+60976	noise	sandbox build fail internal
+61356	dup	persist checkpoint failure reason — 失败持久已有
+61925	dup	tool cancellation error path — 取消路径已有
+62210	dup	reverse-audit non-converged evidence — 证据保留已有
+62302	dup	fast-fail permanent 429 — 限额分类已有
+62382	dup	StopFailure hook on early return — hook覆盖已有
+62542	dup	chat recording durable — 记录持久已有
+62675	dup	dangling replayed tool calls fail — 回放校验已有
+62869	noise	safeJsonStringify internal
+62874	noise	qwenOAuth error event internal
+62880	noise	statusline EBADF internal
+62900	dup	rate-limit SSE frames — 限额检测已有
+62924	dup	hook abort listener cleanup — 资源清理已有
+62927	noise	ideCommand slash internal
+62990	noise	hooks test internal
+63023	noise	auth type internal
+63051	noise	AbortError commands internal
+63085	noise	trailing space tool id internal
+63086	boundary	RadioButton crash — their UI
+63174	dup	distrusted workspace trust inherit — 信任继承修复已有
+63305	noise	node install perms internal
+63868	noise	auth type persist internal
+63877	noise	token manager delay internal
+63924	noise	npm audit retry internal
+64071	noise	worktree cleanup CI internal

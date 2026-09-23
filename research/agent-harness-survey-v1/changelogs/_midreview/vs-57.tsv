@@ -1,0 +1,200 @@
+18799	dup	capture result.content streaming — 流捕获已有
+18802	noise	attr internal
+18807	noise	branch noise
+18809	boundary	exit edit mode — their UI
+18811	noise	branch noise
+18817	noise	names noise
+18820	noise	branch noise
+18821	noise	branch noise
+18822	noise	streaming internal
+18824	noise	systemMessage internal
+18828	noise	branch noise
+18837	noise	reranker internal
+18842	dup	org scope resolve secrets — 秘密作用域已有
+18846	boundary	shortcuts — their UI
+18850	noise	param internal
+18851	noise	branch noise
+18855	noise	branch noise
+18861	boundary	readonly menus — their UI
+18862	dup	canParse URL tools — URL校验已有
+18864	noise	schema internal
+18866	noise	flags internal
+18867	boundary	icon — their UI
+18870	boundary	quickpick — their UI
+18873	noise	link internal
+18874	dup	catch all config loading errors — 配置容错已有
+18885	boundary	toast — their UI
+18888	noise	branch noise
+18891	noise	esbuild internal
+18895	noise	branch noise
+18897	noise	tasks internal
+18898	noise	tools internal
+18900	boundary	switcher — their UI
+18903	noise	branch noise
+18904	noise	branch noise
+18910	noise	lang internal
+18911	noise	detection internal
+18917	noise	branch noise
+18919	noise	names noise
+18920	noise	names noise
+18924	boundary	editor collapsible — their UI
+18927	noise	ci internal
+18928	noise	names noise
+18930	noise	enum internal
+18931	noise	hotfix internal
+18933	boundary	submenu loading — their UI
+18934	boundary	model scroll — their UI
+18940	noise	crash internal
+18941	noise	comma internal
+18942	noise	branch noise
+18944	noise	result key internal
+18945	noise	build internal
+18950	noise	generator internal
+18952	boundary	hotkey — their UI
+18954	noise	filename internal
+18955	noise	file URL internal
+18968	noise	test internal
+18969	boundary	edit mode — their UI
+18971	noise	hotfix internal
+18973	noise	tooltips internal
+18974	noise	diff internal
+18976	noise	ref internal
+18979	noise	names noise
+18981	noise	titles internal
+18983	noise	stats internal
+18987	noise	gui internal
+18988	noise	URI internal
+18989	dup	no empty tools param — 参数防护已有
+18994	noise	config internal
+19010	noise	postprocess internal
+19015	noise	save internal
+19020	noise	types internal
+19024	noise	binary internal
+19026	noise	model internal
+19033	noise	llm-info internal
+19042	noise	ci internal
+19043	noise	timeout internal
+19047	noise	cancel internal
+19048	noise	logs internal
+19056	noise	unstaged internal
+19058	noise	docs internal
+19059	noise	docs internal
+19060	noise	logs internal
+19064	noise	sync internal
+19065	boundary	focus — their UI
+19067	boundary	delete word — their UI
+19068	noise	config internal
+19069	boundary	hide tools — their UI
+19070	noise	names noise
+19075	noise	branch noise
+19080	dup	no cache write when disabled — 缓存门已有
+19081	noise	diff internal
+19086	boundary	buttons — their UI
+19089	noise	workflow internal
+19096	noise	docs internal
+19111	dup	cancel stale completions typing — 过期取消已有
+19117	dup	warn maxTokens vs contextLength — 预算警告已有
+19118	boundary	autoscroll — their UI
+19120	noise	EDT internal
+19125	noise	context internal
+19127	boundary	hotkey — their UI
+19129	noise	docs internal
+19130	noise	docs internal
+19131	noise	context internal
+19132	noise	continuerules internal
+19133	noise	names noise
+19135	noise	context internal
+19138	noise	comment internal
+19142	noise	branch noise
+19145	noise	schema internal
+19148	noise	branch noise
+19150	noise	merge internal
+19156	noise	mmap internal
+19157	noise	branch noise
+19158	noise	merge internal
+19159	noise	branch noise
+19168	noise	ignore internal
+19169	noise	refactor internal
+19170	noise	names noise
+19172	noise	ci internal
+19179	noise	models internal
+19182	noise	models internal
+19183	noise	comment internal
+19184	noise	OSR internal
+19186	dup	empty file apply=insert — 边界处理已有
+19187	dup	sqlite max like pattern — 查询上限已有
+19188	noise	autocomplete internal
+19196	noise	schema internal
+19197	noise	lint internal
+19207	boundary	esc key — their UI
+19208	noise	docs internal
+19209	noise	rc parse internal
+19213	noise	actions internal
+19216	noise	names noise
+19224	noise	name noise
+19227	noise	actions internal
+19229	noise	chat internal
+19235	dup	autodetect common models — 模型探测已有
+19238	noise	error internal
+19249	noise	config internal
+19258	noise	release noise
+19259	noise	release noise
+19265	noise	nodejs internal
+19267	noise	packaging internal
+19272	noise	templating internal
+19274	dup	context items in past messages — 上下文携带已有
+19275	noise	arch internal
+19285	dup	JSON message parse errors — 容错已有
+19292	noise	release noise
+19299	dup	save session — 会话保存已有
+19309	dup	session count not message count — 计数已有
+19314	dup	dangerous command once per session — 会话级警告已有
+19316	noise	fallback internal
+19317	boundary	history flicker — their UI
+19318	noise	branch noise
+19321	dup	/resume chronological order — 会话排序已有
+19322	dup	restore files — 恢复已有
+19326	noise	settings internal
+19329	dup	invalid config error reporting — 配置错误已有
+19330	noise	settings internal
+19336	noise	branch noise
+19337	boundary	full screen session — their UI
+19339	boundary	button — their UI
+19380	noise	provider internal
+19383	noise	provider internal
+19384	noise	provider internal
+19411	noise	sdk internal
+19413	noise	hotfix internal
+19433	noise	model internal
+19437	noise	sse internal
+19455	noise	llm-info internal
+19456	noise	model internal
+19458	boundary	dropdown — their UI
+19466	noise	provider internal
+19507	noise	provider internal
+19515	noise	indexing internal
+19522	noise	detection internal
+19544	noise	separator internal
+19594	noise	provider internal
+19599	noise	provider internal
+19600	noise	provider internal
+19611	noise	provider internal
+19696	boundary	submenu — their UI
+19698	dup	codebase retrieval repo map — 检索已有
+19712	noise	snyk dep
+19715	noise	vuln internal
+19721	noise	test internal
+19722	noise	workflow internal
+19739	dup	WSL remote PATH resolution — 远端路径已有
+19740	dup	WSL remote PATH — 已有
+19741	dup	pre-read content WSL — 远端兼容已有
+19742	dup	skip cmd wrap MCP WSL — 远端MCP已有
+19743	dup	tool permissions MCP/bash headless — 无头权限已有
+19744	dup	ide.runCommand WSL — 远端命令已有
+19763	dup	remove TTY headless — 无头模式已有
+19764	dup	remove TTY headless — 已有
+19766	noise	headless internal
+19767	dup	exclude ask-first tools headless — 无头工具门已有
+19777	dup	cn remote command — 远端命令已有
+19778	dup	default model headless — 无头默认已有
+19789	dup	headless errors exit 1 — 错误码已有

@@ -1,0 +1,200 @@
+30308	noise	merge queue forks internal
+30386	boundary	subagent activity UX — their UI
+30393	noise	delegate_to_agent cleanup internal
+30405	dup	subagent compression — 子代理压缩已有
+30901	noise	hardware telemetry internal
+31014	noise	yolo turns log internal
+31063	dup	empty resume sessions — 会话持久化已有
+31483	dup	PreToolUse denial hooks — hook拒绝已有
+31485	dup	Hooks feature — hooks已有
+31486	boundary	worktree dir switcher — their UI
+31504	noise	OTLP exporter internal
+31998	dup	scheduler diagnostics — 调度已有
+32000	boundary	markdown export URL — their product
+32002	dup	slash commands — 命令已有
+32009	noise	empty messages internal
+32013	boundary	recipe icon — their UI
+32623	boundary	ToolCall options — their UI
+33060	boundary	Prompt Library — their product
+33663	dup	ACP cancel race — 取消竞态已有
+33671	boundary	desktop slash commands — their UI
+33722	noise	multi tool calling internal
+33978	boundary	global shortcuts — their UI
+34230	dup	MCP server enhancements — MCP已有
+34307	boundary	MCP-UI proxy — their product
+34309	noise	flaky mcp callers internal
+34310	boundary	Council MCP — their product
+34326	dup	MCP large response race — 竞态已有
+34334	noise	MCP crate cleanup internal
+34354	dup	StreamableHTTP OAuth — OAuth已有
+34359	noise	MCP client swap internal
+34385	boundary	tool call ui — their UI
+34388	boundary	Nostrbook npm — their product
+34462	dup	Skills & Extensions — 技能扩展已有
+34477	dup	open-plugins skills — 插件技能已有
+34479	dup	PATH repair plugin hooks — hook环境已有
+34591	boundary	Extension Manager MCP — their product
+34771	dup	session import — 会话导入已有
+34779	dup	resume deep links — 恢复链接已有
+35023	dup	cron errors — 调度错误已有
+35063	boundary	quarterly scheduler — their product
+35150	boundary	YAML recipes — their product
+35242	noise	model updates revert internal
+35253	dup	subagent instructions — 子代理指令已有
+35261	dup	per-delegate max_turns — 委派参数向已记
+35277	dup	subagent ext selection — 扩展选择已有
+35484	noise	decodeRecipe secret internal
+35487	dup	tool calls not redacted — 脱敏边界已有
+35504	boundary	TUI diff viewer — their UI
+35506	boundary	mention menu — their UI
+35532	boundary	Inference Mesh tab — their UI
+35584	boundary	diff view — their UI
+35695	boundary	wl-copy paste — their UI
+35713	dup	isolate git — git隔离已有
+38514	noise	spawn storms internal
+38711	dup	context compression — 压缩已有
+38740	dup	cancel active — 取消已有
+38764	dup	multi-profile isolation — 配置隔离已有
+38941	dup	password-blind vault — 凭据保险库已有
+38947	boundary	plugin catalog page — their product
+38973	boundary	find-nearby skill — their skill
+39359	boundary	MCP section — their UI
+39465	boundary	usage limits link — their product
+39582	boundary	Jules image — their product
+39753	noise	release notes internal
+39802	dup	reject empty config keys — 配置校验已有
+39913	dup	system prompt templating — 模板已有
+40019	dup	explore subagent skills — 子代理技能已有
+40022	dup	stale config subagent switch — 配置隔离已有
+40058	dup	faster session resume — 恢复已有
+40069	boundary	ACP history sort — their UI
+40252	dup	auto-approve lean mode — 审批已有
+40275	dup	plan mode — 计划模式已有
+40340	dup	auto worktree naming — worktree已有
+40460	noise	OTEL endpoint normalize internal
+40470	dup	OTEL tracing — 追踪已有
+40514	dup	per-model compact threshold — 阈值方向已记
+40604	boundary	keyboard hint color — their UI
+40610	noise	lazy imports internal
+40687	noise	ACP rating telemetry internal
+40705	dup	telemetry URL configurable — 端点可配已有
+40708	noise	IDE detection telemetry internal
+40730	noise	defer imports internal
+40983	boundary	plugins packaging — their product
+42703	boundary	provider plugin onboarding — their product
+43304	dup	trusted tool policy — 可信策略已有
+43306	dup	trusted package redirects — 可信重定向已有
+47433	noise	empty prompt parts internal
+47540	boundary	help button — their UI
+47571	boundary	diff scroll — their UI
+47575	dup	plugin dispose hook — 生命周期已有
+47585	boundary	diff viewer default — their UI
+47587	boundary	diff shortcuts — their UI
+47777	noise	models snapshot ignore internal
+47795	noise	Important heading internal
+47803	boundary	review collab — their product
+47819	boundary	text attachments — their UI
+47927	dup	auto-accept permissions — 自动批准已有
+47931	boundary	tabs styling — their UI
+47932	dup	auto-accept all mode — 审批模式已有
+47948	dup	custom tools file URL — 工具导入已有
+47949	boundary	LSP errors apply_patch — their UI
+47967	noise	info exclude staging internal
+47978	boundary	share button border — their UI
+47987	dup	clear todos on abort — 中止清理已有
+48077	noise	SQLite revert internal
+48083	boundary	worktree delete remove — their product
+48185	dup	user plugins after builtin — 加载序已有
+48234	boundary	builtin badge — their UI
+48312	boundary	tabs navigate — their UI
+48323	dup	file watcher in app — watcher已有
+48325	boundary	tooltips filetree — their UI
+48334	boundary	pill tabs styling — their UI
+48365	boundary	popover focus — their UI
+48503	dup	worktree clean reset — worktree已有
+48521	boundary	variants hint — their UI
+48616	noise	truncation permissions internal
+48717	dup	granular permissions object — 粒度权限已有
+48745	dup	config in worktree — worktree配置已有
+48786	boundary	subagents hint — their UI
+48799	boundary	prisma LS — their editor
+48848	dup	permissions added — 权限已有
+48874	boundary	LSP tool — their editor
+48954	boundary	Gleam LSP — their editor
+48963	boundary	Gleam LSP — their editor
+49033	dup	LSP timeout default — 超时已有
+49054	noise	LSP monorepo internal
+49132	dup	rate limiting zen — 限流已有
+49177	noise	keybinds renamed internal
+49183	noise	keybinds removed internal
+49449	boundary	formatters plugins — their product
+49712	boundary	fork button remove — their UI
+49775	boundary	notification navigate — their UI
+49779	boundary	sidebar default — their UI
+49783	boundary	footer restore — their UI
+49806	boundary	tabs follow session — their UI
+50017	dup	session forking — fork已有
+50070	boundary	remote skills refresh — their cloud
+50145	boundary	WSL paste — their UI
+50275	dup	interruptible compaction — 可中断压缩已有
+50397	boundary	admin unshare api — their product
+50493	dup	managed git worktrees — worktree已有
+51147	dup	MCP auth per-server — OAuth已有
+51237	noise	OAuth error normalize internal
+51240	dup	MCP tools sanitized — 消毒已有
+51241	dup	non-tool permissions — 权限已有
+51260	dup	per-server MCP timeouts — 超时已有
+51295	boundary	MCP UI — their UI
+51306	dup	MCP improvements — MCP已有
+51316	dup	MCP sanitization — 消毒已有
+51512	boundary	prompt history nav — their UI
+51544	noise	stale read revert internal
+51738	noise	snapshot revert internal
+51753	noise	snapshot regression internal
+51773	boundary	localStorage quota — their app
+51836	dup	plan path permissions — 路径权限已有
+51933	noise	jankiness revert internal
+51947	boundary	keybinds tooltips — their UI
+51949	noise	agent model override internal
+51993	boundary	command shortcuts — their UI
+52014	boundary	share page — their UI
+52116	noise	tool calling Windows internal
+52156	noise	modified files empty internal
+52471	boundary	permission indicator — their UI
+52494	dup	plan mode worktree — 计划模式已有
+52513	dup	tools→permission merge — 权限统一已有
+52537	dup	permission system rework — 权限已有
+52709	boundary	auth cli copy — their CLI
+52911	dup	subagent retry status — 重试可见已有
+52931	dup	commands listing subagent — 子代理命令已有
+52932	boundary	subagent hidden — their UI
+52954	dup	skill resource paths — 资源路径已有
+52989	dup	plugin entrypoints — 入口已有
+52991	noise	Effectify plugin internal
+52992	noise	Effectify skill internal
+53016	boundary	skill dialog width — their UI
+53048	boundary	Copilot plugin — their product
+53078	noise	plugin glob patterns internal
+53112	noise	merge plugin selections internal
+53124	noise	plugin tool updates internal
+53130	noise	plugin file name internal
+53196	boundary	draft per tab — their UI
+53210	boundary	titlebar overflow — their UI
+53213	boundary	sidebar paths truncate — their UI
+53215	boundary	Servers tab — their UI
+53222	boundary	tab layouts — their UI
+53309	boundary	titlebar animate — their UI
+53313	boundary	sidebar quirks — their UI
+53329	boundary	prompt docking revert — their UI
+53339	boundary	load tab file — their UI
+53346	boundary	keybind context tab — their UI
+53348	boundary	mute inactive icons — their UI
+53377	boundary	clear notifications — their UI
+53384	dup	notifications child sessions — 子会话通知已有
+53390	boundary	tab file update — their UI
+53433	boundary	review tab — their UI
+53446	boundary	sidebar height — their UI
+53475	boundary	tab suggestion — their UI
+53477	boundary	keybind dialog — their UI
+53507	boundary	sidebar buttons — their UI
+53510	boundary	avatar dot — their UI

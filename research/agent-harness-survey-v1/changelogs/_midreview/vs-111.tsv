@@ -1,0 +1,200 @@
+76129	noise	editor feature
+76130	noise	perf internal
+76131	noise	perf internal
+76133	noise	perf internal
+76135	noise	perf internal
+76138	noise	editor feature
+76151	noise	perf internal
+76160	noise	perf internal
+76212	noise	editor feature
+76221	noise	rename internal
+76225	noise	editor feature
+76232	noise	editor feature
+76234	dup	remember import-update choice — 选择记忆已有
+76238	noise	editor feature
+76239	noise	editor feature
+76240	noise	editor feature
+76241	noise	editor feature
+76242	noise	editor feature
+76243	noise	rename internal
+76248	noise	editor feature
+76259	noise	editor feature
+76260	dup	granted_extension_capabilities — 扩展能力授予已有
+76262	noise	editor feature
+76263	noise	editor feature
+76264	noise	editor feature
+76266	noise	editor feature
+76272	dup	ACP respect always_allow_tool_actions — 允许动作联动已有
+76278	noise	editor feature
+76279	noise	editor feature
+76286	noise	editor feature
+76288	noise	editor feature
+76289	noise	editor feature
+76293	noise	editor feature
+76296	noise	editor feature
+76300	dup	~ in disabled_globs — 家目录展开已有
+76302	noise	editor feature
+76304	noise	editor feature
+76306	noise	editor feature
+76309	noise	revert internal
+76310	noise	editor feature
+76314	noise	editor feature
+76315	noise	prose fragment
+76316	noise	rename internal
+76317	noise	editor feature
+76318	noise	editor feature
+76320	noise	editor feature
+76324	dup	disable predictions per language — 语言级开关已有
+76326	dup	NODE_EXTRA_CA_CERTS passthrough — 证书透传已有
+76332	noise	editor feature
+76333	noise	editor feature
+76334	noise	editor feature
+76336	noise	editor feature
+76338	noise	editor feature
+76344	noise	editor feature
+76347	noise	editor feature
+76353	noise	editor feature
+76356	noise	editor feature
+76364	noise	editor feature
+76370	dup	LS order respects setting — 顺序尊重配置已有
+76376	noise	editor feature
+76382	noise	editor feature
+76383	noise	editor feature
+76384	noise	editor feature
+76386	noise	prose fragment
+76387	noise	config fragment
+76388	noise	config fragment
+76389	noise	config fragment
+76393	noise	editor feature
+76401	noise	cli feature
+76402	noise	editor feature
+76411	noise	config fragment
+76412	noise	editor feature
+76416	noise	editor feature
+76429	noise	editor feature
+76435	noise	prose fragment
+76438	noise	editor feature
+76445	noise	editor feature
+76462	noise	ui feature
+76516	noise	ui feature
+76521	noise	ui feature
+76542	noise	perf internal
+76546	noise	ui feature
+76547	noise	ui feature
+76565	noise	ui feature
+76566	noise	ui feature
+76578	noise	ui feature
+76593	noise	ui feature
+76625	noise	editor feature
+76653	noise	ui feature
+76654	noise	ui feature
+76656	noise	config fragment
+76671	noise	ui feature
+76706	noise	ui feature
+76716	dup	@diagnostics into agent context — 诊断注入已有
+76717	noise	ui feature
+76724	noise	editor feature
+76726	noise	ui feature
+76730	noise	ui feature
+76735	noise	ui feature
+76736	noise	ui feature
+76740	noise	ui feature
+76743	noise	editor feature
+76751	noise	ui feature
+76754	noise	ui feature
+76756	noise	ui feature
+76776	noise	ui feature
+76778	noise	ui feature
+76783	noise	ui feature
+76787	noise	ui feature
+76788	noise	ui feature
+76789	noise	ui feature
+76790	noise	ui feature
+76795	noise	ui feature
+76799	noise	ui feature
+76805	noise	ui feature
+76806	noise	ui feature
+76807	noise	ui feature
+76816	noise	prose fragment
+76817	noise	prose noise
+76832	noise	collab internal
+76844	noise	ui feature
+76850	noise	prose fragment
+76853	noise	ui feature
+76855	noise	ui feature
+76859	noise	ui feature
+76860	noise	ui feature
+76864	noise	editor feature
+76871	noise	editor feature
+76878	noise	ui feature
+76887	dup	auto-retry failed requests — 自动重试已有
+76912	noise	ui feature
+76913	noise	ui feature
+76920	noise	ui feature
+76924	noise	ui feature
+76929	dup	dynamic titles unsaved — 动态标题已有
+76931	noise	ui feature
+76940	noise	ui feature
+76942	dup	cut-paste first-use then copy — 剪贴语义已有
+76944	noise	ui feature
+76945	dup	sound only when backgrounded — 后台通知已有
+76946	noise	ui feature
+76954	noise	ui feature
+76956	noise	ui feature
+76961	noise	editor feature
+76964	noise	ui feature
+76966	noise	ui feature
+76967	noise	ui feature
+76974	noise	revert internal
+76977	noise	ui feature
+76981	noise	prose noise
+76992	noise	prose fragment
+76995	dup	snippets link to source — 源码链接已有
+77008	dup	expose generating state in multibuffer — 生成态可见已有
+77013	noise	prose fragment
+77019	noise	ui prose
+77029	dup	source links above code blocks — 同上dup
+77047	noise	ui feature
+77056	noise	ui feature
+77082	dup	settings errors reported on startup — 启动报错已有
+77088	noise	ui feature
+77101	noise	ui feature
+77105	noise	ui feature
+77106	noise	ui feature
+77107	noise	ui feature
+77112	noise	ui feature
+77113	noise	ui feature
+77131	noise	editor feature
+77134	dup	strikethrough externally-deleted tabs — 外删标记已有
+77136	noise	ui feature
+77142	noise	ui feature
+77143	dup	model selector shows configured only — 已配模型过滤已有
+77153	noise	ui feature
+77190	noise	editor feature
+77192	dup	persist tab pin state — 钉住持久已有
+77196	noise	ui feature
+77213	dup	close tabs for deleted folders — 删除联动关标签已有
+77218	noise	editor feature
+77221	dup	show which messages cached — 缓存可见已有
+77223	dup	show cached messages — 同上dup
+77227	noise	ui feature
+77228	noise	platform noise
+77251	noise	platform noise
+77253	noise	platform noise
+77259	noise	editor feature
+77276	noise	editor feature
+77296	noise	ui feature
+77309	noise	ui feature
+77325	noise	ui feature
+77334	noise	ui feature
+77382	noise	prose noise
+77386	noise	editor feature
+77436	noise	ui feature
+77441	noise	ui feature
+77469	dup	exclude gitignored diagnostics — 忽略文件排除已有
+77471	dup	gitignored diagnostics — 同上dup
+77480	noise	collab internal
+77481	noise	collab internal
+77489	noise	editor feature
+77498	noise	editor feature
+77507	dup	kill procs on terminal close — 进程清理已有

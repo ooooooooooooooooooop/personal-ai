@@ -1,0 +1,200 @@
+49637	dup	nav while modes open — 导航并存已有
+49638	boundary	home screen — their UI
+49640	boundary	virtualized timeline — their UI
+49643	dup	busy error bodies HTTP — 忙错返回已有
+49645	boundary	tab nav — their UI
+49647	dup	debounce VCS refresh — VCS防抖已有
+49648	dup	UnknownError log ref IDs corrupt — 错误脱敏已有
+49649	dup	503 mutations unavailable — 503语义已有
+49650	dup	SessionNotFoundError — 404语义已有
+49653	dup	sort recent updated — 排序已有
+49656	dup	quick-switch pinned only — 切换限定已有
+49659	dup	model suggestions unloaded — 建议恢复已有
+49660	dup	compacted tail on fork — 分叉保留已有
+49661	dup	busy-session errors — 已有
+49662	dup	pinned sessions+quick slots — 钉槽已有
+49663	dup	non-interactive run exit — 无头退出已有
+49664	noise	appstream internal
+49665	dup	model changes persist — 模型持久已有
+49668	dup	no crash messages request fail — 容错已有
+49673	dup	ACP restore model/mode/effort+close — 恢复关清已有
+49676	dup	warp session workspace — 会话迁移已有
+49681	dup	reconnect editor context dir — 上下文重连已有
+49684	dup	fail fast invalid session — 快败已有
+49689	boundary	session id sidebar — their UI
+49729	dup	cursor history loading — 游标加载已有
+49734	boundary	spinner — their UI
+49742	dup	model sticks session — 模型钉住已有
+49765	dup	exit cleanly no hang — 退出清理已有
+49767	dup	last session on project nav — 导航已有
+49769	noise	rework internal
+49776	noise	defensive internal
+49780	boundary	sidebar — their UI
+49803	dup	attachment not found graceful — 附件容错已有
+49828	boundary	skeleton — their UI
+49837	noise	internal
+49852	dup	no notification active session — 通知抑制已有
+49857	boundary	popover delay — their UI
+49862	boundary	gutter — their UI
+49876	boundary	tooltip — their UI
+49887	dup	open workspace session nav — 导航已有
+49894	dup	busy even active — 忙态已有
+49920	boundary	scrollable — their UI
+49922	noise	deprecation noise
+49934	dup	busy indicator — 忙指示已有
+49945	dup	dialog stays on delete fail — 失败保留已有
+49947	boundary	width — their UI
+49955	dup	restore input revert+newest first — 恢复输入已有
+49956	dup	replay history session/load — 回放已有
+49959	dup	replay ACP — 已有
+49970	dup	stats avg/median tokens — 统计已有
+49981	boundary	keybinds — their UI
+49982	dup	task tool resume — 任务恢复已有
+49985	boundary	dot — their UI
+50003	dup	child session cycle — 子会话循环已有
+50004	boundary	keybind — their UI
+50009	dup	diff only modified files — diff限定已有
+50022	noise	revert internal
+50041	dup	close session.list — 资源清理已有
+50049	dup	session.info synced shared — 同步已有
+50050	dup	api only session messages — 范围限定已有
+50051	dup	version on session info — 版本追踪已有
+50078	dup	stable remote project identity — 远端标识已有
+50080	dup	invalid remote MCP URLs clear error — 报错已有
+50093	noise	env internal
+50136	boundary	native picker — their UI
+50173	dup	prompt cache keys per SDK — 缓存键已有
+50177	dup	last desktop URL restarts — 地址持久已有
+50178	dup	selected home project/server — 选择持久已有
+50181	dup	keep recent turns compaction — 尾保留已有
+50182	dup	todo dock collapsed — 折叠持久已有
+50183	dup	variant per session/project — 变体持久已有
+50184	dup	summaries before retained tail — 顺序已有
+50190	dup	preserve_recent_tokens — 预算名已有
+50192	dup	fallback full summary media — 媒体降级已有
+50195	dup	copilot compaction valid — 兼容已有
+50205	dup	compaction agent initiated — 归因已有
+50206	dup	skill presentation token reduce — 令牌精简已有
+50211	dup	fsmonitor daemon leak — 守护清理已有
+50227	dup	no parts in memory — 内存释放已有
+50257	noise	fix internal
+50259	noise	prompt internal
+50270	dup	full text edit summarized — 原文编辑已有
+50278	noise	toggle internal
+50280	dup	nudge continue after compaction — 续推已有
+50281	noise	disable internal
+50283	noise	internal
+50298	dup	file source paths ACP — 路径保留已有
+50299	dup	raw content correct type — 类型正确已有
+50302	dup	warm acp switches — 热切换已有
+50303	dup	clearer project not found — 错误明确已有
+50309	dup	no internal defect details API — 错误脱敏已有
+50313	dup	structured validation errors — 校验错误已有
+50314	dup	auth challenges 401 — 质询已有
+50316	dup	retry server_overloaded — 重试已有
+50317	dup	auth through ACP — 认证透传已有
+50318	dup	workspace routes bridge — 路由挂载已有
+50323	dup	flat reply question API — 响应形已有
+50333	noise	build internal
+50345	dup	no ask question in acp — 工具隐藏已有
+50353	noise	dep internal
+50354	noise	revert internal
+50378	dup	encode images file API — 编码已有
+50386	noise	prose noise
+50387	noise	sdk internal
+50395	noise	sdk internal
+50396	noise	sdk internal
+50399	noise	sdk internal
+50409	noise	pr evidence
+50410	noise	pr evidence
+50414	dup	no stale Copilot item IDs — id去陈已有
+50426	dup	variants sync capabilities — 变体同步已有
+50432	dup	git review modes uncommitted/branch — 评审模式已有
+50433	noise	pr noise
+50435	noise	refactor internal
+50451	noise	test internal
+50469	noise	revert internal
+50476	noise	revert internal
+50484	dup	persist workspace branch — 分支持久已有
+50488	noise	tauri internal
+50490	noise	config fragment
+50501	dup	git watcher ignore non-HEAD — 监视过滤已有
+50513	dup	OIDC_BASE_URL custom — 自定义已有
+50521	dup	GITHUB_TOKEN skip OIDC — 令牌路径已有
+50525	noise	prose noise
+50527	noise	prose noise
+50529	noise	gha internal
+50534	noise	gha internal
+50537	noise	ci internal
+50543	noise	null internal
+50555	dup	workflow perms read — 权限收紧已有
+50565	dup	merge agent perms global — 权限合并已有
+50567	noise	ci internal
+50577	dup	disable lsp non-git — LSP限定已有
+50578	noise	internal
+50588	dup	provider header timeouts 5min — 超时已有
+50607	dup	retry network_error finish — 重试已有
+50618	dup	retry transient provider — 已有
+50624	dup	no deprecated sampling Gemini — 采样更新已有
+50625	dup	connection state refresh immediate — 状态刷新已有
+50631	dup	respect provider reasoning options — 推理遵从已有
+50639	dup	reasoning effort Grok — 档位已有
+50645	dup	unified connect flow — 流程统一已有
+50667	dup	recover once context-overflow — 溢出恢复已有
+50677	boundary	thinking selector — their UI
+50710	dup	provider plugins no mutate shared — 状态隔离已有
+50712	dup	retry dialogs specific — 错误细化已有
+50718	dup	sanitize surrogate chars — 字符净化已有
+50724	dup	provider login stderr — 错误透传已有
+50766	dup	retry rate-limit — 限流重试已有
+50800	dup	avoid schema sibling injection — 注入防护已有
+50848	noise	revert internal
+50898	boundary	cursor — their UI
+50907	boundary	dropdown — their UI
+50939	dup	check provider exists — 存在校验已有
+50975	dup	keys provider/model uniqueness — 键唯一已有
+50993	dup	fallback provider temperature — 温度回退已有
+50996	noise	default internal
+51024	noise	bundled internal
+51044	noise	model internal
+51069	noise	model internal
+51074	dup	filter models without keys — 无钥过滤已有
+51095	dup	pass agent options provider — 选项传递已有
+51105	dup	claude prompt caching check — 缓存检查已有
+51116	noise	fix internal
+51133	dup	no reconnect loop SSE error — 重连环防护已有
+51134	dup	legacy MCP SDK compat — 兼容已有
+51136	dup	reconnect expired sessions concurrent — 过期重连已有
+51143	dup	prefer content over structured — 内容优先已有
+51148	boundary	autocomplete — their UI
+51154	dup	hide template tools denied — 权限隐藏已有
+51156	dup	legacy tool names compat — 名兼容已有
+51162	dup	schema-less tools object props — 模式容错已有
+51165	dup	surface server error text — 错误透传已有
+51166	dup	OAuth pages escape text — 转义已有
+51173	dup	recover expired sessions — 已有
+51174	dup	clear closed clients — 客户端清理已有
+51175	dup	structured output readable — 输出可读已有
+51178	dup	server log notifications surfaced — 日志上抛已有
+51183	dup	fail cleanly setup — 快败已有
+51184	dup	mcp add non-interactive — 无头添加已有
+51186	dup	abort signals tool calls — 取消信号已有
+51187	dup	paginate catalogs — 分页已有
+51188	dup	respect advertised capabilities — 能力遵从已有
+51189	dup	status refresh dir change — 目录刷新已有
+51191	dup	dynamic servers disconnect clean — 断开清理已有
+51194	dup	server not found HTTP — 404已有
+51200	dup	schema failures friendly — 友好错误已有
+51210	dup	OAuth errors native match — 错误对齐已有
+51212	dup	tool call streaming off default — 流默认关已有
+51213	dup	sync state MCP/LSP/workspace — 同步可靠已有
+51219	dup	close transport failed — 传输清理已有
+51238	dup	Promise.all listTools — 并行列举已有
+51242	dup	lax question validation — 校验放宽已有
+51243	boundary	styles — their UI
+51253	dup	truncation applies MCP — 截断适用已有
+51292	dup	cwd in local transport — cwd传递已有
+51294	dup	thinking/tool visibility /copy — 导出开关已有
+51296	boundary	MCP UI — their UI
+51307	boundary	count display — their UI
+51308	boundary	count — their UI
