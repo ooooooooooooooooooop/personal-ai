@@ -1075,3 +1075,43 @@ test('M137 image_detail: low tier halves a PNG; high tier untouched; non-PNG hon
   assert.equal(imageDetail.current, 'low');
   dispose();
 });
+
+// candidates-open dedup-h #19: tasks category purge — closed task dirs are
+// history and purgeable; an open mailbox is a live channel and survives.
+test('instance_purge tasks: closed dirs deleted, open mailbox protected', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-purge-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir, root: dir } };
+  const { TaskStore } = await import('../../host/src/core/tasks.js');
+  const store = new TaskStore(dir);
+  const open = store.create({ label: 'live child' });
+  const closed = store.create({ label: 'done child' });
+  const torn = store.create({ label: 'torn' });
+  store.postInbox(open.task_id, { body: 'x' });
+  store.postInbox(closed.task_id, { body: 'x' });
+  store.setState(closed.task_id, 'closed');
+  // torn meta — a task.json that fails to parse must be KEPT (safer side)
+  writeFileSync(join(dir, 'tasks', torn.task_id, 'task.json'), '{torn');
+  store.postInbox(torn.task_id, { body: 'x' });
+
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const dry = await ch.handle({ type: 'instance_purge', category: 'tasks' });
+  assert.equal(dry.success, true);
+  assert.equal(dry.data.dry_run, true);
+  const dryPaths = dry.data.paths.join('\n');
+  assert.ok(dryPaths.includes(closed.task_id), 'closed task dir in the preview');
+  assert.ok(!dryPaths.includes(open.task_id), 'open task dir absent from preview');
+  assert.ok(!dryPaths.includes(torn.task_id), 'torn meta kept out of the delete set');
+
+  const real = await ch.handle({ type: 'instance_purge', category: 'tasks', dry_run: false });
+  assert.equal(real.success, true);
+  assert.ok(!existsSync(join(dir, 'tasks', closed.task_id, 'task.json')), 'closed task deleted');
+  assert.ok(existsSync(join(dir, 'tasks', open.task_id, 'task.json')), 'open task survives');
+  assert.ok(existsSync(join(dir, 'tasks', torn.task_id, 'task.json')), 'torn task survives');
+  // non-purgeable evidence classes still refuse
+  const bad = await ch.handle({ type: 'instance_purge', category: 'audit', dry_run: false });
+  assert.equal(bad.success, false);
+  dispose();
+});

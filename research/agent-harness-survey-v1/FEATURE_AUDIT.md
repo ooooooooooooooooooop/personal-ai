@@ -1583,7 +1583,7 @@
 | 项 | 终态 |
 |---|---|
 | M82 MCP prompts 上浮 | **落地**——prompts/list 在连接时发现，/mcp-&lt;server&gt;-&lt;prompt&gt; 注册为 slash 命令；prompts/get 展开为用户轮（带 [mcp prompt] 溯源前缀）；必填参数 k=v/位置双绑定、缺失诚实报错不发送；managed-manifest 重钉 |
-| M64 实际删除动作 | **落地**——instance_purge：exports/spool/sessions（除活动会话文件）三类可清；audit/jobs/memory/receipts/schedules/allowlists 为治理证据拒绝；默认 dry_run，删除须显式 dry_run:false，INSTANCE_PURGE 审计 |
+| M64 实际删除动作 | **落地**——instance_purge：exports/spool/sessions（除活动会话文件）+tasks（仅 closed 目录，open/torn 保护）四类可清；audit/jobs/memory/receipts/schedules/allowlists 为治理证据拒绝；默认 dry_run，删除须显式 dry_run:false，INSTANCE_PURGE 审计 |
 | M71 免持久会话 | **落地**——session_new {ephemeral:true} → SessionManager.inMemory；不写 sessionDir、不出现在列表、不可恢复/导出；UI /eph 命令 |
 | M90 workflow 生命周期 | **落地**——job_restart（终态任务的恢复命令以新 job_id 重跑，血缘记审计）+ job_delete（仅终态，删 DB 行+attempt 产物文件）+ 详情面板重启/删除按钮；活动任务两者皆拒 |
 | M92 后台会话页 | **部分 / VARIANT**（外部审查下调）——task 树+mailbox 中心覆盖「后台派遣会话的协调面」，但普通子输出不是完整实况会话时间线；与 Cursor agents 后台会话页是功能变体不是等价物 |
@@ -1905,3 +1905,17 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 通道/UI | `session_new{id?}` 透传（ephemeral 分支不变）；UI `/newid <uuid>` | channel + slash |
 
 **回归**：pi e2e 21/21（本文件模式跑通）；host channel 30/30。
+
+### 28.36 648 清单逐条核销 #5：dedup-h #19 project purge 预览+批量清理（2026-09-23）
+
+**行**：`dedup-h	19	approval-gate	project purge: preview+remove sessions/tasks/history bulk cleanup`。
+
+**判定**：**IMPLEMENTED（tasks 补齐 + UI 面）**——M64 骨架已覆盖 inventory 预览 + purge dry-run/确认/证据类拒绝；本行补齐两处缺口：
+
+| 面 | 落点 | 证据 |
+|---|---|---|
+| tasks 类 | 加入 PURGEABLE——closed 任务目录=历史可清；**open 邮箱=活通道整目录保护**（任一流命中即全目录豁免）；torn task.json 按安全侧保留 | pi channel-facade `instance_purge tasks`：closed 删/open+torn 存/dry-run 预览正确 |
+| "history" 边界 | audit/jobs/memory/receipts/schedules/allowlists **有意不可清**——治理证据，拒绝信息明写理由（非缺失，是边界） | host M64 测试沿用 |
+| UI 面 | `/purge [cat]`：无参→instance_inventory 分类计数渲染；有参→dry-run 预览→confirm→实删 | slash 表新增 |
+
+**回归**：channel-facade 34/34（含新用例）；channel.js 语法/ESM 净。

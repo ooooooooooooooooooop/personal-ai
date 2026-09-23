@@ -3811,6 +3811,29 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #19: project purge — inventory preview + per-category cleanup.
+    // dry-run first, explicit confirm, evidence classes refused host-side.
+    cmd: '/purge', label: '实例清理', hint: '/purge [exports|spool|sessions|tasks]——预览/清理实例产物（审计/记忆/回执不可清）',
+    run: async (arg) => {
+      const cat = String(arg ?? '').trim();
+      if (!cat) {
+        const inv = await cmd('instance_inventory');
+        if (!inv.success) { addSys(`inventory 失败：${inv.error ?? '未知'}`, true); return; }
+        const rows = Object.entries(inv.data?.categories ?? {})
+          .map(([k, v]) => `${k}: ${v.files} 文件 ${(v.bytes / 1024).toFixed(1)}KB`);
+        addSys(`实例产物分布（${inv.data?.root ?? ''}）：\n${rows.join('\n') || '（空）'}\n可清类别：exports / spool / sessions / tasks——/purge <类别>`);
+        return;
+      }
+      const dry = await cmd('instance_purge', { category: cat, dry_run: true });
+      if (!dry.success) { addSys(`清理预览失败：${dry.error ?? '未知'}`, true); return; }
+      const d = dry.data ?? {};
+      if (!confirm(`将永久删除 ${cat} 类 ${d.files ?? 0} 个文件（${((d.bytes ?? 0) / 1024).toFixed(1)}KB）。\n此操作不可撤销，确认执行？`)) return;
+      const r = await cmd('instance_purge', { category: cat, dry_run: false });
+      if (r.success) toast(`已清理 ${cat}：${r.data?.removed ?? 0} 个文件${r.data?.skipped ? `（跳过 ${r.data.skipped}）` : ''}`);
+      else addSys(`清理失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
     cmd: '/job', label: '后台跑命令', hint: '/job <命令>——durable job 后台执行（走 decide 治理链）',
     run: async (arg) => {
       const c = String(arg ?? '').trim();

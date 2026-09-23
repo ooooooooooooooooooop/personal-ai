@@ -1037,16 +1037,34 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           return { root: core.paths.root, categories: out };
         },
         purge: ({ category, dry_run = true } = {}) => {
-          const PURGEABLE = new Set(['exports', 'spool', 'sessions']);
+          const PURGEABLE = new Set(['exports', 'spool', 'sessions', 'tasks']);
           if (!PURGEABLE.has(String(category))) {
             return {
               ok: false,
-              error: `category '${category}' is not purgeable — exports/spool/sessions only; ` +
+              error: `category '${category}' is not purgeable — exports/spool/sessions/tasks only; ` +
                 'audit/jobs/memory/receipts/schedules/allowlists are enforcement evidence',
             };
           }
           const live = box.s.sessionFile ? String(box.s.sessionFile) : null;
-          const files = catFiles(category).filter((f) => f.path !== live);
+          let files = catFiles(category).filter((f) => f.path !== live);
+          // tasks: only CLOSED task dirs are history — an open mailbox is a
+          // live channel the child may still be reading. Whole-dir semantics:
+          // if any stream of an open task matched, drop ALL files of that dir.
+          if (category === 'tasks') {
+            const openDirs = new Set();
+            for (const f of files) {
+              const m = f.rel.match(/tasks[\\/]([^\\/]+)[\\/]task\.json$/);
+              if (!m) continue;
+              try {
+                const meta = JSON.parse(readFileSync(f.path, 'utf-8'));
+                if (meta?.state === 'open') openDirs.add(m[1]);
+              } catch { /* torn meta — treat as closed? no: keep it, a torn task is safer kept */ openDirs.add(m[1]); }
+            }
+            if (openDirs.size) files = files.filter((f) => {
+              const m = f.rel.match(/tasks[\\/]([^\\/]+)[\\/]/);
+              return !m || !openDirs.has(m[1]);
+            });
+          }
           const bytes = files.reduce((a, f) => a + f.bytes, 0);
           if (dry_run !== false) {
             return { ok: true, dry_run: true, category, files: files.length, bytes, paths: files.map((f) => f.rel) };
