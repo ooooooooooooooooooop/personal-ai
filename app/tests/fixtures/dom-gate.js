@@ -6,12 +6,29 @@
  * env: DOM_GATE_URL — the http-bridge base URL.
  */
 import { app, BrowserWindow } from 'electron';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('no-sandbox');
 
 const url = process.env.DOM_GATE_URL;
 if (!url) { console.log('DOMGATE {"ok":false,"error":"no DOM_GATE_URL"}'); app.exit(2); }
+
+// axe-core source, injected into the page after the driver run. The approval
+// card is a safety-critical surface: a11y defects there cause mis-approval, so
+// the a11y check is part of the gate, not an optional extra.
+const AXE_A11Y_ONLY = process.env.DOM_GATE_AXE !== '0';
+let axeSource = '';
+if (AXE_A11Y_ONLY) {
+  try {
+    const require = createRequire(import.meta.url);
+    axeSource = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
+  } catch (e) {
+    axeSource = '';
+    console.error(`dom-gate: axe-core unavailable, a11y check skipped: ${e?.message ?? e}`);
+  }
+}
 
 const DRIVER = `(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -117,6 +134,41 @@ app.whenReady().then(async () => {
     await win.webContents.executeJavaScript(
       'window.__errs=[];window.addEventListener("error",e=>__errs.push(String(e.error?.stack??e.message)));window.addEventListener("unhandledrejection",e=>__errs.push("rej:"+String(e.reason?.stack??e.reason)));1');
     const results = await win.webContents.executeJavaScript(DRIVER);
+
+    // a11y pass — same real DOM, after the driver has driven every surface
+    // into its populated state (ask card, tool cards, job drawer).
+    if (axeSource) {
+      try {
+        await win.webContents.executeJavaScript(axeSource);
+        const axeRaw = await win.webContents.executeJavaScript(`(async () => {
+          const r = await axe.run(document, {
+            resultTypes: ['violations'],
+            rules: {
+              // Offscreen Chromium reports colour-contrast as "incomplete"
+              // without a compositor; not a real defect and not runnable here.
+              'color-contrast': { enabled: false },
+            },
+          });
+          return r.violations.map((v) => ({
+            id: v.id, impact: v.impact, help: v.help,
+            nodes: v.nodes.length,
+            sample: v.nodes.slice(0, 3).map((n) => n.target.join(' ')),
+          }));
+        })()`);
+        const serious = axeRaw.filter((v) => v.impact === 'serious' || v.impact === 'critical');
+        results.checks.a11y = {
+          ok: serious.length === 0,
+          total: axeRaw.length,
+          serious,
+            all: axeRaw.map((v) => `${v.id}(${v.impact}):${v.nodes}`),
+        };
+        if (!results.checks.a11y.ok) results.ok = false;
+      } catch (e) {
+        results.checks.a11y = { ok: false, error: String(e?.message ?? e) };
+        results.ok = false;
+      }
+    }
+
     results.pageErrors = [...(results.pageErrors ?? []), ...consoleErrs].slice(0, 12);
     console.log(`DOMGATE ${JSON.stringify(results)}`);
     app.exit(results?.ok ? 0 : 1);

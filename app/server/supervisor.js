@@ -649,22 +649,33 @@ export class BodySupervisor {
           // composer can inline its content into the outgoing prompt.
           // Boundary is checked on REAL paths — a symlink inside the workdir
           // must not be able to point outside it.
+          //
+          // Order matters: realpath FIRST, existence second. `existsSync` follows
+          // symlinks, so probing it on an unresolvable link returns false and we
+          // would return `not found` while never running the containment check —
+          // i.e. the boundary test would silently not apply to exactly the case
+          // it exists for. Resolve first, and treat a resolution failure as a
+          // boundary violation rather than a benign miss.
           const rel = String(cmd.path ?? '');
           const abs = resolve(this.workdir, rel);
-          if (!existsSync(abs)) return reply(false, undefined, `not found: ${rel}`);
+          let realAbs;
+          try {
+            realAbs = realpathSync(abs);
+          } catch {
+            return reply(false, undefined, 'path escapes workdir');
+          }
           const wd = realpathSync(this.workdir);
-          const realAbs = realpathSync(abs);
           const inside = process.platform === 'win32'
             ? realAbs.toLowerCase().startsWith(wd.toLowerCase() + sep)
             : realAbs.startsWith(wd + sep);
           if (!inside) return reply(false, undefined, 'path escapes workdir');
+          const st = statSync(realAbs);
+          if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
           if (new PaiIgnore(this.workdir).isIgnored(abs)) {
             return reply(false, undefined, `'${rel}' is excluded by .paiignore`);
           }
-          const st = statSync(abs);
-          if (!st.isFile()) return reply(false, undefined, `not a file: ${rel}`);
           if (st.size > 512 * 1024) return reply(false, undefined, `file too large for inline attach (>512KB): ${rel}`);
-          return reply(true, { path: rel, content: readFileSync(abs, 'utf-8'), bytes: st.size });
+          return reply(true, { path: rel, content: readFileSync(realAbs, 'utf-8'), bytes: st.size });
         }
         case 'session_pin': {
           const m = this.#setSessMeta(String(cmd.path ?? ''), { pinned: cmd.pinned !== false });

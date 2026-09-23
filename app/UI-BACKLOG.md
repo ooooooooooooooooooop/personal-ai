@@ -1,5 +1,10 @@
 # app/ui 细节施工单 — 对标 PI-Desktop
 
+> **改动前先读 [`UI-PRINCIPLES.md`](./UI-PRINCIPLES.md)**——那是判断"某功能该不该做、
+> 该排多前、该不该写文字"的判据。本文是具体施工单，冲突时以原则为准。
+> 注意：本文写作时未按原则审视，其中"能力清单/引导向导"类条目（如 C12）
+> 违反原则 1，需按 `UI-PRINCIPLES.md` 重新评估后再做。
+
 来源：`vastsa/PI-Desktop`（本机审计副本 `C:\Desktop\pai-eval\PI-Desktop`，LGPL-3.0 —
 只抄交互与视觉决策，不搬代码）。逐项核过其 `features/chat/**`、`styles/*.css`、
 `packages/i18n/zh-CN` 全部 250 条 chat 文案，并对照我们事件流的真实数据面

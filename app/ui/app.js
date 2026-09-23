@@ -129,8 +129,22 @@ $('jump-latest').onclick = () => {
   transcript.scrollTop = transcript.scrollHeight;
 };
 
+/* Keep transcript bottom padding in sync with composer-dock height so no ask card / message is obscured */
+const composerDock = $('composer-dock');
+if (composerDock && transcript) {
+  const syncTranscriptPadding = () => {
+    const dockH = composerDock.offsetHeight || 140;
+    transcript.style.paddingBottom = `${dockH + 28}px`;
+  };
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(syncTranscriptPadding).observe(composerDock);
+  }
+  syncTranscriptPadding();
+}
+
 /* ---------- minimal markdown (safe: escape first, then structure) ---------- */
 const escHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const escapeHtml = (s) => (s ? escHtml(String(s)) : '');
 function inlineMd(s) {
   return escHtml(s)
     .replace(/`([^`\n]+)`/g, '<code>$1</code>')
@@ -330,22 +344,32 @@ async function checkProjectTrust() {
   if (trustChecked.has(key)) return;
   trustChecked.add(key);
   const div = document.createElement('div');
-  div.className = 'sys';
-  const btn = document.createElement('button');
-  btn.className = 'btn';
-  btn.textContent = '信任此项目';
-  btn.onclick = async () => {
+  div.className = 'trust-card';
+  div.innerHTML = `
+    <div class="trust-head">
+      <svg class="trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span class="trust-title">本地规则自动注入已就绪</span>
+    </div>
+    <div class="trust-body">检测到此目录的 <code>.pai/microagents</code> 包含上下文规则，需经您授权方可注入会话。</div>
+    <div class="trust-foot">
+      <button type="button" class="btn sm trust-ok">信任并启用</button>
+      <button type="button" class="btn ghost sm trust-dismiss">暂不注入</button>
+    </div>
+  `;
+  div.querySelector('.trust-ok').onclick = async () => {
     const g = await cmd('project_trust_set', { trusted: true });
-    if (g.success) { toast('已信任——microagents 自动注入生效'); div.remove(); }
+    if (g.success) { toast('已信任此项目规则'); div.remove(); }
     else addSys(`信任失败：${g.error ?? '未知'}`, true);
   };
-  div.append('此项目的 .pai/microagents 含自动注入知识——信任后才会进 prompt。', btn);
+  div.querySelector('.trust-dismiss').onclick = () => {
+    div.remove();
+  };
   transcript.appendChild(div);
   scrollTail();
 }
 
 function clearTranscript() {
-  transcript.querySelectorAll('.msg,.sys,.tool,.think-row,.handoff-card').forEach((n) => n.remove());
+  transcript.querySelectorAll('.msg,.sys,.tool,.think-row,.handoff-card,.trust-card,.session-recap').forEach((n) => n.remove());
   sawMessage = false;
   nearBottom = true;
 }
@@ -544,12 +568,17 @@ function renderTodos(todos) {
   if (!Array.isArray(todos) || todos.length === 0) { panel.classList.add('hidden'); return; }
   const done = todos.filter((t) => t.status === 'completed').length;
   panel.classList.remove('hidden');
-  panel.innerHTML = `<button class="todo-head"><span class="t-caret">${CARET}</span>任务清单 · ${done}/${todos.length}</button><div class="todo-items"></div>`;
+  panel.innerHTML = `<button class="todo-head" type="button"><span class="t-caret">${CARET}</span><span class="todo-title">任务清单</span><span class="todo-badge">${done}/${todos.length}</span></button><div class="todo-items"></div>`;
   const items = panel.querySelector('.todo-items');
   for (const t of todos) {
     const row = document.createElement('div');
     row.className = `todo-item ${t.status === 'in_progress' ? 'doing' : t.status === 'completed' ? 'done' : ''}`;
-    row.innerHTML = `<span class="todo-box">${t.status === 'completed' ? '☑' : t.status === 'in_progress' ? '◧' : '☐'}</span><span class="todo-text"></span>`;
+    const icon = t.status === 'completed'
+      ? `<svg class="todo-svg done" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z"/></svg>`
+      : t.status === 'in_progress'
+        ? `<span class="todo-dot doing" aria-hidden="true"></span>`
+        : `<span class="todo-dot" aria-hidden="true"></span>`;
+    row.innerHTML = `<span class="todo-box">${icon}</span><span class="todo-text"></span>`;
     row.querySelector('.todo-text').textContent = t.status === 'in_progress' && t.activeForm ? t.activeForm : t.content;
     items.appendChild(row);
   }
@@ -822,7 +851,6 @@ function renderHistoryMsg(m) {
   else if (m.role === 'assistant') {
     if (m.thinking) addThinking(m.thinking);
     if (m.text) addMsg('assistant', m.text);
-    for (const t of m.tools ?? []) addSys(`调用工具 ${t}`);
     for (const md of m.media ?? []) addSys(`媒体块 ${mediaLabel(md)}`);
     if (m.error) addSys(`模型错误：${m.error}`, true);
   } else if (m.role === 'toolResult' || m.role === 'tool_result') {
@@ -930,12 +958,12 @@ $('bell') && ($('bell').onclick = () => {
   if (d.classList.toggle('hidden')) return; // just closed — nothing to paint
   unreadNotify = 0;
   paintBell();
-  const policyRow = `<div class="bell-policy"><label class="dim">通知策略 </label><select id="notify-policy">
-    <option value="always">总是提醒</option><option value="smart">智能（仅错误提醒）</option><option value="never">静默入抽屉</option>
-  </select></div>`;
+  const policyRow = `<div class="bell-head"><div class="bell-title">通知中心</div><div class="bell-policy"><label for="notify-policy" class="bell-policy-label">提醒策略</label><select id="notify-policy" class="bell-select">
+    <option value="always">总是提醒</option><option value="smart">智能提醒</option><option value="never">静默模式</option>
+  </select></div></div>`;
   d.innerHTML = policyRow + (notifyLog.length
     ? notifyLog.map((n) => `<div class="bell-row ${n.level === 'err' ? 'err' : ''}"><span class="bell-time"></span><span class="bell-msg"></span></div>`).join('')
-    : '<div class="dim" style="padding:12px">暂无通知</div>');
+    : '<div class="bell-empty"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg><div>暂无新通知</div><div class="bell-empty-sub">后台警报与长任务完成通知将在此汇总</div></div>');
   const sel = d.querySelector('#notify-policy');
   sel.value = notifyPolicy();
   sel.onchange = () => localStorage.setItem(NOTIFY_POLICY_KEY, sel.value);
@@ -1407,7 +1435,9 @@ function renderSessions() {
       const row = document.createElement('div');
       row.className = `sess${s.path === currentSessionFile ? ' active' : ''}${s.archived ? ' archived' : ''}`;
       const typeTag = s.type === 'teammate' ? '👥 ' : s.type === 'subagent' ? '↳ ' : '';
-      const title = `${typeTag}${s.name || s.firstMessage || '未命名任务'}`;
+      const rawTitle = s.name || s.firstMessage;
+      const cleanTitle = (!rawTitle || rawTitle.trim() === '(no messages)') ? '新对话' : rawTitle;
+      const title = `${typeTag}${cleanTitle}`;
       row.innerHTML = `<span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
       const hit = searchHits?.get(s.path);
@@ -1487,9 +1517,15 @@ function renderSessions() {
 async function switchSession(path) {
   if (path === currentSessionFile) { switchView('chat'); return; }
   const r = await cmd('session_switch', { path });
-  if (!r.success) addSys(`切换会话失败：${r.error ?? '未知'}`, true);
-  else await showRecap();
+  if (!r.success) {
+    addSys(`切换会话失败：${r.error ?? '未知'}`, true);
+  } else {
+    currentSessionFile = path;
+    await showRecap();
+  }
   switchView('chat');
+  await refreshState();
+  renderSessions();
 }
 /* /recap analogue — on returning to a session, an extractive one-liner of
  * where it left off (first prompt + last user prompt + size). Local and
@@ -1501,13 +1537,16 @@ async function showRecap() {
   const lastUser = entries.length ? String(entries[entries.length - 1].text ?? '').trim() : '';
   const first = String(meta?.firstMessage ?? '').trim();
   if (!lastUser && !first) return;
-  const clip = (s) => (s.length > 120 ? `${s.slice(0, 120)}…` : s);
-  const parts = [];
-  if (lastUser) parts.push(`上次你说：「${clip(lastUser)}」`);
-  if (first && first !== lastUser) parts.push(`起始于：「${clip(first)}」`);
-  if (meta?.messageCount) parts.push(`${meta.messageCount} 条消息`);
-  if (meta?.modified) parts.push(`更新于 ${meta.modified.slice(0, 16).replace('T', ' ')}`);
-  addSys(`会话回顾 — ${parts.join(' · ')}`);
+  const clip = (s) => (s.length > 80 ? `${s.slice(0, 80)}…` : s);
+  const timeStr = meta?.modified ? meta.modified.slice(0, 16).replace('T', ' ') : '';
+  const div = document.createElement('div');
+  div.className = 'session-recap';
+  div.innerHTML = `
+    <div class="recap-title">断点恢复 · ${meta?.messageCount ?? 0} 条历史记录 ${timeStr ? `(${timeStr})` : ''}</div>
+    ${lastUser ? `<div class="recap-prompt">上次提问：「${escapeHtml(clip(lastUser))}」</div>` : ''}
+  `;
+  $('transcript').appendChild(div);
+  scrollTail();
 }
 async function refreshSessions() {
   const r = await cmd('session_list');
@@ -1673,9 +1712,6 @@ async function refreshModels() {
   // Gate: no current model → setup card takes over the empty state
   const noModel = modelStatus?.current == null;
   $('setup-card')?.classList.toggle('hidden', sawMessage || !noModel);
-  // first-run tour: model configured + never dismissed + no messages yet
-  $('tour-card')?.classList.toggle('hidden',
-    sawMessage || noModel || localStorage.getItem('pai.onboarded') === '1');
   $('empty-state')?.classList.toggle('hidden', sawMessage || noModel);
   updateChips();
   refreshFallbacks(list.data ?? []);
@@ -1691,7 +1727,7 @@ async function refreshFallbacks(models) {
   fallbackChain = r.success ? (r.data?.chain ?? []) : [];
   list.innerHTML = fallbackChain.length
     ? fallbackChain.map((e, i) => `<div class="set-row"><span class="pill">${i + 1}</span><code class="path-code" style="flex:1">${escHtml(e.provider)}/${escHtml(e.model)}</code><button class="ghost-btn fb-del" data-i="${i}">移除</button></div>`).join('')
-    : '<div class="set-sub">未配置——当前模型失败时无回退</div>';
+    : '<div class="set-sub">未配置</div>';
   for (const b of list.querySelectorAll('.fb-del')) {
     b.onclick = async () => {
       fallbackChain.splice(Number(b.dataset.i), 1);
@@ -1807,10 +1843,6 @@ $('setup-ping') && ($('setup-ping').onclick = async () => {
     msg.className = 'setup-msg err';
   }
 });
-$('tour-dismiss').onclick = () => {
-  localStorage.setItem('pai.onboarded', '1');
-  $('tour-card')?.classList.add('hidden');
-};
 
 /* ---------- modes editor (settings) — project .pai/modes.json ---------- */
 async function refreshModesCard() {
@@ -1827,36 +1859,111 @@ async function refreshModesCard() {
     row.querySelector('.mode-name').textContent = `${m.name}${m.description ? ` — ${m.description}` : ''}`;
     row.querySelector('.mode-src').textContent = m.source ?? '';
   });
-  if (rd?.success && !$('modes-json').dataset.dirty) $('modes-json').value = rd.data.content ?? '';
+  if (rd?.success && !$('modes-json').dataset.dirty) {
+    $('modes-json').value = rd.data.content ?? '';
+    validateJsonInput('modes-json');
+  }
 }
+function validateJsonInput(id) {
+  const el = $(id);
+  const statusEl = $(`${id}-status`);
+  if (!el || !statusEl) return true;
+  const val = el.value.trim();
+  if (!val) {
+    statusEl.textContent = '';
+    statusEl.className = 'json-status';
+    el.classList.remove('has-err');
+    return true;
+  }
+  try {
+    JSON.parse(val);
+    statusEl.textContent = 'JSON 格式正确';
+    statusEl.className = 'json-status ok';
+    el.classList.remove('has-err');
+    return true;
+  } catch (err) {
+    statusEl.textContent = `格式有误: ${err.message.slice(0, 32)}`;
+    statusEl.className = 'json-status err';
+    el.classList.add('has-err');
+    return false;
+  }
+}
+document.querySelectorAll('.json-format').forEach((btn) => {
+  btn.onclick = () => {
+    const targetId = btn.dataset.target;
+    const el = $(targetId);
+    if (!el) return;
+    const val = el.value.trim();
+    if (!val) return;
+    try {
+      const parsed = JSON.parse(val);
+      el.value = JSON.stringify(parsed, null, 2);
+      el.dataset.dirty = '1';
+      validateJsonInput(targetId);
+      toast('已排版 JSON');
+    } catch (e) {
+      toast(`排版失败：${e.message}`, true);
+    }
+  };
+});
 $('modes-save') && ($('modes-save').onclick = async () => {
   const r = await cmd('modes_save', { content: $('modes-json').value });
   const msg = $('modes-msg');
-  if (r.success) { msg.textContent = `已保存 ${r.data.presets} 个预设`; msg.className = 'setup-msg ok'; delete $('modes-json').dataset.dirty; }
-  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+  if (r.success) {
+    msg.textContent = `已保存 ${r.data.presets} 个预设`;
+    msg.className = 'setup-msg ok';
+    delete $('modes-json').dataset.dirty;
+    validateJsonInput('modes-json');
+  } else {
+    msg.textContent = `保存失败：${r.error}`;
+    msg.className = 'setup-msg err';
+  }
   refreshModesCard(); refreshMode();
 });
 /* command prefix lists — .pai/commands.json (deny) + command-allow.json (ask bypass) */
 async function refreshCommandsCard() {
   if (!$('commands-json')) return;
   const [d, a] = await Promise.all([cmd('commands_read'), cmd('command_allow_read')]);
-  if (d?.success && !$('commands-json').dataset.dirty) $('commands-json').value = d.data.content || '';
-  if (a?.success && !$('command-allow-json').dataset.dirty) $('command-allow-json').value = a.data.content || '';
+  if (d?.success && !$('commands-json').dataset.dirty) {
+    $('commands-json').value = d.data.content || '';
+    validateJsonInput('commands-json');
+  }
+  if (a?.success && !$('command-allow-json').dataset.dirty) {
+    $('command-allow-json').value = a.data.content || '';
+    validateJsonInput('command-allow-json');
+  }
 }
 $('commands-save') && ($('commands-save').onclick = async () => {
   const r = await cmd('commands_save', { content: $('commands-json').value });
   const msg = $('commands-msg');
-  if (r.success) { msg.textContent = '已保存'; msg.className = 'setup-msg ok'; delete $('commands-json').dataset.dirty; }
-  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+  if (r.success) {
+    msg.textContent = '已保存';
+    msg.className = 'setup-msg ok';
+    delete $('commands-json').dataset.dirty;
+    validateJsonInput('commands-json');
+  } else {
+    msg.textContent = `保存失败：${r.error}`;
+    msg.className = 'setup-msg err';
+  }
 });
 $('command-allow-save') && ($('command-allow-save').onclick = async () => {
   const r = await cmd('command_allow_save', { content: $('command-allow-json').value });
   const msg = $('command-allow-msg');
-  if (r.success) { msg.textContent = '已保存——命中前缀的命令不再弹批准卡'; msg.className = 'setup-msg ok'; delete $('command-allow-json').dataset.dirty; }
-  else { msg.textContent = `保存失败：${r.error}`; msg.className = 'setup-msg err'; }
+  if (r.success) {
+    msg.textContent = '已保存——命中前缀的命令不再弹批准卡';
+    msg.className = 'setup-msg ok';
+    delete $('command-allow-json').dataset.dirty;
+    validateJsonInput('command-allow-json');
+  } else {
+    msg.textContent = `保存失败：${r.error}`;
+    msg.className = 'setup-msg err';
+  }
 });
 for (const id of ['modes-json', 'commands-json', 'command-allow-json']) {
-  $(id)?.addEventListener('input', () => { $(id).dataset.dirty = '1'; });
+  $(id)?.addEventListener('input', () => {
+    $(id).dataset.dirty = '1';
+    validateJsonInput(id);
+  });
 }
 // 白名单可移植性（command_allow_export/import 接线）：导出=实例目录里落一个
 // 双清单 json；导入=从实例目录里的 json 恢复两张清单。路径被后端收进实例根。
@@ -2048,7 +2155,7 @@ const ACTION_LABEL = { allow: '放行', deny: '拒绝', ask: '询问' };
 function renderGovCard(p) {
   const rows = Object.entries(p.riskActions ?? {});
   $('gov-actions').innerHTML = rows.length
-    ? rows.map(([risk, act]) => `<div class="set-row gov-row"><span class="pill">${RISK_LABEL[risk] ?? risk}</span><span class="gov-act ${act === 'deny' ? 'deny' : act === 'ask' ? 'warn' : ''}">${ACTION_LABEL[act] ?? act}</span></div>`).join('')
+    ? rows.map(([risk, act]) => `<div class="set-row gov-row"><span class="pill">${RISK_LABEL[risk] ?? risk}</span><span class="gov-act ${act === 'deny' ? 'deny' : act === 'ask' ? 'warn' : act === 'allow' ? 'allow' : ''}">${ACTION_LABEL[act] ?? act}</span></div>`).join('')
     : '<div class="set-sub">无风险映射</div>';
   const denied = p.deniedTools ?? [];
   $('gov-denied').textContent = denied.length ? `禁用工具：${denied.join('、')}` : '无显式禁用工具';
@@ -2113,7 +2220,7 @@ async function refreshWorkspaces() {
   const list = r.data?.workspaces ?? [];
   box.innerHTML = '';
   if (!r.success || !list.length) {
-    box.innerHTML = '<div class="set-sub">尚未登记工作区——切换工作目录会自动登记。</div>';
+    box.innerHTML = '<div class="set-sub">暂无登记工作区</div>';
     return;
   }
   for (const w of list) {
@@ -2155,14 +2262,37 @@ $('ws-add').onclick = async () => {
 };
 
 /* ---------- audit / jobs ---------- */
+const AUDIT_KIND_META = {
+  BUDGET_DENIED: { title: '超出预算上限拦截', desc: '单次或累计模型消费超出安全阈值，已暂停调用', icon: '🛑', tag: '安全拦截', cls: 'bad' },
+  RISK_MODE_SET: { title: '安全防护级别更新', desc: '系统防护策略与执行权限模式已调整', icon: '🛡️', tag: '系统策略', cls: 'info' },
+  SESSION_SWITCHED: { title: '工作会话切换', desc: '上下文工作空间与会话流转', icon: '💬', tag: '会话流转', cls: 'info' },
+  BODY_SELECTED: { title: 'AI 执行引擎就绪', desc: '底层 Agent 执行实体已加载并分配租约', icon: '🤖', tag: '引擎状态', cls: 'ok' },
+  BODY_EXITED: { title: 'AI 执行引擎退出', desc: '执行实体进程正常关闭或交接', icon: '⏹️', tag: '引擎状态', cls: 'pending' },
+  TOOL_CALL_DENIED: { title: '高危操作已拦截', desc: '根据治理策略已阻断未授权的工具调用', icon: '⛔', tag: '安全拦截', cls: 'bad' },
+  TOOL_CALL_ASK: { title: '敏感操作待审批', desc: '敏感操作已暂停并等待人工审批确认', icon: '⚠️', tag: '权限审批', cls: 'warn' },
+  TOOL_CALL_ALLOW: { title: '操作审批通过', desc: '用户已授权允许本次操作执行', icon: '✅', tag: '权限审批', cls: 'ok' },
+  POLICY_VIOLATED: { title: '安全规则违规', desc: '检测到超出白名单或违反隔离规则的行为', icon: '⚠️', tag: '安全拦截', cls: 'bad' },
+  JOB_CANCEL_REQUESTED: { title: '后台任务手动终止', desc: '操作员或系统请求停止后台任务', icon: '⏹️', tag: '任务调度', cls: 'pending' },
+  JOB_QUEUED_DEPS: { title: '任务等待前序依赖', desc: '正在等待前置任务执行完成', icon: '⏳', tag: '任务调度', cls: 'pending' },
+  LEASE_ACQUIRED: { title: '工作区写入锁生效', desc: '独占写入租约生效中，防止并发冲突', icon: '🔒', tag: '系统调度', cls: 'info' },
+  SECRETS_REDACTED: { title: '敏感凭据自动脱敏', desc: '检测到私有密钥，已在日志与上下文中自动掩码', icon: '🛡️', tag: '凭据防护', cls: 'warn' },
+  GUARDIAN_BYPASS: { title: '安全哨兵降级放行', desc: '外部审查不可达，已进入本地保障模式', icon: '⚠️', tag: '安全拦截', cls: 'warn' },
+  PREDICTION_INDEX_REBUILT: { title: '本地检索索引重建', desc: '认知与预测索引已同步更新', icon: '📑', tag: '系统维护', cls: 'info' },
+  PROVIDER_HEADERS: { title: '模型网络请求头', desc: '向模型服务发送的底层 HTTP 协议头', icon: '🌐', tag: '底层报文', cls: 'dim' },
+  PROVIDER_REQUEST: { title: '模型网络请求体', desc: '向模型服务发送的序列化请求报文', icon: '📤', tag: '底层报文', cls: 'dim' },
+  PROVIDER_RESPONSE: { title: '模型网络响应流', desc: '模型服务返回的底层数据分片', icon: '📥', tag: '底层报文', cls: 'dim' },
+  TURN_ACCOUNTING: { title: '单轮 Token 计费记录', desc: '交互消耗的 Prompt / Completion Token 统计', icon: '🪙', tag: '底层报文', cls: 'dim' },
+};
+
 const AUDIT_GROUPS = {
-  全部: null,
-  治理: /TOOL_CALL_|GOVERNANCE_|PREDICTION_|FILEOP_|POLICY/,
-  '身体/租约': /LEASE_|HANDOFF|BODY_|SUPERVISOR|SESSION_/,
-  '计费/请求': /PROVIDER_|TURN_ACCOUNTING|MODEL_/,
+  '安全与动态': null,
+  '安全拦截': /DENIED|POLICY|GUARD|BLOCK|ASK|FAIL|ERROR|DRIFT|SECRETS|REDACT/,
+  '引擎与会话': /BODY_|SESSION_|HANDOFF|MODE_|LEASE_/,
+  '全部事件': /./,
+  '底层报文 (Dev)': /PROVIDER_|TURN_ACCOUNTING/,
 };
 let auditCache = [];
-let auditFilter = '全部';
+let auditFilter = '安全与动态';
 let auditSeen = 0;    // lines-from-end cursor: how much history we've pulled
 let auditMore = false; // server says older events exist
 
@@ -2177,6 +2307,7 @@ function renderAuditFilters() {
   box.innerHTML = '';
   for (const g of Object.keys(AUDIT_GROUPS)) {
     const b = document.createElement('button');
+    b.type = 'button';
     b.className = `af-chip${auditFilter === g ? ' on' : ''}`;
     b.textContent = g;
     b.onclick = () => { auditFilter = g; renderAuditFilters(); renderAuditList(); };
@@ -2186,27 +2317,108 @@ function renderAuditFilters() {
 function renderAuditList() {
   const list = $('audit-list');
   list.innerHTML = '';
-  const re = AUDIT_GROUPS[auditFilter];
-  const rows = auditCache.filter((e) => !re || re.test(e.kind ?? ''));
-  if (!rows.length) { list.innerHTML = '<div class="sys">暂无匹配事件</div>'; return; }
+  const rows = auditCache.filter((e) => {
+    const kind = e.kind ?? '';
+    if (auditFilter === '安全与动态') {
+      if (/PROVIDER_|TURN_ACCOUNTING/.test(kind)) return false;
+      return true;
+    }
+    const re = AUDIT_GROUPS[auditFilter];
+    return !re || re.test(kind);
+  });
+  if (!rows.length) { list.innerHTML = '<div class="sess-empty">暂无匹配的安全与治理事件</div>'; return; }
   for (const e of rows) {
     const kind = e.kind ?? '';
+    const meta = AUDIT_KIND_META[kind] || {
+      title: kind.replace(/_/g, ' '),
+      desc: '系统运行事件',
+      icon: '●',
+      tag: '系统事件',
+      cls: auditKindClass(kind)
+    };
     const div = document.createElement('div');
     div.className = 'audit-row';
-    div.innerHTML = `<span class="a-kind ${auditKindClass(kind)}"></span><span class="a-ts"></span><span class="a-run"></span><div class="a-detail hidden"></div>`;
-    div.querySelector('.a-kind').textContent = kind;
-    div.querySelector('.a-ts').textContent = (e.ts ?? e.time ?? '').slice(5, 19).replace('T', ' ');
-    div.querySelector('.a-run').textContent = e.toolName ?? (e.runId ? `run ${String(e.runId).slice(0, 8)}` : '');
+    div.setAttribute('tabindex', '0');
+    div.setAttribute('role', 'button');
+    div.setAttribute('aria-expanded', 'false');
+    const timeStr = (e.ts ?? e.time ?? '').slice(5, 19).replace('T', ' ');
+    const tagHtml = `<span class="a-tag ${meta.cls}">${meta.tag}</span>`;
+    const runInfo = e.toolName ? `工具: ${e.toolName}` : '';
+
+    div.innerHTML = `
+      <div class="a-main">
+        <span class="a-icon">${meta.icon}</span>
+        <div class="a-info">
+          <div class="a-title-row">
+            <span class="a-kind ${meta.cls}">${meta.title}</span>
+            ${tagHtml}
+          </div>
+          <span class="a-sub">${meta.desc}</span>
+        </div>
+      </div>
+      <div class="a-meta">
+        <span class="a-run">${escapeHtml(runInfo)}</span>
+        <span class="a-ts">${timeStr}</span>
+        <svg class="a-caret" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4"/></svg>
+      </div>
+      <div class="a-detail hidden"></div>`;
+
     const detail = div.querySelector('.a-detail');
     const payload = { ...(e.data ?? {}) };
-    detail.textContent = Object.keys(payload).length ? JSON.stringify(payload, null, 2) : '（无附加数据）';
-    div.onclick = () => detail.classList.toggle('hidden');
+    delete payload.parent_run_id;
+    const hasData = Object.keys(payload).length > 0;
+    const jsonStr = hasData ? JSON.stringify(payload, null, 2) : '';
+
+    if (hasData) {
+      detail.innerHTML = `
+        <div class="a-detail-bar">
+          <span class="a-detail-title">事件载荷数据</span>
+          <button type="button" class="btn ghost sm a-copy-btn" title="复制完整事件 JSON">复制 JSON</button>
+        </div>
+        <pre class="a-detail-pre"><code>${escapeHtml(jsonStr)}</code></pre>`;
+      const copyBtn = detail.querySelector('.a-copy-btn');
+      if (copyBtn) {
+        copyBtn.onclick = async (evt) => {
+          evt.stopPropagation();
+          try {
+            await navigator.clipboard.writeText(jsonStr);
+            copyBtn.textContent = '已复制';
+            copyBtn.classList.add('copied');
+            setTimeout(() => {
+              copyBtn.textContent = '复制 JSON';
+              copyBtn.classList.remove('copied');
+            }, 1500);
+          } catch {
+            toast('复制失败', true);
+          }
+        };
+      }
+    } else {
+      detail.innerHTML = '<div class="dim" style="padding:4px 0">（无附加载荷数据）</div>';
+    }
+
+    detail.onclick = (evt) => evt.stopPropagation();
+
+    const toggleRow = () => {
+      const isOpening = detail.classList.contains('hidden');
+      detail.classList.toggle('hidden');
+      div.classList.toggle('open', isOpening);
+      div.setAttribute('aria-expanded', isOpening ? 'true' : 'false');
+    };
+    div.onclick = toggleRow;
+    div.onkeydown = (evt) => {
+      if (evt.key === 'Enter' || evt.key === ' ') {
+        evt.preventDefault();
+        toggleRow();
+      }
+    };
     list.appendChild(div);
   }
   // Full-history paging: the audit log is the governance record — an
   // 80-event window is not oversight. "load earlier" walks the cursor back.
   if (auditMore) {
     const more = document.createElement('button');
+    more.type = 'button';
     more.className = 'btn ghost sm';
     more.style.margin = '8px auto';
     more.style.display = 'block';
@@ -2242,6 +2454,19 @@ function paintGoalLine() {
     + (Array.isArray(subs) && subs.length ? `${text ? '　' : ''}子代理 ×${subs.length}` : '');
 }
 
+$('jobs-clear-history') && ($('jobs-clear-history').onclick = async () => {
+  const r = await cmd('job_list', { n: 100 });
+  const terminal = (r.data ?? []).filter((j) => ['COMPLETED', 'FAILED', 'CANCELLED'].includes(j.job_state));
+  if (!terminal.length) { toast('暂无已结束的历史任务'); return; }
+  let deleted = 0;
+  for (const j of terminal) {
+    const res = await cmd('job_delete', { job_id: j.job_id });
+    if (res.success) deleted++;
+  }
+  toast(`已清理 ${deleted} 条已完成/失败的任务记录`);
+  refreshJobs();
+});
+
 $('jobs-stop-all') && ($('jobs-stop-all').onclick = async () => {
   if (!confirm('全部停止：中止当前运行，并取消所有未完成的持久任务？')) return;
   const r = await cmd('stop_all');
@@ -2259,19 +2484,66 @@ async function refreshJobs() {
   const jobs = r.data ?? [];
   if ($('badge-jobs')) $('badge-jobs').textContent = jobs.length;
   if (!jobs.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">当前无持久运行的后台任务</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-3);padding:32px 20px;font-family:var(--font)">当前无正在运行的后台任务</td></tr>';
     return;
   }
   for (const j of jobs) {
     const tr = document.createElement('tr');
-    // dep-queued: never started, waiting on other jobs — say so, don't show a bare PENDING
     let queued = false;
     try { queued = !j.current_attempt_id && JSON.parse(j.depends_on ?? '[]').length > 0; } catch { /* bad JSON → not queued */ }
-    const cells = [j.job_id?.slice(0, 12) ?? '', j.job_type ?? '', queued ? '排队·等依赖' : (j.job_state ?? ''), (j.updated_at ?? '').slice(0, 19).replace('T', ' ')];
-    tr.innerHTML = cells.map(() => '<td></td>').join('');
-    tr.querySelectorAll('td').forEach((td, i) => { td.textContent = cells[i]; });
+
+    // Human-readable command title with clean prompt styling
+    const typeMap = {
+      shell_command: '终端命令执行',
+      shell: '终端命令执行',
+      file_edit: '文件代码修改',
+      file_write: '文件写入',
+      file_read: '文件读取',
+      test_run: '测试运行'
+    };
+    const isShell = j.job_type === 'shell_command' || j.job_type === 'shell';
+    let rawCmd = j.command || j.label || '';
+    if (!rawCmd && isShell) {
+      // Asynchronously fetch status to populate exact command if missing in summary
+      cmd('job_status', { job_id: j.job_id }).then((st) => {
+        const realCmd = st.data?.detail?.command;
+        if (realCmd) {
+          const titleEl = tr.querySelector('.job-cmd-title');
+          if (titleEl) {
+            const formatted = realCmd.length > 80 ? `${realCmd.slice(0, 80)}…` : realCmd;
+            titleEl.innerHTML = `<span class="job-cmd-prompt">$</span> <span class="job-cmd-text">${escapeHtml(formatted)}</span>`;
+            tr.title = `点击查看终端输出及详情\n指令: ${realCmd}\n(ID: ${j.job_id})`;
+          }
+        }
+      });
+      rawCmd = `后台指令 (${j.job_id.slice(0, 10)})`;
+    }
+    if (!rawCmd) rawCmd = typeMap[j.job_type] || j.job_type || '后台任务';
+    const displayCmd = rawCmd.length > 80 ? `${rawCmd.slice(0, 80)}…` : rawCmd;
+
+    // Human-readable status pill
+    const state = queued ? 'queued' : (j.job_state || '').toLowerCase();
+    const stateMap = {
+      completed: { text: '已完成', icon: '✅', cls: 'done' },
+      failed: { text: '执行失败', icon: '❌', cls: 'err' },
+      running: { text: '运行中', icon: '⏳', cls: 'doing' },
+      pending: { text: '排队中', icon: '⏸', cls: 'pending' },
+      queued: { text: '等待依赖', icon: '⏳', cls: 'pending' },
+      cancelled: { text: '已取消', icon: '⏹', cls: 'pending' }
+    };
+    const s = stateMap[state] || { text: j.job_state || '未知', icon: '●', cls: 'pending' };
+    const statusHtml = `<span class="job-pill ${s.cls}">${s.icon} ${s.text}</span>`;
+    const timeStr = (j.updated_at ?? '').slice(0, 19).replace('T', ' ');
+
+    tr.innerHTML = `<td><span class="job-cmd-title"></span></td><td>${statusHtml}</td><td class="job-time">${timeStr}</td>`;
+    const titleEl = tr.querySelector('.job-cmd-title');
+    if (j.command || rawCmd.startsWith('ping') || rawCmd.startsWith('timeout') || rawCmd.startsWith('npm') || rawCmd.startsWith('pytest') || rawCmd.includes(' ')) {
+      titleEl.innerHTML = `<span class="job-cmd-prompt">$</span> <span class="job-cmd-text">${escapeHtml(displayCmd)}</span>`;
+    } else {
+      titleEl.textContent = displayCmd;
+    }
     tr.classList.add('clickable');
-    tr.title = j.command ?? '';
+    tr.title = `点击查看终端输出及详情 (ID: ${j.job_id})`;
     tr.onclick = () => openJobDetail(j.job_id);
     tbody.appendChild(tr);
   }
@@ -2528,7 +2800,6 @@ async function refreshArtifacts() {
         <td colspan="3" class="empty-cell">
           <svg class="empty-cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
           <div class="empty-cell-title">暂无导出产物</div>
-          <div class="empty-cell-sub">通过 /export 命令导出的 Markdown、JSONL 记录或调试归档将保存在此处，可点击直接打开。</div>
         </td>
       </tr>`;
     return;
@@ -2553,7 +2824,7 @@ async function refreshChanges() {
   const ops = r.data ?? [];
   if ($('badge-changes')) $('badge-changes').textContent = ops.length;
   if (!r.success) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-cell"><div class="empty-cell-title">此身体不支持变更回执</div><div class="empty-cell-sub">当前运行身体未提供 fileops 协议支持。</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-cell"><div class="empty-cell-title">此身体不支持变更回执</div></td></tr>';
     return;
   }
   if (!ops.length) {
@@ -2562,7 +2833,6 @@ async function refreshChanges() {
         <td colspan="4" class="empty-cell">
           <svg class="empty-cell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="M9 15l3 3 3-3"/></svg>
           <div class="empty-cell-title">暂无文件改动回执</div>
-          <div class="empty-cell-sub">当智能体执行 write、edit、delete 工具时，此处将实时记录每次改动并提供差异比对与一键回滚能力。</div>
         </td>
       </tr>`;
     return;
@@ -2593,11 +2863,17 @@ async function refreshChanges() {
       diffRow = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 4;
-      const body = rd.success && rd.data?.diffs?.length
-        ? rd.data.diffs[0].diff
-        : (rd.data?.skipped?.[0]?.reason ?? rd.error ?? '无差异（产物已不在）');
-      td.innerHTML = '<pre class="change-diff"></pre>';
-      td.querySelector('pre').textContent = body;
+      if (rd.success && rd.data?.diffs?.length) {
+        const rows = rd.data.diffs[0].diff.split('\n').map((l) => {
+          const cls = l.startsWith('+') ? 'd-add' : l.startsWith('-') ? 'd-del' : /^@@|^\s*$/.test(l) ? 'd-hunk' : '';
+          return `<span class="${cls}">${escHtml(l)}</span>`;
+        }).join('\n');
+        td.innerHTML = `<pre class="change-diff"><code>${rows}</code></pre>`;
+      } else {
+        const body = rd.data?.skipped?.[0]?.reason ?? rd.error ?? '无差异（产物已不在）';
+        td.innerHTML = '<pre class="change-diff"></pre>';
+        td.querySelector('pre').textContent = body;
+      }
       diffRow.appendChild(td);
       tr.after(diffRow);
     };
@@ -2651,32 +2927,56 @@ async function openJobDetail(jobId) {
   const panel = $('job-detail');
   const r = await cmd('job_status', { job_id: jobId });
   if (!r.success) { toast(`读取任务失败：${r.error ?? '未知'}`, 'err'); return; }
-  const { job, attempts, lease, detail } = r.data ?? {};
+  const { job, detail } = r.data ?? {};
   panel.classList.remove('hidden');
+
+  const isFailed = job?.job_state === 'FAILED';
+  const isCompleted = job?.job_state === 'COMPLETED';
+  const isRunning = detail?.running || job?.job_state === 'RUNNING';
+  const statusLabel = isCompleted ? '✅ 执行完成' : isFailed ? `❌ 运行失败（退出码: ${detail?.exit_code ?? 1}）` : isRunning ? '⏳ 正在运行中…' : (job?.job_state ?? '未知状态');
+  const statusCls = isCompleted ? 'done' : isFailed ? 'err' : isRunning ? 'doing' : 'pending';
+
   panel.innerHTML = `
-    <div class="jd-head"><span class="jd-title"></span><button class="ghost-btn jd-restart hidden">重启</button><button class="ghost-btn warn jd-delete hidden">删除</button><button class="ghost-btn jd-cancel hidden">停止任务</button><button class="icon-btn jd-close" title="关闭">✕</button></div>
-    <div class="jd-grid">
-      <div><span class="jd-k">状态</span><span class="jd-v"></span></div>
-      <div><span class="jd-k">编排</span><span class="jd-v"></span></div>
-      <div><span class="jd-k">尝试</span><span class="jd-v"></span></div>
-      <div><span class="jd-k">写租约</span><span class="jd-v"></span></div>
-      <div><span class="jd-k">退出码</span><span class="jd-v"></span></div>
-      <div class="jd-full jd-deps-row hidden"><span class="jd-k">依赖</span><span class="jd-deps"></span></div>
-      <div class="jd-full"><span class="jd-k">命令</span><pre class="jd-cmd"></pre></div>
+    <div class="jd-head">
+      <div class="jd-title-box">
+        <span class="jd-title">任务详情</span>
+        <span class="jd-id-dim" title="内部任务ID: ${job?.job_id ?? jobId}">ID: ${(job?.job_id ?? jobId).slice(0, 12)}</span>
+      </div>
+      <div class="jd-actions">
+        <button class="ghost-btn jd-restart hidden" type="button">重新运行</button>
+        <button class="ghost-btn warn jd-delete hidden" type="button">删除记录</button>
+        <button class="ghost-btn jd-cancel hidden" type="button">停止任务</button>
+        <button class="icon-btn jd-close" type="button" title="关闭">✕</button>
+      </div>
     </div>
-    <div class="jd-out-label">输出尾部</div>
-    <pre class="jd-out"></pre>
-    <div class="jd-out-label">最近事件</div>
-    <pre class="jd-events"></pre>`;
-  const vs = panel.querySelectorAll('.jd-v');
-  panel.querySelector('.jd-title').textContent = job?.job_id ?? jobId;
-  vs[0].textContent = job?.job_state ?? '—';
-  vs[1].textContent = job?.orchestration_state ?? '—';
-  vs[2].textContent = `${attempts ?? 0} 次`;
-  vs[3].textContent = lease?.writer_id ? `持有：${lease.writer_id}` : '空闲';
-  vs[4].textContent = detail?.exit_code ?? detail?.signal ?? '—';
-  panel.querySelector('.jd-cmd').textContent = detail?.command ?? job?.job_type ?? '—';
-  // Dependency chains: show what the job waits/waited on with per-dep verdicts
+    <div class="jd-card">
+      <div class="jd-row">
+        <div class="jd-row-head">
+          <span class="jd-k">执行指令</span>
+          <button type="button" class="btn ghost sm jd-copy-btn jd-copy-cmd" title="复制执行指令">复制</button>
+        </div>
+        <pre class="jd-cmd"></pre>
+      </div>
+      <div class="jd-row">
+        <span class="jd-k">执行状态</span>
+        <div class="jd-status-badge"><span class="job-pill ${statusCls}">${statusLabel}</span></div>
+      </div>
+      <div class="jd-row jd-deps-row hidden">
+        <span class="jd-k">等待前序依赖</span>
+        <span class="jd-deps"></span>
+      </div>
+      <div class="jd-row">
+        <div class="jd-row-head">
+          <span class="jd-k">终端输出日志</span>
+          <button type="button" class="btn ghost sm jd-copy-btn jd-copy-out" title="复制终端日志">复制</button>
+        </div>
+        <pre class="jd-out"></pre>
+      </div>
+    </div>`;
+
+  const typeMap = { shell_command: '终端命令执行', file_edit: '文件代码修改', file_write: '文件写入', file_read: '文件读取', test_run: '测试运行' };
+  panel.querySelector('.jd-cmd').textContent = detail?.command || typeMap[job?.job_type] || job?.job_type || '—';
+  // Dependency chains: show what the job waits/waited on
   const depRow = panel.querySelector('.jd-deps-row');
   const deps = detail?.depends_on;
   if (deps?.deps?.length) {
@@ -2689,8 +2989,35 @@ async function openJobDetail(jobId) {
     depRow.classList.add('hidden');
   }
   panel.querySelector('.jd-out').textContent = detail?.output_tail || '（暂无输出）';
-  const evLines = (detail?.events ?? []).map((e) => `${(e.timestamp ?? '').slice(11, 19)}  ${e.event_type}`).join('\n');
-  panel.querySelector('.jd-events').textContent = evLines || '（无事件）';
+
+  const cmdCopy = panel.querySelector('.jd-copy-cmd');
+  if (cmdCopy) {
+    cmdCopy.onclick = async () => {
+      const text = panel.querySelector('.jd-cmd')?.textContent ?? '';
+      if (!text || text === '—') return;
+      try {
+        await navigator.clipboard.writeText(text);
+        cmdCopy.textContent = '已复制';
+        setTimeout(() => { cmdCopy.textContent = '复制'; }, 1500);
+      } catch {
+        toast('复制失败', true);
+      }
+    };
+  }
+  const outCopy = panel.querySelector('.jd-copy-out');
+  if (outCopy) {
+    outCopy.onclick = async () => {
+      const text = panel.querySelector('.jd-out')?.textContent ?? '';
+      if (!text || text === '（暂无输出）') return;
+      try {
+        await navigator.clipboard.writeText(text);
+        outCopy.textContent = '已复制';
+        setTimeout(() => { outCopy.textContent = '复制'; }, 1500);
+      } catch {
+        toast('复制失败', true);
+      }
+    };
+  }
   const cancelBtn = panel.querySelector('.jd-cancel');
   const terminal = job?.job_state && ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.job_state);
   const cancellable = detail?.running || (job?.job_state && !terminal);
@@ -2732,6 +3059,11 @@ async function openJobDetail(jobId) {
 const BODY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>';
 let bodiesCache = [];
 
+const BODY_DESC = {
+  pi: '本地轻量引擎 · 零配置极速响应，支持单智能体长程作业',
+  dsh: '分布式协作引擎 · 面向多智能体与节点拓扑互联',
+};
+
 async function refreshBodies() {
   const r = await cmd('body_list');
   const grid = $('body-grid');
@@ -2739,35 +3071,35 @@ async function refreshBodies() {
   bodiesCache = r.data ?? [];
 
   const cur = bodiesCache.find((b) => b.current);
-  $('body-chip').textContent = cur ? `${cur.label} ▾` : '选择身体 ▾';
+  $('body-chip').textContent = cur ? `${cur.label} ▾` : '选择引擎 ▾';
 
   for (const b of bodiesCache) {
     const card = document.createElement('div');
     card.className = `body-card${b.current ? ' current' : ''}`;
-    const caps = b.facts?.verified_capabilities ?? {};
-    const capHtml = Object.entries(caps)
-      .map(([k, v]) => `<span class="cap ${v}" title="${k}">${k.replaceAll('_', ' ')}</span>`)
-      .join('');
     const elig = b.eligibility ?? {};
     const notes = [
-      ...(elig.failClosed ?? []).map((f) => `<div class="fc">✗ ${f.invariant} — ${f.reason}</div>`),
+      ...(elig.failClosed ?? []).map((f) => `<div class="fc">✗ ${f.reason || f.invariant}</div>`),
       ...(elig.degraded ?? []).map((d) => `<div class="dg">△ ${d}</div>`),
     ];
     const pills = [
-      b.current ? '<span class="pill on">当前</span>' : '',
-      b.installed ? '<span class="pill ok">已安装</span>' : '<span class="pill err">未安装</span>',
+      b.current ? '<span class="pill on">使用中</span>' : '',
+      b.installed ? '<span class="pill ok">就绪</span>' : '<span class="pill err">未安装</span>',
       b.has_channel ? '' : '<span class="pill warn">无会话通道</span>',
     ].join('');
+    const desc = BODY_DESC[b.body_id] ?? (b.installed ? '已就绪' : '未检测到环境');
+    const showHint = !b.installed && b.install_hint && !notes.some((n) => n.includes(b.install_hint));
     card.innerHTML = `
       <div class="bc-head">
         <div class="bc-icon">${BODY_ICON}</div>
-        <div><div class="bc-title">${b.label} ${pills}</div><div class="bc-sub">${b.body_id}</div></div>
+        <div>
+          <div class="bc-title">${b.label} ${pills}</div>
+          <div class="bc-sub">${desc}</div>
+        </div>
       </div>
-      <div class="caps">${capHtml || '<span class="cap">无能力事实</span>'}</div>
-      <div class="bc-notes">${notes.join('') || '<div class="ok-line">符合当前任务画像</div>'}</div>
+      ${notes.length ? `<div class="bc-notes">${notes.join('')}</div>` : ''}
       <div class="bc-foot">
-        ${b.installed ? '' : `<span class="bc-hint">${b.install_hint ?? ''}</span>`}
-        ${b.current ? '' : `<button class="use-btn" data-body="${b.body_id}">使用这个身体</button>`}
+        ${showHint ? `<span class="bc-hint">${b.install_hint}</span>` : ''}
+        ${b.current ? '<span class="bc-cur-badge">当前使用中</span>' : (b.installed ? `<button type="button" class="use-btn" data-body="${b.body_id}">切换为此引擎</button>` : '')}
       </div>`;
     const btn = card.querySelector('button[data-body]');
     if (btn) {
@@ -2785,31 +3117,6 @@ async function refreshBodies() {
     }
     grid.appendChild(card);
   }
-  // D6 capability matrix: when ≥2 bodies exist, align their verified
-  // capabilities into one comparison table — diffs are the decision surface.
-  if (bodiesCache.length > 1) {
-    const keys = [...new Set(bodiesCache.flatMap((b) => Object.keys(b.facts?.verified_capabilities ?? {})))];
-    if (keys.length) {
-      const tbl = document.createElement('table');
-      tbl.id = 'body-matrix';
-      tbl.className = 'data-table';
-      tbl.innerHTML = `<thead><tr><th>能力</th>${bodiesCache.map((b) => `<th></th>`).join('')}</tr></thead><tbody></tbody>`;
-      tbl.querySelectorAll('thead th:not(:first-child)').forEach((th, i) => { th.textContent = bodiesCache[i].label ?? bodiesCache[i].body_id; });
-      for (const k of keys) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td></td>${bodiesCache.map(() => '<td></td>').join('')}`;
-        tr.children[0].textContent = k.replaceAll('_', ' ');
-        bodiesCache.forEach((b, i) => {
-          const v = b.facts?.verified_capabilities?.[k];
-          const td = tr.children[i + 1];
-          td.textContent = v === true ? '✓' : v === false || v == null ? '—' : String(v);
-          td.className = v === true ? 'ok' : v ? 'warn' : 'dim';
-        });
-        tbl.querySelector('tbody').appendChild(tr);
-      }
-      grid.appendChild(tbl);
-    }
-  }
 }
 
 async function refreshState() {
@@ -2821,7 +3128,7 @@ async function refreshState() {
   if (s.contextUsage) { lastCtxUsage = s.contextUsage; updateUsageChip(); }
   if (s.session?.file) currentSessionFile = s.session.file;
   const name = s.session?.name;
-  if (currentView === 'chat') $('view-title').textContent = name || '当前任务';
+  if (currentView === 'chat') $('view-title').textContent = name || '新对话';
   await refreshModels();
   renderSessions();
   paintStatusline();
@@ -2872,13 +3179,17 @@ function setStatus(t, kind) {
 }
 
 /* ---------- views ---------- */
-const TITLES = { about: '关于', jobs: '任务', changes: '变更与产物', audit: '审计', bodies: '身体', settings: '设置' };
+const TITLES = { jobs: '后台任务', changes: '文件变更与产物', audit: '安全审计日志', bodies: 'AI 引擎', settings: '设置' };
 let currentView = 'chat';
 function switchView(v) {
   currentView = v;
   for (const item of document.querySelectorAll('.nav-item')) item.classList.toggle('active', item.dataset.view === v);
   for (const sec of document.querySelectorAll('.view')) sec.classList.toggle('hidden', sec.id !== `view-${v}`);
-  if (v === 'chat') $('view-title').textContent = sessionsCache.find((s) => s.path === currentSessionFile)?.name || '当前任务';
+  if (v === 'chat') {
+    const curS = sessionsCache.find((s) => s.path === currentSessionFile);
+    const rawN = curS?.name || curS?.firstMessage;
+    $('view-title').textContent = (!rawN || rawN.trim() === '(no messages)') ? '新对话' : rawN;
+  }
   else $('view-title').textContent = TITLES[v] ?? '';
   if (v === 'jobs') { refreshJobs(); if (activeTask) startTaskPoll(); }
   else stopTaskPoll();
@@ -2937,7 +3248,7 @@ async function refreshAbout() {
     `<div class="ev-chip"><div class="ev-k">${escHtml(k)}</div><div class="ev-v">${escHtml(v)}</div></div>`).join('');
 }
 $('body-chip').onclick = () => switchView('bodies');
-$('empty-about').onclick = () => switchView('about');
+$('empty-about') && ($('empty-about').onclick = () => switchView('about'));
 
 /* sidebar collapse — remembered across launches */
 const applySide = (collapsed) => {
@@ -2958,7 +3269,7 @@ function autogrow() {
 }
 /* ---------- slash commands — every entry maps to a real command ---------- */
 const SLASH = [
-  { cmd: '/new', label: '新建任务', hint: '开一个干净会话', run: () => $('new-task').click() },
+  { cmd: '/new', label: '新建对话', hint: '开启一个新的干净对话', run: () => $('new-task').click() },
   { cmd: '/abort', label: '中止运行', hint: '停止当前任务', run: async () => { await cmd('abort'); } },
   { cmd: '/model', label: '选择模型', hint: '弹出模型菜单', run: () => $('model-chip').click() },
   {
@@ -3382,14 +3693,14 @@ const SLASH = [
       else addSys(`删除失败：${r.error ?? '未知'}`, true);
     },
   },
-  { cmd: '/sessions', label: '任务列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },
-  { cmd: '/body', label: '身体面板', hint: '谁在驾驶', run: () => switchView('bodies') },
-  { cmd: '/jobs', label: '持久任务', hint: '跨重启的任务', run: () => switchView('jobs') },
-  { cmd: '/changes', label: '变更与产物', hint: '文件变更回执，可恢复', run: () => switchView('changes') },
-  { cmd: '/audit', label: '审计日志', hint: '治理事件流', run: () => switchView('audit') },
-  { cmd: '/settings', label: '设置', hint: '模型与工作目录', run: () => switchView('settings') },
+  { cmd: '/sessions', label: '对话列表', hint: '聚焦搜索框', run: () => { switchView('chat'); $('side-filter').focus(); } },
+  { cmd: '/body', label: 'AI 引擎', hint: '查看与切换当前执行引擎', run: () => switchView('bodies') },
+  { cmd: '/jobs', label: '后台任务', hint: '查看后台自动化任务与计划作业', run: () => switchView('jobs') },
+  { cmd: '/changes', label: '文件变更', hint: '查看文件改动回执与导出产物', run: () => switchView('changes') },
+  { cmd: '/audit', label: '安全日志', hint: '安全规则与治理事件流', run: () => switchView('audit') },
+  { cmd: '/settings', label: '系统设置', hint: '模型密钥与工作目录', run: () => switchView('settings') },
   {
-    cmd: '/clear', label: '清空开始', hint: '新会话（同 /new）', run: () => $('new-task').click(),
+    cmd: '/clear', label: '清空开始', hint: '开启新对话（同 /new）', run: () => $('new-task').click(),
   },
   {
     // M81 named profiles: snapshot {model, thinking, mode} as a switchable pack

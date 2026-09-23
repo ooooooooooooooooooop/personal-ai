@@ -78,6 +78,7 @@ test('ui-dom: six experience surfaces render real data in the actual DOM', async
     const line = buf.split('\n').find((l) => l.startsWith('DOMGATE '));
     assert.ok(line, `electron produced no DOMGATE line (exit ${code})\nstderr: ${errBuf.slice(-2000)}`);
     const gate = JSON.parse(line.slice(8));
+    if (process.env.DOM_GATE_DUMP === '1') console.error(`GATEDUMP ${JSON.stringify(gate.checks, null, 1)}`);
     assert.equal(gate.ok, true, `DOM checks failed: ${JSON.stringify(gate, null, 1)}`);
     for (const [name, c] of Object.entries(gate.checks)) {
       assert.equal(c.ok, true, `check '${name}' failed: ${JSON.stringify(c)}`);

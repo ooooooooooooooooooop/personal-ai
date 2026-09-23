@@ -17,43 +17,49 @@
       <button id="side-toggle" type="button" class="icon-btn" title="收起侧栏" aria-label="收起侧栏">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5l-6 7 6 7M19 5l-6 7 6 7"/></svg>
       </button>
-      <button id="new-task" type="button" class="new-btn">
+      <button id="new-task" type="button" class="new-btn" title="开启一个新的干净对话">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-        新建任务
+        新建对话
       </button>
     </div>
 
     <div class="side-search">
-      <input id="side-filter" type="text" placeholder="搜索任务…">
+      <input id="side-filter" type="text" placeholder="搜索历史对话…">
     </div>
 
     <div id="session-list"></div>
 
     <nav class="side-nav">
-      <button type="button" class="nav-item" data-view="jobs">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
-        任务
-      </button>
-      <button type="button" class="nav-item" data-view="changes">
+      <div class="side-section-title">工作区</div>
+      <button type="button" class="nav-item" data-view="changes" title="查看 AI 产生的文件变更回执与导出产物">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-        变更
+        <span>文件变更与产物</span>
       </button>
-      <button type="button" class="nav-item" data-view="audit">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H8z"/><path d="M11 8h5M11 12h5M11 16h3"/></svg>
-        审计
-      </button>
-      <button type="button" class="nav-item" data-view="bodies">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>
-        身体
-      </button>
-      <button type="button" class="nav-item" data-view="settings">
+      <button type="button" class="nav-item" data-view="settings" title="配置模型密钥、工作目录与偏好">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34h.09a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55h.09a1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83-2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87v.09a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.55 1z"/></svg>
-        设置
+        <span>系统设置</span>
       </button>
-      <button type="button" class="nav-item" data-view="about">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-        关于
-      </button>
+
+      <details class="side-advanced-group">
+        <summary class="side-advanced-toggle" title="展开底层系统诊断与高级监控">
+          <span>高级监控</span>
+          <svg class="side-adv-arrow" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6l4 4 4-4"/></svg>
+        </summary>
+        <div class="side-advanced-items">
+          <button type="button" class="nav-item" data-view="jobs" title="查看后台正在运行的长程自动化任务与计划作业">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+            <span>后台任务</span>
+          </button>
+          <button type="button" class="nav-item" data-view="bodies" title="管理底层执行引擎（Pi / DSH 等）">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>
+            <span>AI 引擎</span>
+          </button>
+          <button type="button" class="nav-item" data-view="audit" title="查看安全规则判定、凭据过滤与 Token 消耗审计">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h8l4 4v14H8z"/><path d="M11 8h5M11 12h5M11 16h3"/></svg>
+            <span>安全日志</span>
+          </button>
+        </div>
+      </details>
     </nav>
 
     <div class="side-foot">
@@ -68,13 +74,13 @@
       <button id="side-expand" type="button" class="icon-btn no-drag hidden" title="展开侧栏" aria-label="展开侧栏">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5l6 7-6 7M5 5l6 7-6 7"/></svg>
       </button>
-      <span id="view-title">新建任务</span>
+      <span id="view-title">新对话</span>
       <span class="spacer"></span>
       <button id="bell" type="button" class="icon-btn no-drag hidden" title="通知记录" aria-label="通知记录">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
         <span id="bell-count" class="bell-count hidden"></span>
       </button>
-      <button id="body-chip" type="button" class="chip no-drag" title="当前身体——点击管理" aria-label="当前身体"></button>
+      <button id="body-chip" type="button" class="chip no-drag" title="当前 AI 引擎——点击管理与切换" aria-label="当前 AI 引擎"></button>
       <div id="bell-drawer" class="bell-drawer hidden"></div>
     </div>
 
@@ -86,28 +92,14 @@
         <div id="empty-state">
           <svg class="mascot" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><circle cx="19" cy="18" r="2"/></svg>
           <div class="empty-title">今天想做点什么？</div>
-          <div class="empty-sub">输入一条消息开始。治理、审计与持久化在底下照常运转。</div>
-          <div class="empty-sub"><button id="empty-about" type="button" class="link-btn">它是什么、能做什么、有意不做什么——看「关于」页（附本机运行证据）</button></div>
           <div id="starters">
-            <button type="button" class="starter" data-q="浏览当前工作目录，告诉我这个项目是做什么的">这个项目是做什么的？</button>
-            <button type="button" class="starter" data-q="检查工作目录里的测试能不能跑通，失败了先读错误再修">跑一遍测试并修失败</button>
-            <button type="button" class="starter" data-q="先列个计划给我确认，别急着改">帮我规划下一步改动</button>
-          </div>
-          <div id="tour-card" class="hidden">
-            <div class="tour-title">五个入口，足够走通一遍</div>
-            <ul class="tour-list">
-              <li><code>/</code> 打开命令菜单——会话、任务、记忆、导出都在里面</li>
-              <li><code>@</code> 提及文件或目录，把它带进上下文</li>
-              <li>顶栏「模式」切审批预设，「模型」随时换</li>
-              <li>左侧「任务」页看委派进度和子任务信箱</li>
-              <li>设置里管记忆、换主题、配工作目录</li>
-            </ul>
-            <button id="tour-dismiss" type="button" class="btn">知道了，开始</button>
+            <button type="button" class="starter" data-q="浏览当前工作目录，告诉我这个项目是做什么的">浏览项目，了解架构</button>
+            <button type="button" class="starter" data-q="检查工作目录里的测试能不能跑通，失败了先读错误再修">运行项目测试并排错</button>
+            <button type="button" class="starter" data-q="先列个计划给我确认，别急着改">规划下一步改动方案</button>
           </div>
         </div>
         <div id="setup-card" class="hidden">
-          <div class="setup-title">先接一个模型</div>
-          <div class="setup-sub">选一个提供方，粘贴 API Key——保存在本地实例的 auth 存储里，从不回显。</div>
+          <div class="setup-title">连接模型服务</div>
           <div class="setup-row">
             <select id="setup-provider"></select>
           </div>
@@ -132,7 +124,7 @@
         <div id="todo-panel" class="hidden"></div>
         <div id="composer">
           <div id="attach-row" class="hidden"></div>
-          <textarea id="input" rows="1" placeholder="分配任务，或询问任何问题…（!命令直接执行、#记忆、@文件、可粘贴/拖入文件或图片）"></textarea>
+          <textarea id="input" rows="1" placeholder="输入需求或问题…"></textarea>
           <div class="composer-bar">
             <button id="steer" type="button" class="ghost-btn" title="运行中追加指示" disabled>插话</button>
             <span id="usage-chip" class="chip dim usage" title="上下文用量 / 本会话成本——点击看分解"></span>
@@ -158,30 +150,29 @@
     <section id="view-jobs" class="view hidden">
       <div class="page-head">
         <div class="page-head-main">
-          <h1>任务控制台</h1>
-          <p class="page-sub">跨进程持久作业、自动化调度与智能体协作信箱</p>
+          <h1>任务与执行历史</h1>
         </div>
         <span class="spacer"></span>
-        <button id="jobs-stop-all" type="button" class="btn ghost sm" title="中止当前运行并取消所有未完成的持久任务">全部停止</button>
+        <button id="jobs-clear-history" type="button" class="btn ghost sm" title="清空已完成或失败的历史任务记录">清理历史</button>
+        <button id="jobs-stop-all" type="button" class="btn sm danger" title="中止当前运行并取消所有未完成的持久任务">全部停止</button>
       </div>
 
       <div class="jobs-subnav">
         <div class="jobs-tabs">
-          <button type="button" class="jtab active" data-jtab="jobs">持久任务 <span id="badge-jobs" class="jtab-badge">0</span></button>
-          <button type="button" class="jtab" data-jtab="schedules">定时调度 <span id="badge-schedules" class="jtab-badge">0</span></button>
-          <button type="button" class="jtab" data-jtab="goals">长期目标 <span id="badge-goals" class="jtab-badge">0</span></button>
-          <button type="button" class="jtab" data-jtab="tasks">协作信箱 <span id="badge-tasks" class="jtab-badge">0</span></button>
-          <button type="button" class="jtab" data-jtab="monitors">值守监视 <span id="badge-monitors" class="jtab-badge">0</span></button>
+          <button type="button" class="jtab active" data-jtab="jobs">后台任务 <span id="badge-jobs" class="jtab-badge">0</span></button>
+          <button type="button" class="jtab" data-jtab="schedules">定时计划 <span id="badge-schedules" class="jtab-badge">0</span></button>
+          <button type="button" class="jtab hidden" data-jtab="goals" style="display:none">长期目标 <span id="badge-goals" class="jtab-badge">0</span></button>
+          <button type="button" class="jtab hidden" data-jtab="tasks" style="display:none">协作信箱 <span id="badge-tasks" class="jtab-badge">0</span></button>
+          <button type="button" class="jtab hidden" data-jtab="monitors" style="display:none">值守监视 <span id="badge-monitors" class="jtab-badge">0</span></button>
         </div>
       </div>
 
       <div class="jobs-content">
-        <!-- 面板 1：持久任务 -->
+        <!-- 面板 1：后台任务 -->
         <div id="panel-jobs" class="jobs-panel">
-          <div class="panel-tip">独立运行、跨进程重启与身体切换保持存活的后台作业</div>
           <div class="table-card">
             <table id="jobs">
-              <thead><tr><th>job</th><th>类型</th><th>状态</th><th>更新时间</th></tr></thead>
+              <thead><tr><th>任务内容与指令</th><th>状态</th><th>更新时间</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -190,7 +181,6 @@
 
         <!-- 面板 2：定时调度 -->
         <div id="panel-schedules" class="jobs-panel hidden">
-          <div class="panel-tip">按 Cron 表达式或固定周期自动触发的自动化持久调度</div>
           <div class="table-card">
             <table id="schedules">
               <thead><tr><th>id</th><th>调度类型</th><th>下次触发</th><th>上次运行</th><th>指令与标签</th><th>操作</th></tr></thead>
@@ -201,7 +191,6 @@
 
         <!-- 面板 3：长期目标 -->
         <div id="panel-goals" class="jobs-panel hidden">
-          <div class="panel-tip">由自治协调器持续推进的多回合上下文目标追踪</div>
           <div id="goal-line" class="goal-line hidden"></div>
           <div class="table-card">
             <table id="goals">
@@ -213,7 +202,6 @@
 
         <!-- 面板 4：AgentTask 协作 -->
         <div id="panel-tasks" class="jobs-panel hidden">
-          <div class="panel-tip">父子智能体委派信箱（Mailbox），支持运行中双向插话指导与事件流同步</div>
           <div class="table-card">
             <table id="tasks">
               <thead><tr><th>task</th><th>标签</th><th>状态</th><th>关联作业</th><th>消息计数</th></tr></thead>
@@ -233,7 +221,6 @@
 
         <!-- 面板 5：值守监视（fs watch → 变化时以给定指令唤醒一次会话） -->
         <div id="panel-monitors" class="jobs-panel hidden">
-          <div class="panel-tip">盯住一个文件或目录——内容变化时自动以指定指令发起一轮会话（每次触发都进审计）</div>
           <div class="set-row">
             <input id="mon-path" type="text" class="flex-1" placeholder="监视路径（相对 workdir 或绝对路径）">
           </div>
@@ -255,8 +242,7 @@
     <section id="view-changes" class="view hidden">
       <div class="page-head">
         <div class="page-head-main">
-          <h1>变更与产物</h1>
-          <p class="page-sub">FileOpsGuard 文件改写回执流与运行产物</p>
+          <h1>文件变更与产物</h1>
         </div>
       </div>
 
@@ -270,7 +256,6 @@
       <div class="changes-content">
         <!-- 面板 1：文件变更回执 -->
         <div id="panel-changes" class="changes-panel">
-          <div class="panel-tip">每一次文件写入、编辑或删除都留存了可逆回执，可随时查看差异或一键回滚工作区。</div>
           <div class="table-card">
             <table id="changes">
               <thead><tr><th>操作</th><th>文件路径</th><th>变更时间</th><th>操作与回滚</th></tr></thead>
@@ -281,7 +266,6 @@
 
         <!-- 面板 2：运行产物 -->
         <div id="panel-artifacts" class="changes-panel hidden">
-          <div class="panel-tip">导出的会话记录、debug 分析包、截图与数据件，点击即可直接打开或下载。</div>
           <div class="table-card">
             <table id="artifacts">
               <thead><tr><th>产物文件</th><th>大小</th><th>生成时间</th></tr></thead>
@@ -294,72 +278,33 @@
 
     <section id="view-audit" class="view hidden">
       <div class="page-head">
-        <h1>审计</h1>
-        <p class="page-sub">治理与运行时事件流——谁在何时做了什么决定。</p>
+        <h1>安全与审计日志</h1>
       </div>
-      <div id="audit-filters" class="audit-filters"></div>
-      <div id="audit-list"></div>
+      <div class="audit-content">
+        <div id="audit-filters" class="audit-filters"></div>
+        <div id="audit-list"></div>
+      </div>
     </section>
 
     <section id="view-bodies" class="view hidden">
       <div class="page-head">
-        <h1>身体</h1>
-        <p class="page-sub">谁在驾驶由你决定。能力事实实测登记；不满足必要不变量的身体会被 fail-closed 拒绝执行。</p>
+        <h1>AI 执行引擎</h1>
       </div>
       <div id="body-grid"></div>
     </section>
 
-    <section id="view-about" class="view hidden">
-      <div class="page-head">
-        <h1>关于 Personal AI</h1>
-        <p class="page-sub">本地单机、单用户的受治理 agent 宿主——不是聊天壳。</p>
-      </div>
-
-      <div class="set-card">
-        <div class="set-card-title">它是什么</div>
-        <p class="about-p">每条工具调用过治理链（deny / ask / allow 格，drift 即终止），每次文件变更留可逆回执，每个长跑任务是跨重启存活的 durable job，每次模型消费进预算账本。身体可换（pi / dsh），协议与治理不变。</p>
-      </div>
-
-      <div class="set-card">
-        <div class="set-card-title">现在能做什么</div>
-        <ul class="about-list">
-          <li><b>会话</b>——fork / rewind（可只回文件不动时间线）/ 跨会话搜索召回 / 导出 / 自动+手动压缩</li>
-          <li><b>委派</b>——delegate_task 起 durable 子任务：信箱双向 steer、预算切片、画像（model / effort / steering 隔离 / env 收窄 / 时长帽）</li>
-          <li><b>治理</b>——批准卡、项目信任门、命令白/黑名单、模式预设、操作员否决钩、秘密扫描、循环检测、错误连击升级</li>
-          <li><b>上下文</b>——repo_map 结构大纲、@文件、钉文件、steering / microagent 知识、记忆、旧会话限界读取</li>
-          <li><b>自动化</b>——durable 调度、写后 verify 反思环、spec 三件套、recipe / plan 库</li>
-          <li><b>集成</b>——MCP、LSP、浏览器工具、web 搜索/抓取、多提供方+自定义端点</li>
-        </ul>
-      </div>
-
-      <div class="set-card">
-        <div class="set-card-title">有意不做（边界，不是缺漏）</div>
-        <ul class="about-list">
-          <li>远程执行目标（SSH / WSL / Docker）——改写信任边界，等真实需求驱动</li>
-          <li>脚本化编排 DAG / 多智能体 swarm——mailbox + task 树地基已备，编排面等拍板</li>
-          <li>OS 级沙箱 / marketplace / 多客户端挂载——与单机单用户定位冲突</li>
-          <li>原生 PDF——模型无 document 模态时诚实降级为描述符，不假装看过</li>
-          <li>双模型常驻编队 / LLM 判官审批——第二路常驻开销与政策敏感，裁定推迟</li>
-        </ul>
-      </div>
-
-      <div class="set-card">
-        <div class="set-card-title">运行证据（本机实况，不是文案）</div>
-        <div id="about-evidence" class="ev-grid"></div>
-        <div class="set-sub">复核路径：审计页看治理事件流；变更页看 FileOps 回执可一键恢复；任务页看 durable job 跨重启存活；输入 <code>/skills</code> 看每个技能的注入成本与命中率。</div>
-      </div>
-    </section>
-
     <section id="view-settings" class="view hidden">
-      <div class="page-head">
+      <div class="page-head set-head">
         <h1>设置</h1>
         <div class="set-nav-pills">
-          <button type="button" class="set-pill" onclick="document.getElementById('card-model')?.scrollIntoView({behavior:'smooth',block:'start'})">模型服务</button>
-          <button type="button" class="set-pill" onclick="document.getElementById('card-appearance')?.scrollIntoView({behavior:'smooth',block:'start'})">外观界面</button>
-          <button type="button" class="set-pill" onclick="document.getElementById('card-memory')?.scrollIntoView({behavior:'smooth',block:'start'})">记忆知识</button>
-          <button type="button" class="set-pill" onclick="document.getElementById('card-workdir')?.scrollIntoView({behavior:'smooth',block:'start'})">工作目录</button>
-          <button type="button" class="set-pill" onclick="document.getElementById('card-governance')?.scrollIntoView({behavior:'smooth',block:'start'})">策略与治理</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-model')?.scrollIntoView({behavior:'smooth',block:'start'})">模型凭据</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-commands')?.scrollIntoView({behavior:'smooth',block:'start'})">命令准入</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-governance')?.scrollIntoView({behavior:'smooth',block:'start'})">策略治理</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-budget')?.scrollIntoView({behavior:'smooth',block:'start'})">预算上限</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-modes')?.scrollIntoView({behavior:'smooth',block:'start'})">运行模式</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-workdir')?.scrollIntoView({behavior:'smooth',block:'start'})">工作目录</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-memory')?.scrollIntoView({behavior:'smooth',block:'start'})">长期记忆</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-appearance')?.scrollIntoView({behavior:'smooth',block:'start'})">外观界面</button>
         </div>
       </div>
 
@@ -384,11 +329,11 @@
           <label>推理强度</label>
           <select id="set-thinking"></select>
         </div>
-        <div class="set-sub">可用模型（有凭据的提供方才出现）</div>
+        <div class="set-sub">可用模型</div>
         <div id="set-models"></div>
         <div id="set-model-msg" class="setup-msg"></div>
 
-        <div class="set-sub mt-14">自定义提供方（OpenAI / Anthropic 兼容端点，比如本地网关）</div>
+        <div class="set-sub mt-14">自定义提供方</div>
         <div class="set-row">
           <input id="cp-id" type="text" placeholder="提供方 ID，如 cpa">
           <input id="cp-model" type="text" placeholder="模型 ID">
@@ -409,7 +354,7 @@
           <span id="cp-msg" class="setup-msg mt-0"></span>
         </div>
 
-        <div class="set-sub mt-14">故障转移链（当前模型失败时按序回退，最多 8 级）</div>
+        <div class="set-sub mt-14">故障转移链</div>
         <div id="fallback-list"></div>
         <div class="set-row">
           <select id="fb-model"></select>
@@ -434,7 +379,6 @@
             <option value="on">批准/完成时响</option>
           </select>
         </div>
-        <div class="set-sub">界面偏好，存本机——不影响任何治理或会话状态。</div>
       </div>
 
       <div class="set-card" id="card-memory">
@@ -446,7 +390,6 @@
         </div>
         <div id="mem-list" class="mem-list"></div>
         <div id="mem-distill-msg" class="setup-msg"></div>
-        <div class="set-sub">pinned 记忆每轮注入上下文（标注为不可信证据）；被遗忘的条目移出召回但保留审计。</div>
       </div>
 
       <div class="set-card" id="card-workdir">
@@ -455,26 +398,30 @@
           <code id="set-workdir" class="path-code"></code>
           <button id="set-pick-dir" type="button" class="btn">浏览…</button>
         </div>
-        <div class="set-sub">身体在此目录里读写文件。修改会重启当前身体。</div>
         <div id="workspace-list" class="ws-list"></div>
         <div class="set-row">
           <button id="ws-add" type="button" class="btn ghost sm">加入其他目录…</button>
         </div>
       </div>
 
-      <div class="set-card">
+      <div class="set-card" id="card-instance">
         <div class="set-card-title">实例</div>
         <div class="set-row"><code id="set-instance" class="path-code"></code></div>
-        <div class="set-sub">审计、持久任务、模型凭据与会话文件都保存在这里。</div>
         <div class="set-row"><span>代码版本</span><code id="set-version" class="path-code"></code></div>
         <div id="version-stale" class="set-sub version-stale">仓库代码已更新——当前进程还在跑旧代码，重启应用后生效。</div>
       </div>
 
       <div class="set-card" id="card-modes">
-        <div class="set-card-title">模式 <span id="modes-active" class="pill"></span></div>
+        <div class="set-card-title">运行模式 <span id="modes-active" class="pill"></span></div>
         <div id="modes-list" class="modes-list"></div>
-        <div class="set-sub my-8-4">项目预设 <code>.pai/modes.json</code>——预设只能收紧审批面，永远不能放宽规范锚。</div>
-        <textarea id="modes-json" class="modes-json" spellcheck="false" placeholder='{"modes":[{"name":"review","toolDeny":["write","edit","delete"],"toolAsk":["bash"]}]}'></textarea>
+        <div class="set-sub my-8-4">项目预设模式</div>
+        <div class="json-wrap">
+          <div class="json-bar">
+            <span id="modes-json-status" class="json-status"></span>
+            <button type="button" class="btn ghost sm json-format" data-target="modes-json">排版</button>
+          </div>
+          <textarea id="modes-json" class="modes-json" spellcheck="false" placeholder='{"modes":[{"name":"review","toolDeny":["write","edit","delete"],"toolAsk":["bash"]}]}'></textarea>
+        </div>
         <div class="set-row mt-6">
           <button id="modes-save" type="button" class="btn">保存项目模式</button>
           <span id="modes-msg" class="setup-msg"></span>
@@ -482,15 +429,27 @@
       </div>
 
       <div class="set-card" id="card-commands">
-        <div class="set-card-title">命令清单</div>
-        <div class="set-sub mb-4">项目禁前缀 <code>.pai/commands.json</code>——命中即在执行前拦截（只能收紧）。</div>
-        <textarea id="commands-json" class="modes-json" spellcheck="false" placeholder='{"denyPrefixes":["rm -rf","git push","curl"]}'></textarea>
+        <div class="set-card-title">命令安全准入</div>
+        <div class="set-sub mb-4">危险命令禁表（拦截任何含此类前缀的命令）</div>
+        <div class="json-wrap">
+          <div class="json-bar">
+            <span id="commands-json-status" class="json-status"></span>
+            <button type="button" class="btn ghost sm json-format" data-target="commands-json">排版</button>
+          </div>
+          <textarea id="commands-json" class="modes-json" spellcheck="false" placeholder='{"denyPrefixes":["rm -rf","git push","curl"]}'></textarea>
+        </div>
         <div class="set-row mt-6">
           <button id="commands-save" type="button" class="btn">保存项目禁表</button>
           <span id="commands-msg" class="setup-msg"></span>
         </div>
-        <div class="set-sub my-12-4">操作员白名单 <code>command-allow.json</code>（实例级，agent 不可写）——命中前缀跳过批准卡。</div>
-        <textarea id="command-allow-json" class="modes-json" spellcheck="false" placeholder='{"allowPrefixes":["git status","npm test"]}'></textarea>
+        <div class="set-sub my-12-4">操作员放行白名单（直接执行，不弹批准卡）</div>
+        <div class="json-wrap">
+          <div class="json-bar">
+            <span id="command-allow-json-status" class="json-status"></span>
+            <button type="button" class="btn ghost sm json-format" data-target="command-allow-json">排版</button>
+          </div>
+          <textarea id="command-allow-json" class="modes-json" spellcheck="false" placeholder='{"allowPrefixes":["git status","npm test"]}'></textarea>
+        </div>
         <div class="set-row mt-6">
           <button id="command-allow-save" type="button" class="btn">保存白名单</button>
           <span id="command-allow-msg" class="setup-msg"></span>
@@ -506,8 +465,8 @@
         <div class="set-card-title">治理姿态 <span id="gov-sum" class="pill"></span></div>
         <div id="gov-actions"></div>
         <div id="gov-denied" class="set-sub mt-8"></div>
-        <div class="set-sub mt-8">策略是规范锚（policy <code id="gov-checksum"></code>），只能经预配修改——这里只读。运行中改动会触发 drift 终止。</div>
-        <div class="set-sub my-12-4">治理预演：走一遍真实判定链（不含审计写入、不挂起询问、不消费预测），看这个调用会被放行、拒绝还是询问。</div>
+        <div class="set-sub mt-8">策略校验码: <code id="gov-checksum"></code></div>
+        <div class="set-sub my-12-4">判定预演</div>
         <div class="set-row">
           <input id="dryrun-tool" class="modal-input" type="text" list="dryrun-tools" placeholder="工具名，如 bash / write / edit" spellcheck="false">
           <datalist id="dryrun-tools"></datalist>
@@ -519,7 +478,6 @@
 
       <div class="set-card" id="card-budget">
         <div class="set-card-title">预算上限 <span id="budget-src" class="pill"></span></div>
-        <div class="set-sub">操作员级覆盖：即时生效、写 <code>budget-overrides.json</code>、全程审计；优先级高于 policy，不动规范锚校验。留空 = 该项不设限。</div>
         <div class="set-row"><span>本会话 token 上限</span><input id="budget-tokens" class="modal-input" type="number" min="0" placeholder="如 200000"></div>
         <div class="set-row"><span>本会话成本上限（USD）</span><input id="budget-cost" class="modal-input" type="number" min="0" step="0.01" placeholder="如 5"></div>
         <div class="set-row"><span>本会话调用上限</span><input id="budget-calls" class="modal-input" type="number" min="0" placeholder="如 200"></div>
