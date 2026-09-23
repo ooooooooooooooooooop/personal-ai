@@ -2012,3 +2012,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 **修复**：`HostChannel session_export` 的 format 白名单原只放行 jsonl/debug——新格式放行；ephemeral 会话拒导（M71）对全部格式生效。
 
 测试：channel-facade `markdown/quarto` 用例——角色/时间戳/文本/thinking/工具调用/结果块/quarto frontmatter 全断言 + torn 行容错。
+
+### 28.43 648 清单逐条核销 #12：dedup-h #91 teammate idle awareness（2026-09-23）
+
+**行**：`dedup-h	91	orchestration	Team: teammate idle awareness(查询队友实时状态)`（查询队友实时状态）。
+
+**判定**：**IMPLEMENTED**——presence 从真实信号推导，不声称：
+
+| presence | 判据 |
+|---|---|
+| `busy` | open + 绑定 job 处于非终态（RUNNING/QUEUED/…） |
+| `idle` | open + job 终态/无绑定（纯 mailbox 任务也算 idle） |
+| `offline` | state≠open——closed 覆盖一切，即便 job 还挂着 |
+
+- `task_list` 每行新增 `presence`/`job_state`/`last_activity`（outbox+events 最新行时间戳=子代理真实最近发声）
+- 新工具 `task_status{task_id|name}`：单成员实时卡——name 走 `byName` 队友池解析
+- bootstrap 注入 `jobState: jobStore.getJob(...)`——presence 与 durable job 真态同源
+
+测试：`M91-presence`——busy/queued/idle/unbound/offline 五态 + name/id 寻址 + not-found + last_activity 随子输出更新。

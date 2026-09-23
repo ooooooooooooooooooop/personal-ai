@@ -8,12 +8,37 @@
 const txt = (t, extra = {}) => ({ content: [{ type: 'text', text: t }], ...extra });
 const need = (v, name) => (v == null || v === '' ? `task tool requires \`${name}\`` : null);
 
-export function taskTools(store, { interrupt = null } = {}) {
+export function taskTools(store, { interrupt = null, jobState = null } = {}) {
   const resolve = (id) => store.get(String(id ?? ''));
+  // dedup-h #91 teammate idle awareness — presence is derived from real
+  // signals, never claimed: closed→offline; open+bound job live→busy;
+  // open with terminal/unbound job→idle. last_activity is the newest
+  // outbox/events row timestamp the child actually emitted.
+  const presence = (t) => {
+    if (t.state !== 'open') return 'offline';
+    if (t.job_id && jobState) {
+      const js = jobState(t.job_id);
+      if (js && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(js)) return 'busy';
+    }
+    return 'idle';
+  };
+  const lastActivity = (t) => {
+    const stamps = [...store.read(t.task_id, 'outbox'), ...store.read(t.task_id, 'events')]
+      .map((r) => r?.ts).filter(Boolean).sort();
+    return stamps.at(-1) ?? null;
+  };
+  const describe = (t) => ({
+    task_id: t.task_id, label: t.label, state: t.state, kind: t.kind,
+    name: t.name, team: t.team,
+    presence: presence(t), last_activity: lastActivity(t),
+    job_id: t.job_id, job_state: t.job_id && jobState ? jobState(t.job_id) : null,
+    created: t.created,
+    inbox: t.inbox_count, outbox: t.outbox_count, events: t.events_count,
+  });
   return [
     {
       name: 'task_list', label: 'Task List',
-      description: 'List AgentTask records (delegated work): state, label, job binding, message counts. Optional `team` filters to one roster.',
+      description: 'List AgentTask records (delegated work): state, presence (idle/busy/offline), last activity, label, job binding, message counts. Optional `team` filters to one roster.',
       parameters: {
         type: 'object',
         properties: { team: { type: 'string', description: 'filter to tasks in this team roster' } },
@@ -21,13 +46,24 @@ export function taskTools(store, { interrupt = null } = {}) {
       async execute(_id, p = {}) {
         const rows = store.list()
           .filter((t) => !p.team || String(t.team ?? '').toLowerCase() === String(p.team).toLowerCase())
-          .map((t) => ({
-            task_id: t.task_id, label: t.label, state: t.state, kind: t.kind,
-            name: t.name, team: t.team,
-            job_id: t.job_id, created: t.created,
-            inbox: t.inbox_count, outbox: t.outbox_count, events: t.events_count,
-          }));
+          .map(describe);
         return txt(rows.length ? JSON.stringify(rows) : (p.team ? `no tasks in team '${p.team}'` : 'no tasks yet'));
+      },
+    },
+    {
+      name: 'task_status', label: 'Task Status',
+      description: 'Real-time presence of one teammate/task: idle (open, no live job), busy (bound job running), or offline (closed) — plus last activity and mailbox counts. Address by task_id or teammate name.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task_id: { type: 'string' },
+          name: { type: 'string', description: 'teammate name — resolves the latest open task carrying it' },
+        },
+      },
+      async execute(_id, p = {}) {
+        const t = p.task_id ? resolve(p.task_id) : (p.name ? store.byName(String(p.name)) : null);
+        if (!t) return txt(`task '${p.task_id ?? p.name ?? ''}' not found`, { isError: true });
+        return txt(JSON.stringify(describe(t)));
       },
     },
     {

@@ -44,6 +44,44 @@ test('team_msg broadcasts to every open roster member; closed members skipped', 
   assert.match(body(empty), /no open tasks/);
 });
 
+// dedup-h #91: teammate idle awareness — presence derives from the bound
+// job's real state; task_status answers by id or name.
+test('M91-presence: task_list/task_status report idle/busy/offline from job state', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-tasktools-'));
+  const store = new TaskStore(dir);
+  const jobs = { 'job-run': 'RUNNING', 'job-done': 'COMPLETED', 'job-queued': 'QUEUED' };
+  const tools = taskTools(store, { jobState: (id) => jobs[id] ?? null });
+  const busy = store.create({ label: 'busy', name: 'busy-bee', jobId: 'job-run' });
+  const queued = store.create({ label: 'queued', jobId: 'job-queued' });
+  const idle = store.create({ label: 'idle', jobId: 'job-done' });
+  const unbound = store.create({ label: 'unbound' });
+  const off = store.create({ label: 'off', jobId: 'job-run' });
+  store.setState(off.task_id, 'closed');
+
+  const rows = JSON.parse(body(await call(tools, 'task_list', {})));
+  const by = (l) => rows.find((t) => t.label === l);
+  assert.equal(by('busy').presence, 'busy');
+  assert.equal(by('queued').presence, 'busy');   // queued job is still live
+  assert.equal(by('idle').presence, 'idle');     // terminal job
+  assert.equal(by('unbound').presence, 'idle');  // open, no job
+  assert.equal(by('off').presence, 'offline');   // closed trumps live job
+  assert.equal(by('busy').job_state, 'RUNNING');
+
+  // task_status by name + by id
+  const s = JSON.parse(body(await call(tools, 'task_status', { name: 'busy-bee' })));
+  assert.equal(s.presence, 'busy');
+  assert.equal(s.task_id, busy.task_id);
+  const s2 = JSON.parse(body(await call(tools, 'task_status', { task_id: off.task_id })));
+  assert.equal(s2.presence, 'offline');
+  const miss = await call(tools, 'task_status', { task_id: 'task-nope' });
+  assert.equal(miss.isError, true);
+
+  // last_activity reflects the newest outbox/event row the child emitted
+  store.postOutbox(idle.task_id, { kind: 'result', body: 'done' });
+  const s3 = JSON.parse(body(await call(tools, 'task_status', { task_id: idle.task_id })));
+  assert.ok(s3.last_activity, 'activity stamp present after child output');
+});
+
 test('task_list filters by team and exposes roster fields', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-tasktools-'));
   const store = new TaskStore(dir);

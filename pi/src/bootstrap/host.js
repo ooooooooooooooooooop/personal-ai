@@ -661,7 +661,12 @@ export async function startHost({
     // remote execution (P1): durable command jobs under an optional
     // wsl/docker/ssh boundary — same command classification as bash
     jobSpawnTool(executor, { workdir, getScope: () => currentSession?.sessionId ?? null }),
-    ...taskTools(taskStore, { interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt') }),
+    ...taskTools(taskStore, {
+      interrupt: (jobId) => executor.cancel(jobId, 'task_interrupt'),
+      // dedup-h #91 idle awareness: presence derives from the bound job's
+      // real state — a teammate is busy only while its job is live
+      jobState: (jobId) => jobStore.getJob(jobId)?.job_state ?? null,
+    }),
     ...memoryTools(memoryStore, { workdir }),
     updateTodosTool(core.paths.root, () => currentSession?.sessionId ?? null),
     // structured operator questions — kind:'question' asks bypass session
