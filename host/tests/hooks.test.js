@@ -228,3 +228,17 @@ test('subagent_*/notification events accepted at load', () => {
   const h = new HookRunner(w);
   assert.deepEqual(h.events.sort(), ['notification', 'subagent_start', 'subagent_stop']);
 });
+
+test('dedup-h #280: turn_started/prompt_queued/task_started/session_heartbeat accepted at load + fire', async () => {
+  const w = dir();
+  cfg(w, { hooks: {
+    turn_started: [{ command: 'echo ts' }],
+    prompt_queued: [{ command: 'echo pq' }],
+    task_started: [{ command: 'echo ta' }],
+    session_heartbeat: [{ command: 'echo hb' }],
+  } });
+  const h = new HookRunner(w);
+  assert.deepEqual(h.events.sort(), ['prompt_queued', 'session_heartbeat', 'task_started', 'turn_started']);
+  assert.equal(await h.fire('task_started', { jobId: 'j1' }), 1);
+  assert.equal(await h.fire('prompt_queued', { preview: 'x' }), 1);
+});

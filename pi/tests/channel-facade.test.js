@@ -957,7 +957,9 @@ test('busy-session prompt queues as followUp instead of throwing (SDK contract)'
     // the real SDK throws when streaming without streamingBehavior
     if (fakeSessionRef.isStreaming && !o?.streamingBehavior) throw new Error('streaming and no streamingBehavior specified');
   };
-  const { channel: ch } = createChannelHost({ session: fakeSessionRef, core });
+  const fired = [];
+  const hooks = { fire: (name, payload) => { fired.push([name, payload]); return 0; } };
+  const { channel: ch } = createChannelHost({ session: fakeSessionRef, core, hooks });
 
   const idle = await ch.handle({ type: 'prompt', message: 'first' });
   assert.equal(idle.success, true);
@@ -967,6 +969,10 @@ test('busy-session prompt queues as followUp instead of throwing (SDK contract)'
   const busy = await ch.handle({ type: 'prompt', message: 'while you work' });
   assert.equal(busy.success, true, 'busy prompt is queued, not bounced');
   assert.equal(seen.at(-1)[1].streamingBehavior, 'followUp');
+  // dedup-h #280: the queued prompt fires the observational hook; the idle
+  // prompt did not queue → no event for it.
+  assert.deepEqual(fired.filter(([n]) => n === 'prompt_queued').length, 1);
+  assert.equal(fired.find(([n]) => n === 'prompt_queued')?.[1]?.preview, 'while you work');
 });
 
 test('budget status flags a dollar cap that cannot see an unpriced model', async () => {

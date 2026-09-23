@@ -49,6 +49,12 @@ export const HOOK_EVENTS = new Set([
   'tool_start', 'tool_end', 'agent_stop',
   'compact_start', 'compact_end',
   'subagent_start', 'subagent_stop', 'notification',
+  // dedup-h #280 (Copilot CLI TurnStarted/UserPromptQueued/TaskStarted/
+  // SessionHeartbeat analogue): turn_start = the model turn actually began
+  // executing; prompt_queued = a mid-run prompt landed in the follow-up
+  // queue; task_started = a durable job's child process exists; heartbeat
+  // rides the operator heartbeat.json cadence (no second timer).
+  'turn_started', 'prompt_queued', 'task_started', 'session_heartbeat',
 ]);
 // session_directory (dedup-h #202): a gate-only extension event whose hook
 // answers {"directory": "..."} to relocate session persistence. Gate-only on

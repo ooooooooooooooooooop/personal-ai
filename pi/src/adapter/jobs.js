@@ -78,7 +78,7 @@ export class JobExecutor {
    *        covers the durable-job surface only — foreground tool calls execute
    *        inside the body's own process and are NOT sandboxed by v1.
    */
-  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, sandboxExcludes = null, preflightCommand = null, envOverlay = null } = {}) {
+  constructor(store, jobsDir, { audit = null, runId = null, writeLease = null, classifier = null, budget = null, sandbox = null, onJobFinished = null, onJobStart = null, sandboxExcludes = null, preflightCommand = null, envOverlay = null } = {}) {
     this.store = store;
     this.jobsDir = jobsDir;
     this.audit = audit;
@@ -88,6 +88,7 @@ export class JobExecutor {
     this.budget = budget;
     this.sandbox = sandbox;
     this.onJobFinished = onJobFinished; // M14: scheduled-job completion delivery
+    this.onJobStart = onJobStart; // dedup-h #280: task_started hook — child exists + running
     // M80 sandbox exclusions — () => string[] of command prefixes that bypass
     // the AMBIENT sandbox only (an explicit per-job sandbox request stands).
     this.sandboxExcludes = sandboxExcludes;
@@ -517,6 +518,7 @@ export class JobExecutor {
       this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: provider.kind, container: spec.containerName ?? null } });
     }
     this.running.set(jobId, child);
+    try { this.onJobStart?.({ jobId, attemptId, jobType, mutating }); } catch { /* observational — never blocks the spawn */ }
 
     // machine checkpoint — the resumability contract (atomic: recovery has no
     // fallback for a torn checkpoint — it would escalate a healthy job to

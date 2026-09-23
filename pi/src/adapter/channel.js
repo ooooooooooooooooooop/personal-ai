@@ -220,6 +220,8 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         }
         hooks?.fire('tool_end', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
         if (ev.toolName?.startsWith('delegate')) hooks?.fire('subagent_stop', { toolName: ev.toolName, toolCallId: ev.toolCallId, isError: Boolean(ev.isError) });
+      } else if (ev?.type === 'turn_start') {
+        hooks?.fire('turn_started', {});
       } else if (ev?.type === 'agent_end') {
         hooks?.fire('agent_stop', {});
       } else if (ev?.type === 'compaction_start') {
@@ -416,7 +418,10 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // mid-run must not bounce — queue it as a follow-up (runs after the
       // current run stops, SDK-side, so it survives beyond any volatile
       // client-side queue). Steering is a separate verb (channel 'steer').
-      if (box.s.isStreaming) opts = { ...(opts ?? {}), streamingBehavior: 'followUp' };
+      if (box.s.isStreaming) {
+        opts = { ...(opts ?? {}), streamingBehavior: 'followUp' };
+        hooks?.fire('prompt_queued', { preview: String(message ?? '').slice(0, 200) });
+      }
       return box.s.prompt(msg, opts);
     },
     steer: (message) => { admitSpend(); return box.s.steer(message); },

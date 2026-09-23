@@ -2230,3 +2230,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - 步间 `depends_on` 从 step id 重写为准入返回的持久 job id；全队共享 `wf-<id>` team（task_list 过滤/team_msg 广播直接可用）
 - 首个拒绝即停提交，报告如实列出已准入的活 job id 供操作员取消
 - 测试：五种畸形计划全拒+零准入、topo 顺序、dep→job 重写、team 共享、中途拒绝诚实停报
+
+### 28.59 648 清单逐条核销 #31：dedup-h #280 生命周期 hook 四事件（2026-09-23）
+
+**行**：`dedup-h	280	sessions-history	hook-events: TurnStarted/UserPromptQueued/TaskStarted/SessionHeartbeat`。
+
+**判定**：**IMPLEMENTED**——四个 observational 事件各挂在真实发点（不是改名映射）：
+
+- `turn_started` ← 引擎 `turn_start` 事件（模型回合真开始执行）
+- `prompt_queued` ← channel 忙时 followUp 入队点（仅真入队才发）
+- `task_started` ← `JobExecutor.executeAttempt` 的 spawn 咽喉——delegate/job_spawn/schedule/restart/队列 promote 全路径覆盖，子进程已存在才发
+- `session_heartbeat` ← 复用操作员 heartbeat.json 同一 cadence（不建第二定时器、同一信任边界）
+- `HOOK_EVENTS` 扩名；测试：加载+发射、prompt_queued 仅真入队触发

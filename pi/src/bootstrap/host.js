@@ -617,6 +617,10 @@ export async function startHost({
     // M14: scheduled-job completions surface to the UI as an event — a job
     // nobody is watching must still deliver its result somewhere visible.
     onJobFinished: (d) => channelHandle?.channel.emitEvent({ type: 'scheduled_job_done', ...d }),
+    // dedup-h #280: task_started hook fires at the real spawn point — every
+    // spawn path (delegate/job_spawn/schedule/restart/promoted queue) passes
+    // through executeAttempt, so the event covers them all.
+    onJobStart: (d) => hooks?.fire('task_started', { jobId: d.jobId, attemptId: d.attemptId, jobType: d.jobType ?? null, mutating: d.mutating === true }),
   });
   // cold-start sweep: dead workers from a previous process get recovered or
   // parked for review — never silently abandoned
@@ -2085,6 +2089,9 @@ export async function startHost({
         const s = channelHandle ? currentSession : null;
         if (!s || s.isStreaming) return; // idle-only — never interrupt a run
         core.audit.write({ kind: 'HEARTBEAT_FIRED', runId, data: { everyMin: heartbeat.everyMin } });
+        // dedup-h #280: session_heartbeat observational hook rides the same
+        // operator-owned cadence — no second timer, same trust boundary.
+        hooks?.fire('session_heartbeat', { sessionId: currentSession?.sessionId ?? null, everyMin: heartbeat.everyMin });
         // channel prompt path: admitSpend gates it — a configured budget
         // still bounds autonomous spend; the beat is visible in the UI.
         channelHandle.channel.handle({ type: 'prompt', message: heartbeat.prompt, meta: { heartbeat: true } })
