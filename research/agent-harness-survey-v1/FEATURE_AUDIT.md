@@ -1390,7 +1390,7 @@
 | 优先级 | 项 | 裁定 | 落地 |
 |---|---|---|---|
 | P1 | **远程执行**（WSL→Docker→SSH 风险梯度） | GO | **✅ `432566f`**：`job_spawn` 模型工具（command+timeout+sandbox 参数，走 bash 同款治理/allowlist，fg-lease 豁免防自锁）+ SandboxProvider docker（命名容器可强杀）/ssh（b64 传输，BatchMode）/wsl 后端；未知 kind 在 job 记录创建前拒绝；超时杀容器、ssh 孤儿审计 JOB_REMOTE_ORPHAN |
-| P2 | **docx/pdf 真解析** | GO（依赖仅进 pi） | **✅ `e0cd7d9`（零依赖版）**：手写最小 zip 阅读器取 word/document.xml + PDF FlateDecode 流文本算子提取；zip 炸弹/流膨胀设帽；加密/图像型/坏文件 yield null → 保持诚实描述符，不冒充理解 |
+| P2 | **docx/pdf 真解析** | GO（依赖仅进 pi） | **✅ `e0cd7d9`（零依赖版）**：手写最小 zip 阅读器取 word/document.xml + PDF FlateDecode 流文本算子提取；zip 炸弹/流膨胀设帽；加密/图像型/坏文件 yield null → 保持诚实描述符，不冒充理解。**batch-648-53 补 first-class 面**：`pdf_read` 模型工具（workdir 限定路径 + `<instance>/pdf.json {maxBytesMb,maxPages}` 上限 + `question` 走 `feature-models.json` `pdf` 委派分析=pdfModel 对等）；引擎无 document content block→原生字节不可发，extraction 即全模型通用载具 |
 | P3 | **LLM 判官** | **仅 Shadow/Secondary** | **✅ `74c66b5`**：JudgeAdvisor（注入式 call 缝，host 零依赖）+ PAI_JUDGE=1 显式 opt-in + 审批卡「顾问参考」块 + JUDGE_OPINION 全量审计（意见-人类决定相关数据集）；**永不进授权链**——意见不能翻任何判决，judge 错误→人类照常决定 |
 | P4 | 会话分组视图 | GO 低优先 | **核查=已有**：今天/昨天/近7天/更早分组头已渲染（renderSessions+sessionGroup） |
 | — | 草稿任务 | **HOLD** | 无真实阻塞证据，不建新 lifecycle |
@@ -2365,3 +2365,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。备份面从 create/verify 补全到四命令。sqlite 入白名单（`memory.db`、`jobs/durable_jobs.db`）：活库裸拷会撕裂事务，`.db` 一律走 `VACUUM INTO` 一致快照（node:sqlite 缺席时退化裸拷并在 manifest 记 `rawCopy:true`——快照种类诚实可查）；manifest 记录的 sha 哈希的是**快照产物**而非活库。`listBackups` 按 createdAt 新→旧列 bundle，manifest 不可读行保留并标 `manifestOk:false`。`restoreBackup` 三重闸：**先过 verify**（缺/改/多一律拒）→ manifest 路径再限制（`..`/绝对路径拒——伪造 manifest 写不出实例根）→ 撞已存状态无 `--force` 拒并列出碰撞，有 `--force` 先对现态做安全快照再逐文件 tmp+rename 原子落盘。
 - **证据**：`jobs/durable_jobs.db` 写入后备份——bundle 内是真 sqlite 可开可查（RUNNING 行在）且 manifest 无 rawCopy；list 新→旧序 + 毁损 manifest 标 false；restore 撞 `registry.json` 拒 `--force` 前列名，`--force` 后 preRestore 快照存在 + 内容回滚；篡改 bundle→verify 拒；伪造 manifest 逃逸路径（`../escape.txt` 指向 bundle 外真实文件、verify 盲过）→ restore confinement 闸拒；CLI 端到端 create→list→restore 拒→force 成功；host 361/361。
+
+### 28.79 648 清单逐条核销 #53：dedup-h #560 first-class pdf 工具 + 可配置默认（2026-09-23）
+
+- **判定**：IMPLEMENTED（诚实变体切片）。源条目（OpenClaw v2026.3.2）= pdf 工具 + Anthropic/Google 原生 PDF + 非原生模型 extraction fallback + `pdfModel/pdfMaxBytesMb/pdfMaxPages` 配置。我方 pin 引擎 `pi-ai@0.85.1` 的 `InputContent = TextContent|ImageContent`——**没有 document/PDF content block，provider 层无 application/pdf**：原生字节载具在引擎侧不存在，不可伪造。故 extraction（既有零依赖 `extractPdf`：FlateDecode 流→BT/ET 文本算子）是**全模型通用载具**而非降级——这恰是源特性的 fallback 半边，在我方架构下是唯一诚实路径。
+- **落地**：`pdf_read` 模型工具——workdir 限定路径（逃逸/绝对外部拒）、`%PDF` magic 或 `.pdf` 校验、`<instance>/pdf.json {maxBytesMb,maxPages}` 实例上限（畸形文件 fail-closed 拒用；per-call 参数只能收紧）、`/Type /Page` 计数页帽、`question` 走 `feature-models.json` `pdf` 委派分析（pdfModel 对等——缺条目回落会话模型分析，无 runtime 则返回原文让调用模型自析，绝不捏造答案）。`judgeCall` 泛化 feature 名，judge 默认不变。
+- **证据**：真 PDF fixture（deflate 流+文本算子）提取命中；逃逸/missing/非 PDF/不可提取全拒；字节帽与页帽各报真实计数；per-call 不可放宽实例帽；畸形 pdf.json 拒；question 委派携提取文本、无模型时回落原文+诚实标注；pdftool 5/5、pi 全套 425/421/0/4。

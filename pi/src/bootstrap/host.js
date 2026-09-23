@@ -93,6 +93,7 @@ import { isTrusted, setTrust, hasInjectableContent, worktreeInfo, trustAllWorktr
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool, askStructuredTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
+import { pdfTool } from '../adapter/pdftool.js';
 import { sessionCommandTool } from '../adapter/sessioncmd.js';
 import { skillTools } from '../adapter/skilltools.js';
 import { multiEditTool } from '../adapter/multiedit.js';
@@ -422,7 +423,7 @@ export async function startHost({
   // credential of the session's default provider. Runs through the gated
   // fetch → it IS billed as a provider call. Returns null when the session
   // or provider auth isn't resolvable — the card then shows no advice.
-  const judgeCall = async (system, user) => {
+  const judgeCall = async (system, user, featureName = 'judge') => {
     const rt = currentSession?.modelRuntime;
     if (!rt) return null;
     // per-feature model routing: <instance>/feature-models.json may point the
@@ -431,7 +432,7 @@ export async function startHost({
     let feature = null;
     try {
       const fm = JSON.parse(readFileSync(join(instanceRoot, 'feature-models.json'), 'utf-8'));
-      feature = fm?.judge ?? null;
+      feature = fm?.[featureName] ?? null;
     } catch { /* absent file = session model */ }
     const pid = feature?.provider ?? currentSession?.model?.provider ?? rt.getProviders?.()[0]?.id;
     const p = rt.getProvider?.(pid);
@@ -790,6 +791,15 @@ export async function startHost({
     // governed tool chain; the effect runs on the operator surface through
     // the same paths as /clear /model /config /resume after the turn ends.
     sessionCommandTool(() => (ev) => channelHandle?.channel.emitEvent(ev)),
+    // dedup-h #560 first-class pdf tool: extraction is the universal carrier
+    // (the pinned engine has no document/PDF content block to send bytes
+    // natively). Bounds from <instance>/pdf.json; `question` routes analysis
+    // through feature-models.json 'pdf' (pdfModel analogue) — absent entry
+    // analyzes with the session model, unreachable → raw text returns.
+    pdfTool({
+      workdir, instanceRoot,
+      analyze: (system, user) => judgeCall(system, user, 'pdf'),
+    }),
     // network tools — web_fetch always on (policy maps it to ask); web_search
     // only when the operator configures an endpoint (never advertised empty)
     // egress domain allowlist — operator-owned <instance>/egress-allow.json
