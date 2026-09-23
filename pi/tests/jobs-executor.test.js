@@ -1276,3 +1276,18 @@ test('resume carries the original wall-clock ceiling — a timed job does not lo
     'failure reason names the wall-clock timeout');
   store.close(); store2.close();
 });
+
+test('#915: spawned children carry NoDefaultCurrentDirectoryInExePath (win32)', { timeout: 15_000 }, async () => {
+  if (process.platform !== 'win32') return; // POSIX shells never search cwd
+  const dir = mkdtempSync(join(tmpdir(), 'pai-shadow-'));
+  const { store, executor } = rig(dir);
+  // the env var is what makes cmd.exe's command resolution skip the child
+  // cwd — assert it reached the child by having the child echo it back
+  const { job_id } = await executor.spawnCommandJob({ command: 'echo SHADOWENV=%NoDefaultCurrentDirectoryInExePath%', workdir: tmpdir() });
+  await new Promise((r) => setTimeout(r, 2500));
+  assert.equal(store.getJob(job_id).job_state, 'COMPLETED');
+  const attempt = store.getAttempts(job_id)[0];
+  const envelope = JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
+  assert.match(String(envelope.output_tail), /SHADOWENV=1/, `child env missing mitigation: ${String(envelope.output_tail).slice(0, 200)}`);
+  store.close();
+});

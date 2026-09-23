@@ -97,3 +97,24 @@ test('create tombstone undo removes the created file', async () => {
   // and the removal itself is recoverable (it went to recycle, not rm)
   assert.ok(readdirSync(fo.recycleDir).length >= 1);
 });
+
+test('#1277 tombstone restore reaps agent-created empty dirs, keeps dirs holding user content', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-fo-gc-'));
+  const ws = join(dir, 'ws');
+  mkdirSync(ws);
+  const fo = new FileOpsGuard(join(dir, 'inst'), { workdir: ws });
+  // write into a path whose ancestors don't exist — the write creates them
+  const target = join(ws, 'agent-sub', 'deep', 'new.txt');
+  const r = await fo.write(target, 'x', { toolCallId: 'c1' });
+  assert.ok(existsSync(target));
+  fo.restore(r.receiptId);
+  assert.ok(!existsSync(target), 'created file undone');
+  assert.ok(!existsSync(join(ws, 'agent-sub')), 'empty dirs the write made are reaped');
+  // a dir the write created but the user then filled is NOT removed
+  const t2 = join(ws, 'keep', 'f.txt');
+  const r2 = await fo.write(t2, 'y', { toolCallId: 'c2' });
+  writeFileSync(join(ws, 'keep', 'user.txt'), 'mine');
+  fo.restore(r2.receiptId);
+  assert.ok(!existsSync(t2));
+  assert.ok(existsSync(join(ws, 'keep', 'user.txt')), 'dir with user content survives');
+});

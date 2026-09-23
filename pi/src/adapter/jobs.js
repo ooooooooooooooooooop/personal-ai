@@ -499,6 +499,15 @@ export class JobExecutor {
     // M121 session env overlay: merges over the operator env at spawn time —
     // later env_set edits reach the next job without a rebuild. Injection
     // keys were refused at set-time inside SessionEnv itself.
+    // #915 path-shadowing: on Windows, cmd.exe's command resolution (and
+    // CreateProcess itself) searches the child cwd before PATH — a
+    // repo-dropped git.exe/rg.exe would shadow an approved bare command.
+    // NoDefaultCurrentDirectoryInExePath is the documented mitigation: set
+    // once on our process it also covers argv-style spawns whose bare
+    // spec.file resolves via the parent CreateProcess call.
+    if (process.platform === 'win32' && !process.env.NoDefaultCurrentDirectoryInExePath) {
+      process.env.NoDefaultCurrentDirectoryInExePath = '1';
+    }
     const envOverlay = this.envOverlay?.() ?? {};
     const spawnOpts = { cwd: spec.cwd, windowsHide: true, env: { ...process.env, ...envOverlay } };
     const child = spec.shell

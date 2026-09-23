@@ -10,9 +10,9 @@
  * These wrappers wrap the tool call args the kernel already admitted — they do
  * NOT replace the guard; they make admitted mutations recoverable.
  */
-import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { appendFileSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { withFileMutationQueue } from '@earendil-works/pi-coding-agent';
 import { unifiedDiff } from '../../../host/src/core/diffutil.js';
 import { createHash, randomUUID } from 'node:crypto';
@@ -27,8 +27,11 @@ export class FileOpsGuard {
    *        already degrade honestly when an artifact is gone (recoverable:false
    *        in list(), 'artifact gone' in diff()), so eviction is safe.
    */
-  constructor(instanceRoot, { artifactCap = 200 } = {}) {
+  constructor(instanceRoot, { artifactCap = 200, workdir = null } = {}) {
     this.root = instanceRoot;
+    // GC boundary for dirsCreated receipts: only directories strictly inside
+    // the workspace are ever candidates for empty-dir removal on undo.
+    this.workdir = workdir ? resolve(workdir) : null;
     this.recycleDir = join(instanceRoot, 'recycle');
     this.backupDir = join(instanceRoot, 'backups');
     this.opsLog = join(instanceRoot, 'fileops.jsonl');
@@ -127,9 +130,22 @@ export class FileOpsGuard {
         backup = join(this.backupDir, `${Date.now()}-${receiptId}-${basename(abs)}`);
         copyFileSync(abs, backup);
       }
+      // #1277 — record which ancestors this write is about to create so a
+      // later tombstone restore can remove ONLY the dirs it made AND only
+      // while they are still empty (upstream revert semantics).
+      let dirsCreated = null;
+      if (this.workdir) {
+        const missing = [];
+        let d = dirname(abs);
+        while (d !== this.workdir && d.startsWith(this.workdir + sep) && !existsSync(d)) {
+          missing.push(d); // deepest first
+          d = dirname(d);
+        }
+        if (missing.length) dirsCreated = missing;
+      }
       mkdirSync(dirname(abs), { recursive: true });
       writeFileSync(abs, content);
-      this.#log({ receiptId, op: 'write', target: abs, backup, preSha, toolCallId });
+      this.#log({ receiptId, op: 'write', target: abs, backup, preSha, toolCallId, dirsCreated });
       if (backup) this.#sweep(this.backupDir);
       return { backup, receiptId };
     });
@@ -154,7 +170,14 @@ export class FileOpsGuard {
         const rid = `fo-${randomUUID().slice(0, 8)}`;
         const dest = join(this.recycleDir, `${Date.now()}-${rid}-${basename(op.target)}`);
         this.#moveTree(op.target, dest);
-        this.#log({ receiptId: rid, op: 'restore', target: op.target, removedTo: dest });
+        const dirsRemoved = [];
+        // #1277 — a created file's undo also reaps the empty directories the
+        // creating write made; still-nonempty dirs (user dropped content in)
+        // are kept, and non-recursive rmdir is fail-safe on the race.
+        for (const d of op.dirsCreated ?? []) {
+          try { if (existsSync(d) && readdirSync(d).length === 0) { rmdirSync(d); dirsRemoved.push(d); } } catch { /* keep */ }
+        }
+        this.#log({ receiptId: rid, op: 'restore', target: op.target, removedTo: dest, dirsRemoved: dirsRemoved.length ? dirsRemoved : undefined });
         this.#sweep(this.recycleDir);
       }
       return op.target;
