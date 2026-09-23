@@ -1256,3 +1256,27 @@ test('models allowlist: media fallback picks only allowed entries; malformed fil
   const pred = modelsAllowPredicate(dir);
   assert.equal(pred({ provider: 'anything', model: 'm' }), true, 'absent file is unrestricted');
 });
+
+test('dedup-h #535: compact_start/compact_end hooks carry reason context', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-'));
+  const fired = [];
+  const hooks = { fire: (ev, payload) => { fired.push({ ev, payload }); return Promise.resolve(1); } };
+  const { dispose } = createChannelHost({ session: fakeSessionRef, core: { paths: { auditDir: join(dir, 'audit') } }, hooks });
+  for (const l of listeners) {
+    l({ type: 'compaction_start', runId: 'r1', reason: 'threshold', startedAt: 1 });
+    l({ type: 'compaction_end', runId: 'r1', reason: 'threshold', endedAt: 2, status: 'completed', entryId: 'e1' });
+    l({ type: 'compaction_start', runId: 'r2', reason: 'overflow', startedAt: 3 });
+    l({ type: 'compaction_end', runId: 'r2', reason: 'overflow', endedAt: 4, status: 'failed', error: { message: 'summarizer died' } });
+  }
+  await new Promise((r) => setTimeout(r, 30));
+  const start = fired.find((f) => f.ev === 'compact_start' && f.payload.runId === 'r1');
+  const end = fired.find((f) => f.ev === 'compact_end' && f.payload.runId === 'r1');
+  const fail = fired.find((f) => f.ev === 'compact_end' && f.payload.runId === 'r2');
+  assert.equal(start?.payload.reason, 'threshold');
+  assert.equal(end?.payload.status, 'completed');
+  assert.equal(fail?.payload.reason, 'overflow');
+  assert.equal(fail?.payload.status, 'failed');
+  assert.match(fail?.payload.error, /summarizer died/);
+  dispose();
+});

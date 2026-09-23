@@ -225,9 +225,15 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       } else if (ev?.type === 'agent_end') {
         hooks?.fire('agent_stop', {});
       } else if (ev?.type === 'compaction_start') {
-        hooks?.fire('compact_start', {});
+        // dedup-h #535: hooks see WHY the compaction fired — the engine
+        // already classifies reason (manual|threshold|overflow); dropping
+        // it would force hook scripts to re-derive a worse guess.
+        hooks?.fire('compact_start', { reason: ev.reason ?? null, runId: ev.runId ?? null });
       } else if (ev?.type === 'compaction_end') {
-        hooks?.fire('compact_end', {});
+        hooks?.fire('compact_end', {
+          reason: ev.reason ?? null, runId: ev.runId ?? null,
+          status: ev.status ?? null, error: ev.error ? String(ev.error?.message ?? ev.error).slice(0, 300) : null,
+        });
       }
       // Aider verify loop: a successful write-family call runs the project's
       // .pai/verify.json command (armed only if policy allows its class)
