@@ -244,9 +244,65 @@ test('mcp oauth: malformed specs fail closed at connect', async () => {
     { url, oauth: { ...base, resource: 'https://x/#frag' } },                       // fragment (RFC8707)
     { url, headers: { Authorization: 'Bearer x' }, oauth: base },                   // ambiguous auth
     { url, oauth: { ...base, clientSecret: 42 } },                                  // wrong type
+    { url, oauth: { ...base, exchange: {} } },                                      // exchange without url
+    { url, oauth: { ...base, exchange: { url: 'notaurl' } } },                      // bad exchange url
+    { url, oauth: { ...base, exchange: { url: 'http://example.com/x' } } },         // http off-loopback
+    { url, oauth: { ...base, exchange: { url: 'http://127.0.0.1:1/x', resource: 'https://x/#f' } } }, // fragment
   ]) {
     await assert.rejects(() => McpClient.connect(spec), McpError);
   }
+});
+
+// dedup-h #165: gateway token exchange (RFC 8693) — the client-credentials
+// token is the SUBJECT; the gateway exchanges it for the upstream bearer.
+test('mcp oauth: gateway token-exchange swaps subject token for upstream bearer', async () => {
+  const seen = { tokenBodies: [], exchangeBodies: [], authHeaders: [] };
+  const { token, mcp } = makeOAuthRig(seen);
+  const gateway = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      seen.exchangeBodies.push(Object.fromEntries(new URLSearchParams(body)));
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ access_token: `gw-tok-${seen.exchangeBodies.length}`, token_type: 'bearer', expires_in: 3600 }));
+    });
+  });
+  await new Promise((r) => token.listen(0, '127.0.0.1', r));
+  await new Promise((r) => gateway.listen(0, '127.0.0.1', r));
+  await new Promise((r) => mcp.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${mcp.address().port}/mcp`;
+    const client = await McpClient.connect({
+      url,
+      oauth: {
+        tokenUrl: `http://127.0.0.1:${token.address().port}/token`,
+        clientId: 'pai-client', clientSecret: 's3cret',
+        exchange: {
+          url: `http://127.0.0.1:${gateway.address().port}/exchange`,
+          audience: 'upstream-mcp',
+          resource: 'https://upstream.example.com/mcp',
+        },
+      },
+    });
+    try {
+      assert.equal(client.serverInfo.serverInfo.name, 'oauthfake');
+      await client.callTool('anything', {});
+      // subject token came from client_credentials…
+      assert.equal(seen.tokenBodies[0].grant_type, 'client_credentials');
+      // …then the gateway saw an RFC 8693 exchange carrying that subject
+      const xb = seen.exchangeBodies[0];
+      assert.equal(xb.grant_type, 'urn:ietf:params:oauth:grant-type:token-exchange');
+      assert.equal(xb.subject_token, 'tok-1');
+      assert.equal(xb.subject_token_type, 'urn:ietf:params:oauth:token-type:access_token');
+      assert.equal(xb.audience, 'upstream-mcp');
+      assert.equal(xb.resource, 'https://upstream.example.com/mcp');
+      assert.equal(xb.client_id, 'pai-client');
+      // upstream posts carry the GATEWAY token, never the subject token
+      assert.ok(seen.authHeaders.length > 0);
+      assert.ok(seen.authHeaders.every((h) => h === 'Bearer gw-tok-1'));
+      assert.match(client.oauth, /token-exchange/);
+    } finally { client.close(); }
+  } finally { token.close(); gateway.close(); mcp.close(); }
 });
 
 // M131/dedup-h-#131: interactive OAuth — authorization_code + PKCE via

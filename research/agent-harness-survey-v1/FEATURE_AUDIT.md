@@ -2122,3 +2122,19 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 治理执行 | `governance.decideToolCall`：`Object.assign(ctx.args, edited)`——活引用，工具执行的是操作员改过的文本（governance.js:230-262）；M84 硬策略重检（deny/terminate/unparseable 照拒）；双端 hash 审计 `GOVERNANCE_ASK_EDITED` |
 
 测试在案：governance.test.js M84×3 + in-card edit 落 ctx.args；asks.test.js 对象回答/拒编/截断拒 3 例。本轮实测 59/59 绿。
+
+### 28.50 648 清单逐条核销 #19：dedup-h #165 remote-mcp 网关代理 OAuth 令牌交换（2026-09-23）
+
+**行**：`dedup-h	165	mcp-tools	remote-mcp: gateway proxy OAuth token exchange`。
+
+**判定**：**IMPLEMENTED**——`oauth.exchange` 子规格：取到的令牌降级为 **subject token**，POST 到网关交换端点换上游 bearer（RFC 8693 `urn:ietf:params:oauth:grant-type:token-exchange`）。
+
+| 面 | 落点 |
+|---|---|
+| spec | `oauth.exchange:{url,audience?,resource?}`；url 同 tokenUrl 校验（https/loopback http）；resource 绝对 URI 禁 fragment |
+| 交换 | `subject_token`+`subject_token_type`+`client_id`(+`client_secret`)+`audience`/`resource` → gateway → exchanged bearer 缓存至自身 expiresAt |
+| 401 | 上游 401 只废**交换令牌**——subject token 仍有效，重试仅重新交换不重新授权 |
+| 双流兼容 | client_credentials subject / authorization_code 用户令牌均可进交换（`oauthExchangedTokens` 包装任意 token source） |
+| 可见性 | `client.oauth`/`/mcp` 描述为 `... + gateway token-exchange`，令牌永不进输出 |
+
+测试：真实双端点 rig——token 端断言 client_credentials、exchange 端断言 RFC8693 全字段（subject_token=tok-1/audience/resource/client_id）、上游请求全带 `Bearer gw-tok-*`；malformed exchange spec×4 fail-closed。manifest sha256 同步更新。

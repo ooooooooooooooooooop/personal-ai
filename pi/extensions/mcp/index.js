@@ -189,6 +189,29 @@ function validateOAuthSpec(spec) {
     if (resource.hash) throw new McpError('oauth.resource must not carry a fragment (RFC 8707)');
     resource = resource.href;
   }
+  // dedup-h #165: gateway token exchange (RFC 8693) — the acquired token is
+  // a SUBJECT token; the gateway exchanges it for the upstream bearer.
+  // Works under either flow (client_credentials subject or the stored
+  // authorization_code user token).
+  let exchange = null;
+  if (o.exchange != null) {
+    const ex = o.exchange;
+    if (typeof ex !== 'object' || typeof ex.url !== 'string' || !ex.url) throw new McpError('oauth.exchange.url required');
+    let url;
+    try { url = new URL(ex.url); } catch { throw new McpError('oauth.exchange.url is not a URL'); }
+    if (!['https:', 'http:'].includes(url.protocol)) throw new McpError('oauth.exchange.url must be http(s)');
+    if (url.protocol === 'http:' && !LOOPBACK_HOSTS.has(url.hostname.toLowerCase())) {
+      throw new McpError('oauth.exchange.url over http is refused off-loopback');
+    }
+    if (ex.audience != null && typeof ex.audience !== 'string') throw new McpError('oauth.exchange.audience must be a string');
+    let exResource = null;
+    if (ex.resource != null) {
+      try { exResource = new URL(ex.resource); } catch { throw new McpError('oauth.exchange.resource is not an absolute URI'); }
+      if (exResource.hash) throw new McpError('oauth.exchange.resource must not carry a fragment (RFC 8707)');
+      exResource = exResource.href;
+    }
+    exchange = { url: url.href, audience: ex.audience ?? null, resource: exResource };
+  }
   // a static Authorization header AND oauth is ambiguous auth — refuse
   for (const h of Object.keys(spec.headers ?? {})) {
     if (h.toLowerCase() === 'authorization') {
@@ -197,7 +220,7 @@ function validateOAuthSpec(spec) {
   }
   return {
     tokenUrl: tokenUrl.href, clientId: o.clientId, clientSecret: o.clientSecret ?? null,
-    scope: o.scope ?? null, resource, authorizationUrl, redirectUri,
+    scope: o.scope ?? null, resource, authorizationUrl, redirectUri, exchange,
     flow: authorizationUrl ? 'authorization_code' : 'client_credentials',
   };
 }
@@ -305,11 +328,51 @@ function oauthTokenManager(oauth, serverUrl) {
   };
 }
 
+/**
+ * dedup-h #165: gateway token exchange (RFC 8693). Wraps either token
+ * source: the source token is the SUBJECT token; the gateway exchanges it
+ * for the upstream bearer. Cached to the exchanged token's own expiry;
+ * a 401 retry re-exchanges (the subject token may still be valid).
+ */
+function oauthExchangedTokens(base, oauth) {
+  const ex = oauth.exchange;
+  let cached = null;
+  const acquire = async () => {
+    const subject = await base.token();
+    const body = new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      subject_token: subject,
+      subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+      client_id: oauth.clientId,
+    });
+    if (oauth.clientSecret) body.set('client_secret', oauth.clientSecret);
+    if (ex.audience) body.set('audience', ex.audience);
+    if (ex.resource) body.set('resource', ex.resource);
+    const res = await fetch(ex.url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body,
+    });
+    const t = await parseTokenResponse(res);
+    cached = t;
+    return t.accessToken;
+  };
+  return {
+    token: async () => (cached && Date.now() < cached.expiresAt ? cached.accessToken : acquire()),
+    // upstream 401 ⇒ the EXCHANGED token was rejected — drop it; the subject
+    // token stays valid so the retry only re-exchanges, not re-authorizes.
+    invalidate: () => { cached = null; },
+    describe: () => `${base.describe?.() ?? 'oauth'} + gateway token-exchange`,
+    ...(base.authorized ? { authorized: () => base.authorized() } : {}),
+  };
+}
+
 function httpTransport(spec, { serverName = null } = {}) {
   const oauthSpec = validateOAuthSpec(spec); // throws on malformed — fail closed at connect
-  const tokens = oauthSpec
+  let tokens = oauthSpec
     ? (oauthSpec.flow === 'authorization_code' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
     : null;
+  if (tokens && oauthSpec.exchange) tokens = oauthExchangedTokens(tokens, oauthSpec);
   let sessionId = null;
   const post = async (msg, signal) => {
     const doPost = async () => fetch(spec.url, {
