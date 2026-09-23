@@ -1667,7 +1667,7 @@
 | M121 会话级 env 注入 | **PARTIAL** | env 注入仅存在于 delegate 子进程路径；无 session-wide env 注入面 |
 | M122 shell 环境快照 | **MISSING** | 无 shell env snapshot；普通 env 处理不构成等价 |
 | M123 bash spawn hook | **MISSING** | PAI body 无内置 bash spawn-hook 接线 |
-| M124 运行时备份导入 | **REAL**（两处落地，见 §28.21 与 batch-648-35） | 运行态 bundle 导入：`runtimexfer.js` export→import 验签回写（§28.21）；实例状态备份：`pai-host backup create/verify`（`host/src/core/backup.js`）——durable-state 白名单快照 + 逐文件 sha256 manifest，密钥类文件永不入包且记入 skippedSecrets；verify 重哈希报 MISSING/MISMATCH/EXTRA，改一字节即 exit1 |
+| M124 运行时备份导入 | **REAL**（两处落地，见 §28.21 与 batch-648-35/52） | 运行态 bundle 导入：`runtimexfer.js` export→import 验签回写（§28.21）；实例状态备份：`pai-host backup create/list/verify/restore`（`host/src/core/backup.js`）——durable-state 白名单快照（含 sqlite 经 `VACUUM INTO` 一致快照而非活库裸拷，退化路径 manifest 记 `rawCopy:true`）+ 逐文件 sha256 manifest，密钥类文件永不入包且记入 skippedSecrets；verify 重哈希报 MISSING/MISMATCH/EXTRA，改一字节即 exit1；restore 三重闸=先过 verify + manifest 路径再限制（`..`/绝对路径拒）+ 撞已存状态须 `--force`（覆盖前先对现态做安全快照） |
 
 测试基线：host 260 / pi 233+1skip / app 23+1skip 全绿（含 M135-R1 四态哨兵与 M115 媒体描述符哨兵）。
 
@@ -2360,3 +2360,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。`spec.enabled===false`（或旧式 `disabled:true`）在 boot 过滤中跳过连接但保留配置并在 `/mcp` 状态单列 disabled 段。`/mcp-disable <名>` 把 `enabled:false` 写回**加载来源的同一配置文件**（scope=声明处），原子写 + 当场关闭活连接；`/mcp-enable` 写回 `enabled:true`（清除 legacy disabled 别名）并经 `connectOne` 当场重连——不是"重启才生效"的配置式假切换。
 - **证据**：disabled 服务器 boot 零注册 + 状态列名；enable 后工具可调用；disable 后已关 client 调用诚实报错；未知名拒；pi 全套 419/415/0/4。
+
+### 28.78 648 清单逐条核销 #52：dedup-h #544 状态备份 create/list/verify/restore + sqlite（2026-09-23）
+
+- **判定**：IMPLEMENTED。备份面从 create/verify 补全到四命令。sqlite 入白名单（`memory.db`、`jobs/durable_jobs.db`）：活库裸拷会撕裂事务，`.db` 一律走 `VACUUM INTO` 一致快照（node:sqlite 缺席时退化裸拷并在 manifest 记 `rawCopy:true`——快照种类诚实可查）；manifest 记录的 sha 哈希的是**快照产物**而非活库。`listBackups` 按 createdAt 新→旧列 bundle，manifest 不可读行保留并标 `manifestOk:false`。`restoreBackup` 三重闸：**先过 verify**（缺/改/多一律拒）→ manifest 路径再限制（`..`/绝对路径拒——伪造 manifest 写不出实例根）→ 撞已存状态无 `--force` 拒并列出碰撞，有 `--force` 先对现态做安全快照再逐文件 tmp+rename 原子落盘。
+- **证据**：`jobs/durable_jobs.db` 写入后备份——bundle 内是真 sqlite 可开可查（RUNNING 行在）且 manifest 无 rawCopy；list 新→旧序 + 毁损 manifest 标 false；restore 撞 `registry.json` 拒 `--force` 前列名，`--force` 后 preRestore 快照存在 + 内容回滚；篡改 bundle→verify 拒；伪造 manifest 逃逸路径（`../escape.txt` 指向 bundle 外真实文件、verify 盲过）→ restore confinement 闸拒；CLI 端到端 create→list→restore 拒→force 成功；host 361/361。

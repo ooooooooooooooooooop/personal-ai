@@ -16,16 +16,26 @@
 //    was deliberately left out.
 
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, sep } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { dirname, isAbsolute, join, relative, sep } from 'node:path';
+
+// Optional consistent-sqlite snapshot (dedup-h #544): a byte-copy of a
+// live .db can tear mid-transaction. VACUUM INTO produces a consistent
+// image; when node:sqlite is unavailable the entry falls back to a raw
+// copy marked `rawCopy:true` in the manifest — honest about which kind
+// of snapshot each file is.
+let DatabaseSync = null;
+try { ({ DatabaseSync } = await import('node:sqlite')); } catch { /* older node — raw-copy fallback */ }
 
 const STATE_PATHS = [
   'registry.json',
   'sessions',
   'memory',
+  'memory.db',
   'tasks',
   'schedules',
   'schedules.json',
+  'jobs/durable_jobs.db',
   'receipts',
   'model-fallbacks.json',
   'models-allow.json',
@@ -57,6 +67,26 @@ function sha256File(path) {
 }
 
 /**
+ * Copy one state file into the bundle. `.db` files get a VACUUM INTO
+ * consistent snapshot when node:sqlite is present; anything else (and
+ * sqlite when unavailable) is a byte copy. Returns 'vacuum' | 'raw'.
+ */
+function copyStateFile(src, to) {
+  if (src.toLowerCase().endsWith('.db') && DatabaseSync) {
+    try {
+      const db = new DatabaseSync(src);
+      try { db.exec(`VACUUM INTO '${to.replaceAll("'", "''")}'`); }
+      finally { db.close(); }
+      return 'vacuum';
+    } catch {
+      // locked/corrupt db — fall through to raw copy, marked honestly
+    }
+  }
+  copyFileSync(src, to);
+  return 'raw';
+}
+
+/**
  * Snapshot durable instance state into <outDir>/<backup-ISOts>/.
  * Returns { dir, files, skippedSecrets, manifest }.
  */
@@ -77,8 +107,9 @@ export function createBackup(instanceRoot, outDir = null) {
       if (SECRET_RE.test(r.split(sep).pop() ?? r)) { skippedSecrets.push(r); continue; }
       const to = join(dest, r);
       mkdirSync(dirname(to), { recursive: true });
-      copyFileSync(p, to);
-      files.push({ path: r.split(sep).join('/'), sha256: sha256File(p), bytes: statSync(p).size });
+      const kind = copyStateFile(p, to);
+      files.push({ path: r.split(sep).join('/'), sha256: sha256File(to), bytes: statSync(to).size,
+        ...(kind === 'raw' && r.toLowerCase().endsWith('.db') ? { rawCopy: true } : {}) });
     }
   }
   // top-level secret-looking files sit OUTSIDE the allowlist too — record
@@ -131,4 +162,75 @@ export function verifyBackup(dir) {
   }
   return { ok: missing.length === 0 && mismatched.length === 0 && extra.length === 0,
     missing, mismatched, extra, verified, total: listed.size };
+}
+
+/**
+ * dedup-h #544 — enumerate backup bundles under a directory (newest first).
+ * Each row reads its manifest for createdAt/file counts; a bundle whose
+ * manifest is unreadable still appears, flagged manifestOk:false.
+ */
+export function listBackups(dir) {
+  if (!dir || !existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && e.name.startsWith('backup-'))
+    .map((e) => {
+      const p = join(dir, e.name);
+      let m = null;
+      try { m = JSON.parse(readFileSync(join(p, 'backup-manifest.json'), 'utf-8')); } catch { /* flagged below */ }
+      return {
+        dir: p, name: e.name,
+        createdAt: m?.createdAt ?? null,
+        files: Array.isArray(m?.files) ? m.files.length : null,
+        skippedSecrets: Array.isArray(m?.skippedSecrets) ? m.skippedSecrets.length : 0,
+        manifestOk: m != null,
+      };
+    })
+    .sort((a, b) => String(b.createdAt ?? b.name).localeCompare(String(a.createdAt ?? a.name)));
+}
+
+/**
+ * dedup-h #544 — restore a verified bundle into an instance root.
+ * Fail-closed by construction:
+ *  - the bundle must pass verifyBackup FIRST (missing/mismatch/extra refuse);
+ *  - manifest paths are re-confined (no '..', never absolute) — a forged
+ *    manifest cannot write outside the instance root;
+ *  - existing state is never clobbered silently: without force the restore
+ *    refuses and lists the collisions; with force a pre-restore snapshot of
+ *    current state is taken before the overwrite.
+ */
+export function restoreBackup(backupDir, instanceRoot, { force = false } = {}) {
+  const v = verifyBackup(backupDir);
+  if (!v.ok) {
+    return { ok: false, error: 'bundle failed verification — refusing to restore a corrupt or tampered backup',
+      missing: v.missing, mismatched: v.mismatched, extra: v.extra };
+  }
+  const manifest = JSON.parse(readFileSync(join(backupDir, 'backup-manifest.json'), 'utf-8'));
+  const files = manifest.files ?? [];
+  for (const f of files) {
+    const rel = String(f.path ?? '');
+    if (!rel || rel.includes('..') || isAbsolute(rel)) {
+      return { ok: false, error: `manifest path '${rel}' escapes the instance root — refusing` };
+    }
+  }
+  let preRestore = null;
+  if (existsSync(instanceRoot)) {
+    const existing = files.filter((f) => existsSync(join(instanceRoot, f.path))).map((f) => f.path);
+    if (existing.length && !force) {
+      return { ok: false, error: `${existing.length} state files already exist — pass --force to overwrite (a pre-restore snapshot is taken first)`, existing };
+    }
+    if (existing.length) {
+      preRestore = createBackup(instanceRoot).dir; // safety net before clobbering live state
+    }
+  }
+  const restored = [];
+  for (const f of files) {
+    const src = join(backupDir, f.path);
+    const dst = join(instanceRoot, f.path);
+    mkdirSync(dirname(dst), { recursive: true });
+    const tmp = `${dst}.restore-tmp-${process.pid}`;
+    copyFileSync(src, tmp);
+    renameSync(tmp, dst); // atomic per file — a crash never halves a state file
+    restored.push(f.path);
+  }
+  return { ok: true, restored: restored.length, preRestore };
 }

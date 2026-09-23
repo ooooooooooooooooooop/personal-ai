@@ -96,7 +96,7 @@ if (cmd === 'start') {
 if (cmd === 'backup') {
   const sub = process.argv[3] ?? 'create';
   const instanceRoot = arg('instance-root', process.env.PAI_INSTANCE_ROOT);
-  const { createBackup, verifyBackup } = await import('../../host/src/core/backup.js');
+  const { createBackup, verifyBackup, listBackups, restoreBackup } = await import('../../host/src/core/backup.js');
   if (sub === 'create') {
     if (!instanceRoot) {
       console.error('backup create requires --instance-root or PAI_INSTANCE_ROOT');
@@ -123,7 +123,41 @@ if (cmd === 'backup') {
     console.log(`verify: ${r.verified}/${r.total} files intact — ${r.ok ? 'OK' : 'FAILED'}`);
     process.exit(r.ok ? 0 : 1);
   }
-  console.error(`unknown backup subcommand '${sub}' — expected create|verify`);
+  // dedup-h #544 — list + restore complete the four-verb surface. list
+  // reads each bundle's manifest; restore verifies FIRST, refuses to
+  // clobber live state without --force, and takes a pre-restore snapshot
+  // when it does overwrite.
+  if (sub === 'list') {
+    const dir = arg('dir', null)
+      ?? (instanceRoot ? join(instanceRoot, 'backups') : null)
+      ?? join(process.cwd(), 'backups');
+    const rows = listBackups(dir);
+    if (!rows.length) { console.log(`no backups under ${dir}`); process.exit(0); }
+    for (const b of rows) {
+      console.log(`${b.createdAt ?? '(unknown time)'}  ${String(b.files ?? '?').padStart(4)} files  ${b.manifestOk ? '' : '[manifest unreadable] '}${b.name}`);
+    }
+    process.exit(0);
+  }
+  if (sub === 'restore') {
+    const dir = process.argv[4] ?? arg('dir', null);
+    if (!dir || !instanceRoot) {
+      console.error('backup restore requires a backup directory (positional or --dir) and --instance-root');
+      process.exit(1);
+    }
+    const force = process.argv.includes('--force');
+    const r = restoreBackup(dir, instanceRoot, { force });
+    if (!r.ok) {
+      console.error(`restore refused: ${r.error}`);
+      for (const m of r.existing ?? []) console.error(`  EXISTS    ${m}`);
+      for (const m of r.missing ?? []) console.error(`  MISSING   ${m}`);
+      for (const m of r.mismatched ?? []) console.error(`  MISMATCH  ${m}`);
+      process.exit(1);
+    }
+    if (r.preRestore) console.log(`pre-restore snapshot of current state → ${r.preRestore}`);
+    console.log(`restored: ${r.restored} files → ${instanceRoot}`);
+    process.exit(0);
+  }
+  console.error(`unknown backup subcommand '${sub}' — expected create|verify|list|restore`);
   process.exit(1);
 }
 
