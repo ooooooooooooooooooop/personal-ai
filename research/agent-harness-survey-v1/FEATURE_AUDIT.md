@@ -2262,3 +2262,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 **判定**：**ALREADY_COVERED**（本轮补证据）——`app/ui/app.js` `!` 前缀路径早已是真实实现：`bash_run` 走治理 decide 链（审批卡照常弹）、输出压进 `pendingBash`、下一条 prompt 前自动注入 `<operator-bash>` 上下文块。本轮补的是**缺失的端到端证据**：fake-channel 加 `bash_run` 桩、dom-gate 加 `bangStash`（stash 持有 command+output）与 `bangShell`（块逐字随下条 prompt 进上下文、stash 排空）两断言。
 
 **顺带抓到的真 bug**：DRIVER 模板串内注释含 `` `!cmd` `` 反引号会提前终止字符串（`SyntaxError: Unexpected token '!'` ——Electron "App threw an error during load"），已修。
+
+### 28.62 648 清单逐条核销 #34：dedup-h #303 ↑拉回排队消息（2026-09-23）
+
+**行**：`dedup-h	303	ui-ux	↑拉回queued message到编辑器 — queue-edit UX`。
+
+**判定**：**IMPLEMENTED**——ArrowUp 在 `queue` 非空且（编辑器空或正在翻历史）时把**队尾**排队消息拉回编辑器：
+
+- 队列项新增 `typed` 字段存原始输入——拉回的是操作员打的字，不是展开后的 outbound（@mention/文件折叠重发时自然再展开）
+- 图片附件随拉回还原到 attach 行（`pendingAttach` + `renderAttach`）
+- 与历史召回同一 guard——不打断正在输入的文本
+- dom-gate `queueEdit`：值、队列弹空、附件还原三断言

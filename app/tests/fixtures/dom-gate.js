@@ -269,6 +269,23 @@ const DRIVER = `(async () => {
     };
     inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    /* dedup-h #303 — ArrowUp queue-edit: the most recent queued message
+     * pulls back into the composer (typed text, not the expanded outbound;
+     * image attachments restored onto the attach row; queue pops). */
+    queue.push({
+      text: 'expanded-outbound', label: 'dg-queued', typed: 'dg-queued',
+      attachments: [{ name: 'q.png', mime: 'image/png', data: 'aGk=', bytes: 3 }],
+    });
+    renderQueue();
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    checks.queueEdit = {
+      ok: inputEl.value === 'dg-queued' && queue.length === 0 && pendingAttach.length === 1,
+      val: inputEl.value, qlen: queue.length, attach: pendingAttach.length,
+    };
+    inputEl.value = ''; pendingAttach.length = 0; renderAttach();
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

@@ -4458,6 +4458,27 @@ input.addEventListener('keydown', (e) => {
     toast(`已弃尾 ${n} 条排队消息`, 'info'); lastEscAt = 0; return;
   }
   if (e.key === 'Escape') lastEscAt = Date.now();
+  // dedup-h #303 — ArrowUp queue-edit: while queued messages wait, the
+  // most recent one pulls back into the composer for editing (CC queue-
+  // edit UX). Same guard as history recall — never clobbers mid-typing;
+  // image attachments are restored onto the attach row with it.
+  if (e.key === 'ArrowUp' && queue.length && (!input.value.trim() || histIdx >= 0)) {
+    e.preventDefault();
+    const q = queue.pop(); renderQueue();
+    if (histIdx < 0) pushDraft();
+    for (const a of q.attachments ?? []) {
+      pendingAttach.push({
+        name: a.name,
+        kind: String(a.mime ?? '').startsWith('image/') ? 'image' : 'media',
+        data: a.data, mimeType: a.mime, bytes: a.bytes,
+      });
+    }
+    if (q.attachments?.length) renderAttach();
+    // restore what the operator TYPED, not the expanded outbound — @mention
+    // and file folds re-expand on resend anyway
+    input.value = q.typed ?? q.label ?? q.text; prevDraft = input.value; autogrow();
+    return;
+  }
   // ArrowUp/Down walk prompt history when the composer is empty or already
   // showing a recalled entry (shell-style; draft text is preserved).
   if (e.key === 'ArrowUp' && promptHist.length
@@ -4740,7 +4761,7 @@ async function send() {
     message = `${blk}\n\n${message}`;
   }
   renderAttach();
-  if (busy) { queue.push({ text: message, attachments, label: text || `（${attachCount} 个附件）` }); renderQueue(); return; }
+  if (busy) { queue.push({ text: message, attachments, label: text || `（${attachCount} 个附件）`, typed: text }); renderQueue(); return; }
   lastUserText = text;
   histPush(text);
   addMsg('user', text || `（${attachCount} 个附件）`);
