@@ -1119,3 +1119,96 @@ test('mcp env expansion: ${VAR} resolves in stdio+http fields; missing diagnosed
     delete process.env.PAI_TEST_TOKEN_X;
   }
 });
+
+// dedup-h #347 — legacy transport:"sse": GET opens a persistent stream,
+// server announces `event: endpoint`, client POSTs there (202) and
+// responses ride back over the stream as `event: message` frames.
+test('mcp legacy sse: endpoint handshake + stream-routed responses', async () => {
+  const seen = { posts: [], endpointSent: false };
+  let sseRes = null;
+  const server = createServer((req, res) => {
+    if (req.method === 'GET' && req.url === '/sse') {
+      res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+      res.write('event: endpoint\ndata: /messages?session_id=s1\n\n');
+      seen.endpointSent = true;
+      sseRes = res;
+      return; // stream stays open
+    }
+    if (req.method === 'POST' && req.url.startsWith('/messages')) {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        const msg = JSON.parse(body);
+        seen.posts.push(msg);
+        res.statusCode = 202;
+        res.end();
+        if (msg.id == null) return; // notification — nothing to answer
+        const result = msg.method === 'initialize'
+          ? { protocolVersion: '2024-11-05', serverInfo: { name: 'legacy-sse' } }
+          : msg.method === 'tools/call'
+            ? { content: [{ type: 'text', text: `sse-answer:${msg.params.name}` }] }
+            : { tools: [{ name: 'legacy-tool' }] };
+        // the response is pushed over the SSE stream, NOT the POST reply
+        sseRes.write(`event: message\ndata: ${JSON.stringify({ jsonrpc: '2.0', id: msg.id, result })}\n\n`);
+      });
+      return;
+    }
+    res.statusCode = 404;
+    res.end();
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/sse`;
+    const client = await McpClient.connect({ url, transport: 'sse' });
+    try {
+      assert.equal(client.serverInfo.serverInfo.name, 'legacy-sse');
+      assert.ok(seen.endpointSent, 'server announced its endpoint');
+      const tools = await client.listTools();
+      assert.equal(tools[0].name, 'legacy-tool');
+      const res = await client.callTool('anything', {});
+      assert.equal(res.content[0].text, 'sse-answer:anything');
+      assert.ok(seen.posts.every((m) => m.jsonrpc === '2.0'), 'all requests POSTed to endpoint');
+    } finally {
+      client.close();
+    }
+  } finally {
+    server.close();
+  }
+});
+
+test('mcp legacy sse: dead stream fails pending honestly, bad transport refused', async () => {
+  let sseRes = null;
+  const server = createServer((req, res) => {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      res.write('event: endpoint\ndata: /m\n\n');
+      sseRes = res;
+      return;
+    }
+    // on the tools/list POST: 202 then kill the stream — the request's
+    // response can never arrive; onExit must fail the pending call loudly
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      res.statusCode = 202;
+      res.end();
+      const msg = JSON.parse(body);
+      if (msg.method === 'initialize') {
+        sseRes.write(`event: message\ndata: ${JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2024-11-05', serverInfo: { name: 'legacy-sse' } } })}\n\n`);
+      } else if (msg.method === 'tools/list') setTimeout(() => sseRes?.end(), 20);
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/sse`;
+    const client = await McpClient.connect({ url, transport: 'sse' });
+    await assert.rejects(() => client.listTools(), /mcp server process exited/);
+    client.close();
+    await assert.rejects(
+      () => McpClient.connect({ url, transport: 'carrier-pigeon' }),
+      /transport 'carrier-pigeon' unsupported/,
+    );
+  } finally {
+    server.close();
+  }
+});

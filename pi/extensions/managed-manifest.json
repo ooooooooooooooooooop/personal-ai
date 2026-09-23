@@ -4,7 +4,7 @@
     {
       "id": "mcp-client",
       "path": "extensions/mcp/index.js",
-      "sha256": "6b9b44d70a13cd72786cc28379c4cbb3445c41f429d6561a5fc1595c56908d13"
+      "sha256": "5038267d200bad4dcbd81202bad70313b731c8c2454aa876e5542310ab55cd8b"
     },
     {
       "id": "lsp-readonly",

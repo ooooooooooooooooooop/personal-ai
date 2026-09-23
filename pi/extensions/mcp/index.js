@@ -424,6 +424,113 @@ function httpTransport(spec, { serverName = null } = {}) {
   };
 }
 
+// dedup-h #347 — legacy `transport:"sse"` (pre-2025 MCP): GET opens a
+// persistent SSE stream; the server announces `event: endpoint` with the
+// POST URL; client POSTs requests there (202) and answers/notifications
+// arrive back over the stream as `event: message` frames.
+function sseTransport(spec, { serverName = null } = {}) {
+  const oauthSpec = validateOAuthSpec(spec);
+  let tokens = oauthSpec
+    ? (oauthSpec.flow === 'authorization_code' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
+    : null;
+  if (tokens && oauthSpec.exchange) tokens = oauthExchangedTokens(tokens, oauthSpec);
+  const ac = new AbortController();
+  const pending = { onMessage: null, onExit: null };
+  let postUrl = null;
+  let closed = false;
+  const authHeaders = async () => ({
+    ...(spec.headers ?? {}),
+    ...(tokens ? { authorization: `Bearer ${await tokens.token()}` } : {}),
+  });
+
+  const pump = (async () => {
+    const res = await fetch(spec.url, {
+      headers: { accept: 'text/event-stream', ...(await authHeaders()) },
+      signal: ac.signal,
+    });
+    if (!res.ok || !res.body) throw new McpError(`sse connect failed: HTTP ${res.status}`, { code: 'MCP_CONNECT' });
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      for (;;) {
+        const sep = buf.search(/\r?\n\r?\n/);
+        if (sep < 0) break;
+        const block = buf.slice(0, sep);
+        buf = buf.slice(sep).replace(/^\r?\n\r?\n/, '');
+        let event = 'message';
+        const data = [];
+        for (const line of block.split(/\r?\n/)) {
+          if (line.startsWith('event:')) event = line.slice(6).trim();
+          else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+        }
+        if (!data.length) continue;
+        const payload = data.join('\n');
+        if (event === 'endpoint' && postUrl == null) {
+          // endpoint data is a URI reference — resolve against the SSE URL
+          try { postUrl = new URL(payload, spec.url).toString(); } catch { postUrl = payload; }
+          continue;
+        }
+        if (event === 'message') {
+          try { pending.onMessage?.(JSON.parse(payload)); } catch { /* malformed frame skipped */ }
+        }
+      }
+    }
+    if (!closed) pending.onExit?.(0); // server closed the stream — fail pending honestly
+  })();
+
+  // the pump only resolves at stream END; the handshake is postUrl arrival.
+  // Wrap it: wait until postUrl is set, the pump fails, or the timer fires.
+  const handshake = new Promise((resolve, reject) => {
+    const timer = setInterval(() => {
+      if (postUrl) { clearInterval(timer); resolve(); }
+    }, 5);
+    pump.catch((e) => { clearInterval(timer); reject(e); });
+    setTimeout(() => { clearInterval(timer); reject(new McpError('sse endpoint handshake timed out', { code: 'MCP_TIMEOUT' })); }, CONNECT_TIMEOUT_MS);
+  });
+
+  const doPost = async (msg) => {
+    const sendOnce = async () => fetch(postUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify(msg),
+      signal: ac.signal,
+    });
+    let res = await sendOnce();
+    if (res.status === 401 && tokens) { tokens.invalidate(); res = await sendOnce(); }
+    return res;
+  };
+
+  return {
+    kind: 'sse',
+    // send() never awaits the response — legacy SSE answers on the stream.
+    // A failed POST is fed back as a synthetic JSON-RPC error so the
+    // pending request rejects instead of hanging to timeout.
+    send: (msg) => {
+      if (closed) return;
+      handshake.then(() => doPost(msg)).then((res) => {
+        if (res.status >= 400 && msg.id != null) {
+          pending.onMessage?.({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `sse POST HTTP ${res.status}` } });
+        }
+      }).catch((e) => {
+        if (msg.id != null) {
+          pending.onMessage?.({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `sse POST failed: ${e.message}` } });
+        }
+      });
+    },
+    onMessage: (fn) => { pending.onMessage = fn; },
+    onExit: (fn) => { pending.onExit = fn; },
+    close: () => {
+      closed = true;
+      try { ac.abort(); } catch { /* already aborted */ }
+    },
+    oauth: tokens?.describe() ?? null,
+  };
+}
+
 export class McpClient {
   #transport;
   #nextId = 1;
@@ -446,7 +553,13 @@ export class McpClient {
   onNotification(fn) { this.#notifyHandlers.push(fn); }
 
   static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS, serverName = null } = {}) {
-    const transport = spec.url ? httpTransport(spec, { serverName }) : stdioTransport(spec);
+    const kind = spec.transport ?? 'auto';
+    if (!['auto', 'http', 'streamable-http', 'sse'].includes(kind)) {
+      throw new McpError(`mcp spec transport '${spec.transport}' unsupported — expected http|streamable-http|sse`, { code: 'MCP_SPEC' });
+    }
+    const transport = !spec.url ? stdioTransport(spec)
+      : kind === 'sse' ? sseTransport(spec, { serverName })
+      : httpTransport(spec, { serverName });
     const client = new McpClient(transport);
     client.strippedEnv = transport.strippedEnv ?? [];
     client.oauth = transport.oauth ?? null;
@@ -1055,6 +1168,7 @@ export default function mcpExtension(pi) {
       }
       const rest = [];
       const headers = {}, env = {};
+      let transport = null;
       for (let i = 1; i < words.length; i++) {
         if (words[i] === '--header' && words[i + 1]) {
           const h = words[++i]; const ci = h.indexOf(':');
@@ -1062,12 +1176,18 @@ export default function mcpExtension(pi) {
         } else if (words[i] === '--env' && words[i + 1]) {
           const e = words[++i]; const ei = e.indexOf('=');
           if (ei > 0) env[e.slice(0, ei)] = e.slice(ei + 1);
+        } else if (words[i] === '--transport' && words[i + 1]) {
+          transport = words[++i];
         } else rest.push(words[i]);
       }
       if (!rest.length) { ctx.ui?.notify?.('usage: /mcp-add <name> <url|command> [args…]', 'error'); return; }
       let spec;
       if (/^https?:\/\//i.test(rest[0])) {
         spec = { url: rest[0] };
+        if (transport === 'sse') spec.transport = 'sse';
+        else if (transport && transport !== 'http') {
+          ctx.ui?.notify?.(`--transport '${transport}' unsupported — expected http|sse`, 'error'); return;
+        }
         if (Object.keys(headers).length) spec.headers = headers;
       } else {
         spec = { command: rest[0] };
@@ -1096,7 +1216,7 @@ export default function mcpExtension(pi) {
       }
       servers[name] = spec;
       const entry = await connectOne(name, spec);
-      const kind = spec.url ? `http ${spec.url}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
+      const kind = spec.url ? `${spec.transport === 'sse' ? 'sse' : 'http'} ${spec.url}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
       if (entry?.failed || !entry?.client) {
         ctx.ui?.notify?.(`added '${name}' (${kind}) to ${target} — connect FAILED; /mcp shows the error, fix the spec and restart`, 'error');
         return;
