@@ -102,3 +102,57 @@ test('task_list filters by team and exposes roster fields', async () => {
   const none = await call(tools, 'task_list', { team: 'ghost' });
   assert.match(body(none), /no tasks in team 'ghost'/);
 });
+
+// dedup-h #258: workflow tool — whole-plan validation, then per-step
+// admission through the real delegate path with dep ids → job ids.
+test('workflow: plan validation + topo admission + honest stop on refusal', async () => {
+  const { workflowTool } = await import('../src/adapter/delegate.js');
+  const calls = [];
+  let n = 0;
+  const delegate = {
+    execute: async (_id, p) => {
+      calls.push(p);
+      if (p.task === 'BOOM') return { isError: true, content: [{ type: 'text', text: 'delegation refused: budget gate' }], details: { refused: true } };
+      return { content: [{ type: 'text', text: 'ok' }], details: { job_id: `job-${++n}`, task_id: `t-${n}` } };
+    },
+  };
+  const wf = workflowTool(delegate);
+
+  // bad plans refuse BEFORE any admission
+  for (const [steps, reason] of [
+    [[{ id: 'a', task: 'x', depends_on: ['ghost'] }], 'unknown_dependency'],
+    [[{ id: 'a', task: 'x', depends_on: ['a'] }], 'self_dependency'],
+    [[{ id: 'a', task: 'x' }, { id: 'a', task: 'y' }], 'duplicate_step_id'],
+    [[{ id: 'a', task: 'x', depends_on: ['b'] }, { id: 'b', task: 'y', depends_on: ['a'] }], 'cyclic_plan'],
+    [[{ id: 'a', task: '  ' }], 'empty_task'],
+  ]) {
+    const r = await wf.execute('tc', { steps });
+    assert.equal(r.details.reason, reason, JSON.stringify(steps));
+    assert.equal(calls.length, 0, `no admission on ${reason}`);
+  }
+
+  // linear chain: dep id rewritten to admitted job id, team shared
+  const ok = await wf.execute('tc', {
+    name: 'build',
+    steps: [
+      { id: 'design', task: 'design it', profile: 'p1' },
+      { id: 'impl', task: 'implement', depends_on: ['design'] },
+      { id: 'verify', task: 'verify', depends_on: ['impl'], worktree: true },
+    ],
+  });
+  assert.equal(ok.details.workflow.slice(0, 3), 'wf-');
+  assert.match(ok.details.team, /^wf-\w+-build$/);
+  assert.deepEqual(calls.map((c) => c.task), ['design it', 'implement', 'verify']);
+  assert.deepEqual(calls[1].depends_on, ['job-1'], 'dep id → job id');
+  assert.deepEqual(calls[2].depends_on, ['job-2']);
+  assert.ok(calls.every((c) => c.team === ok.details.team), 'shared wf team');
+  assert.equal(calls[2].worktree, true);
+
+  // refusal mid-plan stops submission and names admitted jobs
+  calls.length = 0; n = 0;
+  const stop = await wf.execute('tc', { steps: [{ id: 'one', task: 'go' }, { id: 'two', task: 'BOOM' }, { id: 'three', task: 'never' }] });
+  assert.equal(stop.details.reason, 'step_refused');
+  assert.equal(stop.details.step, 'two');
+  assert.equal(calls.length, 2, 'third step never submitted');
+  assert.match(stop.content[0].text, /one → job-1/);
+});

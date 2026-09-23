@@ -2217,3 +2217,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - `pi/src/serve/mcpserve.js` + `pai-host mcp-serve`：真 `startHost` + 换行 JSON-RPC stdio server。有界治理面 `session_prompt/get_state/session_list/job_status/audit_tail` —— `tools/call` 全部走真实 channel `handle()`（同一 decide/hooks/budget 链）；notification 沉默、parse error -32700、未知 method -32601
 - `pi/extensions/mcp/index.js`：`${VAR_NAME}` 占位符展开（command/args/env/url/headers 五个字段），缺失变量保持字面量并进 `/mcp` 诊断行
 - 测试：mcpserve RPC 分派+stdio 循环沉默纪律、mcp-ext env 展开/缺失诊断；manifest 重钉
+
+### 28.58 648 清单逐条核销 #30：dedup-h #258 Workflow 工具（2026-09-23）
+
+**行**：`dedup-h	258	orchestration	orchestration: Workflow工具编排多sub-agent多步任务`。
+
+**判定**：**IMPLEMENTED**——`workflow` customTool（`pi/src/adapter/delegate.js`）：
+
+- 一次调用提交有界多步计划：`steps:[{id,task,profile?|target?,depends_on?,worktree?,max_minutes?}]`，≤12 步
+- **整计划先校验**（slug id 唯一/依赖可解/无环/任务非空）——任何畸形都在第一次准入前拒绝，不产生半成品
+- 每步走**真实** `delegate_task` 准入链：profile 解析、secret 扫描、enforceability、spawn 深度、预算 commit 全部生效——workflow 无法走私单工具会拒的委派
+- 步间 `depends_on` 从 step id 重写为准入返回的持久 job id；全队共享 `wf-<id>` team（task_list 过滤/team_msg 广播直接可用）
+- 首个拒绝即停提交，报告如实列出已准入的活 job id 供操作员取消
+- 测试：五种畸形计划全拒+零准入、topo 顺序、dep→job 重写、team 共享、中途拒绝诚实停报

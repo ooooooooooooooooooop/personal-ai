@@ -409,6 +409,150 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
   };
 }
 
+// dedup-h #258 — Workflow tool (CC analogue): one call submits a bounded
+// multi-step plan of sub-agent delegations. The plan is validated WHOLE
+// (unique slug ids, resolvable depends_on, acyclic, ≤12 steps) before any
+// admission; each step then travels the real delegate_task path — profile
+// resolution, secret scan, enforceability, depth cap, budget commit — so a
+// workflow can never smuggle a delegation the single tool would refuse.
+// Steps run under a shared `wf-<id>` team (task_list filter / team_msg
+// broadcast) and inter-step depends_on is rewritten from step ids to the
+// durable job ids admission returns. First refusal stops submission; the
+// report names admitted job ids honestly so the operator can cancel them.
+const STEP_ID = /^[a-z][a-z0-9_-]{0,31}$/;
+const MAX_WORKFLOW_STEPS = 12;
+
+export function workflowTool(delegate) {
+  return {
+    name: 'workflow',
+    label: 'Workflow',
+    description:
+      'Orchestrate multiple sub-agents on a large multi-step task in one call (CC Workflow analogue). ' +
+      `Pass steps:[{id, task, profile?|target?, depends_on?, worktree?, max_minutes?}] — ≤${MAX_WORKFLOW_STEPS} steps, ` +
+      'unique kebab-case ids, depends_on lists step ids that must COMPLETE first. The whole plan is validated ' +
+      'before anything is admitted; each step is then delegated through the same governed path as delegate_task ' +
+      'and queued behind its dependencies. Returns a workflow id, the wf-team name, and the step→job mapping. ' +
+      'Poll job_status / task_list per step; team_msg broadcasts to the whole workflow roster.',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'optional workflow label — becomes the wf-<id> team suffix' },
+        steps: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'unique kebab-case step id' },
+              task: { type: 'string', description: 'task description for this step' },
+              target: { type: 'string', description: 'target agent id (omit with profile for fork mode)' },
+              profile: { type: 'string', description: 'named subagent profile' },
+              depends_on: { type: 'array', items: { type: 'string' }, description: 'step ids that must COMPLETE first' },
+              worktree: { type: 'boolean', description: 'run this step in a detached git worktree' },
+              max_minutes: { type: 'number', description: 'wall-clock ceiling for this step' },
+            },
+            required: ['id', 'task'],
+          },
+          description: `ordered plan — ≤${MAX_WORKFLOW_STEPS} steps`,
+        },
+      },
+      required: ['steps'],
+    },
+    promptSnippet: 'workflow(steps): orchestrate a multi-step plan across sub-agents in one governed call',
+    async execute(toolCallId, params) {
+      const fail = (text, reason) => ({
+        content: [{ type: 'text', text }],
+        details: { refused: true, reason },
+        isError: true,
+      });
+      const steps = params?.steps;
+      if (!Array.isArray(steps) || !steps.length) return fail('workflow: steps must be a non-empty array', 'empty_plan');
+      if (steps.length > MAX_WORKFLOW_STEPS) return fail(`workflow: plan has ${steps.length} steps — the cap is ${MAX_WORKFLOW_STEPS}`, 'plan_too_large');
+      const ids = new Set();
+      for (const s of steps) {
+        const id = String(s?.id ?? '');
+        if (!STEP_ID.test(id)) return fail(`workflow: step id '${id}' must be kebab-case (a-z, 0-9, _ or -, ≤32)`, 'bad_step_id');
+        if (ids.has(id)) return fail(`workflow: duplicate step id '${id}'`, 'duplicate_step_id');
+        ids.add(id);
+        if (!String(s?.task ?? '').trim()) return fail(`workflow: step '${id}' has no task`, 'empty_task');
+        if (s?.depends_on != null && !Array.isArray(s.depends_on)) {
+          return fail(`workflow: step '${id}' depends_on must be an array of step ids`, 'bad_depends_on');
+        }
+        for (const dep of s?.depends_on ?? []) {
+          if (!steps.some((x) => x?.id === dep)) {
+            return fail(`workflow: step '${id}' depends on unknown step '${dep}'`, 'unknown_dependency');
+          }
+          if (dep === id) return fail(`workflow: step '${id}' cannot depend on itself`, 'self_dependency');
+        }
+      }
+      // topo order — Kahn; a cycle leaves unemitted steps → refuse the plan
+      const indeg = new Map(steps.map((s) => [s.id, 0]));
+      const edges = new Map(steps.map((s) => [s.id, []]));
+      for (const s of steps) for (const dep of s.depends_on ?? []) {
+        indeg.set(s.id, indeg.get(s.id) + 1);
+        edges.get(dep)?.push(s.id);
+      }
+      const queue = steps.filter((s) => indeg.get(s.id) === 0).map((s) => s.id);
+      const order = [];
+      while (queue.length) {
+        const id = queue.shift();
+        order.push(id);
+        for (const next of edges.get(id) ?? []) {
+          indeg.set(next, indeg.get(next) - 1);
+          if (indeg.get(next) === 0) queue.push(next);
+        }
+      }
+      if (order.length !== steps.length) {
+        return fail('workflow: depends_on contains a cycle — no execution order exists', 'cyclic_plan');
+      }
+      const wfId = `wf-${Math.random().toString(36).slice(2, 8)}`;
+      const label = String(params?.name ?? '').trim();
+      const team = label ? `${wfId}-${label.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24)}` : wfId;
+      const byId = new Map(steps.map((s) => [s.id, s]));
+      const jobOf = new Map();
+      const admitted = [];
+      for (const id of order) {
+        const s = byId.get(id);
+        const depJobs = (s.depends_on ?? []).map((d) => jobOf.get(d)).filter(Boolean);
+        const r = await delegate.execute(toolCallId, {
+          task: s.task,
+          ...(s.target ? { target: s.target } : {}),
+          ...(s.profile ? { profile: s.profile } : {}),
+          ...(depJobs.length ? { depends_on: depJobs } : {}),
+          ...(s.worktree === true ? { worktree: true } : {}),
+          ...(s.max_minutes != null ? { max_minutes: s.max_minutes } : {}),
+          team,
+        });
+        const jobId = r?.details?.job_id;
+        if (r?.isError || !jobId) {
+          const reason = r?.content?.[0]?.text ?? 'admission refused';
+          return {
+            content: [{
+              type: 'text',
+              text: `workflow ${wfId} STOPPED at step '${id}': ${reason}\n` +
+                (admitted.length
+                  ? `already admitted (still live — cancel via task_close/job interrupt if unwanted):\n${admitted.map((a) => `  ${a.id} → ${a.job}`).join('\n')}`
+                  : 'no steps were admitted'),
+            }],
+            details: { refused: true, reason: 'step_refused', step: id, workflow: wfId, team, admitted },
+            isError: true,
+          };
+        }
+        jobOf.set(id, jobId);
+        admitted.push({ id, job: jobId, task: r.details?.task_id ?? null, queued: r.details?.queued === true });
+      }
+      return {
+        content: [{
+          type: 'text',
+          text: `workflow ${wfId} admitted ${admitted.length} steps on team '${team}':\n` +
+            admitted.map((a) => `  ${a.id} → job ${a.job}${a.queued ? ' (queued on deps)' : ''}`).join('\n') +
+            '\nPoll job_status per job, task_list filter team, or team_msg to broadcast.',
+        }],
+        details: { workflow: wfId, team, steps: admitted },
+      };
+    },
+  };
+}
+
 /** job_status customTool — lets the model poll a durable job's position. */
 export function jobStatusTool(store) {
   return {

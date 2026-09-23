@@ -82,7 +82,7 @@ function runShell(command, cwd, { detachedDir = null } = {}) {
     });
   });
 }
-import { delegateTool, jobStatusTool } from '../adapter/delegate.js';
+import { delegateTool, jobStatusTool, workflowTool } from '../adapter/delegate.js';
 import { jobSpawnTool } from '../adapter/jobs.js';
 import { OutputSpool, outputReadTool } from '../adapter/outspool.js';
 import { toolActivateTool, toolSearchTool } from '../adapter/toollazy.js';
@@ -843,6 +843,12 @@ export async function startHost({
     // binds --task-dir for real two-way coordination
     taskStore,
   }));
+  // dedup-h #258: Workflow tool — the delegate tool object is shared so the
+  // workflow's per-step admission travels the identical governed path.
+  if (delegationCommand) {
+    const delegate = customTools.find((t) => t.name === 'delegate_task');
+    if (delegate) customTools.push(workflowTool(delegate));
+  }
 
   // M2 production wiring: policy-denied tools never reach the visible surface
   // (excludeTools at construction); runtime terminate-level denials hide the
