@@ -581,7 +581,7 @@ export class HostChannel {
         }
         case 'session_export': {
           if (!this.session?.export) return reply(false, undefined, 'export unavailable');
-          return reply(true, await this.session.export({ format: ['jsonl', 'debug'].includes(cmd.format) ? cmd.format : 'html' }));
+          return reply(true, await this.session.export({ format: ['jsonl', 'debug', 'markdown', 'md', 'quarto'].includes(cmd.format) ? cmd.format : 'html' }));
         }
         // M108: sanitized share artifact — secrets + workdir path masked
         case 'session_share': {

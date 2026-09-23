@@ -3493,10 +3493,10 @@ const SLASH = [
     },
   },
   {
-    cmd: '/export', label: '导出会话', hint: '导出为 HTML（/export jsonl 导原始轨迹，/export debug 导含子任务链的调试包）',
+    cmd: '/export', label: '导出会话', hint: '导出为 HTML（/export jsonl|debug|md|quarto 导轨迹/调试包/markdown/quarto）',
     run: async (arg) => {
       const a = String(arg ?? '').trim().toLowerCase();
-      const format = ['jsonl', 'debug'].includes(a) ? a : 'html';
+      const format = ['jsonl', 'debug', 'markdown', 'md', 'quarto'].includes(a) ? a : 'html';
       const r = await cmd('session_export', { format });
       if (r.success && r.data?.file) toast(`已导出：${r.data.file}`);
       else addSys(`导出失败：${r.error ?? '未知'}`, true);

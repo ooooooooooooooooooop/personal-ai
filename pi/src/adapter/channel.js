@@ -22,6 +22,63 @@ function writeJsonAtomic(file, doc) {
   renameSync(tmp, file);
 }
 
+function writeTextAtomic(file, text) {
+  mkdirSync(dirname(file), { recursive: true });
+  const tmp = `${file}.${process.pid}.tmp`;
+  writeFileSync(tmp, text);
+  renameSync(tmp, file);
+}
+
+/** dedup-h #74: session JSONL → markdown transcript (quarto = same doc
+ * with YAML frontmatter). Full-fidelity readable form: every message
+ * role, text, tool call (fenced args) and tool result (fenced, capped).
+ * Torn tail lines are skipped, never fatal. */
+function sessionToMarkdown(sessionFile, { quarto = false, sessionId = null } = {}) {
+  const lines = readFileSync(sessionFile, 'utf-8').split('\n').filter(Boolean);
+  const out = [];
+  if (quarto) {
+    out.push('---', `title: "Session ${sessionId ?? 'transcript'}"`,
+      `date: "${new Date().toISOString()}"`, 'format: html', '---', '');
+  } else {
+    out.push(`# Session ${sessionId ?? 'transcript'}`, '', `> exported ${new Date().toISOString()}`, '');
+  }
+  const fence = (text, lang = '') => {
+    const t = String(text ?? '');
+    const ticks = t.includes('```') ? '````' : '```';
+    return `${ticks}${lang}\n${t}\n${ticks}`;
+  };
+  for (const line of lines) {
+    let e;
+    try { e = JSON.parse(line); } catch { continue; }
+    const msg = e?.message ?? (e?.type === 'message' ? e : null);
+    if (!msg?.role) continue;
+    const ts = e?.timestamp ?? msg?.timestamp ?? null;
+    const stamp = ts ? ` — ${new Date(ts).toISOString()}` : '';
+    const role = { user: 'User', assistant: 'Assistant', toolResult: 'Tool result' }[msg.role] ?? msg.role;
+    const blocks = Array.isArray(msg.content) ? msg.content
+      : (typeof msg.content === 'string' ? [{ type: 'text', text: msg.content }] : []);
+    if (!blocks.length && msg.role === 'toolResult') {
+      blocks.push({ type: 'text', text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content ?? '') });
+    }
+    const parts = [];
+    for (const b of blocks) {
+      if (!b) continue;
+      if (b.type === 'text') parts.push(String(b.text ?? ''));
+      else if (b.type === 'thinking') parts.push(`*thinking*\n\n${fence(b.thinking ?? b.text ?? '')}`);
+      else if (b.type === 'toolCall' || b.type === 'tool_use') {
+        parts.push(`**🔧 ${b.name ?? b.toolName ?? 'tool'}**\n\n${fence(JSON.stringify(b.arguments ?? b.input ?? {}, null, 2), 'json')}`);
+      } else if (b.type === 'tool_result' || b.type === 'toolResult') {
+        const text = Array.isArray(b.content) ? b.content.map((c) => c?.text ?? '').join('\n') : String(b.content ?? b.text ?? '');
+        parts.push(`**result${b.isError ? ' (error)' : ''}**\n\n${fence(text.length > 4000 ? `${text.slice(0, 4000)}\n…[truncated]` : text)}`);
+      } else if (b.type === 'image' || b.type === 'resource') {
+        parts.push(`*[${b.type} attachment: ${b.name ?? b.mimeType ?? 'blob'}]*`);
+      } else parts.push(fence(JSON.stringify(b, null, 2), 'json'));
+    }
+    if (parts.length) out.push(`## ${role}${stamp}`, '', parts.join('\n\n'), '');
+  }
+  return out.join('\n');
+}
+
 /**
  * @param {object} deps
  * @param {object} deps.session   real AgentSession (initial)
@@ -439,6 +496,19 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         };
         writeJsonAtomic(out, bundle);
         return { file: out, format: 'debug', tasks: bundle.tasks.length };
+      }
+      // dedup-h #74: markdown/quarto transcript export — quarto is a
+      // markdown superset with YAML frontmatter, so one generator emits
+      // both (.qmd carries `format: html` frontmatter for `quarto render`).
+      if (opts.format === 'markdown' || opts.format === 'md' || opts.format === 'quarto') {
+        const src = box.s.sessionFile;
+        if (!src || !existsSync(src)) return { file: null, format: opts.format, error: 'no session file' };
+        const quarto = opts.format === 'quarto';
+        const dir = join(dirname(src), 'exports');
+        mkdirSync(dir, { recursive: true });
+        const out = join(dir, `transcript-${Date.now()}.${quarto ? 'qmd' : 'md'}`);
+        writeTextAtomic(out, sessionToMarkdown(src, { quarto, sessionId: box.s.sessionId ?? null }));
+        return { file: out, format: quarto ? 'quarto' : 'markdown' };
       }
       const html = await box.s.exportToHtml?.();
       return { file: html ?? null, format: 'html' };

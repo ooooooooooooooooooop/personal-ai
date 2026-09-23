@@ -486,6 +486,51 @@ test('session_export format=jsonl copies the raw session file to exports/', asyn
   dispose();
 });
 
+test('session_export markdown/quarto: full transcript doc, fenced blocks, quarto frontmatter', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-mdexp-'));
+  const auditDir = join(dir, 'audit');
+  const sessDir = join(dir, 'sessions');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(sessDir, { recursive: true });
+  const src = join(sessDir, 's1.jsonl');
+  writeFileSync(src, [
+    JSON.stringify({ type: 'message', timestamp: '2026-09-23T01:00:00Z', message: { role: 'user', content: [{ type: 'text', text: 'hello world' }] } }),
+    JSON.stringify({ type: 'message', timestamp: '2026-09-23T01:00:01Z', message: { role: 'assistant', content: [
+      { type: 'thinking', thinking: 'hmm' },
+      { type: 'text', text: 'answer text' },
+      { type: 'toolCall', name: 'bash', arguments: { command: 'ls' } },
+    ] } }),
+    JSON.stringify({ type: 'message', timestamp: '2026-09-23T01:00:02Z', message: { role: 'toolResult', content: [{ type: 'tool_result', content: 'file1\nfile2', isError: false }] } }),
+    '{"torn":', // torn tail tolerated
+  ].join('\n') + '\n');
+  fakeSessionRef.sessionFile = src;
+  const core = { paths: { auditDir } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const { readFileSync } = await import('node:fs');
+  const md = await ch.handle({ type: 'session_export', format: 'markdown' });
+  assert.equal(md.success, true);
+  assert.equal(md.data.format, 'markdown');
+  assert.ok(md.data.file.endsWith('.md'));
+  const doc = readFileSync(md.data.file, 'utf-8');
+  assert.match(doc, /## User — 2026-09-23T01:00:00\.000Z/);
+  assert.match(doc, /hello world/);
+  assert.match(doc, /## Assistant/);
+  assert.match(doc, /answer text/);
+  assert.match(doc, /🔧 bash/);
+  assert.match(doc, /```json\n\{\n  "command": "ls"/);
+  assert.match(doc, /\*\*result\*\*/);
+  assert.match(doc, /file1\nfile2/);
+  const q = await ch.handle({ type: 'session_export', format: 'quarto' });
+  assert.equal(q.data.format, 'quarto');
+  assert.ok(q.data.file.endsWith('.qmd'));
+  const qdoc = readFileSync(q.data.file, 'utf-8');
+  assert.match(qdoc, /^---\ntitle: "Session/);
+  assert.match(qdoc, /format: html/);
+  assert.match(qdoc, /## User/);
+  dispose();
+});
+
 test('modes_read/modes_save dispatch; fileops_diff forwards receiptId filter', async () => {
   fakeSessionRef = fakeSession(); listeners.clear();
   const dir = mkdtempSync(join(tmpdir(), 'pai-chan-med-'));

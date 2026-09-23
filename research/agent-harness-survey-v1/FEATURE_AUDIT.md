@@ -1994,3 +1994,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | subagents | ✅ **本轮补** | `pi/extensions/<name>/agents/*.md` 经 `loadAgentProfiles.extraDirs` 纳入 frontmatter persona 加载——扩展代码本就是操作员装的 release 码（envCapable 全能力）；追加序末位，**永不遮蔽** operator/workdir 同名 profile（first-write-wins） |
 
 测试：`M63`——插件 dir 贡献 persona、同名 operator 胜、envCapable 字段透传。
+
+### 28.42 648 清单逐条核销 #11：dedup-h #74 session export markdown/quarto（2026-09-23）
+
+**行**：`dedup-h	74	sessions-history	session export命令(markdown/html/quarto全量导出)`（会话导出命令，markdown/html/quarto 全量）。
+
+**判定**：**IMPLEMENTED**——`session_export` format 家族补齐：
+
+| format | 状态 | 产物 |
+|---|---|---|
+| html | ✅ 既有 | 引擎 `exportToHtml`（渲染版） |
+| jsonl | ✅ 既有 | 原始轨迹复制 |
+| debug | ✅ 既有 | 会话+AgentTask 子树+jobs 调试包 |
+| markdown/md | ✅ **本轮** | `sessionToMarkdown`：全量转录——YAML-less markdown，每消息 `## Role — ISO时间`，text/thinking/toolCall(fenced json args)/tool_result(fenced,4k cap)/attachment 全块；torn tail 容错 |
+| quarto | ✅ **本轮** | 同生成器出 `.qmd`：YAML frontmatter（title/date/`format: html`）可直接 `quarto render` |
+
+**修复**：`HostChannel session_export` 的 format 白名单原只放行 jsonl/debug——新格式放行；ephemeral 会话拒导（M71）对全部格式生效。
+
+测试：channel-facade `markdown/quarto` 用例——角色/时间戳/文本/thinking/工具调用/结果块/quarto frontmatter 全断言 + torn 行容错。
