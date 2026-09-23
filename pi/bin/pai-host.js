@@ -90,6 +90,43 @@ if (cmd === 'start') {
     '| managed extensions:', host.manifest.extensions.length);
 }
 
+// dedup-h #333 — instance state backup/verify (OpenClaw `backup
+// create`/`backup verify` analogue). Durable-state allowlist snapshot
+// with a sha256 manifest; secrets are never bundled.
+if (cmd === 'backup') {
+  const sub = process.argv[3] ?? 'create';
+  const instanceRoot = arg('instance-root', process.env.PAI_INSTANCE_ROOT);
+  const { createBackup, verifyBackup } = await import('../../host/src/core/backup.js');
+  if (sub === 'create') {
+    if (!instanceRoot) {
+      console.error('backup create requires --instance-root or PAI_INSTANCE_ROOT');
+      process.exit(1);
+    }
+    const r = createBackup(instanceRoot, arg('out', null));
+    console.log(`backup: ${r.files} files → ${r.dir}`);
+    if (r.skippedSecrets.length) {
+      console.log(`secrets excluded by design (${r.skippedSecrets.length}): ${r.skippedSecrets.join(', ')}`);
+    }
+    process.exit(0);
+  }
+  if (sub === 'verify') {
+    const dir = process.argv[4] ?? arg('dir', null);
+    if (!dir) {
+      console.error('backup verify requires a backup directory (positional or --dir)');
+      process.exit(1);
+    }
+    const r = verifyBackup(dir);
+    if (r.error) { console.error(`verify FAIL: ${r.error}`); process.exit(1); }
+    for (const m of r.missing) console.error(`  MISSING    ${m}`);
+    for (const m of r.mismatched) console.error(`  MISMATCH   ${m}`);
+    for (const m of r.extra) console.error(`  EXTRA      ${m}`);
+    console.log(`verify: ${r.verified}/${r.total} files intact — ${r.ok ? 'OK' : 'FAILED'}`);
+    process.exit(r.ok ? 0 : 1);
+  }
+  console.error(`unknown backup subcommand '${sub}' — expected create|verify`);
+  process.exit(1);
+}
+
 // dedup-h #242 — expose this host as an MCP server to external clients
 // (Claude `mcp serve` analogue). Newline-delimited JSON-RPC on stdio;
 // the served tools run the REAL governed channel (policy/hooks/budget).

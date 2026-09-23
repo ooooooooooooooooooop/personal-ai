@@ -1667,7 +1667,7 @@
 | M121 会话级 env 注入 | **PARTIAL** | env 注入仅存在于 delegate 子进程路径；无 session-wide env 注入面 |
 | M122 shell 环境快照 | **MISSING** | 无 shell env snapshot；普通 env 处理不构成等价 |
 | M123 bash spawn hook | **MISSING** | PAI body 无内置 bash spawn-hook 接线 |
-| M124 运行时备份导入 | **MISSING** | fileops backup/restore + 离线耐久脚本 ≠ runtime backup import；无外部备份导入面 |
+| M124 运行时备份导入 | **REAL**（两处落地，见 §28.21 与 batch-648-35） | 运行态 bundle 导入：`runtimexfer.js` export→import 验签回写（§28.21）；实例状态备份：`pai-host backup create/verify`（`host/src/core/backup.js`）——durable-state 白名单快照 + 逐文件 sha256 manifest，密钥类文件永不入包且记入 skippedSecrets；verify 重哈希报 MISSING/MISMATCH/EXTRA，改一字节即 exit1 |
 
 测试基线：host 260 / pi 233+1skip / app 23+1skip 全绿（含 M135-R1 四态哨兵与 M115 媒体描述符哨兵）。
 
@@ -2273,3 +2273,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - 图片附件随拉回还原到 attach 行（`pendingAttach` + `renderAttach`）
 - 与历史召回同一 guard——不打断正在输入的文本
 - dom-gate `queueEdit`：值、队列弹空、附件还原三断言
+
+### 28.63 648 清单逐条核销 #35：dedup-h #333 `pai-host backup create/verify`（2026-09-23）
+
+- **判定**：IMPLEMENTED。OpenClaw `backup create`/`backup verify` 对应面——实例 durable-state 快照 + 逐文件 sha256 校验单。
+- **位点**（生成器源码）：`host/src/core/backup.js`（零依赖，防火墙合规）；CLI 接线 `pi/bin/pai-host.js`。
+- **机制**：`create` 按**状态白名单**（registry/sessions/memory/tasks/schedules/receipts/操作员 jsons）拷入 `<instance>/backups/backup-<ISOts>/`，manifest 携带逐文件 sha256+bytes——**不整树拷贝**（spool/exports/audit 等易变目录与误放的密钥一概不进）。密钥形状文件（auth|token|secret|credential|pem|key）永不打包，并记入 `skippedSecrets`（含白名单外顶层文件）——清单诚实写明"故意留下什么"。`verify` 逐文件重哈希，MISSING/MISMATCH/EXTRA 分类报告；manifest 本身损坏→诚实失败不抛栈。
+- **证据**：backup.test.js×3（白名单+密钥排除+篡改三态）；CLI 端到端：create→verify OK→改 registry.json 一字节→MISMATCH exit1。host 357/357 绿。
+- **边界**：备份恢复（restore）不在本候选内——import 语义已由 `runtimexfer.js` 覆盖（M124 行同步更新为 REAL 双面）。
