@@ -1963,3 +1963,19 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 测试 | jobs-executor `M43`：省略→`mode:'fork'`/`target:'pai'`/commandFor 收到 'pai'；显式 target 仍 `mode:'delegate'` |
 
 **边界**：fork=同体配置继承（opencode 语义），非 transcript 分叉——后者是会话层 `session fork`（已有 `/fork`）。
+
+### 28.40 648 清单逐条核销 #9：dedup-h #56 tool def prepareArguments 钩子（2026-09-23）
+
+**行**：`dedup-h	56	file-edit	tool def prepareArguments hook（参数归一化钩子）`（工具定义级参数归一化钩子，原始参数→schema 校验前整形）。
+
+**判定**：**ALREADY COVERED（引擎契约）**——pin 的 `@earendil-works/pi-coding-agent@0.85.1` 自带该机制：
+
+| 面 | 证据 |
+|---|---|
+| 契约 | `ToolDefinition.prepareArguments?: (args:unknown)=>Static<TParams>`（types.d.ts:362）——"compatibility shim to prepare raw tool call arguments **before schema validation**"，正是候选语义 |
+| 执行序 | `prepareArguments → validateToolArguments → beforeToolCall → execute`（session.js 头注，对 agent-loop.js:410-449 核实）——归一化输出必经 schema 校验，安全序 |
+| 生产用例 | 内建 `edit` 用 `prepareEditArguments`：字符串 edits→数组、legacy oldText/newText→edits[]（bundle chunk-JVUZSMYM.js） |
+| 我方路径 | `defineTool`/`createToolDefinitionFromAgentTool`/`wrapToolDefinition` 均转发该字段——我们 customTools 声明即生效 |
+| 活证据 | 新测试 `M56`：customTool 声明 `prepareArguments` → 注册进 `_state.tools` 仍为函数且可调用归一化 |
+
+无新增代码必要；补一条回归哨兵防字段被静默丢弃。

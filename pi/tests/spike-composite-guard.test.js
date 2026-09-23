@@ -170,6 +170,36 @@ test('S0: coverage across builtin, powershell, and custom tool ctx shapes', asyn
   assert.deepEqual(seen, ['powershell', 'read', 'echo']);
 });
 
+test('M56: customTool prepareArguments survives registration — the def-level normalization hook', async () => {
+  // dedup-h #56 coverage evidence: the engine contract gives every tool
+  // def a `prepareArguments` shim that runs BEFORE validateToolArguments
+  // (loop order documented above; builtin `edit` uses it in production).
+  // Assert our customTools path keeps the hook live in the registered
+  // tool entry — a silently dropped field would make declared
+  // normalization a no-op.
+  const dir = mkdtempSync(join(tmpdir(), 'pai-s0-'));
+  const resourceLoader = new DefaultResourceLoader({
+    cwd: dir, agentDir: join(dir, 'agent'), extensionFactories: [],
+    noSkills: true, noPromptTemplates: true, noThemes: true, noContextFiles: true,
+  });
+  await resourceLoader.reload();
+  const normalizing = defineTool({
+    name: 'norm', label: 'Norm', description: 'def-level arg prep',
+    parameters: { type: 'object', properties: { t: { type: 'number' } }, required: ['t'] },
+    prepareArguments: (args) => ({ t: Number(args.t) }), // coerce string→number pre-validation
+    async execute(_id, params) { return { content: [{ type: 'text', text: String(params.t) }] }; },
+  });
+  const { session } = await createAgentSession({
+    cwd: dir, agentDir: join(dir, 'agent'), model: stubModel,
+    sessionManager: SessionManager.inMemory(), resourceLoader,
+    customTools: [normalizing],
+  });
+  const reg = session.agent._state.tools.find((t) => t.name === 'norm');
+  assert.ok(reg, 'custom tool not registered');
+  assert.equal(typeof reg.prepareArguments, 'function');
+  assert.deepEqual(reg.prepareArguments({ t: '42' }), { t: 42 });
+});
+
 test('S0: seal survives reload swap; a NEW session requires reinstall', async () => {
   const session = await makeSession(() => {});
   const guard = installCompositeGuard(session.agent, {
