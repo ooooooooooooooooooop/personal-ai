@@ -2107,3 +2107,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 **边界**：recipe 文件是不可信 workdir 内容——能**请求**换模型（走 ask），永远不能**强制**换。`mode:`/`model:` 可同存于一份 frontmatter，各自独立审批。
 
 测试：`modetools.test.js` requestModelSwitch 6 断言（ask→model_set 命令形/别名形/deny 不分发/无通道/无分发/失败透传）；`skilltools.test.js` #146 用例（frontmatter 解析/RECIPE_MODEL 审计/拒绝诚实/无通道/note 叠加/双字段同存）。
+
+### 28.49 648 清单逐条核销 #18：dedup-h #154 approval prompt 内 "Edit command" 微调后批准（2026-09-23）
+
+**行**：`dedup-h	154	approval-gate	approval prompt内"Edit command"微调后批准`。
+
+**判定**：**ALREADY_COVERED**——编辑后批准链四层全在（M84 批次落地）：
+
+| 层 | 证据 |
+|---|---|
+| UI | ask 卡 `编辑命令` 按钮→textarea（app.js:765-785）；批准发送 `{answer, edited:{command}}`（app.js:897-902） |
+| 通道 | `decision_resolve` 透传对象回答（channel.js:1021） |
+| 宿主 resolve | `PendingAsks.resolve` 校验：edited 键必须已在卡 args 中（无注入）、仅 allow 族可带 edited、截断负载禁编辑（asks.js:285-303）；`always` 持久化的是 **edited** 命令（asks.js:167-170） |
+| 治理执行 | `governance.decideToolCall`：`Object.assign(ctx.args, edited)`——活引用，工具执行的是操作员改过的文本（governance.js:230-262）；M84 硬策略重检（deny/terminate/unparseable 照拒）；双端 hash 审计 `GOVERNANCE_ASK_EDITED` |
+
+测试在案：governance.test.js M84×3 + in-card edit 落 ctx.args；asks.test.js 对象回答/拒编/截断拒 3 例。本轮实测 59/59 绿。
