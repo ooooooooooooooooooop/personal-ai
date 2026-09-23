@@ -112,9 +112,14 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
 
 /**
  * Load all profiles from workdir + instance dirs.
+ * @param {Array<{dir:string, envCapable:boolean}>} [extraDirs]
+ *        plugin-contributed profile dirs (dedup-h #63 extension surface —
+ *        e.g. managed extensions' `agents/` subdirs). Appended AFTER the
+ *        builtin dirs so a plugin can never shadow an operator/workdir
+ *        profile name (first-write-wins below).
  * @returns {Map<string, {name,target,description,preamble}>}
  */
-export function loadAgentProfiles({ workdir, instanceRoot, workdirTrusted = false }) {
+export function loadAgentProfiles({ workdir, instanceRoot, workdirTrusted = false, extraDirs = [] }) {
   const dirs = [
     { dir: join(workdir, '.pai', 'agents'), envCapable: workdirTrusted },
     { dir: join(instanceRoot, 'agents'), envCapable: true }, // operator-private
@@ -124,6 +129,7 @@ export function loadAgentProfiles({ workdir, instanceRoot, workdirTrusted = fals
     { dir: join(workdir, '.kiro', 'agents'), envCapable: workdirTrusted },
     { dir: join(workdir, '.claude', 'agents'), envCapable: workdirTrusted },
     { dir: join(workdir, '.devin', 'agents'), envCapable: workdirTrusted },
+    ...(extraDirs ?? []),
   ];
   const profiles = new Map();
   for (const { dir, envCapable } of dirs) {

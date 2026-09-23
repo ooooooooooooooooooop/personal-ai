@@ -45,6 +45,30 @@ test('profile without target loads only when PAI_DELEGATE_DEFAULT_TARGET is set'
   }
 });
 
+test('M63: plugin-contributed agents dirs load, never shadow operator/workdir profiles', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-prof-ext-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-prof-ext-inst-'));
+  const plugin = mkdtempSync(join(tmpdir(), 'pai-prof-ext-plug-'));
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  mkdirSync(join(plugin, 'agents'), { recursive: true });
+  // same name in both — operator's wins (extraDirs append last)
+  writeFileSync(join(w, '.pai', 'agents', 'reviewer.md'), PROFILE('pi', 'operator wins'));
+  writeFileSync(join(plugin, 'agents', 'reviewer.md'), PROFILE('pi', 'plugin shadowed'));
+  writeFileSync(join(plugin, 'agents', 'triage.md'), PROFILE('codex', 'plugin persona', 'triage'));
+  const profiles = loadAgentProfiles({
+    workdir: w, instanceRoot: inst,
+    extraDirs: [{ dir: join(plugin, 'agents'), envCapable: true }],
+  });
+  assert.equal(profiles.get('reviewer').preamble, 'operator wins');
+  assert.equal(profiles.get('triage').preamble, 'plugin persona');
+  // envCapable flows through: plugin profile keeps env-shaping fields
+  writeFileSync(join(plugin, 'agents', 'rich.md'),
+    '---\nname: rich\ntarget: pi\nmodel: sonnet\nenv: A=1\n---\nwork\n');
+  const rich = loadAgentProfiles({ workdir: w, instanceRoot: inst, extraDirs: [{ dir: join(plugin, 'agents'), envCapable: true }] }).get('rich');
+  assert.equal(rich.model, 'sonnet');
+  assert.equal(rich.env.A, '1');
+});
+
 test('env-shaping fields (env/model/effort/isolate_steering) load only under trust', () => {
   const w = mkdtempSync(join(tmpdir(), 'pai-prof3-'));
   const inst = mkdtempSync(join(tmpdir(), 'pai-prof3-inst-'));

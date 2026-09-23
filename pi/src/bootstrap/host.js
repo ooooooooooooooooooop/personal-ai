@@ -764,7 +764,20 @@ export async function startHost({
     // frontmatter subagent personas: project .pai/agents + instance agents/
     // profile env fields only load under the same trust gate as microagents —
     // a repo-planted profile must never steer the delegate child's environment
-    profiles: loadAgentProfiles({ workdir, instanceRoot: core.paths.root, workdirTrusted: isTrusted(core.paths.root, workdir) }),
+    profiles: loadAgentProfiles({
+      workdir, instanceRoot: core.paths.root, workdirTrusted: isTrusted(core.paths.root, workdir),
+      // dedup-h #63 plugin surface: managed extensions may contribute an
+      // `agents/` dir of subagent personas. Extension code is operator-
+      // installed release code (it can already run arbitrary JS) → envCapable.
+      // Appended last — a plugin profile never shadows operator/workdir names.
+      extraDirs: (() => {
+        try {
+          return readdirSync(join(PI_ROOT, 'extensions'), { withFileTypes: true })
+            .filter((d) => d.isDirectory())
+            .map((d) => ({ dir: join(PI_ROOT, 'extensions', d.name, 'agents'), envCapable: true }));
+        } catch { return []; }
+      })(),
+    }),
     // operator-declared model routing (instance-private <instance>/
     // model-routes.json): fills profile-open model/effort slots — deterministic
     // rules, never an LLM judge; workdir cannot plant it (spend steering)

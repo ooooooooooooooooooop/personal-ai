@@ -1979,3 +1979,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 活证据 | 新测试 `M56`：customTool 声明 `prepareArguments` → 注册进 `_state.tools` 仍为函数且可调用归一化 |
 
 无新增代码必要；补一条回归哨兵防字段被静默丢弃。
+
+### 28.41 648 清单逐条核销 #10：dedup-h #63 plugins 贡献面（2026-09-23）
+
+**行**：`dedup-h	63	orchestration	plugins贡献rules/hooks/MCP/subagents — 扩展面`（插件可贡献规则/钩子/MCP/子代理四类表面）。
+
+**判定**：**IMPLEMENTED**（补最后一片）——四类贡献面盘点：
+
+| 面 | 状态 | 机制 |
+|---|---|---|
+| rules | ✅ 既有 | `pi.on('context')` 扩展注入上下文消息（adapter/index.js:88 自用）+ `.pai/microagents` steering 触发知识 |
+| hooks | ✅ 既有 | `pi.on(...)` 30+ 事件：tool_call/tool_result/session_*/turn_*/provider 请求前后/agent_* 全挂点 |
+| MCP | ✅ 既有 | `pi/extensions/mcp` 托管扩展把 MCP 服务器桥进工具/斜杠命令面（M82/M130/C2/A2） |
+| subagents | ✅ **本轮补** | `pi/extensions/<name>/agents/*.md` 经 `loadAgentProfiles.extraDirs` 纳入 frontmatter persona 加载——扩展代码本就是操作员装的 release 码（envCapable 全能力）；追加序末位，**永不遮蔽** operator/workdir 同名 profile（first-write-wins） |
+
+测试：`M63`——插件 dir 贡献 persona、同名 operator 胜、envCapable 字段透传。
