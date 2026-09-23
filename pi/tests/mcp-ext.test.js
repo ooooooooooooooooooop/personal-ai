@@ -1309,3 +1309,71 @@ test('mcp boot: dead remote servers fail inside one shared 10s budget', async ()
     if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;
   }
 });
+
+// dedup-h #524 — per-server enable/disable: enabled:false never connects at
+// boot but stays listed; the toggle persists into the SAME config file and
+// applies to the live session NOW (disable closes, enable connects).
+test('mcp enable/disable: disabled server skips boot; toggles persist + apply live', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-tog-'));
+  const prev = process.env.PAI_MCP_CONFIG;
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, FAKE_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: {
+      live: { command: process.execPath, args: [serverPath] },
+      sleeping: { command: process.execPath, args: [serverPath], enabled: false },
+    } }));
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    const pi = fakePi();
+    await mcpExtension(pi);
+    // boot connects concurrently — poll until the enabled server's tools land
+    const until = Date.now() + 10_000;
+    while (!pi.tools.has('mcp__live__echo') && Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    const ctx = { ui: { notify: () => {} } };
+
+    // disabled at boot: no tools registered under its namespace
+    assert.ok(pi.tools.has('mcp__live__echo'), 'enabled server registered tools');
+    assert.ok(!pi.tools.has('mcp__sleeping__echo'), 'disabled server registered nothing');
+    const notices = [];
+    const cap = { ui: { notify: (m) => notices.push(m) } };
+    await pi.commands.get('mcp').handler(cap);
+    assert.ok(notices[0].includes('disabled'), '/mcp lists the disabled set');
+    assert.ok(notices[0].includes('sleeping'), 'disabled server named in status');
+
+    // enable: persists enabled:true + connects NOW
+    await pi.commands.get('mcp-enable').handler('sleeping', cap);
+    const doc1 = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+    assert.equal(doc1.mcpServers.sleeping.enabled, true, 'enabled:true persisted');
+    const until2 = Date.now() + 10_000;
+    while (!pi.tools.has('mcp__sleeping__echo') && Date.now() < until2) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert.ok(pi.tools.has('mcp__sleeping__echo'), 'enable connected live — tools registered');
+    const t = await pi.tools.get('mcp__sleeping__echo').execute('c1', { text: 'up' });
+    assert.match(t.content[0].text, /echo:up/, 'live call works after enable');
+
+    // disable: persists enabled:false + closes the live client
+    await pi.commands.get('mcp-disable').handler('sleeping', cap);
+    const doc2 = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+    assert.equal(doc2.mcpServers.sleeping.enabled, false, 'enabled:false persisted');
+    const dead = await pi.tools.get('mcp__sleeping__echo').execute('c2', { text: 'x' })
+      .then((r) => ({ resolved: true, r })).catch((e) => ({ resolved: false, err: String(e?.message ?? e) }));
+    // a closed client must not answer with a fake success — either the call
+    // rejects or the result is marked isError
+    if (dead.resolved) {
+      assert.ok(dead.r?.isError === true || /closed|fail|error/i.test(JSON.stringify(dead.r)),
+        `closed client returned a success-looking result: ${JSON.stringify(dead.r).slice(0, 300)}`);
+    }
+    // unknown name refuses
+    await pi.commands.get('mcp-disable').handler('ghost', cap);
+    assert.ok(notices.some((m) => m.includes("unknown server 'ghost'")), 'unknown name refused');
+
+    await pi.handlers.get('session_shutdown')?.();
+  } finally {
+    if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

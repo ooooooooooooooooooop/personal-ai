@@ -2355,3 +2355,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED（Zed v0.212.3 "git worktree management for opening worktrees" 对等）。`exec.worktreeList` porcelain 解析全部 linked checkout（path/head/branch/detached/bare + `managed` 标记 `<instance>/jobs/worktrees/*` 自家产物）；channel `worktree_list` 分发；`runJob{in_worktree}` 打开既有 worktree——只接受 `git worktree list` 在册项（绝对路径或托管 basename），任意目录 fail closed；`authorizedRoot`/`workdir`=所开路径。UI：`/worktree` 裸用=管理面板，`/worktree-open <名|路径> <命令>` 在其中开任务（"open in new window" 的任务语境对等）。
 - **证据**：真 git 仓 + 外部 linked worktree → list 双列 + managed 判定 → 未知名拒 → `in_worktree` 任务 marker 落在 linked 而非主 checkout + 审计记 in_worktree；pi 418/414/0/4、host 357、app 26/25/1（dom-gate `worktreeList`/`worktreeOpen` 断言）。
+
+### 28.77 648 清单逐条核销 #50：dedup-h #524 mcp enable/disable（2026-09-23）
+
+- **判定**：IMPLEMENTED。`spec.enabled===false`（或旧式 `disabled:true`）在 boot 过滤中跳过连接但保留配置并在 `/mcp` 状态单列 disabled 段。`/mcp-disable <名>` 把 `enabled:false` 写回**加载来源的同一配置文件**（scope=声明处），原子写 + 当场关闭活连接；`/mcp-enable` 写回 `enabled:true`（清除 legacy disabled 别名）并经 `connectOne` 当场重连——不是"重启才生效"的配置式假切换。
+- **证据**：disabled 服务器 boot 零注册 + 状态列名；enable 后工具可调用；disable 后已关 client 调用诚实报错；未知名拒；pi 全套 419/415/0/4。

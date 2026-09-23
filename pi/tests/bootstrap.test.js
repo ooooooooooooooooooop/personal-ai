@@ -1072,7 +1072,8 @@ test('worktree_list + job_spawn in_worktree: open an existing linked checkout', 
   spawnSync('git', ['add', 'base.txt'], { cwd: dir });
   spawnSync('git', ['commit', '-qm', 'init'], { cwd: dir });
   // a pre-existing linked worktree the operator created outside the product
-  const linked = join(dir, '..', 'pai-wtm-linked');
+  // (unique name — a fixed one collides with leftovers from crashed runs)
+  const linked = join(dir, '..', `pai-wtm-linked-${process.pid}`);
   spawnSync('git', ['worktree', 'add', '--detach', linked, 'HEAD'], { cwd: dir });
 
   const host = await startHost({ instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel } });
@@ -1090,7 +1091,7 @@ test('worktree_list + job_spawn in_worktree: open an existing linked checkout', 
 
     // open the linked worktree by basename → job lands THERE, not the main checkout
     const writeCmd = process.platform === 'win32' ? 'echo wt>wt-open.txt' : 'echo wt > wt-open.txt';
-    const r = await host.channel.handle({ type: 'job_spawn', command: writeCmd, in_worktree: 'pai-wtm-linked' });
+    const r = await host.channel.handle({ type: 'job_spawn', command: writeCmd, in_worktree: `pai-wtm-linked-${process.pid}` });
     assert.equal(r.success, true, `in_worktree spawn refused: ${r.error ?? JSON.stringify(r)}`);
     const jobId = r.data?.jobId ?? r.data?.job_id;
     let job = null;

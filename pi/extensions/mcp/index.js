@@ -917,7 +917,20 @@ export default function mcpExtension(pi) {
   const denied = new Set(
     String(process.env.PAI_MCP_DENY ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   );
-  const servers = Object.fromEntries(Object.entries(allServers).filter(([name]) => !denied.has(name)));
+  // dedup-h #524 — per-server enable/disable: spec.enabled===false (or the
+  // legacy spec.disabled===true) keeps the entry configured but never
+  // connects it. The toggle is mutable: /mcp-disable closes the live
+  // client NOW; /mcp-enable re-reads the config and connects NOW — a
+  // config-only no-op until restart would be dishonest.
+  const disabled = new Set();
+  const servers = Object.fromEntries(Object.entries(allServers).filter(([name, spec]) => {
+    if (denied.has(name)) return false;
+    if (spec && typeof spec === 'object' && (spec.enabled === false || spec.disabled === true)) {
+      disabled.add(name);
+      return false;
+    }
+    return true;
+  }));
   /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean, prompts?:object[], dead?:Set<string>, lastRefresh?:object}>} */
   const connected = new Map();
 
@@ -1135,6 +1148,9 @@ export default function mcpExtension(pi) {
         const hit = [...denied].filter((n) => n in allServers);
         if (hit.length) lines.push(`  denied by profile (PAI_MCP_DENY): ${hit.join(', ')}`);
       }
+      if (disabled.size) {
+        lines.push(`  disabled (enabled:false in config — /mcp-enable <name> to restore): ${[...disabled].join(', ')}`);
+      }
       if (missingEnv?.length) {
         lines.push(`  unresolved env placeholders (left literal): ${missingEnv.map((n) => '${' + n + '}').join(', ')}`);
       }
@@ -1321,6 +1337,73 @@ export default function mcpExtension(pi) {
         `added '${name}' (${kind}) to ${target} — connected: ${entry.tools.length} tools, ${(entry.prompts ?? []).length} prompts`,
         'info',
       );
+    },
+  });
+
+  // ---------------------------------------------------------------------
+  // dedup-h #524 — mcp enable/disable: toggle persists into the SAME config
+  // file the entry was loaded from (the scope is where it was declared),
+  // and applies to the live session NOW — disable closes the client,
+  // enable connects through the same connectOne path as boot.
+  const persistEnabled = (name, enabled) => {
+    const { path: cfgPath } = loadConfig();
+    if (!cfgPath) return { error: 'no MCP config file loaded — nothing to edit' };
+    let doc;
+    try { doc = JSON.parse(readFileSync(cfgPath, 'utf-8')); }
+    catch (e) { return { error: `config '${cfgPath}' unreadable: ${e.message}` }; }
+    const key = doc.mcpServers != null ? 'mcpServers' : (doc.servers != null ? 'servers' : null);
+    if (!key || !doc[key]?.[name] || typeof doc[key][name] !== 'object') {
+      return { error: `server '${name}' not found in ${cfgPath}` };
+    }
+    doc[key][name].enabled = enabled;
+    delete doc[key][name].disabled; // legacy alias normalized to the canonical field
+    try {
+      const tmp = `${cfgPath}.tmp-${process.pid}`;
+      writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+      renameSync(tmp, cfgPath);
+    } catch (e) { return { error: `persist failed: ${e.message}` }; }
+    return { ok: true, path: cfgPath };
+  };
+
+  pi.registerCommand('mcp-disable', {
+    description: 'Disable an MCP server — persists enabled:false and closes its connection now',
+    handler: async (arg, ctx) => {
+      const name = String(arg ?? '').trim();
+      if (!name) { ctx.ui?.notify?.('usage: /mcp-disable <server>', 'error'); return; }
+      if (!(name in allServers)) { ctx.ui?.notify?.(`unknown server '${name}'`, 'error'); return; }
+      const w = persistEnabled(name, false);
+      if (w.error) { ctx.ui?.notify?.(w.error, 'error'); return; }
+      disabled.add(name);
+      delete servers[name];
+      const entry = connected.get(name);
+      if (entry?.client) { try { entry.client.close(); } catch { /* best effort */ } }
+      connected.delete(name);
+      ctx.ui?.notify?.(`'${name}' disabled — connection closed, ${w.path} updated; /mcp-enable ${name} restores it`, 'info');
+    },
+  });
+
+  pi.registerCommand('mcp-enable', {
+    description: 'Enable an MCP server — persists enabled:true and connects it now',
+    handler: async (arg, ctx) => {
+      const name = String(arg ?? '').trim();
+      if (!name) { ctx.ui?.notify?.('usage: /mcp-enable <server>', 'error'); return; }
+      if (!(name in allServers)) { ctx.ui?.notify?.(`unknown server '${name}'`, 'error'); return; }
+      const w = persistEnabled(name, true);
+      if (w.error) { ctx.ui?.notify?.(w.error, 'error'); return; }
+      disabled.delete(name);
+      // re-read fresh: the operator may have edited the spec while it sat disabled
+      const fresh = loadConfig().servers[name] ?? allServers[name];
+      if (!fresh || typeof fresh !== 'object' || (!fresh.command && !fresh.url)) {
+        ctx.ui?.notify?.(`'${name}' enabled in config but has no command/url — nothing to connect`, 'error');
+        return;
+      }
+      servers[name] = fresh;
+      const entry = await connectOne(name, fresh);
+      if (entry?.failed || !entry?.client) {
+        ctx.ui?.notify?.(`'${name}' enabled — connect FAILED; /mcp shows the error`, 'error');
+        return;
+      }
+      ctx.ui?.notify?.(`'${name}' enabled — connected: ${entry.tools.length} tools, ${(entry.prompts ?? []).length} prompts`, 'info');
     },
   });
 }
