@@ -1266,6 +1266,12 @@ function onAgentEvent(ev) {
       refreshState();
       refreshSessionsSoon();
       flushQueue();
+      drainSessionCmds();
+      break;
+    case 'command_request':
+      // dedup-h #143: model-invoked builtin commands — queued until the turn
+      // ends, then run through the same code paths as operator slash commands.
+      queueSessionCommand(ev.name, ev.arg);
       break;
   }
 }
@@ -4498,6 +4504,53 @@ function renderQueue() {
     chip.querySelector('.q-x').onclick = () => { queue.splice(i, 1); renderQueue(); };
     row.appendChild(chip);
   });
+}
+/* dedup-h #143 — model-invoked builtin commands. session_command emits a
+ * command_request event; the surface queues it behind any operator prompt
+ * already waiting, then runs the SAME path as the operator's slash command.
+ * Deduped by (name,arg); order preserved. */
+const sessionCmdQueue = [];
+function queueSessionCommand(name, arg) {
+  name = String(name ?? ''); arg = String(arg ?? '');
+  if (sessionCmdQueue.some((c) => c.name === name && c.arg === arg)) return;
+  sessionCmdQueue.push({ name, arg });
+  drainSessionCmds();
+}
+async function drainSessionCmds() {
+  if (busy || queue.length || !sessionCmdQueue.length) return;
+  while (sessionCmdQueue.length && !busy && !queue.length) {
+    const c = sessionCmdQueue.shift();
+    addSys(`模型请求执行 /${c.name}${c.arg ? ` ${c.arg}` : ''}`);
+    try { await runSessionCommand(c.name, c.arg); }
+    catch (e) { addSys(`命令执行失败：${e?.message ?? e}`, true); }
+  }
+}
+async function runSessionCommand(name, arg) {
+  const slash = (c) => SLASH.find((s) => s.cmd === c);
+  switch (name) {
+    case 'clear': return slash('/clear')?.run('');
+    case 'config': return slash('/config')?.run(arg);
+    case 'model': {
+      if (!arg) return slash('/model')?.run('');
+      const m = arg.match(/^([^\s/]+)\/(\S+)$/);
+      const r = m ? await cmd('model_set', { provider: m[1], model: m[2] }) : await cmd('model_set', { alias: arg });
+      if (!r.success) { addSys(`模型切换失败：${r.error ?? '未知'}`, true); return; }
+      toast(`模型已切换：${arg}`);
+      refreshState();
+      return;
+    }
+    case 'resume': {
+      if (!arg) return slash('/resume')?.run('');
+      const r = await cmd('session_list');
+      const rows = r.data ?? [];
+      const needle = arg.toLowerCase();
+      const t = rows.find((s) => s.id === arg)
+        ?? rows.find((s) => (s.name ?? '').toLowerCase().includes(needle))
+        ?? rows.find((s) => (s.firstMessage ?? '').toLowerCase().includes(needle));
+      if (!t) { addSys(`找不到会话「${arg}」`, true); return; }
+      return switchSession(t.path);
+    }
+  }
 }
 async function flushQueue() {
   const next = queue.shift();

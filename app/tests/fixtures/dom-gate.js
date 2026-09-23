@@ -214,6 +214,39 @@ const DRIVER = `(async () => {
     switchView('chat');
     inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    /* dedup-h #143 — model-invoked builtin commands: queued while the turn
+     * is live, drained on agent_end, executed through the same paths as the
+     * operator's slash commands. The scripted '看图' turn still has its ask
+     * pending — requests now must queue, not run mid-turn. */
+    onAgentEvent({ type: 'command_request', name: 'config', arg: '' });
+    await sleep(250);
+    checks.cmdQueuedWhileBusy = {
+      ok: sessionCmdQueue.length === 1
+        && !(document.querySelector('#transcript')?.textContent ?? '').includes('模型请求执行 /config'),
+      len: sessionCmdQueue.length,
+    };
+    document.querySelector('.ask-btn[data-a="allow"]')?.click();
+    const cfgLine = await waitFor('.sys', (e) => e.textContent.includes('当前设置'), 10000);
+    checks.cmdConfig = {
+      ok: !!cfgLine
+        && (document.querySelector('#transcript')?.textContent ?? '').includes('模型请求执行 /config'),
+      text: cfgLine?.textContent ?? '',
+    };
+    onAgentEvent({ type: 'command_request', name: 'resume', arg: 'resume-target' });
+    await sleep(500);
+    checks.cmdResume = {
+      ok: String(currentSessionFile).endsWith('s2.jsonl'),
+      file: currentSessionFile,
+      tail: (document.querySelector('#transcript')?.textContent ?? '').slice(-200),
+      errs: (window.__errs ?? []).slice(-3),
+    };
+    onAgentEvent({ type: 'command_request', name: 'resume', arg: 'zzz-no-match' });
+    const missLine = await waitFor('.sys', (e) => e.textContent.includes('找不到会话'), 8000);
+    checks.cmdResumeMiss = { ok: !!missLine };
+    onAgentEvent({ type: 'command_request', name: 'model', arg: 'fake/fake-2' });
+    const mdlLine = await waitFor('.sys', (e) => e.textContent.includes('模型请求执行 /model fake/fake-2'), 8000);
+    checks.cmdModel = { ok: !!mdlLine };
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

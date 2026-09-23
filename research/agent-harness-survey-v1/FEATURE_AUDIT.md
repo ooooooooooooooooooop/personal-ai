@@ -2076,3 +2076,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 用 | `oauthStoredTokens`：连接按 serverName 读库；过期走 `refresh_token` 授予原地续期；无令牌→`MCP_UNAUTHORIZED` 诚实错误点名 `/mcp-auth <name>`；`/mcp` 状态只显示 flow 描述符 |
 
 测试：PKCE 全链（authorize URL 全参数/code_verifier 交换/库存取/refresh 续期/Bearer 上行）+ 未授权诚实拒绝。
+
+### 28.47 648 清单逐条核销 #16：dedup-h #143 模型可调用内置 slash 命令（2026-09-23）
+
+**行**：`dedup-h	143	shell-tools	model-invoked内置slash commands(/clear/model/config/resume)`。
+
+**判定**：**IMPLEMENTED**——`session_command` 工具：模型发 `command_request` 事件 → 操作员面排队 → 回合结束后走与操作员 `/clear /model /config /resume` **同一代码路径**执行。
+
+| 面 | 落点 |
+|---|---|
+| 模型面 | `pi/src/adapter/sessioncmd.js`：白名单 {clear,model,resume,config}，越名拒；无操作员面挂接时 fail-closed 明说；arg 上界 300 字符 |
+| 排队语义 | `app.js` `sessionCmdQueue`：busy 或有排队提示词时**不执行**（(name,arg) 去重、保序）；`agent_end` 且提示词队空才泄放——模型拆不了自己所在的回合 |
+| 执行面 | `runSessionCommand`：clear→`/clear` run；config→`/config` run（查看/key=value）；model→`model_set`（`provider/model` 或别名，空参弹操作员同款菜单）；resume→session_list 按 id/name/firstMessage 匹配→`switchSession`（无匹配诚实报找不到） |
+| 可见性 | 每次泄放先落 `模型请求执行 /<cmd>` 系统行——操作员能看到模型请求了什么 |
+
+测试：`sessioncmd.test.js` 5 例（事件形/白名单/四面/无面 fail-closed/arg 上界）；dom-gate `cmdQueuedWhileBusy`（busy 中只排队不执行）+ `cmdConfig`（agent_end 泄放走 config_get）+ `cmdResume`/`cmdResumeMiss`（真切 s2/无匹配诚实报）+ `cmdModel`。修 fixture 一个真缺陷：`get_state` 不反映 session_switch 后的当前文件（真实身体会报切换后的会话——fixture 原先恒定报 s1）。

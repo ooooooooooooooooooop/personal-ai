@@ -93,6 +93,7 @@ import { isTrusted, setTrust, hasInjectableContent } from '../../../host/src/cor
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool, askStructuredTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
+import { sessionCommandTool } from '../adapter/sessioncmd.js';
 import { skillTools } from '../adapter/skilltools.js';
 import { multiEditTool } from '../adapter/multiedit.js';
 import { fastContextTool } from '../adapter/fastcontext.js';
@@ -680,6 +681,10 @@ export async function startHost({
     // one-way operator notification — the emit target is the channel handle
     // built below (late-bound); unlike ask_user this never suspends the turn
     notifyUserTool(() => (ev) => channelHandle?.channel.emitEvent(ev)),
+    // dedup-h #143: model-invoked builtin commands — the request rides the
+    // governed tool chain; the effect runs on the operator surface through
+    // the same paths as /clear /model /config /resume after the turn ends.
+    sessionCommandTool(() => (ev) => channelHandle?.channel.emitEvent(ev)),
     // network tools — web_fetch always on (policy maps it to ask); web_search
     // only when the operator configures an endpoint (never advertised empty)
     // egress domain allowlist — operator-owned <instance>/egress-allow.json

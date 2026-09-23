@@ -29,6 +29,9 @@ const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const write = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
 
 const deletedSessions = new Set();
+// The body reports the session it actually switched to — get_state mirrors
+// the last session_switch, like a real body would.
+let currentFile = `${instance}/sessions/s1.jsonl`;
 const leases = new DomainLeaseStore({ root: instance });
 let held = null;
 try {
@@ -51,7 +54,7 @@ rl.on('line', async (line) => {
       return reply({
         model: { provider: 'fake', id: 'fake-1' }, streaming: false,
         messageCount: Number(process.env.FAKE_MSGS ?? 0),
-        session: { file: `${instance}/sessions/s1.jsonl`, name: 'DOM验收' },
+        session: { file: currentFile, name: 'DOM验收' },
         contextUsage: { tokens: 51200, contextWindow: 200000 },
       });
     case 'prompt': {
@@ -104,9 +107,28 @@ rl.on('line', async (line) => {
         { id: 't2', content: '写 DOM 门测试', status: 'in_progress', activeForm: '正在写 DOM 门测试' },
       ]);
     case 'pending_list': return reply([]);
-    case 'session_list':
-      return reply([{ path: `${instance}/sessions/s1.jsonl`, name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3 }]
-        .filter((s) => !deletedSessions.has(s.path)));
+    case 'session_list': {
+      const rows = [
+        { path: `${instance}/sessions/s1.jsonl`, id: 'sess-1', name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3 },
+      ];
+      // #143 dom-gate needs a second, distinct session to prove resume
+      // actually switches — other fixtures see the original single row.
+      if (process.env.FAKE_SCENARIO === 'domgate') {
+        rows.push({ path: `${instance}/sessions/s2.jsonl`, id: 'sess-2', name: 'resume-target', firstMessage: 'second', modified: '2026-01-01T00:01:00Z', messageCount: 1 });
+      }
+      return reply(rows.filter((s) => !deletedSessions.has(s.path)));
+    }
+    case 'session_switch':
+      currentFile = cmd.path;
+      return reply({ id: 'sess-2', file: cmd.path, name: 'resume-target' });
+    case 'session_new':
+      return reply({ id: 'sess-new', file: `${instance}/sessions/new.jsonl` });
+    case 'model_set':
+      return reply({ applied: true, model: { provider: cmd.provider ?? 'fake', id: cmd.model ?? cmd.alias ?? 'fake-2' } });
+    case 'config_get':
+      return reply({ model: { provider: 'fake', id: 'fake-1' }, thinking: 'medium', mode: 'execute' });
+    case 'config_set':
+      return reply({ applied: true, key: cmd.key, value: cmd.value });
     case 'session_history': return reply([]);
     case 'model_status': return reply({
       current: { provider: 'fake', id: 'fake-1', name: 'fake-1' },
