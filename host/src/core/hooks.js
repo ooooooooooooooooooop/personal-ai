@@ -50,7 +50,11 @@ export const HOOK_EVENTS = new Set([
   'compact_start', 'compact_end',
   'subagent_start', 'subagent_stop', 'notification',
 ]);
-export const GATE_EVENTS = new Set(['pre_tool']);
+// session_directory (dedup-h #202): a gate-only extension event whose hook
+// answers {"directory": "..."} to relocate session persistence. Gate-only on
+// purpose — the agent-reachable observational file must never redirect where
+// transcripts land (that would be a self-service exfiltration path).
+export const GATE_EVENTS = new Set(['pre_tool', 'session_directory']);
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_CHARS = 4000;
 
@@ -188,6 +192,31 @@ export class HookRunner {
       }
     }
     return null;
+  }
+
+  /**
+   * Value fire — gate-only query events (session_directory). Runs the event's
+   * first configured hook and returns its last-line stdout parsed as JSON.
+   * Fails CLOSED by contract of the caller: a configured-but-broken hook
+   * throws, so the caller must decide between refusing and a loud fallback —
+   * a silent default would scatter state across two locations.
+   */
+  async fireValue(event, payload = {}) {
+    if (!this.gate) throw new Error('fireValue on a non-gate HookRunner — observational hooks cannot answer queries');
+    this.hooks = this.#load(); // live re-read, same contract as fireGate
+    const entries = (this.hooks[event] ?? []).filter((h) => typeof h?.command === 'string' && h.command.trim());
+    if (!entries.length) return null;
+    const h = entries[0];
+    const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, value: true, command: h.command.slice(0, 200) } });
+    const r = await this.#run(h.command, { event, ...payload }, timeoutMs);
+    this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, value: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
+    if (r.code !== 0) throw new Error(`${event} hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}`);
+    try {
+      return JSON.parse(r.tail.trim().split('\n').pop() ?? '');
+    } catch {
+      throw new Error(`${event} hook produced no JSON payload`);
+    }
   }
 
   #closed = false;

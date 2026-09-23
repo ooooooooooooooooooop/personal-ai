@@ -744,3 +744,52 @@ test('session_new id: custom UUID lands in the filename; bad/colliding ids refus
     assert.ok(rand.data.id && rand.data.id !== uuid);
   } finally { host.dispose(); }
 });
+
+// candidates-open dedup-h #202: session_directory gate event — the
+// operator-private hooks.json may relocate session persistence; a broken
+// hook refuses startup rather than scattering sessions.
+test('session_directory hook relocates sessionDir; broken hook refuses closed', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-sdir-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-sdir-wd-'));
+  const custom = join(dir, 'custom-sessions');
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const hookScript = join(dir, 'sdir-hook.js');
+  writeFileSync(hookScript, `console.log(${JSON.stringify(JSON.stringify({ directory: custom }))});\n`);
+  writeFileSync(join(inst, 'hooks.json'), JSON.stringify({
+    hooks: {
+      session_directory: [{
+        command: `"${process.execPath}" "${hookScript}"`,
+      }],
+    },
+  }));
+  const host = await startHost({
+    instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+  });
+  try {
+    const r = await host.channel.handle({ type: 'session_new' });
+    assert.equal(r.success, true, `new session refused: ${r.error}`);
+    assert.ok(existsSync(custom), 'custom session dir created');
+    assert.ok(String(r.data.file ?? '').startsWith(custom), `session file lands in custom dir: ${r.data.file}`);
+    const audits = readdirSync(join(inst, 'audit')).flatMap((f) =>
+      readFileSync(join(inst, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(audits.some((e) => e.kind === 'SESSION_DIRECTORY' && e.data?.source === 'hook'),
+      'relocated dir audited');
+  } finally { host.dispose(); }
+
+  // a configured-but-broken hook refuses startup — never silently defaults
+  const inst2 = mkdtempSync(join(tmpdir(), 'pai-sdir2-'));
+  mkdirSync(join(inst2, 'canonical'), { recursive: true });
+  writeFileSync(join(inst2, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  writeFileSync(join(inst2, 'hooks.json'), JSON.stringify({
+    hooks: { session_directory: [{ command: 'exit 3' }] },
+  }));
+  await assert.rejects(
+    startHost({ instanceRoot: inst2, workdir: dir, sessionOptions: { model: stubModel } }),
+    /session_directory|exited 3/i,
+  );
+});

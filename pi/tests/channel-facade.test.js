@@ -819,6 +819,55 @@ test('capability-gated attachments: text-only model degrades images with operato
   dispose();
 });
 
+// dedup-h #181: media auto-fallback — images on a text-only model walk the
+// operator's fallback chain for a vision-capable entry before degrading.
+test('media fallback: image prompt switches to a vision-capable chain entry', async () => {
+  const calls = [];
+  const auditEvents = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-1', input: ['text'] };
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const vision = { provider: 'other', id: 'vision-9', input: ['text', 'image'] };
+  fakeSessionRef.modelRuntime = { getModel: (p, id) => (p === 'other' && id === 'vision-9' ? vision : null) };
+  fakeSessionRef.setModel = async (m) => { fakeSessionRef.model = m; };
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-mediafb-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir }, audit: { write: (e) => auditEvents.push(e) } };
+  const { channel: ch, dispose } = createChannelHost({
+    session: fakeSessionRef, core,
+    fallbacks: { chain: [{ provider: 'other', model: 'vision-9' }] },
+  });
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+
+  await ch.handle({
+    type: 'prompt', message: 'see this',
+    options: { attachments: [{ name: 'p.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  assert.equal(fakeSessionRef.model.id, 'vision-9', 'session model switched to the vision entry');
+  assert.deepEqual(calls[0][1].images, [{ type: 'image', data: 'aGk=', mimeType: 'image/png' }],
+    'image rides natively after the media fallback');
+  assert.ok(auditEvents.some((e) => e.kind === 'MEDIA_FALLBACK' && e.data.to === 'other/vision-9'),
+    'fallback audited');
+  assert.ok(events.some((m) => m.event?.type === 'notify' && /视觉模型/.test(m.event.message ?? '')),
+    'operator told about the switch');
+
+  // no vision entry in the chain → the honest degrade path, unchanged
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-1', input: ['text'] };
+  const { channel: ch2, dispose: dispose2 } = createChannelHost({
+    session: fakeSessionRef, core,
+    fallbacks: { chain: [{ provider: 'other', model: 'text-2' }] },
+  });
+  await ch2.handle({
+    type: 'prompt', message: 'again',
+    options: { attachments: [{ name: 'q.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  assert.equal(fakeSessionRef.model.id, 'text-only-1', 'no switch when chain has no vision model');
+  assert.ok(!calls[1][1].images?.length, 'image degrades to a descriptor');
+  dispose(); dispose2();
+});
+
 test('skills_list and skill_allow_set dispatch to the knowledge facade; fail closed without it', async () => {
   fakeSessionRef = fakeSession(); listeners.clear();
   const dir = mkdtempSync(join(tmpdir(), 'pai-chan-skills-'));

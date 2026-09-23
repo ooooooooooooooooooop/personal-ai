@@ -277,7 +277,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   };
 
   const sessionFacade = {
-    prompt: (message, options) => {
+    prompt: async (message, options) => {
       admitSpend();
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
       // Auto-name (Goose/OpenClaw): an unnamed session takes its first user
@@ -311,14 +311,41 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         // operator is told, instead of the SDK silently dropping bytes.
         const curInput = box.s?.model?.input;
         const caps = { images: !Array.isArray(curInput) || curInput.includes('image') };
-        const { native, degraded } = partitionByCapability(attachments, caps);
+        let { native, degraded } = partitionByCapability(attachments, caps);
         const lostImages = degraded.filter((a) => a.kind === 'image').length;
         if (lostImages && caps.images === false) {
-          emit({
-            type: 'notify',
-            level: 'warn',
-            message: `当前模型 ${box.s?.model?.id ?? '?'} 不支持图片输入——${lostImages} 张图片将降级为文本描述（换个视觉模型可原生看图）`,
-          });
+          // dedup-h #181 media auto-fallback: before degrading images to
+          // descriptors, walk the operator's fallback chain for a vision-
+          // capable model — same-provider or cross-provider, first hit wins.
+          // The chain is the operator's preference order; setModel failure
+          // (no auth) just continues the search. Nothing found → degrade.
+          const rt = box.s?.modelRuntime;
+          const prev = box.s?.model;
+          const hit = (fallbacks?.chain ?? [])
+            .map((e) => { try { return rt?.getModel?.(e.provider, e.model) ?? null; } catch { return null; } })
+            .find((m) => m && Array.isArray(m.input) && m.input.includes('image'));
+          const switched = hit && typeof box.s?.setModel === 'function'
+            ? await box.s.setModel(hit).then(() => true, () => false)
+            : false;
+          if (switched) {
+            caps.images = true; // the fallback target carries images natively
+            ({ native, degraded } = partitionByCapability(attachments, caps));
+            core.audit?.write({
+              kind: 'MEDIA_FALLBACK',
+              data: { from: `${prev?.provider}/${prev?.id}`, to: `${hit.provider}/${hit.id}`, images: lostImages },
+            });
+            emit({
+              type: 'notify',
+              level: 'info',
+              message: `图片超出 ${prev?.provider}/${prev?.id} 能力——已按回退链切到视觉模型 ${hit.provider}/${hit.id}，${lostImages} 张图片原生输入`,
+            });
+          } else {
+            emit({
+              type: 'notify',
+              level: 'warn',
+              message: `当前模型 ${box.s?.model?.id ?? '?'} 不支持图片输入——${lostImages} 张图片将降级为文本描述（换个视觉模型可原生看图）`,
+            });
+          }
         }
         if (native.length) {
           // M137 image_detail tier: high (default) = untouched; balanced /

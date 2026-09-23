@@ -1,4 +1,4 @@
-import { join, resolve, basename } from 'node:path';
+import { join, resolve, basename, isAbsolute } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../adapter/paths.js';
 import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, rmSync, openSync, writeSync, closeSync } from 'node:fs';
@@ -858,21 +858,40 @@ export async function startHost({
   let currentGovernor = null; // evidence contract governor — goals status source
   let currentLoopwatch = null; // per-session detector — pump feeds results into it
 
-  // Sessions persist under the instance root — the app lists/resumes them.
-  const sessionDir = join(core.paths.root, 'sessions');
-  const agentDir = join(core.paths.root, 'pi-agent');
-
   // G5 operator gate: <instance>/hooks.json is outside the workdir — the
   // agent cannot reach it, so its 'pre_tool' event is a real veto (Claude
   // Code PreToolUse analogue), unlike the observational workdir hooks.
   // Absent file → empty runner, zero per-call cost. Created before
-  // buildSession because the decide chain closes over it.
+  // buildSession because the decide chain closes over it — and before
+  // sessionDir because its 'session_directory' event may relocate sessions.
   const preToolGate = new HookRunner(workdir, {
     audit: core.audit,
     configPath: join(core.paths.root, 'hooks.json'),
     gate: true,
     envOverlay,
   });
+
+  // Sessions persist under the instance root — the app lists/resumes them.
+  // dedup-h #202: the operator-private gate file may answer the
+  // 'session_directory' event with {"directory": "..."} to relocate session
+  // persistence (Cline extension session-directory analogue). Gate-only —
+  // the agent-reachable observational file can never redirect transcripts.
+  // A configured hook that fails REFUSES startup: silently falling back to
+  // the default dir would scatter sessions across two locations.
+  let sessionDir = join(core.paths.root, 'sessions');
+  const dirAnswer = await preToolGate.fireValue('session_directory', { default: sessionDir });
+  if (dirAnswer != null) {
+    const d = String(dirAnswer?.directory ?? '').trim();
+    if (!d || d.length > 500 || d.includes('\0') || !isAbsolute(d)) {
+      throw new Error(`session_directory hook returned an invalid path: ${JSON.stringify(d).slice(0, 200)}`);
+    }
+    sessionDir = resolve(d);
+    mkdirSync(sessionDir, { recursive: true });
+    core.audit.write({ kind: 'SESSION_DIRECTORY', runId, data: { dir: sessionDir, source: 'hook' } });
+  } else {
+    core.audit.write({ kind: 'SESSION_DIRECTORY', runId, data: { dir: sessionDir, source: 'default' } });
+  }
+  const agentDir = join(core.paths.root, 'pi-agent');
 
   // M107: /btw posture pieces live at module level (btwReadonlyDecide /
   // BTW_READONLY_TOOLS) so tests can exercise the wrapper directly.

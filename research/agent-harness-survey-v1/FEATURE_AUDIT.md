@@ -2153,3 +2153,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 诚实面 | 连接失败仍持久化（配置是操作员的）+ 明说 FAILED 看 /mcp；成功报 tools/prompts 数 |
 
 测试：mcp-add 用例覆盖 URL 持久化+live 工具注册+header 透传、stdio command/args/env 形、重复/deny/usage 拒、失败仍持久化。manifest sha256 同步。修一处真实 bug：天真 whitespace 分词会把带引号 header 切碎成非法 header 名导致连接必败——已改引号感知。
+
+### 28.52 648 清单逐条核销 #23：dedup-h #181 媒体跨 provider 自动回退（2026-09-23）
+
+**行**：`dedup-h	181	models-routing	provider-failover: media跨provider自动fallback`。
+
+**判定**：**IMPLEMENTED**——prompt 通道的能力闸门升级：图片附件撞上纯文本模型时，先走操作员回退链找视觉模型，找不到才降级描述符。
+
+- `pi/src/adapter/channel.js` prompt 改 async；`caps.images===false` 且有图片 → 遍历 `fallbacks.chain`（`modelRuntime.getModel` 查 `input` 含 `'image'`）→ `setModel` 成功则重分区、图片原生携带、`MEDIA_FALLBACK` 审计 + 操作员通知；链上无视觉项/`setModel` 失败 → 原降级路径不变
+- 位点：生成器源码（prompt 管线），非事后补丁
+- 测试：channel-facade `media fallback`——视觉命中切换+原生携带+审计+通知；无命中保持诚实降级
+
+### 28.53 648 清单逐条核销 #24–25：dedup-h #197 session-insights（ALREADY_COVERED）+ dedup-h #202 session_directory 扩展事件（IMPLEMENTED）（2026-09-23）
+
+**#197** `session-insights: session分析+knowledge管理`：**ALREADY_COVERED**——session_insights（#7 本轮落地）给逐会话分解+确定性建议；knowledge 管理/裁剪 = skills_list（skill-doctor 统计）+ skill_allow_set + skill_save/delete + skill_test（M110 workshop），trust-gated 注入。
+
+**#202** `hook-events: session_directory extension event(自定义session目录)`：**IMPLEMENTED**——
+
+- `host/src/core/hooks.js`：`session_directory` 进 `GATE_EVENTS`（**绝不进 HOOK_EVENTS**——agent 可达的可观察配置重定向 transcript = 自助外泄通道）；新 `fireValue` 方法（gate-only 查询事件：跑首个配置的 hook，解析末行 stdout JSON；配置却失败→抛错由调用方裁决）
+- `pi/src/bootstrap/host.js`：gate runner 提前到 sessionDir 之前；`fireValue('session_directory')` 返回 `{directory}` → 校验绝对路径/长度/NUL → mkdir -p → `SESSION_DIRECTORY` 审计（source: hook|default）；hook 配置却失败 → **拒绝启动**（静默回默认目录会把会话撒到两处）
+- 测试：bootstrap `session_directory` 重定向（session_new 落定制目录+审计）+ 坏 hook fail-closed；host 349 全绿
