@@ -249,6 +249,139 @@ test('mcp oauth: malformed specs fail closed at connect', async () => {
   }
 });
 
+// M131/dedup-h-#131: interactive OAuth — authorization_code + PKCE via
+// /mcp-auth + /mcp-auth-done; tokens land in the user-private store and
+// ride subsequent connects as Bearer, refreshed by refresh_token grant.
+test('mcp oauth authorization_code: PKCE dance stores token; transport carries it', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-oauth-'));
+  const seen = { tokenBodies: [], authHeaders: [], authParams: null };
+  // token endpoint: issues tok-1 with a refresh_token; refresh grants tok-2
+  const token = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const f = Object.fromEntries(new URLSearchParams(body));
+      seen.tokenBodies.push(f);
+      res.setHeader('content-type', 'application/json');
+      if (f.grant_type === 'authorization_code') {
+        assert.equal(f.code, 'authcode-1');
+        assert.ok(f.code_verifier, 'PKCE verifier sent');
+        res.end(JSON.stringify({ access_token: 'tok-live', token_type: 'bearer', expires_in: 0, refresh_token: 'rt-1' }));
+      } else if (f.grant_type === 'refresh_token') {
+        assert.equal(f.refresh_token, 'rt-1');
+        res.end(JSON.stringify({ access_token: 'tok-fresh', token_type: 'bearer', expires_in: 3600 }));
+      } else { res.statusCode = 400; res.end('{}'); }
+    });
+  });
+  // mcp endpoint: answers initialize/tools-call; records the bearer seen
+  const mcp = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      seen.authHeaders.push(req.headers['authorization'] ?? null);
+      const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+      res.setHeader('content-type', 'application/json');
+      if (msg.method === 'initialize') res.end(JSON.stringify(rpcRes({ protocolVersion: '2025-06-18', serverInfo: { name: 'oauthcode' } })));
+      else if (!msg.id) { res.statusCode = 202; res.end(); }
+      else res.end(JSON.stringify(rpcRes({ tools: [] })));
+    });
+  });
+  await new Promise((r) => token.listen(0, '127.0.0.1', r));
+  await new Promise((r) => mcp.listen(0, '127.0.0.1', r));
+  const prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  const prevCfg = process.env.PAI_MCP_CONFIG;
+  try {
+    const mcpUrl = `http://127.0.0.1:${mcp.address().port}/mcp`;
+    const tokenUrl = `http://127.0.0.1:${token.address().port}/token`;
+    const authUrl = `http://127.0.0.1:${token.address().port}/authorize`;
+    process.env.PAI_MCP_TOKEN_STORE = join(dir, 'mcp-oauth.json');
+    writeFileSync(join(dir, 'mcp.json'), JSON.stringify({
+      mcpServers: {
+        remote: { url: mcpUrl, oauth: { authorizationUrl: authUrl, tokenUrl, clientId: 'pai-pub', scope: 'mcp', resource: 'https://rs.example/mcp' } },
+      },
+    }));
+    process.env.PAI_MCP_CONFIG = join(dir, 'mcp.json');
+
+    // begin: the command emits an authorize URL with PKCE + RFC8707 params
+    const pi = fakePi();
+    await mcpExtension(pi);
+    const notices = [];
+    const ctx = { ui: { notify: (msg, level) => notices.push({ msg, level }) } };
+    await pi.commands.get('mcp-auth').handler('remote', ctx);
+    const urlLine = notices[0].msg.split('\n').find((l) => l.startsWith('http'));
+    assert.ok(urlLine, 'authorize URL emitted');
+    const au = new URL(urlLine);
+    assert.equal(au.searchParams.get('response_type'), 'code');
+    assert.equal(au.searchParams.get('client_id'), 'pai-pub');
+    assert.equal(au.searchParams.get('redirect_uri'), 'urn:ietf:wg:oauth:2.0:oob');
+    assert.equal(au.searchParams.get('code_challenge_method'), 'S256');
+    assert.ok(au.searchParams.get('code_challenge'));
+    assert.ok(au.searchParams.get('state'));
+    assert.equal(au.searchParams.get('resource'), 'https://rs.example/mcp');
+    assert.equal(au.searchParams.get('scope'), 'mcp');
+
+    // complete: code exchange hits tokenUrl with verifier; token stored
+    await pi.commands.get('mcp-auth-done').handler('remote authcode-1', ctx);
+    const grant = seen.tokenBodies.find((b) => b.grant_type === 'authorization_code');
+    assert.ok(grant, 'authorization_code exchange fired');
+    assert.equal(grant.client_id, 'pai-pub');
+    assert.ok(grant.code_verifier);
+    assert.equal(grant.resource, 'https://rs.example/mcp');
+    const store = JSON.parse(readFileSync(join(dir, 'mcp-oauth.json'), 'utf-8'));
+    assert.equal(store.remote.access_token, 'tok-live');
+    assert.equal(store.remote.refresh_token, 'rt-1');
+
+    // a fresh connect picks up the stored token; expired → refresh grant
+    seen.authHeaders.length = 0;
+    const client = await McpClient.connect(
+      { url: mcpUrl, oauth: { authorizationUrl: authUrl, tokenUrl, clientId: 'pai-pub' } },
+      { serverName: 'remote' },
+    );
+    try {
+      assert.equal(client.serverInfo.serverInfo.name, 'oauthcode');
+      assert.match(client.oauth, /authorization_code/);
+      assert.equal(seen.tokenBodies.at(-1).grant_type, 'refresh_token'); // tok-live was expires_in:0
+      assert.ok(seen.authHeaders.every((h) => h === 'Bearer tok-fresh'));
+    } finally { client.close(); }
+  } finally {
+    token.close(); mcp.close();
+    if (prevStore == null) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+    if (prevCfg == null) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('mcp oauth authorization_code: no stored token → honest unauthorized, names the recovery command', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-unauth-'));
+  const prev = process.env.PAI_MCP_TOKEN_STORE;
+  try {
+    process.env.PAI_MCP_TOKEN_STORE = join(dir, 'empty.json');
+    // no stored token: even initialize fails — honestly, naming the fix
+    const mcp = createServer((req, res) => {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        const msg = JSON.parse(body);
+        const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+        res.setHeader('content-type', 'application/json');
+        if (msg.method === 'initialize') res.end(JSON.stringify(rpcRes({ protocolVersion: '2025-06-18', serverInfo: { name: 'x' } })));
+        else res.statusCode = 202, res.end();
+      });
+    });
+    await new Promise((r) => mcp.listen(0, '127.0.0.1', r));
+    try {
+      await assert.rejects(() => McpClient.connect({
+        url: `http://127.0.0.1:${mcp.address().port}/mcp`,
+        oauth: { authorizationUrl: 'http://127.0.0.1:1/auth', tokenUrl: 'http://127.0.0.1:1/token', clientId: 'c' },
+      }, { serverName: 'ghost' }), /unauthorized.*mcp-auth ghost/);
+    } finally { mcp.close(); }
+  } finally {
+    if (prev == null) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prev;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('mcp extension: registers mcp__srv__tool, untrusted wrap, failure hides tools', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
   try {

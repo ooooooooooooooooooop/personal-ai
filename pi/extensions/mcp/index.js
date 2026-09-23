@@ -35,8 +35,9 @@
  * specs may carry secrets — nothing here logs env/argv.
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { randomBytes, createHash } from 'node:crypto';
+import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync, chmodSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 
 const PROTOCOL_VERSION = '2025-06-18';
 const CLIENT_INFO = { name: 'personal-ai', version: '1' };
@@ -159,6 +160,28 @@ function validateOAuthSpec(spec) {
   if (typeof o.clientId !== 'string' || !o.clientId) throw new McpError('oauth.clientId required');
   if (o.clientSecret != null && typeof o.clientSecret !== 'string') throw new McpError('oauth.clientSecret must be a string');
   if (o.scope != null && typeof o.scope !== 'string') throw new McpError('oauth.scope must be a string');
+  // dedup-h #131: authorizationUrl upgrades the spec to the interactive
+  // authorization-code + PKCE flow (operator approves in a browser, pastes
+  // the code back). Absent → client_credentials (non-interactive).
+  let authorizationUrl = null;
+  if (o.authorizationUrl != null) {
+    try { authorizationUrl = new URL(o.authorizationUrl); } catch { throw new McpError('oauth.authorizationUrl is not a URL'); }
+    if (!['https:', 'http:'].includes(authorizationUrl.protocol)) throw new McpError('oauth.authorizationUrl must be http(s)');
+    if (authorizationUrl.protocol === 'http:' && !LOOPBACK_HOSTS.has(authorizationUrl.hostname.toLowerCase())) {
+      throw new McpError('oauth.authorizationUrl over http is refused off-loopback');
+    }
+    authorizationUrl = authorizationUrl.href;
+  }
+  // redirect_uri for the paste-back flow — the OOB URN is the default;
+  // a real http(s) uri only makes sense for loopback receivers, which the
+  // paste flow does not run. Allow operator override but refuse fragments.
+  let redirectUri = 'urn:ietf:wg:oauth:2.0:oob';
+  if (o.redirectUri != null) {
+    let r;
+    try { r = new URL(o.redirectUri); } catch { throw new McpError('oauth.redirectUri is not a URI'); }
+    if (r.hash) throw new McpError('oauth.redirectUri must not carry a fragment');
+    redirectUri = r.href;
+  }
   // RFC 8707 §2: resource is an absolute URI and MUST NOT include a fragment.
   let resource = null;
   if (o.resource != null) {
@@ -172,40 +195,121 @@ function validateOAuthSpec(spec) {
       throw new McpError('spec sets both headers.authorization and oauth — ambiguous credentials');
     }
   }
-  return { tokenUrl: tokenUrl.href, clientId: o.clientId, clientSecret: o.clientSecret ?? null, scope: o.scope ?? null, resource };
+  return {
+    tokenUrl: tokenUrl.href, clientId: o.clientId, clientSecret: o.clientSecret ?? null,
+    scope: o.scope ?? null, resource, authorizationUrl, redirectUri,
+    flow: authorizationUrl ? 'authorization_code' : 'client_credentials',
+  };
+}
+
+// --- dedup-h #131: operator OAuth token store --------------------------------
+// Tokens live in a USER-private file (Claude Code's ~/.claude.json mcpOAuth
+// analogue), never in the workdir — the agent must not read bearer material.
+// PAI_MCP_TOKEN_STORE overrides (tests, exotic installs).
+function tokenStorePath() {
+  return process.env.PAI_MCP_TOKEN_STORE
+    ?? join(process.env.HOME ?? process.env.USERPROFILE ?? process.cwd(), '.personal-ai', 'mcp-oauth.json');
+}
+function readTokenStore() {
+  try { return JSON.parse(readFileSync(tokenStorePath(), 'utf-8')) ?? {}; } catch { return {}; }
+}
+function writeTokenStore(doc) {
+  const p = tokenStorePath();
+  mkdirSync(dirname(p), { recursive: true });
+  const tmp = `${p}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(doc, null, 2));
+  try { chmodSync(tmp, 0o600); } catch { /* windows ACLs — best effort */ }
+  renameSync(tmp, p);
+}
+
+function tokenRequest(oauth, fields) {
+  const body = new URLSearchParams({ client_id: oauth.clientId, ...fields });
+  if (oauth.clientSecret) body.set('client_secret', oauth.clientSecret);
+  if (oauth.resource) body.set('resource', oauth.resource);
+  return fetch(oauth.tokenUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+    body,
+  });
+}
+async function parseTokenResponse(res) {
+  if (!res.ok) throw new McpError(`oauth token request failed: HTTP ${res.status}`);
+  const doc = await res.json().catch(() => null);
+  if (typeof doc?.access_token !== 'string' || !doc.access_token) throw new McpError('oauth token response lacks access_token');
+  if (String(doc.token_type ?? '').toLowerCase() !== 'bearer') throw new McpError(`oauth token_type '${doc.token_type}' is not bearer`);
+  const ttl = Number.isFinite(doc.expires_in) ? Math.max(0, doc.expires_in) : 3600;
+  return { accessToken: doc.access_token, refreshToken: typeof doc.refresh_token === 'string' ? doc.refresh_token : null, expiresAt: Date.now() + Math.max(0, ttl - 60) * 1000 };
+}
+
+/** authorization_code mode: tokens come from the user-private store;
+ * refresh_token grant renews in place. Unauthorized → honest error naming
+ * the recovery command. */
+function oauthStoredTokens(oauth, serverName) {
+  let cached = null;
+  const load = () => {
+    const rec = readTokenStore()[serverName];
+    if (!rec?.access_token) return null;
+    return { accessToken: rec.access_token, refreshToken: rec.refresh_token ?? null, expiresAt: rec.expires_at ?? 0 };
+  };
+  const refresh = async (rec) => {
+    if (!rec?.refreshToken) return null;
+    try {
+      const t = await parseTokenResponse(await tokenRequest(oauth, { grant_type: 'refresh_token', refresh_token: rec.refreshToken }));
+      const store = readTokenStore();
+      store[serverName] = {
+        access_token: t.accessToken, refresh_token: t.refreshToken ?? rec.refreshToken,
+        expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+      };
+      writeTokenStore(store);
+      cached = t;
+      return t;
+    } catch { return null; }
+  };
+  return {
+    token: async () => {
+      if (cached && Date.now() < cached.expiresAt) return cached.accessToken;
+      const rec = cached ?? load();
+      if (rec && Date.now() < rec.expiresAt) { cached = rec; return rec.accessToken; }
+      const t = await refresh(rec);
+      if (t) return t.accessToken;
+      throw new McpError(`mcp server '${serverName}' is unauthorized — run /mcp-auth ${serverName} to complete OAuth`, { code: 'MCP_UNAUTHORIZED' });
+    },
+    invalidate: () => { cached = null; },
+    describe: () => `oauth authorization_code (pkce${oauth.resource ? ', resource: ' + oauth.resource : ''})`,
+    authorized: () => load() != null || (cached && Date.now() < cached.expiresAt),
+  };
 }
 
 function oauthTokenManager(oauth, serverUrl) {
-  let cached = null; // { token, expiresAt }
+  let cached = null; // { accessToken, expiresAt }
   const acquire = async () => {
-    const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: oauth.clientId });
+    const fields = { grant_type: 'client_credentials' };
+    if (oauth.scope) fields.scope = oauth.scope;
+    // RFC8707: the override wins; absent → the server's own canonical URI
+    const body = new URLSearchParams({ client_id: oauth.clientId, ...fields, resource: oauth.resource ?? serverUrl });
     if (oauth.clientSecret) body.set('client_secret', oauth.clientSecret);
-    if (oauth.scope) body.set('scope', oauth.scope);
-    body.set('resource', oauth.resource ?? serverUrl);
     const res = await fetch(oauth.tokenUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
       body,
     });
-    if (!res.ok) throw new McpError(`oauth token request failed: HTTP ${res.status}`);
-    const doc = await res.json().catch(() => null);
-    if (typeof doc?.access_token !== 'string' || !doc.access_token) throw new McpError('oauth token response lacks access_token');
-    if (String(doc.token_type ?? '').toLowerCase() !== 'bearer') throw new McpError(`oauth token_type '${doc.token_type}' is not bearer`);
-    const ttl = Number.isFinite(doc.expires_in) ? Math.max(0, doc.expires_in) : 3600;
-    cached = { token: doc.access_token, expiresAt: Date.now() + Math.max(0, ttl - 60) * 1000 };
-    return cached.token;
+    const t = await parseTokenResponse(res);
+    cached = t;
+    return t.accessToken;
   };
   return {
-    token: async () => (cached && Date.now() < cached.expiresAt ? cached.token : acquire()),
+    token: async () => (cached && Date.now() < cached.expiresAt ? cached.accessToken : acquire()),
     invalidate: () => { cached = null; },
     // status surface sees the resolved indicator, never the token
     describe: () => `oauth client_credentials (resource: ${oauth.resource ?? 'server-url'})`,
   };
 }
 
-function httpTransport(spec) {
+function httpTransport(spec, { serverName = null } = {}) {
   const oauthSpec = validateOAuthSpec(spec); // throws on malformed — fail closed at connect
-  const tokens = oauthSpec ? oauthTokenManager(oauthSpec, spec.url) : null;
+  const tokens = oauthSpec
+    ? (oauthSpec.flow === 'authorization_code' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
+    : null;
   let sessionId = null;
   const post = async (msg, signal) => {
     const doPost = async () => fetch(spec.url, {
@@ -278,8 +382,8 @@ export class McpClient {
    */
   onNotification(fn) { this.#notifyHandlers.push(fn); }
 
-  static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
-    const transport = spec.url ? httpTransport(spec) : stdioTransport(spec);
+  static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS, serverName = null } = {}) {
+    const transport = spec.url ? httpTransport(spec, { serverName }) : stdioTransport(spec);
     const client = new McpClient(transport);
     client.strippedEnv = transport.strippedEnv ?? [];
     client.oauth = transport.oauth ?? null;
@@ -627,7 +731,7 @@ export default function mcpExtension(pi) {
     for (const [name, spec] of Object.entries(servers)) {
       if (!spec || typeof spec !== 'object' || (!spec.command && !spec.url)) continue;
       try {
-        const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS });
+        const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS, serverName: name });
         const entry = { client, tools: [], spec, prompts: [], booted: false };
         connected.set(name, entry);
         // M130: subscribe BEFORE family discovery — a list_changed pushed
@@ -730,6 +834,87 @@ export default function mcpExtension(pi) {
       }
       if (Object.keys(servers).length === 0 && configPath) lines.push('  (config has no servers)');
       ctx.ui?.notify?.(lines.join('\n'), 'info');
+    },
+  });
+
+  // ---------------------------------------------------------------------
+  // dedup-h #131: interactive OAuth — authorization_code + PKCE.
+  // /mcp-auth <server>      → builds the authorize URL (state + S256
+  //                           challenge + RFC8707 resource), shows it to
+  //                           the operator; they approve in the browser
+  //                           and paste the code back.
+  // /mcp-auth-done <s> <c>  → exchanges the code at tokenUrl, stores the
+  //                           token in the user-private store; subsequent
+  //                           calls ride Bearer automatically.
+  // The pending dance lives in memory with a 10-minute TTL.
+  const pendingAuth = new Map(); // serverName → {verifier, state, deadline}
+  const OAUTH_PENDING_TTL_MS = 10 * 60 * 1000;
+
+  const oauthSpecFor = (name) => {
+    const spec = allServers[name];
+    if (!spec) return { error: `unknown server '${name}'` };
+    try {
+      const o = validateOAuthSpec(spec);
+      if (!o?.authorizationUrl) return { error: `server '${name}' has no oauth.authorizationUrl — interactive flow not configured` };
+      return { oauth: o };
+    } catch (err) { return { error: `server '${name}': ${err?.message ?? err}` }; }
+  };
+
+  pi.registerCommand('mcp-auth', {
+    description: 'Begin OAuth (authorization_code + PKCE) for a remote MCP server — prints the approval URL',
+    handler: async (args, ctx) => {
+      await boot;
+      const name = String(args ?? '').trim().split(/\s+/)[0] ?? '';
+      if (!name) { ctx.ui?.notify?.('usage: /mcp-auth <server>', 'error'); return; }
+      const { oauth, error } = oauthSpecFor(name);
+      if (error) { ctx.ui?.notify?.(error, 'error'); return; }
+      const verifier = randomBytes(32).toString('base64url');
+      const challenge = createHash('sha256').update(verifier).digest('base64url');
+      const state = randomBytes(16).toString('base64url');
+      pendingAuth.set(name, { verifier, state, deadline: Date.now() + OAUTH_PENDING_TTL_MS });
+      const u = new URL(oauth.authorizationUrl);
+      u.searchParams.set('response_type', 'code');
+      u.searchParams.set('client_id', oauth.clientId);
+      u.searchParams.set('redirect_uri', oauth.redirectUri);
+      u.searchParams.set('state', state);
+      u.searchParams.set('code_challenge', challenge);
+      u.searchParams.set('code_challenge_method', 'S256');
+      if (oauth.scope) u.searchParams.set('scope', oauth.scope);
+      u.searchParams.set('resource', oauth.resource ?? servers[name]?.url ?? ''); // RFC8707
+      ctx.ui?.notify?.(
+        `OAuth for '${name}' — open this URL, approve, then paste the code:\n\n${u.href}\n\n` +
+        `Then run: /mcp-auth-done ${name} <code>   (valid for 10 minutes)`,
+        'info',
+      );
+    },
+  });
+
+  pi.registerCommand('mcp-auth-done', {
+    description: 'Complete OAuth for a remote MCP server — /mcp-auth-done <server> <code>',
+    handler: async (args, ctx) => {
+      await boot;
+      const [name, code] = String(args ?? '').trim().split(/\s+/);
+      if (!name || !code) { ctx.ui?.notify?.('usage: /mcp-auth-done <server> <code>', 'error'); return; }
+      const pend = pendingAuth.get(name);
+      pendingAuth.delete(name);
+      if (!pend || Date.now() > pend.deadline) { ctx.ui?.notify?.(`no pending OAuth for '${name}' (or it expired) — run /mcp-auth ${name} again`, 'error'); return; }
+      const { oauth, error } = oauthSpecFor(name);
+      if (error) { ctx.ui?.notify?.(error, 'error'); return; }
+      try {
+        const t = await parseTokenResponse(await tokenRequest(oauth, {
+          grant_type: 'authorization_code', code, redirect_uri: oauth.redirectUri,
+          code_verifier: pend.verifier,
+        }));
+        const store = readTokenStore();
+        store[name] = {
+          access_token: t.accessToken, refresh_token: t.refreshToken,
+          expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+        };
+        writeTokenStore(store);
+        ctx.ui?.notify?.(`OAuth complete for '${name}' — token stored (refresh: ${t.refreshToken ? 'yes' : 'no'}). Server calls carry it automatically; restart the session if this server failed earlier.`, 'info');
+      } catch (err) {
+        ctx.ui?.notify?.(`OAuth exchange failed for '${name}': ${err?.message ?? err} — run /mcp-auth ${name} to retry`, 'error');
+      }
     },
   });
 }
