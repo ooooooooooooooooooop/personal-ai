@@ -1212,3 +1212,40 @@ test('mcp legacy sse: dead stream fails pending honestly, bad transport refused'
     server.close();
   }
 });
+
+// dedup-h #348 — no implicit transport timeouts: a POST that the server
+// swallows forever must surface as a bounded failure, not an undici
+// ~5min default. spec.postTimeoutMs is the operator/test dial.
+test('mcp legacy sse: black-hole POST fails bounded, never silently hangs', async () => {
+  let sseRes = null;
+  const server = createServer((req, res) => {
+    if (req.method === 'GET') {
+      res.writeHead(200, { 'content-type': 'text/event-stream' });
+      res.write('event: endpoint\ndata: /m\n\n');
+      sseRes = res;
+      return;
+    }
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      if (msg.method === 'initialize') {
+        res.statusCode = 202; res.end();
+        sseRes.write(`event: message\ndata: ${JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2024-11-05', serverInfo: { name: 'x' } } })}\n\n`);
+      }
+      // everything else: swallow — never respond to the POST, never
+      // answer on the stream. The explicit post bound must surface it.
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/sse`;
+    const client = await McpClient.connect({ url, transport: 'sse', postTimeoutMs: 80 });
+    const t0 = Date.now();
+    await assert.rejects(() => client.listTools(), /sse POST failed|timed out/);
+    assert.ok(Date.now() - t0 < 10_000, 'bounded failure — not the implicit transport default');
+    client.close();
+  } finally {
+    server.close();
+  }
+});

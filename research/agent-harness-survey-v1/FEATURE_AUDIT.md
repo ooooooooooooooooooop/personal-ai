@@ -2288,3 +2288,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**（生成器源码）：`pi/extensions/mcp/index.js` `sseTransport` + `connect` transport 分派。
 - **机制**：GET `spec.url`（Accept: text/event-stream）→ 服务端 `event: endpoint` 给出 POST 地址（相对 URI 按 SSE URL 解析）→ 请求 POST 至该端点（202）→ 响应/通知经 SSE `event: message` 帧回流，走既有 stdio pending 路径（超时/abort 语义不变）。失败诚实化三处：POST ≥400/网络错误 → 合成 JSON-RPC error 推回该 id（拒而不挂）；流死 → `onExit` → `failAll` 全部 pending；endpoint 握手有 `CONNECT_TIMEOUT_MS` 上界。OAuth（含 exchange）与自定义 headers 同时作用于 GET 流与 POST。`spec.transport` 白名单校验，未知值 connect 即拒；`/mcp` 状态标 sse；`/mcp-add --transport sse`。
 - **证据**：mcp-ext +2 测试（真 node http server 演完整 endpoint→POST→stream 回路 + 断流 failAll + 坏 transport 拒）；mcp-ext 25/25、pi 409 测 405 过 0 败。
+
+### 28.65 648 清单逐条核销 #37：dedup-h #348 HTTP/SSE 隐式 transport 超时（2026-09-23）
+
+- **判定**：IMPLEMENTED。上游缺陷类 = HTTP/SSE MCP 调用静默落在 undici ~5min 默认超时上。
+- **机制**：所有 MCP 网络操作显式上界——request 调用沿用调用方 `timeoutMs`；`httpTransport.notify` POST 加 `AbortSignal.timeout(postTimeoutMs)`；`sseTransport.doPost` 加 `AbortSignal.any([transport-close, timeout])`；`POST_TIMEOUT_MS=30s` 默认，`spec.postTimeoutMs` 可覆盖。POST 黑洞 → 合成 JSON-RPC error 推回该 id，pending 立即拒而非挂起。
+- **证据**：mcp-ext 26/26（黑洞 POST postTimeoutMs=80 在 <10s 内拒）；pi 回归随 #347 同测。

@@ -367,12 +367,19 @@ function oauthExchangedTokens(base, oauth) {
   };
 }
 
+// dedup-h #348 — no request may ride on IMPLICIT transport timeouts
+// (undici's ~5min headers default was the upstream bug class). Every POST
+// carries an explicit bound: requests get their caller's timeoutMs;
+// notifications/fire-and-forget posts get POST_TIMEOUT_MS.
+const POST_TIMEOUT_MS = 30_000;
+
 function httpTransport(spec, { serverName = null } = {}) {
   const oauthSpec = validateOAuthSpec(spec); // throws on malformed — fail closed at connect
   let tokens = oauthSpec
     ? (oauthSpec.flow === 'authorization_code' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
     : null;
   if (tokens && oauthSpec.exchange) tokens = oauthExchangedTokens(tokens, oauthSpec);
+  const postTimeoutMs = spec.postTimeoutMs ?? POST_TIMEOUT_MS;
   let sessionId = null;
   const post = async (msg, signal) => {
     const doPost = async () => fetch(spec.url, {
@@ -418,7 +425,7 @@ function httpTransport(spec, { serverName = null } = {}) {
     onMessage: () => {}, // no push channel in v1
     onExit: () => {},
     callHttp: async (msg, signal) => readResponse(await post(msg, signal)),
-    notify: async (msg) => { await post(msg).catch(() => {}); },
+    notify: async (msg) => { await post(msg, AbortSignal.timeout(postTimeoutMs)).catch(() => {}); },
     close: () => {},
     oauth: tokens?.describe() ?? null,
   };
@@ -492,12 +499,15 @@ function sseTransport(spec, { serverName = null } = {}) {
     setTimeout(() => { clearInterval(timer); reject(new McpError('sse endpoint handshake timed out', { code: 'MCP_TIMEOUT' })); }, CONNECT_TIMEOUT_MS);
   });
 
+  const postTimeoutMs = spec.postTimeoutMs ?? POST_TIMEOUT_MS;
   const doPost = async (msg) => {
     const sendOnce = async () => fetch(postUrl, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify(msg),
-      signal: ac.signal,
+      // transport-lifetime abort OR an explicit per-post bound — never
+      // the undici implicit default (#348)
+      signal: AbortSignal.any([ac.signal, AbortSignal.timeout(postTimeoutMs)]),
     });
     let res = await sendOnce();
     if (res.status === 401 && tokens) { tokens.invalidate(); res = await sendOnce(); }
