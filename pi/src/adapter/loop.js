@@ -27,6 +27,7 @@
  */
 import { readdirSync } from 'node:fs';
 import { dirname, resolve, relative, sep } from 'node:path';
+import { validateJsonSchema, parseJsonReply } from '../../../host/src/core/jsonschema.js';
 
 const PATH_TOOLS = new Set(['read', 'ls', 'edit', 'write', 'delete', 'grep', 'glob']);
 const HINT_CAP = 30;
@@ -56,7 +57,7 @@ export function isRequestInvariantError(message) {
     || /\bvalidation (?:error|failed)\b/i.test(m);
 }
 
-export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit, workdir = null, fallbacks = null }) {
+export function loopGovernanceExtension({ continuation = null, contextEnvelope = null, predictions = null, observations = null, audit, workdir = null, fallbacks = null, structured = null }) {
   return {
     name: 'pai-loop-governance',
     factory: (pi) => {
@@ -73,6 +74,10 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       // hops a single task may consume so a broken provider set can't loop.
       let pendingFallback = false;
       let fallbackHops = 0;
+      // dedup-h #238 structured output: a schema-conformance retry is a run
+      // of the SAME task — like a fallback steer it must not reset the
+      // transcript or the hop budgets.
+      let pendingSchemaRetry = false;
       // Stale-event defense (upstream residual): a duplicated/late agent_end
       // must not double-trigger continuation or fallback. Every legitimate
       // run passes agent_start first, which re-arms this flag.
@@ -109,9 +114,10 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
 
       pi.on('agent_start', () => {
         agentEnded = false; // fresh run — re-arm the end-of-run latch
-        if (pendingSteer || pendingFallback) {
+        if (pendingSteer || pendingFallback || pendingSchemaRetry) {
           pendingSteer = false; // continuation run — same task, keep transcript
           pendingFallback = false;
+          pendingSchemaRetry = false;
         } else {
           transcript = freshTranscript();
           fallbackHops = 0; // a genuinely new task gets a fresh fallback budget
@@ -151,6 +157,42 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
           return;
         }
         agentEnded = true;
+        // dedup-h #238 structured output (--output-schema analogue): an
+        // armed schema turns agent_end into a conformance gate — the last
+        // assistant reply must parse as JSON and validate. Violations get a
+        // bounded re-steer (the model's own answer stays in the transcript);
+        // a conforming or exhausted verdict disarms and falls through to
+        // continuation/fallback normally.
+        if (structured?.schema) {
+          const last = [...(event?.messages ?? [])].reverse().find((m) => m?.role === 'assistant');
+          const reply = parseJsonReply(extractText(last));
+          const errors = reply.ok ? validateJsonSchema(structured.schema, reply.value) : ['not a JSON reply'];
+          if (!errors.length) {
+            structured.schema = null;
+            structured.retries = 0;
+            audit.write({ kind: 'STRUCTURED_OUTPUT', data: { ok: true } });
+          } else if ((structured.retries ?? 0) < (structured.maxRetries ?? 2)) {
+            structured.retries = (structured.retries ?? 0) + 1;
+            pendingSchemaRetry = true;
+            audit.write({
+              kind: 'STRUCTURED_OUTPUT',
+              data: { ok: false, retry: structured.retries, errors: errors.slice(0, 5) },
+            });
+            ctx.sendUserMessage(
+              `[structured-output] 上一条回复不符合约定 schema（${errors.slice(0, 3).join('；')}）。` +
+              `请只回复一个符合 schema 的 JSON 对象——不要解释、不要围栏。`,
+            );
+            return; // schema retry owns the next run
+          } else {
+            const r = structured.retries ?? 0;
+            structured.schema = null;
+            structured.retries = 0;
+            audit.write({
+              kind: 'STRUCTURED_OUTPUT',
+              data: { ok: false, exhausted: true, retries: r, errors: errors.slice(0, 5) },
+            });
+          }
+        }
         if (continuation) {
           const decision = continuation.evaluate(transcript);
           if (decision.action === 'continue' && decision.steerText) {

@@ -2196,3 +2196,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - `host/src/core/channel.js`：`config_set{key:'proxy_mode'}` 走 proxy 立面原子写文件 + `PROXY_MODE_SET` 审计；`get_state` 携带 `proxy{configured,active}` 实态
 - 子进程面：hook/job/delegate 继承 env——代理语义一致覆盖
 - 测试：bootstrap `proxy.json` 应用+状态+持久化+非 http scheme 拒
+
+### 28.56 648 清单逐条核销 #28：dedup-h #238 --output-schema 结构化输出（2026-09-23）
+
+**行**：`dedup-h	238	git-pr-ci	structured output: --output-schema JSON Schema`（Codex CLI 同款）。
+
+**判定**：**IMPLEMENTED**——
+
+- `host/src/core/jsonschema.js`：诚实子集校验器（type/properties/required/items/enum/additionalProperties:false/integer）+ `validateSchemaSpec` 入场校验（`$ref`/`allOf`/`oneOf`/`if` 等**大声拒**，不能验的绝不说能验）+ `parseJsonReply`（去围栏取最外层 JSON 块）
+- `pi/src/adapter/loop.js`：`structured` 共享单元进 loopGovernanceExtension——agent_end 在 fallback/continuation 之前跑 conformance gate：违规→有界重 steer（cap 2，`pendingSchemaRetry` 保住 transcript 与 hop 预算）；合规/穷尽→解除武装落 `STRUCTURED_OUTPUT` 审计后走正常流
+- `pi/src/adapter/channel.js`：`prompt{outputSchema}` → 入场校验（坏 schema 在 prompt 发出前就拒）→ 武装共享单元 + 注入 `<output-schema>` 契约
+- 测试：jsonschema 真值表 + 扩展 retry/exhaust/conform 三分支

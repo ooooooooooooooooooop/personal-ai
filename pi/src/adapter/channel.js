@@ -98,7 +98,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null }) {
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -394,6 +394,22 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         if (rejected.length) {
           core.audit?.write({ kind: 'ATTACHMENT_REJECTED', data: { rejected } });
         }
+      }
+      // dedup-h #238 structured output (--output-schema analogue): arming a
+      // schema injects the contract and hands the agent_end gate the spec —
+      // the loop extension validates the final reply and re-steers on
+      // violation. Invalid schemas refuse BEFORE the prompt is sent.
+      if (options?.outputSchema != null) {
+        const { validateSchemaSpec } = await import('../../host/src/core/jsonschema.js');
+        const v = validateSchemaSpec(options.outputSchema);
+        if (!v.ok) throw new Error(`outputSchema invalid: ${v.error}`);
+        if (structured) {
+          structured.schema = options.outputSchema;
+          structured.retries = 0;
+        }
+        msg = `${msg ?? ''}\n\n<output-schema>\n` +
+          `Reply with ONLY a JSON object conforming to this schema — no prose, no fences:\n` +
+          `${JSON.stringify(options.outputSchema)}\n</output-schema>`;
       }
       // Busy-session queueing: AgentSession.prompt THROWS when streaming and
       // no streamingBehavior is given (SDK contract). An operator prompt sent

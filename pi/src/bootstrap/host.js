@@ -402,6 +402,10 @@ export async function startHost({
   // {chain:[{provider, model}, ...]}. The object is shared by reference with
   // the loop extension and mutated in place by models_fallback_set.
   const fallbackCfg = { chain: [] };
+  // dedup-h #238 structured output (--output-schema analogue): shared cell
+  // — channel prompt{outputSchema} arms it; the loop extension validates
+  // the final reply at agent_end and disarms on verdict.
+  const structuredOut = { schema: null, retries: 0, maxRetries: 2 };
   // M137 image detail tier — shared mutable cell: config_set writes through
   // the host channel, the pi attachment-carry path reads it per prompt.
   const imageDetail = { current: 'high' };
@@ -1027,6 +1031,11 @@ export async function startHost({
         predictions: core.predictions,
         observations: core.observations,
         fallbacks: fallbackCfg,
+        // dedup-h #238 structured output: shared cell — the channel prompt
+        // path arms {schema} on prompt{outputSchema}; the extension's
+        // agent_end gate validates the final reply and disarms on a
+        // conforming/exhausted verdict.
+        structured: structuredOut,
       },
       outputSpool,
     });
@@ -1721,6 +1730,9 @@ export async function startHost({
     // M100 — shared by reference with the loop extension; setFallbacks
     // mutates this object so the new chain applies on the next agent_end.
     fallbacks: fallbackCfg,
+    // dedup-h #238 — prompt{outputSchema} arms this cell; the loop
+    // extension's agent_end gate validates the final reply against it.
+    structured: structuredOut,
     // dedup-h #233 proxy.status/set — config_set{key:'proxy_mode'} writes
     // <instance>/proxy.json; undici binds the env-proxy decision on the
     // first fetch, so the honest answer is "applies on next restart".
