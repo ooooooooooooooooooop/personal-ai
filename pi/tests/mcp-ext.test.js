@@ -1085,6 +1085,17 @@ test('mcp-add: positional URL persists + hot-connects; stdio + duplicates + deny
       // oauth flags on a stdio add are nonsense — refused, not stored
       await add.handler(`badstdio "${process.execPath}" --oauth-client-id x`, ctx);
       assert.match(notices.at(-1)[1], /oauth flags apply to URL servers only/);
+
+      // dedup-h #396: credential redaction — a userinfo URL is never
+      // echoed back; /mcp reports header COUNT only, never names/values
+      await add.handler(`cred http://token:s3cr3t@127.0.0.1:${srv.address().port}/mcp --header "Authorization: Bearer xyz"`, ctx);
+      const lastNotice = notices.at(-1)[1];
+      assert.ok(!lastNotice.includes('s3cr3t'), 'userinfo password redacted from the notice');
+      assert.ok(lastNotice.includes('127.0.0.1'), 'host still shown');
+      await pi.commands.get('mcp').handler({ ui: { notify: (m) => notices.push(m) } });
+      const mcpDoc = notices.at(-1);
+      assert.match(mcpDoc, /headers: 1 configured \(values redacted\)/);
+      assert.ok(!mcpDoc.includes('xyz') && !mcpDoc.includes('Authorization'), 'header name/value never surface');
       await pi.handlers.get('session_shutdown')?.();
     } finally {
       if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;

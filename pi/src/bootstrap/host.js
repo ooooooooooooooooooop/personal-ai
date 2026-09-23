@@ -1741,7 +1741,11 @@ export async function startHost({
       const store = mcpOperatorSurface.readTokenStore();
       const rows = [];
       for (const [name, spec] of Object.entries(servers ?? {})) {
-        const row = { name, transport: spec?.url ? (spec.transport === 'sse' ? 'sse' : 'http') : 'stdio' };
+        const row = {
+          name,
+          transport: spec?.url ? (spec.transport === 'sse' ? 'sse' : 'http') : 'stdio',
+          headers: Object.keys(spec?.headers ?? {}).length || undefined, // count only — values never surface (#396)
+        };
         try {
           const o = mcpOperatorSurface.validateOAuthSpec(spec);
           if (o) {

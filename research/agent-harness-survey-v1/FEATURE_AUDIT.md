@@ -2324,3 +2324,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。两点缺口修实：`CONNECT_TIMEOUT_MS` 15s→10s（审计上游取值，同时覆盖 initialize 握手与 legacy-SSE endpoint 发现）；boot 连接改 `Promise.all` **并发**——死服务器花自己的 10s 而非串行叠加 stall。
 - **证据**：mcp-ext 27/27（双黑洞服务器 boot <19s 完结——串行需 ~20s+，两台均 FAILED 如实列出）；pi 回归随批绿。
+
+### 28.71 648 清单逐条核销 #43：dedup-h #396 MCP URL 凭据脱敏（2026-09-23）
+
+- **判定**：IMPLEMENTED。URL+auth headers 配置面早已落地，本行闭合 **redaction** 半边。
+- **机制**：`redactUrl()` 剥离一切操作员可见回显的 userinfo（`/mcp-add` 通知）；`/mcp` 状态报 `headers: N configured (values redacted)`——只数不名不值；`mcpFacade.status` 行携 headers 计数而非内容。
+- **证据**：mcp-ext 27/27（userinfo URL 通知有主机无密码；/mcp 计数在场名值缺席）。

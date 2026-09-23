@@ -130,6 +130,18 @@ function stdioTransport(spec) {
   };
 }
 
+// dedup-h #396 — credential redaction: a spec.url may carry userinfo
+// (https://key@host) and headers may hold bearer material. Anything the
+// operator sees (/mcp-add notices, status lines) strips userinfo and
+// reports header COUNT only — never a name or value.
+function redactUrl(u) {
+  try {
+    const x = new URL(u);
+    if (x.username || x.password) { x.username = ''; x.password = ''; }
+    return x.href;
+  } catch { return String(u ?? ''); }
+}
+
 function parseSseBlock(text) {
   const data = [];
   for (const line of text.split('\n')) {
@@ -1089,6 +1101,8 @@ export default function mcpExtension(pi) {
           : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
         if (entry.client?.strippedEnv?.length) lines.push(`    env stripped (injection-vector keys): ${entry.client.strippedEnv.join(', ')}`);
         if (entry.client?.oauth) lines.push(`    auth: ${entry.client.oauth}`);
+        const hdrCount = Object.keys(entry.spec?.headers ?? {}).length;
+        if (hdrCount) lines.push(`    headers: ${hdrCount} configured (values redacted)`);
         if (entry.dead?.size) lines.push(`    removed by server (list_changed): ${[...entry.dead].join(', ')}`);
         if (entry.lastRefresh) lines.push(`    last refresh ${entry.lastRefresh.at} (+${entry.lastRefresh.added}/-${entry.lastRefresh.removed})`);
         for (const t of entry.tools) lines.push(`    ${t}`);
@@ -1278,7 +1292,7 @@ export default function mcpExtension(pi) {
       }
       servers[name] = spec;
       const entry = await connectOne(name, spec);
-      const kind = spec.url ? `${spec.transport === 'sse' ? 'sse' : 'http'} ${spec.url}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
+      const kind = spec.url ? `${spec.transport === 'sse' ? 'sse' : 'http'} ${redactUrl(spec.url)}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
       if (entry?.failed || !entry?.client) {
         ctx.ui?.notify?.(`added '${name}' (${kind}) to ${target} — connect FAILED; /mcp shows the error, fix the spec and restart`, 'error');
         return;
