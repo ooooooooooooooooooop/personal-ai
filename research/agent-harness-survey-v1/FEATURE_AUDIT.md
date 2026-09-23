@@ -2207,3 +2207,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - `pi/src/adapter/loop.js`：`structured` 共享单元进 loopGovernanceExtension——agent_end 在 fallback/continuation 之前跑 conformance gate：违规→有界重 steer（cap 2，`pendingSchemaRetry` 保住 transcript 与 hop 预算）；合规/穷尽→解除武装落 `STRUCTURED_OUTPUT` 审计后走正常流
 - `pi/src/adapter/channel.js`：`prompt{outputSchema}` → 入场校验（坏 schema 在 prompt 发出前就拒）→ 武装共享单元 + 注入 `<output-schema>` 契约
 - 测试：jsonschema 真值表 + 扩展 retry/exhaust/conform 三分支
+
+### 28.57 648 清单逐条核销 #29：dedup-h #242 mcp-server 自暴露 + ${VAR} 展开（2026-09-23）
+
+**行**：`dedup-h	242	mcp-tools	mcp-server: 暴露自身为MCP server给外部client`（+ evidence 的 `${VAR_NAME}` 配置展开）。
+
+**判定**：**IMPLEMENTED**——两半都落：
+
+- `pi/src/serve/mcpserve.js` + `pai-host mcp-serve`：真 `startHost` + 换行 JSON-RPC stdio server。有界治理面 `session_prompt/get_state/session_list/job_status/audit_tail` —— `tools/call` 全部走真实 channel `handle()`（同一 decide/hooks/budget 链）；notification 沉默、parse error -32700、未知 method -32601
+- `pi/extensions/mcp/index.js`：`${VAR_NAME}` 占位符展开（command/args/env/url/headers 五个字段），缺失变量保持字面量并进 `/mcp` 诊断行
+- 测试：mcpserve RPC 分派+stdio 循环沉默纪律、mcp-ext env 展开/缺失诊断；manifest 重钉

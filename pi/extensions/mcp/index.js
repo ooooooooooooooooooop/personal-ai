@@ -618,6 +618,29 @@ export class McpClient {
 // extension factory
 // ---------------------------------------------------------------------------
 
+// dedup-h #242-env: ${VAR_NAME} placeholders in MCP server configs expand
+// to environment variables (CodeBuddy analogue) — command/args/env for
+// stdio, url/headers for HTTP transports. Missing variables stay literal
+// AND land in missingEnv for an honest diagnostic.
+const ENV_REF = /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+function expandEnvPlaceholders(value, missing) {
+  if (typeof value === 'string') {
+    return value.replace(ENV_REF, (m, name) => {
+      if (process.env[name] != null) return process.env[name];
+      missing.add(name);
+      return m;
+    });
+  }
+  if (Array.isArray(value)) return value.map((v) => expandEnvPlaceholders(v, missing));
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) out[k] = expandEnvPlaceholders(v, missing);
+    return out;
+  }
+  return value;
+}
+const EXPAND_FIELDS = ['command', 'args', 'env', 'url', 'headers'];
+
 function loadConfig() {
   const candidates = [];
   if (process.env.PAI_MCP_CONFIG) candidates.push(process.env.PAI_MCP_CONFIG);
@@ -627,12 +650,22 @@ function loadConfig() {
     if (!existsSync(path)) continue;
     try {
       const doc = JSON.parse(readFileSync(path, 'utf-8'));
-      return { path, servers: doc?.mcpServers ?? doc?.servers ?? {} };
+      const missing = new Set();
+      const servers = {};
+      for (const [name, spec] of Object.entries(doc?.mcpServers ?? doc?.servers ?? {})) {
+        if (!spec || typeof spec !== 'object' || Array.isArray(spec)) { servers[name] = spec; continue; }
+        const s = { ...spec };
+        for (const f of EXPAND_FIELDS) {
+          if (s[f] != null) s[f] = expandEnvPlaceholders(s[f], missing);
+        }
+        servers[name] = s;
+      }
+      return { path, servers, missingEnv: [...missing] };
     } catch {
-      return { path, servers: {}, error: 'unparseable config' };
+      return { path, servers: {}, missingEnv: [], error: 'unparseable config' };
     }
   }
-  return { path: null, servers: {} };
+  return { path: null, servers: {}, missingEnv: [] };
 }
 
 // C2 per-tool output budget: spec.output_token_limit caps every tool on the
@@ -683,7 +716,7 @@ function wrapUntrusted(server, tool, result, maxChars = MAX_RESULT_CHARS) {
 }
 
 export default function mcpExtension(pi) {
-  const { path: configPath, servers: allServers, error: configError } = loadConfig();
+  const { path: configPath, servers: allServers, missingEnv, error: configError } = loadConfig();
   // C3 per-agent MCP subset: a delegate child stamped PAI_MCP_DENY (profile
   // mcp_deny via the dedicated bridge flag) never connects to denied servers
   // — filtering happens here, before any spawn/handshake, so a denied server
@@ -903,6 +936,9 @@ export default function mcpExtension(pi) {
       if (denied.size) {
         const hit = [...denied].filter((n) => n in allServers);
         if (hit.length) lines.push(`  denied by profile (PAI_MCP_DENY): ${hit.join(', ')}`);
+      }
+      if (missingEnv?.length) {
+        lines.push(`  unresolved env placeholders (left literal): ${missingEnv.map((n) => '${' + n + '}').join(', ')}`);
       }
       if (Object.keys(servers).length === 0 && configPath) lines.push('  (config has no servers)');
       ctx.ui?.notify?.(lines.join('\n'), 'info');

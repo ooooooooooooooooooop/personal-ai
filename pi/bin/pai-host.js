@@ -89,3 +89,18 @@ if (cmd === 'start') {
     '| canonical files:', Object.keys(host.canonical.files).length,
     '| managed extensions:', host.manifest.extensions.length);
 }
+
+// dedup-h #242 — expose this host as an MCP server to external clients
+// (Claude `mcp serve` analogue). Newline-delimited JSON-RPC on stdio;
+// the served tools run the REAL governed channel (policy/hooks/budget).
+if (cmd === 'mcp-serve') {
+  const instanceRoot = arg('instance-root', process.env.PAI_INSTANCE_ROOT);
+  const workdir = arg('workdir', process.env.PAI_WORKDIR ?? process.cwd());
+  if (!instanceRoot) {
+    console.error('mcp-serve requires --instance-root or PAI_INSTANCE_ROOT');
+    process.exit(1);
+  }
+  const { serveMcp } = await import('../src/serve/mcpserve.js');
+  const host = await startHost({ instanceRoot, workdir });
+  await serveMcp(host);
+}
