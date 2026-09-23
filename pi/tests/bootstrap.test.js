@@ -905,3 +905,93 @@ test('PAI_PROXY_URL: env-named proxy applies; proxy.json wins; bad URL loud', as
     delete process.env.HTTPS_PROXY; delete process.env.NO_PROXY;
   }
 });
+
+// dedup-h #391 — operator-side MCP OAuth surface: status rows, PKCE
+// authorize URL, code exchange into the user-private token store.
+// Tokens never surface — only authorization booleans.
+test('mcp facade: status/auth/authDone — PKCE URL + stored token, never token bytes', async () => {
+  const { createServer } = await import('node:http');
+  const seen = { tokenBodies: [] };
+  const tokSrv = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      seen.tokenBodies.push(Object.fromEntries(new URLSearchParams(body)));
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ access_token: 'tok-xyz', token_type: 'bearer', expires_in: 3600, refresh_token: 'r1' }));
+    });
+  });
+  await new Promise((r) => tokSrv.listen(0, '127.0.0.1', r));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-mcpf-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcpf-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const cfgPath = join(inst, 'mcp.json');
+  writeFileSync(cfgPath, JSON.stringify({
+    mcpServers: {
+      secured: {
+        url: 'https://mcp.example.com/mcp',
+        oauth: {
+          clientId: 'cid-1',
+          tokenUrl: `http://127.0.0.1:${tokSrv.address().port}/token`,
+          authorizationUrl: 'https://auth.example.com/authorize',
+          scope: 'mcp:read',
+        },
+      },
+      plain: { url: 'https://plain.example.com/mcp' },
+    },
+  }));
+  const prevCfg = process.env.PAI_MCP_CONFIG, prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  process.env.PAI_MCP_CONFIG = cfgPath;
+  process.env.PAI_MCP_TOKEN_STORE = join(inst, 'mcp-oauth.json');
+  try {
+    const host = await startHost({
+      instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+    });
+    try {
+      const st = await host.channel.handle({ type: 'mcp_status' });
+      assert.equal(st.success, true, `status refused: ${st.error}`);
+      const secured = st.data.servers.find((s) => s.name === 'secured');
+      assert.equal(secured.oauth, 'authorization_code');
+      assert.equal(secured.authorized, false, 'no token yet — honestly unauthorized');
+      const plain = st.data.servers.find((s) => s.name === 'plain');
+      assert.equal(plain.oauth, undefined);
+
+      const auth = await host.channel.handle({ type: 'mcp_auth', server: 'secured' });
+      assert.equal(auth.success, true, `auth refused: ${auth.error}`);
+      const u = new URL(auth.data.url);
+      assert.equal(u.origin + u.pathname, 'https://auth.example.com/authorize');
+      assert.equal(u.searchParams.get('code_challenge_method'), 'S256');
+      assert.ok(u.searchParams.get('code_challenge'), 'PKCE challenge present');
+      assert.equal(u.searchParams.get('client_id'), 'cid-1');
+      assert.equal(u.searchParams.get('resource'), 'https://mcp.example.com/mcp', 'RFC8707 resource = server url');
+
+      const done = await host.channel.handle({ type: 'mcp_auth_done', server: 'secured', code: 'authcode-1' });
+      assert.equal(done.success, true, `auth_done refused: ${done.error}`);
+      const req = seen.tokenBodies[0];
+      assert.equal(req.grant_type, 'authorization_code');
+      assert.equal(req.code, 'authcode-1');
+      assert.ok(req.code_verifier, 'PKCE verifier sent');
+      // token stored user-privately; status now reports authorized — and
+      // the token bytes never appear in any facade payload
+      const store = JSON.parse(readFileSync(join(inst, 'mcp-oauth.json'), 'utf-8'));
+      assert.equal(store.secured.access_token, 'tok-xyz');
+      const st2 = await host.channel.handle({ type: 'mcp_status' });
+      assert.equal(st2.data.servers.find((s) => s.name === 'secured').authorized, true);
+      assert.ok(!JSON.stringify(st2.data).includes('tok-xyz'), 'token bytes never surface');
+
+      // expired/unknown pending → honest error, not a silent state
+      const again = await host.channel.handle({ type: 'mcp_auth_done', server: 'secured', code: 'x' });
+      assert.equal(again.success, false);
+      assert.match(String(again.error), /no pending OAuth/);
+      const unknown = await host.channel.handle({ type: 'mcp_auth', server: 'ghost' });
+      assert.equal(unknown.success, false);
+    } finally { host.dispose(); }
+  } finally {
+    tokSrv.close();
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+  }
+});

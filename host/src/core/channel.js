@@ -95,7 +95,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -132,6 +132,7 @@ export class HostChannel {
     this.skills = skills;
     this.governance = governance;
     this.proxy = proxy;
+    this.mcp = mcp;
     this.listeners = new Set();
     // M144 unicode_mode: 'auto' resolves once from env; 'ascii' degrades the
     // symbol layer of operator-visible event text (chrome, never content)
@@ -635,6 +636,23 @@ export class HostChannel {
           }
           if (!this.sessions?.insights) return reply(false, undefined, 'session insights unavailable');
           const r = await this.sessions.insights(cmd.path);
+          return r?.error ? reply(false, r, r.error) : reply(true, r);
+        }
+        // dedup-h #391 — operator-side MCP surface: status + the OAuth
+        // authorize affordance (the UI "授权按钮" plane). Tokens are never
+        // returned — only authorization booleans.
+        case 'mcp_status': {
+          if (!this.mcp?.status) return reply(false, undefined, 'mcp facade unavailable');
+          return reply(true, await this.mcp.status());
+        }
+        case 'mcp_auth': {
+          if (!this.mcp?.auth) return reply(false, undefined, 'mcp oauth unavailable');
+          const r = await this.mcp.auth(String(cmd.server ?? ''));
+          return r?.error ? reply(false, r, r.error) : reply(true, r);
+        }
+        case 'mcp_auth_done': {
+          if (!this.mcp?.authDone) return reply(false, undefined, 'mcp oauth unavailable');
+          const r = await this.mcp.authDone(String(cmd.server ?? ''), String(cmd.code ?? ''));
           return r?.error ? reply(false, r, r.error) : reply(true, r);
         }
         // F-family AgentTask mailbox — operator-facing mirrors of the

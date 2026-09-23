@@ -1574,3 +1574,12 @@ tr.clickable:hover td { background: var(--field); }
   border-radius: 6px; padding: 5px 8px; font: inherit;
 }
 .ask-field input[type="checkbox"] { width: 16px; height: 16px; }
+
+/* dedup-h #391: MCP oauth authorize affordance inside /mcp sys card */
+.mcp-auth-btn {
+  margin: 2px 0 6px 0; padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--line-strong); background: var(--tile);
+  color: var(--text); font-size: 12px; cursor: pointer;
+}
+.mcp-auth-btn:hover:not(:disabled) { background: var(--tile-hover); }
+.mcp-auth-btn:disabled { opacity: 0.5; cursor: default; }

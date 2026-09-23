@@ -255,6 +255,41 @@ function tokenRequest(oauth, fields) {
     body,
   });
 }
+
+// dedup-h #391 — the OAuth authorization-code dance is OPERATOR business,
+// not session business: the host channel facade surfaces it as an
+// actionable "授权" affordance while the in-session /mcp-auth commands keep
+// working. One implementation, two front doors — the facade imports these
+// (manifest-pinned) exports; each entry point keeps its OWN pending map so
+// a verifier/state pair never crosses surfaces.
+export function oauthBuildAuthorizeUrl(oauth, serverUrl) {
+  const verifier = randomBytes(32).toString('base64url');
+  const challenge = createHash('sha256').update(verifier).digest('base64url');
+  const state = randomBytes(16).toString('base64url');
+  const u = new URL(oauth.authorizationUrl);
+  u.searchParams.set('response_type', 'code');
+  u.searchParams.set('client_id', oauth.clientId);
+  u.searchParams.set('redirect_uri', oauth.redirectUri);
+  u.searchParams.set('state', state);
+  u.searchParams.set('code_challenge', challenge);
+  u.searchParams.set('code_challenge_method', 'S256');
+  if (oauth.scope) u.searchParams.set('scope', oauth.scope);
+  u.searchParams.set('resource', oauth.resource ?? serverUrl ?? ''); // RFC8707
+  return { url: u.href, verifier, state };
+}
+
+export async function oauthExchangeCode(oauth, { code, verifier }) {
+  return parseTokenResponse(await tokenRequest(oauth, {
+    grant_type: 'authorization_code', code, redirect_uri: oauth.redirectUri,
+    code_verifier: verifier,
+  }));
+}
+
+// Facade-side surface: config/token-store access + spec validation. The
+// token store is user-private — the facade reports booleans, never tokens.
+export const mcpOperatorSurface = {
+  loadConfig, validateOAuthSpec, readTokenStore, writeTokenStore, tokenStorePath,
+};
 async function parseTokenResponse(res) {
   if (!res.ok) throw new McpError(`oauth token request failed: HTTP ${res.status}`);
   const doc = await res.json().catch(() => null);
@@ -1099,21 +1134,10 @@ export default function mcpExtension(pi) {
       if (!name) { ctx.ui?.notify?.('usage: /mcp-auth <server>', 'error'); return; }
       const { oauth, error } = oauthSpecFor(name);
       if (error) { ctx.ui?.notify?.(error, 'error'); return; }
-      const verifier = randomBytes(32).toString('base64url');
-      const challenge = createHash('sha256').update(verifier).digest('base64url');
-      const state = randomBytes(16).toString('base64url');
+      const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, servers[name]?.url);
       pendingAuth.set(name, { verifier, state, deadline: Date.now() + OAUTH_PENDING_TTL_MS });
-      const u = new URL(oauth.authorizationUrl);
-      u.searchParams.set('response_type', 'code');
-      u.searchParams.set('client_id', oauth.clientId);
-      u.searchParams.set('redirect_uri', oauth.redirectUri);
-      u.searchParams.set('state', state);
-      u.searchParams.set('code_challenge', challenge);
-      u.searchParams.set('code_challenge_method', 'S256');
-      if (oauth.scope) u.searchParams.set('scope', oauth.scope);
-      u.searchParams.set('resource', oauth.resource ?? servers[name]?.url ?? ''); // RFC8707
       ctx.ui?.notify?.(
-        `OAuth for '${name}' — open this URL, approve, then paste the code:\n\n${u.href}\n\n` +
+        `OAuth for '${name}' — open this URL, approve, then paste the code:\n\n${url}\n\n` +
         `Then run: /mcp-auth-done ${name} <code>   (valid for 10 minutes)`,
         'info',
       );
@@ -1132,10 +1156,7 @@ export default function mcpExtension(pi) {
       const { oauth, error } = oauthSpecFor(name);
       if (error) { ctx.ui?.notify?.(error, 'error'); return; }
       try {
-        const t = await parseTokenResponse(await tokenRequest(oauth, {
-          grant_type: 'authorization_code', code, redirect_uri: oauth.redirectUri,
-          code_verifier: pend.verifier,
-        }));
+        const t = await oauthExchangeCode(oauth, { code, verifier: pend.verifier });
         const store = readTokenStore();
         store[name] = {
           access_token: t.accessToken, refresh_token: t.refreshToken,

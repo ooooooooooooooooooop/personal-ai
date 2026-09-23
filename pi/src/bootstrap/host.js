@@ -123,6 +123,10 @@ import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
 import { makeDecide, commandDenyPrefixes } from './decide.js';
 import { resolveManagedExtensions } from '../extensions/loader.js';
+// dedup-h #391 — the operator-side MCP OAuth surface reuses the SAME
+// manifest-pinned extension implementation (no second PKCE/token-store
+// copy); only the front door differs.
+import { oauthBuildAuthorizeUrl, oauthExchangeCode, mcpOperatorSurface } from '../../extensions/mcp/index.js';
 import { writeRuntimeIdentity } from '../../../host/src/core/identity.js';
 import {
   PI_GOVERNANCE_COVERAGE,
@@ -1725,8 +1729,66 @@ export async function startHost({
   const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
+  // dedup-h #391 — operator-side MCP surface: server list + OAuth
+  // authorize affordance over the channel (the UI "授权按钮" plane). The
+  // pending verifier/state map lives HERE — it never crosses into the
+  // extension's in-session map.
+  const mcpOAuthPending = new Map();
+  const MCP_OAUTH_TTL_MS = 10 * 60 * 1000;
+  const mcpFacade = {
+    status: () => {
+      const { path, servers, missingEnv, error } = mcpOperatorSurface.loadConfig();
+      const store = mcpOperatorSurface.readTokenStore();
+      const rows = [];
+      for (const [name, spec] of Object.entries(servers ?? {})) {
+        const row = { name, transport: spec?.url ? (spec.transport === 'sse' ? 'sse' : 'http') : 'stdio' };
+        try {
+          const o = mcpOperatorSurface.validateOAuthSpec(spec);
+          if (o) {
+            row.oauth = o.flow;
+            row.authorized = o.flow === 'authorization_code'
+              ? Boolean(store[name]?.access_token && (store[name].expires_at ?? 0) > Date.now())
+              : 'self-refreshing';
+          }
+        } catch (e) { row.oauthError = e.message; }
+        rows.push(row);
+      }
+      return { configPath: path, configError: error ?? null, missingEnv, servers: rows };
+    },
+    auth: (name) => {
+      const { servers } = mcpOperatorSurface.loadConfig();
+      const spec = servers?.[name];
+      if (!spec) return { error: `unknown server '${name}'` };
+      let oauth;
+      try { oauth = mcpOperatorSurface.validateOAuthSpec(spec); } catch (e) { return { error: e.message }; }
+      if (!oauth?.authorizationUrl) return { error: `server '${name}' has no oauth.authorizationUrl — interactive flow not configured` };
+      const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, spec.url);
+      mcpOAuthPending.set(name, { verifier, state, deadline: Date.now() + MCP_OAUTH_TTL_MS });
+      return { url, expiresInSec: MCP_OAUTH_TTL_MS / 1000 };
+    },
+    authDone: async (name, code) => {
+      const pend = mcpOAuthPending.get(name);
+      mcpOAuthPending.delete(name);
+      if (!pend || Date.now() > pend.deadline) return { error: `no pending OAuth for '${name}' (or it expired) — begin again` };
+      const { servers } = mcpOperatorSurface.loadConfig();
+      let oauth;
+      try { oauth = mcpOperatorSurface.validateOAuthSpec(servers?.[name]); } catch (e) { return { error: e.message }; }
+      if (!oauth) return { error: `server '${name}' has no oauth spec` };
+      try {
+        const t = await oauthExchangeCode(oauth, { code, verifier: pend.verifier });
+        const store = mcpOperatorSurface.readTokenStore();
+        store[name] = {
+          access_token: t.accessToken, refresh_token: t.refreshToken,
+          expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+        };
+        mcpOperatorSurface.writeTokenStore(store);
+        return { server: name, refresh: Boolean(t.refreshToken) };
+      } catch (e) { return { error: `oauth exchange failed: ${e.message}` }; }
+    },
+  };
   channelHandle = createChannelHost({
     session, core, jobs: jobStore, jobDetail: executor,
+    mcp: mcpFacade,
     // M71: channel asks this predicate before any transcript export
     sessionFlags: { isEphemeral: (s) => ephemeralSessions.has(s) },
     bodies: {

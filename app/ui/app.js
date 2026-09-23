@@ -3893,6 +3893,49 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #391: MCP 服务器卡 — 状态 + OAuth 授权按钮（同一 PKCE 流程
+    // 的 operator 面；verifier/state 留在宿主 pending map，不跨面）。
+    cmd: '/mcp', label: 'MCP 服务器', hint: '/mcp——服务器状态 + OAuth 授权',
+    run: async () => {
+      const r = await cmd('mcp_status');
+      if (!r.success) { addSys(`mcp 状态失败：${r.error ?? '未知'}`, true); return; }
+      const d = r.data ?? {};
+      const rows = d.servers ?? [];
+      if (!rows.length) { addSys(`无 MCP 服务器配置（${d.configPath ?? '无配置文件'}）`); return; }
+      const div = document.createElement('div');
+      div.className = 'sys';
+      for (const s of rows) {
+        const line = document.createElement('div');
+        const auth = s.oauth
+          ? (s.authorized === 'self-refreshing' ? '· oauth 自刷新'
+            : s.authorized ? '· 已授权' : '· 未授权')
+          : '';
+        line.textContent = `${s.name}  [${s.transport}]${auth}${s.oauthError ? ` · spec 错: ${s.oauthError}` : ''}`;
+        div.appendChild(line);
+        if (s.oauth === 'authorization_code' && s.authorized !== true) {
+          const b = document.createElement('button');
+          b.className = 'mcp-auth-btn';
+          b.textContent = `🔐 授权 ${s.name}`;
+          b.onclick = async () => {
+            b.disabled = true;
+            const a = await cmd('mcp_auth', { server: s.name });
+            if (!a.success) { addSys(`授权失败：${a.error ?? '未知'}`, true); b.disabled = false; return; }
+            addSys(`OAuth '${s.name}' — 在浏览器打开以下 URL 批准后粘贴 code（${a.data?.expiresInSec ?? 600}s 内有效）：\n${a.data?.url}`);
+            const code = await askText(`完成 ${s.name} 授权`, '粘贴 authorization code');
+            if (!code?.trim()) { b.disabled = false; return; }
+            const fin = await cmd('mcp_auth_done', { server: s.name, code: code.trim() });
+            if (fin.success) { addSys(`✅ ${s.name} 授权完成（refresh: ${fin.data?.refresh ? '有' : '无'}）——重启会话后工具调用自动携带`); }
+            else addSys(`授权交换失败：${fin.error ?? '未知'}`, true);
+            b.disabled = false;
+          };
+          div.appendChild(b);
+        }
+      }
+      transcript.appendChild(div);
+      scrollTail();
+    },
+  },
+  {
     // dedup-h #19: project purge — inventory preview + per-category cleanup.
     // dry-run first, explicit confirm, evidence classes refused host-side.
     cmd: '/purge', label: '实例清理', hint: '/purge [exports|spool|sessions|tasks]——预览/清理实例产物（审计/记忆/回执不可清）',
