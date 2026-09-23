@@ -2377,3 +2377,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：ALREADY_COVERED（M76 已落）。源条目（v2.96.0）= AgentDefinition.disallowedTools 每子代理工具黑名单 + **与会话级 --disallowedTools 取并集**。我方同构：`.pai/agents/*.md` frontmatter `tools_deny: bash,deploy`（envCapable 信任闸——repo 植入的 profile 不能收窄执法面）→ `PAI_TOOLS_DENY` env 戳记 → 子进程 bootstrap 合入 `initialDeny`（= policy toolPolicy 会话级 deny ∪ profile 级 deny，正是 union 语义）→ `excludeTools` 引擎隐藏 + ToolSurface denied 集执法，session-inherited。
 - **边界面**：pai-channel body 可执法；不可执法的 target（foreign harness）在 delegate 准入即拒（`unenforceable_tools_deny`），绝不"声明了但没生效"。
 - **证据**：M76/M94 信任闸测试（tools_deny load under trust/strip without）；M76 non-pai-channel 拒派 + pai-channel 委派通行；pi 全套 425/421/0/4 现役绿。
+
+### 28.81 648 清单逐条核销 #55：dedup-h #565 per-group tool allow/deny 跨 channels（2026-09-23）
+
+- **判定**：VARIANT（身份轴在本架构下的诚实映射）。源条目（v2026.5.12-beta.4/v2026.1.29）= per-sender/group tool policies + canonical channel-scoped sender keys——按**请求者身份**在 Slack/WhatsApp 等多 channel 入口上限制危险工具。我方是**单操作员主权通道**（无 IM 多发送者入口，by design）：不存在"同一入口多请求者"的攻击面，channel-scoped sender key 无可指对象。
+- **已覆盖的身份轴**（本架构真实存在的发送者维度）：**per-agent** `tools_deny` profile（M76，委派子体工具面收窄+不可执法 target 拒派）+ `mcp_deny`/budget 同族；**per-context** mode 工具限制（M83 mode-denied lazy tools）；**全局** canonical `tools:` policy（精确名+`*`前缀通配 mcp__* 动态命名空间，allow/ask/deny）；调度任务=shell spec 无模型工具面。被委派体、模式上下文、全局策略三层构成了本架构下"按身份限制工具"的全部可执法点。
+- **不落地**：IM 群发送者键——无对应入口，伪造一个不存在的多用户轴比缺失更不诚实。
