@@ -122,7 +122,11 @@ export class PendingAsks {
     // already-aborted call must not create an unreachable pending Promise.
     if (signal?.aborted) return Promise.resolve('aborted');
     const { toolName } = descriptor;
-    const isQuestion = descriptor.kind === 'question';
+    // 'form' (structured input) shares the question contract: never
+    // session-allowed, never cascade-denied — it is data collection, not
+    // a permission verdict.
+    const kind = descriptor.kind === 'question' || descriptor.kind === 'form' ? descriptor.kind : 'approval';
+    const isQuestion = kind !== 'approval';
     if (!isQuestion && this.#sessionAllows.has(toolName)) return Promise.resolve('allow');
     if (!isQuestion) {
       // Persisted always-pattern: {tool} or {tool,command} exact match.
@@ -146,10 +150,13 @@ export class PendingAsks {
         signal?.removeEventListener?.('abort', rec._onAbort);
         // object answers carry {answer, edited} — edited approval grants
         // persist the EDITED command, not the model's original payload.
-        const ans = answer && typeof answer === 'object' ? answer.answer : answer;
-        const edited = answer && typeof answer === 'object' ? answer.edited : null;
-        if (ans === 'allow_session' && rec.kind !== 'question') this.#sessionAllows.add(toolName);
-        if (ans === 'always' && rec.kind !== 'question') {
+        // kind 'form' resolves to a values OBJECT — it is data, not an
+        // {answer,edited} envelope: audit the field keys, resolve the object.
+        const isFormAnswer = rec.kind === 'form' && answer && typeof answer === 'object' && !Array.isArray(answer);
+        const ans = isFormAnswer ? `answered:${Object.keys(answer).join(',')}` : (answer && typeof answer === 'object' ? answer.answer : answer);
+        const edited = !isFormAnswer && answer && typeof answer === 'object' ? answer.edited : null;
+        if (ans === 'allow_session' && rec.kind !== 'question' && rec.kind !== 'form') this.#sessionAllows.add(toolName);
+        if (ans === 'always' && rec.kind !== 'question' && rec.kind !== 'form') {
           // 'always' grants the PATTERN ({tool,command}), not the whole tool —
           // sessionAllows.add(toolName) here would over-grant every future arg.
           // Persist {tool} or {tool,command} — never persist from a truncated
@@ -174,7 +181,7 @@ export class PendingAsks {
             this.audit?.write?.({ kind: 'ASK_ALWAYS_PERSIST', toolName, data: { command: entry.command != null ? entry.command.slice(0, 200) : null } });
           }
         }
-        if (ans === 'deny' && rec.kind !== 'question') {
+        if (ans === 'deny' && rec.kind !== 'question' && rec.kind !== 'form') {
           this.#sessionDenies.add(PendingAsks.#sigOf(toolName, rec.args));
         }
         // outcome ledger — AgentStats outcome-bucketed counts (agreed/
@@ -193,8 +200,19 @@ export class PendingAsks {
         toolName,
         toolCallId: descriptor.toolCallId ?? null,
         rule: descriptor.rule ?? 'ask',
-        kind: isQuestion ? 'question' : 'approval',
-        options: isQuestion && Array.isArray(descriptor.options)
+        kind,
+        fields: kind === 'form' && Array.isArray(descriptor.fields)
+          ? descriptor.fields.slice(0, 12).map((f) => ({
+              key: String(f?.key ?? '').slice(0, 80),
+              label: String(f?.label ?? f?.key ?? '').slice(0, 200),
+              type: ['text', 'textarea', 'number', 'boolean', 'select'].includes(f?.type) ? f.type : 'text',
+              required: f?.required === true,
+              options: Array.isArray(f?.options) ? f.options.slice(0, 20).map((o) => String(o).slice(0, 200)) : null,
+              default: f?.default ?? null,
+              description: f?.description != null ? String(f.description).slice(0, 500) : null,
+            })).filter((f) => f.key)
+          : null,
+        options: kind === 'question' && Array.isArray(descriptor.options)
           ? descriptor.options.map((o) => ({
               label: String(o?.label ?? '').slice(0, 200),
               description: o?.description != null ? String(o.description).slice(0, 500) : null,
@@ -234,6 +252,34 @@ export class PendingAsks {
         return { ok: false, error: 'question answers must be a non-empty string' };
       }
       rec._finish(answer.slice(0, 2000));
+      return { ok: true };
+    }
+    if (rec.kind === 'form') {
+      // Structured-input answers are validated against the ask's own field
+      // schema at the host — the UI is a renderer, not the contract owner.
+      if (!answer || typeof answer !== 'object' || Array.isArray(answer)) {
+        return { ok: false, error: 'form answers must be a values object' };
+      }
+      for (const f of rec.fields ?? []) {
+        const v = answer[f.key];
+        if (f.required && (v == null || v === '')) {
+          return { ok: false, error: `form field '${f.key}' is required` };
+        }
+        if (v == null) continue;
+        if (f.type === 'number' && !Number.isFinite(Number(v))) {
+          return { ok: false, error: `form field '${f.key}' must be a number` };
+        }
+        if (f.type === 'boolean' && typeof v !== 'boolean') {
+          return { ok: false, error: `form field '${f.key}' must be a boolean` };
+        }
+        if (f.type === 'select' && Array.isArray(f.options) && f.options.length && !f.options.includes(String(v))) {
+          return { ok: false, error: `form field '${f.key}' must be one of: ${f.options.join(', ')}` };
+        }
+        if (typeof v === 'string' && v.length > 8000) {
+          return { ok: false, error: `form field '${f.key}' exceeds the 8000-char cap` };
+        }
+      }
+      rec._finish(answer);
       return { ok: true };
     }
     // in-card editing (CodeBuddy edit-then-approve): the operator may approve

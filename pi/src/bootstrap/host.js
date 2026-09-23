@@ -91,7 +91,7 @@ import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
 import { isTrusted, setTrust, hasInjectableContent } from '../../../host/src/core/trust.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
-import { askUserTool } from '../adapter/askuser.js';
+import { askUserTool, askStructuredTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
 import { skillTools } from '../adapter/skilltools.js';
 import { multiEditTool } from '../adapter/multiedit.js';
@@ -667,6 +667,7 @@ export async function startHost({
     // structured operator questions — kind:'question' asks bypass session
     // auto-allow by design (a question can never answer itself)
     askUserTool(() => asks),
+    askStructuredTool(() => asks),
     // one-way operator notification — the emit target is the channel handle
     // built below (late-bound); unlike ask_user this never suspends the turn
     notifyUserTool(() => (ev) => channelHandle?.channel.emitEvent(ev)),

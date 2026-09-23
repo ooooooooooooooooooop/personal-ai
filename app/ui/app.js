@@ -829,6 +829,66 @@ function addAskCard(ask) {
     send.onclick = () => { if (input.value.trim()) submit(input.value.trim()); };
     foot.appendChild(input);
     foot.appendChild(send);
+  } else if (ask.kind === 'form') {
+    // Structured-input card (dedup-h #33): the ask carries a field schema;
+    // render labeled controls per field and resolve to a values object.
+    // The host re-validates the object — this card is only the renderer.
+    div.querySelector('.ask-title').textContent = ask.summary || '需要填写信息';
+    const foot = div.querySelector('.ask-foot');
+    foot.innerHTML = '';
+    foot.classList.add('ask-question');
+    const inputs = {};
+    for (const f of ask.fields ?? []) {
+      const row = document.createElement('label');
+      row.className = 'ask-field';
+      const cap = document.createElement('span');
+      cap.className = 'ask-field-label';
+      cap.textContent = `${f.label ?? f.key}${f.required ? ' *' : ''}`;
+      if (f.description) cap.title = f.description;
+      row.appendChild(cap);
+      let el;
+      if (f.type === 'boolean') {
+        el = document.createElement('input');
+        el.type = 'checkbox';
+        el.checked = f.default === true;
+      } else if (f.type === 'select') {
+        el = document.createElement('select');
+        for (const o of f.options ?? []) {
+          const op = document.createElement('option');
+          op.value = o; op.textContent = o;
+          if (o === f.default) op.selected = true;
+          el.appendChild(op);
+        }
+      } else if (f.type === 'textarea') {
+        el = document.createElement('textarea');
+        el.rows = 3;
+        if (f.default != null) el.value = String(f.default);
+      } else {
+        el = document.createElement('input');
+        el.type = f.type === 'number' ? 'number' : 'text';
+        if (f.default != null) el.value = String(f.default);
+      }
+      el.dataset.key = f.key;
+      row.appendChild(el);
+      foot.appendChild(row);
+      inputs[f.key] = { el, type: f.type };
+    }
+    const submitBtn = document.createElement('button');
+    submitBtn.className = 'ask-btn primary';
+    submitBtn.textContent = '提交';
+    submitBtn.onclick = async () => {
+      const values = {};
+      for (const [k, { el, type }] of Object.entries(inputs)) {
+        values[k] = type === 'boolean' ? el.checked : (type === 'number' && el.value !== '' ? Number(el.value) : el.value);
+      }
+      foot.querySelectorAll('button,input,select,textarea').forEach((x) => { x.disabled = true; });
+      const r = await cmd('decision_resolve', { askId: ask.id, answer: values });
+      if (!r.success) {
+        foot.querySelectorAll('button,input,select,textarea').forEach((x) => { x.disabled = false; });
+        addSys(`表单提交失败：${r.error ?? '未知'}`, true);
+      }
+    };
+    foot.appendChild(submitBtn);
   } else {
   div.querySelectorAll('.ask-btn').forEach((b) => {
     b.onclick = async () => {

@@ -1565,3 +1565,12 @@ tr.clickable:hover td { background: var(--field); }
   padding: 1px 6px; max-width: 220px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* structured-input ask card (dedup-h #33) */
+.ask-field { display: flex; flex-direction: column; gap: 3px; flex: 1 1 220px; }
+.ask-field-label { font-size: 12px; color: var(--text-3); }
+.ask-field input[type="text"], .ask-field input[type="number"], .ask-field select, .ask-field textarea {
+  background: var(--field); color: var(--text); border: 1px solid var(--line);
+  border-radius: 6px; padding: 5px 8px; font: inherit;
+}
+.ask-field input[type="checkbox"] { width: 16px; height: 16px; }

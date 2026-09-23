@@ -1919,3 +1919,18 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | UI 面 | `/purge [cat]`：无参→instance_inventory 分类计数渲染；有参→dry-run 预览→confirm→实删 | slash 表新增 |
 
 **回归**：channel-facade 34/34（含新用例）；channel.js 语法/ESM 净。
+
+### 28.37 648 清单逐条核销 #6：dedup-h #33 AskUserForStructuredInput schema→表单（2026-09-23）
+
+**行**：`dedup-h	33	ui-ux	AskUserForStructuredInput: schema→UI表单ask`（模型给 schema → UI 渲表单 → 回结构化对象）。
+
+**判定**：**IMPLEMENTED**——`kind:'form'` 加入 ask 契约三层：
+
+| 层 | 落点 | 证据 |
+|---|---|---|
+| 契约 | PendingAsks `kind:'form'`：与 question 同族（无 session-allow/无 deny 级联/超时拒绝诚实返回）；fields 描述符净化（≤12 字段、类型白名单、select 强制 options）随 governance_ask 事件出 | host `form kind` 测试全断言 |
+| 校验 | `resolve()` form 分支**宿主侧重校**（required/number/boolean/select 域/8000 字符帽）——UI 只是渲染器；对象答案**不**走 `{answer,edited}` 解包，按值对象原样回模型 | 越域/缺必填/类型错→拒绝且 ask 保持挂起 |
+| 工具 | `ask_structured{title,fields}`：schema 入校即拒（重复 key/未知类型/select 无 options）；答案 `details.answer`=值对象 | pi askuser.test.js 三用例 |
+| UI | ask 卡 form 分支：按 schema 渲 text/textarea/number/checkbox/select+必填星+description title → 收集值对象 → decision_resolve | `.ask-field` CSS + 渲染分支 |
+
+**语义差异**：超时/中断=诚实未答（非自动默认）；表单值不写审计明细（只记 `answered:keys`——表单可含敏感输入）。

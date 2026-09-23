@@ -312,3 +312,44 @@ test('grantSession: operator-issued session grant unblocks later asks (request_p
   asks.resolve(asks.list()[0].id, 'deny');
   await p2;
 });
+
+test('form kind: schema rides the descriptor; object answer validated + resolved', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const fields = [
+    { key: 'env', label: '环境', type: 'select', options: ['dev', 'prod'], required: true },
+    { key: 'replicas', label: '副本数', type: 'number' },
+    { key: 'dry', label: '试运行', type: 'boolean' },
+    { key: 'note', label: '备注', type: 'textarea' },
+  ];
+  const p = asks.ask({ toolName: 'ask_structured', kind: 'form', summary: '部署参数', fields });
+  const pend = asks.list()[0];
+  assert.equal(pend.kind, 'form');
+  assert.equal(pend.fields.length, 4);
+  assert.equal(pend.fields[0].options[0], 'dev');
+
+  // required field missing → refused, ask stays pending
+  const miss = asks.resolve(pend.id, { replicas: 2 });
+  assert.equal(miss.ok, false);
+  assert.match(miss.error, /required/);
+  assert.equal(asks.list().length, 1);
+  // select out-of-domain → refused
+  const badSel = asks.resolve(pend.id, { env: 'staging' });
+  assert.equal(badSel.ok, false);
+  // number field must be numeric
+  const badNum = asks.resolve(pend.id, { env: 'dev', replicas: 'lots' });
+  assert.equal(badNum.ok, false);
+  // boolean must be boolean
+  const badBool = asks.resolve(pend.id, { env: 'dev', dry: 'yes' });
+  assert.equal(badBool.ok, false);
+  // valid object resolves WITH the object (not unwrapped as an envelope)
+  const ok = asks.resolve(pend.id, { env: 'prod', replicas: 3, dry: false, note: 'hi' });
+  assert.equal(ok.ok, true);
+  const answer = await p;
+  assert.deepEqual(answer, { env: 'prod', replicas: 3, dry: false, note: 'hi' });
+
+  // form asks never enter sessionAllows — a repeated form suspends again
+  const p2 = asks.ask({ toolName: 'ask_structured', kind: 'form', fields });
+  assert.equal(asks.list().length, 1, 'form asks never auto-allow');
+  asks.resolve(asks.list()[0].id, { env: 'dev' });
+  await p2;
+});
