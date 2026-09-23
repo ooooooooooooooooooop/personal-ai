@@ -23,7 +23,7 @@ const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,60}$/i;
 const BODY_CAP = 32 * 1024;
 
-export function skillTools({ workdir, audit, getAsks = null, requestMode = null }) {
+export function skillTools({ workdir, audit, getAsks = null, requestMode = null, requestModel = null }) {
   const dir = (kind) => join(workdir, '.pai', kind);
   const write = (kind, name, content) => {
     mkdirSync(dir(kind), { recursive: true });
@@ -237,8 +237,8 @@ export function skillTools({ workdir, audit, getAsks = null, requestMode = null 
         'Expand a parameterised task package (.pai/recipes/<name>.md) and receive ' +
         'its instructions to execute (Roo run_slash_command analogue). Pass ' +
         'args as {k: v}; {{k}} placeholders in the recipe body are substituted. ' +
-        'Frontmatter fields: `params:` (required/(default=)) and `mode:` — a ' +
-        'mode value requests an operator-approved mode switch when the recipe runs.',
+        'Frontmatter fields: `params:` (required/(default=)), `mode:` and `model:` — ' +
+        'each requests an operator-approved switch (mode/model) when the recipe runs.',
       parameters: {
         type: 'object',
         properties: {
@@ -303,6 +303,18 @@ export function skillTools({ workdir, audit, getAsks = null, requestMode = null 
             const r = await requestMode(wantedMode, _id);
             audit?.write({ kind: 'RECIPE_MODE', data: { name, mode: wantedMode, ok: r.ok } });
             modeNote = `\n[mode '${wantedMode}': ${r.text}]`;
+          }
+        }
+        // dedup-h #146: frontmatter `model: <provider/model|alias>` requests
+        // a governed model switch — same operator-ask posture as `mode:`.
+        const wantedModel = (meta.match(/^model:\s*(\S+)\s*$/m)?.[1] ?? '').trim();
+        if (wantedModel) {
+          if (!requestModel) {
+            modeNote += `\n[recipe requested model '${wantedModel}' — no model channel on this body]`;
+          } else {
+            const r = await requestModel(wantedModel, _id);
+            audit?.write({ kind: 'RECIPE_MODEL', data: { name, model: wantedModel, ok: r.ok } });
+            modeNote += `\n[model '${wantedModel}': ${r.text}]`;
           }
         }
         // instructions arrive as untrusted recipe content — the model follows

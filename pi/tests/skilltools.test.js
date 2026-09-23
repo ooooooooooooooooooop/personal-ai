@@ -176,3 +176,49 @@ test('M110 workshop: skill_test dry-runs triggers via the live matcher before sa
   const missing = await byName.skill_test.execute('t', { name: 'ghost', sample: 'x' });
   assert.equal(missing.isError, true);
 });
+
+test('dedup-h #146: recipe frontmatter model: requests a governed switch on trigger', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-recipe-model-'));
+  mkdirSync(join(dir, '.pai', 'recipes'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'recipes', 'cheap-model.md'),
+    '---\nmodel: fake/fake-2\n---\nDo the cheap pass.');
+  const calls = [], specs = [];
+  const tools = skillTools({
+    workdir: dir, audit: { write: (e) => calls.push(e) },
+    requestModel: async (spec) => { specs.push(spec); return { ok: true, text: `model switched to '${spec}'` }; },
+  });
+  const recipe = tools.find((t) => t.name === 'recipe_run');
+  const r = await recipe.execute('t1', { name: 'cheap-model' });
+  assert.equal(r.isError, undefined);
+  assert.deepEqual(specs, ['fake/fake-2']);
+  assert.match(r.content[0].text, /model 'fake\/fake-2': model switched/);
+  assert.ok(calls.some((e) => e.kind === 'RECIPE_MODEL' && e.data.model === 'fake/fake-2' && e.data.ok === true));
+
+  // refusal is honest — the recipe still expands
+  const toolsDeny = skillTools({
+    workdir: dir, audit: null,
+    requestModel: async () => ({ ok: false, text: "model 'x/y' refused (deny) — continue under the current model" }),
+  });
+  writeFileSync(join(dir, '.pai', 'recipes', 'denied.md'), '---\nmodel: x/y\n---\nBody.');
+  const r2 = await toolsDeny.find((t) => t.name === 'recipe_run').execute('t2', { name: 'denied' });
+  assert.match(r2.content[0].text, /refused \(deny\)/);
+
+  // no model channel → honest note
+  const bare = skillTools({ workdir: dir, audit: null });
+  const r3 = await bare.find((t) => t.name === 'recipe_run').execute('t3', { name: 'denied' });
+  assert.match(r3.content[0].text, /no model channel/);
+
+  // mode + model in one recipe: both requests fire
+  writeFileSync(join(dir, '.pai', 'recipes', 'both.md'),
+    '---\nmode: review\nmodel: fake/fake-3\n---\nBoth.');
+  const specs2 = [];
+  const both = skillTools({
+    workdir: dir, audit: null,
+    requestMode: async () => ({ ok: true, text: "mode switched to 'review'" }),
+    requestModel: async (s) => { specs2.push(s); return { ok: true, text: `model switched to '${s}'` }; },
+  });
+  const r4 = await both.find((t) => t.name === 'recipe_run').execute('t4', { name: 'both' });
+  assert.deepEqual(specs2, ['fake/fake-3']);
+  assert.match(r4.content[0].text, /mode 'review'/);
+  assert.match(r4.content[0].text, /model 'fake\/fake-3'/);
+});

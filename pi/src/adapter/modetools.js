@@ -31,6 +31,41 @@ export async function requestModeSwitch({ catalogModes, applyMode, asks, name, r
 }
 
 /**
+ * Shared governed model switch (dedup-h #146): one ask-card → channel
+ * model_set path used by recipe frontmatter `model:` fields. The recipe
+ * file is untrusted workdir content — it can REQUEST a model change, it
+ * can never force one; refusal is reported honestly in the tool result.
+ * spec: 'provider/model' or a registered alias. Returns { ok, text }.
+ */
+export async function requestModelSwitch({ spec, asks, runChannel, toolCallId = null }) {
+  const raw = String(spec ?? '').trim();
+  const m = raw.match(/^([^\s/]+)\/(\S+)$/);
+  const cmd = m
+    ? { type: 'model_set', provider: m[1], model: m[2] }
+    : { type: 'model_set', alias: raw };
+  if (!raw) return { ok: false, text: 'empty model spec' };
+  if (!asks?.ask) return { ok: false, text: 'no operator channel — model switch unavailable' };
+  if (!runChannel) return { ok: false, text: 'no channel dispatch — model switch unavailable' };
+  const answer = await asks.ask({
+    toolName: 'model_request',
+    toolCallId,
+    rule: 'model_request',
+    summary: `agent 请求切换模型 '${raw}'`,
+    detail: `recipe frontmatter requests model ${raw}`,
+    args: { model: raw },
+    argsTruncated: false,
+    argsTotalChars: null,
+  });
+  if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+    return { ok: false, text: `model '${raw}' refused (${answer}) — continue under the current model` };
+  }
+  const r = await runChannel(cmd).catch((e) => ({ success: false, error: String(e?.message ?? e) }));
+  return r?.success
+    ? { ok: true, text: `model switched to '${raw}'` }
+    : { ok: false, text: `model '${raw}' failed: ${r?.error ?? 'no response'}` };
+}
+
+/**
  * mode_request — model-side governed mode transition (Claude ExitPlanMode
  * analogue). The model may REQUEST a switch; the operator approves it on an
  * ask card and applyMode performs it through the same audited path as the

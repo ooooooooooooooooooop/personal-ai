@@ -101,7 +101,7 @@ import { envTools, doctorTool } from '../adapter/envtools.js';
 import { jsReplTool } from '../adapter/jsrepl.js';
 import { runtimeXferTools } from '../adapter/runtimexfer.js';
 import { SessionEnv } from '../../../host/src/core/sessionenv.js';
-import { modeRequestTool, requestPermissionTool, requestModeSwitch } from '../adapter/modetools.js';
+import { modeRequestTool, requestPermissionTool, requestModeSwitch, requestModelSwitch } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
@@ -731,6 +731,12 @@ export async function startHost({
       requestMode: (name, toolCallId) => requestModeSwitch({
         catalogModes, applyMode, asks, name,
         reason: `recipe frontmatter requests mode '${name}'`, toolCallId,
+      }),
+      // dedup-h #146: frontmatter `model:` requests a governed switch via
+      // the operator ask card → channel model_set (operator's own path).
+      requestModel: (spec, toolCallId) => requestModelSwitch({
+        spec, asks, toolCallId,
+        runChannel: (cmd) => channelHandle?.channel.handle(cmd),
       }),
     }),
     // Claude ExitPlanMode analogue: the model REQUESTS a mode switch; the

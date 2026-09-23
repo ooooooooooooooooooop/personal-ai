@@ -2091,3 +2091,19 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 可见性 | 每次泄放先落 `模型请求执行 /<cmd>` 系统行——操作员能看到模型请求了什么 |
 
 测试：`sessioncmd.test.js` 5 例（事件形/白名单/四面/无面 fail-closed/arg 上界）；dom-gate `cmdQueuedWhileBusy`（busy 中只排队不执行）+ `cmdConfig`（agent_end 泄放走 config_get）+ `cmdResume`/`cmdResumeMiss`（真切 s2/无匹配诚实报）+ `cmdModel`。修 fixture 一个真缺陷：`get_state` 不反映 session_switch 后的当前文件（真实身体会报切换后的会话——fixture 原先恒定报 s1）。
+
+### 28.48 648 清单逐条核销 #17：dedup-h #146 delegate-params frontmatter model 字段（2026-09-23）
+
+**行**：`dedup-h	146	skills-plugins	delegate-params: skill/command/subagent frontmatter model字段`（三类 frontmatter 的 model 覆盖字段）。
+
+**判定**：**IMPLEMENTED**——三面对账：
+
+| 面 | 判定 | 落点 |
+|---|---|---|
+| subagent profile | 已覆盖 | `agentprofiles.js` `model:` frontmatter → `commandFor` opts（信任门：workdir profile 剥离，operator/扩展 profile 生效）——M94 测试在案 |
+| command（recipe） | **新增** | recipe frontmatter `model: provider/model|别名` → `requestModelSwitch`：操作员 ask 卡批准 → `channel.handle(model_set)` 走操作员同路径；拒绝/无通道/无分发全部诚实回报，recipe 本体仍展开 |
+| skill（microagent 知识块） | 有意拒绝 | 知识注入发生在 prompt 组装时——该回合模型早已绑定，`model:` 对注入块是伪语义；不给死字段 |
+
+**边界**：recipe 文件是不可信 workdir 内容——能**请求**换模型（走 ask），永远不能**强制**换。`mode:`/`model:` 可同存于一份 frontmatter，各自独立审批。
+
+测试：`modetools.test.js` requestModelSwitch 6 断言（ask→model_set 命令形/别名形/deny 不分发/无通道/无分发/失败透传）；`skilltools.test.js` #146 用例（frontmatter 解析/RECIPE_MODEL 审计/拒绝诚实/无通道/note 叠加/双字段同存）。

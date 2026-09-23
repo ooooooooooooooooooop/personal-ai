@@ -80,3 +80,45 @@ test('request_permission: refusal never grants; missing channel errors', async (
   assert.equal(r2.isError, true);
   assert.match(r2.content[0].text, /no operator channel/);
 });
+
+test('dedup-h #146: requestModelSwitch asks → model_set via channel; denial refuses', async () => {
+  const { requestModelSwitch } = await import('../src/adapter/modetools.js');
+  const sent = [];
+  const asksAllow = { ask: async (a) => { sent.push(a); return 'allow'; } };
+  const chan = async (cmd) => { sent.push(cmd); return { success: true }; };
+  const r = await requestModelSwitch({ spec: 'fake/fake-2', asks: asksAllow, runChannel: chan, toolCallId: 'tc9' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(sent[0].args, { model: 'fake/fake-2' });
+  assert.deepEqual(sent[1], { type: 'model_set', provider: 'fake', model: 'fake-2' });
+
+  // alias spec (no slash) → alias command shape
+  const sent2 = [];
+  await requestModelSwitch({ spec: 'work-cheap', asks: asksAllow, runChannel: async (c) => { sent2.push(c); return { success: true }; } });
+  assert.deepEqual(sent2[0], { type: 'model_set', alias: 'work-cheap' });
+
+  // denial never dispatches model_set
+  const sent3 = [];
+  const r2 = await requestModelSwitch({
+    spec: 'x/y', asks: { ask: async () => 'deny' },
+    runChannel: async (c) => { sent3.push(c); return { success: true }; },
+  });
+  assert.equal(r2.ok, false);
+  assert.match(r2.text, /refused \(deny\)/);
+  assert.equal(sent3.length, 0);
+
+  // no operator channel / no dispatch → honest failure, never silent
+  const r3 = await requestModelSwitch({ spec: 'x/y', asks: null, runChannel: chan });
+  assert.equal(r3.ok, false);
+  assert.match(r3.text, /no operator channel/);
+  const r4 = await requestModelSwitch({ spec: 'x/y', asks: asksAllow, runChannel: null });
+  assert.equal(r4.ok, false);
+  assert.match(r4.text, /no channel dispatch/);
+
+  // failed model_set surfaces the channel error
+  const r5 = await requestModelSwitch({
+    spec: 'x/y', asks: asksAllow,
+    runChannel: async () => ({ success: false, error: 'model not registered' }),
+  });
+  assert.equal(r5.ok, false);
+  assert.match(r5.text, /model not registered/);
+});
