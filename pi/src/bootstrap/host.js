@@ -1786,6 +1786,14 @@ export async function startHost({
           expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
         };
         mcpOperatorSurface.writeTokenStore(store);
+        // dedup-h #459 — authentication-success notification hook: an
+        // operator-scriptable event fired when interactive auth completes.
+        // kind:'auth_success' gives hook scripts a filter handle; the
+        // session-command path reaches the same event through ctx.ui.notify.
+        hooks?.fire('notification', {
+          message: `OAuth complete for '${name}'`, level: 'info',
+          kind: 'auth_success', server: name, flow: 'authorization_code',
+        });
         return { server: name, refresh: Boolean(t.refreshToken) };
       } catch (e) { return { error: `oauth exchange failed: ${e.message}` }; }
     },

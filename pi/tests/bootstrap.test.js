@@ -995,3 +995,61 @@ test('mcp facade: status/auth/authDone — PKCE URL + stored token, never token 
     if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
   }
 });
+
+test('dedup-h #459: auth-success notification hook fires on mcp_auth_done', async () => {
+  const { createServer } = await import('node:http');
+  // fake OAuth token endpoint — the exchange must succeed for the event
+  const tokenSrv = createServer((_q, r) => {
+    r.setHeader('content-type', 'application/json');
+    r.end(JSON.stringify({ access_token: 'tok-x', token_type: 'bearer', expires_in: 3600 }));
+  });
+  await new Promise((res) => tokenSrv.listen(0, '127.0.0.1', res));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-authhook-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  // notification hook → marker file (records the full stdin payload)
+  const marker = join(dir, 'hook-fires.jsonl');
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const hookScript = join(dir, 'hook.js');
+  writeFileSync(hookScript, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').appendFileSync(${JSON.stringify(marker)},JSON.stringify({ev:process.env.PAI_HOOK_EVENT,payload:JSON.parse(d)})+String.fromCharCode(10));});`);
+  const hookCmd = `"${process.execPath}" ${JSON.stringify(hookScript)}`;
+  writeFileSync(join(dir, '.pai', 'hooks.json'), JSON.stringify({
+    hooks: { notification: [{ command: hookCmd }] },
+  }));
+  // MCP config: one oauth server pointing at the local token endpoint
+  const mcpCfg = join(dir, 'mcp.json');
+  writeFileSync(mcpCfg, JSON.stringify({ mcpServers: { authsrv: {
+    url: 'https://mcp.example.com/mcp',
+    oauth: { clientId: 'cid', tokenUrl: `http://127.0.0.1:${tokenSrv.address().port}/token`, authorizationUrl: 'https://auth.example.com/a' },
+  } } }));
+  const prevCfg = process.env.PAI_MCP_CONFIG, prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  process.env.PAI_MCP_CONFIG = mcpCfg;
+  process.env.PAI_MCP_TOKEN_STORE = join(dir, 'mcp-oauth.json');
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const a = await host.channel.handle({ type: 'mcp_auth', server: 'authsrv' });
+    assert.equal(a.success, true, JSON.stringify(a));
+    assert.match(a.data.url, /^https:\/\/auth\.example\.com\/a\?/);
+    const d = await host.channel.handle({ type: 'mcp_auth_done', server: 'authsrv', code: 'code-1' });
+    assert.equal(d.success, true, JSON.stringify(d));
+    assert.equal(d.data.server, 'authsrv');
+    // hook fires detached — poll the marker
+    const deadline = Date.now() + 8000;
+    let rows = [];
+    while (Date.now() < deadline) {
+      if (existsSync(marker)) rows = readFileSync(marker, 'utf-8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
+      if (rows.some((r) => r.ev === 'notification' && r.payload?.kind === 'auth_success')) break;
+      await new Promise((r2) => setTimeout(r2, 100));
+    }
+    const hit = rows.find((r) => r.ev === 'notification' && r.payload?.kind === 'auth_success');
+    assert.ok(hit, `auth_success notification hook fired (got ${JSON.stringify(rows)})`);
+    assert.equal(hit.payload.server, 'authsrv');
+  } finally {
+    host.dispose();
+    tokenSrv.close();
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+  }
+});

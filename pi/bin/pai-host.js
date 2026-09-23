@@ -179,6 +179,15 @@ if (cmd === 'mcp-auth' || cmd === 'mcp-auth-done') {
     };
     mcpOperatorSurface.writeTokenStore(store);
     console.log(`OAuth complete for '${name}' — token stored (refresh: ${t.refreshToken ? 'yes' : 'no'})`);
+    // dedup-h #459 — the auth-success notification event fires the workdir's
+    // observational hooks too (the CLI is a first-class completion surface).
+    try {
+      const { HookRunner } = await import('../../host/src/core/hooks.js');
+      await new HookRunner(process.cwd(), {}).fire('notification', {
+        message: `OAuth complete for '${name}'`, level: 'info',
+        kind: 'auth_success', server: name, flow: 'authorization_code',
+      });
+    } catch { /* observational hooks never block the CLI */ }
     process.exit(0);
   } catch (e) {
     console.error(`exchange failed: ${e.message}`);

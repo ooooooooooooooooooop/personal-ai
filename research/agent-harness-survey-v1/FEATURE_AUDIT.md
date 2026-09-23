@@ -2345,3 +2345,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。schedule 记录新增 `webhook:{url, token?|token_env?, headers?}`（`validateWebhook` fail-closed：仅 http(s)，`authorization` 头只能从 token 派生不许夹带）。pump 每 tick 扫 `lastJobId` 终态 → POST `schedule.run.finished` 运行报告 + `Authorization: Bearer`（token 直存或 env 名引用）。**交付真值持久化** `schedule-webhooks.json`（delivered cap1000 + attempts）：重启后补投、已投不重投；失败每 tick 重试 cap5 → `SCHEDULE_WEBHOOK_GAVE_UP` 审计；token_env 未解析=响亮失败，绝不静默降级为无认证 POST。工具面只收 `webhook_token_env`（env 名）——原始 token 永不进 transcript。
 - **证据**：真 HTTP 接收器断言 Bearer+payload 字段、二次 tick 幂等不重投、RUNNING 不投、5 次放弃审计、畸形 URL 写入即拒；pi 全套 416/412/0/4。
+
+### 28.75 648 清单逐条核销 #47：dedup-h #459 认证成功 notification hook（2026-09-23）
+
+- **判定**：IMPLEMENTED。`notification` hook 事件（已在 HOOK_EVENTS）现覆盖交互式认证完成：facade `mcp_auth_done` 成功 → `hooks.fire('notification', {kind:'auth_success', server, flow})`；CLI `pai-host mcp-auth-done` 退出前 await 触发 workdir 观察钩子；会话内 `/mcp-auth-done` 经 `ctx.ui.notify`→channel `emit`→同一事件（既有链路）。hook 脚本按 `kind:'auth_success'` 可过滤。
+- **证据**：bootstrap 端到端——`.pai/hooks.json` notification 钩子写 marker + 本地 token 端点 + `mcp_auth`/`mcp_auth_done` 走 channel → marker 断言 `kind=auth_success, server=authsrv`；pi 全套 417/413/0/4。
