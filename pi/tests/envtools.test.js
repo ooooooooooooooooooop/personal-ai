@@ -93,3 +93,52 @@ test('captureEnvSnapshot unit: overlay wins over base env', () => {
   assert.equal(s.vars.B, 'b');
   assert.deepEqual(s.overlayKeys, ['A']);
 });
+
+// ---- dedup-h #697: credential_request — masked prompt, value never enters chat/model ----
+
+test('credential_request: absent without operator channel (fail-closed surface)', () => {
+  const env = new SessionEnv({});
+  const tools = envTools(env);
+  assert.ok(!tools.some((t) => t.name === 'credential_request'), 'no asks channel → tool not advertised');
+});
+
+test('credential_request: secret field schema; value stored masked, never echoed', async () => {
+  const env = new SessionEnv({});
+  let seen = null;
+  const asks = {
+    ask: async (d) => { seen = d; return { value: 'sk-live-9' }; },
+  };
+  const cred = envTools(env, { asks }).find((t) => t.name === 'credential_request');
+  assert.ok(cred);
+  const r = await cred.execute('c1', { key: 'MY_SERVICE', reason: 'deploy needs it' });
+  assert.equal(r.isError, undefined, JSON.stringify(r));
+  // the ask card: form kind, single secret field, no value in the descriptor
+  assert.equal(seen.kind, 'form');
+  assert.equal(seen.fields[0].type, 'secret');
+  assert.equal(seen.fields[0].required, true);
+  assert.ok(!JSON.stringify(seen).includes('sk-live-9'), 'descriptor must not carry the value');
+  // value landed in the overlay for spawned children — real value in view()
+  assert.equal(env.view().MY_SERVICE, 'sk-live-9');
+  // every read surface masks it — even though the name has no secret pattern
+  assert.equal(env.list().find((x) => x.key === 'MY_SERVICE').value, '[REDACTED]');
+  assert.equal(env.list().find((x) => x.key === 'MY_SERVICE').sensitive, true);
+  // the tool result itself never carries the secret
+  assert.ok(!JSON.stringify(r).includes('sk-live-9'));
+});
+
+test('credential_request: non-form answer refused; injection keys rejected before asking', async () => {
+  const env = new SessionEnv({});
+  let asked = 0;
+  const asks = { ask: async () => { asked++; return 'timeout'; } };
+  const cred = envTools(env, { asks }).find((t) => t.name === 'credential_request');
+  const refused = await cred.execute('c2', { key: 'SOME_KEY' });
+  assert.equal(refused.isError, true);
+  assert.match(refused.content[0].text, /refused \(timeout\)/);
+  assert.equal(env.view().SOME_KEY, undefined, 'refused credential must not be stored');
+
+  for (const bad of ['PATH', 'NODE_OPTIONS', 'not a key']) {
+    const r = await cred.execute('c3', { key: bad });
+    assert.equal(r.isError, true, bad);
+  }
+  assert.equal(asked, 1, 'injection-vector keys never reach the operator card');
+});

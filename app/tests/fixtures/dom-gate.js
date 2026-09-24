@@ -338,6 +338,30 @@ const DRIVER = `(async () => {
       brief: !!newBrief, echo: !!newEcho,
     };
 
+    /* dedup-h #697 — credential_request form card: a 'secret' field renders
+     * as a masked password input; the typed value rides decision_resolve
+     * back to the host and is never painted into the transcript. The 'new'
+     * turn's scripted ask is still pending — clear it so the card is alone. */
+    document.querySelector('.ask-btn[data-a="allow"]')?.click();
+    await waitFor('.sys,.msg', (e) => e.textContent.includes('done'), 8000);
+    onAgentEvent({ type: 'governance_ask', ask: {
+      id: 'ask-cred-1', toolName: 'credential_request', kind: 'form',
+      summary: "agent 请求会话凭据 'MY_SERVICE'",
+      fields: [{ key: 'value', label: '凭据值 → MY_SERVICE', type: 'secret', required: true }],
+      createdAt: new Date().toISOString(), expiresAt: Date.now() + 30000,
+    } });
+    const pwd = await waitFor('.ask-card input[type="password"]', null, 8000);
+    if (pwd) {
+      pwd.value = 'sk-live-domgate';
+      [...document.querySelectorAll('.ask-card .ask-btn')].find((b) => b.textContent === '提交')?.click();
+      await waitFor('.ask-card.resolved', null, 8000);
+    }
+    checks.credentialForm = {
+      ok: !!pwd && !document.querySelector('#transcript')?.textContent?.includes('sk-live-domgate'),
+      masked: !!pwd,
+      leaked: document.querySelector('#transcript')?.textContent?.includes('sk-live-domgate') ?? null,
+    };
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

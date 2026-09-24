@@ -865,7 +865,10 @@ function addAskCard(ask) {
         if (f.default != null) el.value = String(f.default);
       } else {
         el = document.createElement('input');
-        el.type = f.type === 'number' ? 'number' : 'text';
+        // 'secret' fields (credential_request) render masked — the value
+        // leaves with the answer and is never re-displayed anywhere.
+        el.type = f.type === 'number' ? 'number' : f.type === 'secret' ? 'password' : 'text';
+        if (f.type === 'secret') el.autocomplete = 'off';
         if (f.default != null) el.value = String(f.default);
       }
       el.dataset.key = f.key;

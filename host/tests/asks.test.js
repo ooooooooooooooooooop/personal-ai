@@ -353,3 +353,24 @@ test('form kind: schema rides the descriptor; object answer validated + resolved
   asks.resolve(asks.list()[0].id, { env: 'dev' });
   await p2;
 });
+
+test('form secret field type survives the schema (credential_request channel)', async () => {
+  const auditEvents = [];
+  const asks = new PendingAsks({ timeoutMs: 5000, audit: { write: (e) => auditEvents.push(e) } });
+  const p = asks.ask({
+    toolName: 'credential_request', kind: 'form', summary: '凭据',
+    fields: [{ key: 'value', label: '凭据值', type: 'secret', required: true }],
+  });
+  const pend = asks.list()[0];
+  assert.equal(pend.fields[0].type, 'secret');
+  // audit ledger records field keys, never values — a form answer object
+  // resolves through the same path as structured input
+  const ok = asks.resolve(pend.id, { value: 'sk-live-9' });
+  assert.equal(ok.ok, true);
+  const answer = await p;
+  assert.equal(answer.value, 'sk-live-9');
+  // the resolved-object audit line logs only the key names
+  const resolved = auditEvents.find((e) => e.kind === 'ASK_RESOLVED');
+  assert.ok(resolved, 'ASK_RESOLVED audit row exists');
+  assert.ok(!JSON.stringify(resolved).includes('sk-live-9'), 'audit must not carry the secret value');
+});

@@ -13,7 +13,7 @@
  * (including credentials for child tools) is allowed, audited, and masked
  * in list output.
  */
-const KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 // Injection-vector keys — keep in step with pi/extensions/mcp/index.js
 // ENV_INJECT_RE (separate layers, same policy primitive).
@@ -25,6 +25,7 @@ export class SessionEnv {
   constructor({ audit = null } = {}) {
     this.audit = audit;
     this.vars = new Map();
+    this.secrets = new Set(); // keys masked unconditionally (credential_request path)
   }
 
   set(key, value) {
@@ -39,9 +40,22 @@ export class SessionEnv {
     return { ok: true };
   }
 
+  /**
+   * setSecret — credential_request channel: the operator typed the value
+   * into a masked card; it must NEVER be readable back through list(),
+   * whatever the key is named. The value itself is never audited.
+   */
+  setSecret(key, value) {
+    const r = this.set(key, value);
+    if (!r.ok) return r;
+    this.secrets.add(key);
+    return r;
+  }
+
   unset(key) {
     const k = String(key ?? '');
     const had = this.vars.delete(k);
+    this.secrets.delete(k);
     if (had) this.audit?.write({ kind: 'ENV_UNSET', data: { key: k } });
     return { ok: true, removed: had };
   }
@@ -49,6 +63,7 @@ export class SessionEnv {
   clear() {
     const n = this.vars.size;
     this.vars.clear();
+    this.secrets.clear();
     if (n) this.audit?.write({ kind: 'ENV_CLEARED', data: { count: n } });
     return { ok: true, removed: n };
   }
@@ -57,8 +72,8 @@ export class SessionEnv {
   list() {
     return [...this.vars.entries()].map(([key, value]) => ({
       key,
-      value: SECRET_ENV_RE.test(key) ? '[REDACTED]' : value,
-      sensitive: SECRET_ENV_RE.test(key),
+      value: SECRET_ENV_RE.test(key) || this.secrets.has(key) ? '[REDACTED]' : value,
+      sensitive: SECRET_ENV_RE.test(key) || this.secrets.has(key),
     }));
   }
 

@@ -876,7 +876,7 @@ export async function startHost({
     fastContextTool({ workdir, getIgnored: repoMapIgnore }),
     // M121/M122 — session env overlay tools: set/unset/list/snapshot; the
     // overlay reaches only the children we spawn (jobs/hooks/verify/delegate)
-    ...envTools(sessionEnv, { snapshotDir: join(core.paths.root, 'env-snapshots') }),
+    ...envTools(sessionEnv, { snapshotDir: join(core.paths.root, 'env-snapshots'), asks }),
     // M120 — doctor: environment health battery (read-only, advisory)
     doctorTool({
       paths: core.paths, workdir, policy: core.policy,

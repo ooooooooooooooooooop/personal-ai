@@ -13,13 +13,13 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { captureEnvSnapshot } from '../../../host/src/core/sessionenv.js';
+import { captureEnvSnapshot, ENV_INJECT_RE, KEY_RE } from '../../../host/src/core/sessionenv.js';
 import { runDoctor } from '../../../host/src/core/doctor.js';
 
 const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
 const ok = (text, details) => ({ content: [{ type: 'text', text }], details });
 
-export function envTools(sessionEnv, { snapshotDir = null } = {}) {
+export function envTools(sessionEnv, { snapshotDir = null, asks = null } = {}) {
   return [
     {
       name: 'env_set',
@@ -88,6 +88,58 @@ export function envTools(sessionEnv, { snapshotDir = null } = {}) {
         );
       },
     },
+    // dedup-h #697 — masked credential prompt: the model asks the operator
+    // to type a secret; the value lands in the session env overlay marked
+    // unconditionally secret and NEVER enters the tool args, the tool
+    // result, or any transcript surface. The model cannot pass the value
+    // itself — the schema carries only the key name and a reason.
+    ...(asks?.ask
+      ? [{
+          name: 'credential_request',
+          label: 'Request credential',
+          description:
+            'Ask the operator to type a credential into a masked prompt; the value is stored in the session env overlay ' +
+            '(visible to spawned jobs/hooks/delegate children) without ever appearing in this conversation. Use when a ' +
+            'command needs a token/key the model must not see.',
+          parameters: {
+            type: 'object',
+            properties: {
+              key: { type: 'string', description: 'Env var name to store the credential under (A-Z, 0-9, _)' },
+              reason: { type: 'string', description: 'Why this credential is needed (shown to the operator)' },
+            },
+            required: ['key'],
+          },
+          async execute(_id, params) {
+            const key = String(params?.key ?? '').trim();
+            if (!key) return err('credential_request requires {key}');
+            // Refuse BEFORE the operator ever types: an injection-vector or
+            // malformed key can never store, so asking for it is wasted.
+            if (!KEY_RE.test(key) || ENV_INJECT_RE.test(key)) {
+              return err(`credential_request refused: '${key.slice(0, 40)}' is not a storable env key`);
+            }
+            const answer = await asks.ask({
+              toolName: 'credential_request',
+              kind: 'form',
+              rule: 'credential_request',
+              summary: `agent 请求会话凭据 '${key}'（输入值不会进入对话）`,
+              detail: String(params?.reason ?? '').slice(0, 500) || null,
+              fields: [{
+                key: 'value',
+                label: `凭据值 → ${key}`,
+                type: 'secret',
+                required: true,
+                description: '值存入会话环境变量后对所有读取面打码；模型永远看不到它。',
+              }],
+            });
+            if (!answer || typeof answer !== 'object') {
+              return err(`credential_request '${key}' refused (${typeof answer === 'string' ? answer : 'no answer'})`);
+            }
+            const r = sessionEnv.setSecret(key, String(answer.value ?? ''));
+            if (!r.ok) return err(`credential_request refused: ${r.reason}`);
+            return ok(`credential stored as session env '${key}' — value is masked on every read surface`);
+          },
+        }]
+      : []),
   ];
 }
 

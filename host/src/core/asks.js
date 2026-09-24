@@ -205,7 +205,7 @@ export class PendingAsks {
           ? descriptor.fields.slice(0, 12).map((f) => ({
               key: String(f?.key ?? '').slice(0, 80),
               label: String(f?.label ?? f?.key ?? '').slice(0, 200),
-              type: ['text', 'textarea', 'number', 'boolean', 'select'].includes(f?.type) ? f.type : 'text',
+              type: ['text', 'textarea', 'number', 'boolean', 'select', 'secret'].includes(f?.type) ? f.type : 'text',
               required: f?.required === true,
               options: Array.isArray(f?.options) ? f.options.slice(0, 20).map((o) => String(o).slice(0, 200)) : null,
               default: f?.default ?? null,
