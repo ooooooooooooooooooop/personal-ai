@@ -623,6 +623,58 @@ test('profile knobs: model/effort fill commandFor opts; isolate_steering stamps 
   store.close();
 });
 
+// ─── #1169: dynamic per-call model selection on delegate_task ──────────────
+
+test('#1169: caller model/effort fill open slots; profile pin conflict refuses', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-model-'));
+  const { store } = rig(dir);
+  let gotOpts = null;
+  const stub = { spawnCommandJob: async ({ command }) => ({ job_id: 'job-m', attempt_id: 'a1' }) };
+  const profiles = new Map([['pinned', {
+    name: 'pinned', target: 'pi', preamble: '', model: 'sonnet',
+  }]]);
+  const tool = delegateTool(stub, {
+    commandFor: (target, task, opts) => { gotOpts = opts; return `echo "${target}"`; },
+    workdir: tmpdir(),
+    profiles,
+  });
+  // caller picks model on a profile that doesn't pin one
+  const ok = await tool.execute('tc', { target: 'pi', task: 'x', model: 'opus-4.5', effort: 'max' });
+  assert.equal(ok.details?.refused, undefined, ok.content[0].text);
+  assert.deepEqual(gotOpts, { model: 'opus-4.5', effort: 'max' });
+  // conflicting with a pinned profile → honest refusal, never spawned
+  const bad = await tool.execute('tc', { profile: 'pinned', task: 'x', model: 'haiku' });
+  assert.equal(bad.details.refused, true);
+  assert.equal(bad.details.reason, 'model_conflict');
+  assert.match(bad.content[0].text, /pins model 'sonnet'/);
+  // same value as the pin is not a conflict
+  const same = await tool.execute('tc', { profile: 'pinned', task: 'x', model: 'sonnet' });
+  assert.equal(same.details?.refused, undefined, same.content[0].text);
+  // shell metachars refused — the value lands in a command template
+  const inj = await tool.execute('tc', { target: 'pi', task: 'x', model: 'x; rm -rf /' });
+  assert.equal(inj.details.reason, 'invalid_model');
+  store.close();
+});
+
+test('#1169: operator models-allow list gates caller model picks', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-allow-'));
+  const { store } = rig(dir);
+  const stub = { spawnCommandJob: async () => ({ job_id: 'job-a', attempt_id: 'a1' }) };
+  const allow = (e) => e.model === 'sonnet' || e.model.startsWith('opus-');
+  const tool = delegateTool(stub, {
+    commandFor: () => 'echo ok',
+    workdir: tmpdir(),
+    modelsAllow: allow,
+  });
+  const blocked = await tool.execute('tc', { target: 'pi', task: 'x', model: 'gpt-9' });
+  assert.equal(blocked.details.refused, true);
+  assert.equal(blocked.details.reason, 'model_not_allowed');
+  assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn');
+  const ok = await tool.execute('tc', { target: 'pi', task: 'x', model: 'opus-5' });
+  assert.equal(ok.details?.refused, undefined, ok.content[0].text);
+  store.close();
+});
+
 test('M14: onJobFinished fires for scheduled jobs only, with redacted tail', { timeout: 20_000 }, async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-m14-'));
   const store = new JobStore(join(dir, 'durable_jobs.db'));

@@ -72,7 +72,7 @@ export function makeDelegationCommand(template, { enforceableTargets = new Set()
  *        delegation creates a task record and the bridge binds --task-dir,
  *        upgrading the one-shot job to a bidirectional AgentTask.
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null, envOverlay = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null, envOverlay = null, modelsAllow = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -99,6 +99,12 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           type: 'array', items: { type: 'string' },
           description: 'job ids that must ALL reach COMPLETED before this delegation starts — the job queues durably and is cancelled if a dependency fails. NOTE: a profile budget slice is charged at admission even while queued.',
         },
+        // dedup-h #1169 — dynamic per-call model selection. Strict charset:
+        // the value interpolates into a shell template, so spaces/metachars
+        // are refused outright; the operator models-allow list still gates
+        // it; a profile pin wins (conflict = honest refusal).
+        model: { type: 'string', description: 'optional model override for the delegate child (e.g. claude-opus-5) — refused when the chosen profile already pins a different model or the operator allowlist forbids it' },
+        effort: { type: 'string', enum: ['low', 'medium', 'high', 'max'], description: 'optional effort override — same conflict/allowlist rules as model' },
       },
       required: ['task'],
     },
@@ -151,6 +157,48 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // inherits the parent agent config, not its transcript.
       const forked = !target;
       if (forked) target = 'pai';
+      // dedup-h #1169 — caller-chosen model/effort (dynamic per-call
+      // selection). The value is model-controlled text landing in a shell
+      // template slot: strict charset or refuse. A profile pin is operator
+      // intent — a conflicting caller choice is refused outright, never
+      // silently overridden. The operator's models-allow list gates the
+      // pick ({provider: target} or wildcard rows); absent file = open.
+      if (params.model != null) {
+        const m = String(params.model).trim();
+        if (!/^[a-zA-Z0-9][\w.:/@-]{0,119}$/.test(m)) {
+          return {
+            content: [{ type: 'text', text: `delegation refused: model '${String(params.model).slice(0, 60)}' is not a valid model name` }],
+            details: { refused: true, reason: 'invalid_model', rule: 'model_param' },
+            isError: true,
+          };
+        }
+        if (profileModel && profileModel !== m) {
+          return {
+            content: [{ type: 'text', text: `delegation refused: profile '${params.profile}' pins model '${profileModel}' — the call asked for '${m}'. Drop the param or pick a profile without a pinned model` }],
+            details: { refused: true, reason: 'model_conflict', rule: 'model_param' },
+            isError: true,
+          };
+        }
+        if (!profileModel && modelsAllow && !modelsAllow({ provider: target, model: m }) && !modelsAllow({ provider: '*', model: m })) {
+          return {
+            content: [{ type: 'text', text: `delegation refused: model '${m}' is not on the operator models-allow list for '${target}'` }],
+            details: { refused: true, reason: 'model_not_allowed', rule: 'models_allow' },
+            isError: true,
+          };
+        }
+        profileModel = profileModel ?? m;
+      }
+      if (params.effort != null) {
+        const e = String(params.effort).trim().toLowerCase();
+        if (profileEffort && profileEffort !== e) {
+          return {
+            content: [{ type: 'text', text: `delegation refused: profile '${params.profile}' pins effort '${profileEffort}' — the call asked for '${e}'` }],
+            details: { refused: true, reason: 'effort_conflict', rule: 'model_param' },
+            isError: true,
+          };
+        }
+        profileEffort = profileEffort ?? e;
+      }
       // Operator-declared model routing (model-routes.json): fill the
       // model/effort slots the profile left open — profile frontmatter is
       // more specific than a route, a route more specific than the default

@@ -1081,7 +1081,7 @@
 | N1 | ✅ 已有 | `skills_list` 通道命令 + `/skills` UI——per-skill 注入字节成本、本轮命中计数、启用态 |
 | N2 | ✅ 已有 | decide 链 `read_outside` 闸门：越界读先问一次，deny 闩锁会话级 block，`allow_session` 免复问，无操作员通道 fail-closed |
 | N3 | ✅ 已有 | tool_execution_end 对 bash 族做 git porcelain 前后差集→notify 回显改动文件清单 |
-| N4 | ✅ 已有 | profile `model:`/`effort:` 填模板 `{model}`/`{effort}` 槽（操作员模板决定如何消费，零 per-target flag 知识）；`isolate_steering:` → `--steering-off` → `PAI_STEERING_OFF` 专用 flag 盲化子 steering——全部 envCapable/信任门控 |
+| N4 | ✅ 已有 | profile `model:`/`effort:` 填模板 `{model}`/`{effort}` 槽（操作员模板决定如何消费，零 per-target flag 知识）；`isolate_steering:` → `--steering-off` → `PAI_STEERING_OFF` 专用 flag 盲化子 steering——全部 envCapable/信任门控。**+#1169 动态选模**：`delegate_task` 现收 per-call `model`/`effort`——严格字符集（值插 shell 模板，元字符即拒 `invalid_model`）、与 profile 钉值冲突显式拒（`model_conflict`，绝不静默压过）、过操作员 models-allow 白名单（`model_not_allowed`）、优先级 profile > 调用 > route > default |
 | N5 | ✅ 已有 | `session_search(scope)` 透传到 facade（prompts vs +responses） |
 | N6 | ✅ 已有 | `max_minutes`（工具参数+profile 默认，调用级覆盖 profile 级）→ `timeoutMs` deadline kill，审计区分 timeout 与非零 exit |
 | N7 | ✅ 已有 | `<instance>/skill-allow.json` 操作员白名单 + `skill_allow_set` + `/skills allow a,b`；实例私有，仓库文件够不到 |

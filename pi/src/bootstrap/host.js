@@ -977,6 +977,10 @@ export async function startHost({
     // model-routes.json): fills profile-open model/effort slots — deterministic
     // rules, never an LLM judge; workdir cannot plant it (spend steering)
     routes: loadModelRoutes(core.paths.root),
+    // dedup-h #1169: caller-chosen `model` on delegate_task is gated by the
+    // SAME operator allowlist that bounds automatic failover — dynamic
+    // selection must never widen the spend surface
+    modelsAllow: modelsAllowPredicate(core.paths.root),
     // every delegation becomes a mailbox-backed AgentTask — the bridge
     // binds --task-dir for real two-way coordination
     taskStore,
