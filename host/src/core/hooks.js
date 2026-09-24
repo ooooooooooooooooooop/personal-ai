@@ -64,7 +64,11 @@ export const HOOK_EVENTS = new Set([
 // answers {"directory": "..."} to relocate session persistence. Gate-only on
 // purpose — the agent-reachable observational file must never redirect where
 // transcripts land (that would be a self-service exfiltration path).
-export const GATE_EVENTS = new Set(['pre_tool', 'session_directory', 'prompt_submit']);
+export const GATE_EVENTS = new Set(['pre_tool', 'session_directory', 'prompt_submit', 'agent_stop']);
+// dedup-h #1034: 'agent_stop' in the gate file may answer {"block"|"deny":
+// "reason"} — the caller re-prompts the agent with the reason instead of
+// letting the turn end (Claude Code Stop-hook semantics). An entry flag
+// "continueOnBlock": false disables the continuation (block still audits).
 // dedup-h #935: 'prompt_submit' joins the gate set — in the operator-private
 // <instance>/hooks.json it may answer {"deny":"..."} | {"text":"rewritten"}
 // | {"context":"prepended"} (first configured hook answers, fireValue
@@ -248,7 +252,14 @@ export class HookRunner {
     this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, value: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
     if (r.code !== 0) throw new Error(`${event} hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}`);
     try {
-      return JSON.parse(r.tail.trim().split('\n').pop() ?? '');
+      const answer = JSON.parse(r.tail.trim().split('\n').pop() ?? '');
+      // dedup-h #1034: expose the matched entry (non-enumerable, never
+      // serialized) so callers can honor per-entry flags like
+      // continueOnBlock without re-reading the config file.
+      if (answer && typeof answer === 'object') {
+        Object.defineProperty(answer, 'hookEntry', { value: h, enumerable: false });
+      }
+      return answer;
     } catch {
       throw new Error(`${event} hook produced no JSON payload`);
     }

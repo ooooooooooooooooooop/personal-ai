@@ -1312,3 +1312,70 @@ test('dedup-h #935: prompt_submit gate intercepts/transforms/denies; broken gate
   assert.match(String(r2.error), /failed closed/);
   dispose();
 });
+
+test('dedup-h #1034: agent_stop gate block continues the agent; capped; continueOnBlock:false honors the stop', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-stopgate-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const core = { paths: { auditDir }, audit };
+
+  const gate = { fireValue: async (ev) => (ev === 'agent_stop' ? { block: 'tests still failing' } : null) };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, preToolGate: gate });
+  const emitEnd = () => { for (const l of listeners) l({ type: 'agent_end' }); };
+  const settle = async () => { await new Promise((r) => setTimeout(r, 80)); };
+
+  await ch.handle({ type: 'prompt', message: 'work' });
+  emitEnd();
+  await settle();
+  assert.equal(fakeSessionRef.calls.length, 2, 'block answer must re-prompt the agent');
+  assert.match(fakeSessionRef.calls[1], /tests still failing/);
+
+  // consecutive cap = 3 continuations; further blocks are audited, not run
+  emitEnd(); emitEnd(); emitEnd(); emitEnd();
+  await settle();
+  assert.equal(fakeSessionRef.calls.length, 4, 'three continuations max per turn chain');
+  const tail = await ch.handle({ type: 'audit_tail', n: 30 });
+  const kinds = tail.data.events.map((e) => e.kind);
+  assert.ok(kinds.includes('AGENT_STOP_CONTINUED'));
+  assert.ok(kinds.includes('AGENT_STOP_CONTINUE_CAP'));
+
+  // a fresh operator prompt re-arms the continuation budget
+  await ch.handle({ type: 'prompt', message: 'again' });
+  emitEnd();
+  await settle();
+  assert.equal(fakeSessionRef.calls.length, 6, 'non-continuation prompt resets the cap');
+  dispose();
+});
+
+test('dedup-h #1034: continueOnBlock:false and a broken gate both let the turn end', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-stopoff-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const core = { paths: { auditDir }, audit };
+
+  // entry flag disables continuation even though the answer blocks
+  const gate = { fireValue: async (ev) => (ev === 'agent_stop'
+    ? { block: 'nope', hookEntry: { continueOnBlock: false } }
+    : null) };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, preToolGate: gate });
+  const emitEnd = () => { for (const l of listeners) l({ type: 'agent_end' }); };
+  await ch.handle({ type: 'prompt', message: 'work' });
+  emitEnd();
+  await new Promise((r) => setTimeout(r, 80));
+  assert.equal(fakeSessionRef.calls.length, 1, 'continueOnBlock:false must not re-prompt');
+
+  // a throwing gate fails OPEN for stops — never manufactures work
+  gate.fireValue = async () => { throw new Error('gate exploded'); };
+  emitEnd();
+  await new Promise((r) => setTimeout(r, 80));
+  assert.equal(fakeSessionRef.calls.length, 1);
+  const tail = await ch.handle({ type: 'audit_tail', n: 20 });
+  assert.ok(tail.data.events.some((e) => e.kind === 'AGENT_STOP_GATE_FAILED'));
+  dispose();
+});

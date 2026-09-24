@@ -224,6 +224,38 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         hooks?.fire('turn_started', {});
       } else if (ev?.type === 'agent_end') {
         hooks?.fire('agent_stop', {});
+        // dedup-h #1034 — gate agent_stop hook may block the stop: the agent
+        // continues with the reason as a fresh prompt (Claude Code Stop hook
+        // semantics). Bounded by a consecutive-continuation cap so a stuck
+        // hook cannot loop the agent forever; an entry flag
+        // continueOnBlock:false disables continuation. A broken gate never
+        // manufactures work — its failure lets the turn end + audits.
+        if (preToolGate && box.s) {
+          Promise.resolve().then(async () => {
+            let g = null;
+            try {
+              g = await preToolGate.fireValue('agent_stop', { sessionId: box.s?.sessionId ?? null });
+            } catch (e) {
+              core.audit?.write({ kind: 'AGENT_STOP_GATE_FAILED', data: { error: String(e?.message ?? e).slice(0, 300) } });
+              return;
+            }
+            const reason = g && typeof (g.block ?? g.deny) === 'string' ? String(g.block ?? g.deny).slice(0, 500) : null;
+            if (!reason || g?.hookEntry?.continueOnBlock === false) return;
+            stopContinues++;
+            if (stopContinues > 3) {
+              core.audit?.write({ kind: 'AGENT_STOP_CONTINUE_CAP', data: { reason } });
+              return;
+            }
+            core.audit?.write({ kind: 'AGENT_STOP_CONTINUED', data: { reason: reason.slice(0, 200), n: stopContinues } });
+            try {
+              await sessionFacade.prompt(
+                `[stop-gate] 收尾被操作员钩子阻断：${reason}\n请继续完成任务。`,
+                { _continuation: true });
+            } catch (e) {
+              core.audit?.write({ kind: 'AGENT_STOP_CONTINUE_FAILED', data: { error: String(e?.message ?? e).slice(0, 200) } });
+            }
+          }).catch(() => {});
+        }
       } else if (ev?.type === 'compaction_start') {
         // dedup-h #535: hooks see WHY the compaction fired — the engine
         // already classifies reason (manual|threshold|overflow); dropping
@@ -284,9 +316,21 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     if (!gate.ok) throw new Error(`budget gate: ${gate.reason}`);
   };
 
+  // dedup-h #1034: consecutive stop-gate continuations — resets on any
+  // non-continuation prompt so a healthy operator turn always re-arms.
+  let stopContinues = 0;
+
   const sessionFacade = {
     prompt: async (message, options) => {
       admitSpend();
+      if (options?._continuation === true) {
+        // Internal channel flag (stop-gate continuation) — strip before the
+        // options object can ride into engine prompt options.
+        const { _continuation, ...rest } = options ?? {};
+        options = rest;
+      } else {
+        stopContinues = 0;
+      }
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
       // dedup-h #935 — input intercept/transform: the operator-private gate
       // file may deny the prompt, rewrite it, or prepend context before the

@@ -931,6 +931,7 @@
 | 指令文件祖先上溯 | Codex/OpenCode AGENTS.md 向上逐级合并 | `loadSteering` 沿 workdir 上溯≤6级收集根级兼容文件，带 `dir=` 标记排在 workdir 文件之后 |
 | 更多根级兼容文件 | Goose `.goosehints` / Cline `.clinerules` / Aider `CONVENTIONS.md` | COMPAT_FILES 扩到 9 个 |
 | hook 事件族扩展 | Claude Code/Codex/Kiro 生命周期事件族 | `HOOK_EVENTS` 扩到 8 个：增 `tool_start`/`agent_stop`/`compact_start`/`compact_end`（泵上真实事件点，观察面）；`tool_end` 不再挂在 writeLease 分支上 |
+| Stop hook 阻断续跑 | Claude Code Stop hook `block`+`continueOnBlock` | gate `agent_stop`（操作员私有 hooks.json）应答 `{block|deny: reason}` → 理由作为续跑 prompt 注入，agent 继续干活；入口 `continueOnBlock:false` 关续跑；连续续跑帽=3 防死循环（非续跑 prompt 重置）；坏钩放行收尾绝不制造工作。审计 `AGENT_STOP_CONTINUED`/`_CAP`/`_GATE_FAILED`/`_CONTINUE_FAILED` |
 | 会话类型分面 | Goose sessions.db type 分面（user/subagent/scheduled） | `session_list` join 任务 run_scope→委派会话标 `subagent`/`teammate`，抽屉标题带 ↳/👥 徽章 |
 
 **复扫第六批**：
