@@ -403,6 +403,22 @@ const DRIVER = `(async () => {
     };
     inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    /* dedup-h #1846 — double-bang context-free form: same governed
+     * bash_run and the same TUI display, stored in input history, but the
+     * output must NEVER join the next prompt's context (pendingBash stays
+     * empty). Single-bang is now history-stored too — recall reaches it. */
+    inputEl.value = '!!echo domgate-nocontext';
+    await send();
+    checks.bangBang = {
+      ok: pendingBash.length === 0
+        && promptHist[promptHist.length - 1] === '!!echo domgate-nocontext'
+        && promptHist.includes('!echo domgate-bang'),
+      pending: pendingBash.length,
+      hist: promptHist[promptHist.length - 1] ?? '',
+      bangInHist: promptHist.includes('!echo domgate-bang'),
+    };
+    inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
     /* dedup-h #303 — ArrowUp queue-edit: the most recent queued message
      * pulls back into the composer (typed text, not the expanded outbound;
      * image attachments restored onto the attach row; queue pops). */

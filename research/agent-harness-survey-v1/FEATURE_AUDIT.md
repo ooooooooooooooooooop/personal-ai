@@ -2758,3 +2758,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **审计**：`ASK_ALWAYS_PERSIST` 数据带 `commandPrefix` 字段。
 - **证据**：`host/tests/asks.test.js` +3=24/24、host 全套 404/404——(a) `cargo build --release`→`{commandPrefix:'cargo build'}`，`-p other`/`--jobs 4`/裸 `cargo build` 自动放行、`cargo publish` 仍问、`cargo builds` 词边界不吃、重启后前缀存续；(b) `cargo build && rm -rf /` 与 `cargo build | tee log` 复合命令仍挂卡、`rm -rf build` 精确持久化 `rm -rf other` 仍问；(c) `RUSTFLAGS="-g" cargo build` env 前缀跳过折 `cargo build`、edited `git status --short` 折 `git status` 前缀放行 `--porcelain`。pi 聚焦 bootstrap+jobs-executor+m8-wiring 131/131。
 - **核销**：candidates-open #1829 → `candidates-resolved.tsv` #125。
+
+### 28.122 648 清单逐条核销 #126：dedup-h #1846 shell-tools——input-forms: `!!command`（2026-09-25）
+
+- **行**：`dedup-h  1846  shell-tools  input-forms: !!command执行显示进TUI存history但不进context`（描述段为另一 changelog 的 TUI-fallback 片段，非本条语义；hiscore-dispositions 行的中文语义明确：执行、显示进 TUI、存 history、**不进 context**）。
+- **判定**：**IMPLEMENTED**。源语义为 `!!` 输入形式与 `!` 的分野——`!` 执行并把输出带进模型 context，`!!` 执行+显示+存输入历史但输出**永不进 context**。基线核查：`!cmd` 已有（dedup-h #286：UI→`bash_run` 走同一 decide 链、tool 卡显示、输出 stash 进下条 prompt 的 `<operator-bash>` 块），但无 `!!` 形式；且 `!cmd` 走 early-return 从不进 `histPush`——输入历史里两种 bang 都不可回忆。落地（纯 UI 层，治理面零改动）：
+  - `send()` 内 `!!` 前缀识别：剥两字符后走**同一** `bash_run`（同 decide 门、同 ask 卡、同 hook/审计、同 tool_execution 事件→同一 TUI 工具卡显示），但 `contextFree` 时不推 `pendingBash`——输出对模型永远不可见。
+  - `histPush(text)` 移到两种 bang 公共路径——`!`/`!!` 输入都进 200 条上箭头回忆历史（此前 `!` 也不存）。
+- **证据**：`app/tests/fixtures/dom-gate.js` +1 检查、offscreen Electron DOM gate 绿——`!!echo domgate-nocontext` 后 `pendingBash` 保持空（输出不进 context）+ `promptHist` 末条恰为 `!!` 文本（存 history）+ `!echo domgate-bang` 亦在历史（`!` 入史回归钉死）；`bangStash`/`bangShell` 既有检查续绿（`!` 语义未变）。**app 全套 18/19**——唯一失败 `body_select handoff` 为**外来在途**所致：外来 `host/src/core/instance.js` 让 `instancePaths` 认 `WORLD_MODEL_HOME` env（本机已设），canonicalDir 重定向至 pilot 目录，fixture 硬编码 `<instance>/canonical` 读不到 policy.json 崩溃；stash=HEAD 时该测试 19/19 过，且测试路径不碰本条两文件——非本条回归，如实记录不修他人迁移。
+- **核销**：candidates-open #1846 → `candidates-resolved.tsv` #126。

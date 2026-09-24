@@ -5028,14 +5028,19 @@ async function send() {
   // `!cmd` — operator direct-exec (Claude Code bang mode): runs through the
   // governed decide chain (ask rules still pop approval cards); the output
   // is stashed and prepended to the NEXT prompt so the model sees it.
+  // `!!cmd` (dedup-h #1846) — the context-free form: same governed run,
+  // same TUI display, stored in input history, but the output NEVER rides
+  // into model context.
   if (text.startsWith('!') && !pendingAttach.length) {
-    const command = text.slice(1).trim();
+    const contextFree = text.startsWith('!!');
+    const command = text.slice(contextFree ? 2 : 1).trim();
     if (!command) { addSys('! 后面要跟要执行的命令', true); return; }
+    histPush(text);
     addMsg('user', text);
     const r = await cmd('bash_run', { command });
     if (!r.success) addSys(`执行不可用：${r.error ?? '未知'}`, true);
     else if (r.data?.blocked) addSys(`已拦截：${(r.data.reason ?? '').slice(0, 300)}`, true);
-    else if (r.data) pendingBash.push({ command, output: r.data.output ?? '' });
+    else if (r.data && !contextFree) pendingBash.push({ command, output: r.data.output ?? '' });
     return;
   }
   // `#note` — quick-capture into long-term memory (Claude Code hash mode).
