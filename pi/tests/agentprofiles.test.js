@@ -117,6 +117,25 @@ test('M76/M94: tools_deny + budget_* load under trust, strip without it', () => 
   assert.deepEqual(warm.get('gated').budget, { tokens: 50000, costUsd: 0.25 });
 });
 
+test('#1112: tools allowlist loads under trust, strips without it', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-prof-ta-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-prof-ta-inst-'));
+  const rich = '---\nname: narrow\ntarget: pi\ntools: read, grep, mcp__github__*, bad;name\n---\nwork\n';
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'agents', 'narrow.md'), rich);
+
+  const cold = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: false });
+  assert.equal(cold.get('narrow').toolsAllow, undefined, 'untrusted workdir profile cannot shape the child surface');
+
+  const warm = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: true });
+  assert.deepEqual(warm.get('narrow').toolsAllow, ['read', 'grep', 'mcp__github__*'], 'valid names + prefix wildcards load; malformed dropped');
+
+  // alias form `tools_allow:` resolves identically
+  writeFileSync(join(w, '.pai', 'agents', 'alias.md'), '---\nname: alias\ntarget: pi\ntools_allow: bash\n---\nwork\n');
+  const warm2 = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: true });
+  assert.deepEqual(warm2.get('alias').toolsAllow, ['bash']);
+});
+
 test('C3: mcp_deny loads under trust, strips without it', () => {
   const w = mkdtempSync(join(tmpdir(), 'pai-prof-c3-'));
   const inst = mkdtempSync(join(tmpdir(), 'pai-prof-c3-inst-'));

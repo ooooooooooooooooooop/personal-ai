@@ -23,8 +23,11 @@ export class ToolSurface {
    *        the AgentSession — surface control is session-level in 0.85.1
    * @param {string} deps.denyMemoryPath  <instance>/deny-memory.json
    * @param {string[]} [deps.initialDeny] tools hidden from turn zero
+   * @param {string[]} [deps.allowedTools] dedup-h #1112 — when set, ONLY
+   *        these names (trailing * = prefix) may be visible/activatable;
+   *        session-scoped, never persisted (a delegate child's stamp)
    */
-  constructor({ session, denyMemoryPath, initialDeny = [] }) {
+  constructor({ session, denyMemoryPath, initialDeny = [], allowedTools = null }) {
     this.session = session;
     this.denyMemoryPath = denyMemoryPath;
     mkdirSync(dirname(denyMemoryPath), { recursive: true });
@@ -45,6 +48,8 @@ export class ToolSurface {
     // keep the schema prompt small until tool_activate claims them.
     this.lazy = new Set();
     this.lastLazyHidden = [];
+    // allowlist hides are session-scoped like modeDenied — never persisted
+    this.allowedOk = toolAllowMatcher(allowedTools) ?? (() => true);
     if (initialDeny.length) this.#persist(); // initial suppression is durable too
   }
 
@@ -60,8 +65,8 @@ export class ToolSurface {
     this.denied.delete(toolName);
     this.#persist();
     const active = this.session.getActiveToolNames();
-    const visible = active.filter((n) => !this.denied.has(n));
-    if (!visible.includes(toolName)) visible.push(toolName); // re-add hidden tool
+    const visible = active.filter((n) => !this.denied.has(n) && this.allowedOk(n));
+    if (!visible.includes(toolName) && this.allowedOk(toolName)) visible.push(toolName); // re-add hidden tool — never past the allowlist
     this.session.setActiveToolsByName(visible);
   }
 
@@ -80,7 +85,7 @@ export class ToolSurface {
     // switch can restore them — the active list alone has already lost them
     const candidates = [...this.session.getActiveToolNames(), ...(this.lastModeHidden ?? [])];
     this.modeDenied = new Set(names ?? []);
-    const visible = candidates.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n));
+    const visible = candidates.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && this.allowedOk(n));
     this.lastModeHidden = candidates.filter((n) => this.modeDenied.has(n));
     this.session.setActiveToolsByName(visible);
   }
@@ -93,7 +98,7 @@ export class ToolSurface {
   defer(names) {
     const candidates = [...this.session.getActiveToolNames(), ...this.lastLazyHidden];
     this.lazy = new Set(names ?? []);
-    const visible = candidates.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n));
+    const visible = candidates.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n) && this.allowedOk(n));
     this.lastLazyHidden = candidates.filter((n) => this.lazy.has(n));
     this.session.setActiveToolsByName(visible);
   }
@@ -109,8 +114,8 @@ export class ToolSurface {
     }
     if (activated.length) {
       const active = this.session.getActiveToolNames();
-      const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n));
-      for (const n of activated) if (!visible.includes(n)) visible.push(n);
+      const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n) && this.allowedOk(n));
+      for (const n of activated) if (!visible.includes(n) && this.allowedOk(n)) visible.push(n);
       this.lastLazyHidden = this.lastLazyHidden.filter((n) => this.lazy.has(n));
       this.session.setActiveToolsByName(visible);
     }
@@ -124,7 +129,7 @@ export class ToolSurface {
   /** M83: lazy AND not denied AND not mode-hidden — the only tools the model
    * may discover or claim via tool_search/tool_activate. */
   activatable(toolName) {
-    return this.lazy.has(toolName) && !this.denied.has(toolName) && !this.modeDenied.has(toolName);
+    return this.lazy.has(toolName) && !this.denied.has(toolName) && !this.modeDenied.has(toolName) && this.allowedOk(toolName);
   }
 
   lazyList() {
@@ -146,11 +151,27 @@ export class ToolSurface {
 
   #apply() {
     const active = this.session.getActiveToolNames();
-    const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n));
+    const visible = active.filter((n) => !this.denied.has(n) && !this.modeDenied.has(n) && !this.lazy.has(n) && this.allowedOk(n));
     if (visible.length !== active.length) {
       this.session.setActiveToolsByName(visible);
     }
   }
+}
+
+/**
+ * dedup-h #1112 — an allowlist matcher: exact names plus trailing-*
+ * prefixes. Null/empty input → null (no allowlist in force).
+ */
+export function toolAllowMatcher(names) {
+  const list = (names ?? []).map((n) => String(n).trim()).filter((n) => /^[a-zA-Z][\w*-]*$/.test(n)).slice(0, 64);
+  if (!list.length) return null;
+  const exact = new Set();
+  const prefixes = [];
+  for (const n of list) {
+    if (n.endsWith('*')) prefixes.push(n.slice(0, -1));
+    else exact.add(n);
+  }
+  return (name) => exact.has(name) || prefixes.some((p) => name.startsWith(p));
 }
 
 export function defaultDenyMemoryPath(instanceRoot) {

@@ -970,6 +970,46 @@ test('M76: tools_deny on an enforceable pai-channel target still delegates', asy
   store.close();
 });
 
+// ─── #1112: tools allowlist — same fail-closed rule as tools_deny ──────────
+
+test('#1112: profile tools allowlist + non-pai-channel target → refused, never spawned', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-ta-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['narrow', { target: 'codex', toolsAllow: ['read', 'grep'] }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: (t, task) => `echo "ext ${t}: ${task}"`, // foreign body ignores PAI_TOOLS_ALLOW
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'narrow', task: 'x' });
+  assert.equal(res.details.refused, true);
+  assert.equal(res.details.reason, 'unenforceable_tools_allow');
+  assert.match(res.content[0].text, /cannot enforce/);
+  assert.equal(store.listRecent(50).length, 0, 'refused pre-spawn — no job record');
+  store.close();
+});
+
+test('#1112: tools allowlist on an enforceable pai-channel target stamps --tools-allow', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-taok-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['narrow', { target: 'pi', toolsAllow: ['read', 'mcp__github__*'], toolsDeny: ['bash'] }],
+  ]);
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'narrow', task: 'x' });
+  assert.equal(res.details.refused, undefined, `not refused: ${res.content[0].text}`);
+  assert.match(res.content[0].text, /--tools-allow|delegated to/, 'allow flag rides the bridge command');
+  await new Promise((r) => setTimeout(r, 3000));
+  store.close();
+});
+
 // ─── C3: mcp_deny on an unenforceable target refuses pre-spawn ─────────────
 
 test('C3: profile mcp_deny + non-pai-channel target → refused, never spawned', async () => {

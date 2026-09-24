@@ -503,6 +503,9 @@ export const mcpOperatorSurface = {
   // lazy surface. Null before ToolSurface exists; the bootstrap's post-build
   // prefix pass catches registrations that landed earlier.
   onDeferTools: null,
+  // dedup-h #1112 — fired for EVERY post-build tool registration so the
+  // bootstrap can re-run visibility filters (allowlist/mode) on late tools.
+  onToolRegistered: null,
 };
 
 // dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
@@ -1239,6 +1242,9 @@ export default function mcpExtension(pi) {
     // the bootstrap once ToolSurface exists; before that, the bootstrap's
     // post-build prefix pass defers boot-time registrations.
     if (entry.spec?.defer_loading === true) mcpOperatorSurface.onDeferTools?.(toolName);
+    // dedup-h #1112 — any post-build registration must re-run the surface
+    // filters (allowlist, mode hides): a late tool is not exempt.
+    mcpOperatorSurface.onToolRegistered?.(toolName);
     return toolName;
   };
 

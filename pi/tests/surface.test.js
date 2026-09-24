@@ -2,7 +2,7 @@
  * ToolSurface durability: deny-memory must survive crashes atomically and a
  * torn store must never brick bootstrap.
  */
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -46,4 +46,32 @@ test('non-array corrupt store is tolerated (shape drift fails safe)', () => {
   writeFileSync(join(dir, 'deny-memory.json'), '{"oops": true}');
   const { surface } = rig(dir, ['write']);
   assert.deepEqual([...surface.denied], ['write']);
+});
+
+// dedup-h #1112 — delegate-child `tools:` allowlist: only listed names
+// (incl. prefix*) may be visible/activatable; not persisted to deny-memory.
+test('allowedTools: unlisted tools hidden at reconcile; lazy non-allowed not activatable', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-surf-'));
+  let active = ['read', 'write', 'mcp__gh__pr', 'mcp__gh__issue'];
+  const session = {
+    getActiveToolNames: () => [...active],
+    setActiveToolsByName: (n) => { active = [...n]; },
+  };
+  const surface = new ToolSurface({
+    session,
+    denyMemoryPath: join(dir, 'deny-memory.json'),
+    allowedTools: ['read', 'mcp__gh__*'],
+  });
+  surface.reconcile();
+  assert.deepEqual(session.getActiveToolNames(), ['read', 'mcp__gh__pr', 'mcp__gh__issue']);
+  // a late-registered tool is hidden by the same re-filter
+  active.push('mcp__evil__x');
+  surface.reconcile();
+  assert.deepEqual(session.getActiveToolNames(), ['read', 'mcp__gh__pr', 'mcp__gh__issue']);
+  // a deferred tool off the allowlist cannot be activated through it either
+  surface.defer(['mcp__evil__x']);
+  assert.equal(surface.activatable('mcp__evil__x'), false);
+  assert.deepEqual(surface.activate(['mcp__evil__x']), []);
+  // allowlist hides are session-scoped — deny-memory is never written
+  assert.equal(existsSync(join(dir, 'deny-memory.json')), false);
 });

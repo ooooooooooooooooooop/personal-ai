@@ -71,7 +71,7 @@ export function commandDenyPrefixes(workdir) {
  * (foreground mutation vs held job lease) → FileOpsGuard (backup/recycle)
  * → long-command jobization → admit.
  */
-export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null, preToolGate = null, worldModelGuard = null }) {
+export function makeDecide({ core, executor, fileOps, getSurface, workdir, writeLease = null, classifier = null, getSessionScope = null, loopwatch = null, asks = null, shadowJudge = null, paiignore = null, maxTurnCalls = null, preToolGate = null, worldModelGuard = null, allowedTools = null }) {
   // Qwen MAX_TURNS analogue: hard cap on admitted tool calls per user turn.
   // The refusal reason is the steering channel — it tells the model to stop
   // and report, not to retry.
@@ -154,6 +154,17 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
         rule: 'tool_deferred',
         reason: `'${toolName}' is deferred (lazy surface) — call tool_activate({names:["${toolName}"]}) first, then retry`,
         repair: `activate via tool_activate, then re-issue the call`,
+      };
+    }
+    // dedup-h #1112 — delegate-child tool allowlist (profile `tools:` →
+    // PAI_TOOLS_ALLOW): a name-set check, not an enumeration, so tools
+    // registered late (async MCP, list_changed) hit the same wall.
+    if (allowedTools && !allowedTools(toolName)) {
+      core.audit.write({ kind: 'TOOL_ALLOWLIST_BLOCK', toolName, data: { toolCallId: ctx.toolCall?.id ?? null } });
+      return {
+        block: true,
+        rule: 'tool_allowlist',
+        reason: `'${toolName}' is not on this session's tool allowlist — work within the allowed set or ask the delegator to widen the profile`,
       };
     }
     // signal rides on ctx so the kernel's ask path can abort a pending

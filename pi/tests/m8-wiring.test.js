@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeDecide } from '../src/bootstrap/decide.js';
 import { FileOpsGuard } from '../src/adapter/fileops.js';
-import { ToolSurface } from '../src/adapter/surface.js';
+import { ToolSurface, toolAllowMatcher } from '../src/adapter/surface.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
 
 function rig({ kernelDecision = null } = {}) {
@@ -756,4 +756,30 @@ test('a failing pre-write backup blocks the mutation AND releases the fg lease',
   assert.equal(writeLease.held(), null, 'lease released — the mutex is not wedged');
   const auditRows = readFileSync(join(dir, 'audit', readdirSync(join(dir, 'audit'))[0]), 'utf-8');
   assert.ok(auditRows.includes('FILEOP_BACKUP_FAILED'));
+});
+
+// dedup-h #1112 — profile `tools:` allowlist is a decide-level hard wall:
+// invisible tools cannot execute even if a late/async registration slips
+// past the surface filter.
+test('toolAllowMatcher blocks unlisted tools at decide; listed tools still governed downstream', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-m8-allow-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
+  const core = { audit, kernel: { decideToolCall: async () => null } };
+  const fileOps = new FileOpsGuard(dir);
+  const decide = makeDecide({
+    core, executor: null, fileOps, getSurface: () => null, workdir: dir,
+    allowedTools: toolAllowMatcher(['read', 'mcp__gh__*']),
+  });
+  // unlisted tool → blocked by policy before any other check
+  const b = await decide({ toolCall: { name: 'bash' }, args: { cmd: 'echo hi' } });
+  assert.equal(b.block, true);
+  assert.equal(b.rule, 'tool_allowlist');
+  assert.match(b.reason, /tool allowlist/);
+  // prefix entry gates mcp tools by name
+  const m = await decide({ toolCall: { name: 'mcp__other__x' }, args: {} });
+  assert.equal(m.block, true);
+  // listed tool proceeds to the rest of the chain (read inside workdir admits)
+  const ok = await decide({ toolCall: { name: 'read' }, args: { path: join(dir, 'a.txt') } });
+  assert.equal(ok, undefined);
 });

@@ -80,6 +80,10 @@ if (argv.includes('--steering-off')) childEnv.PAI_STEERING_OFF = '1';
 // harnesses ignore it — the profile doc states that honestly.
 const toolsDeny = flagVal('--tools-deny');
 if (toolsDeny) childEnv.PAI_TOOLS_DENY = String(toolsDeny).slice(0, 2000);
+// dedup-h #1112 — `tools:` profile allowlist rides the same dedicated-flag
+// channel; the child's bootstrap enforces it at decide + surface.
+const toolsAllow = flagVal('--tools-allow');
+if (toolsAllow) childEnv.PAI_TOOLS_ALLOW = String(toolsAllow).slice(0, 2000);
 // C3 per-agent MCP subset — same dedicated-flag channel: the child's mcp
 // extension reads PAI_MCP_DENY and skips denied servers at connect time.
 const mcpDeny = flagVal('--mcp-deny');

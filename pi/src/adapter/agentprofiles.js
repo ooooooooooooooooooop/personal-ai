@@ -23,6 +23,8 @@
  *   model: sonnet           (model hint — fills the {model} template slot)
  *   effort: high            (effort hint — fills the {effort} template slot)
  *   isolate_steering: true  (child skips workdir steering files entirely)
+ *   tools: read,grep,mcp__github__*  (CC-compatible allowlist — child gets
+ *        ONLY these; trailing * = prefix. Alias: tools_allow)
  *   tools_deny: bash,deploy (child tool surface suppression — reaches the
  *                            child via PAI_TOOLS_DENY env; honored by our own
  *                            pai bodies, inert hint for foreign harnesses)
@@ -78,6 +80,13 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
   const toolsDeny = envCapable
     ? String(fields.tools_deny ?? '').split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 32)
     : [];
+  // dedup-h #1112 — CC-compatible `tools:` allowlist (alias `tools_allow`):
+  // the child sees/calls ONLY these names (trailing * = prefix). Same trust
+  // gate — a repo-planted profile must never shape the child's surface.
+  // Combined with tools_deny, deny wins inside the allowed set.
+  const toolsAllow = envCapable
+    ? String(fields.tools ?? fields.tools_allow ?? '').split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 64)
+    : [];
   // C3 per-agent MCP server subset — same trust gate: a repo-planted profile
   // must never shrink the child's MCP surface. Reaches the child via
   // PAI_MCP_DENY; the mcp extension drops denied servers at connect time.
@@ -104,6 +113,7 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
     ...(envCapable && fields.effort ? { effort: fields.effort } : {}),
     ...(envCapable && /^(1|true|yes)$/i.test(fields.isolate_steering ?? '') ? { isolateSteering: true } : {}),
     ...(toolsDeny.length ? { toolsDeny } : {}),
+    ...(toolsAllow.length ? { toolsAllow } : {}),
     ...(mcpDeny.length ? { mcpDeny } : {}),
     ...(Object.keys(budget).length ? { budget } : {}),
     maxMinutes: Number.isFinite(maxMin) && maxMin > 0 ? Math.min(maxMin, 24 * 60) : null,

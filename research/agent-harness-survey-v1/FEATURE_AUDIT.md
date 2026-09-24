@@ -88,7 +88,7 @@
 | 上下文 | CLAUDE.md 四层（managed/user/project/local）+`.claude/rules/` glob 规则+`@import` | 🟡 | AGENTS.md 单层加载（pi 原生）；多层合并+glob 规则+import 无 |
 | 上下文 | auto memory（自写仓级笔记、跨 worktree、子代理各自维护） | ❌ | 无运行时自写记忆（soul 是认知态层，非同物） |
 | 上下文 | ToolSearch 延迟加载工具 schema | ❌ | 工具面小暂无需求；登记候选 |
-| 协作 | subagents（.claude/agents md+frontmatter：tools/model/permissionMode/isolation:worktree/background）、内置 Explore/Plan、后台白名单过滤 | 🟡 | delegate_task 跨 agent 委派+预算门；无 frontmatter 自定义、无内置 profile、无后台 subagent 面板 |
+| 协作 | subagents（.claude/agents md+frontmatter：tools/model/permissionMode/isolation:worktree/background）、内置 Explore/Plan、后台白名单过滤 | 🟡 | delegate_task 跨 agent 委派+预算门+**frontmatter profile 已有**（`.pai/agents` 等目录：tools/tools_deny/mcp_deny/model/effort/env/预算，信任闸 #1112）；无内置 profile、无后台 subagent 面板 |
 | 协作 | agent teams 跨会话消息（SendMessage/ListAgents）、RemoteTrigger 云例程 | ❌ | 无跨会话消息/远程触发 |
 | 协作 | EnterWorktree git worktree 隔离 | 🟡 | 委派侧 M13 已落（delegate worktree:true 独立检出，脏保留+审计）；操作员侧 `/worktree`+`job_spawn` 已落（同 decide 链，§28.32）；frontmatter `isolation:worktree` subagent profile 面仍无 |
 | 持久化 | CronCreate 会话级定时任务（resume 恢复）、Monitor 后台命令流式回事件 | ❌ | 无定时任务；job 有持久化但非 cron |
@@ -1569,7 +1569,7 @@
 
 | 项 | 终态 |
 |---|---|
-| M76 per-agent disallowedTools | **落地**——可信 profile（operator-private 或受信 workdir）的 tools_deny 注入 delegate 桥 spawn env；不可信仓库 profile 在加载时被剥离，不能塑造执行面 |
+| M76 per-agent disallowedTools | **落地**——可信 profile（operator-private 或受信 workdir）的 tools_deny 注入 delegate 桥 spawn env；不可信仓库 profile 在加载时被剥离，不能塑造执行面。**+#1112 正向 allowlist**：profile `tools:`/`tools_allow`（同信任闸）→ `--tools-allow` 专用桥旗 → `PAI_TOOLS_ALLOW` → 子体双层执法（ToolSurface.allowedTools 可见性过滤 + decide `tool_allowlist` 硬墙——迟到/异步注册工具逃不掉）；非 pai-channel 目标 fail-closed 拒派（unenforceable_tools_allow）；deny 在 allowed 集内仍胜出，allowlist 永不拓宽父级限制 |
 | M94 per-agent 上下文预算 | **落地**——profile budget_* 维度与桥 flag 按维合并（取小者）；不可执行预算的目标在 spawn 前拒绝；拒绝时父级已承诺切片退还，不双计 |
 | M80 sandbox.excluded | **落地**——ambient sandbox 按命令前缀豁免；显式 per-job sandbox 覆盖豁免；false 哨兵区分「明确不沙箱」与「未配置」，杜绝 ?? 回退复活 ambient provider |
 | M86 ambient context | **落地**——context envelope 增 ambient 块（时间/cwd/平台/git 状态），每轮现取、独立于 steering/budget/memory 渲染；纯信息位，不作策略权威 |

@@ -121,7 +121,7 @@ import { loadAgentProfiles } from '../adapter/agentprofiles.js';
 import { loadModelRoutes } from '../adapter/modelroutes.js';
 import { modelsAllowPredicate } from '../adapter/modelallow.js';
 import { createChannelHost } from '../adapter/channel.js';
-import { ToolSurface, defaultDenyMemoryPath } from '../adapter/surface.js';
+import { ToolSurface, defaultDenyMemoryPath, toolAllowMatcher } from '../adapter/surface.js';
 import { FileOpsGuard } from '../adapter/fileops.js';
 import { makeDecide, commandDenyPrefixes } from './decide.js';
 import { resolveManagedExtensions } from '../extensions/loader.js';
@@ -1001,6 +1001,13 @@ export async function startHost({
     const n = t.trim();
     if (/^[a-zA-Z][\w*-]*$/.test(n) && !initialDeny.includes(n)) initialDeny.push(n);
   }
+  // dedup-h #1112 — profile `tools:` allowlist stamp on a delegate child:
+  // visibility via ToolSurface.allowedTools, execution via the decide wall —
+  // a tool registered late (async MCP, list_changed) can never slip past the
+  // name-set check. Malformed entries are dropped, never widen.
+  const toolsAllowStamp = String(process.env.PAI_TOOLS_ALLOW ?? '').split(',')
+    .map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 64);
+  const allowedTools = toolAllowMatcher(toolsAllowStamp);
   const fileOps = new FileOpsGuard(core.paths.root, {
     workdir,
     // dedup-h #884: every mutation receipt fires the file_checkpoint hook
@@ -1049,6 +1056,9 @@ export async function startHost({
     if (!toolSurface || !list.length) return;
     toolSurface.defer([...toolSurface.lazy, ...list.map(String)]);
   };
+  // #1112 — a tool landing after the surface exists re-runs the filters so an
+  // allowlist/mode hide covers late arrivals (reconcile is a cheap re-filter).
+  mcpOperatorSurface.onToolRegistered = () => toolSurface?.reconcile();
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
   let currentGovernor = null; // evidence contract governor — goals status source
   let currentLoopwatch = null; // per-session detector — pump feeds results into it
@@ -1188,6 +1198,8 @@ export async function startHost({
         paiignore: new PaiIgnore(workdir),
         // operator-private pre_tool veto hooks (gate HookRunner below)
         preToolGate,
+        // #1112 delegate-child allowlist — same matcher the surface uses
+        allowedTools,
       }), posture)),
       writeLease,
       // M100 provider fallback: the chain object is shared so the channel's
@@ -1233,6 +1245,7 @@ export async function startHost({
       session: built.session,
       denyMemoryPath: defaultDenyMemoryPath(core.paths.root),
       initialDeny,
+      allowedTools: toolsAllowStamp,
     });
     toolSurface.reconcile();
     if (posture === 'btw-readonly') {
