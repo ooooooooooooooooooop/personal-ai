@@ -2852,3 +2852,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **严于源**：源是布尔开关；我方落地为与 web_fetch 同策略的解析期 SSRF 判定——localhost/RFC1918 字面保留（本地单用户 harness 既定策略注释），私网目标的可控放行面 = operator allowlist。
 - **证据**：`host/tests/hooks.test.js` +1=412/412（refuse 先于 fetch/audit 落地/allow 直通/guard 抛错 fail-closed/无 guard 旧行为不变）；`pi/tests/bootstrap.test.js` +1=36/36 端到端（169.254 字面拒且审计 HOOK_EGRESS_REFUSED、127.0.0.1 本地监听真实收到 session_start 载荷）。
 - **核销**：candidates-open #1969 → `candidates-resolved.tsv` #134。
+
+### 28.131 648 清单逐条核销 #135：dedup-h #1975 approval-gate——approval-channels: 经Channels(如微信)确认tool permission决策（2026-09-25）
+
+- **行**：`dedup-h  1975  approval-gate  approval-channels: 经Channels(如微信)确认tool permission决策`（描述段为错位 openclaw 片段：sandbox/browser registry 按 runtime 分片降锁争用）。
+- **判定**：**ALREADY_COVERED（机制面）+ BOUNDARY（微信适配/描述语义）**。
+  - **标题语义**：外部通道确认审批的机制已全通——`governance_ask` 事件在 channel 事件流扇出（任何接入传输可见）；`pending_list` 枚举待决；`decision_resolve` 按 askId 收**任意 channel 客户端**的应答（`PendingAsks.resolve` 不限发问方——跨通道回答天然成立）；app http-bridge 把同一 channel 协议开成 HTTP/SSE——微信/Telegram 类适配器=另一个 channel 客户端插接即可。钉桩在 `host/tests/channel.test.js:119`（pending_list/decision_resolve 驱动 asks facade + 事件扇出）。微信本体适配属外部集成边界（本仓不发 IM 连接器）。
+  - **描述语义**：per-runtime registry 分片 = **BOUNDARY**——openclaw 多进程 sandbox registry 争用语义；我方 `BodyRegistry` 是单实例单写者 + atomic tmp+rename（`host/src/core/registry.js`），无跨进程锁争用面可对位。
+- **证据**：机制面已有测试钉桩（channel.test.js:119），本条为分类核销无新增代码。
+- **核销**：candidates-open #1975 → `candidates-resolved.tsv` #135。
