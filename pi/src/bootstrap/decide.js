@@ -3,6 +3,7 @@ import { hashOf } from '../../../host/src/core/audit.js';
 import { EXEC_BODY_TOOLS, GIT_INTERNAL_RE, INSTRUCTION_PATH_RES } from '../../../host/src/core/governance.js';
 import { scanForSecrets } from '../adapter/secrets.js';
 import { pathInsideRoot, pathInsideRootForWrite } from '../adapter/paths.js';
+import { loadWorkspaceRoots } from '../../../host/src/core/workspaceroots.js';
 import { readFileSync, realpathSync } from 'node:fs';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 
@@ -92,19 +93,51 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     }
     return realRoot;
   };
+  const realOf = (r) => { try { return realpathSync(resolve(r)); } catch { return resolve(r); } };
+  // dedup-h #1475 multi-root flag: extra operator-declared roots count as
+  // inside the workspace. workspace.json is re-read per boundary call — an
+  // operator edit takes effect immediately (same hot-reload posture as
+  // commandDenyPrefixes). The active extra set is audited once per session.
+  let wsAudited = false;
+  const extraRoots = () => {
+    let extra = null;
+    try {
+      const ws = loadWorkspaceRoots(core?.paths?.root);
+      if (ws.multiRoot && ws.roots.length) extra = ws.roots;
+    } catch { /* unreadable config → single-root, fail-closed */ }
+    if (extra && !wsAudited) {
+      wsAudited = true;
+      core?.audit?.write({ kind: 'WORKSPACE_ROOTS', data: { extra: extra.length, roots: extra } });
+    }
+    return extra;
+  };
   // Read boundary, realpath-aware: lexical resolve alone cannot see an
   // in-workdir symlink pointing outside (`link -> C:\other` makes
   // `link/secret.txt` lexically inside). Existing targets are compared on
   // their real path; nonexistent ones stand on the lexical check.
   const outsideWorkdir = (p) => {
     const abs = absFor(p);
-    if (!pathInsideRoot(workdir, abs)) return true;
-    try { return !pathInsideRoot(realWorkdir(), realpathSync(abs)); } catch { return false; }
+    const extra = extraRoots();
+    if (!extra) {
+      if (!pathInsideRoot(workdir, abs)) return true;
+      try { return !pathInsideRoot(realWorkdir(), realpathSync(abs)); } catch { return false; }
+    }
+    const roots = [workdir, ...extra];
+    if (!roots.some((r) => pathInsideRoot(r, abs))) return true;
+    try {
+      const rp = realpathSync(abs);
+      return !roots.some((r) => pathInsideRoot(realOf(r), rp));
+    } catch { return false; }
   };
   // Write boundary: parent-dir realpath + (existing) target realpath inside
   // realpath(root) — defeats symlinked parents and 8.3 aliases that lexical
   // checks cannot see.
-  const outsideWriteTarget = (p) => !pathInsideRootForWrite(realWorkdir(), absFor(p));
+  const outsideWriteTarget = (p) => {
+    const abs = absFor(p);
+    const extra = extraRoots();
+    if (!extra) return !pathInsideRootForWrite(realWorkdir(), abs);
+    return ![realWorkdir(), ...extra.map(realOf)].some((r) => pathInsideRootForWrite(r, abs));
+  };
   // Redirect/device sinks that legitimately resolve outside the worktree —
   // `> NUL`, `> /dev/null` are not file mutations.
   const DEVICE_TARGET_RE = /^(?:nul|con|prn|aux|com\d|lpt\d)(?:\.|:|$)|^\/dev\/(null|zero|stdout|stderr|stdin|tty)/i;

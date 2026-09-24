@@ -2,7 +2,7 @@
  * M8 acceptance-gap closure: ToolSurface + FileOpsGuard must be wired into the
  * REAL production decide chain (makeDecide), not just exist as modules.
  */
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -782,4 +782,87 @@ test('toolAllowMatcher blocks unlisted tools at decide; listed tools still gover
   // listed tool proceeds to the rest of the chain (read inside workdir admits)
   const ok = await decide({ toolCall: { name: 'read' }, args: { path: join(dir, 'a.txt') } });
   assert.equal(ok, undefined);
+});
+
+// ── dedup-h #1475: multi-root workspace feature flag ────────────────────────
+// workspace.json {multiRoot:true, roots:[...]} widens the read/write outside
+// boundary to the declared root set; flag off/absent = legacy single-root.
+
+const wsDecide = (dir, asks) => makeDecide({
+  core: { audit: new AuditWriter({ auditDir: join(dir, 'audit') }), kernel: { decideToolCall: async () => null }, paths: { root: dir } },
+  executor: null, fileOps: new FileOpsGuard(dir), getSurface: () => null, workdir: dir,
+  asks,
+});
+
+test('#1475 flag off: extra-root paths still ask — legacy single-root unchanged', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-ws-off-'));
+  const extra = mkdtempSync(join(tmpdir(), 'pai-ws-x-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  // workspace.json exists but multiRoot is not true → ignored
+  writeFileSync(join(dir, 'workspace.json'), JSON.stringify({ multiRoot: false, roots: [extra] }));
+  let asks = 0;
+  const decide = wsDecide(dir, { ask: async () => { asks += 1; return 'deny'; } });
+  const r = await decide({ toolCall: { name: 'read' }, args: { path: join(extra, 'f.txt') } });
+  assert.equal(r?.block, true);
+  assert.equal(r.rule, 'read_outside');
+  assert.equal(asks, 1);
+});
+
+test('#1475 flag on: declared root reads/writes are inside — undeclared stays outside', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-ws-on-'));
+  const extra = mkdtempSync(join(tmpdir(), 'pai-ws-x2-'));
+  const third = mkdtempSync(join(tmpdir(), 'pai-ws-x3-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  writeFileSync(join(dir, 'workspace.json'), JSON.stringify({ multiRoot: true, roots: [extra, 'relative/bad', 42] }));
+  let asks = 0;
+  const decide = wsDecide(dir, { ask: async () => { asks += 1; return 'deny'; } });
+  // read inside the declared extra root — admitted, no ask
+  assert.equal(await decide({ toolCall: { name: 'read' }, args: { path: join(extra, 'lib', 'f.txt') } }), undefined);
+  // write inside the extra root — inside for write too
+  assert.equal(await decide({ toolCall: { name: 'write' }, args: { path: join(extra, 'new.txt'), content: 'x' } }), undefined);
+  // a path outside every declared root still asks and denies
+  const r = await decide({ toolCall: { name: 'read' }, args: { path: join(third, 'f.txt') } });
+  assert.equal(r?.block, true);
+  assert.equal(r.rule, 'read_outside');
+  assert.equal(asks, 1);
+  // WORKSPACE_ROOTS audited once — names the active roots
+  const rows = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+    .trim().split('\n').map((l) => JSON.parse(l));
+  const row = rows.find((e) => e.kind === 'WORKSPACE_ROOTS');
+  assert.ok(row, 'root activation audited');
+  assert.deepEqual(row.data.roots.length, 1, 'relative/non-string roots dropped — only the absolute extra counts');
+});
+
+test('#1475 flag on: in-workdir symlink to an UNDECLARED dir is still outside', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-ws-sym-'));
+  const extra = mkdtempSync(join(tmpdir(), 'pai-ws-xs-'));
+  const undeclared = mkdtempSync(join(tmpdir(), 'pai-ws-und-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  writeFileSync(join(dir, 'workspace.json'), JSON.stringify({ multiRoot: true, roots: [extra] }));
+  writeFileSync(join(undeclared, 'secret.txt'), 'x');
+  symlinkSync(undeclared, join(dir, 'peek'), 'junction');
+  let asks = 0;
+  const decide = wsDecide(dir, { ask: async () => { asks += 1; return 'deny'; } });
+  // lexically inside workdir, really inside the undeclared dir → outside
+  const r = await decide({ toolCall: { name: 'read' }, args: { path: join(dir, 'peek', 'secret.txt') } });
+  assert.equal(r?.block, true);
+  assert.equal(r.rule, 'read_outside');
+  // and the counter-case: symlink into the DECLARED root is inside
+  symlinkSync(extra, join(dir, 'lib'), 'junction');
+  writeFileSync(join(extra, 'ok.txt'), 'y');
+  assert.equal(await decide({ toolCall: { name: 'read' }, args: { path: join(dir, 'lib', 'ok.txt') } }), undefined);
+});
+
+test('#1475 hot-reload: operator edits workspace.json mid-session — next decision sees it', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-ws-hot-'));
+  const extra = mkdtempSync(join(tmpdir(), 'pai-ws-xh-'));
+  mkdirSync(join(dir, 'audit'), { recursive: true });
+  writeFileSync(join(dir, 'workspace.json'), JSON.stringify({ multiRoot: true, roots: [] }));
+  let asks = 0;
+  const decide = wsDecide(dir, { ask: async () => { asks += 1; return 'deny'; } });
+  const r1 = await decide({ toolCall: { name: 'read' }, args: { path: join(extra, 'f.txt') } });
+  assert.equal(r1?.block, true, 'empty roots → still outside');
+  writeFileSync(join(dir, 'workspace.json'), JSON.stringify({ multiRoot: true, roots: [extra] }));
+  assert.equal(await decide({ toolCall: { name: 'read' }, args: { path: join(extra, 'f.txt') } }), undefined,
+    'root added at runtime applies to the next decision — no respawn');
 });

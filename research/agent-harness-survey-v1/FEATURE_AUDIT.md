@@ -2549,3 +2549,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **行为变化（有意为之）**：`op://` key 现在要求 operator 在 `<instance>/secrets.json` 显式启用 `op` 源——与 env_set 同一 fail-closed 契约，不再无条件调外部 CLI。
 - **证据**：`pi/tests/channel-facade.test.js` +3——opt-in 解析端到端（spawn args 正确、解析值而非 ref 入 credential store、`SECRET_SOURCE_RESOLVE` 审计行且不含密钥）；无 secrets.json → "not enabled" 拒 + 不入库；allowlist 前缀外 item 拒 + 畸形 `op://onlyvault` 报 malformed。`host/tests/secretsource.test.js` 原有 broker 单测不动（解析器本体未变）。channel-facade 45/45、聚焦组（budgetfetch/wand/authbang/envtools）36/36。
 - **核销**：candidates-open #1406 → `candidates-resolved.tsv` #105。
+
+### 28.102 648 清单逐条核销 #106：dedup-h #1475 multi-root workspace feature flag（2026-09-24）
+
+- **行**：`dedup-h  1475  cli-flags  multi-root workspace feature flag`。
+- **判定**：**IMPLEMENTED**。源语义：feature flag 开启后一个 workspace 容纳多个根目录。本仓 workdir 历来是体级标量——所有工具/会话/job 共用一个宿主根。落法：
+  - **旗标 = `<instance>/workspace.json`**：`{multiRoot:true, roots:[abs,...]}`。`multiRoot` 是开关本体——缺省/false/文件不可读 → 单根行为逐字节不变。roots 只收绝对路径（相对项、非字符串、重复项丢弃，上限 32），文件在 operator-private 实例根——**agent 不可写**，刻意不提供 workdir 侧声明文件和 channel 命令（模型流量可达的面绝不能扩边界，与 `.pai/commands.json` 只收 denyPrefix 同原则）。
+  - **边界多根化在 `pi/src/bootstrap/decide.js`**：`outsideWorkdir`/`outsideWriteTarget`（read/write outside asks 门的权威判定）改为对"workdir + 已声明 extra roots"求并集——任一根内即 inside。realpath 语义保留：词法 inside 任一声明根后还要 realpath 落进任一声明根的 realpath（workdir 内符号链接指向**未声明**目录仍判 outside；指向已声明根判 inside）。
+  - **热生效**：`workspace.json` 每次边界调用重读（与 `commandDenyPrefixes` 同姿态），操作员改单下一个 decide 即生效；首个激活的 extra 集合写 `WORKSPACE_ROOTS` 审计（roots 列表，每会话一次）。
+- **边界诚实声明**：bash cwd 仍是主 workdir（多根≠多 cwd）；`instanceRoot` 配置面保护（channel.js 的 *.json 写禁）与 runtimexfer bundle 钳制不在 workspace 语义内，保持单根不动。
+- **证据**：`pi/tests/m8-wiring.test.js` +4——flag off 仍 ask（旧行为不变）；flag on 声明根读/写免 ask 且未声明目录仍 deny + `WORKSPACE_ROOTS` 审计且相对/非字符串根被丢；workdir 内 symlink 指向未声明目录仍 read_outside 而指向声明根放行；workspace.json 运行中编辑即时生效。m8-wiring 38/38。
+- **核销**：candidates-open #1475 → `candidates-resolved.tsv` #106。
