@@ -1379,3 +1379,33 @@ test('dedup-h #1034: continueOnBlock:false and a broken gate both let the turn e
   assert.ok(tail.data.events.some((e) => e.kind === 'AGENT_STOP_GATE_FAILED'));
   dispose();
 });
+
+test('dedup-h #1188: message_sent hook fires on assistant message with enriched payload', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-msgsent-'));
+  const fired = [];
+  const hooks = { fire: (ev, payload) => { fired.push({ ev, payload }); return Promise.resolve(1); } };
+  const { dispose } = createChannelHost({ session: fakeSessionRef, core: { paths: { auditDir: join(dir, 'audit') } }, hooks });
+  for (const l of [...listeners]) l({
+    type: 'message_end',
+    message: {
+      role: 'assistant', model: 'gpt-5.6-luna-max',
+      content: [{ type: 'text', text: 'reply body here' }],
+      usage: { input: 10, output: 5 },
+    },
+  });
+  await new Promise((r) => setTimeout(r, 20));
+  const hit = fired.find((f) => f.ev === 'message_sent');
+  assert.ok(hit, 'message_sent fired on assistant message_end');
+  assert.equal(hit.payload.text, 'reply body here');
+  assert.equal(hit.payload.chars, 15);
+  assert.equal(hit.payload.model, 'gpt-5.6-luna-max');
+  assert.equal(hit.payload.usage.input, 10);
+  // a user/tool message does not fire the outbound hook
+  fired.length = 0;
+  for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'user', content: [{ type: 'text', text: 'hi' }] } });
+  for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant' } }); // no usage → no fire
+  await new Promise((r) => setTimeout(r, 20));
+  assert.ok(!fired.some((f) => f.ev === 'message_sent'), 'non-assistant / usage-less messages do not fire');
+  dispose();
+});

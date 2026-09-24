@@ -170,6 +170,19 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     pump = newSession.subscribe((ev) => {
       if (ev?.type === 'message_end' && ev.message?.role === 'assistant' && ev.message?.usage) {
         bill(ev.message.usage, 'turn');
+        // dedup-h #1188 — message_sent observational hook: outbound assistant
+        // message with an enriched payload (text tail, char count, model,
+        // usage) — the OpenClaw message:preprocessed/sent analogue on the
+        // outbound side. Text is bounded; hooks get JSON on stdin.
+        try {
+          const text = (Array.isArray(ev.message?.content) ? ev.message.content : [])
+            .map((c) => (c?.type === 'text' ? c.text : '')).join('').slice(0, 4000);
+          hooks?.fire('message_sent', {
+            text, chars: text.length,
+            model: ev.message?.model ?? null,
+            usage: ev.message.usage ?? null,
+          });
+        } catch { /* observational — never blocks the lifecycle */ }
         // H-family auto-compact (Codex-style): at ≥90% of the context
         // window the body compacts itself once per threshold crossing —
         // announced via event + audit, never silently rewriting context.

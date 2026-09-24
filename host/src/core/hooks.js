@@ -59,6 +59,11 @@ export const HOOK_EVENTS = new Set([
   // just receipted its pre-image — payload {op, target, receiptId,
   // toolCallId}. Observational only; the checkpoint already exists.
   'file_checkpoint',
+  // dedup-h #1188 (message:* enriched outbound analogue): an assistant
+  // message completed and is on its way out — payload {text (≤4000),
+  // chars, model, usage}. Observational only; agent_stop is the
+  // turn-boundary veto, prompt_submit the inbound transform.
+  'message_sent',
 ]);
 // session_directory (dedup-h #202): a gate-only extension event whose hook
 // answers {"directory": "..."} to relocate session persistence. Gate-only on
