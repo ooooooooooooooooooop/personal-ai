@@ -1590,3 +1590,45 @@ test('dedup-h #1981: PAI_ADMIN_CONFIG MDM tier governs auto-run — merge, exclu
     if (prev === undefined) delete process.env.PAI_ADMIN_CONFIG; else process.env.PAI_ADMIN_CONFIG = prev;
   }
 });
+
+test('dedup-h #1985: skill_install upload path is operator-gated default-off', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-skilli-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+  }));
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const install = (p) => host.channel.handle({ type: 'skill_install', ...p });
+    // gate absent = closed — upload refused before any file write
+    const r0 = await install({ name: 'demo', triggers: ['x'], body: 'do x' });
+    assert.equal(r0.success, false);
+    assert.match(r0.error, /skill-install\.json/);
+    assert.equal(existsSync(join(dir, '.pai', 'microagents', 'demo.md')), false);
+
+    // operator opt-in enables the surface
+    writeFileSync(join(dir, 'skill-install.json'), JSON.stringify({ allowInstall: true }));
+    const r1 = await install({ name: 'demo', triggers: ['deploy', 'release'], body: 'ship it carefully' });
+    assert.equal(r1.success, true);
+    assert.equal(r1.data.name, 'demo');
+    const written = readFileSync(join(dir, '.pai', 'microagents', 'demo.md'), 'utf-8');
+    assert.match(written, /triggers: deploy, release/);
+    assert.match(written, /ship it carefully/);
+    // installed skill shows on the operator list surface
+    const list = await host.channel.handle({ type: 'skills_list' });
+    assert.ok(list.data.skills.some((s) => s.name === 'demo'));
+
+    // gate open does not relax validation — bad name / no triggers refused
+    assert.equal((await install({ name: 'bad name!', triggers: ['x'], body: 'b' })).success, false);
+    assert.equal((await install({ name: 'ok-name', triggers: [], body: 'b' })).success, false);
+    assert.equal(existsSync(join(dir, '.pai', 'microagents', 'bad name!.md')), false);
+
+    // audits: refusal + install both recorded
+    const audits = readdirSync(join(dir, 'audit')).flatMap((f) =>
+      readFileSync(join(dir, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(audits.some((e) => e.kind === 'SKILL_INSTALL_REFUSED'), 'closed-gate refusal audited');
+    const inst = audits.find((e) => e.kind === 'SKILL_INSTALLED');
+    assert.ok(inst, 'install audited');
+    assert.equal(inst.data.name, 'demo');
+  } finally { host.dispose(); }
+});

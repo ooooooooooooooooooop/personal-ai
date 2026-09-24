@@ -2490,6 +2490,36 @@ export async function startHost({
         writeFileSync(skillAllowPath, JSON.stringify({ allow: names }, null, 2) + '\n');
         return { allow: names };
       },
+      // dedup-h #1985 — openclaw skills.install.allowUploadedArchives
+      // analogue: a client-uploaded skill install path, gated by an
+      // OPERATOR opt-in file <instance>/skill-install.json
+      // {allowInstall:true} — default-off: a remote channel caller (HTTP
+      // bridge) must not plant auto-inject prompt content without the
+      // operator explicitly enabling the install surface. Our skill
+      // package form is the single markdown microagent file; the same
+      // SLUG/triggers/body contract skill_save enforces applies here.
+      install: ({ name, triggers, body } = {}) => {
+        let gate = null;
+        try { gate = JSON.parse(readFileSync(join(core.paths.root, 'skill-install.json'), 'utf-8')); } catch { /* absent = closed */ }
+        if (gate?.allowInstall !== true) {
+          core.audit.write({ kind: 'SKILL_INSTALL_REFUSED', data: { name: String(name ?? '').slice(0, 80), reason: 'gate_closed' } });
+          return { error: "skill install uploads are disabled — operator sets allowInstall:true in <instance>/skill-install.json" };
+        }
+        const n = String(name ?? '');
+        if (!/^[a-z0-9][a-z0-9_-]{0,60}$/i.test(n)) return { error: 'skill_install: name must be kebab-case (a-z, 0-9, _ or -)' };
+        const tr = (Array.isArray(triggers) ? triggers : String(triggers ?? '').split(','))
+          .map((x) => String(x).trim().toLowerCase()).filter(Boolean).slice(0, 20);
+        if (!tr.length) return { error: 'skill_install: at least one trigger is required' };
+        const b = String(body ?? '');
+        if (!b) return { error: 'skill_install: body is required' };
+        if (b.length > 32 * 1024) return { error: 'skill_install: body exceeds 32768 chars' };
+        const dir = join(workdir, '.pai', 'microagents');
+        mkdirSync(dir, { recursive: true });
+        const file = join(dir, `${n}.md`);
+        writeFileSync(file, `---\ntriggers: ${tr.join(', ')}\n---\n\n${b}\n`);
+        core.audit.write({ kind: 'SKILL_INSTALLED', data: { name: n, triggers: tr.length, bytes: Buffer.byteLength(b, 'utf-8') } });
+        return { ok: true, name: n, file };
+      },
     },
     asks,
     goals: () => currentGovernor?.status() ?? null,

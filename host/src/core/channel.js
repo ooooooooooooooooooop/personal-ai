@@ -1071,6 +1071,14 @@ export class HostChannel {
           if (out?.error) return reply(false, undefined, out.error);
           return reply(true, out);
         }
+        // dedup-h #1985 — uploaded skill install path; the facade enforces
+        // the operator opt-in gate (default-off).
+        case 'skill_install': {
+          if (!this.skills?.install) return reply(false, undefined, 'skills facade unavailable');
+          const out = this.skills.install({ name: cmd.name, triggers: cmd.triggers, body: cmd.body });
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
         // M106 /context — composition map of the live context window
         case 'context_map': {
           if (!this.session?.contextMap) return reply(false, undefined, 'context map unavailable');

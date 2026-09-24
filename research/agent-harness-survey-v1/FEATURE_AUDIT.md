@@ -2883,3 +2883,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **A2A 描述片段**：BOUNDARY——stdio A2A 服务是另一条程序化接入面语义，与本条 admin 管控标题无涉；我方 channel 已有 HTTP/SSE 桥（app/server）承接程序化接入。
 - **证据**：`pi/tests/bootstrap.test.js` +1=37/37 端到端（policy `riskActions:{network:'ask'}` 驱动：admin 前缀→allow、非匹配→ask、operator 合并→allow、exclusive 后 operator 作废→ask+admin 仍 allow——live-reread 实证、ADMIN_AUTORUN 姿态审计落地、admin 文件删除后新 host 全锁死 ask + ok:false）。聚焦回归 m2-governance/writeboundary/hook-rewrite/m8-wiring 70/70。
 - **核销**：candidates-open #1981 → `candidates-resolved.tsv` #137。
+
+### 28.134 648 清单逐条核销 #138：dedup-h #1985 approval-gate——skill-install: 私有 skill archive 上传安装（allowUploadedArchives 门）（2026-09-25）
+
+- **行**：`dedup-h  1985  approval-gate  skill-install: 私有skill archive上传安装(allowUploadedArchives门)`（标题字段历史编码残留乱码已还义；描述段为错位 ModelRegistry 构造片段，与本条无涉）。
+- **源语义**（openclaw v2026.5.12-beta.1）：`Gateway/skills` 新增 opt-in 私有 skill 压缩包上传安装路径，`skills.install.allowUploadedArchives` 门控——受信客户端仅当 operator 显式开启代码安装面才可 stage+install zip 包。
+- **判定**：**IMPLEMENTED（variant）**。核查真洞：channel 远端调用面（HTTP/SSE 桥）可触达 skills facade，但无安装路径；agent 自有 `skill_save` 是 workdir 内面。缺的是**外部上传安装面 + operator 显式 opt-in 门**。
+  - **门**：`<instance>/skill-install.json {allowInstall:true}`——operator 自有文件默认关；未开启时 `skill_install` 拒且写 `SKILL_INSTALL_REFUSED{reason:'gate_closed'}` 审计（远端调用方不能静默种入 auto-inject 提示词内容）。
+  - **形态对位**：openclaw 的 skill 包是多文件 zip；我方 skill 包形态 = 单 markdown microagent 文件——单文件上传即我方"压缩包"对位。同一 `skill_save` 契约复用：SLUG 名、triggers 非空（≤20）、body 非空 ≤32K。
+  - **写面**：`.pai/microagents/<name>.md` 含 front-matter——与 agent 自写完全同构；注入仍受 project-trust + skill allow-list 双门（信任层未被安装面旁路）。
+  - **审计**：`SKILL_INSTALLED{name,triggers,bytes}`。
+- **证据**：`pi/tests/bootstrap.test.js` +1=38/38 端到端（gate 关→拒+无落盘+审计、operator 开→装+文件含 front-matter+skills_list 可见、gate 开不放松校验——坏名/无 trigger 拒、双审计落地）；host 全套 414/414（channel 新 case 无破面）。
+- **核销**：candidates-open #1985 → `candidates-resolved.tsv` #138。
