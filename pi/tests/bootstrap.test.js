@@ -1823,3 +1823,34 @@ test('dedup-h #2100: admin config proxy replaces operator proxy sources; runtime
     }
   }
 });
+
+// dedup-h #2118 — crush `projects` command: project_list surfaces the
+// distinct workdirs recorded across this instance's session store.
+test('#2118 project_list returns distinct session cwds, newest first', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-projects-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+  }));
+  const host = await startHost({
+    instanceRoot: dir, workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  const sdir = join(dir, 'sessions');
+  mkdirSync(sdir, { recursive: true });
+  const head = (id, cwd, ts) => JSON.stringify({ type: 'session', version: 3, id, timestamp: ts, cwd }) + '\n';
+  writeFileSync(join(sdir, 'a.jsonl'), head('a', 'C:/proj/alpha', '2026-09-20T10:00:00Z'));
+  writeFileSync(join(sdir, 'b.jsonl'), head('b', 'C:/proj/beta', '2026-09-24T10:00:00Z'));
+  writeFileSync(join(sdir, 'c.jsonl'), head('c', 'C:/proj/alpha', '2026-09-22T10:00:00Z'));
+  writeFileSync(join(sdir, 'bad.jsonl'), 'not json{');
+
+  const r = await host.channel.handle({ type: 'project_list' });
+  assert.equal(r.success, true, JSON.stringify(r));
+  const rows = r.data ?? r;
+  assert.equal(rows.length, 2, 'two distinct projects, bad header skipped');
+  assert.equal(rows[0].cwd, 'C:/proj/beta', 'newest activity first');
+  assert.equal(rows[0].sessions, 1);
+  assert.equal(rows[1].cwd, 'C:/proj/alpha');
+  assert.equal(rows[1].sessions, 2, 'alpha had two sessions');
+  host.dispose();
+});

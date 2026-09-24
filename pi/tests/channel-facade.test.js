@@ -1697,3 +1697,60 @@ test('#2101 disable_ai refuses prompts live; removing the flag re-enables', asyn
   assert.equal(bare.success, true, 'get_state is not an AI turn');
   dispose();
 });
+
+// dedup-h #2118 — crush "Adaptive" default model: model-routes.json
+// {adaptive:true} routes each prompt's text through the table and switches
+// the session model per turn; explicit pick pins the session out.
+test('#2118 adaptive routes per-turn by task text; explicit pick pins; alias un-pins', async () => {
+  const calls = [];
+  const switches = [];
+  const sonnet = { provider: 'anthropic', id: 'claude-sonnet-5', name: 'sonnet' };
+  const opus = { provider: 'anthropic', id: 'claude-opus-5', name: 'opus' };
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  fakeSessionRef.model = sonnet;
+  fakeSessionRef.modelRuntime = {
+    getModel: (p, id) => ([sonnet, opus].find((m) => m.provider === p && m.id === id) ?? null),
+    getAvailable: async () => [sonnet, opus],
+  };
+  fakeSessionRef.setModel = async (m) => { switches.push(`${m.provider}/${m.id}`); fakeSessionRef.model = m; };
+  const auditDir = mkdtempSync(join(tmpdir(), 'pai-adaptive-'));
+  const core = { paths: { auditDir }, audit: { write() {} } };
+  const modelRoutes = {
+    adaptive: true,
+    default: null,
+    routes: [
+      { name: 'deep-review', taskRe: /review|审查/i, model: 'anthropic/claude-opus-5', effort: null },
+      { name: 'default-back', taskRe: /back/, model: 'anthropic/claude-sonnet-5', effort: null },
+    ],
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, workdir: auditDir, modelRoutes });
+
+  // matching prompt → switches to the routed model before the model call
+  await ch.handle({ type: 'prompt', message: 'review this diff' });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(switches, ['anthropic/claude-opus-5'], 'route match switches model');
+  assert.equal(fakeSessionRef.model.id, 'claude-opus-5');
+
+  // next prompt matching a different rule → routes back
+  await ch.handle({ type: 'prompt', message: 'back to normal' });
+  assert.deepEqual(switches, ['anthropic/claude-opus-5', 'anthropic/claude-sonnet-5']);
+
+  // explicit pick → pins the session out of adaptive routing
+  await ch.handle({ type: 'model_set', provider: 'anthropic', model: 'claude-opus-5' });
+  switches.length = 0;
+  await ch.handle({ type: 'prompt', message: 'back to normal again' });
+  assert.equal(calls.length, 3);
+  assert.deepEqual(switches, [], 'pinned session is not re-routed');
+
+  // 'adaptive' alias un-pins → routing resumes
+  await ch.handle({ type: 'config_set', key: 'model', value: 'adaptive' });
+  await ch.handle({ type: 'prompt', message: 'back once more' });
+  assert.deepEqual(switches, ['anthropic/claude-sonnet-5'], 'adaptive alias re-arms routing');
+
+  // unknown route target → prompt still runs, no switch
+  const r = await ch.handle({ type: 'prompt', message: 'unmatched text' });
+  assert.equal(r.success, true);
+  assert.equal(calls.length, 5, 'unmatched prompt reaches the model untouched');
+  dispose();
+});

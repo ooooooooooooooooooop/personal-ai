@@ -14,6 +14,7 @@ import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from './pa
 import { isPrivateResolved } from './web.js';
 import { parseSecretRef, resolveSecretRef } from '../../../host/src/core/secretsource.js';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
+import { resolveRoute } from './modelroutes.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
 
@@ -116,7 +117,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null, preToolGate = null, assist = null, secretSpawnFn = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null, preToolGate = null, assist = null, secretSpawnFn = null, modelRoutes = null }) {
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -404,12 +405,52 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     } catch { return false; }
   };
 
+  // dedup-h #2118 — crush "Adaptive" default model: model-routes.json
+  // {adaptive:true} resolves every prompt's text against the routing table
+  // and switches the session model/effort per turn. An explicit pick
+  // (model_set / config_set model) pins the session out of adaptive; the
+  // 'adaptive' alias un-pins. Route misses leave the current model alone —
+  // "no rule" is not a mandate to churn the operator's default.
+  let modelPinned = false;
+  const resolveRoutedModel = async (name) => {
+    const rt = box.s?.modelRuntime;
+    if (!rt || typeof name !== 'string' || !name.trim()) return null;
+    const slash = name.trim().match(/^([a-z0-9_.-]+)\/(\S+)$/i);
+    if (slash) {
+      try { return rt.getModel(slash[1], slash[2]) ?? null; } catch { return null; }
+    }
+    const avail = await rt.getAvailable?.().catch(() => []);
+    return (Array.isArray(avail) ? avail : []).find((m) => m?.id === name.trim()) ?? null;
+  };
+  const EFFORT_TO_THINKING = { max: 'xhigh' };
+  const applyAdaptiveRoute = async (text) => {
+    if (!modelRoutes?.adaptive || modelPinned) return;
+    const route = resolveRoute(modelRoutes, { target: 'main', task: String(text ?? '') });
+    if (!route) return;
+    if (route.model) {
+      const m = await resolveRoutedModel(route.model);
+      if (m && (m.id !== box.s?.model?.id || m.provider !== box.s?.model?.provider)) {
+        const ok = await box.s.setModel(m).then(() => true, () => false);
+        core.audit?.write({
+          kind: ok ? 'MODEL_ROUTED' : 'MODEL_ROUTE_FAILED',
+          data: { via: route.via, model: `${m.provider}/${m.id}`, effort: route.effort ?? null },
+        });
+      }
+    }
+    if (route.effort) {
+      // Route effort maps onto the thinking ladder; a non-reasoning target
+      // rejects the level — that failure must never fail the prompt.
+      try { await modelsFacade.setThinking(EFFORT_TO_THINKING[route.effort] ?? route.effort); } catch { /* advisory */ }
+    }
+  };
+
   const sessionFacade = {
     prompt: async (message, options) => {
       if (projectAiDisabled()) {
         core.audit?.write({ kind: 'PROMPT_PROJECT_DISABLED', data: { workdir } });
         throw new Error('AI turns are disabled for this project (.pai/settings.json disable_ai) — remove the flag to re-enable');
       }
+      await applyAdaptiveRoute(message);
       admitSpend();
       if (options?._continuation === true) {
         // Internal channel flag (stop-gate continuation) — strip before the
@@ -1031,6 +1072,12 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     },
     set: async ({ provider, model, alias }) => {
       let target = { provider, model };
+      if (alias === 'adaptive') {
+        if (!modelRoutes?.adaptive) throw new Error("adaptive routing is not enabled — set '\"adaptive\": true' in <instance>/model-routes.json");
+        modelPinned = false;
+        core.audit?.write({ kind: 'MODEL_ADAPTIVE_UNPINNED', data: {} });
+        return { adaptive: true };
+      }
       if (alias) {
         const hit = readAliases()[String(alias)];
         if (!hit) throw new Error(`model alias '${alias}' is not registered`);
@@ -1042,6 +1089,12 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       await s.setModel(m);
       s.settingsManager?.setDefaultModelAndProvider?.(target.provider, target.model);
       if (target.thinking) await modelsFacade.setThinking(target.thinking).catch(() => {});
+      // #2118: an explicit pick opts the session out of adaptive routing —
+      // crush parity ("you can still pick a specific model with /model").
+      if (modelRoutes?.adaptive && !modelPinned) {
+        modelPinned = true;
+        core.audit?.write({ kind: 'MODEL_ADAPTIVE_PINNED', data: { model: `${m.provider}/${m.id}` } });
+      }
       return { provider: m.provider, id: m.id, name: m.name ?? m.id, alias: alias ?? null };
     },
     // M100 fallback chain ops — mutates the shared config object the loop

@@ -1811,6 +1811,28 @@ export async function startHost({
       }
       return rows;
     },
+    // dedup-h #2118 (crush `projects` command): distinct workdirs this
+    // instance's session store knows about — every project where the agent
+    // actually ran a session, newest-first by last activity. Reads only
+    // session file headers; a corrupt file is skipped, not fatal.
+    projects: async () => {
+      const byCwd = new Map();
+      try {
+        for (const f of readdirSync(sessionDir).filter((x) => x.endsWith('.jsonl'))) {
+          try {
+            const head = JSON.parse(readFileSync(join(sessionDir, f), 'utf-8').split('\n', 1)[0]);
+            const cwd = typeof head?.cwd === 'string' && head.cwd ? head.cwd : null;
+            if (!cwd) continue;
+            const rec = byCwd.get(cwd) ?? { cwd, sessions: 0, lastModified: null };
+            rec.sessions += 1;
+            const ts = head.timestamp ?? head.modified ?? null;
+            if (ts && (!rec.lastModified || ts > rec.lastModified)) rec.lastModified = ts;
+            byCwd.set(cwd, rec);
+          } catch { /* skip unparseable header */ }
+        }
+      } catch { return []; }
+      return [...byCwd.values()].sort((a, b) => String(b.lastModified ?? '').localeCompare(String(a.lastModified ?? '')));
+    },
     create: async (id) => {
       // Custom session id (dedup-h #12 / --create-with-session-id analogue):
       // operator-pinned UUID, validated before any file is created; an id
@@ -2491,6 +2513,9 @@ export async function startHost({
     // M100 — shared by reference with the loop extension; setFallbacks
     // mutates this object so the new chain applies on the next agent_end.
     fallbacks: fallbackCfg,
+    // dedup-h #2118 — model-routes.json {adaptive:true} routes the main
+    // session per turn; same instance-private file the delegate table uses.
+    modelRoutes: loadModelRoutes(core.paths.root),
     // dedup-h #238 — prompt{outputSchema} arms this cell; the loop
     // extension's agent_end gate validates the final reply against it.
     structured: structuredOut,

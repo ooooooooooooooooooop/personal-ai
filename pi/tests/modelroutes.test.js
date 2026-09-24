@@ -100,3 +100,17 @@ test('delegate integration: routes fill profile-open slots; precedence profile >
   assert.deepEqual(seen.at(-1), { model: null, effort: null });
   assert.equal(r4.details.routed_via, undefined);
 });
+
+test('#2118 adaptive flag: loadModelRoutes surfaces {adaptive:true}, absent/false stays off', () => {
+  const d = mkdtempSync(join(tmpdir(), 'pai-routes-ad-'));
+  writeFileSync(join(d, 'model-routes.json'), JSON.stringify({
+    adaptive: true,
+    default: { model: 'claude-sonnet-5' },
+    routes: [{ name: 'r', task: 'x', model: 'm' }],
+  }));
+  const cfg = loadModelRoutes(d);
+  assert.equal(cfg.adaptive, true);
+
+  writeFileSync(join(d, 'model-routes.json'), JSON.stringify({ default: { model: 'm' } }));
+  assert.equal(loadModelRoutes(d).adaptive, false, 'flag absent = adaptive off');
+});

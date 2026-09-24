@@ -28,6 +28,12 @@
  *         "model": "claude-haiku-4-5" }
  *     ]
  *   }
+ *
+ * dedup-h #2118 (crush "Adaptive" default model): top-level
+ * `"adaptive": true` opts the MAIN session into the same table — each
+ * prompt resolves against its text and switches the session model/effort
+ * per turn. An explicit model pick (model_set/config_set model) pins the
+ * session out of adaptive routing; alias 'adaptive' un-pins.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -41,7 +47,7 @@ const cleanEffort = (v) => (typeof v === 'string' && /^(low|medium|high|max)$/i.
  * Load + validate the routing table. Absent/invalid file → null (no routing,
  * same as before). Invalid RULES drop individually — one bad regex must not
  * blind the whole table.
- * @returns {{default: {model?, effort?}|null, routes: Array}|null}
+ * @returns {{default: {model?, effort?}|null, routes: Array, adaptive: boolean}|null}
  */
 export function loadModelRoutes(instanceRoot) {
   let raw;
@@ -72,7 +78,7 @@ export function loadModelRoutes(instanceRoot) {
     : null;
   const usableDefault = def && (def.model || def.effort) ? def : null;
   if (!routes.length && !usableDefault) return null;
-  return { default: usableDefault, routes };
+  return { default: usableDefault, routes, adaptive: raw?.adaptive === true };
 }
 
 /**

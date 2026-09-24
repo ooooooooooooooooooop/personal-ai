@@ -2986,3 +2986,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（flows list|show|cancel）**：**已覆盖**——`task_list`（team 字段区分 `wf-*` 多步流与单任务流=手动多任务/单任务自动流的分离）、`task_events`（show）、`task_interrupt`（cancel）三操作齐备，控制面等价。
 - **证据**：`pi/tests/channel-facade.test.js` +1=49/49（启用态通行、置旗即拒+带名错误+零模型调用、steer 同拒、live 翻转重启用、畸形文件不禁用、非 AI 面不受影响）。
 - **核销**：candidates-open #2101 → `candidates-resolved.tsv` #147。
+
+### 28.144 648 清单逐条核销 #148：dedup-h #2118 cli-flags——model-router: Adaptive 默认 model 按任务自动路由（2026-09-25）
+
+- **行**：`dedup-h  2118  cli-flags  model-router: Adaptive默认model按任务自动路由`（描述段为 crush `projects` 命令片段："列出 Crush 所知的你用过的项目"）。
+- **判定**：标题 **IMPLEMENTED(variant)**；描述 **IMPLEMENTED**。
+  - **标题语义（Adaptive 按任务路由）**：源语义=默认 model 为 Adaptive、每轮按任务路由最佳模型、/model 可显式覆盖。落点：既有 `model-routes.json` 表（确定性规则、无 LLM 判官=我方既有姿态）扩顶层 `"adaptive": true` 即让**主会话**入表——`sessionFacade.prompt` 准入时对任务文本 `resolveRoute({target:'main'})`，命中即 `setModel` 切本轮模型（`provider/id` 或裸 id 经 `getAvailable` 解析）、effort 映射 thinking 档（max→xhigh，非推理模型降级不毁 prompt）；`MODEL_ROUTED`/`MODEL_ROUTE_FAILED` 审计。显式 `model_set`/`config_set model` 钉出 adaptive（crush 对位：选具体 model 即退出 Adaptive），`MODEL_ADAPTIVE_PINNED` 审计；别名 `adaptive` 解钉回路由（`MODEL_ADAPTIVE_UNPINNED`）；未命中不动当前模型（"无规则"≠搅动操作员默认）。**variant 注明**：crush 的 Adaptive 是 harness 内建判官，我方路由表是操作员自写的确定性规则——同一"按任务自动路由"语义，判定者归属不同是诚实差异。
+  - **描述语义（projects 命令）**：新 `project_list` 通道 op → `sessionsFacade.projects()` 扫 instance 会话仓首行头取 `cwd` 去重，返回 `{cwd, sessions, lastModified}` 按最近活动排序；坏头跳过不致命。会话仓即"agent 跑过的项目"事实源，等价 crush `projects`。
+- **证据**：`modelroutes.test.js` +1=4/4（adaptive 标志透传）；`channel-facade.test.js` +1=50/50（按文本路由、显式 pick 钉出、adaptive 别名解钉、未命中不切换）；`bootstrap.test.js` +1=43/43（project_list 去重+排序+坏头跳过）；host 417/417。
+- **核销**：candidates-open #2118 → `candidates-resolved.tsv` #148。

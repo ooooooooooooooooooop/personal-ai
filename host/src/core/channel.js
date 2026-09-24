@@ -29,6 +29,8 @@
  *   provider_add {id,baseUrl,api,model,…} → register a custom OpenAI/Anthropic-
  *                               compatible provider in the body's model store
  *   session_list {}         → persisted sessions for this workdir
+ *   project_list {}         → distinct workdirs in this instance's session
+ *                             store (crush `projects` analogue)
  *   session_new {}          → start a fresh persisted session
  *   session_switch {path}   → resume a persisted session
  *   session_rename {name}   → name the current session
@@ -423,6 +425,10 @@ export class HostChannel {
         case 'session_list': {
           if (!this.sessions?.list) return reply(false, undefined, 'sessions facade unavailable');
           return reply(true, await this.sessions.list());
+        }
+        case 'project_list': {
+          if (!this.sessions?.projects) return reply(false, undefined, 'projects facade unavailable');
+          return reply(true, await this.sessions.projects());
         }
         case 'session_new': {
           // M71: ephemeral:true → in-memory session (no file, not listed)
