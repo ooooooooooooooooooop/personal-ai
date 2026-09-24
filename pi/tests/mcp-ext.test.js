@@ -1646,3 +1646,56 @@ test('openBrowser: per-platform argv, kill-switch, non-http refused', () => {
   }
   assert.equal(calls.length, 3, 'kill-switch suppresses the spawn');
 });
+
+// dedup-h #1221 — a 401 at connect is an AUTH REQUIRED signal: typed error,
+// operator notification hook, and /mcp "NEEDS AUTH" — never a silent dead
+// server.
+test('mcp http 401 at connect → MCP_AUTH_REQUIRED with actionable message', async () => {
+  const server = createServer((req, res) => {
+    res.statusCode = 401;
+    res.setHeader('www-authenticate', 'Bearer realm="mcp"');
+    res.end('unauthorized');
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    await assert.rejects(
+      () => McpClient.connect({ url: `http://127.0.0.1:${server.address().port}/mcp`, transport: 'http' }, { serverName: 'vault' }),
+      (err) => {
+        assert.equal(err.code, 'MCP_AUTH_REQUIRED');
+        assert.match(err.message, /requires OAuth authorization/);
+        assert.match(err.message, /\/mcp-auth vault/);
+        return true;
+      },
+    );
+  } finally {
+    server.close();
+  }
+});
+
+test('mcp 401 marks entry authRequired + fires onAuthRequired; /mcp shows NEEDS AUTH', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp401-'));
+  const server = createServer((req, res) => { res.statusCode = 401; res.end(); });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  const prevCfg = process.env.PAI_MCP_CONFIG;
+  const prevHook = mcpOperatorSurface.onAuthRequired;
+  const authed = [];
+  mcpOperatorSurface.onAuthRequired = (n) => authed.push(n);
+  try {
+    writeFileSync(join(dir, 'mcp.json'), JSON.stringify({
+      mcpServers: { vault: { url: `http://127.0.0.1:${server.address().port}/mcp`, transport: 'http' } },
+    }));
+    process.env.PAI_MCP_CONFIG = join(dir, 'mcp.json');
+    const pi = fakePi();
+    await mcpExtension(pi);
+    await new Promise((r) => setTimeout(r, 800)); // boot connect is async
+    assert.deepEqual(authed, ['vault'], 'operator auth hook fired once');
+    const notices = [];
+    await pi.commands.get('mcp').handler({ ui: { notify: (msg, level) => notices.push({ msg, level }) } });
+    assert.match(notices[0].msg, /vault: NEEDS AUTH/);
+    assert.match(notices[0].msg, /\/mcp-auth vault/);
+  } finally {
+    mcpOperatorSurface.onAuthRequired = prevHook;
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    server.close();
+  }
+});

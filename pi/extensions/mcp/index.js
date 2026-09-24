@@ -506,6 +506,10 @@ export const mcpOperatorSurface = {
   // dedup-h #1112 — fired for EVERY post-build tool registration so the
   // bootstrap can re-run visibility filters (allowlist/mode) on late tools.
   onToolRegistered: null,
+  // dedup-h #1221 — fired once per server whose connect/handshake died on
+  // a 401: the host turns it into an operator notification pointing at
+  // /mcp-auth instead of a silent dead entry.
+  onAuthRequired: null,
 };
 
 // dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
@@ -731,6 +735,17 @@ function httpTransport(spec, { serverName = null } = {}) {
       tokens.invalidate();
       res = await doPost();
     }
+    // dedup-h #1221 — a 401 that survives the token retry (or arrives with
+    // no oauth configured at all) is an AUTH REQUIRED signal, not a generic
+    // HTTP failure: surface it typed so the caller can prompt the operator
+    // to authorize instead of silently failing. WWW-Authenticate rides
+    // along for diagnostics/discovery.
+    if (res.status === 401) {
+      throw new McpError(
+        `mcp server '${serverName ?? spec.url}' requires OAuth authorization (HTTP 401) — run /mcp-auth ${serverName ?? '<server>'}`,
+        { code: 'MCP_AUTH_REQUIRED', wwwAuthenticate: res.headers.get('www-authenticate') ?? null },
+      );
+    }
     const sid = res.headers.get('mcp-session-id');
     if (sid) sessionId = sid;
     return res;
@@ -791,7 +806,15 @@ function sseTransport(spec, { serverName = null } = {}) {
       headers: { accept: 'text/event-stream', ...(await authHeaders()) },
       signal: ac.signal,
     });
-    if (!res.ok || !res.body) throw new McpError(`sse connect failed: HTTP ${res.status}`, { code: 'MCP_CONNECT' });
+    if (!res.ok || !res.body) {
+      if (res.status === 401) {
+        throw new McpError(
+          `mcp server '${serverName ?? spec.url}' requires OAuth authorization (HTTP 401) — run /mcp-auth ${serverName ?? '<server>'}`,
+          { code: 'MCP_AUTH_REQUIRED', wwwAuthenticate: res.headers.get('www-authenticate') ?? null },
+        );
+      }
+      throw new McpError(`sse connect failed: HTTP ${res.status}`, { code: 'MCP_CONNECT' });
+    }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = '';
@@ -849,6 +872,10 @@ function sseTransport(spec, { serverName = null } = {}) {
     if (res.status === 401 && tokens) { tokens.invalidate(); res = await sendOnce(); }
     return res;
   };
+  // dedup-h #1221 — a 401 that survives the token retry (or has no oauth)
+  // is AUTH REQUIRED, phrased so the operator sees the remedy, not just
+  // a bare status.
+  const authErr = () => `mcp server '${serverName ?? spec.url}' requires OAuth authorization (HTTP 401) — run /mcp-auth ${serverName ?? '<server>'}`;
 
   return {
     kind: 'sse',
@@ -859,7 +886,7 @@ function sseTransport(spec, { serverName = null } = {}) {
       if (closed) return;
       handshake.then(() => doPost(msg)).then((res) => {
         if (res.status >= 400 && msg.id != null) {
-          pending.onMessage?.({ jsonrpc: '2.0', id: msg.id, error: { code: -32000, message: `sse POST HTTP ${res.status}` } });
+          pending.onMessage?.({ jsonrpc: '2.0', id: msg.id, error: { code: res.status === 401 ? -32401 : -32000, message: res.status === 401 ? authErr() : `sse POST HTTP ${res.status}` } });
         }
       }).catch((e) => {
         if (msg.id != null) {
@@ -1373,10 +1400,15 @@ export default function mcpExtension(pi) {
             } catch { /* refresh failure keeps the last-known catalog */ }
           })();
         }
-      } catch {
+      } catch (err) {
         // connect/handshake failure → this server contributes no tools;
-        // /mcp reports it as failed so the operator can see why
-        connected.set(name, { client: null, tools: [], spec, failed: true });
+        // /mcp reports it as failed so the operator can see why.
+        // dedup-h #1221: a 401 is not a generic failure — mark the entry
+        // authRequired and raise the operator hook so the UI can offer the
+        // /mcp-auth path instead of a silent dead server.
+        const authRequired = err?.code === 'MCP_AUTH_REQUIRED';
+        connected.set(name, { client: null, tools: [], spec, failed: true, authRequired });
+        if (authRequired) mcpOperatorSurface.onAuthRequired?.(name);
       }
       return connected.get(name);
     };
@@ -1410,7 +1442,9 @@ export default function mcpExtension(pi) {
       }
       for (const [name, entry] of connected) {
         lines.push(entry.failed
-          ? `  ${name}: FAILED to connect/list — no tools exposed`
+          ? (entry.authRequired
+            ? `  ${name}: NEEDS AUTH (HTTP 401) — run /mcp-auth ${name} to authorize, then restart the session`
+            : `  ${name}: FAILED to connect/list — no tools exposed`)
           : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
         if (entry.client?.strippedEnv?.length) lines.push(`    env stripped (injection-vector keys): ${entry.client.strippedEnv.join(', ')}`);
         if (entry.client?.oauth) lines.push(`    auth: ${entry.client.oauth}`);

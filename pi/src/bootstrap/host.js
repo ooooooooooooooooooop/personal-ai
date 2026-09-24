@@ -1063,6 +1063,13 @@ export async function startHost({
   // #1112 — a tool landing after the surface exists re-runs the filters so an
   // allowlist/mode hide covers late arrivals (reconcile is a cheap re-filter).
   mcpOperatorSurface.onToolRegistered = () => toolSurface?.reconcile();
+  // dedup-h #1221 — a remote server answering 401 at connect is an AUTH
+  // prompt, not a silent dead server: notify the operator with the remedy.
+  mcpOperatorSurface.onAuthRequired = (name) => channelHandle?.channel.emitEvent({
+    type: 'notify',
+    level: 'warning',
+    message: `mcp server '${name}' requires OAuth authorization — run /mcp-auth ${name} to authorize, then restart the session`,
+  });
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
   let currentGovernor = null; // evidence contract governor — goals status source
   let currentLoopwatch = null; // per-session detector — pump feeds results into it
