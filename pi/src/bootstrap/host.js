@@ -1693,6 +1693,7 @@ export async function startHost({
     btw: async (message) => {
       const liveFile = currentSession?.sessionManager?.getSessionFile?.();
       if (!liveFile) throw new Error('no live session to fork for btw');
+      assertForkableSource(liveFile); // #1284 — the live transcript can cross the cap mid-session too
       const forkMgr = sessionManagers.forkFrom(liveFile, workdir, sessionDir);
       const forkFile = forkMgr?.getSessionFile?.() ?? forkMgr?.path ?? null;
       const built = await buildSession(forkMgr, { posture: 'btw-readonly' });
