@@ -12,6 +12,7 @@ import { isIP } from 'node:net';
 import { join, dirname, resolve } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from './paths.js';
 import { isPrivateResolved } from './web.js';
+import { parseSecretRef, resolveSecretRef } from '../../../host/src/core/secretsource.js';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
@@ -101,7 +102,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null, preToolGate = null, assist = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null, preToolGate = null, assist = null, secretSpawnFn = null }) {
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -1017,16 +1018,22 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       if (/^(sk-[x*]{2,}|sk-your|your[-_]|[x*]{4,}|changeme|test[-_]?key|placeholder|api[-_]?key[-_]?(here|goes)|<|insert|paste)/i.test(key) || key.length < 8) {
         return { provider, hasAuth: false, error: 'key looks like a placeholder — paste the real credential' };
       }
-      if (/^op:\/\//.test(key) || /^bw:\/\//.test(key)) {
-        const { execFileSync } = await import('node:child_process');
-        try {
-          resolved = /^op:\/\//.test(key)
-            ? execFileSync('op', ['read', key], { timeout: 15_000, encoding: 'utf-8', windowsHide: true }).trim()
-            : execFileSync('bw', ['get', 'password', key.slice(5)], { timeout: 15_000, encoding: 'utf-8', windowsHide: true }).trim();
-        } catch (e) {
-          return { provider, hasAuth: false, error: `secret-source resolve failed: ${e.message?.slice(0, 200) ?? 'unknown'}` };
-        }
-        if (!resolved) return { provider, hasAuth: false, error: 'secret source returned an empty value' };
+      if (/^(?:op|bw):\/\//.test(key) && !parseSecretRef(key)) {
+        return { provider, hasAuth: false, error: `malformed secret reference — expected op://<vault>/<item>/<field> or bw://<item>[/<field>]` };
+      }
+      if (parseSecretRef(key)) {
+        // dedup-h #1402→#1406 — route through the single secretsource broker:
+        // secrets.json opt-in gate + items allowlist + minimized env +
+        // timeout/output caps. The previous inline execFileSync resolved
+        // op://bw:// unconditionally — the fail-closed contract says a scheme
+        // resolves ONLY when the operator enabled it.
+        const r = resolveSecretRef(key, { instanceRoot: core.paths.root, spawnFn: secretSpawnFn });
+        core.audit?.write({
+          kind: 'SECRET_SOURCE_RESOLVE',
+          data: { tool: 'auth_set_key', provider, scheme: r.scheme ?? parseSecretRef(key)?.scheme, item: r.item ?? null, ok: r.ok === true },
+        });
+        if (!r.ok) return { provider, hasAuth: false, error: `secret-source resolve refused: ${r.reason}` };
+        resolved = r.value;
       }
       await box.s.modelRuntime.setRuntimeApiKey(provider, resolved);
       return { provider, hasAuth: true };

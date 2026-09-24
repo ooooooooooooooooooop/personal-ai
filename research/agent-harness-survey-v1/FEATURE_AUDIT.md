@@ -2541,3 +2541,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **覆盖诚实声明**：egress 门装在 `globalThis.fetch`——主模型调用、judgeCall 次级调用（wand/rewrite）、自动重试全部走同一门，无直 fetch 旁路；非 provider 流量的私网 fetch 不受影响（该门面属 web 工具域控不是本候选）。WS/SDK 传输不在此门面（budgetfetch 不变量声明）。
 - **证据**：`pi/tests/budgetfetch.test.js` +7（无私网旗标 403+审计+零字节出站；loopback/link-local 默认拒；opt-in 精确 scoped 放行而另一私网 provider 仍拒；公网字面量不受影响；非 provider 私网流量不拦；egress 先于预算裁决；`collectPrivateAllowedHosts` flag/auth-override/$ENV/畸形 fail-closed）；`pi/tests/wand.test.js` +2 e2e（无旗标 loopback feature-model 端点 command_rewrite fail-closed+审计行；provider_add 私网无旗标拒、有旗标持久化、公网免旗标）；`host/tests/channel.test.js` +1（allowPrivateNetwork spec 透传/缺省无键）；既有 fixture 补旗标（acceptance/compiled-e2e/wand 的 127.0.0.1 自托管端点——诚实语义顺带覆盖正路径）。
 - **核销**：candidates-open #1402 → `candidates-resolved.tsv` #104。
+
+### 28.101 648 清单逐条核销 #105：dedup-h #1406 secrets——1Password broker 可选 SecretRef 解析（2026-09-24）
+
+- **行**：`dedup-h  1406  approval-gate  secrets: 1Password broker可选SecretRef解析`。
+- **判定**：**IMPLEMENTED（修一条绕过 broker 的旁路）**。broker 本体早已存在——`host/src/core/secretsource.js`：`op://<vault>/<item>/<field>`/`bw://<item>[/<field>]` 解析，**secrets.json opt-in 门**（scheme 未启用即拒）、`items` 前缀白名单、`execFileSync` argv 无 shell、15s/256KB 界、最小 env（PATH/HOME + CLI 会话变量）、失败分类 fail-closed、永不回显密钥。`env_set` 早已走它。本次审查发现 **`auth_set_key`（`pi/src/adapter/channel.js setApiKey`）自带一套裸 `execFileSync('op'|'bw')` 旁路**——无条件解析（绕过 secrets.json opt-in）、无 items 白名单、全量 env 继承（PAI_ 凭据全暴露给 CLI 子进程）、无审计。现改为统一走 `resolveSecretRef`：`op://`/`bw://` 前缀但解析失败的输入 fail-closed 报"malformed secret reference"（旧行为是裸调 CLI 失败后报模糊错误）；解析写 `SECRET_SOURCE_RESOLVE` 审计（scheme/item/ok，永不带值）；`createChannelHost` 加 `secretSpawnFn` 测试缝（生产不注入，与 envtools 的 spawnFn 同型）。
+- **行为变化（有意为之）**：`op://` key 现在要求 operator 在 `<instance>/secrets.json` 显式启用 `op` 源——与 env_set 同一 fail-closed 契约，不再无条件调外部 CLI。
+- **证据**：`pi/tests/channel-facade.test.js` +3——opt-in 解析端到端（spawn args 正确、解析值而非 ref 入 credential store、`SECRET_SOURCE_RESOLVE` 审计行且不含密钥）；无 secrets.json → "not enabled" 拒 + 不入库；allowlist 前缀外 item 拒 + 畸形 `op://onlyvault` 报 malformed。`host/tests/secretsource.test.js` 原有 broker 单测不动（解析器本体未变）。channel-facade 45/45、聚焦组（budgetfetch/wand/authbang/envtools）36/36。
+- **核销**：candidates-open #1406 → `candidates-resolved.tsv` #105。

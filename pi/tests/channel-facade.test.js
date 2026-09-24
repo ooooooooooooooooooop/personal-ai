@@ -1409,3 +1409,85 @@ test('dedup-h #1188: message_sent hook fires on assistant message with enriched 
   assert.ok(!fired.some((f) => f.ev === 'message_sent'), 'non-assistant / usage-less messages do not fire');
   dispose();
 });
+
+// ── dedup-h #1406: auth_set_key secret refs route through the broker ─────────
+// op://bw:// resolution must honor secrets.json opt-in + allowlist + audit —
+// the previous inline execFileSync bypassed all three.
+
+test('#1406 auth_set_key: op:// ref resolves through secretsource broker (opt-in + spawn args + audit)', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-secret-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  writeFileSync(join(dir, 'secrets.json'), JSON.stringify({
+    sources: { op: { bin: 'op' } },
+  }));
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const stored = [];
+  fakeSessionRef.modelRuntime = {
+    setRuntimeApiKey: async (p, k) => stored.push([p, k]),
+    removeRuntimeApiKey: async () => {},
+  };
+  const spawned = [];
+  const spawnFn = (bin, args) => { spawned.push([bin, ...args]); return 's3cr3t-value'; };
+  const core = { paths: { auditDir, root: dir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, secretSpawnFn: spawnFn });
+
+  const r = await ch.handle({ type: 'auth_set_key', provider: 'x', key: 'op://vault/item/field' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.hasAuth, true);
+  assert.deepEqual(stored, [['x', 's3cr3t-value']], 'resolved secret stored, not the ref');
+  assert.deepEqual(spawned, [['op', 'read', 'op://vault/item/field']], 'broker invoked with read args');
+  dispose();
+  const rows = readFileSync(join(auditDir, `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+    .trim().split('\n').map((l) => JSON.parse(l));
+  const row = rows.find((e) => e.kind === 'SECRET_SOURCE_RESOLVE');
+  assert.ok(row, 'resolution audited');
+  assert.equal(row.data.ok, true);
+  assert.equal(row.data.scheme, 'op');
+  assert.ok(!JSON.stringify(row).includes('s3cr3t'), 'audit never carries the secret');
+});
+
+test('#1406 auth_set_key: op:// ref WITHOUT secrets.json enablement fails closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-secret2-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  let stored = false;
+  fakeSessionRef.modelRuntime = { setRuntimeApiKey: async () => { stored = true; }, removeRuntimeApiKey: async () => {} };
+  const core = { paths: { auditDir, root: dir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  const r = await ch.handle({ type: 'auth_set_key', provider: 'x', key: 'op://vault/item/field' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.hasAuth, false);
+  assert.match(r.data.error, /not enabled/);
+  assert.equal(stored, false, 'refused ref never reaches the credential store');
+  dispose();
+});
+
+test('#1406 auth_set_key: item outside the secrets.json allowlist refused; malformed ref refused', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-secret3-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  writeFileSync(join(dir, 'secrets.json'), JSON.stringify({
+    sources: { op: { bin: 'op', items: ['prod/'] } },
+  }));
+  let stored = false;
+  fakeSessionRef.modelRuntime = { setRuntimeApiKey: async () => { stored = true; }, removeRuntimeApiKey: async () => {} };
+  const core = { paths: { auditDir, root: dir } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  const off = await ch.handle({ type: 'auth_set_key', provider: 'x', key: 'op://dev/item/field' });
+  assert.equal(off.data.hasAuth, false);
+  assert.match(off.data.error, /allowlist/);
+  const mal = await ch.handle({ type: 'auth_set_key', provider: 'x', key: 'op://onlyvault' });
+  assert.equal(mal.data.hasAuth, false);
+  assert.match(mal.data.error, /malformed secret reference/);
+  assert.equal(stored, false);
+  dispose();
+});
