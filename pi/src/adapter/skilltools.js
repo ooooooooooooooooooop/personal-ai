@@ -23,8 +23,19 @@ const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,60}$/i;
 const BODY_CAP = 32 * 1024;
 
-export function skillTools({ workdir, audit, getAsks = null, requestMode = null, requestModel = null }) {
+export function skillTools({ workdir, audit, getAsks = null, requestMode = null, requestModel = null, builtinDir = null }) {
   const dir = (kind) => join(workdir, '.pai', kind);
+  // dedup-h #655: built-in presets ship with the body (e.g. deep-research).
+  // The workdir recipe always wins — a bundled preset is a default, never a
+  // shadow over the operator's own package.
+  const resolveRecipe = (name) => {
+    const own = join(dir('recipes'), `${name}.md`);
+    try { return readFileSync(own, 'utf-8'); } catch { /* fall through */ }
+    if (builtinDir) {
+      try { return readFileSync(join(builtinDir, `${name}.md`), 'utf-8'); } catch { /* fall through */ }
+    }
+    return null;
+  };
   const write = (kind, name, content) => {
     mkdirSync(dir(kind), { recursive: true });
     const file = join(dir(kind), `${name}.md`);
@@ -250,9 +261,8 @@ export function skillTools({ workdir, audit, getAsks = null, requestMode = null,
       async execute(_id, p) {
         const name = String(p?.name ?? '').trim();
         if (!SLUG.test(name)) return err('recipe_run: name must be kebab-case (a-z, 0-9, _ or -)');
-        const file = join(dir('recipes'), `${name}.md`);
-        let raw = '';
-        try { raw = readFileSync(file, 'utf-8'); } catch { return err(`recipe '${name}' not found in .pai/recipes/`); }
+        const raw = resolveRecipe(name);
+        if (raw == null) return err(`recipe '${name}' not found in .pai/recipes/ or the bundled presets`);
         const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
         const meta = m?.[1] ?? '';
         const body = (m ? m[2] : raw).trim();

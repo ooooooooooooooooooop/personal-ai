@@ -853,6 +853,9 @@ export async function startHost({
         spec, asks, toolCallId,
         runChannel: (cmd) => channelHandle?.channel.handle(cmd),
       }),
+      // dedup-h #655: bundled recipe presets (pi/recipes/) resolve after the
+      // workdir's own .pai/recipes — operator package always wins.
+      builtinDir: join(PI_ROOT, 'recipes'),
     }),
     // Claude ExitPlanMode analogue: the model REQUESTS a mode switch; the
     // operator approves on an ask card. Never self-applies — a model asking

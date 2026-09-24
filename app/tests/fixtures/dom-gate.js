@@ -311,10 +311,21 @@ const DRIVER = `(async () => {
     inputEl.value = ''; pendingAttach.length = 0; renderAttach();
     inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    /* dedup-h #655 — /deep-research sends the recipe_run instruction as a
+     * real prompt; the echo proves the full send path ran. The bang turn
+     * left a scripted ask pending — resolve it first so send() doesn't
+     * queue behind a busy session. */
+    document.querySelector('.ask-btn[data-a="allow"]')?.click();
+    await waitFor('.sys,.msg', (e) => e.textContent.includes('done'), 8000);
+    await sleep(400);
+    await SLASH.find((s) => s.cmd === '/deep-research').run('固态电池产业链');
+    const drEcho = await waitFor('.msg', (e) => e.textContent.includes('recipe_run') && e.textContent.includes('固态电池产业链'), 10000);
+    checks.deepResearch = { ok: !!drEcho, text: drEcho?.textContent?.slice(0, 100) ?? '' };
+
     /* dedup-h #571 — session_command 'new' (Cline new_task): the model asks
      * for a fresh session whose first message is its handoff briefing; the
-     * briefing rides the same prompt path as operator text. The bang turn
-     * left a scripted ask pending — resolve it so the request can drain. */
+     * briefing rides the same prompt path as operator text. The deep-
+     * research turn left its scripted ask pending — resolve so 'new' drains. */
     document.querySelector('.ask-btn[data-a="allow"]')?.click();
     await waitFor('.sys,.msg', (e) => e.textContent.includes('done'), 8000);
     await sleep(400); // let agent_end clear busy so the queued request drains

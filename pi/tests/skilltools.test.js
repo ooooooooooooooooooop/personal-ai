@@ -222,3 +222,32 @@ test('dedup-h #146: recipe frontmatter model: requests a governed switch on trig
   assert.match(r4.content[0].text, /mode 'review'/);
   assert.match(r4.content[0].text, /model 'fake\/fake-3'/);
 });
+
+// dedup-h #655: bundled recipe presets resolve after the workdir's own —
+// the operator's package always shadows a builtin.
+test('recipe_run: bundled preset resolves when workdir lacks it; workdir shadows builtin', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-recipe-builtin-'));
+  const builtin = mkdtempSync(join(tmpdir(), 'pai-recipe-bundled-'));
+  writeFileSync(join(builtin, 'deep-research.md'),
+    '---\ndescription: multi-angle\nparams: topic(required), angles=4\n---\nResearch {{topic}} across {{angles}} angles.');
+  const tools = skillTools({ workdir: dir, audit: null, builtinDir: builtin });
+  const recipe = tools.find((t) => t.name === 'recipe_run');
+
+  // builtin resolves; defaults fill; missing required still refused
+  const bad = await recipe.execute('t1', { name: 'deep-research', args: {} });
+  assert.equal(bad.isError, true);
+  assert.match(bad.content[0].text, /topic/);
+  const good = await recipe.execute('t2', { name: 'deep-research', args: { topic: 'fusion' } });
+  assert.match(good.content[0].text, /Research fusion across 4 angles/);
+
+  // workdir file wins over the same-named builtin
+  mkdirSync(join(dir, '.pai', 'recipes'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'recipes', 'deep-research.md'), '---\nparams: topic(required)\n---\nOWN: {{topic}}');
+  const own = await recipe.execute('t3', { name: 'deep-research', args: { topic: 'fusion' } });
+  assert.match(own.content[0].text, /OWN: fusion/, 'workdir recipe must shadow the bundled preset');
+
+  // absent everywhere → honest miss naming both search roots
+  const miss = await recipe.execute('t4', { name: 'ghost' });
+  assert.equal(miss.isError, true);
+  assert.match(miss.content[0].text, /bundled presets/);
+});

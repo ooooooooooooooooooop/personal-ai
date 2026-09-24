@@ -2407,3 +2407,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：ALREADY_COVERED（M83 同构；插件运行时缓存片=架构边界）。源条目（OpenClaw v2026.5.2）= 平台级 tool descriptor planner：descriptor-first 可见性 + generic availability 检查 + executor 引用 + 插件工具描述符缓存（prompt 规划免加载插件运行时）。我方 M83 四件套逐一对应：`tool_search` 在 **deferred 目录的 name+description** 上检索（全 schema 不露面=descriptor-first）；`activatable()` availability 谓词（denied/mode-hidden 不进搜索结果）；executor 引用=名字键解析——defer 只藏 schema surface，执行器对象在注册表原处，`tool_activate` 按需上表面，猜调 deferred 工具被 decide `tool_deferred` 拒；`defer-tools.json` 实例级声明。
 - **边界**：源特性的"插件描述符缓存跳过运行时加载"以独立插件运行时存在为前提——我方 managed extension/MCP 工具在 boot/连接时已构建，没有"可跳过的插件加载层"；defer 在我方是 surface 可见性而非加载延迟。机制语义全数落地。
 - **证据**：M83 测试现役绿（deferred 不 activate 不可调、denied 不可激活、activate 后调用通）；pi 425/421/0/4。
+
+### 28.86 648 清单逐条核销 #60：dedup-h #655 `/deep-research` 多角度并行研究预设（2026-09-23）
+
+- **判定**：IMPLEMENTED。源条目（v2.105.0）= 内建 deep research workflow + `/deep-research` 命令：一句话发起多角度并行研究，进度走后台任务通知。落地三件套：**(a) 内建配方** `pi/recipes/deep-research.md`（params `topic(required), angles=4, report`——拆角度 → `workflow` 并行后台委派 → synthesize 汇成 `.pai/reports/*.md` → `notify_user` 知会，研究绝不内联编造）；**(b) recipe_run 解析序**：workdir `.pai/recipes/` 优先、内建 `pi/recipes/` 兜底（操作员配方永远压过内建默认）；**(c) UI `/deep-research <主题>`** 发送 recipe_run 调用指令走正常 prompt 链。
+- **边界诚实**：进度通知不是新机制——复用 job 生命周期事件 + `notify_user`；配方是编排指令而非新执行引擎（多角度并行靠既有 workflow/delegate 准入链，治理照常）。
+- **证据**：skilltools 10/10（builtin 解析+workdir 遮蔽+双根 miss 报实）；dom-gate `/deep-research` 发送含 recipe_run+topic 的真 prompt 并回显；pi 全套 428/424/0/4、app 25/26。

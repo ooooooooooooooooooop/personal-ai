@@ -3713,6 +3713,18 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #655 built-in deep research preset — the model expands the
+    // bundled recipe through recipe_run, then orchestrates the angles.
+    cmd: '/deep-research', label: '深度研究', hint: '/deep-research <主题>——多角度并行研究→markdown 报告',
+    run: async (arg) => {
+      const topic = String(arg ?? '').trim();
+      if (!topic) { addSys('用法：/deep-research <主题>——拆成多角度并行后台研究再汇成报告', true); return; }
+      input.value = `调用 recipe_run 工具运行内建配方 deep-research（参数 {"topic":${JSON.stringify(topic)}}），然后严格按照返回的配方指令执行编排。`;
+      autogrow();
+      await send();
+    },
+  },
+  {
     cmd: '/plans', label: '计划库', hint: '载入 .pai/plans/<name>.md 继续执行——agent 用 plan_save 固化',
     run: async (arg) => {
       const l = await cmd('files_list', { prefix: '.pai/plans/' });
