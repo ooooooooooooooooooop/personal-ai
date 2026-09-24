@@ -537,3 +537,38 @@ test('#1870 ambient context merges into every event payload', async () => {
   assert.equal(p2.event, 'session_start');
   assert.equal(p2.sessionId, undefined);
 });
+
+// dedup-h #1922 — transform_llm_output {text} answer: reshapes delivered
+// output; composes (later hooks see the transformed text); content-field
+// injection rule applies; malformed denies closed; workdir can't declare.
+test('#1922 transform_llm_output {text} contract', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const gateFile = join(w, 'gate-hooks.json');
+  // transform: two entries compose — second sees first's output
+  const t1 = join(w, 't1.js');
+  writeFileSync(t1, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({text:'MIDDLE'}));});`);
+  const t2 = join(w, 't2.js');
+  writeFileSync(t2, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const p=JSON.parse(d);console.log(JSON.stringify({text:p.text+'+TAIL'}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { transform_llm_output: [{ command: `node ${JSON.stringify(t1)}` }, { command: `node ${JSON.stringify(t2)}` }] } }));
+  const g = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const r = await g.fireGate('transform_llm_output', { text: 'ORIG' });
+  assert.equal(r.text, 'MIDDLE+TAIL');
+  // malformed → deny closed
+  const bd = join(w, 'bd.js');
+  writeFileSync(bd, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({text:'  '}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { transform_llm_output: [{ command: `node ${JSON.stringify(bd)}` }] } }));
+  const g2 = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const r2 = await g2.fireGate('transform_llm_output', { text: 'x' });
+  assert.match(r2.deny, /malformed text transform/);
+  // prompt-kind entry attempting transform without allowPromptInjection → refused
+  writeFileSync(gateFile, JSON.stringify({ hooks: { transform_llm_output: [{ prompt: 'rewrite this' }] } }));
+  const g3 = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn: async () => JSON.stringify({ text: 'MODEL REWRITE' }) });
+  const r3 = await g3.fireGate('transform_llm_output', { text: 'x' });
+  assert.match(r3.deny, /without allowPromptInjection/);
+  // workdir observational file can never declare it — agent must not filter its own output
+  cfg(w, { hooks: { transform_llm_output: [{ command: 'echo x' }] } });
+  const h = new HookRunner(w, { audit });
+  assert.deepEqual(h.events, []);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_CONFIG_ERROR' && e.data.rejectedEvents?.includes('transform_llm_output')));
+});

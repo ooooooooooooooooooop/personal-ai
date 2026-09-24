@@ -192,6 +192,47 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
             usage: ev.message.usage ?? null,
           });
         } catch { /* observational — never blocks the lifecycle */ }
+        // dedup-h #1922 — transform_llm_output gate: the operator-private
+        // hook may reshape the DELIVERED assistant text. Session state and
+        // the transcript keep the model's true output (no self-deception,
+        // audit trail intact); the emitted display gets the governed text
+        // via a follow-up message_update. A deny/error/withheld fails
+        // CLOSED — a broken filter never leaks unfiltered output.
+        if (preToolGate) {
+          const msg = ev.message;
+          // the gate sees the FULL text (bounded for stdin), not the 4000-char
+          // observational preview — a transform that only saw a prefix would
+          // silently truncate long outputs
+          const fullText = (Array.isArray(msg?.content) ? msg.content : [])
+            .map((c) => (c?.type === 'text' ? c.text : '')).join('').slice(0, 64000);
+          const showTransformed = (next) => emit({
+            type: 'message_update',
+            message: {
+              ...msg,
+              content: [
+                ...(Array.isArray(msg.content) ? msg.content.filter((c) => c?.type !== 'text') : []),
+                { type: 'text', text: next },
+              ],
+            },
+          });
+          if (fullText) {
+            preToolGate.fireGate('transform_llm_output', {
+              text: fullText, model: ev.message?.model ?? null, usage: ev.message.usage ?? null,
+            }).then((ans) => {
+              if (ans?.text) {
+                core.audit?.write({ kind: 'LLM_OUTPUT_TRANSFORMED', data: { before: fullText.length, after: ans.text.length } });
+                showTransformed(ans.text);
+              } else if (ans?.deny || ans?.requireApproval) {
+                const why = String(ans.deny ?? 'approval required').slice(0, 200);
+                core.audit?.write({ kind: 'LLM_OUTPUT_WITHHELD', data: { reason: why } });
+                showTransformed(`[llm output withheld by transform gate: ${why}]`);
+              }
+            }).catch((e) => {
+              core.audit?.write({ kind: 'LLM_OUTPUT_WITHHELD', data: { reason: String(e?.message ?? e).slice(0, 200) } });
+              showTransformed('[llm output withheld — transform gate failed closed]');
+            });
+          }
+        }
         // H-family auto-compact (Codex-style): at ≥90% of the context
         // window the body compacts itself once per threshold crossing —
         // announced via event + audit, never silently rewriting context.

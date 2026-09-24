@@ -2,7 +2,7 @@
  * M6 pi channel facade — real AgentSession subscribe + real audit file tail.
  * Asserts the facade translates Pi state into plain-data snapshots.
  */
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -1531,5 +1531,68 @@ test('vision-codec gate: heic/tiff degrade to descriptors; true codec wins', asy
   assert.ok(events.some((m) => m.event?.type === 'notify' && /格式不可读/.test(m.event.message ?? '')),
     'operator is told images degraded on codec');
   assert.ok(auditEvents.some((e) => e.kind === 'ATTACHMENT_CODEC_DEGRADED' && e.data.count === 2));
+  dispose();
+});
+
+// dedup-h #1922 — transform_llm_output gate: the operator-private hook
+// reshapes the DELIVERED assistant text via a follow-up message_update.
+// Session state + transcript keep the model's true output; deny/error
+// withholds the text fail-closed (a broken filter never leaks).
+test('dedup-h #1922: transform_llm_output rewrites delivered text; deny/error withholds fail-closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-tlo-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const core = { paths: { auditDir }, audit };
+
+  const auditTail = (d) => readdirSync(d).filter((f) => f.endsWith('.jsonl'))
+    .flatMap((f) => readFileSync(join(d, f), 'utf-8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)));
+  const events = [];
+  let answer = { text: 'GOVERNED OUTPUT' };
+  const gate = { fireGate: async (ev, p) => ev === 'transform_llm_output' ? (typeof answer === 'function' ? answer(p) : answer) : null };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, preToolGate: gate });
+  ch.subscribe((m) => events.push(m));
+  const settle = async () => { await new Promise((r) => setTimeout(r, 80)); };
+  const emitAssistantEnd = () => {
+    for (const l of [...listeners]) l({
+      type: 'message_end',
+      message: {
+        role: 'assistant', model: 'stub',
+        content: [{ type: 'thinking', thinking: 'hmm' }, { type: 'text', text: 'raw model output' }],
+        usage: { input: 10, output: 5 },
+      },
+    });
+  };
+
+  // 1. {text} → a follow-up message_update delivers the governed text; the
+  //    thinking block survives; the original message object is untouched
+  emitAssistantEnd();
+  await settle();
+  const upd = events.filter((m) => m.event?.type === 'message_update');
+  assert.equal(upd.length, 1, `one transform update expected, got ${JSON.stringify(events.map((m) => m.event?.type))}`);
+  const tblock = upd[0].event.message.content.find((c) => c.type === 'text');
+  assert.equal(tblock.text, 'GOVERNED OUTPUT');
+  assert.ok(upd[0].event.message.content.some((c) => c.type === 'thinking'), 'non-text blocks preserved');
+  assert.ok(auditTail(auditDir).some((e) => e.kind === 'LLM_OUTPUT_TRANSFORMED'), 'transform audited');
+
+  // 2. {deny} → delivered text withheld, never the raw output
+  events.length = 0; answer = { deny: 'leaks a secret' };
+  emitAssistantEnd();
+  await settle();
+  const upd2 = events.filter((m) => m.event?.type === 'message_update');
+  assert.equal(upd2.length, 1);
+  assert.match(upd2[0].event.message.content.find((c) => c.type === 'text').text, /withheld by transform gate: leaks a secret/);
+  assert.ok(!JSON.stringify(upd2[0]).includes('raw model output'), 'withheld notice never carries the raw text');
+  assert.ok(auditTail(auditDir).some((e) => e.kind === 'LLM_OUTPUT_WITHHELD'));
+
+  // 3. gate throws → fail closed, withheld
+  events.length = 0; answer = () => { throw new Error('hook exploded'); };
+  emitAssistantEnd();
+  await settle();
+  const upd3 = events.filter((m) => m.event?.type === 'message_update');
+  assert.equal(upd3.length, 1);
+  assert.match(upd3[0].event.message.content.find((c) => c.type === 'text').text, /withheld.*failed closed/);
   dispose();
 });

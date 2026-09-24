@@ -86,7 +86,7 @@ export const HOOK_EVENTS = new Set([
 // call); 'post_tool' is the after_tool event — fired on the tool_result
 // seam, its {"append":"…"} answers append text to the result the model
 // sees, {"deny"} suppresses the output (gate vocabulary stays fail-closed).
-export const GATE_EVENTS = new Set(['pre_tool', 'post_tool', 'session_directory', 'prompt_submit', 'agent_stop', 'before_branch']);
+export const GATE_EVENTS = new Set(['pre_tool', 'post_tool', 'session_directory', 'prompt_submit', 'agent_stop', 'before_branch', 'transform_llm_output']);
 // dedup-h #1034: 'agent_stop' in the gate file may answer {"block"|"deny":
 // "reason"} — the caller re-prompts the agent with the reason instead of
 // letting the turn end (Claude Code Stop-hook semantics). An entry flag
@@ -295,17 +295,20 @@ export class HookRunner {
     //                  receives the rewritten args in its stdin payload.
     //   {"append":"…"} post_tool only — text appended to the tool result the
     //                  model sees; collected across entries.
+    //   {"text":"…"}   transform_llm_output only — reshapes the delivered
+    //                  output; composes like args (later hooks see it).
     // Both are content fields: model-backed (prompt/agent) entries need
     // allowPromptInjection to emit them (the #1143 rule), and a malformed
     // shape denies closed exactly like a broken veto.
     let rewritten;
+    let transformed;
     const appends = [];
     for (const h of entries) {
       const kind = this.#entryKind(h);
       const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, form: kind, command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
       try {
-        const r = await this.#runEntry(h, { ...this.#payloadFor(event, payload), ...(rewritten !== undefined ? { args: rewritten } : {}) }, timeoutMs);
+        const r = await this.#runEntry(h, { ...this.#payloadFor(event, payload), ...(rewritten !== undefined ? { args: rewritten } : {}), ...(transformed !== undefined ? { text: transformed } : {}) }, timeoutMs);
         this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
         // stdout JSON {"deny":"reason"} is the structured refusal; a bare
         // non-zero exit refuses with the output tail as the reason.
@@ -344,13 +347,27 @@ export class HookRunner {
           }
           appends.push(structured.append.slice(0, MAX_OUTPUT_CHARS));
         }
+        // dedup-h #1922 — {"text":"…"} transform_llm_output only: the hook
+        // reshapes the delivered LLM output text. Same composition rule as
+        // args — a later entry's stdin sees the already-transformed text.
+        // Content field: model-backed kinds need allowPromptInjection.
+        if (structured && structured.text !== undefined) {
+          if ((kind === 'prompt' || kind === 'agent') && !(h.allowPromptInjection === true || this.#allowInjection)) {
+            this.audit?.write({ kind: 'HOOK_INJECTION_REFUSED', data: { event, form: kind, stripped: ['text'] } });
+            return { deny: `${event} ${kind} hook attempted output transform without allowPromptInjection` };
+          }
+          if (typeof structured.text !== 'string' || !structured.text.trim()) {
+            return { deny: `${event} hook returned a malformed text transform (expected a non-empty string)` };
+          }
+          transformed = structured.text.slice(0, MAX_OUTPUT_CHARS);
+        }
       } catch (err) {
         this.audit?.write({ kind: 'HOOK_ERROR', data: { event, gate: true, error: String(err?.message ?? err).slice(0, 300) } });
         return { deny: `pre_tool hook failed closed: ${String(err?.message ?? err).slice(0, 200)}` };
       }
     }
-    if (rewritten !== undefined || appends.length) {
-      return { ...(rewritten !== undefined ? { args: rewritten } : {}), ...(appends.length ? { append: appends } : {}) };
+    if (rewritten !== undefined || transformed !== undefined || appends.length) {
+      return { ...(rewritten !== undefined ? { args: rewritten } : {}), ...(transformed !== undefined ? { text: transformed } : {}), ...(appends.length ? { append: appends } : {}) };
     }
     return null;
   }

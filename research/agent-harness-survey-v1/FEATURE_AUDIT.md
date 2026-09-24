@@ -2809,3 +2809,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **session 生命周期事件（finalize/reset）** = **IMPLEMENTED**：核查发现 **`session_end` 声明在 HOOK_EVENTS 却从不 fire**（声明-未发=不实契约），且 `session_start` 只在 channel 创建时发一次、rebuild 不重发——会话边界对 hooks 面完全不可见。落地三处（全观察性，hook 不可否决会话切换）：`rebuildSession` 在 abort 前 fire `session_end{sessionId:旧, reason}`（ambient context 读 currentSession 仍是旧会话，显式字段优先）；rebind 后 fire `session_start{sessionId:新, reason}` 与既有 emitEvent `session_changed` 对称；host `dispose()` fire `session_end{reason:'quit'}`——无切换的退出也有 finalize 边界。
 - **证据**：`pi/tests/bootstrap.test.js` +1=35/35——session_new 后 marker 序列含 boot session_start + `session_end{reason:'new'}` + `session_start{sessionId:新id, reason:'new'}`。
 - **核销**：candidates-open #1907 → `candidates-resolved.tsv` #130。
+
+### 28.127 648 清单逐条核销 #131：dedup-h #1922 skills-plugins——hook-events: transform_llm_output(reshape/filter LLM output)（2026-09-25）
+
+- **行**：`dedup-h  1922  skills-plugins  hook-events: transform_llm_output(reshape/filter LLM output)`（描述段为错位 Mode-dropdown 片段）。
+- **判定**：**IMPLEMENTED**。源语义：hook 可改写/过滤模型输出。核查真缺口——`llm_output`/`message_sent` 均为观察性（不可改），无输出治理面。落点设计（诚实语义）：
+  - **UI 真相**：assistant 文本经 `message_update` 增量流渲染，`message_end` 只挂 meta——transform 落 `message_end` 后以一条改写 `message_update` 追发，终态显示=治理后文本。
+  - **真值分层**：session state 与转录保留模型真实输出（模型不自欺、审计链完整）；emit 显示面拿治理文本；`LLM_OUTPUT_TRANSFORMED`/`LLM_OUTPUT_WITHHELD` 审计前后长度与理由——transform 永不静默。
+  - **信任边界**：仅 GATE_EVENTS——workdir `.pai/hooks.json` 声明即拒（agent 不可过滤自身输出）；`{text}` 为内容字段，prompt/agent 型条目需 `allowPromptInjection`（#1143 规则）；畸形→deny。
+  - **fail-closed**：`{deny}`/`requireApproval`/hook 抛错→emit 扣留通知替换显示文本——过滤器坏时绝不放行未过滤输出；gate 见全文（64k 界），非 4000 观察预览（避免前缀截断静默）。
+  - **组合语义**：`{text}` 与 `{args}` 同规则——逐条组合，后续 hook stdin 见已变换文本，末条生效。
+- **证据**：`host/tests/hooks.test.js` +1=411/411（双 hook 组合 `MIDDLE→MIDDLE+TAIL`、空白 text 畸形拒、prompt 型无 opt-in 拒、workdir 声明被拒）；`pi/tests/channel-facade.test.js` +1=47/47（`{text}`→message_update 追发改写+thinking 块保留+原 message 对象不染、`{deny}`→扣留通知不含原文、throw→failed closed 扣留、双审计落地）。
+- **核销**：candidates-open #1922 → `candidates-resolved.tsv` #131。
