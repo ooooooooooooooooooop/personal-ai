@@ -93,6 +93,7 @@ import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
 import { isTrusted, setTrust, hasInjectableContent, worktreeInfo, trustAllWorktreesEnabled, setTrustAllWorktrees } from '../../../host/src/core/trust.js';
 import { loadDotEnv } from '../../../host/src/core/dotenv.js';
+import { logLine } from '../../../host/src/core/logline.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool, askStructuredTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
@@ -1363,7 +1364,7 @@ export async function startHost({
     getProviderHosts: () => collectProviderHosts(currentSession?.modelRuntime),
     audit: core.audit,
     onGateEvent: process.env.PAI_BUDGET_GATE_DEBUG
-      ? (e) => process.stderr.write(`[budget-gate] ${JSON.stringify(e)}\n`)
+      ? (e) => logLine('budget-gate', 'gate event', { event: e })
       : null,
   });
 

@@ -17,6 +17,7 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { apply as applyAdapter, TOOL_IDENTITIES } from './world-model.js';
+import { logLine } from '../../../host/src/core/logline.js';
 
 // pi/src/adapter → repo root → mind/  (the toolchain that runs the cycle)
 const REPO_MIND = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'mind');
@@ -72,9 +73,12 @@ export function createWorldModelShim({ stateDir, canonicalDir, mode = 'off', bod
        * is the failure mode this whole section exists to prevent.
        */
       undeclared({ what, where, consequence } = {}) {
-        console.warn(`[world-model] ${what} is UNDECLARED (looked in ${where}) — `
+        // #3059 — diagnostics route through logLine so LOG_JSON turns them
+        // into structured records for log pipelines.
+        logLine('world-model', `${what} is UNDECLARED (looked in ${where}) — `
           + `${consequence}. Declare it through the pilot's U1 governance path; `
-          + 'until then the recurrence trigger is UNMEASURED, not off-by-default.');
+          + 'until then the recurrence trigger is UNMEASURED, not off-by-default.',
+          { what, where }, 'warn');
         return { undeclared: true, what };
       },
       request({ reason, prediction_id, verdict } = {}) {

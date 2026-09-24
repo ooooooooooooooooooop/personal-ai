@@ -2476,3 +2476,10 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - `resource`/`resource_link` 内容块本就在 `KNOWN_NONTEXT` 直通面（不丢），无声明的工具零污染。
 - **证据**：mcp-ext.test.js +1——假 stdio 服务器声明 `ui/resourceUri`，注册描述带 `ui-app:` 标注、调用结果 `details.ui` 携 URI、无 `_meta` 工具不标不染；mcp-ext+bootstrap 70/70；pi 全套复跑。
 - **核销**：candidates-open #1504 → `candidates-resolved.tsv` #98。
+
+### 28.95 648 清单逐条核销 #99：dedup-h #3059 `LOG_JSON` 结构化 JSON 日志（2026-09-24）
+
+- **行**：`dedup-h  3059  cli-flags  logging: LOG_JSON结构化JSON日志`。
+- **判定**：**IMPLEMENTED**——本 daemon 的协议 stdout 本来就是 JSONL、审计本就在审计仓；非结构化诊断 stderr 只剩两个发射点（world-model shim `undeclared` warn + budget-gate 调试）。落法：`host/src/core/logline.js` 统一咽喉——`LOG_JSON`/`PAI_LOG_JSON` 任一真值时每个诊断行输出单条 JSON `{ts, level, component, msg, ...fields}`（log pipeline 可解析）；关时保持原 `[component] msg` 人读格式；序列化失败降级纯文本行不炸调用方。两个现存发射点全部改经此咽喉。
+- **证据**：host/tests/logline.test.js 3/3（JSON 记录带 fields、PAI_ 变体等效、关时 bracket 人读）；host 399/399；pi bootstrap+world-model 56/51+5skip。
+- **核销**：candidates-open #3059 → `candidates-resolved.tsv` #99。
