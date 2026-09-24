@@ -639,3 +639,26 @@ test('M144 unicode_mode: ascii tier degrades event symbols, auto/unicode pass th
   const g = await ch.handle({ type: 'config_get' });
   assert.equal(g.data.unicode_mode, 'unicode');
 });
+
+test('#1392 command_rewrite — wand action routes to the assist facade; fail-closed without one', async () => {
+  const bare = new HostChannel({ session: fakeSession() });
+  const noFacade = await bare.handle({ type: 'command_rewrite', command: 'rm -rf a', instruction: 'only logs' });
+  assert.equal(noFacade.success, false);
+  assert.match(noFacade.error, /facade unavailable/);
+
+  const ch = new HostChannel({
+    session: fakeSession(),
+    assist: {
+      rewrite: async ({ command, instruction }) =>
+        instruction === 'boom'
+          ? { error: 'no model available for command rewrite' }
+          : { command: `${command} | head` },
+    },
+  });
+  const ok = await ch.handle({ type: 'command_rewrite', command: 'cat big.log', instruction: 'first lines only' });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.command, 'cat big.log | head');
+  const err = await ch.handle({ type: 'command_rewrite', command: 'cat big.log', instruction: 'boom' });
+  assert.equal(err.success, false);
+  assert.match(err.error, /no model available/);
+});

@@ -765,7 +765,9 @@ function addAskCard(ask) {
     const cmdStr = ask.args.command ?? ask.args.cmd;
     const editPair = [ask.args.oldText ?? ask.args.old_string, ask.args.newText ?? ask.args.new_string];
     if (cmdStr) {
-      payload.insertAdjacentHTML('beforeend', `<pre class="ask-cmd"></pre><textarea class="ask-edit hidden" spellcheck="false"></textarea><button class="ask-edit-toggle" type="button">编辑命令</button>`);
+      payload.insertAdjacentHTML('beforeend',
+        `<pre class="ask-cmd"></pre><textarea class="ask-edit hidden" spellcheck="false" aria-label="编辑待批准的命令"></textarea><button class="ask-edit-toggle" type="button">编辑命令</button>` +
+        `<div class="ask-wand hidden"><input class="ask-wand-in" aria-label="用自然语言描述想要的命令修改" placeholder="描述想要的修改（自然语言），如：改成只删 .log" spellcheck="false"><button class="ask-btn ask-wand-btn" type="button">✨ 改写</button></div>`);
       payload.querySelector('.ask-cmd').textContent = `$ ${cmdStr}`;
       // edit-then-approve (CodeBuddy/Claude): the card can carry the
       // operator's corrected command — the edited text replaces the args,
@@ -774,11 +776,33 @@ function addAskCard(ask) {
       const editBox = payload.querySelector('.ask-edit');
       editBox.value = String(cmdStr);
       const tog = payload.querySelector('.ask-edit-toggle');
+      const wandRow = payload.querySelector('.ask-wand');
       tog.onclick = () => {
         const on = editBox.classList.toggle('hidden');
+        wandRow.classList.toggle('hidden', on);
         tog.textContent = on ? '编辑命令' : '收起编辑';
         if (!on) editBox.focus();
       };
+      // dedup-h #1392 wand action: describe the change in plain language →
+      // command_rewrite (fast model) returns a rewrite FOR REVIEW — it fills
+      // the edit box; the operator still has to read it and approve. The
+      // approved payload carries {answer,edited} through the same M84
+      // hard-policy recheck — the wand can never weaken governance.
+      const wandBtn = payload.querySelector('.ask-wand-btn');
+      const wandIn = payload.querySelector('.ask-wand-in');
+      wandBtn.onclick = async () => {
+        const instruction = wandIn.value.trim();
+        if (!instruction) { wandIn.focus(); return; }
+        wandBtn.disabled = true;
+        wandBtn.textContent = '改写中…';
+        const r = await cmd('command_rewrite', { command: editBox.value, instruction });
+        wandBtn.disabled = false;
+        wandBtn.textContent = '✨ 改写';
+        if (!r.success) { toast(`改写失败：${r.error ?? '未知'}`, 'err'); return; }
+        editBox.value = String(r.data?.command ?? editBox.value);
+        toast('已改写——请审核后再批准');
+      };
+      wandIn.onkeydown = (e) => { if (e.key === 'Enter') wandBtn.click(); };
       div._editedCommand = () => {
         const v = editBox.value;
         return v !== String(cmdStr) ? v : null;
@@ -893,7 +917,11 @@ function addAskCard(ask) {
     };
     foot.appendChild(submitBtn);
   } else {
-  div.querySelectorAll('.ask-btn').forEach((b) => {
+  // #1392 — bind verdict submit ONLY to verdict buttons ([data-a]); other
+  // .ask-btn controls on the card (e.g. the wand rewrite button) keep their
+  // own handlers. A bare '.ask-btn' sweep used to overwrite them with a
+  // submit that carried answer=undefined.
+  div.querySelectorAll('.ask-btn[data-a]').forEach((b) => {
     b.onclick = async () => {
       div.querySelectorAll('.ask-btn').forEach((x) => { x.disabled = true; });
       let answer = b.dataset.a;
@@ -922,14 +950,19 @@ function markAskResolved(askId, answer) {
   const el = askCards.get(askId);
   if (!el) return;
   askCards.delete(askId);
-  el.classList.add('resolved', `a-${answer}`);
+  // dedup-h #1392 — an edited approval may arrive as the {answer,edited}
+  // envelope; normalize to the verdict before it becomes a label key or a
+  // CSS token. Free-text question answers contain spaces — DOMTokenList
+  // rejects tokens with spaces, so sanitize the class fragment too.
+  const verdict = answer && typeof answer === 'object' ? String(answer.answer ?? 'answered') : String(answer ?? '');
+  el.classList.add('resolved', `a-${verdict.replace(/[^-\w]/g, '_').slice(0, 40)}`);
   el.querySelector('.ask-foot')?.remove();
   el.querySelector('.ask-timer')?.remove();
   const tag = document.createElement('span');
-  tag.className = `ask-verdict ${answer === 'deny' || answer === 'timeout' ? 'no' : 'yes'}`;
-  tag.textContent = ANSWER_LABEL[answer]
-    ?? (answer === 'aborted' ? '已中止'
-      : (el.dataset.kind === 'question' ? `已回答：${String(answer).slice(0, 80)}` : String(answer)));
+  tag.className = `ask-verdict ${verdict === 'deny' || verdict === 'timeout' ? 'no' : 'yes'}`;
+  tag.textContent = ANSWER_LABEL[verdict]
+    ?? (verdict === 'aborted' ? '已中止'
+      : (el.dataset.kind === 'question' ? `已回答：${verdict.slice(0, 80)}` : verdict));
   el.querySelector('.ask-head').appendChild(tag);
 }
 

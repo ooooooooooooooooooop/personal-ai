@@ -1238,6 +1238,16 @@ body.side-collapsed #sidebar {
   border: 1px solid var(--line-strong); color: var(--text-2);
 }
 .ask-path, .tb-label { font-family: var(--mono); font-size: 11px; color: var(--text-4); margin-top: 4px; }
+
+/* dedup-h #1392 wand row: NL-described rewrite → fills the edit box for
+   review. Plain adjacent-sibling layout, no overlay. */
+.ask-wand { display: flex; gap: 6px; align-items: center; margin: 6px 0 4px; }
+.ask-wand-in {
+  flex: 1; font-size: 12px; padding: 6px 10px;
+  background: var(--field); border: 1px solid var(--line-sub);
+  border-radius: var(--r-sm); color: var(--text-2);
+}
+.ask-wand-btn { white-space: nowrap; }
 .diff-block {
   font-family: var(--mono); font-size: 11.5px; padding: 8px 12px;
   background: var(--field); border-radius: var(--r-sm);

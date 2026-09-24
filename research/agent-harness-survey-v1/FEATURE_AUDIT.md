@@ -2505,3 +2505,17 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **边界诚实声明**：`context` 只能收窄不能放宽——operator 私有配置里圈定即生效；workdir 可写配置里的 context 与其余字段同等信任级（agent 可写目录本就能新增无 context 条目，这是既有配置信任面，非本次新增暴露面）；空列表/非法值 → 收窄为不可见（fail-closed），`/mcp` 可见可诊断。
 - **证据**：mcp-ext.test.js +1——四 server 矩阵（无 context 全员可见 / `context:'reviewer'` 单值 / list 成员 / `'*'` 通配）在 operator 与 reviewer 两种 `PAI_AGENT_ID` 下连接结果正确，`/mcp` 列出 scoped 名单；jobs-executor.test.js +2——profile 委派经真 bridge 子进程把 `PAI_AGENT_ID=reviewer` 送达子体 env（fixture CHILD_ENV 回显实证），profile-less 委派子体收到 null（纯继承）；mcp-ext 40/40；pi 全套回归见提交说明。
 - **核销**：candidates-open #1390 → `candidates-resolved.tsv` #101。
+
+### 28.98 648 清单逐条核销 #102：dedup-h #1392 审批 UX——卡内编辑命令 + wand 自然语言改写（2026-09-24）
+
+- **行**：`dedup-h  1392  approval-ux  editable command approvals + wand action（permission card 点编辑改命令再批；wand 用自然语言描述修改由快速模型改写供审）`。
+- **判定**：**IMPLEMENTED**——编辑再批链路早已端到端实装（asks 校验 envelope→governance 换 args+硬策略重检+审计双哈希，M84 前半）；本次补齐 wand 后半并修掉两个真 bug：
+  - `host/src/core/channel.js`：新增 `command_rewrite` 通道命令 + `assist` facade 接缝——advisory-only，只回写文本不触批准态。
+  - `pi/src/bootstrap/host.js`：`assist.rewrite` 复用 `judgeCall` 接缝走 feature-models.json `'wand'` 键（快速/便宜模型路由）；prompt 声明原命令与指令皆 UNTRUSTED 文本；输出剥 markdown fence、8KB 上限、空改写/无模型/端点异常全部 fail-closed 返回诚实错误。
+  - `pi/src/adapter/channel.js`：facade 白名单补 `assist` 转发（此前挂在实参但没进 HostChannel）。
+  - `app/ui/app.js`：编辑展开时露出 wand 行（描述输入+✨改写按钮）→ 改写结果回填 textarea **供审**，仍须操作员按批准键——批准载荷照常走 `{answer,edited}` envelope + M84 硬策略重检，wand 永远无法削弱治理。
+- **顺带真 bug×2**：
+  1. `.ask-btn` 无差别 onclick 绑定把 wand 按钮（同带 ask-btn 类）覆盖成批准提交，`dataset.a` 空 → 发送 `answer:undefined` 的 decision_resolve——DOM gate 实测 wand 点击会误批卡（toolCards 计数 3→2 反向钉证）。收窄绑定到 `.ask-btn[data-a]`。
+  2. `markAskResolved` 直接拿事件 answer 拼 class——编辑批准 envelope `{answer,edited}` 产生 `a-[object Object]`（含空格）→ `InvalidCharacterError`；自由文本 question 答案同病。归一 verdict+消毒 token；fake-channel 同步修成与真 host 一致发规范化 verdict（fixture 保真）。a11y：edit/wand 控件补 aria-label（axe critical 清零）。
+- **证据**：host/tests/channel.test.js +1（facade 缺席 fail-closed/成功/错误透传，host 400/400）；pi/tests/wand.test.js +2——本地 OpenAI 兼容端点实证 feature-models.json 'wand' 路由命中（请求体 model=wand-mini、指令进 user prompt）、改写回填、缺字段不触模型、死端点诚实报错（pi 全套回归见提交说明）；dom-gate +2 检查——`askEditWand`（编辑展开 wand 行可见）+`wandRewrite`（textarea 回填 `rm -rf scratch/ # 只删 .log 文件` + toast 提示审核后再批）；app lint css+html 净。
+- **核销**：candidates-open #1392 → `candidates-resolved.tsv` #102。

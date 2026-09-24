@@ -85,13 +85,21 @@ rl.on('line', async (line) => {
       return reply({ echoed: cmd.message });
     }
     case 'decision_resolve':
-      write({ type: 'event', event: { type: 'governance_resolved', askId: cmd.askId, answer: cmd.answer } });
+      // Emit the normalized verdict like the real host (asks.js emits `ans`,
+      // the extracted verdict string) — echoing the raw {answer,edited}
+      // envelope would be a fixture-fidelity bug.
+      write({ type: 'event', event: { type: 'governance_resolved', askId: cmd.askId, answer: cmd.answer && typeof cmd.answer === 'object' ? cmd.answer.answer : cmd.answer } });
       write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tc3', toolName: 'bash', args: { command: 'rm -rf scratch/' } } });
       write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc3', toolName: 'bash', isError: false, result: { content: [{ type: 'text', text: 'removed' }] } } });
       write({ type: 'event', event: { type: 'message_update', message: { role: 'assistant', content: [{ type: 'text', text: 'done' }] } } });
       write({ type: 'event', event: { type: 'message_end', message: { role: 'assistant', usage: { cost: { total: 0.0042 } } } } });
       write({ type: 'event', event: { type: 'agent_end', messages: [] } });
       return reply({ resolved: cmd.askId });
+    case 'command_rewrite':
+      // #1392 wand stub — deterministic "model": append the instruction as a
+      // shell comment so the dom gate can verify the rewrite round-trip.
+      if (!cmd.command || !cmd.instruction) return fail('command_rewrite requires {command, instruction}');
+      return reply({ command: `${cmd.command} # ${cmd.instruction}` });
     case 'steer':
     case 'abort':
       return reply({});

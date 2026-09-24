@@ -71,6 +71,23 @@ const DRIVER = `(async () => {
     const ask = await waitFor('.ask-card .ask-cmd', (e) => e.textContent.includes('rm -rf scratch/'), 10000);
     checks.askPayload = { ok: !!ask, text: ask?.textContent ?? '' };
 
+    // #1392 — edit-then-approve + wand action: open the edit box, describe
+    // the change in plain language, the fast-model rewrite lands IN THE BOX
+    // for review, then approval carries the edited command envelope.
+    document.querySelector('.ask-edit-toggle')?.click();
+    const editBox = await waitFor('.ask-edit:not(.hidden)', null, 8000);
+    const wandRow = await waitFor('.ask-wand:not(.hidden)', null, 8000);
+    checks.askEditWand = { ok: !!editBox && !!wandRow };
+    document.querySelector('.ask-wand-in').value = '只删 .log 文件';
+    document.querySelector('.ask-wand-btn').click();
+    const wandDone = await waitFor('.ask-edit', (e) => e.value.includes('# 只删 .log 文件'), 8000);
+    checks.wandRewrite = {
+      ok: !!wandDone,
+      text: document.querySelector('.ask-edit')?.value ?? '',
+      toast: [...document.querySelectorAll('.toast')].map((x) => x.textContent),
+      btn: document.querySelector('.ask-wand-btn')?.textContent ?? '',
+    };
+
     // 5. tool cards — bash output + edit diff both rendered pre-approval
     const tools = [...document.querySelectorAll('.tool')];
     checks.toolCards = {

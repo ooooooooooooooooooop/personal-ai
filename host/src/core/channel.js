@@ -95,7 +95,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -133,6 +133,7 @@ export class HostChannel {
     this.governance = governance;
     this.proxy = proxy;
     this.mcp = mcp;
+    this.assist = assist;
     this.listeners = new Set();
     // M144 unicode_mode: 'auto' resolves once from env; 'ascii' degrades the
     // symbol layer of operator-visible event text (chrome, never content)
@@ -1081,6 +1082,18 @@ export class HostChannel {
           const answer = cmd.answer && typeof cmd.answer === 'object' ? cmd.answer : String(cmd.answer ?? '');
           const r = this.asks.resolve(String(cmd.askId ?? cmd.ask ?? ''), answer);
           return r.ok ? reply(true, { resolved: true }) : reply(false, undefined, r.error);
+        }
+        case 'command_rewrite': {
+          // dedup-h #1392 — wand action: the operator describes a change in
+          // plain language on an approval card; a fast model rewrites the
+          // command for REVIEW. Advisory only — the result lands in the card's
+          // edit box; nothing here approves or executes anything.
+          if (!this.assist?.rewrite) return reply(false, undefined, 'rewrite facade unavailable');
+          const rr = await this.assist.rewrite({
+            command: String(cmd.command ?? ''),
+            instruction: String(cmd.instruction ?? ''),
+          });
+          return rr?.error ? reply(false, rr, rr.error) : reply(true, rr);
         }
         default:
           return reply(false, undefined, `unknown command '${cmd?.type}'`);
