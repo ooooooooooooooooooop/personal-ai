@@ -2465,3 +2465,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - *.env 访问（新落地）*：`host/src/core/dotenv.js`——`<instanceRoot>/.env`（operator-private）总是装载进 `process.env`（早于 proxy/hooks/jobs/tools 全部 env 消费点）；`<workdir>/.env` 仅在已登记 trust 授权下装载（agent 可写目录不经授权就是注入向量）；真实 env 永远赢（`??=`，文件不能盖操作员导出的变量→不能影射密钥）；行级解析（注释/`export `/引号/转义），坏行跳过不致命；`ENV_FILE_LOADED` 审计只记 key 名不落值。
 - **证据**：host/tests/dotenv.test.js 3/3（解析矩阵 + trust 门 + env 优先 + 坏文件容忍）；host 396/396；pi bootstrap+agentprofiles 43/43。
 - **核销**：candidates-open #1483 → `candidates-resolved.tsv` #97。
+
+### 28.94 648 清单逐条核销 #98：dedup-h #1504 remote-mcp——MCP Apps tool call 支持（2026-09-24）
+
+- **行**：`dedup-h  1504  mcp-tools  remote-mcp: MCP Apps tool call支持`（MCP-UI/Apps 式：工具经 `_meta` 声明交互 UI 资源，调用结果可渲染成 app）。
+- **判定**：**IMPLEMENTED（能力面诚实对齐）**——本 harness 不是浏览器宿主，渲染 HTML 应用超出边界；诚实语义 = 声明必须抵达模型与下游宿主：
+  - `appMeta()` 从 `t._meta` 提取 `ui/resourceUri` / `openai/outputTemplate` / `mcp-app.dev/resourceUri`；
+  - 注册时描述尾部标注 `— ui-app: <uri>`（模型在调用前就知道该工具产出交互面）；
+  - 每次调用结果 `details.ui = {key, uri}` 透出，下游宿主可自行 `resources/read` 解析渲染；
+  - `resource`/`resource_link` 内容块本就在 `KNOWN_NONTEXT` 直通面（不丢），无声明的工具零污染。
+- **证据**：mcp-ext.test.js +1——假 stdio 服务器声明 `ui/resourceUri`，注册描述带 `ui-app:` 标注、调用结果 `details.ui` 携 URI、无 `_meta` 工具不标不染；mcp-ext+bootstrap 70/70；pi 全套复跑。
+- **核销**：candidates-open #1504 → `candidates-resolved.tsv` #98。

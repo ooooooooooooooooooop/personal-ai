@@ -1175,6 +1175,22 @@ function resultCharCap(spec, toolName) {
 // shapes into the context serializer.
 const KNOWN_NONTEXT = new Set(['image', 'audio', 'resource', 'resource_link']);
 
+/* dedup-h #1504 — MCP Apps tool calls: a tool may declare an interactive UI
+ * surface via _meta ('ui/resourceUri' — MCP-UI/Apps spec — or the OpenAI
+ * Apps SDK key 'openai/outputTemplate'). This harness cannot render HTML —
+ * honest surface = the declaration must REACH the model and any downstream
+ * host: it rides the tool description at registration and details.ui on
+ * every result, so callers can resolve the resource themselves. */
+const APP_META_KEYS = ['ui/resourceUri', 'openai/outputTemplate', 'mcp-app.dev/resourceUri'];
+function appMeta(meta) {
+  if (!meta || typeof meta !== 'object') return null;
+  for (const key of APP_META_KEYS) {
+    const v = meta[key];
+    if (typeof v === 'string' && v.trim()) return { key, uri: v.trim() };
+  }
+  return null;
+}
+
 function wrapUntrusted(server, tool, result, maxChars = MAX_RESULT_CHARS) {
   let dropped = 0;
   const content = (result?.content ?? []).map((c) => {
@@ -1237,10 +1253,11 @@ export default function mcpExtension(pi) {
   // silently calling a tool the server no longer advertises.
   const registerMcpTool = (serverName, client, entry, t) => {
     const toolName = `mcp__${serverName}__${t.name}`;
+    const app = appMeta(t._meta); // #1504 — MCP Apps UI declaration
     pi.registerTool({
       name: toolName,
       label: `MCP ${serverName}: ${t.name}`,
-      description: `[mcp:${serverName}] ${t.description ?? t.name}`,
+      description: `[mcp:${serverName}] ${t.description ?? t.name}` + (app ? ` — ui-app: ${app.uri}` : ''),
       // MCP inputSchema is JSON Schema — the same shape pi-ai validates
       // for our other custom tools.
       parameters: t.inputSchema && typeof t.inputSchema === 'object'
@@ -1255,7 +1272,10 @@ export default function mcpExtension(pi) {
         }
         try {
           const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
-          return wrapUntrusted(serverName, t.name, res, resultCharCap(entry.spec, t.name));
+          const wrapped = wrapUntrusted(serverName, t.name, res, resultCharCap(entry.spec, t.name));
+          // #1504 — surface the declared app resource on every call result.
+          if (app) wrapped.details = { ...wrapped.details, ui: { key: app.key, uri: app.uri } };
+          return wrapped;
         } catch (err) {
           return {
             content: [{ type: 'text', text: `mcp call failed (${serverName}/${t.name}): ${err?.message ?? err}` }],

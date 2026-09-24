@@ -1699,3 +1699,68 @@ test('mcp 401 marks entry authRequired + fires onAuthRequired; /mcp shows NEEDS 
     server.close();
   }
 });
+
+// dedup-h #1504 — MCP Apps tool call: a tool declaring an interactive UI via
+// _meta keeps the declaration visible — registered description annotates the
+// resource and every result carries details.ui for downstream hosts.
+const APP_SERVER_JS = `
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'apps', version: '0' }, capabilities: { tools: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [
+        { name: 'chart', description: 'render chart', inputSchema: { type: 'object', properties: {} }, _meta: { 'ui/resourceUri': 'ui://apps/chart.html' } },
+        { name: 'plain', description: 'no app', inputSchema: { type: 'object', properties: {} } },
+      ] } }) + '\\n');
+    } else if (msg.method === 'tools/call') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: 'ran:' + msg.params.name }] } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('#1504: MCP Apps _meta surfaces — description annotates, details.ui rides every result', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-app-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, APP_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { apps: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    const pi = fakePi();
+    try {
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__apps__chart') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      const chart = pi.tools.get('mcp__apps__chart');
+      const plain = pi.tools.get('mcp__apps__plain');
+      assert.ok(chart && plain, 'both tools registered');
+      assert.match(chart.description, /ui-app: ui:\/\/apps\/chart\.html/);
+      assert.ok(!plain.description.includes('ui-app'), 'plain tool gets no annotation');
+      const res = await chart.execute('t1', {}, null);
+      assert.equal(res.details?.ui?.uri, 'ui://apps/chart.html');
+      assert.equal(res.details?.ui?.key, 'ui/resourceUri');
+      assert.match(res.content[0].text, /ran:chart/);
+      const res2 = await plain.execute('t2', {}, null);
+      assert.equal(res2.details?.ui, undefined, 'no ui details on a plain tool');
+    } finally {
+      await pi.handlers.get('session_shutdown')?.();
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
