@@ -913,7 +913,13 @@ export async function startHost({
     fastContextTool({ workdir, getIgnored: repoMapIgnore }),
     // M121/M122 — session env overlay tools: set/unset/list/snapshot; the
     // overlay reaches only the children we spawn (jobs/hooks/verify/delegate)
-    ...envTools(sessionEnv, { snapshotDir: join(core.paths.root, 'env-snapshots'), asks }),
+    ...envTools(sessionEnv, {
+      snapshotDir: join(core.paths.root, 'env-snapshots'), asks,
+      // dedup-h #820: secret-source refs resolve from the instance-level
+      // secrets.json (operator opt-in) — the resolved value never reaches
+      // the tool result; audit records scheme+item, never the secret.
+      instanceRoot, audit: (e) => core.audit.write({ kind: 'SECRET_SOURCE', data: e }),
+    }),
     // M120 — doctor: environment health battery (read-only, advisory)
     doctorTool({
       paths: core.paths, workdir, policy: core.policy,

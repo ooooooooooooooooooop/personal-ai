@@ -617,7 +617,7 @@
 | 协作 | cron 全栈（scheduler/jobs/delivery_queue/detached worker+blueprint 目录） | ❌ | 无定时任务（反复出现的缺口） |
 | 协作 | **browser_* 全套+browser_vault 凭据填充**+computer_use+ha_*（Home Assistant）+kanban_*（12 个）+tts/image_generate | ❌ | browser/computer-use 无（browser 属候选面） |
 | 持久化 | `--save_trajectories` JSONL（训练数据面）；memories MEMORY.md/USER.md；auxiliary 模型分工（curator/vision/title/search/compression 各可绑 provider/model） | 🟡 | 持久化同构；trajectory/auxiliary 分工无 |
-| 扩展 | **插件注册面最大**：tool/platform/CLI 命令/hook(~20)/middleware/system-prompt 段/skill/redaction/approval transport/context engine/memory provider + scoped providers（image_gen/video_gen/web_search/browser/terminal_env/secret_source/tts/transcription）；pip entry points；skills hub 多源+`skill_manage`（create/patch/delete） | 🟡 | managed 装载同思路但窄；**skill_manage=agent 自建/改 skill** 无 |
+| 扩展 | **插件注册面最大**：tool/platform/CLI 命令/hook(~20)/middleware/system-prompt 段/skill/redaction/approval transport/context engine/memory provider + scoped providers（image_gen/video_gen/web_search/browser/terminal_env/secret_source/tts/transcription）；pip entry points；skills hub 多源+`skill_manage`（create/patch/delete） | 🟡 | managed 装载同思路但窄；**skill_manage=agent 自建/改 skill** 无；secret_source scoped provider 已落 `secrets.json` op://bw:// 引用面（dedup-h #820） |
 | 模型 | ~38 provider 插件+CredentialPool 租约+fallback 链+codex_app_server 传输（把整个 turn 托给外部 runtime） | 🟡 | provider_add+多身体；fallback 链/凭据池无 |
 
 **缺口小结**: 可迁移 = **跨会话 FTS 搜索（含 CJK trigram）+agent 可查的 session_search 工具**、tool_guardrails 幂等/变异集+重复停机、后台 review→skill/memory 蒸馏环、cron 栈、ask_user/clarify 工具、browser 工具族（候选）、trajectory 导出（训练/复盘面）、auxiliary 模型分工、skill_manage 自建、run-budget 渐提示。

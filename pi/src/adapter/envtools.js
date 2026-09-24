@@ -15,28 +15,45 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { captureEnvSnapshot, ENV_INJECT_RE, KEY_RE } from '../../../host/src/core/sessionenv.js';
 import { runDoctor } from '../../../host/src/core/doctor.js';
+import { parseSecretRef, resolveSecretRef } from '../../../host/src/core/secretsource.js';
 
 const err = (text) => ({ content: [{ type: 'text', text }], isError: true });
 const ok = (text, details) => ({ content: [{ type: 'text', text }], details });
 
-export function envTools(sessionEnv, { snapshotDir = null, asks = null } = {}) {
+export function envTools(sessionEnv, { snapshotDir = null, asks = null, instanceRoot = null, audit = null, spawnFn = null } = {}) {
   return [
     {
       name: 'env_set',
       label: 'Set session env var',
-      description: 'Set an environment variable applied to child processes spawned by this session (jobs, hooks, verifier, delegate). Loader/path/proxy injection keys are refused.',
+      description:
+        'Set an environment variable applied to child processes spawned by this session (jobs, hooks, verifier, delegate). ' +
+        'Loader/path/proxy injection keys are refused. A value of the form op://<vault>/<item>/<field> or bw://<item>[/<field>] ' +
+        'is resolved through a password-manager secret source enabled in the instance secrets.json and stored masked.',
       parameters: {
         type: 'object',
         properties: {
           key: { type: 'string', description: 'Env var name (A-Z, 0-9, _)' },
-          value: { type: 'string', description: 'Value to set (empty string allowed)' },
+          value: { type: 'string', description: 'Value to set — literal, or an op:// / bw:// secret reference' },
         },
         required: ['key', 'value'],
       },
       async execute(_id, params) {
-        const r = sessionEnv.set(params?.key, params?.value);
+        const key = String(params?.key ?? '');
+        const value = params?.value;
+        // dedup-h #820 — secret-source references resolve through the
+        // operator-configured CLI and land via setSecret, so the real value
+        // is masked on every read surface and never appears in this result.
+        if (parseSecretRef(value)) {
+          const r = resolveSecretRef(value, { instanceRoot, spawnFn });
+          audit?.({ type: 'secret_source_resolve', tool: 'env_set', key, scheme: r.scheme ?? parseSecretRef(value)?.scheme, item: r.item ?? null, ok: r.ok === true });
+          if (!r.ok) return err(`env_set '${key}': ${r.reason}`);
+          const s = sessionEnv.setSecret(key, r.value);
+          if (!s.ok) return err(`env_set refused: ${s.reason}`);
+          return ok(`env set: ${key} — resolved via ${r.scheme} secret source, stored masked (${sessionEnv.vars.size} overlay vars active)`);
+        }
+        const r = sessionEnv.set(key, value);
         if (!r.ok) return err(`env_set refused: ${r.reason}`);
-        return ok(`env set: ${String(params.key)} (${sessionEnv.vars.size} overlay vars active)`);
+        return ok(`env set: ${key} (${sessionEnv.vars.size} overlay vars active)`);
       },
     },
     {

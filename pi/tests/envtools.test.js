@@ -142,3 +142,47 @@ test('credential_request: non-form answer refused; injection keys rejected befor
   }
   assert.equal(asked, 1, 'injection-vector keys never reach the operator card');
 });
+
+test('env_set: op:// / bw:// refs resolve via secrets.json source and store masked (#820)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-sec-'));
+  writeFileSync(join(dir, 'secrets.json'), JSON.stringify({ sources: { op: { bin: 'op' }, bw: { bin: 'bw' } } }));
+  const audit = fakeAudit();
+  const env = new SessionEnv({ audit });
+  const audits = [];
+  const spawn = (bin, args) => {
+    if (bin === 'op') { assert.equal(args[0], 'read'); return 'tok-live-99\n'; }
+    return JSON.stringify({ login: { password: 'bw-pw' } });
+  };
+  const [set, , list] = envTools(env, { instanceRoot: dir, audit: (e) => audits.push(e), spawnFn: spawn });
+
+  const r = await set.execute('s1', { key: 'API_TOKEN', value: 'op://prod/db/password' });
+  assert.equal(r.isError, undefined, r.content[0].text);
+  assert.match(r.content[0].text, /resolved via op secret source/);
+  assert.equal(env.view().API_TOKEN, 'tok-live-99');
+  // masked on the list surface regardless of key naming
+  const lr = await list.execute('s2', {});
+  assert.match(lr.content[0].text, /API_TOKEN=\[REDACTED\]/);
+  assert.ok(!lr.content[0].text.includes('tok-live-99'));
+  // audit carries scheme+item, never the value
+  assert.deepEqual(audits[0].item, 'prod/db');
+  assert.ok(JSON.stringify(audits).includes('prod/db') && !JSON.stringify(audits).includes('tok-live-99'));
+
+  const r2 = await set.execute('s3', { key: 'LEGACY_PW', value: 'bw://legacy-svc' });
+  assert.equal(r2.isError, undefined);
+  assert.equal(env.view().LEGACY_PW, 'bw-pw');
+
+  // managed scheme absent from secrets.json refuses closed — no spawn, no store
+  const dir2 = mkdtempSync(join(tmpdir(), 'pai-sec-none-'));
+  const [set2] = envTools(new SessionEnv({}), { instanceRoot: dir2, spawnFn: () => { throw new Error('must not spawn'); } });
+  const r3 = await set2.execute('s4', { key: 'NOPE', value: 'op://v/i/f' });
+  assert.equal(r3.isError, true);
+  assert.match(r3.content[0].text, /not enabled/);
+  // non-managed URI-looking values are plain strings — stored literally
+  const r3b = await set.execute('s4b', { key: 'BASE_URL', value: 'hcv://vault/k' });
+  assert.equal(r3b.isError, undefined);
+  assert.equal(env.view().BASE_URL, 'hcv://vault/k');
+  // injection key refuses before any resolution
+  const r4 = await set.execute('s5', { key: 'PATH', value: 'op://prod/db/password' });
+  assert.equal(r4.isError, true);
+  assert.equal(env.view().PATH, undefined);
+});
