@@ -210,6 +210,22 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   transform: translateY(0.5px);
   background: rgba(255, 255, 255, 0.06);
 }
+.new-task-row { display: flex; align-items: stretch; gap: 6px; }
+.new-task-row .new-btn { flex: 1; }
+.wt-btn { align-self: center; flex-shrink: 0; }
+
+/* dedup-h #1353 — worktree target picker under the sidebar header */
+.wt-menu {
+  position: absolute; left: 12px; top: 118px; z-index: 40;
+  min-width: 240px; max-width: 320px; max-height: 300px; overflow-y: auto;
+  background: var(--bg-elev-opaque); border: 1px solid var(--line-strong);
+  border-radius: var(--r-md); padding: 6px;
+  box-shadow: var(--shadow-pop);
+}
+.wt-menu .menu-item { display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 8px 12px; border-radius: var(--r-sm); text-align: left; }
+.wt-menu .menu-item:hover { background: var(--bg-hover); }
+.wt-menu .wt-section { padding: 4px 12px 2px; font-size: 10.5px; color: var(--text-4); letter-spacing: .06em; text-transform: uppercase; }
+.wt-menu .wt-empty { padding: 10px 12px; font-size: 12px; color: var(--text-4); }
 
 .side-search { padding: 0 4px 10px; }
 .side-search input {
@@ -1577,7 +1593,7 @@ tr.clickable:hover td { background: var(--field); }
 
 /* dedup-h #391: MCP oauth authorize affordance inside /mcp sys card */
 .mcp-auth-btn {
-  margin: 2px 0 6px 0; padding: 3px 10px; border-radius: 6px;
+  margin: 2px 0 6px; padding: 3px 10px; border-radius: 6px;
   border: 1px solid var(--line-strong); background: var(--tile);
   color: var(--text); font-size: 12px; cursor: pointer;
 }

@@ -257,7 +257,7 @@ const DRIVER = `(async () => {
     await sleep(250);
     const wtPane = document.querySelector('#transcript')?.textContent ?? '';
     checks.worktreeList = {
-      ok: wtPane.includes('git worktrees（2）') && wtPane.includes('/repo/wt-linked') && wtPane.includes('(任务托管)'),
+      ok: wtPane.includes('git worktrees（2）') && wtPane.includes('wt-linked') && wtPane.includes('(任务托管)'),
       tail: wtPane.slice(-160),
     };
     inputEl.value = '/worktree-open wt-linked echo hi';
@@ -271,6 +271,26 @@ const DRIVER = `(async () => {
     };
     switchView('chat');
     inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+
+    /* dedup-h #1353 — draft thread targets a worktree: the sidebar worktree
+     * button lists git worktrees; picking wt-linked runs the REAL supervisor
+     * set_workdir (existsSync passes — fixture dir is real) → body respawn →
+     * session_new on the new workdir. Assert the menu listed the entry, the
+     * toast confirmed, and refreshed state reports the new workdir + fresh
+     * session file. */
+    document.querySelector('#new-task-wt')?.click();
+    const wtItem = await waitFor('#wt-menu .menu-item', (e) => e.textContent.includes('wt-linked'), 8000);
+    checks.wtPickerListed = { ok: !!wtItem, count: document.querySelectorAll('#wt-menu .menu-item').length };
+    wtItem?.click();
+    const wtToast = await waitFor('.toast', (e) => e.textContent.includes('wt-linked'), 15000);
+    await sleep(600);
+    let stErr = null;
+    try { await refreshState(); } catch (e) { stErr = String(e?.stack ?? e); }
+    checks.worktreeNewSession = {
+      ok: !!wtToast && String(state?.workdir ?? '').endsWith('wt-linked')
+        && String(state?.session?.file ?? '').endsWith('new.jsonl'),
+      toast: !!wtToast, workdir: state?.workdir ?? '', file: state?.session?.file ?? '', stErr,
+    };
 
     /* dedup-h #143 — model-invoked builtin commands: queued while the turn
      * is live, drained on agent_end, executed through the same paths as the

@@ -1767,6 +1767,56 @@ $('new-task').onclick = async () => {
   switchView('chat');
   $('input').focus();
 };
+
+/* dedup-h #1353 — draft thread picks a target worktree: the sidebar worktree
+   button lists git worktrees (+ remembered workspaces); picking one switches
+   the body there (set_workdir respawn) and opens a fresh session in it. */
+const wtMenu = $('wt-menu');
+function closeWtMenu() { wtMenu.classList.add('hidden'); wtMenu.innerHTML = ''; }
+document.addEventListener('click', (e) => {
+  if (!wtMenu.contains(e.target) && e.target.id !== 'new-task-wt' && !e.target.closest?.('#new-task-wt')) closeWtMenu();
+});
+$('new-task-wt').onclick = async () => {
+  if (!wtMenu.classList.contains('hidden')) { closeWtMenu(); return; }
+  const [wr, sr] = await Promise.all([cmd('worktree_list'), cmd('workspace_list')]);
+  const wts = wr.success ? (wr.data?.worktrees ?? []) : [];
+  const spaces = sr.success ? (sr.data?.workspaces ?? []).filter((w) => w.exists && !w.active) : [];
+  wtMenu.innerHTML = '';
+  const addItem = (label, sub, path) => {
+    const b = document.createElement('button');
+    b.className = 'menu-item';
+    b.innerHTML = '<span class="mi-main"></span><span class="mi-sub"></span>';
+    b.querySelector('.mi-main').textContent = label;
+    b.querySelector('.mi-sub').textContent = sub;
+    b.onclick = async () => {
+      closeWtMenu();
+      const sw = await cmd('set_workdir', { path });
+      if (!sw.success) { toast(`切换目录失败：${sw.error ?? '未知'}`, 'err'); return; }
+      const r = await cmd('session_new');
+      if (!r.success) addSys(`新建会话失败：${r.error ?? '未知'}`, true);
+      switchView('chat');
+      toast(`已在 ${path} 开新会话`);
+      refreshSessionsSoon();
+    };
+    wtMenu.appendChild(b);
+  };
+  const addSection = (t) => { const d = document.createElement('div'); d.className = 'wt-section'; d.textContent = t; wtMenu.appendChild(d); };
+  if (wts.length) {
+    addSection('git worktrees');
+    for (const w of wts) addItem(w.path, `${w.branch ?? 'detached'}${w.managed ? ' · 托管' : ''}`, w.path);
+  }
+  if (spaces.length) {
+    addSection('登记工作区');
+    for (const s of spaces) addItem(s.name ?? s.path, s.path, s.path);
+  }
+  if (!wts.length && !spaces.length) {
+    const d = document.createElement('div');
+    d.className = 'wt-empty';
+    d.textContent = '无可用 worktree/工作区——当前目录直接新建';
+    wtMenu.appendChild(d);
+  }
+  wtMenu.classList.remove('hidden');
+};
 let searchTimer = null;
 $('side-filter').addEventListener('input', () => {
   clearTimeout(searchTimer);

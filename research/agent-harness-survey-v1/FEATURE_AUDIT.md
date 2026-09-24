@@ -2436,3 +2436,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 
 - **判定**：IMPLEMENTED。源条目 = remote MCP OAuth device flow（RFC 8628，无浏览器回调环境：操作员在任意设备开 verification_uri 输 user_code，客户端轮询 token 端点）。落地：`oauth.deviceAuthUrl` 配置 + 显式 `oauth.flow` 选择器（authorization_code/device_code/client_credentials，显式优先、缺省 authorizationUrl>deviceAuthUrl）；`oauthDeviceAuthorize`（POST deviceAuthUrl→user_code/verification_uri 解析）+ `oauthDevicePoll`（authorization_pending 按 interval 轮询、slow_down +5s、access_denied/expired_token 诚实终止、deadline 封顶）。三面同达：会话内 `/mcp-auth` device 分支（自动轮询+通知）、channel facade `mcp_auth` 返回设备码载荷+宿主侧 detached 轮询+存库+auth_success 钩、UI `/mcp` 卡「设备登录」按钮展示码+URI 无粘贴步。
 - **证据**：mcp-ext 31/31（spec 校验矩阵 + 真端点 pending→slow_down→token + denied/expired 终止）；bootstrap 端到端（状态显 device_code → mcp_auth 返码 → detached 轮询落库 flow:'device_code' + auth_success 钩）；pi 435/431、app 25/26 全绿。
+
+### 28.91 648 清单逐条核销 #95：dedup-h #1353 draft thread 选目标 worktree（2026-09-24）
+
+- **行**：`dedup-h  1353  ui-ux  worktree: draft thread选目标worktree`（新会话草稿绑定指定 worktree）。
+- **判定**：**IMPLEMENTED（语义对齐，工作目录为体级）**——本仓 workdir 是体级资源（所有工具/会话/job/hook 共用一个宿主 workdir），不存在"同体多会话各自挂不同 worktree"的架构；对等语义 = 开新会话前先把体切到目标 worktree。落法：
+  - `app/ui/index.html`：`#new-task` 旁 `#new-task-wt` 钮 + `#wt-menu` 下拉；
+  - `app/ui/app.js`：点击 → `worktree_list`+`workspace_list` 合并出菜单（git worktrees 段 + 登记工作区段，含 branch/managed 标注；两者皆空时给诚实空态）；选中 → `set_workdir{path}`（supervisor 真换目录：existsSync 校验→持久化→`workdir_changed` 事件→体面重spawn）→ `session_new` → toast 确认；
+  - 失败路径诚实：`set_workdir` 拒绝（目录不存在等）直接 toast 不建会话；菜单外点/复点关闭。
+- **边界诚实声明**：源语义若为"单体内并存多 worktree 会话"（per-session workdir 绑定），本仓不支持——`set_workdir` 是体级切换会影响该体全部会话；已按"draft 会话落进所选 worktree"的用户意图对齐，而非伪造 per-session 绑定。
+- **证据**：dom-gate 新增 `wtPickerListed`/`worktreeNewSession` 检查——真 Electron DOM 里点钮出菜单（含 wt-linked 项）、选中后真 supervisor set_workdir 落 `wt-linked` 路径 + 重spawn 体 + `session_new` 出 new.jsonl；fixture `worktree_list` 的 wt-linked 改为实例根下真实目录以过 existsSync 真校验；`session_new` 桩修正为如实切到 currentFile（真体语义）。app 测试 26 测 24 过 1 跳 1 预存失败（supervisor.test.js 七态 handoff——与本次改动无关，外来在途 host/ 改动所致，用旧 fixture 复跑同败）；lint css+html 双净。
+- **核销**：candidates-open #1353 → `candidates-resolved.tsv` #95。

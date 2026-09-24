@@ -12,7 +12,7 @@
  */
 import { createInterface } from 'node:readline';
 import { createHash, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { DomainLeaseStore } from '../../../host/src/core/lease.js';
 import { PredictionStore } from '../../../host/src/core/prediction.js';
@@ -122,7 +122,8 @@ rl.on('line', async (line) => {
       currentFile = cmd.path;
       return reply({ id: 'sess-2', file: cmd.path, name: 'resume-target' });
     case 'session_new':
-      return reply({ id: 'sess-new', file: `${instance}/sessions/new.jsonl` });
+      currentFile = `${instance}/sessions/new.jsonl`;
+      return reply({ id: 'sess-new', file: currentFile });
     case 'session_insights':
       return reply(cmd.all
         ? { sessions: 2, messages: 4, tokens: 120, cost: 0.01, errorBlocks: 0, avgDurationMs: 60000, topTools: [{ name: 'bash', count: 3 }], tips: ['覆盖良好'] }
@@ -146,9 +147,12 @@ rl.on('line', async (line) => {
       if (cmd.in_worktree && cmd.in_worktree !== 'wt-linked') return fail(`no such worktree '${cmd.in_worktree}'`);
       return reply({ ok: true, jobId: 'fake-job-1', worktree: cmd.worktree === true, workdir: cmd.in_worktree ? '/repo/wt-linked' : undefined });
     case 'worktree_list':
+      // The linked worktree is a REAL dir under the instance root so the
+      // supervisor's set_workdir existsSync check passes end-to-end (#1353).
+      mkdirSync(`${instance}/wt-linked`, { recursive: true });
       return reply({ ok: true, worktrees: [
         { path: '/repo', head: 'aaa', branch: 'main', detached: false, bare: false, managed: false },
-        { path: '/repo/wt-linked', head: 'bbb', branch: null, detached: true, bare: false, managed: true },
+        { path: `${instance}/wt-linked`, head: 'bbb', branch: null, detached: true, bare: false, managed: true },
       ] });
     case 'job_status':
       return reply({
