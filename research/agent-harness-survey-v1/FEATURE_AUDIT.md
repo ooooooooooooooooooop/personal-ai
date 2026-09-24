@@ -2789,3 +2789,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - `channel.js` native 运载环加 `VISION_MIME`（png/jpeg/gif/webp——主流 vision provider 全集）codec 门：**字节为真相**——sniff 出的 codec 覆盖声明 mime，真 PNG 误标 heic 纠偏照走、png 壳藏 tiff 拦下；降级时 `a.mime` 归真（描述符名实相符）；`ATTACHMENT_CODEC_DEGRADED` 审计 + warn 通知操作员。
 - **证据**：`host/tests/attachments.test.js` +1=10/10（heic/mif1/avif ftyp、tiff 双端序、ico、png 不误伤）；`pi/tests/channel-facade.test.js` +1=46/46——heic+tiff 不触 `opts.images`、真 png 与 heic 壳藏 png 双双以 `image/png` 上线、描述符 mime 归真、notify+审计齐。pi 聚焦回归 78/78。
 - **核销**：candidates-open #1867 → `candidates-resolved.tsv` #128。
+
+### 28.125 648 清单逐条核销 #129：dedup-h #1870 skills-plugins——hook-context: chat.params/chat.message 带 sessionID/agent/model/messageID（2026-09-25）
+
+- **行**：`dedup-h  1870  skills-plugins  hook-context: chat.params/chat.message带sessionID/agent/model/messageID`（描述段为错位片段——纯数字 skill 名如 12306 开会话报 Internal error 的修复）。
+- **判定**：
+  - **标题语义** = **IMPLEMENTED（variant）**。源语义：hook 事件载荷携带关联上下文（哪个会话/代理/模型产出该事件）。核查发现真缺口——我方事件载荷只有事件字段（tool/toolCallId/isError…），无统一关联面。落地：`HookRunner` 新 `context` dep（`() => {…}` 提供者，同 envOverlay 懒取模式）经新 `#payloadFor` 单一注入点并入 **fire/fireGate/fireValue 三通道全部事件**——`{event, ...ambient, ...payload}`，显式载荷字段优先（session_start 自带权威 sessionId 不被默认覆盖）；provider 抛错降级 `{}` 绝不断 fire。`host.js` 供 `hookContext`：`{sessionId: currentSession?.sessionId, model: currentSession?.model?.id, agentId: env.PAI_AGENT_ID}`——委托子进程经 `--agent-id-b64`→`PAI_AGENT_ID`（#1390 盖章链）自带身份；操作员 gate 的 `session_directory` fire 早于 `currentSession` 声明（TDZ），context 内 try/catch 归零字段。两 runner（workdir 观察性 + 操作员 gate）同接线——**观察性语义保持**：context 只给 hook 关联信息，不扩权限。messageID 字段**无落点**——我方单 channel 模型无消息 id 概念（tool 事件的 toolCallId 已是其对位），如实记 boundary。
+  - **描述语义** = **ALREADY_COVERED**：纯数字 skill 名全链路字符串——`skill_save` SLUG `/^[a-z0-9][a-z0-9_-]{0,60}$/i` 收 `12306`，`loadMicroagents` 名=文件名纯字符串，`matchMicroagents`/`renderKnowledge` 无数值强转——无 Internal error 落点；新增测试钉死。
+- **证据**：`host/tests/hooks.test.js` +1（ambient 并入观察性事件、显式字段覆盖、gate fireValue 同带、provider 抛错降级）→ host 全套 **409/409**；`host/tests/microagents.test.js` +1=6/6（`12306.md` 载/match/render 全过）。pi 聚焦：bootstrap 34/34 + hook 族 19/19（scrub-env 正规路径）。
+- **核销**：candidates-open #1870 → `candidates-resolved.tsv` #129。

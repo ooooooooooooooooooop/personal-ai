@@ -134,11 +134,16 @@ export class HookRunner {
    *                                   point at the operator-private instance file)
    * @param {boolean} [deps.gate]      enable the 'pre_tool' veto event
    */
-  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null, resolveExecEnv = null } = {}) {
+  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null, resolveExecEnv = null, context = null } = {}) {
     this.workdir = workdir;
     this.audit = audit;
     this.env = env;
     this.gate = gate;
+    // dedup-h #1870 — ambient hook context (chat.params/chat.message
+    // analogue): a () => {sessionId, model, agentId} provider consulted per
+    // fire; its fields merge into every event payload so hooks can
+    // correlate. Explicit payload fields win over context defaults.
+    this.context = context;
     // dedup-h #1334 — plugin-provided exec env: an optional resolver rewrites
     // the command line before spawn (e.g. `sandbox-exec -- ` prefix). Falsy
     // result = provider declines, raw command runs; a THROWN resolver fails
@@ -163,6 +168,18 @@ export class HookRunner {
     this.fetch = fetchImpl ?? globalThis.fetch;
     this.configPath = configPath ?? join(workdir, '.pai', 'hooks.json');
     this.hooks = this.#load();
+  }
+
+  /**
+   * Event payload = {event, ...ambientContext, ...payload}. The context
+   * provider (dedup-h #1870) contributes correlation fields such as
+   * sessionId/model/agentId; an explicit payload field always wins, so
+   * events that carry their own truth (session_start's sessionId) keep it.
+   */
+  #payloadFor(event, payload) {
+    let ambient = {};
+    try { ambient = this.context?.() ?? {}; } catch { ambient = {}; }
+    return { event, ...ambient, ...payload };
   }
 
   /** Which runnable form an entry declares; null = not a hook entry. */
@@ -249,7 +266,7 @@ export class HookRunner {
       const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       this.audit?.write({ kind: 'HOOK_FIRE', data: { event, form: this.#entryKind(h), command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
       try {
-        const r = await this.#runEntry(h, { event, ...payload }, timeoutMs);
+        const r = await this.#runEntry(h, this.#payloadFor(event, payload), timeoutMs);
         this.audit?.write({ kind: 'HOOK_RESULT', data: { event, exitCode: r.code, tail: r.tail.slice(0, 500) } });
       } catch (err) {
         this.audit?.write({ kind: 'HOOK_ERROR', data: { event, error: String(err?.message ?? err).slice(0, 300) } });
@@ -288,7 +305,7 @@ export class HookRunner {
       const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, form: kind, command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
       try {
-        const r = await this.#runEntry(h, { event, ...payload, ...(rewritten !== undefined ? { args: rewritten } : {}) }, timeoutMs);
+        const r = await this.#runEntry(h, { ...this.#payloadFor(event, payload), ...(rewritten !== undefined ? { args: rewritten } : {}) }, timeoutMs);
         this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
         // stdout JSON {"deny":"reason"} is the structured refusal; a bare
         // non-zero exit refuses with the output tail as the reason.
@@ -354,7 +371,7 @@ export class HookRunner {
     const kind = this.#entryKind(h);
     const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, value: true, form: kind, command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
-    const r = await this.#runEntry(h, { event, ...payload }, timeoutMs);
+    const r = await this.#runEntry(h, this.#payloadFor(event, payload), timeoutMs);
     this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, value: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
     if (r.code !== 0) throw new Error(`${event} hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}`);
     try {

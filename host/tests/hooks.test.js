@@ -498,3 +498,42 @@ test('#1858 gate: post_tool collects {"append"} across entries; malformed → de
   assert.deepEqual(h.events, []);
   assert.ok(audit.events.some((e) => e.kind === 'HOOK_CONFIG_ERROR' && e.data.rejectedEvents?.includes('post_tool')));
 });
+
+// dedup-h #1870 — ambient hook context (chat.params/chat.message analogue):
+// sessionId/model/agentId ride every event payload; explicit payload fields
+// win over context defaults; context reaches observational AND gate runners.
+test('#1870 ambient context merges into every event payload', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const outFile = join(w, 'ctx.json');
+  const script = join(w, 'dump.js');
+  writeFileSync(script, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').writeFileSync(${JSON.stringify(outFile)},d);});`);
+  cfg(w, { hooks: { session_start: [{ command: `node ${JSON.stringify(script)}` }] } });
+  const context = () => ({ sessionId: 'sess-9', model: 'gpt-x', agentId: 'agent-3' });
+  const h = new HookRunner(w, { audit, context });
+  await h.fire('session_start', { sessionId: 'sess-explicit' });
+  const p = JSON.parse(readFileSync(outFile, 'utf-8'));
+  assert.equal(p.event, 'session_start');
+  // explicit payload field wins over the context default
+  assert.equal(p.sessionId, 'sess-explicit');
+  assert.equal(p.model, 'gpt-x');
+  assert.equal(p.agentId, 'agent-3');
+
+  // gate runners carry the same ambient context (fireValue path)
+  const gateFile = join(w, 'gate-hooks.json');
+  writeFileSync(gateFile, JSON.stringify({ hooks: { session_directory: [{ command: `node ${JSON.stringify(script)}` }] } }));
+  const g = new HookRunner(w, { gate: true, configPath: gateFile, audit, context });
+  try { await g.fireValue('session_directory', { default: '/tmp' }); } catch { /* answer is the raw payload — malformed for fireValue; payload already captured */ }
+  const gp = JSON.parse(readFileSync(outFile, 'utf-8'));
+  assert.equal(gp.event, 'session_directory');
+  assert.equal(gp.sessionId, 'sess-9');
+  assert.equal(gp.model, 'gpt-x');
+  assert.equal(gp.agentId, 'agent-3');
+
+  // a throwing context provider degrades to no ambient fields, never breaks fire
+  const h2 = new HookRunner(w, { audit, context: () => { throw new Error('ctx boom'); } });
+  await h2.fire('session_start', {});
+  const p2 = JSON.parse(readFileSync(outFile, 'utf-8'));
+  assert.equal(p2.event, 'session_start');
+  assert.equal(p2.sessionId, undefined);
+});

@@ -58,3 +58,16 @@ test('oversized body is capped with a visible marker — never injected whole, n
   assert.ok(agents[0].body.length < 17 * 1024);
   assert.match(agents[0].body, /\[truncated: file exceeds the 16KB per-microagent cap\]/);
 });
+
+// dedup-h #1870 description fragment — a numeric-only skill name ("12306")
+// must load/match/render like any other; names are pure strings end-to-end.
+test('numeric-only skill name loads and renders — no numeric coercion crash', () => {
+  const dir = mkDir({
+    '12306.md': '---\ntriggers: ticket, train\n---\nBook via the official portal.\n',
+  });
+  const agents = loadMicroagents(dir);
+  assert.equal(agents.length, 1);
+  assert.equal(agents[0].name, '12306');
+  assert.equal(matchMicroagents(agents, 'buy a train ticket').length, 1);
+  assert.match(renderKnowledge(agents), /<knowledge name="12306">/);
+});

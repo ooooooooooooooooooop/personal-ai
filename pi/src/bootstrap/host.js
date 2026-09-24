@@ -727,6 +727,22 @@ export async function startHost({
   const sessionEnv = new SessionEnv({ audit: core.audit });
   const envOverlay = () => sessionEnv.view();
 
+  // dedup-h #1870 — ambient hook context (chat.params/chat.message analogue):
+  // sessionId/model/agentId ride every event payload so hooks can correlate
+  // which session/agent/model produced the event. currentSession is a `let`
+  // declared below — the operator gate fires (session_directory) while it is
+  // still in TDZ, so the read is guarded and pre-session events carry nulls.
+  // agentId is the delegate child id stamped via PAI_AGENT_ID env (#1390).
+  const hookContext = () => {
+    let s = null;
+    try { s = currentSession; } catch { /* TDZ — gate fires before sessions exist */ }
+    return {
+      sessionId: s?.sessionId ?? null,
+      model: s?.model?.id ?? s?.model?.model ?? null,
+      agentId: process.env.PAI_AGENT_ID ?? null,
+    };
+  };
+
   // M4: durable jobs — state machine in host, executor in the body.
   const jobStore = new JobStore(join(core.paths.root, 'jobs', 'durable_jobs.db'));
   const executor = new JobExecutor(jobStore, join(core.paths.root, 'jobs'), {
@@ -1201,6 +1217,7 @@ export async function startHost({
     envOverlay,
     llmFn: hookLlmFn,
     resolveExecEnv: hookExecEnv,
+    context: hookContext,
   });
 
   // Sessions persist under the instance root — the app lists/resumes them.
@@ -2034,7 +2051,7 @@ export async function startHost({
   // (hook config is agent-writable workdir state; a veto there would let the
   // agent gate itself). Absent .pai/hooks.json → no-op; malformed config
   // throws at boot so the operator hears about it.
-  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn, resolveExecEnv: hookExecEnv });
+  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn, resolveExecEnv: hookExecEnv, context: hookContext });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   // dedup-h #391 — operator-side MCP surface: server list + OAuth
