@@ -23,6 +23,9 @@ const instance = args[args.indexOf('--instance') + 1];
 const body = process.env.FAKE_BODY ?? 'fake';
 const runId = `fake-run-${body}-${randomUUID().slice(0, 6)}`;
 const leaseName = process.env.FAKE_LEASE ?? 'session-writer';
+// Fileops receipt stream — grows one entry per scripted mutation so the
+// dom gate can watch the changes view update LIVE (dedup-h #1955).
+const fileops = [];
 const owner = `${body}:${runId}`;
 
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
@@ -70,6 +73,12 @@ rl.on('line', async (line) => {
         write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc1', toolName: 'bash', isError: false, result: { content: [{ type: 'text', text: 'domgate-out' }] } } });
         write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tc2', toolName: 'edit', args: { path: 'src/a.js', oldText: 'const x = 1;', newText: 'const x = 2;' } } });
         write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc2', toolName: 'edit', isError: false, result: { content: [{ type: 'text', text: 'edited' }] } } });
+        // #1955 — a `patch` mutation (previously missed by the UI's live set)
+        // lands a fresh fileops receipt each turn.
+        const target = `src/gen-${fileops.length}.js`;
+        write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tcp', toolName: 'patch', args: { path: target } } });
+        write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tcp', toolName: 'patch', isError: false, result: { content: [{ type: 'text', text: 'patched' }] } } });
+        fileops.push({ receiptId: `rcpt-${fileops.length + 1}`, op: 'write', target, at: new Date().toISOString(), undoable: true });
         // #1507 — MCP Apps result shape: details.ui declares a ui:// surface,
         // details.mcpServer names the owning connection.
         write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tcapp', toolName: 'mcp__apps__chart', args: {} } });
@@ -114,6 +123,8 @@ rl.on('line', async (line) => {
     case 'steer':
     case 'abort':
       return reply({});
+    case 'fileops_list':
+      return reply(fileops);
     case 'session_stats':
       return reply({
         sessionId: 'sess-fake', totalMessages: 4, userMessages: 2, assistantMessages: 2,

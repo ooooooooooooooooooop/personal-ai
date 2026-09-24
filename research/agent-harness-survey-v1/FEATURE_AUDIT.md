@@ -2833,3 +2833,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **信任边界**：provider 是纯函数只读——无 mutation 面；诊断文本 16k 截断防 prompt 膨胀。
 - **证据**：`pi/tests/at-mention.test.js` +3（注册表 register/collect/unregister + 抛错降级；展开断言 token 剥离+块追加+原消息对象不染；无 provider 诚实注记+无 token no-op+嵌入文本不触发+tool-role 不扫描）；`pi/tests/lsp-ext.test.js` 3/3 全绿（provider 注册与 managed 扩展兼容）。
 - **核销**：candidates-open #1937 → `candidates-resolved.tsv` #132。
+
+### 28.129 648 清单逐条核销 #133：dedup-h #1955 ui-ux——ui-changes: Changes view 实时显示 agent 改动文件（2026-09-25）
+
+- **行**：`dedup-h  1955  ui-ux  ui-changes: Changes view实时显示agent改动文件`（描述段为错位 Zed 片段：project panel 隐藏 gitignored 文件 + toggle 设置）。
+- **判定**：**IMPLEMENTED（补漏）+ BOUNDARY（描述语义）**。
+  - **标题语义**：Changes view 已存在（`refreshChanges` 渲染 fileops 回执流，含逐条 diff 预览与恢复/撤销）——但"实时"有真洞：`tool_execution_end` 只监听 `['write','edit','delete']`，而 pi 身体写工具面是六名（channel.js `VERIFY_WRITE_TOOLS`：write/edit/delete/patch/apply_patch/create）+ `multi_edit`——`patch`/`apply_patch`/`create`/`multi_edit` 改动在打开视图下**不刷新**（须等下次进视图才补）。修法：新增 `FILE_MUTATION_TOOLS` 集合镜像身体写工具面（注释指认对位源），视图打开时全量写工具 end 实时刷新；进视图仍走 entry-refresh（`switchView`）。
+  - **描述语义**：project panel 隐藏 gitignored 文件 = **BOUNDARY**——本 UI 无项目文件树面板（chat + bodies + changes 回执面，非 IDE 文件管理器），无该表面可挂。
+- **证据**：`app/tests/fixtures/fake-channel.js` 补 `fileops_list` 回执流（每 turn `patch` 突变推一条新回执）+ `dom-gate.js` 新增 `changesLive` 检查——视图打开后第二 prompt 的 `patch` 改动**不重进视图即落新行**（行数 rows0→+1 实测通过）；`ui-dom` 门禁全套 26/24/1跳/1败 = supervisor `handoff_export` 已知外来在途败（`instance.js` WORLD_MODEL_HOME 重定向，#1846 已定位，与本改无关）。
+- **核销**：candidates-open #1955 → `candidates-resolved.tsv` #133。

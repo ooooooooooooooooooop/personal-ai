@@ -487,6 +487,28 @@ const DRIVER = `(async () => {
       leaked: document.querySelector('#transcript')?.textContent?.includes('sk-live-domgate') ?? null,
     };
 
+    /* dedup-h #1955 — changes view live-updates: open the view (entry
+     * refresh shows turn-1's patch receipt — a tool name the old UI set
+     * missed), then a second prompt's patch lands a NEW row while the view
+     * stays open — real-time, not on-entry refresh. Wait for the credential
+     * turn's agent_end first or #send routes to steer(). */
+    await waitFor('.sys,.msg', (e) => e.textContent.includes('done'), 8000);
+    await sleep(400);
+    document.querySelector('.nav-item[data-view="changes"]')?.click();
+    const firstRow = await waitFor('#changes tbody .change-path', (e) => e.textContent.includes('gen-0'), 10000);
+    const rows0 = document.querySelectorAll('#changes tbody .change-path').length;
+    input.value = '再改一处';
+    await send(); // page global — if a turn is still draining this queues and sends on agent_end
+    // Earlier scripted turns already produced receipts — a NEW row (count
+    // grows past rows0 while the view stays open) is the live-update proof.
+    const newRow = await waitFor('#changes tbody .change-path',
+      () => document.querySelectorAll('#changes tbody .change-path').length > rows0, 10000);
+    checks.changesLive = {
+      ok: !!firstRow && !!newRow,
+      badge: document.querySelector('#badge-changes')?.textContent ?? '',
+      rows: rows0 + '->' + document.querySelectorAll('#changes tbody .change-path').length,
+    };
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],

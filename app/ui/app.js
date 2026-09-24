@@ -1245,8 +1245,10 @@ function onAgentEvent(ev) {
     case 'tool_execution_end':
       endTool(ev);
       if (ev.toolName === 'update_todos' && !ev.isError) refreshTodos();
-      // file mutations land in the changes view's receipt stream
-      if (!ev.isError && ['write', 'edit', 'delete'].includes(ev.toolName) && currentView === 'changes') refreshChanges();
+      // file mutations land in the changes view's receipt stream — the set
+      // mirrors the body write-tool surface so patch/create/multi_edit
+      // mutations refresh live too (dedup-h #1955).
+      if (!ev.isError && FILE_MUTATION_TOOLS.has(ev.toolName) && currentView === 'changes') refreshChanges();
       break;
     case 'governance_ask':
       addAskCard(ev.ask);
@@ -3111,6 +3113,9 @@ function stopTaskPoll() {
 
 /* ---------- changes & artifacts (fileops receipt stream) ---------- */
 const OP_LABEL = { write: '写入', create: '新建', delete: '删除', backup: '备份' };
+// Mirrors the body's write-tool surface (pi channel.js VERIFY_WRITE_TOOLS +
+// multi_edit) — a mutation tool end refreshes the open changes view live.
+const FILE_MUTATION_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create', 'multi_edit']);
 
 // Artifacts panel — everything exported under <instance>/exports browsable.
 async function refreshArtifacts() {
