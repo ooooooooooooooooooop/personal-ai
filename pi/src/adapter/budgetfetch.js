@@ -112,10 +112,60 @@ async function hostPreservingFetch(input, init) {
   });
 }
 
-export function installBudgetFetch({ budget, getScope, getProviderHosts, getPrivateAllowedHosts = null, audit, onGateEvent = null }) {
+/**
+ * dedup-h #1636 — same-provider API-key pool with automatic rotation.
+ * <agentDir>/key-pool.json declares `providers.<id>: [keys]`; a declared pool
+ * is authoritative for that provider's bearer (primary key goes at index 0).
+ * On an auth/quota-class response (401/403/429 — after the SDK's own same-key
+ * retries have already run) the request is replayed with the next key; the
+ * cursor is process-sticky so a dead key is not retried on every call. The
+ * bound is the pool length; an unreplayable body (stream) gets one attempt.
+ * Non-bearer Authorization values and requests without any Authorization are
+ * handled honestly: the former is never rewritten, the latter gets the pool
+ * key injected. Key bytes are never logged.
+ */
+function withBearerAuthorization(input, init, key) {
+  const headers = collectRequestHeaders(input, init);
+  const authKey = Object.keys(headers).find((k) => k.toLowerCase() === 'authorization');
+  if (authKey && !String(headers[authKey]).toLowerCase().startsWith('bearer ')) return null;
+  headers[authKey ?? 'authorization'] = `Bearer ${key}`;
+  return { ...(init ?? {}), headers };
+}
+
+export function installBudgetFetch({ budget, getScope, getProviderHosts, getPrivateAllowedHosts = null, getKeyPool = null, audit, onGateEvent = null }) {
   const base = globalThis.fetch;
   if (typeof base !== 'function') return () => {};
   const send = (input, init) => (declaredHostHeader(input, init) ? hostPreservingFetch(input, init) : base(input, init));
+  const keyCursor = new Map(); // host -> active pool index (process-sticky)
+  const replayableBody = (b) => b == null || typeof b === 'string' || Buffer.isBuffer(b)
+    || b instanceof ArrayBuffer || ArrayBuffer.isView(b) || b instanceof URLSearchParams;
+  const sendWithRotation = async (input, init, host) => {
+    const pool = getKeyPool?.().get(host) ?? null;
+    if (!pool) return send(input, init);
+    // normalize a replayable body once (Request inputs get buffered — their
+    // stream can only be consumed once); streams stay single-attempt
+    const method = init?.method ?? (input && typeof input === 'object' ? input.method : null) ?? 'GET';
+    let body = init?.body;
+    let replayable = replayableBody(body);
+    if (body === undefined && input && typeof input === 'object' && method !== 'GET' && method !== 'HEAD') {
+      try { body = Buffer.from(await input.arrayBuffer()); }
+      catch { replayable = false; }
+    }
+    for (;;) {
+      const cursor = keyCursor.get(host) ?? 0;
+      const rotated = withBearerAuthorization(input, init, pool[cursor]);
+      if (!rotated) return send(input, init); // non-bearer auth — rotation cannot apply
+      const res = await send(input, { ...rotated, body });
+      if (!res || res.status < 400 || ![401, 403, 429].includes(res.status)
+          || !replayable || cursor >= pool.length - 1) return res;
+      res.body?.cancel().catch(() => {});
+      keyCursor.set(host, cursor + 1);
+      audit?.write({ kind: 'PROVIDER_KEY_ROTATED', data: { host, keyIndex: cursor + 1, status: res.status } });
+      if (cursor + 1 >= pool.length - 1) {
+        audit?.write({ kind: 'PROVIDER_KEY_POOL_NEAR_EXHAUSTION', data: { host, remaining: 1 } });
+      }
+    }
+  };
 
   const gated = async (input, init) => {
     let host = null;
@@ -155,7 +205,7 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       }
     }
 
-    if (!budget?.configured) return send(input, init);
+    if (!budget?.configured) return sendWithRotation(input, init, host);
     const scope = getScope();
     const gate = budget.admit(scope);
     onGateEvent?.({ host, scope, admitted: gate.ok, rule: gate.rule ?? null });
@@ -165,7 +215,7 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       // channel's usage events (countCall:false there avoids double-count)
       try { budget.record({ scope, source: 'turn', usage: {}, countCall: true }); }
       catch { /* ledger went unwritable mid-run — next admit() fails closed */ }
-      return send(input, init);
+      return sendWithRotation(input, init, host);
     }
 
     audit?.write({
@@ -242,4 +292,49 @@ export function collectPrivateAllowedHosts(agentDir) {
     }
   } catch { /* absent */ }
   return allowed;
+}
+
+/**
+ * dedup-h #1636: provider key pools from <agentDir>/key-pool.json —
+ * `{ "providers": { "<id>": ["k1", "k2", ...] } }`. Returns Map<host, keys[]>.
+ * A pool needs at least two resolvable keys to rotate; entries support $ENV
+ * refs resolved per call (an unresolvable ref is dropped — if that leaves
+ * fewer than two keys the provider simply has no pool). Host mapping follows
+ * the same trust domain as collectPrivateAllowedHosts: the provider's
+ * models.json baseUrl plus the auth.json baseUrl override. Operator-private
+ * file; never logged.
+ */
+export function collectKeyPool(agentDir) {
+  const pool = new Map();
+  let cfg = null;
+  try { cfg = JSON.parse(readFileSync(join(agentDir, 'key-pool.json'), 'utf-8')); } catch { return pool; }
+  if (!cfg?.providers || typeof cfg.providers !== 'object') return pool;
+  let models = null;
+  let auth = null;
+  try { models = JSON.parse(readFileSync(join(agentDir, 'models.json'), 'utf-8')); } catch { /* absent */ }
+  try { auth = JSON.parse(readFileSync(join(agentDir, 'auth.json'), 'utf-8')); } catch { /* absent */ }
+  const resolve = (v) => {
+    if (typeof v !== 'string' || !v) return null;
+    if (v.startsWith('$')) {
+      const val = process.env[v.slice(1)];
+      return typeof val === 'string' && val ? val : null;
+    }
+    return v;
+  };
+  const hostOf = (base) => {
+    const b = typeof base === 'string' && base.startsWith('$') ? process.env[base.slice(1)] : base;
+    try { return new URL(String(b ?? '')).host || null; } catch { return null; }
+  };
+  for (const [pid, keys] of Object.entries(cfg.providers)) {
+    if (!Array.isArray(keys)) continue;
+    const resolved = keys.map(resolve).filter(Boolean);
+    if (resolved.length < 2) continue;
+    const hosts = new Set();
+    const h1 = hostOf(models?.providers?.[pid]?.baseUrl);
+    if (h1) hosts.add(h1);
+    const h2 = hostOf(auth?.[pid]?.baseUrl ?? auth?.[pid]?.auth?.baseUrl);
+    if (h2) hosts.add(h2);
+    for (const h of hosts) pool.set(h, resolved);
+  }
+  return pool;
 }

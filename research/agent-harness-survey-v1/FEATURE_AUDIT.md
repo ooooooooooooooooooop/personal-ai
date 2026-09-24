@@ -2641,3 +2641,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **错位描述段（BOUNDARY）**：`<location>` 路径 `~` 压缩在**我方架构无落点**——技能注入面是 host `microagents.js` 的 `<knowledge name="X">body</knowledge>` 按触发按轮注入，prompt 里根本不出现文件系统路径，压缩对象不存在；compaction prompt 序列化测试 #1546 已落（5 条）。
 - **证据**：`pi/tests/budgetfetch.test.js` +3——(a) **L2 反事实**：真 http server 断言线上 `req.headers.host === 'virtual.gateway.local'`（对照实验已证 undici 路径下该值被剥为真实 host），POST body 字节级回环、200 JSON 响应可读；(b) host 声明请求仍过门禁——无私网 opt-in → 403 且 server 零请求、超预算 → 402 且 server 零请求；(c) 无 host 声明请求仍走 base fetch（calls 记录证明路由未破）。budgetfetch 19/19。
 - **核销**：candidates-open #1590 → `candidates-resolved.tsv` #114。
+
+### 28.111 648 清单逐条核销 #115：dedup-h #1636 models-routing——model-pool: 同 provider 多 API key 自动 rotation（2026-09-24）
+
+- **行**：`dedup-h  1636  models-routing  model-pool: 同provider多API key自动rotation`（描述段同为错位片段 "Signal: add signal-cli JSON-RPC support"，非本候选语义）。
+- **判定**：**IMPLEMENTED**。基线核查：auth 模型单 key（`auth.json apiKey` → `resolution.auth.apiKey` → Bearer 头），pi-ai `retryProviderRequest` 对 429 重试但**始终同 key**——401/403/429 耗尽即整链失败，无任何多 key 机制。落地两层：
+  - **配置面**：operator 私有 `<agentDir>/key-pool.json` `{providers: {id: [keys]}}`——auth.json/models.json 均为 pi 严 schema 文件，独立文件零冲突；key 支持 `$ENV` 引用（每次调用现解，unresolvable 丢弃）；池 <2 个可解析 key 不成池（单 key 无轮换语义）。host 映射复用 #1402 同信任域：models.json `baseUrl` + auth.json `baseUrl` 覆盖双映射。
+  - **执行面**：`sendWithRotation` 在 gated fetch 内——唯一传输汇聚点（SDK 同 key 重试早已先跑，本层只处理同 key 重试仍失败后的换 key）。**池声明即权威**：请求 Bearer 重写为 `pool[cursor]`（cursor 起 0，primary 应放 index 0）；无 authorization 头注入 Bearer；**非 Bearer 值（Basic/签名类）绝不改写、单发直通**。auth/quota 类响应（401/403/429）+ 可重放 body → cursor 推进重发；**cursor 进程级粘滞**（死 key 不再逐请求重试）；界=池长，耗尽返回末次响应诚实暴露；流式 body 单发不重放。审计 `PROVIDER_KEY_ROTATED {host, keyIndex, status}` + `PROVIDER_KEY_POOL_NEAR_EXHAUSTION`，**key 字节永不落日志**。轮换与预算/egress 门禁共存：门禁审判 URL CONNECT 目标不变，轮换只改 Bearer 呈现值；`!budget?.configured` 路径同样走轮换（无预算时池仍生效）。
+- **证据**：`pi/tests/budgetfetch.test.js` +5——(a) **L2 反事实**：真 server 按 key 应答，序列 `Bearer sk-dead → Bearer sk-good` 上线，401→200 轮换成功；同进程第二请求**无 authorization 输入**仍发 `Bearer sk-good`（粘滞 cursor 直接证据）+ `PROVIDER_KEY_ROTATED` 审计；(b) 三 key 全死：请求数**恰好=3**（界成立），返回末次 401，ROTATED×2 + NEAR_EXHAUSTION 审计；(c) `Authorization: Basic abc` 非 Bearer → 单发原值直通不改写；(d) `collectKeyPool` 单测：models.json+auth.json 双 host 映射、`$ENV` 解析、单 key/畸形条不成池；(e) 无文件→空池→零行为变化。budgetfetch 24/24、bootstrap 31/31。
+- **核销**：candidates-open #1636 → `candidates-resolved.tsv` #115。

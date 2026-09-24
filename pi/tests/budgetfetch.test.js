@@ -17,7 +17,7 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BudgetGovernor } from '../../host/src/core/budget.js';
-import { installBudgetFetch, collectProviderHosts, collectPrivateAllowedHosts } from '../src/adapter/budgetfetch.js';
+import { installBudgetFetch, collectProviderHosts, collectPrivateAllowedHosts, collectKeyPool } from '../src/adapter/budgetfetch.js';
 
 const PROVIDER = 'http://api.testprovider.local/v1/chat';
 
@@ -341,5 +341,125 @@ test('requests without a host header keep the undici path (streaming intact)', a
     const r = await globalThis.fetch(PROVIDER, { method: 'POST', body: 'x' });
     assert.equal(r.status, 200);
     assert.deepEqual(h.calls, [PROVIDER], 'non-declared request routes through base fetch');
+  } finally { h.done(); }
+});
+
+// ── dedup-h #1636: same-provider API-key pool, automatic rotation ────────────
+// A declared key-pool is authoritative for the provider's bearer. On an
+// auth/quota-class response (401/403/429 — after the SDK's same-key retries)
+// the gated fetch replays the request with the next key; the cursor is
+// process-sticky so dead keys are not retried per call. Bound = pool length.
+
+function keyPoolServer() {
+  const seen = [];
+  const srv = createServer((req, res) => {
+    seen.push(req.headers.authorization ?? null);
+    const key = (req.headers.authorization ?? '').replace(/^bearer /i, '');
+    res.setHeader('content-type', 'application/json');
+    if (key === 'sk-good') res.end(JSON.stringify({ ok: true }));
+    else { res.statusCode = 401; res.end(JSON.stringify({ error: 'invalid key' })); }
+  });
+  return new Promise((resolve) => {
+    srv.listen(0, '127.0.0.1', () => resolve({ srv, seen, port: srv.address().port }));
+  });
+}
+
+function poolHarness({ hosts, privateHosts, pool, limits = null, scope = 'sess-1' }) {
+  const { budget, auditRows } = makeBudget(limits);
+  const realFetch = globalThis.fetch;
+  const ungate = installBudgetFetch({
+    budget,
+    getScope: () => scope,
+    getProviderHosts: () => new Set(hosts),
+    getPrivateAllowedHosts: () => privateHosts,
+    getKeyPool: () => pool,
+    audit: { write: (r) => auditRows.push(r) },
+  });
+  return { budget, auditRows, done: () => { ungate(); globalThis.fetch = realFetch; } };
+}
+
+test('401 on primary key rotates to the next pool key — cursor stays rotated', async () => {
+  const { srv, seen, port } = await keyPoolServer();
+  const host = `127.0.0.1:${port}`;
+  const url = `http://${host}/v1/chat`;
+  const h = poolHarness({
+    hosts: [host], privateHosts: new Set([host]),
+    pool: new Map([[host, ['sk-dead', 'sk-good']]]),
+  });
+  try {
+    const r1 = await globalThis.fetch(url, { method: 'POST', headers: { authorization: 'Bearer sk-dead' }, body: 'x' });
+    assert.equal(r1.status, 200, 'rotated retry succeeds');
+    assert.deepEqual(seen, ['Bearer sk-dead', 'Bearer sk-good'], 'dead key tried once, then rotated');
+    // second call starts at the rotated cursor — dead key never re-tried
+    const r2 = await globalThis.fetch(url, { method: 'POST', body: 'y' });
+    assert.equal(r2.status, 200);
+    assert.deepEqual(seen, ['Bearer sk-dead', 'Bearer sk-good', 'Bearer sk-good'],
+      'sticky cursor: no Authorization input still gets the live pool key');
+    assert.ok(h.auditRows.some((a) => a.kind === 'PROVIDER_KEY_ROTATED' && a.data.keyIndex === 1 && a.data.status === 401));
+  } finally { h.done(); srv.close(); }
+});
+
+test('pool exhaustion returns the last auth failure honestly — bounded retries', async () => {
+  const { srv, seen, port } = await keyPoolServer();
+  const host = `127.0.0.1:${port}`;
+  const h = poolHarness({
+    hosts: [host], privateHosts: new Set([host]),
+    pool: new Map([[host, ['sk-dead-1', 'sk-dead-2', 'sk-dead-3']]]),
+  });
+  try {
+    const r = await globalThis.fetch(`http://${host}/v1/chat`, { method: 'POST', body: 'x' });
+    assert.equal(r.status, 401, 'last failure surfaces honestly');
+    assert.equal(seen.length, 3, 'exactly pool-length attempts — bounded');
+    assert.equal(h.auditRows.filter((a) => a.kind === 'PROVIDER_KEY_ROTATED').length, 2);
+    assert.ok(h.auditRows.some((a) => a.kind === 'PROVIDER_KEY_POOL_NEAR_EXHAUSTION'));
+  } finally { h.done(); srv.close(); }
+});
+
+test('non-bearer Authorization is never rewritten; success path untouched', async () => {
+  const { srv, seen, port } = await keyPoolServer();
+  const host = `127.0.0.1:${port}`;
+  const h = poolHarness({
+    hosts: [host], privateHosts: new Set([host]),
+    pool: new Map([[host, ['sk-good', 'sk-good-2']]]),
+  });
+  try {
+    const r = await globalThis.fetch(`http://${host}/v1/chat`, { method: 'POST', headers: { authorization: 'Basic abc' }, body: 'x' });
+    assert.equal(r.status, 401, 'basic auth passes through unrewritten — server sees Basic, rejects honestly');
+    assert.deepEqual(seen, ['Basic abc'], 'single attempt, header preserved verbatim');
+  } finally { h.done(); srv.close(); }
+});
+
+test('collectKeyPool maps provider→host via models.json + auth.json; $ENV resolves', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-keypool-'));
+  writeFileSync(join(dir, 'models.json'), JSON.stringify({
+    providers: { acme: { baseUrl: 'http://203.0.113.8:9000/v1', api: 'openai-completions' } },
+  }));
+  writeFileSync(join(dir, 'auth.json'), JSON.stringify({
+    acme: { type: 'api_key', key: 'k', baseUrl: 'http://203.0.113.9:9000/v1' },
+  }));
+  writeFileSync(join(dir, 'key-pool.json'), JSON.stringify({
+    providers: {
+      acme: ['$PAI_TEST_POOL_KEY', 'sk-literal'],
+      nopool: ['only-one-key'],
+      malformed: 'not-an-array',
+    },
+  }));
+  process.env.PAI_TEST_POOL_KEY = 'sk-env';
+  try {
+    const pool = collectKeyPool(dir);
+    assert.deepEqual(pool.get('203.0.113.8:9000'), ['sk-env', 'sk-literal'], 'models.json host mapped');
+    assert.deepEqual(pool.get('203.0.113.9:9000'), ['sk-env', 'sk-literal'], 'auth.json override host mapped');
+    assert.equal(pool.size, 2, 'single-key and malformed entries contribute nothing');
+  } finally { delete process.env.PAI_TEST_POOL_KEY; }
+});
+
+test('no key-pool.json → empty pool → requests untouched', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-keypool-none-'));
+  assert.equal(collectKeyPool(dir).size, 0);
+  const h = harness({ limits: { maxCallsPerSession: 2 } });
+  try {
+    const r = await globalThis.fetch(PROVIDER, { method: 'POST', headers: { authorization: 'Bearer x' } });
+    assert.equal(r.status, 200);
+    assert.deepEqual(h.calls, [PROVIDER]);
   } finally { h.done(); }
 });
