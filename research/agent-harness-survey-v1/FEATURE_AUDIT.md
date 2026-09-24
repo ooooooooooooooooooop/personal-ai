@@ -2920,3 +2920,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **姿态**：`PROXY_CA_APPLIED` boot 审计 + `proxyState.caFile` 经 `status()`/`get_state` 上报。
 - **证据**：`pi/tests/bootstrap.test.js` +1=39/39 端到端——先摘除该 CA 再经 caFile 路径装回（X509 fingerprint256 证明真 PEM 入根而非计数假象）、审计行落地、status 面报路径、missing.pem → startHost 拒启。流程全局 CA 列表在 finally 恢复不污染邻测。
 - **核销**：candidates-open #2010 → `candidates-resolved.tsv` #140。
+
+### 28.137 648 清单逐条核销 #141：dedup-h #2026 approval-gate——pairing: allowlisted proxy identities 自动批准 UI 设备（2026-09-25）
+
+- **行**：`dedup-h  2026  approval-gate  pairing: allowlisted proxy identities自动批准UI设备`（描述段为 openclaw proxy.tls.caFile 文本——已随 #2010 核销落地）。
+- **源语义**（openclaw v2026.8.1-beta.2）：`Trusted-proxy browser pairing`——可选地自动批准来自 allowlisted 代理身份的**新** Control UI/WebChat 设备（非 admin scope 封顶），既有设备升级保持手动。
+- **判定**：**BOUNDARY**。该特性挂接的三个前提面在本架构均不存在：
+  1. **远程设备配对面**：openclaw Gateway 是多设备网关（远程浏览器/WebChat 设备入网配对）；我方 HTTP 桥 `http-bridge.js` **构造即 loopback-only**（127.0.0.1 绑定 + Host 头白名单拒非回环），Electron 壳是本机壳——没有可配对的远程设备面。
+  2. **代理身份断言面**：特性依赖代理注入身份（受信 forward-proxy 声明 client 身份）；我方代理面是出向传输层（proxy.json/NODE_USE_ENV_PROXY），无入向代理身份概念。
+  3. **设备 scope 模型**：`非 admin scope 封顶`要求设备级授权域；我方无设备注册表/scope 集。
+  - 在 loopback 桥上发明"配对仪式 + 假代理身份"是捏造架构而非特性对位——如实标边界。
+- **证据**：源码面核查 `app/server/http-bridge.js:9,199`（loopback-only 构造注释与绑定）、全仓 grep 无 pairing/device 面（仅 node_modules 噪声）。本条为分类核销，无新增代码。
+- **核销**：candidates-open #2026 → `candidates-resolved.tsv` #141。
