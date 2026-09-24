@@ -1356,3 +1356,86 @@ test('mcp facade loopback auth: callback captures code, token stored, auth_succe
     if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
   }
 });
+
+// dedup-h #1807: before_branch gate hook + skipConversationRestore — a
+// hook answering {skipConversationRestore:true} branches lineage without
+// the transcript; {deny} refuses; the explicit flag wins over the hook.
+const mkSessionSrc = (dir, name = 'src') => {
+  const src = join(dir, name + '.jsonl');
+  writeFileSync(src,
+    JSON.stringify({ type: 'session', version: 3, id: 'src-1', timestamp: new Date().toISOString(), cwd: dir }) + '\n' +
+    JSON.stringify({ type: 'message', id: 'm1', timestamp: new Date().toISOString(), message: { role: 'user', content: 'hi' } }) + '\n' +
+    JSON.stringify({ type: 'message', id: 'm2', timestamp: new Date().toISOString(), message: { role: 'assistant', content: 'hello' } }) + '\n');
+  return src;
+};
+const bootWithBranchHook = async (dir, answer) => {
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const hookScript = join(dir, 'branch-hook.js');
+  writeFileSync(hookScript, `process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{console.log(${JSON.stringify(JSON.stringify(answer))});});`);
+  writeFileSync(join(dir, 'hooks.json'), JSON.stringify({
+    hooks: { before_branch: [{ command: `"${process.execPath}" ${JSON.stringify(hookScript)}` }] },
+  }));
+  return startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+};
+
+test('#1807: before_branch hook answering skipConversationRestore branches lineage only', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-branch-skip-'));
+  const host = await bootWithBranchHook(dir, { skipConversationRestore: true });
+  try {
+    const src = mkSessionSrc(dir);
+    const r = await host.channel.handle({ type: 'session_fork', path: src });
+    assert.equal(r.success, true, JSON.stringify(r));
+    const file = r.data?.file ?? r.file;
+    assert.ok(file && existsSync(file));
+    const lines = readFileSync(file, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.equal(lines[0].type, 'session');
+    assert.equal(lines[0].parentSession, resolve(src), 'lineage stamped to the source');
+    assert.ok(!lines.some((l) => l.type === 'message'), 'no transcript entries carried over');
+    const audit = readFileSync(join(dir, 'audit', new Date().toISOString().slice(0, 10) + '.jsonl'), 'utf-8');
+    assert.match(audit, /SESSION_BRANCHED_FRESH/);
+    assert.match(audit, /"via":"hook"/);
+  } finally { host.dispose(); }
+});
+
+test('#1807: explicit skipConversationRestore flag branches fresh without a hook', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-branch-flag-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const src = mkSessionSrc(dir);
+    const r = await host.channel.handle({ type: 'session_fork', path: src, skipConversationRestore: true });
+    assert.equal(r.success, true, JSON.stringify(r));
+    const file = r.data?.file ?? r.file;
+    const lines = readFileSync(file, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.equal(lines[0].parentSession, resolve(src));
+    assert.ok(!lines.some((l) => l.type === 'message'));
+
+    // entryId + skipRestore = honest refusal (nothing to navigate)
+    const bad = await host.channel.handle({ type: 'session_fork', path: src, skipConversationRestore: true, entryId: 'm1' });
+    assert.equal(bad.success, false);
+    assert.match(String(bad.error ?? bad), /no landing|no entries/);
+
+    // ordinary fork still carries the transcript (regression)
+    const full = await host.channel.handle({ type: 'session_fork', path: src });
+    assert.equal(full.success, true, JSON.stringify(full));
+    const fullLines = readFileSync(full.data?.file ?? full.file, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+    assert.ok(fullLines.filter((l) => l.type === 'message').length >= 2, 'full fork inherits messages');
+  } finally { host.dispose(); }
+});
+
+test('#1807: before_branch hook deny refuses the fork closed', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-branch-deny-'));
+  const host = await bootWithBranchHook(dir, { deny: 'branches frozen for review' });
+  try {
+    const src = mkSessionSrc(dir);
+    const r = await host.channel.handle({ type: 'session_fork', path: src });
+    assert.equal(r.success, false);
+    assert.match(String(r.error ?? r), /branches frozen for review/);
+  } finally { host.dispose(); }
+});

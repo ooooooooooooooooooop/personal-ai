@@ -75,7 +75,12 @@ export const HOOK_EVENTS = new Set([
 // answers {"directory": "..."} to relocate session persistence. Gate-only on
 // purpose — the agent-reachable observational file must never redirect where
 // transcripts land (that would be a self-service exfiltration path).
-export const GATE_EVENTS = new Set(['pre_tool', 'session_directory', 'prompt_submit', 'agent_stop']);
+// dedup-h #1807 (before_branch hook form): a gate-only query event fired
+// on session_fork; the hook answers {"skipConversationRestore": true} to
+// branch lineage without inheriting the transcript, or {"deny": reason}
+// to refuse the branch. Operator-private plane only — a workdir hook can
+// never shape or veto where a session is branched.
+export const GATE_EVENTS = new Set(['pre_tool', 'session_directory', 'prompt_submit', 'agent_stop', 'before_branch']);
 // dedup-h #1034: 'agent_stop' in the gate file may answer {"block"|"deny":
 // "reason"} — the caller re-prompts the agent with the reason instead of
 // letting the turn end (Claude Code Stop-hook semantics). An entry flag

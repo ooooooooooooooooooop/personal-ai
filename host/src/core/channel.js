@@ -531,7 +531,12 @@ export class HostChannel {
         case 'session_fork': {
           if (!this.sessions?.fork) return reply(false, undefined, 'sessions facade unavailable');
           if (!cmd.path) return reply(false, undefined, 'session_fork requires {path}');
-          return reply(true, await this.sessions.fork(String(cmd.path), { entryId: cmd.entryId ?? null }));
+          return reply(true, await this.sessions.fork(String(cmd.path), {
+            entryId: cmd.entryId ?? null,
+            // dedup-h #1807 — explicit operator flag; the before_branch gate
+            // hook may also answer it, explicit param wins.
+            skipConversationRestore: cmd.skipConversationRestore ?? null,
+          }));
         }
         case 'session_delete': {
           if (!this.sessions?.remove) return reply(false, undefined, 'sessions facade unavailable');

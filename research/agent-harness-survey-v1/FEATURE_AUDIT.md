@@ -2724,3 +2724,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **sink 面**：抽 `schedulePromptSink` 工厂（可测缝）——`"provider/model"` 解析 → `modelRuntime.getModel` 活注册表解析（**未注册/解析失败 → `{refused}` 保持 due**，与 busy 同契不消费火）→ `setModel` 钉 → finally **恢复原会话模型**（调度永不劫持操作员模型选择）→ 审计 `SCHEDULE_MODEL_PIN {scheduleId, model}`。
 - **证据**：`pi/tests/schedule.test.js` +4=18/18——(a) store/tool：prompt+model 持久化、list 显示钉选、command+model create/edit 双拒、edit 置/清；(b) pump：火 meta 携带 `{model, scheduleId}` 到 sink；(c) sink：钉模型跑轮、turn 内 model=gpt-x、火后恢复 prior、SCHEDULE_MODEL_PIN 审计、**prompt 被拒同样恢复**；(d) 诚实拒：未注册模型 `{refused}` 保持 due、busy 拒、无 pin 零 setModel 调用。聚焦回归 bootstrap+monitor+jobs-executor 94/94。
 - **核销**：candidates-open #1754 → `candidates-resolved.tsv` #122。
+
+### 28.119 648 清单逐条核销 #123：dedup-h #1807 sessions-history——hook-forms: before_branch + skipConversationRestore（2026-09-25）
+
+- **行**：`dedup-h  1807  sessions-history  hook-forms: before_branch + skipConversationRestore`（描述段为另一 changelog 的回复/音频标签片段，非本条语义）。
+- **判定**：**IMPLEMENTED**。源语义为"分支前 hook 应答控制对象 `{skipConversationRestore}`"——一种 hook form（hook 返回控制字段，同 `session_directory`/`prompt_submit` 门）。基线核查：fork 路径 `sessionsFacade.fork → forkFrom` 恒复制全转录，无分支前 hook 缝、无 skip 旗标。落地：
+  - **事件**：`GATE_EVENTS` 新 `before_branch`——门专用（operator 私有 hooks.json），与 session_directory 同平面；workdir 观察性 hook 绝不可塑造或否决会话分支方向。
+  - **门语义**：`sessionsFacade.fork` 内 `preToolGate.fireValue('before_branch', {source, entryId})`——应答 `{deny: reason}` → `FORK_REFUSED` 审计 + 抛错（分支拒止）；应答 `{skipConversationRestore: true}` → 血统分支路径；**显式旗标优先于 hook 应答**；坏 hook `fireValue` 抛出 fail-closed——绝不猜着分支。
+  - **skip 落地**：`sessionManagers.create(workdir, sessionDir, {parentSession: path})`——新会话头钉 parentSession 血统、零转录条目；`entryId + skip` 冲突诚实拒（无条目可导航）。channel `session_fork` 透传 `skipConversationRestore` 参数。
+  - **即时可见性**：会话文件按上游设计懒写（首条 assistant 消息才持久化）——分支须立即在 drawer 可见，故 `appendSessionInfo` 钉 `[分支]` 名条（同 `[导入]` 惯例）+ 手写 header+entries 落盘；首条真实持久化会整体重写 fileEntries，永不双 header。审计 `SESSION_BRANCHED_FRESH {parent, via: flag|hook}`。
+- **证据**：`pi/tests/bootstrap.test.js` +3=34/34——(a) hook 应答 skip：分支文件存在、header `parentSession` 钉源路径、零 message 条目、`SESSION_BRANCHED_FRESH via:hook` 审计；(b) 显式旗标：无 hook 同效 + `entryId+skip` 拒 + **普通 fork 仍带全转录（回归钉死）**；(c) hook deny：分支拒止、reason 透出。host 全套 401/401。
+- **核销**：candidates-open #1807 → `candidates-resolved.tsv` #123。

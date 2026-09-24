@@ -1719,10 +1719,48 @@ export async function startHost({
     // entryId (ZCode fork-from-any-assistant-message): navigate the fork's
     // tree head to that entry first — the fork inherits history up to the
     // chosen point instead of the source's current leaf.
-    fork: async (path, { entryId = null } = {}) => {
+    fork: async (path, { entryId = null, skipConversationRestore = null } = {}) => {
       assertForkableSource(path);
-      const s = await rebuildSession(sessionManagers.forkFrom(path, workdir, sessionDir), 'fork');
+      // dedup-h #1807 — before_branch gate (operator-private): the hook
+      // answers {"skipConversationRestore": true} to branch the lineage
+      // without the transcript, or {"deny": reason} to refuse. The
+      // explicit facade flag wins over the hook answer; a broken hook
+      // refuses closed (fireValue throws) — never branch on a guess.
+      const branchAnswer = await preToolGate.fireValue('before_branch', {
+        source: String(path).slice(0, 500), entryId: entryId ?? null,
+      });
+      if (branchAnswer?.deny) {
+        core.audit.write({ kind: 'FORK_REFUSED', runId, data: { path: String(path).slice(0, 200), reason: `before_branch: ${String(branchAnswer.deny).slice(0, 200)}` } });
+        throw new Error(`before_branch hook denied the fork: ${String(branchAnswer.deny).slice(0, 300)}`);
+      }
+      const skipRestore = skipConversationRestore ?? branchAnswer?.skipConversationRestore === true;
+      if (skipRestore && entryId) {
+        throw new Error('entryId has no landing on a skipConversationRestore branch — the fork carries no entries to navigate');
+      }
+      // skip-restore = a fresh session stamped with parentSession lineage:
+      // the branch exists, the conversation does not come along.
+      const s = await rebuildSession(
+        skipRestore
+          ? sessionManagers.create(workdir, sessionDir, { parentSession: String(path) })
+          : sessionManagers.forkFrom(path, workdir, sessionDir),
+        'fork',
+      );
       if (entryId) await s.navigateTree?.(String(entryId));
+      if (skipRestore) {
+        // session files persist lazily on the first assistant message — a
+        // fork must be visible NOW. Stamp the [分支] name entry (import's
+        // [导入] convention) and write header + entries: the first real
+        // persist rewrites the whole file from fileEntries, so this
+        // materialization can never double the header.
+        const mgr = s.sessionManager;
+        mgr?.appendSessionInfo?.(`[分支] ${basename(String(path))}`);
+        const f = mgr?.getSessionFile?.();
+        if (f) {
+          const lines = [JSON.stringify(mgr.getHeader()), ...(mgr.getEntries?.() ?? []).map((e) => JSON.stringify(e))];
+          writeFileSync(f, lines.join('\n') + '\n');
+        }
+        core.audit.write({ kind: 'SESSION_BRANCHED_FRESH', runId, data: { parent: String(path).slice(0, 200), via: skipConversationRestore != null ? 'flag' : 'hook' } });
+      }
       return {
         id: s.sessionId ?? null,
         file: s.sessionManager?.getSessionFile?.() ?? null,
