@@ -2424,3 +2424,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。源条目 = agent 经 masked prompt 请求 credential（值不进 chat/model）。落地四件套：**(a) `credential_request` 模型工具**（pi/src/adapter/envtools.js）——参数只有 `{key, reason}`，值字段结构上不存在；注入向量/畸形 key 在弹卡前就拒；**(b) asks `kind:'form'` 新增 `secret` 字段类型**（host/src/core/asks.js）——操作员卡渲染 password 输入；**(c) `SessionEnv.setSecret`**（host/src/core/sessionenv.js）——值进 overlay 并打无条件打码标志，`env_list`/`env_snapshot` 任何名下都 `[REDACTED]`，模型读表面永远读不回；**(d) UI password 渲染**（app/ui/app.js）。
 - **边界诚实**：值只在 operator→host 的 decision_resolve 线上走一次；审计只记字段 key（`answered:value`），governance_ask 事件只带 schema，工具结果不回显；无操作员通道时工具不注册（fail-closed）。
 - **证据**：host sessionenv 3 测 + asks secret schema 测（审计不含值）；pi envtools 3 测（schema/存值/打码/拒答/预拒绝）；dom-gate credentialForm（password 渲染 + transcript 无泄漏）；host 371、pi 431/427、app 25/26 全绿。
+
+### 28.89 648 清单逐条核销 #63：dedup-h #727 PAC/WPAD 系统代理发现（2026-09-24）
+
+- **判定**：IMPLEMENTED。源条目 = PAC/WPAD 系统级代理支持。落地：`host/src/core/pac.js` 零依赖 PAC 引擎——PAC 脚本（远程代码）在 `node:vm` 沙箱内跑 `FindProxyForURL`，只有标准 helper 面（isPlainHostName/dnsDomainIs/isInNet/shExpMatch/weekdayRange 等），无 require/process，200ms eval 超时；抓取有界（256KB/3s，http/https/file/path）。`proxy.json` 新增 `mode:'pac'`（pacUrl+hosts[] 探测集）与 `mode:'wpad'`（wpadUrl 默认 `http://wpad/wpad.dat`，opt-in）。
+- **诚实映射**：env-proxy 面只能表达单代理+NO_PROXY——探测主机全票 PROXY 才应用，DIRECT 主机并进 NO_PROXY；多代理分歧/SOCKS 拒绝应用并报 conflict（绝不静默压平）；抓取/求值失败记 `PROXY_PAC_FAILED` 审计 + `proxy.status.error`。`dnsResolve` 只答预解析名（Node 无同步 DNS，Resolver 1.5s 有界）——文档化边界。
+- **证据**：host pac 6/6（helper/沙箱/超时/解析/抓取/分歧拒绝）；bootstrap PAC 端到端（HTTP_PROXY 应用 + DIRECT→NO_PROXY + config_set pac 无 pacUrl 拒绝 + wpad 持久化）；host 377、pi 432/428 全绿。

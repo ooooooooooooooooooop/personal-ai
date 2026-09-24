@@ -21,6 +21,7 @@ import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
+import { resolvePacProxy } from '../../../host/src/core/pac.js';
 import { HookRunner } from '../../../host/src/core/hooks.js';
 import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
 import { loadSteering } from '../../../host/src/core/steering.js';
@@ -360,6 +361,36 @@ export async function startHost({
       if (mode === 'env') {
         process.env.NODE_USE_ENV_PROXY = '1';
         proxyState.active = { mode: 'env' };
+      } else if (mode === 'pac' || mode === 'wpad') {
+        // dedup-h #727 — PAC/WPAD system proxy discovery. pac: proxy.json
+        // pacUrl (http/https/file/path) + hosts[] probe set; wpad: opt-in
+        // well-known fetch http://wpad/wpad.dat (wpadUrl override). The
+        // script evaluates per probe host inside node:vm; only a unanimous
+        // PROXY verdict maps onto the single-proxy env surface — DIRECT
+        // hosts join NO_PROXY, mixed-proxy verdicts refuse to apply.
+        const pacUrl = mode === 'wpad'
+          ? String(spec?.wpadUrl ?? 'http://wpad/wpad.dat')
+          : String(spec?.pacUrl ?? '');
+        const pacHosts = Array.isArray(spec?.hosts) ? spec.hosts : [];
+        const pac = await resolvePacProxy({ pacUrl, hosts: pacHosts });
+        if (pac.ok) {
+          if (pac.proxy) {
+            process.env.NODE_USE_ENV_PROXY = '1';
+            process.env.HTTP_PROXY = pac.proxy;
+            process.env.HTTPS_PROXY = pac.proxy;
+            const noProxy = [...new Set([...(Array.isArray(spec?.noProxy) ? spec.noProxy : []), ...(pac.noProxy ?? [])])];
+            if (noProxy.length) process.env.NO_PROXY = noProxy.join(',');
+            proxyState.active = { mode, url: pac.proxy, noProxy, decisions: pac.decisions };
+          } else {
+            proxyState.active = { mode, url: null, decisions: pac.decisions }; // PAC says DIRECT
+          }
+        } else {
+          proxyState.configured = mode;
+          proxyState.active = { mode, error: pac.error, decisions: pac.decisions ?? [] };
+          // audit deferred — `core` is constructed later in this bootstrap;
+          // the failure is written once core.audit exists (see below)
+          proxyState.pacError = pac.error;
+        }
       } else {
         let u;
         const src = proxyState.envSource ?? 'proxy.json';
@@ -535,6 +566,12 @@ export async function startHost({
       runId,
     },
   });
+
+  // PAC/WPAD resolution ran before core existed — surface a recorded failure
+  // into the audit trail now that the writer is live (dedup-h #727).
+  if (proxyState.pacError) {
+    core.audit.write({ kind: 'PROXY_PAC_FAILED', data: { mode: proxyState.configured, error: String(proxyState.pacError).slice(0, 300) } });
+  }
 
   // PAI_ASK_TIMEOUT_MS — operator lever on the ask auto-deny clock (default
   // 120s). The timeout is the fail-closed guarantee; how LONG the operator
@@ -1914,15 +1951,21 @@ export async function startHost({
       status: () => ({ ...proxyState }),
       set: (spec) => {
         const mode = String(spec?.mode ?? '').trim();
-        if (mode !== 'off' && mode !== 'env') {
+        if (mode !== 'off' && mode !== 'env' && mode !== 'pac' && mode !== 'wpad') {
           let u;
-          try { u = new URL(mode); } catch { return { error: `proxy_mode must be off|env|a proxy URL, got '${mode}'` }; }
+          try { u = new URL(mode); } catch { return { error: `proxy_mode must be off|env|pac|wpad|a proxy URL, got '${mode}'` }; }
           if (u.protocol !== 'http:' && u.protocol !== 'https:') {
             return { error: `proxy scheme '${u.protocol}' unsupported (http/https only)` };
           }
         }
         const doc = { mode };
         if (Array.isArray(spec?.noProxy) && spec.noProxy.every((x) => typeof x === 'string' && x)) doc.noProxy = spec.noProxy;
+        if (mode === 'pac' || mode === 'wpad') {
+          if (spec?.pacUrl != null) doc.pacUrl = String(spec.pacUrl);
+          if (spec?.wpadUrl != null) doc.wpadUrl = String(spec.wpadUrl);
+          if (Array.isArray(spec?.hosts) && spec.hosts.every((x) => typeof x === 'string' && x)) doc.hosts = spec.hosts;
+          if (mode === 'pac' && !doc.pacUrl) return { error: "proxy_mode 'pac' requires pacUrl" };
+        }
         const tmp = `${proxyFile}.tmp-${process.pid}`;
         writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
         renameSync(tmp, proxyFile);

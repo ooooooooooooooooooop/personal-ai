@@ -1113,3 +1113,47 @@ test('worktree_list + job_spawn in_worktree: open an existing linked checkout', 
     spawnSync('git', ['worktree', 'remove', '--force', linked], { cwd: dir });
   }
 });
+
+// dedup-h #727 — proxy.json mode 'pac'/'wpad': a PAC script fetched at
+// bootstrap decides per probe host; a unanimous PROXY verdict maps onto
+// the env-proxy surface and DIRECT hosts join NO_PROXY. Failure posture
+// surfaces in proxy.status, never silently.
+test('proxy.json pac: FindProxyForURL verdict applies env-proxy; DIRECT hosts enter NO_PROXY', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-pac-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-pac-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({ version: 1, deny: [], tools: {}, riskActions: {} }));
+  const pacFile = join(inst, 'proxy.pac');
+  writeFileSync(pacFile, `
+function FindProxyForURL(url, host) {
+  if (dnsDomainIs(host, ".internal")) return "DIRECT";
+  return "PROXY 127.0.0.1:8318";
+}`);
+  writeFileSync(join(inst, 'proxy.json'), JSON.stringify({
+    mode: 'pac', pacUrl: pacFile, hosts: ['api.anthropic.com', 'db.internal'],
+  }));
+  const host = await startHost({ instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    assert.equal(process.env.HTTP_PROXY, 'http://127.0.0.1:8318', 'unanimous PROXY verdict applied');
+    assert.equal(process.env.NO_PROXY, 'db.internal', 'DIRECT host joined NO_PROXY');
+    const st = await host.channel.handle({ type: 'get_state' });
+    assert.equal(st.data.proxy?.active?.mode, 'pac');
+    assert.equal(st.data.proxy?.active?.url, 'http://127.0.0.1:8318');
+
+    // config_set: pac requires pacUrl; wpad persists wpadUrl
+    const noUrl = await host.channel.handle({ type: 'config_set', key: 'proxy_mode', value: 'pac' });
+    assert.equal(noUrl.success, false, 'pac without pacUrl refused');
+    const wpad = await host.channel.handle({
+      type: 'config_set', key: 'proxy_mode',
+      value: { mode: 'wpad', wpadUrl: pacFile, hosts: ['x.example'] },
+    });
+    assert.equal(wpad.success, true, `wpad persist refused: ${wpad.error}`);
+    const doc = JSON.parse(readFileSync(join(inst, 'proxy.json'), 'utf-8'));
+    assert.equal(doc.mode, 'wpad');
+    assert.equal(doc.wpadUrl, pacFile);
+  } finally {
+    delete process.env.NODE_USE_ENV_PROXY; delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY; delete process.env.NO_PROXY;
+    host.dispose();
+  }
+});

@@ -913,7 +913,10 @@ export class HostChannel {
             // first fetch so the facade honestly reports appliesOnRestart.
             case 'proxy_mode': {
               if (!this.proxy?.set) return reply(false, undefined, 'proxy facade unavailable');
-              const out = this.proxy.set({ mode: value, noProxy: cmd.noProxy });
+              // value is the mode string, or a full spec object carrying
+              // pac/wpad fields (dedup-h #727): {mode,pacUrl,wpadUrl,hosts}
+              const spec = value && typeof value === 'object' ? value : { mode: value, noProxy: cmd.noProxy };
+              const out = this.proxy.set(spec);
               if (out?.error) return reply(false, undefined, `config_set: ${out.error}`);
               return reply(true, out);
             }
