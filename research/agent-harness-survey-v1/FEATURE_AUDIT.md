@@ -2693,3 +2693,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **platform sandbox enforce**：`host/src/core/sandbox.js` `SandboxProvider`——非 userspace profile 而是**内核边界梯度**：wsl（独立 OS/独立 fs 视图）、docker（一次性容器，workdir rw 挂载即天然出界不可见）、ssh（远端主机，命令 base64 内嵌远端脚本杜绝 quoting 走私）。`PAI_SANDBOX` env + per-job `sandbox` spec 选择，不可用后端 fail-closed（spawnSpec 先抛 `SandboxUnavailableError`，进程未生即拒）；`sandbox-exclude.json` operator 私有旁路表逐 spawn 重读热生效。spec 返回 `{file,args,shell:false}`——用户命令作单一 argv 元过沙箱解释器，无 cmd 引号重组。**诚实边界**：覆盖 durable-job 面，前台工具路径为 opt-in passthrough（v1 设计注释明示"until a containment story covers the foreground tool path"）——variant 判定依据。
 - **证据**：无代码改动——双面在册有测试：`m8-wiring.test.js:305` .paiignore 拦 read+write 两族；`sandbox.test.js` 9 测——argv spec 安全（用户命令单 argv 元不被引号重组）、wsl/distro/不可用后端 fail-closed、docker 容器名/ssh BatchMode；`fastcontext.test.js` .paiignore 在检索面同样生效。
 - **核销**：candidates-open #1740 → `candidates-resolved.tsv` #119。
+
+### 28.116 648 清单逐条核销 #120：dedup-h #1742 sandbox-exec——hook-events: runtime.events.onAgentEvent/onSessionTranscriptUpdate（2026-09-25）
+
+- **行**：`dedup-h  1742  sandbox-exec  hook-events: runtime.events.onAgentEvent/onSessionTranscriptUpdate`（本条描述段错位到 #1754 行——"Plugin runtime/events: expose runtime.events.onAgentEvent and runtime.events.onSessionTranscriptUpdate for extension-side subscriptions"即本条真语义）。
+- **判定**：**ALREADY_COVERED（variant）**。源语义为"向扩展侧暴露 agent 事件总线 + 会话转录更新订阅"——我方对应面双层实存：
+  - **onAgentEvent（扩展侧 agent 事件订阅）**：pi 扩展 API `pi.on(event, handler)` 即此面——全生命周期枚举（`agent_start/end/settled`、`turn_start/end`、`before_agent_start`、`session_start/before_compact/compact/shutdown`、`tool_execution_*`、`before_provider_request/headers`、`after_provider_response`），managed extensions 与内联工厂（providerAuditExtension/loopGovernanceExtension/contextEnvelopeExtension/mcpExtension/worldModel）全部经此订阅——与 `runtime.events.onAgentEvent` 契约同构（命名差异：`pi.on('agent_end')` vs `runtime.events.onAgentEvent`）。
+  - **onSessionTranscriptUpdate（转录更新流）**：pi `message_start`/`message_update`/`message_end` 扩展事件 = 转录增量流（`message_update` 逐流式 delta 触发）；`session.subscribe(listener)` 扇出承载**全部**会话事件——app UI 的流式渲染即乘此泵（channel.js `pump = newSession.subscribe(...)`，重建时听众随 fan-out 存活）；host 侧完整消息观察性 hook = #1188 `message_sent`（bounded text+usage）。
+  - **宿主 hook 层**：`HookRunner` 18 个观察性事件（session/prompt/tool/agent/compact/subagent/turn/message_sent/llm_input/llm_output 等）供 `.pai/hooks.json` + operator 私有 hooks 订阅——用户面向的事件面与扩展面向的事件面分层各自齐备。
+- **证据**：无代码改动——订阅面实测在用：`pi.on` 被五个内联扩展全量订阅（provider 审计/loop 治理/上下文/MCP/world-model）；`session.subscribe` 为 UI 流式渲染唯一事件泵（channel.js:174 rebind 重建订阅）；`message_sent` hook #1188 落地有测试；llm_input/llm_output #1698 刚落。
+- **核销**：candidates-open #1742 → `candidates-resolved.tsv` #120。
