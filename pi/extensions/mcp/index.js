@@ -1138,7 +1138,11 @@ function expandEnvPlaceholders(value, missing) {
   }
   return value;
 }
-const EXPAND_FIELDS = ['command', 'args', 'env', 'url', 'headers'];
+// dedup-h #1509 — 'oauth' joins the expansion set: a pre-registered
+// confidential client can keep its secret out of the config file via
+// ${VAR} (clientId/tokenUrl expand too); an unset var lands in missingEnv
+// and the literal fails honestly at the token endpoint.
+const EXPAND_FIELDS = ['command', 'args', 'env', 'url', 'headers', 'oauth'];
 
 function loadConfig() {
   const candidates = [];
@@ -1744,6 +1748,14 @@ export default function mcpExtension(pi) {
           oauth.authorizationUrl = words[++i];
         } else if (words[i] === '--oauth-scope' && words[i + 1]) {
           oauth.scope = words[++i];
+        // dedup-h #1509 — the secret half of a pre-registered client: literal
+        // persists verbatim (operator config is a plaintext store, like
+        // headers); -env persists the ${VAR} reference instead so the secret
+        // never sits in mcp.json at all.
+        } else if (words[i] === '--oauth-client-secret' && words[i + 1]) {
+          oauth.clientSecret = words[++i];
+        } else if (words[i] === '--oauth-client-secret-env' && words[i + 1]) {
+          oauth.clientSecret = `\${${words[++i]}}`;
         } else rest.push(words[i]);
       }
       if (!rest.length) { ctx.ui?.notify?.('usage: /mcp-add <name> <url|command> [args…]', 'error'); return; }
@@ -1796,7 +1808,12 @@ export default function mcpExtension(pi) {
         ctx.ui?.notify?.(`persist failed: ${err?.message ?? err} — server NOT added`, 'error'); return;
       }
       servers[name] = spec;
-      const entry = await connectOne(name, spec);
+      // dedup-h #1509 — the persisted config keeps the ${VAR} reference; the
+      // immediate connect resolves it the same way loadConfig does on boot.
+      const connectSpec = spec.oauth
+        ? { ...spec, oauth: expandEnvPlaceholders(spec.oauth, new Set()) }
+        : spec;
+      const entry = await connectOne(name, connectSpec);
       const kind = spec.url ? `${spec.transport === 'sse' ? 'sse' : 'http'} ${redactUrl(spec.url)}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
       if (entry?.contextScoped) {
         delete servers[name];

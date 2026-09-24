@@ -2572,3 +2572,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **边界诚实声明**：本仓不执行"host daemon 双向桥"（MCP Apps 草案的 ui→host tool 调用回通道）——资源经宿主通道获取，渲染沙箱内脚本无法回触模型/工具/宿主状态；审计表不声称超出此线的 MCP Apps 支持。
 - **证据**：`pi/tests/mcp-ext.test.js` +1（真 stdio server：`ui:` 绑定拒绝 https/file、未连接 server 拒绝、成功读归一化 contents、空 contents 与 JSON-RPC error 均诚实上报）；`host/tests/channel.test.js` +1（facade 缺席失败、ok/err 双路径、参数透传断言）；DOM gate +2 检查（`.mcp-app-btn` 出现且 title 含 uri+server；点击后 `iframe.mcp-app-frame` 沙箱=allow-scripts 无 same-origin 且 srcdoc 含渲染内容）；ui-dom 全绿含 a11y。mcp-ext 41/41、channel.test 32/32、firewall 2/2。
 - **核销**：candidates-open #1507 → `candidates-resolved.tsv` #107。
+
+### 28.104 648 清单逐条核销 #108：dedup-h #1509 remote-mcp——OAuth client pre-registration client ID+secret（2026-09-24）
+
+- **行**：`dedup-h  1509  remote-mcp  remote-mcp: OAuth client pre-registration(client ID+secret)`。
+- **判定**：**IMPLEMENTED（补齐缺口）**。基线核查：`oauth.clientId` 必填 + `clientSecret` 可选早已在 `validateOAuthSpec` 校验并贯穿全部授权流（client_credentials/auth_code 交换/device 轮询均带 `client_secret`），`/mcp-add --oauth-client-id/--oauth-token-url/--oauth-scope/--oauth-authorize-url` CLI 旗标齐（#350）。两处真缺口修复：
+  - **`${VAR}` 间接引用不到 oauth 字段**：`EXPAND_FIELDS` 只覆盖 `command/args/env/url/headers`——`clientSecret: "${VAR}"` 会原样发往 token 端点。`oauth` 加入展开集（递归覆盖 clientId/clientSecret/tokenUrl 等全部字符串字段），未置的变量进 `missingEnv` 诊断且字面值在端点处诚实失败。
+  - **CLI 无 secret 声明路径**：`--oauth-client-id` 能进但机密半边进不来。新增 `--oauth-client-secret <s>`（字面持久化——operator 配置文件本就是明文仓，与 headers 先例一致）与 `--oauth-client-secret-env <V>`（持久化 `"${V}"` 引用——机密完全不落 mcp.json）。热连接用展开后的 spec 副本，持久化文件保留 `${VAR}` 引用。
+- **证据**：`mcp-ext.test.js` mcp-add 块 +#1509 断言——字面旗标持久化 `s3cr3t`；`-env` 旗标持久化 `'${MY_TOK_SECRET}'`；loadConfig 置 env 后解析出 `resolved-sec`、未置时保持字面且 `missingEnv` 列出变量名。mcp-ext 41/41。
+- **核销**：candidates-open #1509 → `candidates-resolved.tsv` #108。

@@ -1272,6 +1272,39 @@ test('mcp-add: positional URL persists + hot-connects; stdio + duplicates + deny
       assert.deepEqual(doc4.mcpServers.secured.oauth, {
         clientId: 'cid-9', tokenUrl: 'http://127.0.0.1:9/token', scope: 'mcp:read',
       });
+      // dedup-h #1509: the secret half — literal persists verbatim; -env
+      // persists the ${VAR} reference (secret never sits in mcp.json)
+      await add.handler(`confid http://127.0.0.1:${srv.address().port}/mcp --oauth-client-id cid-c --oauth-token-url http://127.0.0.1:9/token --oauth-client-secret s3cr3t`, ctx);
+      assert.equal(JSON.parse(readFileSync(cfgPath, 'utf-8')).mcpServers.confid.oauth.clientSecret, 's3cr3t');
+      await add.handler(`envsec http://127.0.0.1:${srv.address().port}/mcp --oauth-client-id cid-e --oauth-token-url http://127.0.0.1:9/token --oauth-client-secret-env MY_TOK_SECRET`, ctx);
+      assert.equal(JSON.parse(readFileSync(cfgPath, 'utf-8')).mcpServers.envsec.oauth.clientSecret, '${MY_TOK_SECRET}');
+      // oauth fields join env expansion at loadConfig: ${VAR} resolves when
+      // set, lands in missingEnv when not
+      const prevSec = process.env.MY_TOK_SECRET;
+      process.env.MY_TOK_SECRET = 'resolved-sec';
+      const loaded = mcpOperatorSurface.loadConfig();
+      assert.equal(loaded.servers.envsec.oauth.clientSecret, 'resolved-sec');
+      delete process.env.MY_TOK_SECRET;
+      const loadedMissing = mcpOperatorSurface.loadConfig();
+      assert.equal(loadedMissing.servers.envsec.oauth.clientSecret, '${MY_TOK_SECRET}', 'unresolved stays literal');
+      assert.ok(loadedMissing.missingEnv.includes('MY_TOK_SECRET'), 'missing env diagnosed');
+      if (prevSec !== undefined) process.env.MY_TOK_SECRET = prevSec;
+
+      // #1509 end-to-end: the persisted file keeps ${VAR}; the LIVE connect
+      // resolves it — the token endpoint must see the resolved secret, not
+      // the literal reference.
+      const tokSeen = { tokenBodies: [], authHeaders: [] };
+      const { token: tokSrv } = makeOAuthRig(tokSeen);
+      await new Promise((r) => tokSrv.listen(0, '127.0.0.1', r));
+      process.env.PAI_TEST_OSEC = 'resolved-sec';
+      try {
+        await add.handler(`envsec3 http://127.0.0.1:${srv.address().port}/mcp --oauth-client-id cid-e3 --oauth-token-url http://127.0.0.1:${tokSrv.address().port}/t --oauth-client-secret-env PAI_TEST_OSEC`, ctx);
+        assert.equal(JSON.parse(readFileSync(cfgPath, 'utf-8')).mcpServers.envsec3.oauth.clientSecret, '${PAI_TEST_OSEC}', 'file keeps the reference');
+        assert.equal(tokSeen.tokenBodies[0]?.client_secret, 'resolved-sec', 'connect resolved the env ref, not the literal');
+      } finally {
+        delete process.env.PAI_TEST_OSEC;
+        tokSrv.close();
+      }
       // oauth flags on a stdio add are nonsense — refused, not stored
       await add.handler(`badstdio "${process.execPath}" --oauth-client-id x`, ctx);
       assert.match(notices.at(-1)[1], /oauth flags apply to URL servers only/);
