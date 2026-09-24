@@ -659,6 +659,13 @@ export class HostChannel {
           if (!this.mcp?.status) return reply(false, undefined, 'mcp facade unavailable');
           return reply(true, await this.mcp.status());
         }
+        case 'mcp_resource_read': {
+          if (!this.mcp?.readResource) return reply(false, undefined, 'mcp resource read unavailable');
+          // dedup-h #1507 — fetch a declared ui:// resource for host-side
+          // sandboxed rendering; bounded to ui: URIs by the body adapter.
+          const r = await this.mcp.readResource(String(cmd.server ?? ''), String(cmd.uri ?? ''));
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
+        }
         case 'mcp_auth': {
           if (!this.mcp?.auth) return reply(false, undefined, 'mcp oauth unavailable');
           const r = await this.mcp.auth(String(cmd.server ?? ''));

@@ -510,6 +510,9 @@ export const mcpOperatorSurface = {
   // a 401: the host turns it into an operator notification pointing at
   // /mcp-auth instead of a silent dead entry.
   onAuthRequired: null,
+  // dedup-h #1507 — assigned inside mcpExtension(): (serverName, uri) =>
+  // {ok, contents|error}; reads a ui:// resource through the live connection.
+  readResource: null,
 };
 
 // dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
@@ -1082,6 +1085,12 @@ export class McpClient {
     return this.request('tools/call', { name, arguments: args ?? {} }, { signal, timeoutMs });
   }
 
+  // dedup-h #1507 — MCP Apps resource fetch: the declared ui:// surface is
+  // read through resources/read like any other MCP resource.
+  readResource(uri, { signal, timeoutMs } = {}) {
+    return this.request('resources/read', { uri: String(uri ?? '') }, { signal, timeoutMs });
+  }
+
   async listPrompts() {
     const out = [];
     let cursor;
@@ -1266,6 +1275,31 @@ export default function mcpExtension(pi) {
   /** @type {Map<string, {client:McpClient|null, tools:string[], spec:object, failed?:boolean, prompts?:object[], dead?:Set<string>, lastRefresh?:object}>} */
   const connected = new Map();
 
+  // dedup-h #1507 — host-side MCP Apps rendering needs resources/read: the
+  // channel fetches a declared ui:// resource through the LIVE connection
+  // (the ui:// scheme is not a network address — only the server that
+  // declared it can resolve it). Bounded to ui: URIs — other schemes are not
+  // what this surface is for.
+  mcpOperatorSurface.readResource = async (name, uri) => {
+    const u = String(uri ?? '').trim();
+    if (!/^ui:/i.test(u)) return { ok: false, error: `mcp resource read is bounded to ui:// declarations — got '${u.slice(0, 80)}'` };
+    const entry = connected.get(String(name ?? ''));
+    if (!entry?.client) return { ok: false, error: `mcp server '${name}' is not connected` };
+    try {
+      const res = await entry.client.readResource(u, { timeoutMs: 15_000 });
+      const contents = (res?.contents ?? []).slice(0, 8).map((c) => ({
+        uri: c?.uri ?? u,
+        mimeType: c?.mimeType ?? null,
+        text: typeof c?.text === 'string' ? c.text.slice(0, 1024 * 1024) : null,
+        blob: typeof c?.blob === 'string' ? c.blob.slice(0, 2 * 1024 * 1024) : null,
+      }));
+      if (!contents.length) return { ok: false, error: `server '${name}' returned no contents for ${u.slice(0, 80)}` };
+      return { ok: true, contents };
+    } catch (e) {
+      return { ok: false, error: `resources/read failed: ${e?.message ?? e}` };
+    }
+  };
+
   // M130 tools/list_changed: a server that hot-swaps its catalog re-lists.
   // New tools register live; REMOVED tools cannot be unregistered through the
   // pi API — they tombstone into an honest fail-closed error instead of
@@ -1293,6 +1327,8 @@ export default function mcpExtension(pi) {
           const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
           const wrapped = wrapUntrusted(serverName, t.name, res, resultCharCap(entry.spec, t.name));
           // #1504 — surface the declared app resource on every call result.
+          // #1507 — the host routes resources/read via details.mcpServer
+          // (wrapUntrusted already stamps it on every MCP result).
           if (app) wrapped.details = { ...wrapped.details, ui: { key: app.key, uri: app.uri } };
           return wrapped;
         } catch (err) {

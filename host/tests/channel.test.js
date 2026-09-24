@@ -671,3 +671,29 @@ test('#1392 command_rewrite — wand action routes to the assist facade; fail-cl
   assert.equal(err.success, false);
   assert.match(err.error, /no model available/);
 });
+
+test('mcp_resource_read routes to the mcp facade; unavailable facade + refused reads fail honestly', async () => {
+  const bare = new HostChannel({ session: fakeSession() });
+  const noFacade = await bare.handle({ type: 'mcp_resource_read', server: 'apps', uri: 'ui://x' });
+  assert.equal(noFacade.success, false);
+  assert.match(noFacade.error, /resource read unavailable/);
+
+  const seen = [];
+  const ch = new HostChannel({
+    session: fakeSession(),
+    mcp: {
+      readResource: async (server, uri) => {
+        seen.push([server, uri]);
+        if (uri === 'ui://ok') return { ok: true, contents: [{ uri, mimeType: 'text/html', text: '<b>hi</b>' }] };
+        return { ok: false, error: 'mcp server \'nope\' is not connected' };
+      },
+    },
+  });
+  const ok = await ch.handle({ type: 'mcp_resource_read', server: 'apps', uri: 'ui://ok' });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.contents[0].mimeType, 'text/html');
+  assert.deepEqual(seen, [['apps', 'ui://ok']]);
+  const denied = await ch.handle({ type: 'mcp_resource_read', server: 'nope', uri: 'ui://x' });
+  assert.equal(denied.success, false);
+  assert.match(denied.error, /not connected/);
+});

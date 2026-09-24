@@ -2560,3 +2560,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **边界诚实声明**：bash cwd 仍是主 workdir（多根≠多 cwd）；`instanceRoot` 配置面保护（channel.js 的 *.json 写禁）与 runtimexfer bundle 钳制不在 workspace 语义内，保持单根不动。
 - **证据**：`pi/tests/m8-wiring.test.js` +4——flag off 仍 ask（旧行为不变）；flag on 声明根读/写免 ask 且未声明目录仍 deny + `WORKSPACE_ROOTS` 审计且相对/非字符串根被丢；workdir 内 symlink 指向未声明目录仍 read_outside 而指向声明根放行；workspace.json 运行中编辑即时生效。m8-wiring 38/38。
 - **核销**：candidates-open #1475 → `candidates-resolved.tsv` #106。
+
+### 28.103 648 清单逐条核销 #107：dedup-h #1507 remote-mcp——MCP Apps host 渲染面（2026-09-24）
+
+- **行**：`dedup-h  1507  remote-mcp  remote-mcp: MCP 2026草案 + MCP Apps host daemon渲染`。
+- **判定**：**IMPLEMENTED（view-only 变体，诚实声明）**。源语义两层：(a) MCP 2026 草案传输——#1504 已落 `_meta` 识别（`ui/resourceUri`/`openai/outputTemplate`/`mcp-app.dev/resourceUri`）+ 描述注解 + `details.ui` 透出；(b) MCP Apps host daemon 渲染——本次落地，四段链路：
+  - **`McpClient.readResource(uri)`**：`resources/read` JSON-RPC，走既有 `request()` 通用通道（stdio+http 皆可），无新传输。
+  - **`mcpOperatorSurface.readResource(name, uri)`**（extension 内）：**ui: scheme 限定**——非 ui: URI（含 https/file）直接拒绝，这不是通用 fetch 面；server 未连接诚实报错；`contents` 归一化截断（≤8 块、text 1MB、blob 2MB）；空 contents/服务端 JSON-RPC error 均如实上抛。
+  - **通道贯通**：bootstrap `mcpFacade.readResource` → adapter 整对象透传 → host channel `mcp_resource_read`（`{ok:false}` 翻译为真失败，与 provider_add 同型）。
+  - **UI 渲染**（`endTool`）：`details.ui.uri` → "打开应用界面"按钮（**显式用户动作**，不自动执行）→ `mcp_resource_read` → 首个 text/html content 进 `<iframe sandbox="allow-scripts" srcdoc>`——**opaque origin**：无 same-origin、无 top navigation、无父窗访问、**刻意无 postMessage 回桥**，这是 view-only 渲染不是宿主内嵌应用。读失败/空资源 toast 如实报。
+- **边界诚实声明**：本仓不执行"host daemon 双向桥"（MCP Apps 草案的 ui→host tool 调用回通道）——资源经宿主通道获取，渲染沙箱内脚本无法回触模型/工具/宿主状态；审计表不声称超出此线的 MCP Apps 支持。
+- **证据**：`pi/tests/mcp-ext.test.js` +1（真 stdio server：`ui:` 绑定拒绝 https/file、未连接 server 拒绝、成功读归一化 contents、空 contents 与 JSON-RPC error 均诚实上报）；`host/tests/channel.test.js` +1（facade 缺席失败、ok/err 双路径、参数透传断言）；DOM gate +2 检查（`.mcp-app-btn` 出现且 title 含 uri+server；点击后 `iframe.mcp-app-frame` 沙箱=allow-scripts 无 same-origin 且 srcdoc 含渲染内容）；ui-dom 全绿含 a11y。mcp-ext 41/41、channel.test 32/32、firewall 2/2。
+- **核销**：candidates-open #1507 → `candidates-resolved.tsv` #107。

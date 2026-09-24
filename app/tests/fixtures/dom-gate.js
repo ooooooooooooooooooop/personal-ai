@@ -88,6 +88,23 @@ const DRIVER = `(async () => {
       btn: document.querySelector('.ask-wand-btn')?.textContent ?? '',
     };
 
+    // #1507 — MCP Apps surface: the tool result declares details.ui, so the
+    // card offers an explicit open button; clicking fetches the ui:// resource
+    // through the host and renders it in a sandboxed iframe (no same-origin,
+    // no bridge — opaque origin only).
+    const appCard = [...document.querySelectorAll('.tool')].find((t) => t.textContent.includes('chart data'));
+    const appBtn = appCard?.querySelector('.mcp-app-btn');
+    checks.mcpAppButton = { ok: !!appBtn, title: appBtn?.title ?? '' };
+    appBtn?.click();
+    const appFrame = await waitFor('iframe.mcp-app-frame', null, 8000);
+    checks.mcpAppFrame = {
+      ok: !!appFrame
+        && appFrame?.getAttribute('sandbox') === 'allow-scripts'
+        && !appFrame?.getAttribute('sandbox')?.includes('same-origin')
+        && (appFrame?.srcdoc ?? '').includes('chart-app'),
+      sandbox: appFrame?.getAttribute('sandbox') ?? null,
+    };
+
     // 5. tool cards — bash output + edit diff both rendered pre-approval
     const tools = [...document.querySelectorAll('.tool')];
     checks.toolCards = {

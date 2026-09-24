@@ -1829,3 +1829,96 @@ test('#1504: MCP Apps _meta surfaces — description annotates, details.ui rides
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// dedup-h #1507 — host-side MCP Apps rendering: the channel reads a declared
+// ui:// resource through the LIVE connection via resources/read. The surface
+// is bounded to ui: URIs (not a generic fetch), refuses unknown/disconnected
+// servers, and surfaces honest errors.
+const APP_RES_SERVER_JS = `
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'apps', version: '0' }, capabilities: { tools: {}, resources: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [
+        { name: 'chart', description: 'render chart', inputSchema: { type: 'object', properties: {} }, _meta: { 'ui/resourceUri': 'ui://apps/chart.html' } },
+      ] } }) + '\\n');
+    } else if (msg.method === 'resources/read') {
+      if (msg.params.uri === 'ui://apps/chart.html') {
+        process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { contents: [
+          { uri: 'ui://apps/chart.html', mimeType: 'text/html', text: '<html><body><h1>chart</h1></body></html>' },
+        ] } }) + '\\n');
+      } else if (msg.params.uri === 'ui://apps/empty') {
+        process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { contents: [] } }) + '\\n');
+      } else {
+        process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32002, message: 'resource not found' } }) + '\\n');
+      }
+    } else if (msg.method === 'tools/call') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: 'ran' }] } }) + '\\n');
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('#1507: readResource — ui: bound, live-connection routed, honest errors', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-res-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, APP_RES_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { apps: { command: process.execPath, args: [serverPath] } } }));
+    const prev = process.env.PAI_MCP_CONFIG;
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    const pi = fakePi();
+    try {
+      mcpExtension(pi);
+      const deadline = Date.now() + 10_000;
+      while (!pi.tools.has('mcp__apps__chart') && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      assert.ok(pi.tools.has('mcp__apps__chart'), 'tool registered');
+
+      // scheme bound — not a generic fetch surface
+      const bad = await mcpOperatorSurface.readResource('apps', 'https://evil.example/x');
+      assert.equal(bad.ok, false);
+      assert.match(bad.error, /ui:/);
+      const bad2 = await mcpOperatorSurface.readResource('apps', 'file:///etc/passwd');
+      assert.equal(bad2.ok, false);
+
+      // unknown / disconnected server refused
+      const ghost = await mcpOperatorSurface.readResource('nosuch', 'ui://apps/chart.html');
+      assert.equal(ghost.ok, false);
+      assert.match(ghost.error, /not connected/);
+
+      // successful read — contents normalized for the host
+      const ok = await mcpOperatorSurface.readResource('apps', 'ui://apps/chart.html');
+      assert.equal(ok.ok, true);
+      assert.equal(ok.contents[0].mimeType, 'text/html');
+      assert.match(ok.contents[0].text, /<h1>chart<\/h1>/);
+
+      // empty contents → honest error, not a silent blank
+      const empty = await mcpOperatorSurface.readResource('apps', 'ui://apps/empty');
+      assert.equal(empty.ok, false);
+      assert.match(empty.error, /no contents/);
+
+      // server-side JSON-RPC error surfaces honestly
+      const missing = await mcpOperatorSurface.readResource('apps', 'ui://apps/missing');
+      assert.equal(missing.ok, false);
+      assert.match(missing.error, /resources\/read failed/);
+    } finally {
+      await pi.handlers.get('session_shutdown')?.();
+      if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+      else process.env.PAI_MCP_CONFIG = prev;
+    }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

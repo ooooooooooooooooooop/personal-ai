@@ -2059,6 +2059,11 @@ export async function startHost({
         return { server: name, refresh: Boolean(t.refreshToken) };
       } catch (e) { return { error: `oauth exchange failed: ${e.message}` }; }
     },
+    // dedup-h #1507 — MCP Apps ui:// resource fetch through the live
+    // connection (extension-assigned; absent before any server connects).
+    readResource: (name, uri) =>
+      mcpOperatorSurface.readResource?.(name, uri)
+      ?? { ok: false, error: 'mcp resource read unavailable — no extension runtime' },
   };
   channelHandle = createChannelHost({
     session, core, jobs: jobStore, jobDetail: executor,

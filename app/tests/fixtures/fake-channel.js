@@ -70,6 +70,10 @@ rl.on('line', async (line) => {
         write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc1', toolName: 'bash', isError: false, result: { content: [{ type: 'text', text: 'domgate-out' }] } } });
         write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tc2', toolName: 'edit', args: { path: 'src/a.js', oldText: 'const x = 1;', newText: 'const x = 2;' } } });
         write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tc2', toolName: 'edit', isError: false, result: { content: [{ type: 'text', text: 'edited' }] } } });
+        // #1507 — MCP Apps result shape: details.ui declares a ui:// surface,
+        // details.mcpServer names the owning connection.
+        write({ type: 'event', event: { type: 'tool_execution_start', toolCallId: 'tcapp', toolName: 'mcp__apps__chart', args: {} } });
+        write({ type: 'event', event: { type: 'tool_execution_end', toolCallId: 'tcapp', toolName: 'mcp__apps__chart', isError: false, result: { content: [{ type: 'text', text: 'chart data' }], details: { mcpServer: 'apps', mcpTool: 'chart', ui: { key: 'ui/resourceUri', uri: 'ui://apps/chart.html' } } } } });
         write({
           type: 'event', event: {
             type: 'governance_ask', ask: {
@@ -100,6 +104,13 @@ rl.on('line', async (line) => {
       // shell comment so the dom gate can verify the rewrite round-trip.
       if (!cmd.command || !cmd.instruction) return fail('command_rewrite requires {command, instruction}');
       return reply({ command: `${cmd.command} # ${cmd.instruction}` });
+    case 'mcp_resource_read':
+      // #1507 — ui:// resource fetch through the owning connection; only
+      // the declared URI resolves, everything else is an honest error.
+      if (cmd.server === 'apps' && cmd.uri === 'ui://apps/chart.html') {
+        return reply({ ok: true, contents: [{ uri: cmd.uri, mimeType: 'text/html', text: '<html><body><h1>chart-app</h1></body></html>' }] });
+      }
+      return reply({ ok: false, error: `mcp server '${cmd.server}' is not connected` });
     case 'steer':
     case 'abort':
       return reply({});

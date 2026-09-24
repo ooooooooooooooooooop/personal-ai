@@ -1609,3 +1609,16 @@ tr.clickable:hover td { background: var(--field); }
 }
 .mcp-auth-btn:hover:not(:disabled) { background: var(--tile-hover); }
 .mcp-auth-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* dedup-h #1507: MCP Apps ui:// surface — open button + sandboxed frame */
+.mcp-app-btn {
+  margin: 6px 0; padding: 3px 10px; border-radius: 6px;
+  border: 1px solid var(--line-strong); background: var(--tile);
+  color: var(--text); font-size: 12px; cursor: pointer;
+}
+.mcp-app-btn:hover:not(:disabled) { background: var(--tile-hover); }
+.mcp-app-btn:disabled { opacity: 0.5; cursor: default; }
+.mcp-app-frame {
+  display: block; width: 100%; min-height: 160px; margin: 6px 0;
+  border: 1px solid var(--line); border-radius: 6px; background: #fff;
+}

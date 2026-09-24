@@ -570,6 +570,36 @@ function endTool(ev) {
         `<a href="${src}" target="_blank" rel="noopener"><img class="shot-preview" src="${src}" alt="browser screenshot" /></a>`);
     }
   }
+  // dedup-h #1507 — MCP Apps host rendering: a tool result may declare a
+  // ui:// surface (details.ui). Fetch it via resources/read and render in a
+  // sandboxed iframe — untrusted server HTML gets an opaque origin: no
+  // same-origin, no top navigation, no parent access. There is deliberately
+  // no postMessage bridge back to the host — this is view-only.
+  const appUi = ev.result?.details?.ui;
+  if (appUi?.uri && !ev.isError) {
+    const body = el.querySelector('.tool-body');
+    const btn = document.createElement('button');
+    btn.className = 'mcp-app-btn';
+    btn.type = 'button';
+    btn.textContent = '打开应用界面';
+    btn.title = `${appUi.uri}（${ev.result?.details?.mcpServer ?? 'mcp'}）`;
+    btn.onclick = async () => {
+      btn.disabled = true;
+      const r = await cmd('mcp_resource_read', { server: ev.result?.details?.mcpServer, uri: appUi.uri });
+      if (!r.success || r.data?.ok === false) { toast(`应用界面读取失败：${r.error ?? r.data?.error ?? '未知'}`); btn.disabled = false; return; }
+      const contents = r.data?.contents ?? [];
+      const c = contents.find((x) => x?.mimeType?.includes('html') && (x.text || x.blob)) ?? contents[0];
+      let html = c?.text ?? '';
+      if (!html && c?.blob) { try { html = atob(c.blob); } catch { html = ''; } }
+      if (!html) { toast('应用界面资源无可渲染内容'); btn.disabled = false; return; }
+      const frame = document.createElement('iframe');
+      frame.className = 'mcp-app-frame';
+      frame.setAttribute('sandbox', 'allow-scripts');
+      frame.srcdoc = html;
+      btn.replaceWith(frame);
+    };
+    body.appendChild(btn);
+  }
   toolRows.delete(ev.toolCallId);
   scrollTail();
 }
