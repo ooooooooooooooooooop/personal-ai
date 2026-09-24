@@ -83,3 +83,33 @@ test('#1293 real shell round-trip: !echo resolves the echoed key', { skip: false
   const value = await evalBangCommand(process.platform === 'win32' ? 'echo real-key-123' : 'echo real-key-123');
   assert.equal(value, 'real-key-123');
 });
+
+test('#1294 models.json provider apiKey "!command" resolves into the runtime too', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-bang-m-'));
+  const agentDir = join(dir, 'pi-agent');
+  mkdirSync(agentDir, { recursive: true });
+  writeFileSync(join(agentDir, 'models.json'), JSON.stringify({
+    providers: {
+      vaultprov: { baseUrl: 'https://x', api: 'openai-completions', apiKey: '!security find-generic-password -s x -w', models: [] },
+      envprov: { baseUrl: 'https://y', apiKey: '$SOME_ENV', models: [] },   // $ENV untouched
+      plainprov: { baseUrl: 'https://z', apiKey: 'literal', models: [] },   // literal untouched
+    },
+  }));
+  const rt = fakeRt(); const audit = auditLog();
+  const r = await applyBangAuth(agentDir, rt, audit, { spawnFn: okSpawn('vault-fetched-key') });
+  assert.equal(r.resolved, 1);
+  assert.deepEqual(rt.calls, [['vaultprov', 'vault-fetched-key']]);
+});
+
+test('#1294 models.json !command failure refuses closed; auth.json + models.json both scan', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-bang-b-'));
+  const agentDir = join(dir, 'pi-agent');
+  mkdirSync(agentDir, { recursive: true });
+  writeFileSync(join(agentDir, 'auth.json'), JSON.stringify({ a: { type: 'api_key', key: '!cmd-a' } }));
+  writeFileSync(join(agentDir, 'models.json'), JSON.stringify({ providers: { b: { apiKey: '!cmd-b' } } }));
+  const rt = fakeRt(); const audit = auditLog();
+  const r = await applyBangAuth(agentDir, rt, audit, { spawnFn: failSpawn() });
+  assert.equal(r.failed, 2);
+  assert.equal(rt.calls.length, 0);
+  assert.deepEqual(audit.events.map((e) => e.kind), ['AUTH_BANG_FAILED', 'AUTH_BANG_FAILED']);
+});

@@ -33,17 +33,15 @@ export function evalBangCommand(command, { spawnFn = spawnSync, env = process.en
   return out;
 }
 
-/** Resolve every `!` api_key entry in <agentDir>/auth.json into the runtime. */
+/** Resolve every `!` credential ref into the runtime. Two operator-owned
+ * files are scanned (dedup-h #1294 added the models.json provider surface):
+ *   - auth.json:   { <providerId>: { type:'api_key', key:'!cmd' } }
+ *   - models.json: { providers: { <providerId>: { apiKey:'!cmd' } } }
+ * `!` wins over `$ENV` semantics for that entry — a '!' prefix is never a
+ * valid literal key anyway. */
 export async function applyBangAuth(agentDir, modelRuntime, audit, { spawnFn, env } = {}) {
-  const authPath = join(agentDir, 'auth.json');
-  if (!existsSync(authPath)) return { resolved: 0, failed: 0 };
-  let doc;
-  try { doc = JSON.parse(readFileSync(authPath, 'utf-8')); } catch { return { resolved: 0, failed: 0 }; }
   let resolved = 0, failed = 0;
-  for (const [providerId, cred] of Object.entries(doc ?? {})) {
-    const key = cred?.type === 'api_key' ? cred.key : null;
-    if (typeof key !== 'string' || !key.startsWith('!')) continue;
-    const command = key.slice(1).trim();
+  const evalInto = async (providerId, command) => {
     try {
       const value = evalBangCommand(command, { spawnFn, env });
       await modelRuntime?.setRuntimeApiKey?.(providerId, value);
@@ -53,6 +51,28 @@ export async function applyBangAuth(agentDir, modelRuntime, audit, { spawnFn, en
       failed += 1;
       // fail-closed loud: the literal '!cmd' stays stored, calls 401 visibly
       audit?.write({ kind: 'AUTH_BANG_FAILED', data: { provider: providerId, command: command.slice(0, 120), error: String(e?.message ?? e).slice(0, 200) } });
+    }
+  };
+  // auth.json — credential store
+  const authPath = join(agentDir, 'auth.json');
+  if (existsSync(authPath)) {
+    let doc = null;
+    try { doc = JSON.parse(readFileSync(authPath, 'utf-8')); } catch { doc = null; }
+    for (const [providerId, cred] of Object.entries(doc ?? {})) {
+      const key = cred?.type === 'api_key' ? cred.key : null;
+      if (typeof key !== 'string' || !key.startsWith('!')) continue;
+      await evalInto(providerId, key.slice(1).trim());
+    }
+  }
+  // models.json — provider-config apiKey field (#1294)
+  const modelsPath = join(agentDir, 'models.json');
+  if (existsSync(modelsPath)) {
+    let doc = null;
+    try { doc = JSON.parse(readFileSync(modelsPath, 'utf-8')); } catch { doc = null; }
+    for (const [providerId, spec] of Object.entries(doc?.providers ?? {})) {
+      const key = spec?.apiKey;
+      if (typeof key !== 'string' || !key.startsWith('!')) continue;
+      await evalInto(providerId, key.slice(1).trim());
     }
   }
   return { resolved, failed };
