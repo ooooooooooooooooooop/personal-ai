@@ -201,7 +201,10 @@ export function startSchedulerPump({ store, executor, workdir, audit = null, get
           continue;
         }
         const msg = goal ? tickPrompt(goal) : (s.prompt ?? '');
-        const r = await promptSink(msg);
+        // dedup-h #1754 — a model pin rides the fire meta; the sink resolves
+        // it against the live registry, runs the turn under it, and restores
+        // the session model after. Unresolvable → refused, stays due.
+        const r = await promptSink(msg, { model: s.model ?? null, scheduleId: s.id });
         if (r?.refused) {
           audit?.write({ kind: 'GOAL_TICK_REFUSED', data: { id: s.id, goal_id: s.goal_id, reason: r.refused } });
           continue; // stays due — retry next tick
@@ -251,6 +254,45 @@ export function startSchedulerPump({ store, executor, workdir, audit = null, get
 }
 
 /**
+ * dedup-h #1754 — prompt-target fire sink factory: the tick travels the
+ * governed channel prompt route; an entry `model` pin ("provider/model")
+ * resolves against the live registry, runs the turn under it via
+ * session.setModel, and restores the prior model after — a schedule must
+ * never hijack the operator's model choice. Unresolvable/failed pins
+ * refuse honestly and the entry stays due.
+ *
+ * @param {{getChannel: () => object|null, getSession: () => object|null, audit?: object}} deps
+ */
+export function schedulePromptSink({ getChannel, getSession, audit = null }) {
+  return async (msg, meta = null) => {
+    const channelHandle = getChannel();
+    const session = getSession();
+    if (!channelHandle || session?.isStreaming) return { refused: 'busy' };
+    let pinned = null;
+    if (meta?.model) {
+      const [prov, ...rest] = String(meta.model).split('/');
+      const mid = rest.join('/');
+      const m = mid ? session?.modelRuntime?.getModel?.(prov, mid) : null;
+      if (!m) return { refused: `model '${meta.model}' is not registered` };
+      const prior = session?.model ?? null;
+      try {
+        await session.setModel(m);
+        pinned = prior;
+        audit?.write({ kind: 'SCHEDULE_MODEL_PIN', data: { scheduleId: meta.scheduleId ?? null, model: meta.model } });
+      } catch (e) {
+        return { refused: `model pin failed: ${String(e?.message ?? e).slice(0, 200)}` };
+      }
+    }
+    try {
+      const r = await channelHandle.channel.handle({ type: 'prompt', message: msg, meta: { goal_tick: true } });
+      return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
+    } finally {
+      if (pinned) await session.setModel(pinned).catch(() => {});
+    }
+  };
+}
+
+/**
  * @param {ScheduleStore} store
  */
 export function scheduleTool(store) {
@@ -266,7 +308,7 @@ export function scheduleTool(store) {
       properties: {
         action: { type: 'string', enum: ['create', 'list', 'cancel', 'pause', 'resume', 'edit'] },
         command: { type: 'string', description: 'shell command (create/edit)' },
-        prompt: { type: 'string', description: 'prompt text (edit on a prompt-target entry)' },
+        prompt: { type: 'string', description: 'prompt text — creates a prompt-target entry (fired as a governed session prompt, not a shell job) or edits an existing one (create/edit)' },
         run_at: { type: 'string', description: 'ISO timestamp for a one-shot run (create/edit)' },
         every_seconds: { type: 'number', description: 'repeat interval ≥ 60s (create/edit)' },
         min_seconds: { type: 'number', description: 'adaptive rate floor — quiet ticks stretch the interval from every_seconds toward max_seconds (create, requires max_seconds)' },
@@ -275,6 +317,7 @@ export function scheduleTool(store) {
         webhook_url: { type: 'string', description: 'POST the finished-run report to this http(s) URL when the fired job reaches a terminal state (create/edit)' },
         webhook_token_env: { type: 'string', description: 'env var NAME holding the webhook bearer token — never the token itself (create/edit)' },
         webhook_clear: { type: 'boolean', description: 'remove the webhook spec (edit)' },
+        model: { type: 'string', description: '"provider/model" pinned for prompt-target fires — the scheduled turn runs under it, session model restored after (create/edit; empty string clears on edit)' },
         id: { type: 'string', description: 'schedule id (cancel/pause/resume/edit)' },
       },
       required: ['action'],
@@ -292,6 +335,7 @@ export function scheduleTool(store) {
             }
             const rec = store.add({
               command: params.command,
+              prompt: params.prompt,
               run_at: params.run_at,
               every_seconds: params.every_seconds,
               label: params.label,
@@ -300,6 +344,7 @@ export function scheduleTool(store) {
               webhook: params.webhook_url != null
                 ? { url: params.webhook_url, token_env: params.webhook_token_env ?? null }
                 : null,
+              model: params.model,
             });
             return text(
               `scheduled ${rec.id} (${rec.kind}${rec.every_seconds ? ` ${rec.every_seconds}s` : ''}) — next fire ${new Date(rec.nextRunAt).toISOString()}`,
@@ -310,7 +355,7 @@ export function scheduleTool(store) {
             const rows = store.list();
             if (!rows.length) return text('no schedules');
             return text(rows.map((s) =>
-              `${s.id} ${s.enabled === false ? '[disabled] ' : ''}${s.kind}${s.every_seconds ? ` ${s.current_seconds ?? s.every_seconds}s` : ''}${s.min_seconds != null ? `[adapt ${s.min_seconds}–${s.max_seconds}s quiet=${s.quietStreak ?? 0}]` : ''}${s.target === 'prompt' ? '→goal' : ''}${s.webhook?.url ? ' →webhook' : ''} next=${new Date(s.nextRunAt).toISOString()} lastFired=${s.lastFiredAt ?? 'never'}${s.lastJobId ? ` job=${s.lastJobId}` : ''} :: ${s.label ?? s.command ?? s.prompt}`,
+              `${s.id} ${s.enabled === false ? '[disabled] ' : ''}${s.kind}${s.every_seconds ? ` ${s.current_seconds ?? s.every_seconds}s` : ''}${s.min_seconds != null ? `[adapt ${s.min_seconds}–${s.max_seconds}s quiet=${s.quietStreak ?? 0}]` : ''}${s.target === 'prompt' ? '→goal' : ''}${s.model ? ` →${s.model}` : ''}${s.webhook?.url ? ' →webhook' : ''} next=${new Date(s.nextRunAt).toISOString()} lastFired=${s.lastFiredAt ?? 'never'}${s.lastJobId ? ` job=${s.lastJobId}` : ''} :: ${s.label ?? s.command ?? s.prompt}`,
             ).join('\n'));
           }
           case 'cancel': {
@@ -336,6 +381,7 @@ export function scheduleTool(store) {
                 : params.webhook_url != null
                   ? { url: params.webhook_url, token_env: params.webhook_token_env ?? null }
                   : undefined,
+              model: params.model,
             });
             return r.ok
               ? text(`edited ${params.id} — next fire ${new Date(r.rec.nextRunAt).toISOString()}`, r.rec)

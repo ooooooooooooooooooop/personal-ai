@@ -110,7 +110,7 @@ import { modeRequestTool, requestPermissionTool, requestModeSwitch, requestModel
 import { createVerifier } from '../adapter/verify.js';
 import { webFetchTool, webSearchTool } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
-import { scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
+import { schedulePromptSink, scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
 import { MonitorRegistry } from '../adapter/monitor.js';
 import { WebhookReceiver } from '../adapter/webhook.js';
 import { goalCoordinatorTool } from '../adapter/goals.js';
@@ -811,11 +811,13 @@ export async function startHost({
     // governed prompt path (heartbeat analogue): the tick travels the same
     // channel prompt route — budget admission, audit, governance on every
     // tool call in the turn. Busy sessions refuse; the entry stays due.
-    promptSink: async (msg) => {
-      if (!channelHandle || currentSession?.isStreaming) return { refused: 'busy' };
-      const r = await channelHandle.channel.handle({ type: 'prompt', message: msg, meta: { goal_tick: true } });
-      return r?.success ? { ok: true } : { refused: r?.error ?? 'prompt refused' };
-    },
+    // dedup-h #1754 — model pin resolved at fire inside the factory (meta
+    // carries {model, scheduleId}); busy/unregistered → refused, stays due.
+    promptSink: schedulePromptSink({
+      getChannel: () => channelHandle,
+      getSession: () => currentSession,
+      audit: core.audit,
+    }),
   });
 
   // event-driven monitors (CodeBuddy Monitor / ambient-context analogue):

@@ -110,11 +110,16 @@ export class ScheduleStore {
    * via the prompt sink (coordinator tick). run_at in the past → fires on
    * the next tick (catch-up once semantics).
    */
-  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null, min_seconds = null, max_seconds = null, webhook = null }) {
+  add({ command = null, prompt = null, goal_id = null, run_at = null, every_seconds = null, label = null, min_seconds = null, max_seconds = null, webhook = null, model = null }) {
     const cmd = String(command ?? '').trim();
     const prm = String(prompt ?? '').trim();
     if (!cmd && !prm) throw new Error('schedule requires a non-empty command or prompt');
     if (cmd && prm) throw new Error('schedule takes command OR prompt, not both');
+    // dedup-h #1754 — a model pin only makes sense where a model runs:
+    // prompt-target fires. Pinning one on a shell command is a typo the
+    // operator should hear about, not a field silently dropped.
+    const mdl = model != null ? String(model).trim().slice(0, 200) || null : null;
+    if (mdl && cmd) throw new Error('schedule model pin requires a prompt target — shell commands have no model');
     const interval = every_seconds != null ? Math.floor(Number(every_seconds)) : null;
     if (interval != null && (!Number.isFinite(interval) || interval < MIN_INTERVAL_SECONDS)) {
       throw new Error(`every_seconds must be ≥ ${MIN_INTERVAL_SECONDS}`);
@@ -161,6 +166,10 @@ export class ScheduleStore {
       lastFiredAt: null,
       lastJobId: null,
       webhook: normWebhook(webhook),
+      // dedup-h #1754 — "provider/model" pinned for prompt-target fires;
+      // resolved against the live registry at fire time (a deregistered
+      // model refuses honestly and the entry stays due).
+      model: mdl,
     };
     this.#save([...schedules, rec]);
     return rec;
@@ -192,7 +201,7 @@ export class ScheduleStore {
   }
 
   /** Goose edit: patch command/prompt/every_seconds/run_at/webhook of a live entry. */
-  edit(id, { command, prompt, every_seconds, run_at, label, webhook } = {}) {
+  edit(id, { command, prompt, every_seconds, run_at, label, webhook, model } = {}) {
     const schedules = this.#load();
     const rec = schedules.find((s) => s.id === id);
     if (!rec) return { ok: false, error: `no schedule '${id}'` };
@@ -216,8 +225,11 @@ export class ScheduleStore {
       rec.kind = 'once';
       rec.nextRunAt = t;
     }
+    // dedup-h #1754 — model pin: undefined leaves it; empty clears it.
+    if (model !== undefined) rec.model = model != null ? String(model).trim().slice(0, 200) || null : null;
     if (rec.target === 'command' && !rec.command) return { ok: false, error: 'command schedule requires a command' };
     if (rec.target === 'prompt' && !rec.prompt) return { ok: false, error: 'prompt schedule requires a prompt' };
+    if (rec.target === 'command' && rec.model) return { ok: false, error: 'model pin requires a prompt target — clear it or edit the prompt' };
     // M135-R1: edits must re-validate adaptive bounds against the FINAL
     // record — editing every_seconds outside the min/max bracket used to be
     // accepted, producing a quiet-tick interval shorter than the new base.

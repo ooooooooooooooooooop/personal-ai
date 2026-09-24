@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ScheduleStore } from '../../host/src/core/scheduler.js';
-import { scheduleTool, startSchedulerPump } from '../src/adapter/schedule.js';
+import { schedulePromptSink, scheduleTool, startSchedulerPump } from '../src/adapter/schedule.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
 import { makeDecide } from '../src/bootstrap/decide.js';
 import { FileOpsGuard } from '../src/adapter/fileops.js';
@@ -393,4 +393,116 @@ test('schedule_task tool: webhook_url + token_env params wire the spec; malforme
   assert.equal(store.list()[0].webhook, null);
   const conflict = await tool.execute('c', { action: 'edit', id: rec.id, webhook_clear: true, webhook_url: 'https://x' });
   assert.equal(conflict.isError, true);
+});
+
+test('#1754: model pin persists on prompt schedules; command target refused', async () => {
+  const { dir } = rig();
+  const store = new ScheduleStore(dir);
+  const tool = scheduleTool(store);
+
+  // prompt target accepts and persists the pin
+  const r = await tool.execute('c', { action: 'create', prompt: 'nightly digest', every_seconds: 120, model: 'openai/gpt-x' });
+  assert.match(r.content[0].text, /scheduled sch-/);
+  const rec = store.list().find((s) => s.id === r.details.id);
+  assert.equal(rec.model, 'openai/gpt-x');
+  const list = await tool.execute('c', { action: 'list' });
+  assert.match(list.content[0].text, /→openai\/gpt-x/);
+
+  // command target + model = honest refusal, nothing persisted
+  const refused = await tool.execute('c', { action: 'create', command: 'echo hi', every_seconds: 120, model: 'openai/gpt-x' });
+  assert.equal(refused.isError, true);
+  assert.match(refused.content[0].text, /model pin requires a prompt target/);
+  assert.equal(store.list().length, 1);
+
+  // edit: set on a bare entry, then clear with empty string
+  const r2 = await tool.execute('c', { action: 'create', prompt: 'tick', every_seconds: 120 });
+  const e = await tool.execute('c', { action: 'edit', id: r2.details.id, model: 'anthropic/claude-y' });
+  assert.match(e.content[0].text, /edited/);
+  assert.equal(store.list().find((s) => s.id === r2.details.id).model, 'anthropic/claude-y');
+  const clr = await tool.execute('c', { action: 'edit', id: r2.details.id, model: '' });
+  assert.match(clr.content[0].text, /edited/);
+  assert.equal(store.list().find((s) => s.id === r2.details.id).model, null);
+
+  // editing a command entry to pin a model refuses (final-target check)
+  const r3 = await tool.execute('c', { action: 'create', command: 'ls', every_seconds: 120 });
+  const bad = await tool.execute('c', { action: 'edit', id: r3.details.id, model: 'openai/gpt-x' });
+  assert.equal(bad.isError, true);
+  assert.match(bad.content[0].text, /model pin requires a prompt target/);
+});
+
+test('#1754: pump carries the model pin + schedule id into the sink meta', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const store = new ScheduleStore(dir, () => now);
+  const metas = [];
+  const promptSink = async (msg, meta) => { metas.push({ msg, meta }); return { ok: true }; };
+  store.add({ prompt: 'digest me', run_at: now - 1000, model: 'openai/gpt-x' });
+  const pump = startSchedulerPump({
+    store, executor: { spawnCommandJob: async () => { throw new Error('no command fires expected'); } },
+    workdir: dir, audit, intervalMs: 60_000, promptSink,
+  });
+  try {
+    await pump.tick();
+    assert.equal(metas.length, 1);
+    assert.equal(metas[0].msg, 'digest me');
+    assert.equal(metas[0].meta.model, 'openai/gpt-x');
+    assert.match(metas[0].meta.scheduleId, /^sch-/);
+  } finally { pump.dispose(); }
+});
+
+test('#1754: sink pins the model for the fired turn, restores after, audits', async () => {
+  const audit = { lines: [], write(e) { this.lines.push(e); } };
+  const gptx = { provider: 'openai', id: 'gpt-x' };
+  const prior = { provider: 'openai', id: 'prior' };
+  const seen = [];
+  const session = {
+    isStreaming: false,
+    model: prior,
+    modelRuntime: { getModel: (p, m) => (p === 'openai' && m === 'gpt-x' ? gptx : null) },
+    setModel: async (m) => { seen.push(m.id); session.model = m; },
+  };
+  let modelDuringPrompt = null;
+  const channelHandle = { channel: { handle: async (ev) => {
+    modelDuringPrompt = session.model.id;
+    return { success: true };
+  } } };
+  const sink = schedulePromptSink({ getChannel: () => channelHandle, getSession: () => session, audit });
+
+  const r = await sink('digest', { model: 'openai/gpt-x', scheduleId: 'sch-1' });
+  assert.equal(r.ok, true);
+  assert.equal(modelDuringPrompt, 'gpt-x', 'turn ran under the pinned model');
+  assert.equal(session.model.id, 'prior', 'session model restored after the fire');
+  assert.deepEqual(seen, ['gpt-x', 'prior']);
+  const pin = audit.lines.find((l) => l.kind === 'SCHEDULE_MODEL_PIN');
+  assert.deepEqual(pin.data, { scheduleId: 'sch-1', model: 'openai/gpt-x' });
+
+  // restore still happens when the prompt itself is refused
+  session.model = prior; seen.length = 0;
+  const fail = { channel: { handle: async () => ({ success: false, error: 'boom' }) } };
+  const r2 = await schedulePromptSink({ getChannel: () => fail, getSession: () => session, audit })('x', { model: 'openai/gpt-x', scheduleId: 'sch-2' });
+  assert.equal(r2.refused, 'boom');
+  assert.equal(session.model.id, 'prior', 'model restored even on refused prompt');
+});
+
+test('#1754: sink refuses honestly — unregistered model and busy session stay due', async () => {
+  const audit = { write() {} };
+  const channelHandle = { channel: { handle: async () => ({ success: true }) } };
+  const session = {
+    isStreaming: false, model: { provider: 'openai', id: 'cur' },
+    modelRuntime: { getModel: () => null },
+    setModel: async () => { throw new Error('never called'); },
+  };
+  const sink = schedulePromptSink({ getChannel: () => channelHandle, getSession: () => session, audit });
+  const r = await sink('x', { model: 'openai/nope', scheduleId: 'sch-9' });
+  assert.match(r.refused, /not registered/);
+
+  const busy = schedulePromptSink({ getChannel: () => channelHandle, getSession: () => ({ ...session, isStreaming: true }), audit });
+  assert.equal((await busy('x', { model: 'openai/gpt-x' })).refused, 'busy');
+
+  // no model pin → straight governed prompt, no setModel calls
+  let calls = 0;
+  const s2 = { isStreaming: false, model: { id: 'cur' }, modelRuntime: { getModel: () => { throw new Error('unused'); } }, setModel: async () => { calls++; } };
+  const r3 = await schedulePromptSink({ getChannel: () => channelHandle, getSession: () => s2, audit })('x', { model: null });
+  assert.equal(r3.ok, true);
+  assert.equal(calls, 0);
 });

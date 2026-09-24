@@ -2713,3 +2713,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **排除已完成/不可用（在册）**：busy/无会话 → `promptSink` 返回 `{refused}` 且**该火保持 due 下 tick 重试**（schedule.js:96 `!TERMINAL.has(job.job_state)` 续跑 + refused spawn 不消费火）——不可用/运行中会话即被排除出当次复用；job 侧 TERMINAL 状态集（完成即不再 pump）与 finished-run webhook 完成语义齐备。
 - **证据**：无代码改动——复用/排除语义实测在用：`mcp` 无关；`schedule.test.js`/监控同路 promptSink busy-refused 契约有测试（monitor_wake/goal_tick/webhook 三 sink 同型 busy 拒收）；job TERMINAL 集与 depends_on 完成态在 jobs-executor 测试覆盖。
 - **核销**：candidates-open #1751 → `candidates-resolved.tsv` #121。
+
+### 28.118 648 清单逐条核销 #122：dedup-h #1754 scheduling——schedule-params: cron add/edit --model flag（2026-09-25）
+
+- **行**：`dedup-h  1754  scheduling  schedule-params: cron add/edit --model flag`（该行描述段实为 #1742 的 runtime.events 文本——错位互换；本条真语义=调度条目可钉模型）。
+- **判定**：**IMPLEMENTED**。基线核查：调度条目字段集 `{command|prompt, run_at, every_seconds, min/max_seconds, label, webhook}`——**无 model 钉选**；prompt 目标火进 coordinator 会话恒用当前模型。落地四层：
+  - **存储面**：`ScheduleStore.add/edit` 新 `model` 字段——`"provider/model"` ≤200 截断；**仅 prompt 目标合法**（`mdl && cmd` → 抛 `model pin requires a prompt target`，edit 同规则 final-target 复检）——shell 命令无模型可钉，静默丢弃字段是埋雷。
+  - **工具面**：`schedule_task` 新 `model` 参数（create/edit；edit 空串清除）+ create 补 `prompt` 透传（原 create 只收 command，prompt 目标历史走 goalCoordinatorTool——`--model` on add 需要 create-time prompt 可达）+ `list` 显示 `→provider/model` 钉选标记。
+  - **火路径**：pump `promptSink(msg)` → `promptSink(msg, {model, scheduleId})`——meta 随火携带。
+  - **sink 面**：抽 `schedulePromptSink` 工厂（可测缝）——`"provider/model"` 解析 → `modelRuntime.getModel` 活注册表解析（**未注册/解析失败 → `{refused}` 保持 due**，与 busy 同契不消费火）→ `setModel` 钉 → finally **恢复原会话模型**（调度永不劫持操作员模型选择）→ 审计 `SCHEDULE_MODEL_PIN {scheduleId, model}`。
+- **证据**：`pi/tests/schedule.test.js` +4=18/18——(a) store/tool：prompt+model 持久化、list 显示钉选、command+model create/edit 双拒、edit 置/清；(b) pump：火 meta 携带 `{model, scheduleId}` 到 sink；(c) sink：钉模型跑轮、turn 内 model=gpt-x、火后恢复 prior、SCHEDULE_MODEL_PIN 审计、**prompt 被拒同样恢复**；(d) 诚实拒：未注册模型 `{refused}` 保持 due、busy 拒、无 pin 零 setModel 调用。聚焦回归 bootstrap+monitor+jobs-executor 94/94。
+- **核销**：candidates-open #1754 → `candidates-resolved.tsv` #122。
