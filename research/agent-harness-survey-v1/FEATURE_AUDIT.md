@@ -2389,3 +2389,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。`session_command` 白名单新增 `new`（Cline v3.10.1 "Create New Task" 对等）：模型调用 → `command_request` 事件 → 操作员面闲时执行 `session_new` → **arg 携带的上下文交接简报作为新会话首条消息走与操作员输入完全相同的 prompt 链**（@mention 展开、transcript 渲染、decide 治理）。arg 上限对 `new` 放宽至 1000（300 装不下交接简报）；其余命令不变。
 - **与 `clear` 的差**：`clear`=裸新会话；`new`=新会话+交接简报首条 prompt——模型能把"继续修 src/parse.js 的解析器"直接递交给新任务，正是 new_task 的语义核。
 - **证据**：sessioncmd 6/6（new 入列+宽帽+白名单更新）；dom-gate `cmdNew`——command_request → 新会话 → 简报 .msg 落地 + echo 回显 + `模型请求执行 /new` 审计行；app 25/26、pi 相关单测绿。
+
+### 28.83 648 清单逐条核销 #57：dedup-h #583 remote HTTP transport type（2026-09-23）
+
+- **判定**：IMPLEMENTED（别名归一）。源条目二联：v2.50.2 "remote transport type"（经 remote HTTP 连接 MCP）+ v2.127.0 transport 别名兼容（streamable-http/streamableHttp/streamable_http 归一）。我方传输面早已有 streamable-http 实现（#523）；缺的是**字段值别名**——`transport:"remote"` 或拼写变体此前直接 MCP_SPEC 拒。
+- **落地**：`connect` 校验前增加别名归一表：`remote`/`streamableHttp`/`streamable_http` → `streamable-http`；未知值仍 fail-closed 报原名。
+- **证据**：同一 HTTP 假服务器上 `remote`/`streamableHttp`/`streamable_http`/`streamable-http` 四种写法全部 initialize 成功；`carrier-pigeon` 拒；mcp-ext 29/29、manifest hash 重算 + bootstrap 27/27。

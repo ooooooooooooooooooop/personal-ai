@@ -633,7 +633,11 @@ export class McpClient {
   onNotification(fn) { this.#notifyHandlers.push(fn); }
 
   static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS, serverName = null } = {}) {
-    const kind = spec.transport ?? 'auto';
+    // dedup-h #583 — remote HTTP transport type + alias compatibility:
+    // 'remote' (v2.50.2 remote transport) and streamable-http spelling
+    // variants normalize to the canonical kind BEFORE validation.
+    const ALIASES = { remote: 'streamable-http', streamablehttp: 'streamable-http', streamable_http: 'streamable-http' };
+    const kind = ALIASES[String(spec.transport ?? '').toLowerCase()] ?? (spec.transport ?? 'auto');
     if (!['auto', 'http', 'streamable-http', 'sse'].includes(kind)) {
       throw new McpError(`mcp spec transport '${spec.transport}' unsupported — expected http|streamable-http|sse`, { code: 'MCP_SPEC' });
     }

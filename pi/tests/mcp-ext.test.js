@@ -142,6 +142,33 @@ test('mcp http: JSON + SSE answers, session-id echo', async () => {
   }
 });
 
+// dedup-h #583: remote HTTP transport type + spelling aliases normalize
+// to the canonical streamable-http kind BEFORE validation.
+test('mcp transport aliases: remote / streamableHttp / streamable_http all connect over HTTP', async () => {
+  const server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify(rpcRes(msg.method === 'initialize' ? { protocolVersion: '2025-06-18', serverInfo: { name: 'alias-srv' } } : { ok: true })));
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/mcp`;
+    for (const transport of ['remote', 'streamableHttp', 'streamable_http', 'streamable-http']) {
+      const client = await McpClient.connect({ url, transport });
+      try { assert.equal(client.serverInfo.serverInfo.name, 'alias-srv', transport); }
+      finally { client.close(); }
+    }
+    await assert.rejects(() => McpClient.connect({ url, transport: 'carrier-pigeon' }), /unsupported/);
+  } finally {
+    server.close();
+  }
+});
+
 // M38/dedup-h-#38: remote-MCP OAuth — client_credentials grant with the
 // RFC 8707 `resource` override field. Real http servers assert the token
 // request body, the bearer on MCP posts, and 401 re-auth.
