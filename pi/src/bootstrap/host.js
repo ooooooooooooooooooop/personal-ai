@@ -1800,7 +1800,7 @@ export async function startHost({
           const o = mcpOperatorSurface.validateOAuthSpec(spec);
           if (o) {
             row.oauth = o.flow;
-            row.authorized = o.flow === 'authorization_code'
+            row.authorized = o.flow !== 'client_credentials'
               ? Boolean(store[name]?.access_token && (store[name].expires_at ?? 0) > Date.now())
               : 'self-refreshing';
           }
@@ -1815,7 +1815,36 @@ export async function startHost({
       if (!spec) return { error: `unknown server '${name}'` };
       let oauth;
       try { oauth = mcpOperatorSurface.validateOAuthSpec(spec); } catch (e) { return { error: e.message }; }
-      if (!oauth?.authorizationUrl) return { error: `server '${name}' has no oauth.authorizationUrl — interactive flow not configured` };
+      if (oauth?.flow === 'device_code') {
+        // RFC 8628 device flow (dedup-h #740): return the user-facing code
+        // for the card; the host polls the token endpoint detached and
+        // stores the token on approval — same pending-dedup as the code flow.
+        if (mcpOAuthPending.has(name)) return { device: { pending: true } };
+        return mcpOperatorSurface.oauthDeviceAuthorize(oauth).then((d) => {
+          mcpOAuthPending.set(name, { device: true, deadline: Date.now() + d.expiresInSec * 1000 });
+          mcpOperatorSurface.oauthDevicePoll(oauth, d).then((t) => {
+            mcpOAuthPending.delete(name);
+            const store = mcpOperatorSurface.readTokenStore();
+            store[name] = {
+              access_token: t.accessToken, refresh_token: t.refreshToken,
+              expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'device_code',
+            };
+            mcpOperatorSurface.writeTokenStore(store);
+            hooks?.fire('notification', {
+              message: `OAuth complete for '${name}' (device flow)`, level: 'info',
+              kind: 'auth_success', server: name, flow: 'device_code',
+            });
+          }).catch(() => mcpOAuthPending.delete(name));
+          return {
+            device: {
+              userCode: d.userCode, verificationUri: d.verificationUri,
+              verificationUriComplete: d.verificationUriComplete,
+              expiresInSec: d.expiresInSec,
+            },
+          };
+        }).catch((e) => ({ error: `device authorization failed: ${e?.message ?? e}` }));
+      }
+      if (!oauth?.authorizationUrl) return { error: `server '${name}' has no interactive oauth flow configured (authorizationUrl or deviceAuthUrl)` };
       const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, spec.url);
       mcpOAuthPending.set(name, { verifier, state, deadline: Date.now() + MCP_OAUTH_TTL_MS });
       return { url, expiresInSec: MCP_OAUTH_TTL_MS / 1000 };

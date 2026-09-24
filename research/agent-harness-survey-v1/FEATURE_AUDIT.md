@@ -2430,3 +2430,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。源条目 = PAC/WPAD 系统级代理支持。落地：`host/src/core/pac.js` 零依赖 PAC 引擎——PAC 脚本（远程代码）在 `node:vm` 沙箱内跑 `FindProxyForURL`，只有标准 helper 面（isPlainHostName/dnsDomainIs/isInNet/shExpMatch/weekdayRange 等），无 require/process，200ms eval 超时；抓取有界（256KB/3s，http/https/file/path）。`proxy.json` 新增 `mode:'pac'`（pacUrl+hosts[] 探测集）与 `mode:'wpad'`（wpadUrl 默认 `http://wpad/wpad.dat`，opt-in）。
 - **诚实映射**：env-proxy 面只能表达单代理+NO_PROXY——探测主机全票 PROXY 才应用，DIRECT 主机并进 NO_PROXY；多代理分歧/SOCKS 拒绝应用并报 conflict（绝不静默压平）；抓取/求值失败记 `PROXY_PAC_FAILED` 审计 + `proxy.status.error`。`dnsResolve` 只答预解析名（Node 无同步 DNS，Resolver 1.5s 有界）——文档化边界。
 - **证据**：host pac 6/6（helper/沙箱/超时/解析/抓取/分歧拒绝）；bootstrap PAC 端到端（HTTP_PROXY 应用 + DIRECT→NO_PROXY + config_set pac 无 pacUrl 拒绝 + wpad 持久化）；host 377、pi 432/428 全绿。
+
+### 28.90 648 清单逐条核销 #64：dedup-h #740 GitHub 式 OAuth device flow（2026-09-24）
+
+- **判定**：IMPLEMENTED。源条目 = remote MCP OAuth device flow（RFC 8628，无浏览器回调环境：操作员在任意设备开 verification_uri 输 user_code，客户端轮询 token 端点）。落地：`oauth.deviceAuthUrl` 配置 + 显式 `oauth.flow` 选择器（authorization_code/device_code/client_credentials，显式优先、缺省 authorizationUrl>deviceAuthUrl）；`oauthDeviceAuthorize`（POST deviceAuthUrl→user_code/verification_uri 解析）+ `oauthDevicePoll`（authorization_pending 按 interval 轮询、slow_down +5s、access_denied/expired_token 诚实终止、deadline 封顶）。三面同达：会话内 `/mcp-auth` device 分支（自动轮询+通知）、channel facade `mcp_auth` 返回设备码载荷+宿主侧 detached 轮询+存库+auth_success 钩、UI `/mcp` 卡「设备登录」按钮展示码+URI 无粘贴步。
+- **证据**：mcp-ext 31/31（spec 校验矩阵 + 真端点 pending→slow_down→token + denied/expired 终止）；bootstrap 端到端（状态显 device_code → mcp_auth 返码 → detached 轮询落库 flow:'device_code' + auth_success 钩）；pi 435/431、app 25/26 全绿。

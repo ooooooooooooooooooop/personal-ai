@@ -1157,3 +1157,75 @@ function FindProxyForURL(url, host) {
     host.dispose();
   }
 });
+
+// dedup-h #740 — RFC 8628 device flow through the channel facade: mcp_auth
+// returns the user-facing code; the host polls the token endpoint detached
+// and stores the token on approval; auth_success notification fires.
+test('mcp facade device flow: user code returned; detached poll stores token + fires notification', async () => {
+  const { createServer } = await import('node:http');
+  const calls = { device: 0, token: 0 };
+  const srv = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      if (req.url === '/device') {
+        calls.device++;
+        res.end(JSON.stringify({ device_code: 'dc-x', user_code: 'WXYZ-9876', verification_uri: 'https://github.com/login/device', interval: 1, expires_in: 300 }));
+      } else {
+        calls.token++;
+        if (calls.token < 2) res.end(JSON.stringify({ error: 'authorization_pending' }));
+        else res.end(JSON.stringify({ access_token: 'tok-device', token_type: 'bearer', expires_in: 3600 }));
+      }
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-devflow-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({ version: 1, deny: [], tools: {}, riskActions: {} }));
+  const marker = join(dir, 'hook-fires.jsonl');
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const hookScript = join(dir, 'hook.js');
+  writeFileSync(hookScript, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').appendFileSync(${JSON.stringify(marker)},JSON.stringify({ev:process.env.PAI_HOOK_EVENT,payload:JSON.parse(d)})+String.fromCharCode(10));});`);
+  writeFileSync(join(dir, '.pai', 'hooks.json'), JSON.stringify({ hooks: { notification: [{ command: `"${process.execPath}" ${JSON.stringify(hookScript)}` }] } }));
+  const mcpCfg = join(dir, 'mcp.json');
+  writeFileSync(mcpCfg, JSON.stringify({ mcpServers: { devsrv: {
+    url: 'https://mcp.example.com/mcp',
+    oauth: { clientId: 'cid', tokenUrl: `http://127.0.0.1:${srv.address().port}/token`, deviceAuthUrl: `http://127.0.0.1:${srv.address().port}/device` },
+  } } }));
+  const storePath = join(dir, 'mcp-oauth.json');
+  const prevCfg = process.env.PAI_MCP_CONFIG, prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  process.env.PAI_MCP_CONFIG = mcpCfg;
+  process.env.PAI_MCP_TOKEN_STORE = storePath;
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    // status shows the device_code flow
+    const st = await host.channel.handle({ type: 'mcp_status' });
+    assert.equal(st.data.servers[0].oauth, 'device_code');
+
+    const a = await host.channel.handle({ type: 'mcp_auth', server: 'devsrv' });
+    assert.equal(a.success, true, JSON.stringify(a));
+    assert.equal(a.data.device.userCode, 'WXYZ-9876');
+    assert.equal(a.data.device.verificationUri, 'https://github.com/login/device');
+    assert.equal(calls.device, 1);
+
+    // detached poll: token lands in the store + auth_success hook fires
+    const deadline = Date.now() + 10000;
+    let stored = null, hooks = [];
+    while (Date.now() < deadline) {
+      if (existsSync(storePath)) { try { stored = JSON.parse(readFileSync(storePath, 'utf-8'))?.devsrv; } catch {} }
+      if (existsSync(marker)) hooks = readFileSync(marker, 'utf-8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
+      if (stored?.access_token && hooks.some((r) => r.ev === 'notification' && r.payload?.kind === 'auth_success')) break;
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert.equal(stored?.access_token, 'tok-device', 'polled token stored');
+    assert.equal(stored?.flow, 'device_code');
+    assert.ok(calls.token >= 2, `token endpoint polled (${calls.token})`);
+    assert.ok(hooks.some((r) => r.payload?.flow === 'device_code'), 'auth_success carries device_code flow');
+  } finally {
+    host.dispose();
+    srv.close();
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+  }
+});

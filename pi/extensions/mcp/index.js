@@ -187,6 +187,34 @@ function validateOAuthSpec(spec) {
     }
     authorizationUrl = authorizationUrl.href;
   }
+  // dedup-h #740: deviceAuthUrl upgrades the spec to the RFC 8628 device
+  // authorization grant (GitHub device flow) — headless environments where
+  // no browser callback exists: the operator enters a user_code at a
+  // verification URI on ANY device while we poll the token endpoint.
+  let deviceAuthUrl = null;
+  if (o.deviceAuthUrl != null) {
+    try { deviceAuthUrl = new URL(o.deviceAuthUrl); } catch { throw new McpError('oauth.deviceAuthUrl is not a URL'); }
+    if (!['https:', 'http:'].includes(deviceAuthUrl.protocol)) throw new McpError('oauth.deviceAuthUrl must be http(s)');
+    if (deviceAuthUrl.protocol === 'http:' && !LOOPBACK_HOSTS.has(deviceAuthUrl.hostname.toLowerCase())) {
+      throw new McpError('oauth.deviceAuthUrl over http is refused off-loopback');
+    }
+    deviceAuthUrl = deviceAuthUrl.href;
+  }
+  // explicit flow selector for servers exposing BOTH dances (GitHub does):
+  // o.flow pins the grant; absent → authorizationUrl wins, then device.
+  let flow = null;
+  if (o.flow != null) {
+    if (!['authorization_code', 'device_code', 'client_credentials'].includes(o.flow)) {
+      throw new McpError(`oauth.flow '${o.flow}' must be authorization_code|device_code|client_credentials`);
+    }
+    flow = o.flow;
+  }
+  if ((flow ?? (deviceAuthUrl ? 'device_code' : null)) === 'device_code' && !deviceAuthUrl) {
+    throw new McpError("oauth.flow 'device_code' requires oauth.deviceAuthUrl");
+  }
+  if (flow === 'authorization_code' && !authorizationUrl) {
+    throw new McpError("oauth.flow 'authorization_code' requires oauth.authorizationUrl");
+  }
   // redirect_uri for the paste-back flow — the OOB URN is the default;
   // a real http(s) uri only makes sense for loopback receivers, which the
   // paste flow does not run. Allow operator override but refuse fragments.
@@ -235,8 +263,8 @@ function validateOAuthSpec(spec) {
   }
   return {
     tokenUrl: tokenUrl.href, clientId: o.clientId, clientSecret: o.clientSecret ?? null,
-    scope: o.scope ?? null, resource, authorizationUrl, redirectUri, exchange,
-    flow: authorizationUrl ? 'authorization_code' : 'client_credentials',
+    scope: o.scope ?? null, resource, authorizationUrl, deviceAuthUrl, redirectUri, exchange,
+    flow: flow ?? (authorizationUrl ? 'authorization_code' : deviceAuthUrl ? 'device_code' : 'client_credentials'),
   };
 }
 
@@ -300,10 +328,87 @@ export async function oauthExchangeCode(oauth, { code, verifier }) {
   }));
 }
 
+// --- dedup-h #740: RFC 8628 device authorization grant ---------------------
+// Headless login: POST deviceAuthUrl → {device_code,user_code,verification_uri,
+// interval,expires_in}; the operator authorizes on ANY device; we poll the
+// token endpoint honoring authorization_pending / slow_down / expiry.
+
+export async function oauthDeviceAuthorize(oauth, { fetchImpl = fetch } = {}) {
+  if (!oauth?.deviceAuthUrl) throw new McpError('oauth.deviceAuthUrl not configured');
+  const body = new URLSearchParams({ client_id: oauth.clientId });
+  if (oauth.scope) body.set('scope', oauth.scope);
+  let res;
+  try {
+    res = await fetchImpl(oauth.deviceAuthUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body,
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (e) {
+    throw new McpError(`device authorization request failed: ${e?.message ?? e}`);
+  }
+  let doc;
+  try { doc = await res.json(); } catch { doc = null; }
+  if (!res.ok || !doc || typeof doc.device_code !== 'string' || !doc.device_code) {
+    throw new McpError(`device authorization refused: HTTP ${res.status}${doc?.error_description ? ` — ${doc.error_description}` : doc?.error ? ` — ${doc.error}` : ''}`);
+  }
+  return {
+    deviceCode: doc.device_code,
+    userCode: String(doc.user_code ?? ''),
+    verificationUri: String(doc.verification_uri ?? ''),
+    verificationUriComplete: doc.verification_uri_complete ? String(doc.verification_uri_complete) : null,
+    intervalSec: Number.isFinite(Number(doc.interval)) ? Math.max(1, Number(doc.interval)) : 5,
+    expiresInSec: Number.isFinite(Number(doc.expires_in)) ? Number(doc.expires_in) : 900,
+  };
+}
+
+export async function oauthDevicePoll(oauth, {
+  deviceCode, intervalSec = 5, expiresInSec = 900,
+  fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+} = {}) {
+  if (!deviceCode) throw new McpError('deviceCode required');
+  const deadline = Date.now() + expiresInSec * 1000;
+  let interval = intervalSec;
+  for (;;) {
+    const res = await fetchImpl(oauth.tokenUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body: new URLSearchParams({
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
+        device_code: deviceCode, client_id: oauth.clientId,
+        ...(oauth.clientSecret ? { client_secret: oauth.clientSecret } : {}),
+      }),
+    });
+    const doc = await res.json().catch(() => null);
+    if (res.ok && doc?.access_token) {
+      // body already consumed — build the token record inline (same shape
+      // as parseTokenResponse; a second res.json() would throw)
+      const ttl = Number.isFinite(doc.expires_in) ? Math.max(0, doc.expires_in) : 3600;
+      return {
+        accessToken: doc.access_token,
+        refreshToken: typeof doc.refresh_token === 'string' ? doc.refresh_token : null,
+        expiresAt: Date.now() + Math.max(0, ttl - 60) * 1000,
+      };
+    }
+    const errCode = doc?.error ?? `http_${res.status}`;
+    if (errCode === 'authorization_pending' || errCode === 'slow_down') {
+      if (errCode === 'slow_down') interval += 5; // RFC 8628 §3.5
+      if (Date.now() + interval * 1000 > deadline) throw new McpError('device authorization expired before approval');
+      await sleep(interval * 1000);
+      continue;
+    }
+    if (errCode === 'access_denied') throw new McpError('device authorization denied by the operator');
+    if (errCode === 'expired_token') throw new McpError('device code expired — begin the flow again');
+    throw new McpError(`device token poll failed: ${errCode}${doc?.error_description ? ` — ${doc.error_description}` : ''}`);
+  }
+}
+
 // Facade-side surface: config/token-store access + spec validation. The
 // token store is user-private — the facade reports booleans, never tokens.
 export const mcpOperatorSurface = {
   loadConfig, validateOAuthSpec, readTokenStore, writeTokenStore, tokenStorePath,
+  oauthDeviceAuthorize, oauthDevicePoll,
 };
 
 // dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
@@ -446,7 +551,7 @@ const POST_TIMEOUT_MS = 30_000;
 function httpTransport(spec, { serverName = null } = {}) {
   const oauthSpec = validateOAuthSpec(spec); // throws on malformed — fail closed at connect
   let tokens = oauthSpec
-    ? (oauthSpec.flow === 'authorization_code' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
+    ? (oauthSpec.flow !== 'client_credentials' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
     : null;
   if (tokens && oauthSpec.exchange) tokens = oauthExchangedTokens(tokens, oauthSpec);
   const postTimeoutMs = spec.postTimeoutMs ?? POST_TIMEOUT_MS;
@@ -508,7 +613,7 @@ function httpTransport(spec, { serverName = null } = {}) {
 function sseTransport(spec, { serverName = null } = {}) {
   const oauthSpec = validateOAuthSpec(spec);
   let tokens = oauthSpec
-    ? (oauthSpec.flow === 'authorization_code' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
+    ? (oauthSpec.flow !== 'client_credentials' ? oauthStoredTokens(oauthSpec, serverName ?? spec.url) : oauthTokenManager(oauthSpec, spec.url))
     : null;
   if (tokens && oauthSpec.exchange) tokens = oauthExchangedTokens(tokens, oauthSpec);
   const ac = new AbortController();
@@ -1181,19 +1286,51 @@ export default function mcpExtension(pi) {
     if (!spec) return { error: `unknown server '${name}'` };
     try {
       const o = validateOAuthSpec(spec);
-      if (!o?.authorizationUrl) return { error: `server '${name}' has no oauth.authorizationUrl — interactive flow not configured` };
+      if (o?.flow !== 'authorization_code' && o?.flow !== 'device_code') {
+        return { error: `server '${name}' has no interactive oauth flow configured (authorizationUrl or deviceAuthUrl)` };
+      }
       return { oauth: o };
     } catch (err) { return { error: `server '${name}': ${err?.message ?? err}` }; }
   };
 
   pi.registerCommand('mcp-auth', {
-    description: 'Begin OAuth (authorization_code + PKCE) for a remote MCP server — prints the approval URL',
+    description: 'Begin OAuth for a remote MCP server — authorization_code+PKCE prints an approval URL; device_code shows a code to enter on any device',
     handler: async (args, ctx) => {
       await boot;
       const name = String(args ?? '').trim().split(/\s+/)[0] ?? '';
       if (!name) { ctx.ui?.notify?.('usage: /mcp-auth <server>', 'error'); return; }
       const { oauth, error } = oauthSpecFor(name);
       if (error) { ctx.ui?.notify?.(error, 'error'); return; }
+      if (oauth.flow === 'device_code') {
+        // RFC 8628: one POST yields the user-facing code; we poll the token
+        // endpoint detached until the operator approves or the code expires.
+        if (pendingAuth.has(name)) { ctx.ui?.notify?.(`device flow already running for '${name}'`, 'info'); return; }
+        try {
+          const d = await oauthDeviceAuthorize(oauth);
+          pendingAuth.set(name, { device: true, deadline: Date.now() + d.expiresInSec * 1000 });
+          ctx.ui?.notify?.(
+            `Device login for '${name}' — open ${d.verificationUri} on any device and enter code:\n\n` +
+            `  ${d.userCode}\n\nexpires in ${Math.round(d.expiresInSec / 60)}min; polling automatically completes the login`,
+            'info',
+          );
+          oauthDevicePoll(oauth, d).then((t) => {
+            pendingAuth.delete(name);
+            const store = readTokenStore();
+            store[name] = {
+              access_token: t.accessToken, refresh_token: t.refreshToken,
+              expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'device_code',
+            };
+            writeTokenStore(store);
+            ctx.ui?.notify?.(`OAuth complete for '${name}' (device flow) — token stored; restart the session if this server failed earlier`, 'info');
+          }).catch((e) => {
+            pendingAuth.delete(name);
+            ctx.ui?.notify?.(`device flow for '${name}' failed: ${e?.message ?? e}`, 'error');
+          });
+        } catch (e) {
+          ctx.ui?.notify?.(`device authorization failed for '${name}': ${e?.message ?? e}`, 'error');
+        }
+        return;
+      }
       const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, servers[name]?.url);
       pendingAuth.set(name, { verifier, state, deadline: Date.now() + OAUTH_PENDING_TTL_MS });
       ctx.ui?.notify?.(
@@ -1211,6 +1348,7 @@ export default function mcpExtension(pi) {
       const [name, code] = String(args ?? '').trim().split(/\s+/);
       if (!name || !code) { ctx.ui?.notify?.('usage: /mcp-auth-done <server> <code>', 'error'); return; }
       const pend = pendingAuth.get(name);
+      if (pend?.device) { ctx.ui?.notify?.(`'${name}' uses the device flow — approval completes automatically, no code to paste`, 'info'); return; }
       pendingAuth.delete(name);
       if (!pend || Date.now() > pend.deadline) { ctx.ui?.notify?.(`no pending OAuth for '${name}' (or it expired) — run /mcp-auth ${name} again`, 'error'); return; }
       const { oauth, error } = oauthSpecFor(name);

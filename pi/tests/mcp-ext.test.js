@@ -1404,3 +1404,74 @@ test('mcp enable/disable: disabled server skips boot; toggles persist + apply li
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ---- dedup-h #740: RFC 8628 device authorization grant --------------------
+import { mcpOperatorSurface } from '../extensions/mcp/index.js';
+
+test('oauth spec: deviceAuthUrl selects device_code; explicit flow pins; missing urls refuse', () => {
+  const base = { oauth: { tokenUrl: 'http://127.0.0.1:1/t', clientId: 'cid' } };
+  const dev = mcpOperatorSurface.validateOAuthSpec({ oauth: { ...base.oauth, deviceAuthUrl: 'http://127.0.0.1:1/d' } });
+  assert.equal(dev.flow, 'device_code');
+  const pinned = mcpOperatorSurface.validateOAuthSpec({
+    oauth: { ...base.oauth, deviceAuthUrl: 'http://127.0.0.1:1/d', authorizationUrl: 'https://a.example/x', flow: 'device_code' },
+  });
+  assert.equal(pinned.flow, 'device_code', 'explicit flow wins over the authorizationUrl default');
+  const codeFlow = mcpOperatorSurface.validateOAuthSpec({
+    oauth: { ...base.oauth, deviceAuthUrl: 'http://127.0.0.1:1/d', authorizationUrl: 'https://a.example/x' },
+  });
+  assert.equal(codeFlow.flow, 'authorization_code', 'authorizationUrl still wins when unpinned');
+  assert.throws(() => mcpOperatorSurface.validateOAuthSpec({ oauth: { ...base.oauth, flow: 'device_code' } }), /deviceAuthUrl/);
+  assert.throws(() => mcpOperatorSurface.validateOAuthSpec({ oauth: { ...base.oauth, flow: 'authorization_code' } }), /authorizationUrl/);
+  assert.throws(() => mcpOperatorSurface.validateOAuthSpec({ oauth: { ...base.oauth, flow: 'magic' } }), /oauth.flow/);
+  assert.throws(() => mcpOperatorSurface.validateOAuthSpec({ oauth: { ...base.oauth, deviceAuthUrl: 'http://evil.example/d' } }), /loopback/);
+});
+
+test('device authorize + poll: real endpoints, pending->slow_down->token; denied/expired honest', async () => {
+  const seen = { authorize: [], token: [] };
+  const srv = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      if (req.url === '/device') {
+        seen.authorize.push(Object.fromEntries(new URLSearchParams(body)));
+        res.end(JSON.stringify({ device_code: 'dc-1', user_code: 'ABCD-1234', verification_uri: 'https://github.com/login/device', interval: 1, expires_in: 600 }));
+      } else {
+        const p = Object.fromEntries(new URLSearchParams(body));
+        seen.token.push(p);
+        if (seen.token.length === 1) res.end(JSON.stringify({ error: 'authorization_pending' }));
+        else if (seen.token.length === 2) res.end(JSON.stringify({ error: 'slow_down' }));
+        else res.end(JSON.stringify({ access_token: 'tok-dev', token_type: 'bearer', expires_in: 3600, refresh_token: 'rt-1' }));
+      }
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  try {
+    const oauth = {
+      tokenUrl: `http://127.0.0.1:${srv.address().port}/token`, clientId: 'cid',
+      deviceAuthUrl: `http://127.0.0.1:${srv.address().port}/device`, scope: 'repo read',
+    };
+    const d = await mcpOperatorSurface.oauthDeviceAuthorize(oauth);
+    assert.equal(d.deviceCode, 'dc-1');
+    assert.equal(d.userCode, 'ABCD-1234');
+    assert.equal(seen.authorize[0].client_id, 'cid');
+    assert.equal(seen.authorize[0].scope, 'repo read');
+
+    const sleeps = [];
+    const t = await mcpOperatorSurface.oauthDevicePoll(oauth, { ...d, sleep: async (ms) => sleeps.push(ms) });
+    assert.equal(t.accessToken, 'tok-dev');
+    assert.equal(t.refreshToken, 'rt-1');
+    assert.equal(seen.token.length, 3);
+    assert.equal(seen.token[0].grant_type, 'urn:ietf:params:oauth:grant-type:device_code');
+    assert.equal(seen.token[0].device_code, 'dc-1');
+    assert.deepEqual(sleeps, [1000, 6000], 'pending sleeps interval; slow_down adds 5s (RFC 8628 §3.5)');
+
+    // denial + expiry are honest terminal errors, not silent loops
+    const deny = createServer((_q, r) => { r.setHeader('content-type', 'application/json'); r.end(JSON.stringify({ error: 'access_denied' })); });
+    await new Promise((r) => deny.listen(0, '127.0.0.1', r));
+    await assert.rejects(
+      () => mcpOperatorSurface.oauthDevicePoll({ tokenUrl: `http://127.0.0.1:${deny.address().port}/t`, clientId: 'c' }, { deviceCode: 'x', sleep: async () => {} }),
+      /denied/);
+    deny.close();
+  } finally { srv.close(); }
+});

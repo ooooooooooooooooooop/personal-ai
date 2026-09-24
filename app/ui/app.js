@@ -3946,14 +3946,23 @@ const SLASH = [
           : '';
         line.textContent = `${s.name}  [${s.transport}]${auth}${s.oauthError ? ` · spec 错: ${s.oauthError}` : ''}`;
         div.appendChild(line);
-        if (s.oauth === 'authorization_code' && s.authorized !== true) {
+        if ((s.oauth === 'authorization_code' || s.oauth === 'device_code') && s.authorized !== true) {
           const b = document.createElement('button');
           b.className = 'mcp-auth-btn';
-          b.textContent = `🔐 授权 ${s.name}`;
+          b.textContent = s.oauth === 'device_code' ? `🔐 设备登录 ${s.name}` : `🔐 授权 ${s.name}`;
           b.onclick = async () => {
             b.disabled = true;
             const a = await cmd('mcp_auth', { server: s.name });
             if (!a.success) { addSys(`授权失败：${a.error ?? '未知'}`, true); b.disabled = false; return; }
+            // RFC 8628 device flow: the host polls the token endpoint; the
+            // operator just enters the code at the verification URI.
+            if (a.data?.device) {
+              const d = a.data.device;
+              if (d.pending) { addSys(`'${s.name}' 设备登录已在进行——等待批准完成`); b.disabled = false; return; }
+              addSys(`设备登录 '${s.name}' — 在任意设备打开 ${d.verificationUri} 并输入代码：\n\n  ${d.userCode}\n\n${Math.round((d.expiresInSec ?? 900) / 60)} 分钟内有效，批准后自动完成`);
+              b.disabled = false;
+              return;
+            }
             addSys(`OAuth '${s.name}' — 在浏览器打开以下 URL 批准后粘贴 code（${a.data?.expiresInSec ?? 600}s 内有效）：\n${a.data?.url}`);
             const code = await askText(`完成 ${s.name} 授权`, '粘贴 authorization code');
             if (!code?.trim()) { b.disabled = false; return; }
