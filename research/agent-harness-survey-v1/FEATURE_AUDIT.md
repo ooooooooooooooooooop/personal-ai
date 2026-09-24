@@ -2395,3 +2395,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED（别名归一）。源条目二联：v2.50.2 "remote transport type"（经 remote HTTP 连接 MCP）+ v2.127.0 transport 别名兼容（streamable-http/streamableHttp/streamable_http 归一）。我方传输面早已有 streamable-http 实现（#523）；缺的是**字段值别名**——`transport:"remote"` 或拼写变体此前直接 MCP_SPEC 拒。
 - **落地**：`connect` 校验前增加别名归一表：`remote`/`streamableHttp`/`streamable_http` → `streamable-http`；未知值仍 fail-closed 报原名。
 - **证据**：同一 HTTP 假服务器上 `remote`/`streamableHttp`/`streamable_http`/`streamable-http` 四种写法全部 initialize 成功；`carrier-pigeon` 拒；mcp-ext 29/29、manifest hash 重算 + bootstrap 27/27。
+
+### 28.84 648 清单逐条核销 #58：dedup-h #590 `--worktree` 隔离 checkout 任务（2026-09-23）
+
+- **判定**：ALREADY_COVERED（CLI-flag 面=架构边界）。源条目（Cline cli-v3.0.3）= `--worktree` 自动建 `~/.cline/worktrees/` 下隔离 checkout 跑任务 + `--taskId/--continue` 在隔离 worktree 续跑换思路。我方两个真实用户面均已覆盖：**操作员** `/worktree <cmd>` → channel `job_spawn{worktree:true}`（#2 同链 decide 治理）；**模型** `job_spawn{worktree:true}` / `in_worktree`（#509）；JobExecutor detached checkout 至 `<instance>/jobs/worktrees`、净 worktree 退出即收、脏 worktree 保留+审计（M13）。**--continue 对等** = M90 restart 回放 `spec.worktree:true` + 原 authorizedRoot → 重建全新隔离 checkout 续跑（replay 的是合约不是残留目录）。
+- **边界**：`pai-host` 是宿主守护进程不是任务 CLI，没有可挂 flag 的任务启动子命令；用户入口在 UI/model 两侧已覆盖。
+- **证据**：M13 worktree job e2e + #2/#509 链路测试现役绿（pi 425/421/0/4）。
