@@ -374,3 +374,82 @@ test('form secret field type survives the schema (credential_request channel)', 
   assert.ok(resolved, 'ASK_RESOLVED audit row exists');
   assert.ok(!JSON.stringify(resolved).includes('sk-live-9'), 'audit must not carry the secret value');
 });
+
+test("#1829 'always' scopes to the SUBCOMMAND prefix — cargo build * not cargo *", async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  const p = asks.ask(desc({ args: { command: 'cargo build --release' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  assert.equal(await p, 'always');
+  // persisted shape carries the prefix, not the raw command
+  const persisted = JSON.parse(readFileSync(path, 'utf-8'));
+  assert.deepEqual(persisted, [{ tool: 'bash', commandPrefix: 'cargo build' }]);
+  // same subcommand family auto-allows…
+  assert.equal(await asks.ask(desc({ args: { command: 'cargo build -p other --features x' } })), 'allow');
+  assert.equal(await asks.ask(desc({ args: { command: 'cargo build' } })), 'allow');
+  // …a different subcommand still asks (the `cargo *` over-grant must not happen)
+  const p2 = asks.ask(desc({ toolCallId: 'tc-x', args: { command: 'cargo publish' } }));
+  assert.equal(asks.list().length, 1, 'cargo publish must still ask');
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+  // token boundary: `cargo builds` is not `cargo build`
+  const p3 = asks.ask(desc({ toolCallId: 'tc-y', args: { command: 'cargo builds are fine' } }));
+  assert.equal(asks.list().length, 1, 'cargo builds must not prefix-match');
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p3;
+  // restart: prefix entries survive and keep matching
+  const asks2 = new PendingAsks({ timeoutMs: 5000 }, path);
+  assert.equal(await asks2.ask(desc({ args: { command: 'cargo build --jobs 4' } })), 'allow');
+});
+
+test('#1829 prefix never swallows a compound; flag-led commands stay exact-match', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  // grant the cargo build prefix
+  const p = asks.ask(desc({ args: { command: 'cargo build --release' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  await p;
+  // a compound that STARTS with the prefix must NOT auto-allow — the tail
+  // could hide anything behind the approved head
+  const p2 = asks.ask(desc({ toolCallId: 'tc-c1', args: { command: 'cargo build && rm -rf /' } }));
+  assert.equal(asks.list().length, 1, 'compound behind the prefix must still ask');
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+  const p3 = asks.ask(desc({ toolCallId: 'tc-c2', args: { command: 'cargo build | tee log' } }));
+  assert.equal(asks.list().length, 1, 'pipe behind the prefix must still ask');
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p3;
+  // flag-led invocation has no subcommand → exact-match persist, as before
+  const p4 = asks.ask(desc({ toolCallId: 'tc-c3', args: { command: 'rm -rf build' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  await p4;
+  const persisted = JSON.parse(readFileSync(path, 'utf-8'));
+  assert.deepEqual(persisted[1], { tool: 'bash', command: 'rm -rf build' });
+  assert.equal(await asks.ask(desc({ args: { command: 'rm -rf build' } })), 'allow');
+  const p5 = asks.ask(desc({ toolCallId: 'tc-c4', args: { command: 'rm -rf other' } }));
+  assert.equal(asks.list().length, 1, 'rm -rf other must still ask');
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p5;
+});
+
+test('#1829 env assignments skip to the real binary; edited commands persist their own prefix', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-always-'));
+  const path = join(dir, 'always-allow.json');
+  const asks = new PendingAsks({ timeoutMs: 5000 }, path);
+  // env-prefix command: the grant must scope to `cargo build`, not `FOO`
+  const p = asks.ask(desc({ args: { command: 'RUSTFLAGS="-g" cargo build --release' } }));
+  asks.resolve(asks.list()[0].id, 'always');
+  await p;
+  const persisted = JSON.parse(readFileSync(path, 'utf-8'));
+  assert.deepEqual(persisted[0], { tool: 'bash', commandPrefix: 'cargo build' });
+  // edited approval: the persisted prefix comes from the EDITED command
+  // (npm test is outside the cargo build prefix, so this ask really suspends)
+  const p2 = asks.ask(desc({ toolCallId: 'tc-e', args: { command: 'npm test' } }));
+  asks.resolve(asks.list()[0].id, { answer: 'always', edited: { command: 'git status --short' } });
+  assert.deepEqual(await p2, { answer: 'always', edited: { command: 'git status --short' } });
+  const persisted2 = JSON.parse(readFileSync(path, 'utf-8'));
+  assert.deepEqual(persisted2[1], { tool: 'bash', commandPrefix: 'git status' });
+  assert.equal(await asks.ask(desc({ args: { command: 'git status --porcelain' } })), 'allow');
+});

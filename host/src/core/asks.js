@@ -55,16 +55,51 @@ export class PendingAsks {
     return `${toolName}:${typeof a === 'string' ? a : ''}`;
   }
 
+  /**
+   * dedup-h #1829 subcommand scope for 'always' command grants: `cargo build
+   * --release` persists the prefix `cargo build`, so the subcommand family
+   * auto-allows while `cargo publish` still asks. A flag-led invocation
+   * (`rm -rf x`, `bash -c …`) has no subcommand — it stays exact-match:
+   * binary-wide grants are the `cargo *` over-grant this exists to avoid.
+   * Env assignments (FOO=bar) shift the real binary right and are skipped.
+   */
+  static #commandPrefixOf(command) {
+    if (typeof command !== 'string') return null;
+    const tokens = command.trim().split(/\s+/).filter(Boolean);
+    let i = 0;
+    while (i < tokens.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[i])) i++;
+    const bin = tokens[i];
+    const sub = tokens[i + 1];
+    if (!bin || !sub || sub.startsWith('-')) return null;
+    if (!/^[^\s'"$&|;<>(){}\\]+$/.test(sub)) return null;
+    return `${bin} ${sub}`;
+  }
+
+  /**
+   * A prefix grant may only auto-approve a SINGLE simple command — shell
+   * metacharacters can hide a second payload behind the approved head
+   * (`cargo build && rm -rf ~`). Compounds fall back to exact matching.
+   */
+  static #compoundFree(command) {
+    return !/[&|;`$<>\n\r]/.test(command);
+  }
+
   #alwaysMatch(toolName, args) {
     // scope keys mirror the deny-cascade signature (#sigOf): a grant recorded
     // against a command matches that command, a grant recorded against a path
     // matches that path, and only a grant with NEITHER is tool-wide. Before
     // this, a path-arg tool (write/edit) persisted {tool} alone — an 'always'
     // click on one file auto-approved EVERY future write.
-    return this.#alwaysAllows.some((e) =>
-      e.tool === toolName &&
-      (e.command == null || e.command === args?.command) &&
-      (e.path == null || e.path === args?.path));
+    return this.#alwaysAllows.some((e) => {
+      if (e.tool !== toolName) return false;
+      if (e.path != null && e.path !== args?.path) return false;
+      if (typeof e.commandPrefix === 'string') {
+        const cmd = typeof args?.command === 'string' ? args.command.trim() : '';
+        return PendingAsks.#compoundFree(cmd)
+          && (cmd === e.commandPrefix || cmd.startsWith(`${e.commandPrefix} `));
+      }
+      return e.command == null || e.command === args?.command;
+    });
   }
 
   subscribe(listener) {
@@ -166,7 +201,13 @@ export class PendingAsks {
             const entry = { tool: toolName };
             const persistedCmd = edited?.command ?? rec.args?.command;
             const persistedPath = edited?.path ?? rec.args?.path;
-            if (typeof persistedCmd === 'string') entry.command = persistedCmd;
+            if (typeof persistedCmd === 'string') {
+              // #1829: subcommand-scoped grants persist the PREFIX (`cargo
+              // build`); commands without a subcommand keep exact scope.
+              const prefix = PendingAsks.#commandPrefixOf(persistedCmd);
+              if (prefix) entry.commandPrefix = prefix;
+              else entry.command = persistedCmd;
+            }
             if (typeof persistedPath === 'string') entry.path = persistedPath;
             this.#alwaysAllows.push(entry);
             try {
@@ -178,7 +219,7 @@ export class PendingAsks {
               writeFileSync(tmp, JSON.stringify(this.#alwaysAllows, null, 2));
               renameSync(tmp, this.alwaysPath);
             } catch { /* persistence failure only costs durability — session grant still stands */ }
-            this.audit?.write?.({ kind: 'ASK_ALWAYS_PERSIST', toolName, data: { command: entry.command != null ? entry.command.slice(0, 200) : null } });
+            this.audit?.write?.({ kind: 'ASK_ALWAYS_PERSIST', toolName, data: { command: entry.command != null ? entry.command.slice(0, 200) : null, commandPrefix: entry.commandPrefix != null ? entry.commandPrefix.slice(0, 200) : null } });
           }
         }
         if (ans === 'deny' && rec.kind !== 'question' && rec.kind !== 'form') {

@@ -2747,3 +2747,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **每跳生效**：redirect 逐跳重跑 egressCheck——重定向到未授权主机同样触发 ask/拒绝，DNS 私有解析边界不被会话 grant 放宽的例外仅限显式名单语义本身（operator 信任）。
 - **证据**：`pi/tests/web.test.js` +4=17/17——(a) `allow_session` 真放行 + 并入 grants + 二次调用零 ask；(b) `allow` 一次仅本次 + grants 不增 + 二次再 ask；(c) `deny` 闩锁 denies + 二次平直拒绝零 ask；(d) `169.254.169.254` 字面量零 ask 平直拒 + 无名单 unrestricted baseline 零 ask。聚焦回归 web+bootstrap+budgetfetch+sessioncmd 81/81。
 - **核销**：candidates-open #1815 → `candidates-resolved.tsv` #124。
+
+### 28.121 648 清单逐条核销 #125：dedup-h #1829 shell-tools——approval-ux: "Always allow" 子命令粒度作用域（2026-09-25）
+
+- **行**：`dedup-h  1829  shell-tools  approval-ux: "Always allow"→subcommand scoping (cargo * vs cargo build *)`（描述段为另一 changelog 的 MCP-env 片段，非本条语义）。
+- **判定**：**IMPLEMENTED**。源语义为审批卡 "Always allow" 应锚定**子命令前缀**而非整条命令精确匹配——基线核查：PendingAsks 'always' 持久化 `{tool, command}` **精确串**匹配（`cargo build --release` 批了，`cargo build -p x` 仍问），粒度太窄；而 `cargo *` 式全二进制放行是本就规避的过授。落地（全在 host `asks.js`，零身体依赖）：
+  - **持久化折前缀**：`#commandPrefixOf`——跳过 env 赋值取真 binary，第二词为非旗标裸词（无 shell 元字符）时折 `{tool, commandPrefix: "bin sub"}`；折不出子命令的旗标开头命令（`rm -rf x`/`bash -c …`/`ls -la`）维持 `{tool, command}` 精确持久化——绝不把 binary-wide 放行塞给操作员没见过的粒度。
+  - **匹配**：`commandPrefix` 条目要求**词边界前缀**（`===prefix` 或 `startsWith(prefix+' ')`，`cargo builds` 不吃）且命令**无任何 shell 元字符**（`&|;`$\`<>\n`——`cargo build && rm -rf ~` 永远不吃前缀放行，compound 尾部藏第二载荷的注入洞封死）；旧 `command` 精确条目与 path 条目兼容不变；deny 级联签名保持精确（deny 保守不错）。
+  - **edited 审批**：edited command 折自己的前缀（操作员改过的命令决定放行粒度）。
+  - **审计**：`ASK_ALWAYS_PERSIST` 数据带 `commandPrefix` 字段。
+- **证据**：`host/tests/asks.test.js` +3=24/24、host 全套 404/404——(a) `cargo build --release`→`{commandPrefix:'cargo build'}`，`-p other`/`--jobs 4`/裸 `cargo build` 自动放行、`cargo publish` 仍问、`cargo builds` 词边界不吃、重启后前缀存续；(b) `cargo build && rm -rf /` 与 `cargo build | tee log` 复合命令仍挂卡、`rm -rf build` 精确持久化 `rm -rf other` 仍问；(c) `RUSTFLAGS="-g" cargo build` env 前缀跳过折 `cargo build`、edited `git status --short` 折 `git status` 前缀放行 `--porcelain`。pi 聚焦 bootstrap+jobs-executor+m8-wiring 131/131。
+- **核销**：candidates-open #1829 → `candidates-resolved.tsv` #125。
