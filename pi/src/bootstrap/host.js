@@ -92,6 +92,7 @@ import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
 import { isTrusted, setTrust, hasInjectableContent, worktreeInfo, trustAllWorktreesEnabled, setTrustAllWorktrees } from '../../../host/src/core/trust.js';
+import { loadDotEnv } from '../../../host/src/core/dotenv.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
 import { askUserTool, askStructuredTool } from '../adapter/askuser.js';
 import { notifyUserTool } from '../adapter/notify.js';
@@ -340,6 +341,13 @@ export async function startHost({
   delegationCommand = null, // (target, task) => shell cmd — delegate_task stays unregistered without it
 } = {}) {
   const runId = randomUUID();
+  // dedup-h #1483 — operator `.env` files feed process.env BEFORE any env
+  // consumer runs (proxy/hooks/jobs/tools inherit it). Instance root loads
+  // always; the agent-writable workdir .env only under a recorded trust
+  // grant. Real exported env vars always win — a file can never shadow them.
+  const dotenvLoaded = loadDotEnv(instanceRoot, workdir, {
+    trusted: () => isTrusted(instanceRoot, workdir),
+  });
   // dedup-h #233 outbound proxy control (Codex config.json proxy.mode
   // analogue): <instance>/proxy.json {mode:'off'|'env'|<proxy-url>, noProxy?}
   // is operator-private. Applied BEFORE any fetch — NODE_USE_ENV_PROXY is
@@ -599,6 +607,10 @@ export async function startHost({
     join(core.paths.root, 'always-allow.json'),
   );
   if (askTimeoutMs) core.audit.write({ kind: 'ASK_TIMEOUT_CONFIGURED', data: { timeoutMs: askTimeoutMs } });
+  // #1483 — which env keys came from .env files (names only, never values).
+  if (dotenvLoaded.instance.length || dotenvLoaded.workdir.length) {
+    core.audit.write({ kind: 'ENV_FILE_LOADED', data: { instance: dotenvLoaded.instance, workdir: dotenvLoaded.workdir } });
+  }
 
   // Skill allow-list lives in the INSTANCE root (operator-private), never in
   // .pai/ — a repo-planted file must not decide which repo-planted knowledge

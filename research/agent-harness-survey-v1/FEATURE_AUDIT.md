@@ -2456,3 +2456,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **兼容**：布尔 `workdirTrusted` 保留旧快照语义（现存测试全部原样通过）；operator-private 与 plugin 目录永不打门标。
 - **证据**：agentprofiles.test.js +2——同 profile map 同 tool 上授权→`--env-json`/`--tools-allow`/`--steering-off` 出现、撤销→全剥、operator 目录无门标；pi 479 测 471 过 8 跳。
 - **核销**：candidates-open #1393 → `candidates-resolved.tsv` #96。
+
+### 28.93 648 清单逐条核销 #97：dedup-h #1483 custom tools——npm 包承载 + .env 访问（2026-09-24）
+
+- **行**：`dedup-h  1483  git-pr-ci  custom tools: npm包+.env访问支持`（Gemini CLI 式：自定义工具以 npm 包分发，可访问 .env）。
+- **判定**：**IMPLEMENTED（承载面变体 + .env 新落地）**——
+  - *工具包承载（变体）*：自定义工具走 managed extensions（`pi/extensions/*`，`pi.registerTool` 真注册），npm 自动发现**有意拒绝**——零发现 TCB 准入 + manifest sha256 钉是比 npm 目录扫描更强的供应链姿态（包要进 TCB 先过 manifest 钉）；等价能力，准入更严。
+  - *.env 访问（新落地）*：`host/src/core/dotenv.js`——`<instanceRoot>/.env`（operator-private）总是装载进 `process.env`（早于 proxy/hooks/jobs/tools 全部 env 消费点）；`<workdir>/.env` 仅在已登记 trust 授权下装载（agent 可写目录不经授权就是注入向量）；真实 env 永远赢（`??=`，文件不能盖操作员导出的变量→不能影射密钥）；行级解析（注释/`export `/引号/转义），坏行跳过不致命；`ENV_FILE_LOADED` 审计只记 key 名不落值。
+- **证据**：host/tests/dotenv.test.js 3/3（解析矩阵 + trust 门 + env 优先 + 坏文件容忍）；host 396/396；pi bootstrap+agentprofiles 43/43。
+- **核销**：candidates-open #1483 → `candidates-resolved.tsv` #97。
