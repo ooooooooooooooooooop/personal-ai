@@ -242,6 +242,14 @@ export class HostChannel {
           });
           return r?.ok ? reply(true, r) : reply(false, r, r?.reason ?? r?.error ?? 'spawn failed');
         }
+        case 'worktree_create': {
+          // dedup-h #2135 — Zed git worktree creation action: operator-named
+          // `git worktree add`; the picker (#1353) then offers it as a target.
+          if (!this.exec?.worktreeCreate) return reply(false, undefined, 'worktree create unavailable');
+          if (!cmd.path) return reply(false, undefined, 'worktree_create requires {path}');
+          const r = await this.exec.worktreeCreate({ path: String(cmd.path), ref: cmd.ref != null ? String(cmd.ref) : null, detach: cmd.detach === true });
+          return r?.ok === false ? reply(false, undefined, r.error) : reply(true, r);
+        }
         case 'worktree_list': {
           // dedup-h #509 — git worktree management: every linked checkout,
           // our job-managed ones flagged, for the operator's open/list pane.

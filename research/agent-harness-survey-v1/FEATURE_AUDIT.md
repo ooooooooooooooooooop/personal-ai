@@ -3015,3 +3015,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（PI_PACKAGE_DIR）**：上游 pi Nix/Guix 支持——`PI_ROOT` 硬编码模块相对路径无法表达内容寻址 store 路径。落点：`PI_ROOT`→惰性 `PI_ROOT()` 函数，`process.env.PI_PACKAGE_DIR` 覆盖即全包重根（managed-manifest/extensions/recipes/package-lock 全部随根）；env 使用点读取=组装时生效而非仅模块加载时；错配目录 fail-closed（manifest 缺失拒启动=诚实）。
 - **证据**：`verify.test.js` +3=11/11（坏 JSON 反射观察流+审计、好 JSON 静默、非 lint 扩展跳过、缺文件=fail 非 throw、python 探针存在与否两态诚实）；`channel-facade.test.js` +1=51/51（start 捕获 args→end lint、multi_edit 多路径、错误写不 lint）；`bootstrap.test.js` +1=44/44（PI_PACKAGE_DIR 重根后 `lockfile_sha256.pi` 记录假包 digest=覆盖实证）。
 - **核销**：candidates-open #2132 → `candidates-resolved.tsv` #150。
+
+### 28.147 648 清单逐条核销 #151：dedup-h #2135 git-pr-ci——worktree: git worktree creation action+picker（2026-09-25）
+
+- **行**：`dedup-h  2135  git-pr-ci  worktree: git: worktree creation action+picker按钮`（描述段为错位 `/config` 片段："add /config key=value slash command to set any setting from the prompt"）。
+- **源**：Zed #38719——"git: worktree creation action and git worktree picker to open a git worktree in a new window or replace the current one"。
+- **判定**：标题 **IMPLEMENTED**（picker+open 既有、创建动作新落）；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义**：核查——`worktree_list`(porcelain 全列+managed 标记，#509)、草稿线程 worktree picker(#1353)、`/worktree-open`(picker-open 对位)俱在；**缺操作员显式创建**（既有创建仅绑 `job_spawn{worktree:true}` 生成路径）。落点：`worktree_create` 通道 op → `exec.worktreeCreate({path,ref,detach})`——路径限 workdir 内或 `<instance>/jobs/worktrees` 托管根（`../` 逃逸带名拒绝、`WORKTREE_CREATE_REFUSED` 审计）、已存在路径拒、ref 限 `[\w./-]` 字符；`git worktree add` 失败=refused 非 throw，`WORKTREE_CREATED` 审计；`/worktree-new <路径> [ref]` 斜杠命令=创建动作面。
+  - **描述语义（/config key=value）**：**已覆盖**——`/config` 斜杠命令裸用查看（config_get）、`key=value` 经 `config_set` 设置；variant=allowlist 六键（model/thinking/mode/unicode_mode/image_detail/proxy_mode）是"any setting"的有界诚实对位（密钥/代理类不走裸命令）。
+- **证据**：`bootstrap.test.js` +1=45/45（真 `git worktree add` 建出+列表可见+逃逸/已存在/坏 ref 三拒）；host 417/417；app lint 净。
+- **核销**：candidates-open #2135 → `candidates-resolved.tsv` #151。

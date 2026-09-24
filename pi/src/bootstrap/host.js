@@ -2883,6 +2883,40 @@ export async function startHost({
       // <instance>/jobs/worktrees are OUR job-created ones (managed:true)
       // so the operator can tell spawned worktrees from their own.
       worktreeList: listWorktrees,
+      // dedup-h #2135 — Zed git worktree creation action: operator-named
+      // `git worktree add`. Path policy: inside the workdir OR under the
+      // managed <instance>/jobs/worktrees root — an operator-typed escape
+      // ('../../etc') must not write a checkout outside the boundary.
+      // ref/detach mirror git; a git failure is refused, not thrown.
+      worktreeCreate: async ({ path, ref = null, detach = false }) => {
+        if (typeof path !== 'string' || !path.trim()) return { ok: false, error: 'worktree path required' };
+        const abs = resolve(workdir, path.trim());
+        const managedRoot = resolve(join(core.paths.root, 'jobs', 'worktrees'));
+        const inWorkdir = abs === resolve(workdir) || abs.startsWith(resolve(workdir) + sep);
+        const inManaged = abs === managedRoot || abs.startsWith(managedRoot + sep);
+        if (!inWorkdir && !inManaged) {
+          core.audit.write({ kind: 'WORKTREE_CREATE_REFUSED', data: { path: path.slice(0, 200), reason: 'outside_boundary' } });
+          return { ok: false, error: `worktree path must stay inside the workdir or the managed jobs/worktrees root — '${path}' escapes both` };
+        }
+        if (existsSync(abs)) {
+          return { ok: false, error: `path already exists: ${abs} — git worktree add needs a fresh directory` };
+        }
+        if (ref != null && !/^[\w.\/-]{1,120}$/.test(ref)) {
+          return { ok: false, error: `invalid ref '${ref}' — branch/commit names use [\\w./-] only` };
+        }
+        const argv = ['worktree', 'add'];
+        if (detach) argv.push('--detach');
+        argv.push(abs);
+        if (ref) argv.push(ref);
+        const r = spawnSync('git', argv, { cwd: workdir, windowsHide: true, timeout: 30_000, encoding: 'utf-8' });
+        if (r.status !== 0) {
+          const reason = `git worktree add failed: ${(r.stderr || r.error?.message || 'unknown').trim().slice(0, 300)}`;
+          core.audit.write({ kind: 'WORKTREE_CREATE_REFUSED', data: { path: abs, reason } });
+          return { ok: false, error: reason };
+        }
+        core.audit.write({ kind: 'WORKTREE_CREATED', data: { path: abs, ref: ref ?? null, detach, managed: inManaged } });
+        return { ok: true, path: abs, managed: inManaged };
+      },
       // Operator worktree/job spawn (sidebar worktree-creation analogue,
       // candidates-open #2): a durable background task the operator launches
       // explicitly — optionally inside a detached git worktree. Same decide

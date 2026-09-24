@@ -1888,3 +1888,52 @@ test('#2132 PI_PACKAGE_DIR re-roots the pi package dir (lockfile hash proves it)
   assert.equal(identity.lockfile_sha256.pi, want,
     'PI_PACKAGE_DIR must re-root PI_ROOT — the recorded pi lockfile hash should name the override package');
 });
+
+// dedup-h #2135 — Zed git worktree creation action: worktree_create runs a
+// real `git worktree add`, bounded to the workdir / managed jobs root.
+test('#2135 worktree_create: creates inside workdir, refuses escape + existing path', { timeout: 30_000 }, async () => {
+  const { spawnSync } = await import('node:child_process');
+  const inst = mkdtempSync(join(tmpdir(), 'pai-wtcreate-inst-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wtcreate-repo-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  for (const args of [
+    ['init', '-q'], ['config', 'user.email', 't@t'], ['config', 'user.name', 't'],
+  ]) spawnSync('git', args, { cwd: dir });
+  writeFileSync(join(dir, 'base.txt'), 'base');
+  spawnSync('git', ['add', 'base.txt'], { cwd: dir });
+  spawnSync('git', ['commit', '-qm', 'init'], { cwd: dir });
+
+  const host = await startHost({ instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    // create inside the workdir → real checkout appears in worktree_list
+    const r = await host.channel.handle({ type: 'worktree_create', path: 'wt-feat' });
+    assert.equal(r.success, true, `create refused: ${r.error ?? JSON.stringify(r)}`);
+    assert.ok(existsSync(join(dir, 'wt-feat', 'base.txt')), 'new worktree has the repo content');
+    const list = await host.channel.handle({ type: 'worktree_list' });
+    const paths = (list.data?.worktrees ?? []).map((w) => w.path);
+    assert.ok(paths.some((p) => p.endsWith('wt-feat')), `created worktree missing from list: ${paths}`);
+
+    // escape outside the boundary → refused with a named reason
+    const esc = await host.channel.handle({ type: 'worktree_create', path: '../outside-wt' });
+    assert.equal(esc.success, false);
+    assert.match(esc.error, /inside the workdir|escapes/i);
+
+    // existing path → refused (git needs a fresh dir)
+    const again = await host.channel.handle({ type: 'worktree_create', path: 'wt-feat' });
+    assert.equal(again.success, false);
+    assert.match(again.error, /already exists/);
+
+    // invalid ref → refused before spawning
+    const badref = await host.channel.handle({ type: 'worktree_create', path: 'wt-x', ref: 'bad;rm -rf' });
+    assert.equal(badref.success, false);
+    assert.match(badref.error, /invalid ref/);
+    assert.ok(!existsSync(join(dir, 'wt-x')), 'refused ref still created the dir');
+  } finally {
+    host.dispose();
+    // worktree cleanup for tmpdir hygiene (best-effort)
+    spawnSync('git', ['worktree', 'remove', '--force', join(dir, 'wt-feat')], { cwd: dir });
+  }
+});

@@ -4087,6 +4087,16 @@ const SLASH = [
     },
   },
   {
+    cmd: '/worktree-new', label: '新建 worktree', hint: '/worktree-new <路径> [ref]——git worktree add（zed 创建动作对等）；建好后 /worktree 列表与草稿 worktree picker 可见',
+    run: async (arg) => {
+      const m = /^(\S+)(?:\s+(\S+))?$/.exec(String(arg ?? '').trim());
+      if (!m) { toast('用法：/worktree-new <路径> [ref]', 'err'); return; }
+      const r = await cmd('worktree_create', { path: m[1], ref: m[2] ?? null });
+      if (r.success) toast(`worktree 已建：${r.data?.path ?? m[1]}`);
+      else addSys(`新建 worktree 失败：${r.error ?? '未知'}`, true);
+    },
+  },
+  {
     cmd: '/worktree-open', label: '打开既有 worktree', hint: '/worktree-open <路径|名> <命令>——在已存在的 git worktree 里跑后台任务（zed "open worktree in new window" 对等）',
     run: async (arg) => {
       const m = /^(\S+)\s+(.+)$/s.exec(String(arg ?? '').trim());
