@@ -1249,6 +1249,10 @@ export async function startHost({
       customTools,
       excludeTools: initialDeny,
       extraExtensions: [worldModel.extension],
+      // dedup-h #1698 — llm_input/llm_output hooks: lazy accessor — the
+      // HookRunner is constructed later in this scope (observational config
+      // parses beside the channel); provider events only fire post-boot.
+      getHooks: () => { try { return hooks; } catch { return null; } },
       // revalidate defaults to the session's own tool registry via pi-ai
       // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
       // ctx.toolName — translate at the boundary, don't leak Pi shape inward.

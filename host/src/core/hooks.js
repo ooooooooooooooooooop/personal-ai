@@ -64,6 +64,12 @@ export const HOOK_EVENTS = new Set([
   // chars, model, usage}. Observational only; agent_stop is the
   // turn-boundary veto, prompt_submit the inbound transform.
   'message_sent',
+  // dedup-h #1698 (llm_input/llm_output payload hooks analogue): the
+  // assembled provider request fired pre-send {seq, payloadHash, bytes,
+  // preview≤16KB, messages} and the response line fired post-receive
+  // {seq, status, headers}. OBSERVATIONAL ONLY — never gate events: a
+  // workdir hook must never read-rewrite what the model is sent or told.
+  'llm_input', 'llm_output',
 ]);
 // session_directory (dedup-h #202): a gate-only extension event whose hook
 // answers {"directory": "..."} to relocate session persistence. Gate-only on

@@ -2673,3 +2673,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **相邻 `/test` 语义已覆盖**：Aider `/test` 对等的验证命令面由 `/verify` 实装（app/ui/app.js:3926——触发 `.pai/verify.json` onWrite 命令）。
 - **证据**：无代码改动——拒绝基于实体的诚实判定（重排目标对象不存在）。命令面核查：`/verify` 在册、无 `/test` 注册、session_list 无排序参数。
 - **核销**：candidates-open #1696 → `candidates-resolved.tsv` #117。
+
+### 28.114 648 清单逐条核销 #118：dedup-h #1698 other——hook-events: llm_input/llm_output hook payloads（2026-09-24）
+
+- **行**：`dedup-h  1698  other  hook-events: llm_input/llm_output hook payloads`（描述段为另一 changelog 的 super-modifier 键位片段，非本条语义）。
+- **判定**：**IMPLEMENTED（variant——observational-only）**。基线核查：host `HOOK_EVENTS` 无 llm 级事件；pi 侧 provider 生命周期点齐备（`before_provider_request` 载荷可替换 / `before_provider_headers` / `after_provider_response` status+headers）；`providerAuditExtension` 早已把请求/响应写进 **审计**面（PROVIDER_REQUEST/PROVIDER_RESPONSE + prefix-cache 不变量 + usage 计量）——审计覆盖 ≠ hook 面，本候选要的正是 **hook** 事件面。落地：
+  - **事件注册**：`HOOK_EVENTS` 新增 `llm_input`/`llm_output`，**纯观察性、永不进 GATE_EVENTS**——workdir hook 绝不可改写送给模型或从模型回来的载荷（gate 化 = repo 可种 hook 篡改模型 I/O，fail-closed 拒绝该语义）。
+  - **llm_input**：`before_provider_request` 处理器内（审计写完之后）fire——载荷 `{seq, model, messages, payloadHash, bytes, preview≤16KB}`：请求体可达数百 KB，preview 截断 + sha256 哈希钉死全量内容 + 字节数，与审计面同 hash 可交叉验证。
+  - **llm_output**：`after_provider_response` 内 fire——`{seq, status, headers}`：响应体在本事件之后才流式消费，诚实载荷是响应包络而非内容（assistant 文本/usage 已由 #1188 `message_sent` 覆盖）。
+  - **桥接**：`createPiSession` 新 `getHooks` 懒取参 → `providerAuditExtension(audit, getHooks)`；bootstrap 传 `() => hooks`——HookRunner 在作用域后段才构造（观察性配置随 channel 解析），provider 事件 post-boot 才触发，try-catch 兜 TDZ/未建态退化为 audit-only。两侧 fire 均 try 包裹：hook 抛错绝不阻塞 provider 路径。
+- **证据**：`pi/tests/llm-hooks.test.js` +4——(a) llm_input：seq/model/messages/hash/bytes 全字段 + preview 恰 16384 截断（40KB 消息体驱动）+ PROVIDER_REQUEST 审计并存；(b) llm_output：status 429 + headers 原样透出 + seq 与前序 input 配对 + PROVIDER_RESPONSE 审计；(c) 无 getHooks 退化为 audit-only 零抛错、hook 抛异常不中断 provider 路径；(d) 契约哨兵：两事件在 HOOK_EVENTS 且不在 GATE_EVENTS。host 全套 401/401。
+- **核销**：candidates-open #1698 → `candidates-resolved.tsv` #118。

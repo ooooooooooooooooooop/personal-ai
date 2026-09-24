@@ -25,7 +25,7 @@ import { resolve, sep } from 'node:path';
  */
 
 /** Host-owned inline extension: provider-request audit probe (redacted). */
-function providerAuditExtension(audit) {
+export function providerAuditExtension(audit, getHooks = null) {
   return {
     name: 'pai-provider-audit',
     factory: (pi) => {
@@ -44,6 +44,20 @@ function providerAuditExtension(audit) {
           kind: prefixBreak ? 'PREFIX_CACHE_BREAK' : 'PROVIDER_REQUEST',
           data: { seq: requestCount, payloadHash: hashOf(event.payload), systemPrefixHash: sysHash },
         });
+        // dedup-h #1698 — llm_input observational hook: the assembled
+        // provider payload pre-send. Bounded preview + hash + byte count —
+        // a request can be hundreds of KB; the hash pins full content.
+        try {
+          const json = JSON.stringify(event.payload ?? null);
+          getHooks?.()?.fire('llm_input', {
+            seq: requestCount,
+            model: event.payload?.model ?? null,
+            messages: Array.isArray(messages) ? messages.length : null,
+            payloadHash: hashOf(event.payload),
+            bytes: json.length,
+            preview: json.slice(0, 16384),
+          });
+        } catch { /* observational — never blocks the request path */ }
       });
       pi.on('before_provider_headers', (event) => {
         audit.write({
@@ -56,6 +70,16 @@ function providerAuditExtension(audit) {
           kind: 'PROVIDER_RESPONSE',
           data: { seq: requestCount, status: event.status },
         });
+        // dedup-h #1698 — llm_output observational hook: the response line
+        // post-receive (status + headers; the body streams after this event,
+        // so the honest payload is the response envelope, not content).
+        try {
+          getHooks?.()?.fire('llm_output', {
+            seq: requestCount,
+            status: event.status,
+            headers: event.headers ?? null,
+          });
+        } catch { /* observational — never blocks the response path */ }
       });
       // usage lives on assistant messages, not the provider event.
       // model rides along so usage history can break down by model, not
@@ -159,6 +183,7 @@ export async function createPiSession({
   customTools = [], // host-owned tools (job_status, delegate_task) — go through the same composite chain
   excludeTools = [], // policy-derived initial suppression — model never sees them
   extraExtensions = [], // additional inline extension factories (e.g. the world-model shim)
+  getHooks = null, // dedup-h #1698 — lazy HookRunner accessor for llm_input/llm_output
 }) {
   const resourceLoader = new DefaultResourceLoader({
     cwd: workdir,
@@ -166,7 +191,7 @@ export async function createPiSession({
     noExtensions: true, // zero-discovery: only manifest-verified + inline load
     additionalExtensionPaths: managedExtensions.map((e) => e.path),
     extensionFactories: [
-      ...(audit ? [providerAuditExtension(audit)] : []),
+      ...(audit ? [providerAuditExtension(audit, getHooks)] : []),
       ...(contextEnvelope ? [contextEnvelopeExtension(contextEnvelope)] : []),
       ...(audit && loopGovernance
         ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]
