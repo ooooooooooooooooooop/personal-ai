@@ -134,7 +134,7 @@ export class HookRunner {
    *                                   point at the operator-private instance file)
    * @param {boolean} [deps.gate]      enable the 'pre_tool' veto event
    */
-  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null, resolveExecEnv = null, context = null } = {}) {
+  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null, resolveExecEnv = null, context = null, egressCheck = null } = {}) {
     this.workdir = workdir;
     this.audit = audit;
     this.env = env;
@@ -165,6 +165,12 @@ export class HookRunner {
     //       entry counts as failed (observational: audited+skipped; gate:
     //       fails closed).
     this.llmFn = llmFn;
+    // dedup-h #1969 — allowPrivateNetworkHooks analogue: an async
+    // (url) => {ok, reason} guard consulted before every http hook POST.
+    // Hook payloads carry session context — an unchecked URL is an SSRF /
+    // exfil channel. The guard failing (or throwing) fails CLOSED: the
+    // entry counts as failed exactly like a refused fetch.
+    this.egressCheck = egressCheck;
     this.fetch = fetchImpl ?? globalThis.fetch;
     this.configPath = configPath ?? join(workdir, '.pai', 'hooks.json');
     this.hooks = this.#load();
@@ -439,6 +445,13 @@ export class HookRunner {
     if (kind === 'command') return this.#run(h.command, payload, timeoutMs);
     if (kind === 'http') {
       try {
+        if (this.egressCheck) {
+          const g = await this.egressCheck(h.http.trim());
+          if (!g?.ok) {
+            this.audit?.write({ kind: 'HOOK_EGRESS_REFUSED', data: { url: String(h.http).slice(0, 200), reason: String(g?.reason ?? 'egress refused').slice(0, 300) } });
+            return { code: 1, tail: `http hook refused: ${String(g?.reason ?? 'egress refused').slice(0, 300)}` };
+          }
+        }
         const res = await this.fetch(h.http.trim(), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },

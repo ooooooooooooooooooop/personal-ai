@@ -108,7 +108,7 @@ import { runtimeXferTools } from '../adapter/runtimexfer.js';
 import { SessionEnv } from '../../../host/src/core/sessionenv.js';
 import { modeRequestTool, requestPermissionTool, requestModeSwitch, requestModelSwitch } from '../adapter/modetools.js';
 import { createVerifier } from '../adapter/verify.js';
-import { webFetchTool, webSearchTool } from '../adapter/web.js';
+import { webFetchTool, webSearchTool, resolveChecked } from '../adapter/web.js';
 import { browserTools } from '../adapter/browser.js';
 import { schedulePromptSink, scheduleTool, startSchedulerPump } from '../adapter/schedule.js';
 import { MonitorRegistry } from '../adapter/monitor.js';
@@ -889,6 +889,28 @@ export async function startHost({
   // M131: recipe frontmatter `mode:` and mode_request share the mode catalog —
   // declared outside the array literal below since `const` can't live inside it.
   const catalogModes = () => ['normal', 'plan', 'review', ...loadModePresets().list().map((m) => m.name)];
+  // egress domain allowlist — operator-owned <instance>/egress-allow.json
+  // {allowDomains:[...]}; absent file = unrestricted (governance ask is the
+  // baseline). Re-read per call so operator edits take effect live. Shared
+  // by web_fetch and the http-hook egress guard (declared before the array
+  // literal — `const` can't live inside it).
+  const readEgressAllow = () => {
+    try {
+      const doc = JSON.parse(readFileSync(join(instanceRoot, 'egress-allow.json'), 'utf-8'));
+      return Array.isArray(doc?.allowDomains) ? doc.allowDomains.map(String) : null;
+    } catch { return null; }
+  };
+  // dedup-h #1969 — allowPrivateNetworkHooks analogue: http hooks POST the
+  // session-context payload, so an unchecked URL is an SSRF/exfil channel.
+  // Reuse the web_fetch resolved-address SSRF boundary + the same operator
+  // allowlist — literal localhost/dev intent stays allowed, public-name→
+  // private pivot and RFC1918 literals refuse unless allowlisted.
+  const hookEgressCheck = async (url) => {
+    let host;
+    try { host = new URL(url).hostname; }
+    catch { return { ok: false, reason: 'unparseable hook url' }; }
+    return resolveChecked(host, readEgressAllow());
+  };
   const customTools = [
     jobStatusTool(jobStore),
     // remote execution (P1): durable command jobs under an optional
@@ -924,16 +946,8 @@ export async function startHost({
     }),
     // network tools — web_fetch always on (policy maps it to ask); web_search
     // only when the operator configures an endpoint (never advertised empty)
-    // egress domain allowlist — operator-owned <instance>/egress-allow.json
-    // {allowDomains:[...]}; absent file = unrestricted (governance ask is the
-    // baseline). Re-read per call so operator edits take effect live.
     webFetchTool({
-      egressAllow: () => {
-        try {
-          const doc = JSON.parse(readFileSync(join(instanceRoot, 'egress-allow.json'), 'utf-8'));
-          return Array.isArray(doc?.allowDomains) ? doc.allowDomains.map(String) : null;
-        } catch { return null; }
-      },
+      egressAllow: readEgressAllow,
       // dedup-h #1815: a host outside the allowlist asks the operator inline
       // instead of flat-refusing — allow_session/'always' grant for this
       // session, deny latches a session deny. Fail-closed without a channel.
@@ -1218,6 +1232,7 @@ export async function startHost({
     llmFn: hookLlmFn,
     resolveExecEnv: hookExecEnv,
     context: hookContext,
+    egressCheck: hookEgressCheck,
   });
 
   // Sessions persist under the instance root — the app lists/resumes them.
@@ -2062,7 +2077,7 @@ export async function startHost({
   // (hook config is agent-writable workdir state; a veto there would let the
   // agent gate itself). Absent .pai/hooks.json → no-op; malformed config
   // throws at boot so the operator hears about it.
-  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn, resolveExecEnv: hookExecEnv, context: hookContext });
+  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn, resolveExecEnv: hookExecEnv, context: hookContext, egressCheck: hookEgressCheck });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   // dedup-h #391 — operator-side MCP surface: server list + OAuth

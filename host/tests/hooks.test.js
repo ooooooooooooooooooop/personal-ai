@@ -572,3 +572,36 @@ test('#1922 transform_llm_output {text} contract', async () => {
   assert.deepEqual(h.events, []);
   assert.ok(audit.events.some((e) => e.kind === 'HOOK_CONFIG_ERROR' && e.data.rejectedEvents?.includes('transform_llm_output')));
 });
+
+test('dedup-h #1969: http hook egress guard — private-network refuse, allowlist pass, guard throw fails closed', async () => {
+  const w = dir();
+  const calls = [];
+  const fetchImpl = async (url) => { calls.push(url); return { ok: true, text: async () => '{"ok":1}' }; };
+  // refused BEFORE fetch — a private/metadata URL never sees the payload
+  cfg(w, { hooks: { prompt_submit: [{ http: 'http://169.254.169.254/meta' }] } });
+  const audit = fakeAudit();
+  const h = new HookRunner(w, {
+    fetchImpl, audit,
+    egressCheck: async (url) => (url.includes('169.254') ? { ok: false, reason: 'private/metadata refused' } : { ok: true }),
+  });
+  assert.equal(await h.fire('prompt_submit', {}), 1); // entry ran and failed internally
+  assert.equal(calls.length, 0, 'refused before any fetch');
+  assert.ok(audit.events.some((x) => x.kind === 'HOOK_EGRESS_REFUSED'));
+
+  // allowed URL passes through to fetch normally
+  cfg(w, { hooks: { prompt_submit: [{ http: 'https://hooks.local/x' }] } });
+  const h2 = new HookRunner(w, { fetchImpl, egressCheck: async () => ({ ok: true }) });
+  await h2.fire('prompt_submit', {});
+  assert.equal(calls.length, 1);
+
+  // guard throwing fails CLOSED — a broken checker never downgrades to
+  // unchecked egress
+  const h3 = new HookRunner(w, { fetchImpl, egressCheck: async () => { throw new Error('resolver exploded'); } });
+  assert.equal(await h3.fire('prompt_submit', {}), 1);
+  assert.equal(calls.length, 1, 'guard throw = no fetch');
+
+  // no guard configured = legacy behavior (fetchImpl untouched)
+  const h4 = new HookRunner(w, { fetchImpl });
+  await h4.fire('prompt_submit', {});
+  assert.equal(calls.length, 2);
+});

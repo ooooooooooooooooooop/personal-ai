@@ -1487,3 +1487,50 @@ test('#1907 session_new fires session_end for the old and session_start for the 
     assert.equal(newStart.reason, 'new');
   } finally { host.dispose(); }
 });
+
+// dedup-h #1969 — http hook egress guard wired at bootstrap: the workdir
+// observational runner's http entries pass through resolveChecked — a
+// private/metadata literal refuses BEFORE any payload leaves; localhost
+// dev intent posts normally (local single-user policy).
+test('http hook egress: metadata literal refused + audited, localhost posts', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-heg-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-heg-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const { createServer } = await import('node:http');
+  const seen = [];
+  const srv = createServer((req, res) => {
+    let b = '';
+    req.on('data', (c) => (b += c));
+    req.on('end', () => { seen.push({ url: req.url, body: b }); res.end('{}'); });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'hooks.json'), JSON.stringify({
+    hooks: {
+      session_start: [
+        { http: 'http://169.254.169.254/latest/meta-data' },
+        { http: `http://127.0.0.1:${srv.address().port}/hook` },
+      ],
+    },
+  }));
+  const host = await startHost({
+    instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+  });
+  try {
+    await host.channel.handle({ type: 'session_new' });
+    // the observational runner fires detached — give the real POST a beat
+    await new Promise((r) => setTimeout(r, 800));
+    const hit = seen.find((s) => s.url === '/hook');
+    assert.ok(hit, 'localhost http hook POSTed its payload');
+    assert.match(hit.body, /session_start/);
+    const audits = readdirSync(join(inst, 'audit')).flatMap((f) =>
+      readFileSync(join(inst, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    const refused = audits.find((e) => e.kind === 'HOOK_EGRESS_REFUSED');
+    assert.ok(refused, 'private-network hook refusal audited');
+    assert.match(String(refused.data?.url ?? ''), /169\.254\.169\.254/);
+    assert.ok(!seen.some((s) => String(s.url).includes('meta')), 'metadata URL never fetched');
+  } finally { host.dispose(); srv.close(); }
+});

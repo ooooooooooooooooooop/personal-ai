@@ -2842,3 +2842,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义**：project panel 隐藏 gitignored 文件 = **BOUNDARY**——本 UI 无项目文件树面板（chat + bodies + changes 回执面，非 IDE 文件管理器），无该表面可挂。
 - **证据**：`app/tests/fixtures/fake-channel.js` 补 `fileops_list` 回执流（每 turn `patch` 突变推一条新回执）+ `dom-gate.js` 新增 `changesLive` 检查——视图打开后第二 prompt 的 `patch` 改动**不重进视图即落新行**（行数 rows0→+1 实测通过）；`ui-dom` 门禁全套 26/24/1跳/1败 = supervisor `handoff_export` 已知外来在途败（`instance.js` WORLD_MODEL_HOME 重定向，#1846 已定位，与本改无关）。
 - **核销**：candidates-open #1955 → `candidates-resolved.tsv` #133。
+
+### 28.130 648 清单逐条核销 #134：dedup-h #1969 approval-gate——egress: allowPrivateNetworkHooks（HTTP hooks 私有网络门）（2026-09-25）
+
+- **行**：`dedup-h  1969  approval-gate  egress: allowPrivateNetworkHooks(HTTP hooks私有网络)`（描述段为错位 ACP reasoning-effort 片段——ACP=Zed 客户端协议表面，本仓无该协议边界，判 BOUNDARY 不另立节）。
+- **判定**：**IMPLEMENTED（variant，严于源）**。源语义：`allowPrivateNetworkHooks` 布尔设置控制 HTTP hook 可否指向私网（SSRF 门）。核查真洞——`#937` 落的 http hook 形态 `POST` 载荷到**任意 URL 零检查**：hook 载荷携带会话上下文（事件+工具+参数），未检 URL = SSRF/外泄通道；workdir 观察性 hooks.json 是 agent 可写面，agent 声明 `http://169.254.169.254/` 即可把载荷 POST 到元数据端点。
+  - **缝**：`HookRunner` 新 `egressCheck` dep（async url→{ok,reason}）在 `#runEntry` http 分支 **fetch 前**检查——拒则 `{code:1,tail:'http hook refused'}` + `HOOK_EGRESS_REFUSED` 审计（url+reason），guard 抛错走外层 catch 同败=fail-closed。
+  - **接线**：bootstrap 新 `hookEgressCheck`——URL hostname → `resolveChecked`（web_fetch 同一 SSRF 机制：字面 localhost/dev 意图放行，公网名→私网解析 pivot 拒，169.254/::/link-local/ULA 恒拒，operator allowlist 显式放行）；`readEgressAllow` 提升为共享读取（web_fetch 与 hook 同源 `<instance>/egress-allow.json`，原位 live-reread 语义不变）；**两 runner 同接线**（观察性 hook 是 agent 可写面，恰是最需要 egress 门的）。
+  - **严于源**：源是布尔开关；我方落地为与 web_fetch 同策略的解析期 SSRF 判定——localhost/RFC1918 字面保留（本地单用户 harness 既定策略注释），私网目标的可控放行面 = operator allowlist。
+- **证据**：`host/tests/hooks.test.js` +1=412/412（refuse 先于 fetch/audit 落地/allow 直通/guard 抛错 fail-closed/无 guard 旧行为不变）；`pi/tests/bootstrap.test.js` +1=36/36 端到端（169.254 字面拒且审计 HOOK_EGRESS_REFUSED、127.0.0.1 本地监听真实收到 session_start 载荷）。
+- **核销**：candidates-open #1969 → `candidates-resolved.tsv` #134。
