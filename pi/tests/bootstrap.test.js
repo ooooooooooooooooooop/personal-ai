@@ -1731,3 +1731,46 @@ test('dedup-h #2051: image-detail.json seeds the image tier; invalid seed ignore
     host2.dispose();
   }
 });
+
+// dedup-h #2091 — --append-system-prompt analogue: operator prompt entries
+// (literal text or pre-read file content) append AFTER the instruction
+// envelope in the session's system prompt sources.
+test('dedup-h #2091: appendSystemPrompt entries reach the session system prompt', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-append-sp-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+    appendSystemPrompt: ['EXTRA OPERATOR RULE ONE', 'EXTRA OPERATOR RULE TWO'],
+  });
+  try {
+    const appended = host.session.resourceLoader.getAppendSystemPrompt();
+    const idx1 = appended.indexOf('EXTRA OPERATOR RULE ONE');
+    const idx2 = appended.indexOf('EXTRA OPERATOR RULE TWO');
+    assert.ok(idx1 >= 0 && idx2 === idx1 + 1, 'both operator entries appended in order');
+    assert.ok(idx1 > 0, 'instruction envelope rides first, operator entries after');
+  } finally {
+    host.dispose();
+  }
+
+  // no operator entries → the loader key stays absent and file
+  // auto-discovery semantics are unchanged (no regression on old behavior)
+  const dir2 = mkdtempSync(join(tmpdir(), 'pai-append-sp2-'));
+  mkdirSync(join(dir2, 'canonical'), { recursive: true });
+  writeFileSync(join(dir2, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host2 = await startHost({
+    instanceRoot: dir2, workdir: dir2, sessionOptions: { model: stubModel },
+  });
+  try {
+    const appended = host2.session.resourceLoader.getAppendSystemPrompt();
+    assert.ok(!appended.includes('EXTRA OPERATOR RULE ONE'), 'no bleed across sessions');
+  } finally {
+    host2.dispose();
+  }
+});

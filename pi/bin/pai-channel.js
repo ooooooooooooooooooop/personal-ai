@@ -9,6 +9,7 @@
  * Usage:
  *   node pi/bin/pai-channel.js --instance <instanceRoot> [--workdir <dir>]
  *     [--delegate-command <shell-template>]
+ *     [--append-system-prompt <text>]… [--append-system-prompt-file <path>]…
  *
  * Every stdout line is either:
  *   {"id":…,"type":"response","command":…,"success":…,"data"|"error":…}
@@ -16,6 +17,7 @@
  *   {"type":"audit","event":{…}}   (host audit events)
  */
 import { createInterface } from 'node:readline';
+import { readFileSync } from 'node:fs';
 import { startHost } from '../src/bootstrap/host.js';
 import { makeDelegationCommand } from '../src/adapter/delegate.js';
 
@@ -43,6 +45,27 @@ const delegateEnforceable = new Set(
     .filter(Boolean),
 );
 
+// dedup-h #2091 — --append-system-prompt <text> / --append-system-prompt-file
+// <path> (both repeatable, order preserved across the two flags): extra
+// operator prompt blocks appended after the instruction envelope. File
+// contents are read HERE so an unreadable path fails loud at startup instead
+// of silently degrading to the literal path string inside the loader.
+const appendSystemPrompt = args
+  .map((a, i) => ({ a, i }))
+  .filter(({ a, i }) => i > 0 && (args[i - 1] === '--append-system-prompt' || args[i - 1] === '--append-system-prompt-file'))
+  .map(({ a, i }) => {
+    if (args[i - 1] === '--append-system-prompt-file') {
+      const p = String(a);
+      try {
+        return readFileSync(p, 'utf-8');
+      } catch (e) {
+        process.stderr.write(`pai-channel: --append-system-prompt-file ${p}: ${e.message}\n`);
+        process.exit(2);
+      }
+    }
+    return String(a);
+  });
+
 // Planted-exe defense (Cline 4.1.19 analogue): on Windows, cmd.exe resolves
 // bare commands through the current directory first — a checkout containing
 // a planted npm.exe/git.exe would execute it on any `npm …` call. Setting
@@ -62,6 +85,7 @@ const host = await startHost({
   delegationCommand: delegateCmd
     ? makeDelegationCommand(delegateCmd, { enforceableTargets: delegateEnforceable })
     : null,
+  appendSystemPrompt,
 });
 
 // Fatal-error forensics: Node's default for an unhandled rejection or

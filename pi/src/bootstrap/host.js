@@ -359,6 +359,7 @@ export async function startHost({
   sessionOptions = {},
   taskRequirements = [],
   delegationCommand = null, // (target, task) => shell cmd — delegate_task stays unregistered without it
+  appendSystemPrompt = [], // dedup-h #2091 — operator --append-system-prompt entries (resolved text)
 } = {}) {
   const runId = randomUUID();
   // dedup-h #1483 — operator `.env` files feed process.env BEFORE any env
@@ -1383,6 +1384,7 @@ export async function startHost({
       sessionOptions: { agentDir, ...sessionOptions, sessionManager },
       managedExtensions,
       instructionEnvelope: core.instructionEnvelope,
+      appendSystemPrompt,
       // live provider — not a snapshot; steering files are workdir-scoped
       // context composed at this boundary (host core stays workdir-blind)
       contextEnvelope: (hint) => ({

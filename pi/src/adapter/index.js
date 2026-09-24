@@ -273,6 +273,7 @@ export async function createPiSession({
   extraExtensions = [], // additional inline extension factories (e.g. the world-model shim)
   getHooks = null, // dedup-h #1698 — lazy HookRunner accessor for llm_input/llm_output
   getGateHooks = null, // dedup-h #1858 — lazy GATE HookRunner for post_tool output hooks
+  appendSystemPrompt = [], // dedup-h #2091 — operator extra prompt entries (text or file path)
 }) {
   const resourceLoader = new DefaultResourceLoader({
     cwd: workdir,
@@ -299,8 +300,15 @@ export async function createPiSession({
     noSkills: true,
     noPromptTemplates: true,
     noThemes: true,
-    ...(instructionEnvelope
-      ? { appendSystemPrompt: [renderInstruction(instructionEnvelope)] }
+    // Supplying the key at all suppresses the SDK's append-prompt file
+    // auto-discovery — so only set it when there is something to append.
+    ...(instructionEnvelope || appendSystemPrompt.length
+      ? {
+          appendSystemPrompt: [
+            ...(instructionEnvelope ? [renderInstruction(instructionEnvelope)] : []),
+            ...appendSystemPrompt,
+          ],
+        }
       : {}),
   });
   await resourceLoader.reload();

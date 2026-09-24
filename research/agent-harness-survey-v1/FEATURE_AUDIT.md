@@ -2959,3 +2959,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（配置超时架空 bug）**：核查——`judgeCall` 是我方自有 LLM 请求面（feature-models.json 路由），但 `timeoutMs` 硬编码于调用点(8s/30s)，操作员配置无法到达请求=上游"first-token 超时被忽略"同构。落点：feature-models.json 条目支持 `timeout_ms`→`effectiveTimeoutMs` 覆盖调用点默认；`Number>0` 才生效（非数/0/负不落）。
 - **证据**：`pi/tests/tasktools.test.js` +1=5/5（reject 零准入/approve 见全计划/结构拒先于 critic/critic 抛错降级/无 critic 旧路径）；`pi/tests/compaction-model.test.js` +1=6/6（`timeout_ms:60` 砍掉 400ms 应答=配置真实到达、`timeout_ms:10000` 放行=非 clamp）；host 417/417 不受影响。
 - **核销**：candidates-open #2087 → `candidates-resolved.tsv` #144。
+
+### 28.141 648 清单逐条核销 #145：dedup-h #2091 cli-flags——--append-system-prompt(text/file)（2026-09-25）
+
+- **行**：`dedup-h  2091  cli-flags  --append-system-prompt(text/file)`（描述段为错位修复片段："@ 文件补全缓存过期后自动刷新，新文件可被建议"）。
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义**：`pai-channel` 新增 `--append-system-prompt <text>` 与 `--append-system-prompt-file <path>`（均可重复，跨旗保序）。文件在 CLI 层读取——缺失/不可读**响亮失败 exit 2**（避免 SDK resolvePromptInput 把路径静默当字面文本）。经 `startHost({appendSystemPrompt})`→`createPiSession({appendSystemPrompt})`→resourceLoader `appendSystemPrompt` 数组：指令信封始终第一，操作员条目随后；空数组时该键整体缺省，SDK 自带文件自动发现语义不变。
+  - **描述语义**：我方 @ 补全无缓存——`atComplete` 每击键实时调 `files_list`（带 seq 过期守卫），`files_list` 每次全新 walk workdir，"新文件不提示"无存在条件。已覆盖。
+- **证据**：`pi/tests/bootstrap.test.js` +1=41/41（双条目中序追加、信封居首、跨会话无泄漏）；CLI 冒烟：缺失文件 exit 2、正常旗启动应答 get_state。
+- **核销**：candidates-open #2091 → `candidates-resolved.tsv` #145。
