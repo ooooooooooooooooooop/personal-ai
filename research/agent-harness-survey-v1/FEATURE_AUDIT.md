@@ -2977,3 +2977,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（webhook 缺 secret/空 token 拒启动）**：**真洞**——`enabled:true` 且全部端点死在校验（缺/空白 secret/非法 id）→ 监听器仍绑端口全 404。落点：`listen()` 在 `endpoints.size===0` 时拒启动返回 `{disabled,reason:configError}`；空白（纯空格）secret 按缺失处理；`status().configError` 透出。
 - **证据**：`pi/tests/webhook.test.js` +2=6/6（全无效→拒启动+configError、混合→坏端点丢弃但错误留存）；`pi/tests/bootstrap.test.js` +1=42/42（admin URL 盖过 proxy.json+env、noProxy 应用、adminManaged 状态、ADMIN_PROXY 审计、proxy_mode 拒写且文件未被改）。
 - **核销**：candidates-open #2100 → `candidates-resolved.tsv` #146。
+
+### 28.143 648 清单逐条核销 #147：dedup-h #2101 cli-flags——project-kill: .zed/settings.json disable_ai 禁用项目 AI（2026-09-25）
+
+- **行**：`dedup-h  2101  cli-flags  project-kill: .zed/settings.json disable_ai禁用项目AI`（描述段为错位 openclaw flows 片段："后台任务首个线性任务流控制面 flows list|show|cancel，手动多任务流与单任务自动流分离"）。
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义（项目级 AI 禁用）**：核查——无任何项目级 kill 面。落点：`<workdir>/.pai/settings.json {disable_ai:true}`（`.zed/settings.json` 同构——workdir 项目配置，`.pai/commands.json` 热重读先例）；`sessionFacade.prompt`+`steer` 入口检查，拒绝抛带名错误 + `PROMPT_PROJECT_DISABLED` 审计；**逐次重读**（live 翻转即生效）、缺失/畸形文件=enabled（永不砖化 prompt 路径）；仅门控模型轮次——bash_run/jobs/exec 非"AI features"不受影响。
+  - **描述语义（flows list|show|cancel）**：**已覆盖**——`task_list`（team 字段区分 `wf-*` 多步流与单任务流=手动多任务/单任务自动流的分离）、`task_events`（show）、`task_interrupt`（cancel）三操作齐备，控制面等价。
+- **证据**：`pi/tests/channel-facade.test.js` +1=49/49（启用态通行、置旗即拒+带名错误+零模型调用、steer 同拒、live 翻转重启用、畸形文件不禁用、非 AI 面不受影响）。
+- **核销**：candidates-open #2101 → `candidates-resolved.tsv` #147。

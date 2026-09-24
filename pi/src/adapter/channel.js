@@ -392,8 +392,24 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   // non-continuation prompt so a healthy operator turn always re-arms.
   let stopContinues = 0;
 
+  // dedup-h #2101 — project kill switch (.zed/settings.json disable_ai
+  // analogue): <workdir>/.pai/settings.json {disable_ai:true} refuses AI
+  // turns for this project. Re-read per prompt so a live flip applies
+  // immediately; absent/malformed file = enabled. This gates model turns
+  // only — bash_run/jobs/exec are not "AI features" and stay reachable.
+  const projectAiDisabled = () => {
+    if (!workdir) return false;
+    try {
+      return JSON.parse(readFileSync(join(workdir, '.pai', 'settings.json'), 'utf-8'))?.disable_ai === true;
+    } catch { return false; }
+  };
+
   const sessionFacade = {
     prompt: async (message, options) => {
+      if (projectAiDisabled()) {
+        core.audit?.write({ kind: 'PROMPT_PROJECT_DISABLED', data: { workdir } });
+        throw new Error('AI turns are disabled for this project (.pai/settings.json disable_ai) — remove the flag to re-enable');
+      }
       admitSpend();
       if (options?._continuation === true) {
         // Internal channel flag (stop-gate continuation) — strip before the
@@ -601,7 +617,13 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       }
       return box.s.prompt(msg, opts);
     },
-    steer: (message) => { admitSpend(); return box.s.steer(message); },
+    steer: (message) => {
+      if (projectAiDisabled()) {
+        core.audit?.write({ kind: 'PROMPT_PROJECT_DISABLED', data: { workdir, steer: true } });
+        throw new Error('AI turns are disabled for this project (.pai/settings.json disable_ai)');
+      }
+      admitSpend(); return box.s.steer(message);
+    },
     abort: async () => {
       await box.s.abort?.();
       // question-kind asks carry no ctx.signal — the session abort above

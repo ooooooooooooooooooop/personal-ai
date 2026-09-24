@@ -1653,3 +1653,47 @@ test('#2051 empty input list does not strip images; fallback pick shares the pre
   assert.deepEqual(calls[2][1].images, [{ type: 'image', data: 'aGk=', mimeType: 'image/png' }]);
   dispose3();
 });
+
+// dedup-h #2101 — project kill switch (.zed/settings.json disable_ai):
+// <workdir>/.pai/settings.json {disable_ai:true} refuses model turns,
+// re-read per prompt so a live flip applies; exec/jobs untouched.
+test('#2101 disable_ai refuses prompts live; removing the flag re-enables', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-killproj-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const core = { paths: { auditDir }, audit: { write() {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, workdir: dir });
+
+  // enabled by default → prompts run
+  await ch.handle({ type: 'prompt', message: 'hello' });
+  assert.equal(calls.length, 1);
+
+  // flag on → refused with a named reason, no model call
+  writeFileSync(join(dir, '.pai', 'settings.json'), JSON.stringify({ disable_ai: true }));
+  const r = await ch.handle({ type: 'prompt', message: 'again' });
+  assert.equal(r.success, false);
+  assert.match(r.error, /disabled for this project/);
+  assert.equal(calls.length, 1, 'disabled prompt never reaches the model');
+  const r2 = await ch.handle({ type: 'steer', message: 'steer me' });
+  assert.equal(r2.success, false, 'steer is a model turn — refused too');
+
+  // live flip back → prompts run again (hot re-read, not a cached flag)
+  writeFileSync(join(dir, '.pai', 'settings.json'), JSON.stringify({ disable_ai: false }));
+  await ch.handle({ type: 'prompt', message: 'third' });
+  assert.equal(calls.length, 2, 're-enabled project admits prompts');
+
+  // malformed settings file = enabled (never bricks the prompt path)
+  writeFileSync(join(dir, '.pai', 'settings.json'), 'not json{');
+  await ch.handle({ type: 'prompt', message: 'fourth' });
+  assert.equal(calls.length, 3, 'corrupt settings file does not disable');
+
+  // non-AI surfaces unaffected by the flag at any point
+  writeFileSync(join(dir, '.pai', 'settings.json'), JSON.stringify({ disable_ai: true }));
+  const bare = await ch.handle({ type: 'get_state' });
+  assert.equal(bare.success, true, 'get_state is not an AI turn');
+  dispose();
+});
