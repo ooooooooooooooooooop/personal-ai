@@ -9,7 +9,7 @@
     {
       "id": "lsp-readonly",
       "path": "extensions/lsp/index.js",
-      "sha256": "b25e4292e463ade49ce0f7dda4a62ac224d42e7500444abb062284962a2ea410"
+      "sha256": "80c134d10c0d210ef43a7391e44f7bd117637dfc2fb067169657c3572b105848"
     }
   ]
 }

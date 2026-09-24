@@ -2821,3 +2821,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **组合语义**：`{text}` 与 `{args}` 同规则——逐条组合，后续 hook stdin 见已变换文本，末条生效。
 - **证据**：`host/tests/hooks.test.js` +1=411/411（双 hook 组合 `MIDDLE→MIDDLE+TAIL`、空白 text 畸形拒、prompt 型无 opt-in 拒、workdir 声明被拒）；`pi/tests/channel-facade.test.js` +1=47/47（`{text}`→message_update 追发改写+thinking 块保留+原 message 对象不染、`{deny}`→扣留通知不含原文、throw→failed closed 扣留、双审计落地）。
 - **核销**：candidates-open #1922 → `candidates-resolved.tsv` #131。
+
+### 28.128 648 清单逐条核销 #132：dedup-h #1937 ui-ux——context-forms: @diagnostics（language-server 诊断作上下文引用）（2026-09-25）
+
+- **行**：`dedup-h  1937  ui-ux  context-forms: @diagnostics — language-server diagnostics as conversational context`（描述段为错位 collaboration-mode 片段）。
+- **判定**：**IMPLEMENTED（variant）**。源语义：`@diagnostics` 引用把 language-server 诊断注入会话上下文。核查现状——`pi/extensions/lsp` 已有只读 `lsp_diagnostics` 工具（显式 tool call 路径在），但**无 `@` 上下文形式**：prompt 文本不经任何引用展开，模型看不到诊断除非主动调工具。落点设计：
+  - **诚实缝**：pi `context` 扩展事件（每轮 LLM 调用前发、可改 messages、handlers 顺序复合——runner.js:791-804）——新 `atMentionExtension` 注册于 `contextEnvelopeExtension` **之前**（envelope 每轮追发合成 user 消息，expander 只扫真实 operator 消息，顺序保证不被合成消息干扰）。
+  - **瞬态展开**：仅剥请求副本中 `@diagnostics` 独立 token + 追加 `<diagnostics>` 块；session/转录保留操作员原文——语义上"引用展开"而非"文本改写"，模型看到的 prompt 如实反映展开结果。
+  - **按需非每轮**：无 token → `undefined`（零成本 no-op）；`x@diagnostics.y` 邮箱式嵌入不触发（词边界 token 匹配）；tool-role 内容永不扫描（工具输出不能自我注入引用）。
+  - **provider 注册表**：新 `pi/src/adapter/context-providers.js`——`registerContextProvider(key, fn)`/`collectContext(key)` 解耦"谁提供"与"谁展开"；provider 抛错降级 `null` 不打断 prompt；lsp 扩展注册 `diagnostics` provider 聚合全部 server 的活动诊断（上限 200 条/文件 30），无 server/无诊断→诚实不可达注记。
+  - **信任边界**：provider 是纯函数只读——无 mutation 面；诊断文本 16k 截断防 prompt 膨胀。
+- **证据**：`pi/tests/at-mention.test.js` +3（注册表 register/collect/unregister + 抛错降级；展开断言 token 剥离+块追加+原消息对象不染；无 provider 诚实注记+无 token no-op+嵌入文本不触发+tool-role 不扫描）；`pi/tests/lsp-ext.test.js` 3/3 全绿（provider 注册与 managed 扩展兼容）。
+- **核销**：candidates-open #1937 → `candidates-resolved.tsv` #132。

@@ -11,6 +11,7 @@ import { injectionHygieneExtension } from './injectionhygiene.js';
 import { withRenderedReason } from './errors.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { renderContext, renderInstruction } from '../../../host/src/core/envelopes.js';
+import { collectContext } from './context-providers.js';
 import { realpathSync, unlinkSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 
@@ -180,6 +181,44 @@ export function contextEnvelopeExtension(contextEnvelope) {
   };
 }
 
+/**
+ * Host-owned inline extension (dedup-h #1937): `@diagnostics` context form.
+ * When the operator's latest user message mentions `@diagnostics` as a
+ * standalone token, the token is stripped from the request copy and a
+ * <diagnostics> block is appended with the live LSP diagnostics (or an
+ * honest unavailable note). Per-call transient — the session keeps what the
+ * operator literally typed; only the outgoing request is expanded. Only
+ * user-role text is scanned: tool output can never trigger an expansion.
+ */
+export function atMentionExtension() {
+  const TOKEN = /(^|\s)@diagnostics(?=\s|$)/;
+  return {
+    name: 'pai-at-mention',
+    factory: (pi) => {
+      pi.on('context', (event) => {
+        const msgs = event.messages ?? [];
+        let idx = -1;
+        for (let i = msgs.length - 1; i >= 0; i--) { if (msgs[i]?.role === 'user') { idx = i; break; } }
+        if (idx < 0) return undefined;
+        const content = Array.isArray(msgs[idx].content) ? msgs[idx].content : [];
+        if (!content.some((c) => typeof c?.text === 'string' && TOKEN.test(c.text))) return undefined;
+        const stripped = {
+          ...msgs[idx],
+          content: content.map((c) => (typeof c?.text === 'string' ? { ...c, text: c.text.replace(new RegExp(TOKEN.source, 'g'), '$1') } : c)),
+        };
+        const body = collectContext('diagnostics')
+          ?? 'no diagnostics available — no LSP servers configured or none reporting';
+        return {
+          messages: [
+            ...msgs.slice(0, idx), stripped, ...msgs.slice(idx + 1),
+            { role: 'user', content: [{ type: 'text', text: `<diagnostics>\n${body.slice(0, 16000)}\n</diagnostics>` }] },
+          ],
+        };
+      });
+    },
+  };
+}
+
 /** Persisted-session lifecycle — the only @earendil-works seam bootstrap needs. */
 // A1 parity: confinement must hold on the REAL path. A junction/symlink
 // inside sessionDir passes a lexical startsWith yet makes an outside file
@@ -242,6 +281,10 @@ export async function createPiSession({
     additionalExtensionPaths: managedExtensions.map((e) => e.path),
     extensionFactories: [
       ...(audit ? [providerAuditExtension(audit, getHooks)] : []),
+      // dedup-h #1937 — @diagnostics expansion must run BEFORE the context
+      // envelope: the envelope appends a synthetic user message each call,
+      // and the expander only scans the real operator message.
+      atMentionExtension(),
       ...(contextEnvelope ? [contextEnvelopeExtension(contextEnvelope)] : []),
       ...(audit && loopGovernance
         ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]

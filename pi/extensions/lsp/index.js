@@ -29,6 +29,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve, extname, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { registerContextProvider } from '../../src/adapter/context-providers.js';
 
 const CONNECT_TIMEOUT_MS = 20_000;
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -460,7 +461,25 @@ export default function lspExtension(pi) {
     },
   });
 
+  // dedup-h #1937 — `@diagnostics` context form: the prompt-path expander
+  // pulls this provider when the operator mentions @diagnostics. Same
+  // aggregation as lsp_diagnostics(file omitted): every live server's
+  // collected publishDiagnostics, clipped. No servers → null (the expander
+  // then reports honestly instead of injecting an empty block).
+  const unregisterProvider = registerContextProvider('diagnostics', () => {
+    const sections = [];
+    for (const [name, entry] of live) {
+      const all = entry.client.allDiagnostics();
+      for (const [uri, diags] of Object.entries(all)) {
+        const file = decodeURIComponent(uri).replace(/^file:\/\/\//, '').replace(/^file:\/\//, '');
+        sections.push(`## ${file} [${name}]\n${fmtDiagnostics(diags)}`);
+      }
+    }
+    return sections.join('\n\n') || null;
+  });
+
   pi.on('session_shutdown', () => {
+    unregisterProvider();
     for (const [, entry] of live) entry.client.close();
     live.clear();
   });
