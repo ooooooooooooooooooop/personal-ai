@@ -1930,8 +1930,45 @@ export async function startHost({
       }
       if (!oauth?.authorizationUrl) return { error: `server '${name}' has no interactive oauth flow configured (authorizationUrl or deviceAuthUrl)` };
       const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, spec.url);
-      mcpOAuthPending.set(name, { verifier, state, deadline: Date.now() + MCP_OAUTH_TTL_MS });
-      return { url, expiresInSec: MCP_OAUTH_TTL_MS / 1000 };
+      // dedup-h #1065 — loopback redirectUri: a 127.0.0.1-bound receiver
+      // captures the callback, validates state, exchanges + stores detached;
+      // the paste path (mcp_auth_done) remains as fallback.
+      const lspec = mcpOperatorSurface.loopbackListenSpec(oauth.redirectUri);
+      const pend = { verifier, state, deadline: Date.now() + MCP_OAUTH_TTL_MS };
+      if (lspec) {
+        try {
+          pend.listen = mcpOperatorSurface.oauthLoopbackListen({ ...lspec, state, timeoutMs: MCP_OAUTH_TTL_MS });
+          pend.listen.promise.then(({ code }) => {
+            const p = mcpOAuthPending.get(name);
+            if (!p) return;
+            mcpOAuthPending.delete(name);
+            oauthExchangeCode(oauth, { code, verifier: p.verifier }).then((t) => {
+              const store = mcpOperatorSurface.readTokenStore();
+              store[name] = {
+                access_token: t.accessToken, refresh_token: t.refreshToken,
+                expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+              };
+              mcpOperatorSurface.writeTokenStore(store);
+              hooks?.fire('notification', {
+                message: `OAuth complete for '${name}' (loopback redirect)`, level: 'info',
+                kind: 'auth_success', server: name, flow: 'authorization_code',
+              });
+            }).catch((e) => {
+              core.audit?.write({ kind: 'MCP_OAUTH_EXCHANGE_FAILED', data: { server: name, error: String(e?.message ?? e).slice(0, 200) } });
+            });
+          }).catch((e) => {
+            mcpOAuthPending.delete(name);
+            core.audit?.write({ kind: 'MCP_OAUTH_LOOPBACK_FAILED', data: { server: name, error: String(e?.message ?? e).slice(0, 200) } });
+          });
+        } catch (e) {
+          return { error: `loopback listener failed: ${e?.message ?? e}` };
+        }
+      }
+      mcpOAuthPending.set(name, pend);
+      return {
+        url, expiresInSec: MCP_OAUTH_TTL_MS / 1000,
+        ...(pend.listen ? { loopback: { uri: oauth.redirectUri, auto: true } } : {}),
+      };
     },
     authDone: async (name, code) => {
       const pend = mcpOAuthPending.get(name);
@@ -2497,6 +2534,8 @@ export async function startHost({
     // children (mcp stdio servers, etc.) die here instead of leaking past
     // host teardown. session.dispose() alone never reaches extensions.
     try { currentSession?.extensionRunner?.emit?.({ type: 'session_shutdown', reason: 'quit' }); } catch { /* best-effort */ }
+    for (const [, pend] of mcpOAuthPending) pend.listen?.close?.(); // loopback receivers die with the host
+    mcpOAuthPending.clear();
     currentSession.dispose?.();
     jobStore.db.close();
     core.leases.close();

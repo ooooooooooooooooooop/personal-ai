@@ -1285,3 +1285,74 @@ test('mcp defer_loading: tools join lazy surface, tool_search finds, tool_activa
     if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
   }
 });
+
+// dedup-h #1065 — loopback OAuth redirect through the channel facade:
+// mcp_auth returns the authorize URL AND opens a 127.0.0.1 receiver; a
+// state-matching browser callback completes exchange+store without paste.
+test('mcp facade loopback auth: callback captures code, token stored, auth_success fires', async () => {
+  const { createServer } = await import('node:http');
+  // free port for the loopback receiver (the provider redirects to a KNOWN
+  // port, so the spec must declare one — grab a free one first)
+  const probe = createServer();
+  await new Promise((r) => probe.listen(0, '127.0.0.1', r));
+  const cbPort = probe.address().port;
+  probe.close();
+  const tokenSrv = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ access_token: 'tok-loopback', token_type: 'bearer', expires_in: 3600 }));
+    });
+  });
+  await new Promise((r) => tokenSrv.listen(0, '127.0.0.1', r));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-loopback-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({ version: 1, deny: [], tools: {}, riskActions: {} }));
+  const marker = join(dir, 'hooks.jsonl');
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const hookScript = join(dir, 'hook.js');
+  writeFileSync(hookScript, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').appendFileSync(${JSON.stringify(marker)},JSON.stringify({ev:process.env.PAI_HOOK_EVENT,payload:JSON.parse(d)})+String.fromCharCode(10));});`);
+  writeFileSync(join(dir, '.pai', 'hooks.json'), JSON.stringify({ hooks: { notification: [{ command: `"${process.execPath}" ${JSON.stringify(hookScript)}` }] } }));
+  const mcpCfg = join(dir, 'mcp.json');
+  writeFileSync(mcpCfg, JSON.stringify({ mcpServers: { loopsrv: {
+    url: 'https://mcp.example.com/mcp',
+    oauth: {
+      clientId: 'cid', tokenUrl: `http://127.0.0.1:${tokenSrv.address().port}/token`,
+      authorizationUrl: 'https://auth.example.com/authorize',
+      redirectUri: `http://localhost:${cbPort}/callback`,
+    },
+  } } }));
+  const storePath = join(dir, 'mcp-oauth.json');
+  const prevCfg = process.env.PAI_MCP_CONFIG, prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  process.env.PAI_MCP_CONFIG = mcpCfg;
+  process.env.PAI_MCP_TOKEN_STORE = storePath;
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const a = await host.channel.handle({ type: 'mcp_auth', server: 'loopsrv' });
+    assert.equal(a.success, true, JSON.stringify(a));
+    assert.equal(a.data.loopback?.auto, true, 'loopback receiver must be announced');
+    // extract state from the authorize URL, then simulate the browser redirect
+    const state = new URL(a.data.url).searchParams.get('state');
+    assert.ok(state);
+    const hit = await fetch(`http://127.0.0.1:${cbPort}/callback?code=CODE7&state=${state}`);
+    assert.equal(hit.status, 200);
+    // detached exchange + store + auth_success notification
+    const deadline = Date.now() + 8000;
+    let stored = null, hooks = [];
+    while (Date.now() < deadline) {
+      if (existsSync(storePath)) { try { stored = JSON.parse(readFileSync(storePath, 'utf-8'))?.loopsrv; } catch {} }
+      if (existsSync(marker)) hooks = readFileSync(marker, 'utf-8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
+      if (stored?.access_token && hooks.some((r) => r.payload?.kind === 'auth_success')) break;
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert.equal(stored?.access_token, 'tok-loopback', 'callback-driven exchange stored the token');
+    assert.equal(stored?.flow, 'authorization_code');
+    assert.ok(hooks.some((r) => r.ev === 'notification' && r.payload?.kind === 'auth_success'), 'auth_success notification fired');
+  } finally {
+    host.dispose();
+    tokenSrv.close();
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+  }
+});

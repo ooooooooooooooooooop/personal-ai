@@ -1475,3 +1475,52 @@ test('device authorize + poll: real endpoints, pending->slow_down->token; denied
     deny.close();
   } finally { srv.close(); }
 });
+
+// ---- dedup-h #1065: loopback OAuth redirect (localhost:PORT/callback) ------
+
+test('loopback spec: redirectUri loopback parses to {port,path}; non-loopback/oob → null; loopbackRedirect flag defaults 8765', () => {
+  assert.deepEqual(mcpOperatorSurface.loopbackListenSpec('http://localhost:8765/callback'), { port: 8765, path: '/callback' });
+  assert.deepEqual(mcpOperatorSurface.loopbackListenSpec('http://127.0.0.1:9999/cb'), { port: 9999, path: '/cb' });
+  assert.equal(mcpOperatorSurface.loopbackListenSpec('urn:ietf:wg:oauth:2.0:oob'), null);
+  assert.equal(mcpOperatorSurface.loopbackListenSpec('https://app.example.com/cb'), null);
+  assert.equal(mcpOperatorSurface.loopbackListenSpec('not a uri'), null);
+  // flag → default 8765; redirectPort override; bad port refused
+  const o = mcpOperatorSurface.validateOAuthSpec({ oauth: {
+    tokenUrl: 'http://127.0.0.1:1/t', clientId: 'c', authorizationUrl: 'https://a.example/x', loopbackRedirect: true,
+  } });
+  assert.equal(o.redirectUri, 'http://localhost:8765/callback');
+  const o2 = mcpOperatorSurface.validateOAuthSpec({ oauth: {
+    tokenUrl: 'http://127.0.0.1:1/t', clientId: 'c', authorizationUrl: 'https://a.example/x', loopbackRedirect: true, redirectPort: 4567,
+  } });
+  assert.equal(o2.redirectUri, 'http://localhost:4567/callback');
+  assert.throws(() => mcpOperatorSurface.validateOAuthSpec({ oauth: {
+    tokenUrl: 'http://127.0.0.1:1/t', clientId: 'c', authorizationUrl: 'https://a.example/x', loopbackRedirect: true, redirectPort: 'abc',
+  } }), /redirectPort/);
+});
+
+test('loopback listener: matching state+code resolves; wrong state 400s and keeps waiting; provider error rejects', async () => {
+  // find a free port by binding then releasing — the OAuth listener must
+  // answer on the exact port the provider redirects to.
+  const srv = createServer();
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const freePort = srv.address().port;
+  srv.close();
+  const l2 = mcpOperatorSurface.oauthLoopbackListen({ port: freePort, path: '/cb', state: 'st-9', timeoutMs: 8000 });
+  // wrong state → 400, still listening
+  const bad = await fetch(`http://127.0.0.1:${freePort}/cb?code=x&state=WRONG`);
+  assert.equal(bad.status, 400);
+  // right hit resolves
+  const hit = await fetch(`http://127.0.0.1:${freePort}/cb?code=AUTHCODE1&state=st-9`);
+  assert.equal(hit.status, 200);
+  const got = await l2.promise;
+  assert.equal(got.code, 'AUTHCODE1');
+
+  // provider error rejects honestly
+  const srv2 = createServer();
+  await new Promise((r) => srv2.listen(0, '127.0.0.1', r));
+  const free2 = srv2.address().port; srv2.close();
+  const l3 = mcpOperatorSurface.oauthLoopbackListen({ port: free2, path: '/callback', state: 's', timeoutMs: 5000 });
+  const denied = assert.rejects(l3.promise, /denied/); // attach BEFORE the trigger — an already-rejected promise flags unhandledRejection
+  await fetch(`http://127.0.0.1:${free2}/callback?error=access_denied&state=s`);
+  await denied;
+});

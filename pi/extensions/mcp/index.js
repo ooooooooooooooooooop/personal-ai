@@ -35,6 +35,7 @@
  * specs may carry secrets — nothing here logs env/argv.
  */
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { randomBytes, createHash } from 'node:crypto';
 import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -224,6 +225,12 @@ function validateOAuthSpec(spec) {
     try { r = new URL(o.redirectUri); } catch { throw new McpError('oauth.redirectUri is not a URI'); }
     if (r.hash) throw new McpError('oauth.redirectUri must not carry a fragment');
     redirectUri = r.href;
+  } else if (o.loopbackRedirect === true) {
+    // dedup-h #1065 — loopback redirect (Claude Code localhost:8765/callback
+    // analogue): the host receives the code itself, no manual paste.
+    const port = o.redirectPort != null ? Number(o.redirectPort) : 8765;
+    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new McpError('oauth.redirectPort must be a TCP port');
+    redirectUri = `http://localhost:${port}/callback`;
   }
   // RFC 8707 §2: resource is an absolute URI and MUST NOT include a fragment.
   let resource = null;
@@ -328,6 +335,67 @@ export async function oauthExchangeCode(oauth, { code, verifier }) {
   }));
 }
 
+// --- dedup-h #1065: loopback OAuth redirect receiver ------------------------
+// Claude Code localhost:8765/callback analogue: an authorization_code flow
+// whose redirect_uri is a loopback http URL can complete WITHOUT manual
+// paste — a 127.0.0.1-bound listener captures ?code&state, validates state
+// (CSRF), and hands the code to the caller for exchange. Never binds a
+// non-loopback interface: the receiver exists to catch the local browser's
+// redirect, not to accept network calls.
+
+/** redirectUri → {port,path} when it is a loopback http URL, else null. */
+export function loopbackListenSpec(redirectUri) {
+  try {
+    const u = new URL(redirectUri);
+    if (u.protocol !== 'http:' || !LOOPBACK_HOSTS.has(u.hostname.toLowerCase())) return null;
+    return { port: Number(u.port || 80), path: u.pathname || '/callback' };
+  } catch { return null; }
+}
+
+/**
+ * Listen for exactly one OAuth callback. Returns {promise, port, close} —
+ * promise resolves {code} on a state-matching hit, rejects on provider
+ * ?error=, timeout, or bind failure. A state MISMATCH answers 400 and keeps
+ * waiting (a stray hit must not kill a valid in-flight approval).
+ */
+export function oauthLoopbackListen({ port = 8765, path = '/callback', state, timeoutMs = 5 * 60 * 1000 } = {}) {
+  let done = false;
+  let srv;
+  const promise = new Promise((resolve, reject) => {
+    const finish = (fn, v) => { if (!done) { done = true; clearTimeout(timer); try { srv.close(); } catch { /* already closed */ } fn(v); } };
+    srv = createServer((req, res) => {
+      let u;
+      try { u = new URL(req.url ?? '/', 'http://127.0.0.1'); } catch { u = null; }
+      if (!u || u.pathname !== path) {
+        res.writeHead(404).end('not found');
+        return;
+      }
+      const err = u.searchParams.get('error');
+      if (err) {
+        res.writeHead(200, { 'content-type': 'text/plain' }).end(`authorization denied: ${err} — you can close this tab`);
+        finish(reject, new McpError(`oauth provider denied: ${err}${u.searchParams.get('error_description') ? ` — ${u.searchParams.get('error_description')}` : ''}`, { code: 'MCP_OAUTH_DENIED' }));
+        return;
+      }
+      if (u.searchParams.get('state') !== state) {
+        // wrong state = not our callback (or CSRF) — refuse but keep waiting
+        res.writeHead(400, { 'content-type': 'text/plain' }).end('state mismatch — this callback is not for the in-flight authorization');
+        return;
+      }
+      const code = u.searchParams.get('code');
+      if (!code) {
+        res.writeHead(400, { 'content-type': 'text/plain' }).end('no code in callback');
+        return;
+      }
+      res.writeHead(200, { 'content-type': 'text/plain' }).end('OAuth complete — you can close this tab');
+      finish(resolve, { code });
+    });
+    const timer = setTimeout(() => finish(reject, new McpError('oauth callback timed out', { code: 'MCP_TIMEOUT' })), timeoutMs);
+    srv.on('error', (e) => finish(reject, new McpError(`loopback listen failed: ${e?.message ?? e}`, { code: 'MCP_LISTEN' })));
+    srv.listen(port, '127.0.0.1');
+  });
+  return { promise, port, close: () => { try { srv?.close(); } catch { /* best effort */ } } };
+}
+
 // --- dedup-h #740: RFC 8628 device authorization grant ---------------------
 // Headless login: POST deviceAuthUrl → {device_code,user_code,verification_uri,
 // interval,expires_in}; the operator authorizes on ANY device; we poll the
@@ -408,7 +476,7 @@ export async function oauthDevicePoll(oauth, {
 // token store is user-private — the facade reports booleans, never tokens.
 export const mcpOperatorSurface = {
   loadConfig, validateOAuthSpec, readTokenStore, writeTokenStore, tokenStorePath,
-  oauthDeviceAuthorize, oauthDevicePoll,
+  oauthDeviceAuthorize, oauthDevicePoll, loopbackListenSpec, oauthLoopbackListen,
   // dedup-h #1059 — set by the bootstrap: (toolName) => deferred onto the
   // lazy surface. Null before ToolSurface exists; the bootstrap's post-build
   // prefix pass catches registrations that landed earlier.
@@ -1234,6 +1302,8 @@ export default function mcpExtension(pi) {
   pi.on('session_shutdown', () => {
     for (const [, entry] of connected) entry.client?.close();
     connected.clear();
+    for (const [, pend] of pendingAuth) pend.listen?.close?.();
+    pendingAuth.clear();
   });
 
   pi.registerCommand('mcp', {
@@ -1342,10 +1412,41 @@ export default function mcpExtension(pi) {
         return;
       }
       const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, servers[name]?.url);
-      pendingAuth.set(name, { verifier, state, deadline: Date.now() + OAUTH_PENDING_TTL_MS });
+      // dedup-h #1065 — a loopback redirectUri completes WITHOUT paste: the
+      // receiver captures ?code, validates state, exchanges + stores, then
+      // reports through the same notification path as the device flow.
+      const lspec = loopbackListenSpec(oauth.redirectUri);
+      const entry = { verifier, state, deadline: Date.now() + OAUTH_PENDING_TTL_MS };
+      if (lspec) {
+        try {
+          entry.listen = oauthLoopbackListen({ ...lspec, state, timeoutMs: OAUTH_PENDING_TTL_MS });
+          entry.listen.promise.then(({ code }) => {
+            const pend = pendingAuth.get(name);
+            if (!pend) return;
+            pendingAuth.delete(name);
+            oauthExchangeCode(oauth, { code, verifier: pend.verifier }).then((t) => {
+              const store = readTokenStore();
+              store[name] = {
+                access_token: t.accessToken, refresh_token: t.refreshToken,
+                expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+              };
+              writeTokenStore(store);
+              ctx.ui?.notify?.(`OAuth complete for '${name}' (loopback redirect) — token stored`, 'info');
+            }).catch((e) => ctx.ui?.notify?.(`token exchange for '${name}' failed: ${e?.message ?? e}`, 'error'));
+          }).catch((e) => {
+            pendingAuth.delete(name);
+            ctx.ui?.notify?.(`OAuth loopback receiver for '${name}': ${e?.message ?? e}`, 'error');
+          });
+        } catch (e) {
+          ctx.ui?.notify?.(`loopback listener for '${name}' failed to start: ${e?.message ?? e} — falling back to paste flow`, 'warning');
+        }
+      }
+      pendingAuth.set(name, entry);
       ctx.ui?.notify?.(
         `OAuth for '${name}' — open this URL, approve, then paste the code:\n\n${url}\n\n` +
-        `Then run: /mcp-auth-done ${name} <code>   (valid for 10 minutes)`,
+        (entry.listen
+          ? `Listening on ${oauth.redirectUri} — approval completes automatically (paste still works as fallback).`
+          : `Then run: /mcp-auth-done ${name} <code>   (valid for 10 minutes)`),
         'info',
       );
     },

@@ -1947,7 +1947,7 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 覆盖字段 | `spec.oauth.resource` → token 请求 `resource=` 原样发出；缺省=服务器 URL（RFC8707 资源的规范 URI） | `resource override` 测试断言 token POST body |
 | 校验 | `validateOAuthSpec` 连接期 fail-closed：tokenUrl 必须 http(s) 且 http 仅 loopback（携 client_secret 禁明文外发）；resource 必须绝对 URI 且无 fragment（RFC8707 §2）；`headers.authorization` 与 oauth 并存=歧义凭据拒绝；类型全检 | `malformed specs fail closed` 7 组断言 |
 | 令牌管理 | form-encoded client_credentials；token_type 必须 bearer；expires_in-60s 提前刷新；401 → invalidate + 单次重试；令牌只进 Authorization 头，`/mcp` 只见 `oauth client_credentials (resource: …)` 描述符 | `401 re-auths once` 测试 |
-| 边界 | authorization_code/PKCE 需浏览器回调——明示越界；静态 bearer 仍走 `spec.headers` | 头注释 |
+| 边界 | authorization_code 当时需手贴回调码——**已由 #1065 消除**：`redirectUri` 指向回环 URL（或 `loopbackRedirect:true` 取默认 `localhost:8765/callback`）→ 127.0.0.1 监听自动接码+验 state+交换落库；OOB 粘贴仍是 fallback；静态 bearer 仍走 `spec.headers` | bootstrap 回环端到端 |
 
 **注**：候选描述混入了"等连接中 MCP 服务器"的另一特征（wait-for-connect）——那是连接行为，本行按 oauthResource 字段核销；等待语义已在 connect 超时链覆盖。
 
