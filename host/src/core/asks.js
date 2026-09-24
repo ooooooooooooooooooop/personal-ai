@@ -28,6 +28,16 @@ export class PendingAsks {
   #listeners = new Set();
   #sessionAllows = new Set();
   #sessionDenies = new Set(); // deny cascade — same tool:arg auto-refused this session
+  // dedup-h #2027 — session-scoped MCP server grants ("approve all tools on
+  // this server"): mcp__<srv>__* tool names admit without re-asking.
+  #sessionServerAllows = new Set();
+
+  /** mcp__<server>__<tool> → server name; null for non-mcp names. */
+  static #mcpServerOf(toolName) {
+    if (typeof toolName !== 'string' || !toolName.startsWith('mcp__')) return null;
+    const srv = toolName.split('__')[1];
+    return srv || null;
+  }
   #alwaysAllows = [];         // persisted {tool, command} — OpenCode always-pattern
 
   /**
@@ -127,6 +137,7 @@ export class PendingAsks {
   resetSession() {
     this.#sessionAllows.clear();
     this.#sessionDenies.clear();
+    this.#sessionServerAllows.clear();
   }
 
   /**
@@ -163,6 +174,10 @@ export class PendingAsks {
     const kind = descriptor.kind === 'question' || descriptor.kind === 'form' ? descriptor.kind : 'approval';
     const isQuestion = kind !== 'approval';
     if (!isQuestion && this.#sessionAllows.has(toolName)) return Promise.resolve('allow');
+    // #2027 — server-wide session grant: a tool on an operator-approved
+    // MCP server admits without re-asking (same lifetime as allow_session).
+    const mcpSrv = PendingAsks.#mcpServerOf(toolName);
+    if (!isQuestion && mcpSrv && this.#sessionServerAllows.has(mcpSrv)) return Promise.resolve('allow');
     if (!isQuestion) {
       // Persisted always-pattern: {tool} or {tool,command} exact match.
       if (this.#alwaysMatch(toolName, descriptor.args)) return Promise.resolve('allow');
@@ -191,6 +206,11 @@ export class PendingAsks {
         const ans = isFormAnswer ? `answered:${Object.keys(answer).join(',')}` : (answer && typeof answer === 'object' ? answer.answer : answer);
         const edited = !isFormAnswer && answer && typeof answer === 'object' ? answer.edited : null;
         if (ans === 'allow_session' && rec.kind !== 'question' && rec.kind !== 'form') this.#sessionAllows.add(toolName);
+        // #2027 — 'allow_server': session-scoped grant for the WHOLE
+        // mcp__<srv>__* namespace; resolves as 'allow' to the caller while
+        // the audit/event trail keeps the honest answer name.
+        const srvGrant = ans === 'allow_server' ? PendingAsks.#mcpServerOf(rec.toolName) : null;
+        if (srvGrant) this.#sessionServerAllows.add(srvGrant);
         if (ans === 'always' && rec.kind !== 'question' && rec.kind !== 'form') {
           // 'always' grants the PATTERN ({tool,command}), not the whole tool —
           // sessionAllows.add(toolName) here would over-grant every future arg.
@@ -227,9 +247,9 @@ export class PendingAsks {
         }
         // outcome ledger — AgentStats outcome-bucketed counts (agreed/
         // rejected/timed-out) read this trail, not the transient event
-        this.audit?.write?.({ kind: 'ASK_RESOLVED', toolName, data: { rule: rec.rule ?? 'ask', kind: rec.kind, answer: ans, edited: edited ? Object.keys(edited) : null } });
+        this.audit?.write?.({ kind: 'ASK_RESOLVED', toolName, data: { rule: rec.rule ?? 'ask', kind: rec.kind, answer: ans, server: srvGrant ?? undefined, edited: edited ? Object.keys(edited) : null } });
         this.#emit({ type: 'governance_resolved', askId: id, toolName, answer: ans });
-        resolve(answer);
+        resolve(srvGrant ? 'allow' : answer);
       };
       // This timer owns an unresolved caller. Keep the loop alive until it
       // refuses the ask; finish()/dispose() clear it on all earlier exits.
@@ -355,6 +375,8 @@ export class PendingAsks {
     // #2004 — 'external_verify' is authorized only when the asker declared
     // the choice on the pending record; it is never an allow-family answer.
     if (rec.externalVerify) validAnswers.push('external_verify');
+    // #2027 — 'allow_server' only exists for mcp__* tools (server grant).
+    if (PendingAsks.#mcpServerOf(rec.toolName)) validAnswers.push('allow_server');
     if (!validAnswers.includes(answer)) {
       return { ok: false, error: `answer must be one of: ${validAnswers.join(', ')}` };
     }

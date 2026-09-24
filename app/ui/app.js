@@ -701,7 +701,7 @@ let askTick = null;
 const ANSWER_LABEL = {
   allow: '已允许', allow_session: '本会话已允许', always: '总是允许',
   deny: '已拒绝', timeout: '超时未答 · 已拒绝', aborted: '已中止',
-  external_verify: '已转外部验证',
+  external_verify: '已转外部验证', allow_server: '已批准该服务器全部工具',
 };
 
 function ensureAskTick() {
@@ -763,6 +763,17 @@ function addAskCard(ask) {
       <button class="ask-btn" data-a="always">总是允许</button>
       <button class="ask-btn danger" data-a="deny">拒绝</button>
     </div>`;
+  // dedup-h #2027 — MCP permission prompt: "approve all tools on this
+  // server" — session-scoped grant for the whole mcp__<srv>__* namespace.
+  const mcpSrv = typeof ask.toolName === 'string' && ask.toolName.startsWith('mcp__')
+    ? ask.toolName.split('__')[1] : null;
+  if (mcpSrv) {
+    const sv = document.createElement('button');
+    sv.className = 'ask-btn';
+    sv.dataset.a = 'allow_server';
+    sv.textContent = `批准 ${mcpSrv} 全部工具`;
+    div.querySelector('.ask-foot').insertBefore(sv, div.querySelector('.ask-btn.danger'));
+  }
   // dedup-h #2004 — plugin/hook-described external verification choice:
   // an extra labelled answer button when the asker declared one; the
   // answer routes back to the requester, it never admits by itself.

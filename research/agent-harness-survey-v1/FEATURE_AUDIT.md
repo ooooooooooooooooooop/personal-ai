@@ -2932,3 +2932,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - 在 loopback 桥上发明"配对仪式 + 假代理身份"是捏造架构而非特性对位——如实标边界。
 - **证据**：源码面核查 `app/server/http-bridge.js:9,199`（loopback-only 构造注释与绑定）、全仓 grep 无 pairing/device 面（仅 node_modules 噪声）。本条为分类核销，无新增代码。
 - **核销**：candidates-open #2026 → `candidates-resolved.tsv` #141。
+
+### 28.138 648 清单逐条核销 #142：dedup-h #2027 approval-gate——approval-scope: MCP permission 提示加"approve all tools on server"（2026-09-25）
+
+- **行**：`dedup-h  2027  approval-gate  approval-scope: MCP permission提示加"approve all tools on server"`（描述段为错位安全综述片段）。
+- **判定**：**IMPLEMENTED**。源语义（Claude/Roo MCP 权限粒度）：MCP 权限卡上提供服务器级"全部批准"——一次授权覆盖 `mcp__<srv>__*` 命名空间而非逐工具。核查真洞：我方应答族 allow/allow_session/always/deny 全是**精确工具名**粒度——`allow_session` 只记 `mcp__srv__t1`，同服 `t2` 仍逐张卡问。
+  - **asks.js**：新 `#sessionServerAllows` + `#mcpServerOf`（`mcp__<srv>__<tool>`→srv，非 mcp 名→null）；`ask()` 批准路径在 sessionAllows 检查后**同生命周期短路**（同服工具放行）；`resolve` 授权面——`'allow_server'` 仅对 mcp__ 工具合法（非 mcp 应答拒绝）；`finish` 记 grant→`resolve('allow')` 给调用方（governance/decide 放行面零改），审计 `ASK_RESOLVED{answer:'allow_server',server}` 与 `governance_resolved` 事件保留诚实名；`resetSession` 同步清理（信任寿命=allow_session）。
+  - **app.js**：`toolName` 起 `mcp__` 时审批卡插 `批准 <srv> 全部工具` 按钮（`data-a=allow_server` 复用通用绑定）；结局标签 `已批准该服务器全部工具`。
+- **证据**：`host/tests/asks.test.js` +1=26/26（非 mcp 工具拒 allow_server、mcp 卡收 allow_server→caller 见 allow+事件留真名、同服异工具零挂起直通、异服仍问、resetSession 清 grant）；host 全套 417/417。
+- **核销**：candidates-open #2027 → `candidates-resolved.tsv` #142。

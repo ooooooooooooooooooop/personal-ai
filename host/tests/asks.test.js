@@ -488,3 +488,41 @@ test('dedup-h #2004: external_verify resolves only when the asker declared it', 
   asks.resolve(asks.list()[0].id, 'allow');
   assert.equal(await p3, 'allow');
 });
+
+test('dedup-h #2027: allow_server grants the whole mcp__<srv>__* namespace for the session', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((e) => events.push(e));
+
+  // 'allow_server' refused for non-mcp tools — authorization is name-scoped
+  const p0 = asks.ask(desc());
+  const r0 = asks.resolve(asks.list()[0].id, 'allow_server');
+  assert.equal(r0.ok, false);
+  assert.match(r0.error, /answer must be one of/);
+  asks.resolve(asks.list()[0].id, 'allow');
+  assert.equal(await p0, 'allow');
+
+  // mcp__srv__t1 card accepts allow_server → resolves 'allow' to the caller
+  const p1 = asks.ask(desc({ toolName: 'mcp__srv__t1' }));
+  const r1 = asks.resolve(asks.list()[0].id, 'allow_server');
+  assert.equal(r1.ok, true);
+  assert.equal(await p1, 'allow', 'caller sees a plain allow');
+  const resolved = events.filter((e) => e.type === 'governance_resolved').at(-1);
+  assert.equal(resolved.answer, 'allow_server', 'event trail keeps the honest answer name');
+
+  // a DIFFERENT tool on the same server admits without a new pending ask
+  assert.equal(await asks.ask(desc({ toolName: 'mcp__srv__t2' })), 'allow');
+  assert.equal(asks.list().length, 0, 'server grant short-circuits the card');
+  // another server still asks
+  const p2 = asks.ask(desc({ toolName: 'mcp__other__t1' }));
+  assert.equal(asks.list().length, 1);
+  asks.resolve(asks.list()[0].id, 'deny');
+  await p2;
+
+  // session reset clears the server grant — same trust lifetime as allow_session
+  asks.resetSession();
+  const p3 = asks.ask(desc({ toolName: 'mcp__srv__t3' }));
+  assert.equal(asks.list().length, 1, 'server grant dies with the session');
+  asks.resolve(asks.list()[0].id, 'allow');
+  await p3;
+});
