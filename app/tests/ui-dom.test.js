@@ -11,7 +11,7 @@
  *   5. tool cards          — bash output + edit diff rendered
  *   6. job detail drawer   — real command + output tail
  */
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -30,6 +30,11 @@ const electron = createRequire(import.meta.url)('electron'); // resolves to the 
 test('ui-dom: six experience surfaces render real data in the actual DOM', async (t) => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-dom-'));
   writeFileSync(join(dir, 'note.txt'), 'domgate-note-content');
+  // dedup-h #3094 — a recipe carrying argument-hint frontmatter for the
+  // dom-gate /recipe picker check.
+  mkdirSync(join(dir, '.pai', 'recipes'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'recipes', 'hinted.md'),
+    '---\ndescription: hinted recipe\nargument-hint: [topic] [depth]\nparams: topic(required), depth=3\n---\nresearch {{topic}} at depth {{depth}}\n');
 
   const catalog = {
     'fake-dom': {

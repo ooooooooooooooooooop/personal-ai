@@ -272,6 +272,20 @@ const DRIVER = `(async () => {
     switchView('chat');
     inputEl.value = ''; inputEl.dispatchEvent(new Event('input', { bubbles: true }));
 
+    /* dedup-h #3094 — recipe argument-hint: the /recipe picker row shows the
+     * authored [topic] [depth] signature, and picking the recipe prints a
+     * missing-params line carrying the authored hint (not synthesized k=v).
+     * Runs BEFORE the worktree pick — set_workdir moves the recipes root. */
+    inputEl.value = '/recipe';
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    await sleep(80);
+    inputEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    const hinted = await waitFor('#chip-menu .menu-item .mi-sub', (e) => e.textContent.includes('[topic] [depth]'), 8000);
+    hinted?.closest('.menu-item')?.click();
+    const hintLine = await waitFor('.sys', (e) => e.textContent.includes('[topic] [depth]'), 8000);
+    checks.recipeArgHint = { ok: !!hinted && !!hintLine, listed: !!hinted, hintShown: !!hintLine };
+    document.querySelector('#chip-menu')?.classList.add('hidden');
+
     /* dedup-h #1353 — draft thread targets a worktree: the sidebar worktree
      * button lists git worktrees; picking wt-linked runs the REAL supervisor
      * set_workdir (existsSync passes — fixture dir is real) → body respawn →
@@ -282,13 +296,21 @@ const DRIVER = `(async () => {
     const wtItem = await waitFor('#wt-menu .menu-item', (e) => e.textContent.includes('wt-linked'), 8000);
     checks.wtPickerListed = { ok: !!wtItem, count: document.querySelectorAll('#wt-menu .menu-item').length };
     wtItem?.click();
-    const wtToast = await waitFor('.toast', (e) => e.textContent.includes('wt-linked'), 15000);
-    await sleep(600);
-    let stErr = null;
-    try { await refreshState(); } catch (e) { stErr = String(e?.stack ?? e); }
+    // Match the NEW-session toast specifically — the earlier /worktree-open
+    // check leaves a '/repo/wt-linked' job toast in the box for ~4.4s, and a
+    // bare 'wt-linked' match would return before session_new even lands.
+    const wtToast = await waitFor('.toast', (e) => e.textContent.includes('wt-linked') && e.textContent.includes('新会话'), 15000);
+    // Poll state until the respawned body reports the fresh session file —
+    // set_workdir resolves before session_new lands, so one fixed sleep races.
+    let stErr = null, stOk = false;
+    for (let i = 0; i < 25 && !stOk; i++) {
+      try { await refreshState(); } catch (e) { stErr = String(e?.stack ?? e); }
+      stOk = String(state?.workdir ?? '').endsWith('wt-linked')
+        && String(state?.session?.file ?? '').endsWith('new.jsonl');
+      if (!stOk) await sleep(200);
+    }
     checks.worktreeNewSession = {
-      ok: !!wtToast && String(state?.workdir ?? '').endsWith('wt-linked')
-        && String(state?.session?.file ?? '').endsWith('new.jsonl'),
+      ok: !!wtToast && stOk,
       toast: !!wtToast, workdir: state?.workdir ?? '', file: state?.session?.file ?? '', stErr,
     };
 

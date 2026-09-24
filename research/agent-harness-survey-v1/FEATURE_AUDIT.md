@@ -2483,3 +2483,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：**IMPLEMENTED**——本 daemon 的协议 stdout 本来就是 JSONL、审计本就在审计仓；非结构化诊断 stderr 只剩两个发射点（world-model shim `undeclared` warn + budget-gate 调试）。落法：`host/src/core/logline.js` 统一咽喉——`LOG_JSON`/`PAI_LOG_JSON` 任一真值时每个诊断行输出单条 JSON `{ts, level, component, msg, ...fields}`（log pipeline 可解析）；关时保持原 `[component] msg` 人读格式；序列化失败降级纯文本行不炸调用方。两个现存发射点全部改经此咽喉。
 - **证据**：host/tests/logline.test.js 3/3（JSON 记录带 fields、PAI_ 变体等效、关时 bracket 人读）；host 399/399；pi bootstrap+world-model 56/51+5skip。
 - **核销**：candidates-open #3059 → `candidates-resolved.tsv` #99。
+
+### 28.96 648 清单逐条核销 #100：dedup-h #3094 command frontmatter——`argument-hint` 参数提示字段（2026-09-24）
+
+- **行**：`dedup-h  3094  cli-flags  command-frontmatter: prompt templates argument-hint字段`（Claude Code 式：自定义命令 frontmatter 声明参数签名提示）。
+- **判定**：**IMPLEMENTED（呈现元数据，零执行面）**——recipe（`.pai/recipes/<name>.md`）即本仓 prompt 模板/自定义命令载体，frontmatter 已有 `description/params/mode/model`；`argument-hint` 是纯展示字段，落法三处：
+  - `loadRecipes()` 解析 `argument-hint:` 行存入 `r.argHint`（与既有字段同一条有界正则路径，缺省 `''`）；
+  - `/recipe` 选择菜单每项副标题渲染 `[argHint — ]description`（作者签名在前）；
+  - 缺必填参数的两条提示行（菜单选中引导 + 直接执行报错）优先用作者声明的 hint，缺省才回退合成的 `name=值` 串。
+- **边界诚实声明**：hint 只影响展示文案——`{{var}}` 替换、params 必填判定、mode/model 审批链全部不变；recipe 文件是不可信 workdir 内容，hint 仅作 textContent 渲染（不 eval、不拼命令），无注入面。
+- **证据**：dom-gate 新增 `recipeArgHint` 检查——真 Electron DOM 里 `/recipe` 菜单列出 `hinted` 配方且副标题显示 `[topic] [depth]`，选中后缺参提示行携带同一作者签名而非合成 k=v；fixture 在实例 workdir 写真 `.pai/recipes/hinted.md`（frontmatter+`{{topic}}`/`{{depth}}` 占位）。顺带修掉两个 gate 级缺陷：#3094 检查原先排在 set_workdir 之后导致 recipe 根目录已被切走（前移）；`worktreeNewSession` 的 toast waitFor 会命中 `/worktree-open` 残留的 `/repo/wt-linked` 旧 toast 提前断言（改匹"新会话"字样 + state 轮询）。app 26 测 24 过 1 跳 1 预存失败（七态 handoff，外来在途改动所致）；lint css+html 双净。
+- **核销**：candidates-open #3094 → `candidates-resolved.tsv` #100。

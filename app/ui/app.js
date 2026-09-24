@@ -3784,7 +3784,7 @@ const SLASH = [
       const run = async (r, args) => {
         const missing = (r.params ?? []).filter((p) => p.required && args[p.name] == null && p.default == null);
         if (missing.length) {
-          addSys(`缺少参数：${missing.map((p) => p.name).join('、')}——用法：/recipe ${r.name} ${missing.map((p) => `${p.name}=值`).join(' ')}`, true);
+          addSys(`缺少参数：${missing.map((p) => p.name).join('、')}——用法：/recipe ${r.name} ${r.argHint || missing.map((p) => `${p.name}=值`).join(' ')}`, true);
           return;
         }
         let text = r.body;
@@ -3797,12 +3797,12 @@ const SLASH = [
       };
       if (!name) {
         openMenu(recipes.map((r) => ({
-          label: r.name, sub: r.description || '',
+          label: r.name, sub: [r.argHint, r.description].filter(Boolean).join(' — '),
           value: r,
         })), async (it) => {
           const needArgs = (it.value.params ?? []).filter((p) => p.required && p.default == null);
           if (needArgs.length) {
-            addSys(`/${it.value.name} 需要参数：${needArgs.map((p) => p.name).join('、')}——输入 /recipe ${it.value.name} ${needArgs.map((p) => `${p.name}=值`).join(' ')}`);
+            addSys(`/${it.value.name} 需要参数：${needArgs.map((p) => p.name).join('、')}——输入 /recipe ${it.value.name} ${it.value.argHint || needArgs.map((p) => `${p.name}=值`).join(' ')}`);
             input.value = `/recipe ${it.value.name} `; autogrow(); input.focus();
             return;
           }
@@ -4859,6 +4859,10 @@ async function loadRecipes() {
     const meta = m ? m[1] : '';
     const body = (m ? m[2] : r.data.content).trim();
     const description = meta.match(/^description:\s*(.+)$/m)?.[1]?.trim() ?? '';
+    // dedup-h #3094 — Claude command frontmatter `argument-hint:` — an
+    // authored usage signature like `[file] [priority]` shown wherever the
+    // recipe's params are referenced, instead of synthesized `name=值`.
+    const argHint = meta.match(/^argument-hint:\s*(.+)$/m)?.[1]?.trim() ?? '';
     const paramsRaw = meta.match(/^params:\s*(.+)$/m)?.[1] ?? '';
     const params = paramsRaw.split(',').map((s) => s.trim()).filter(Boolean).map((p) => {
       const req = p.match(/^(\w+)\(required\)$/);
@@ -4867,7 +4871,7 @@ async function loadRecipes() {
       if (d) return { name: d[1], default: d[2] };
       return { name: p, required: true };
     });
-    out.push({ name: f.replace(/^\.pai\/recipes\//, '').replace(/\.md$/, ''), description, params, body });
+    out.push({ name: f.replace(/^\.pai\/recipes\//, '').replace(/\.md$/, ''), description, argHint, params, body });
   }
   return out;
 }
