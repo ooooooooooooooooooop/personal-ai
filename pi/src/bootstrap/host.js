@@ -1,4 +1,4 @@
-import { join, resolve, basename, isAbsolute, sep } from 'node:path';
+import { join, resolve, basename, isAbsolute, sep, dirname } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../adapter/paths.js';
 import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, rmSync, openSync, writeSync, closeSync } from 'node:fs';
@@ -91,7 +91,7 @@ import { toolActivateTool, toolSearchTool } from '../adapter/toollazy.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
 import { loadMicroagents, matchMicroagents, renderKnowledge } from '../../../host/src/core/microagents.js';
-import { isTrusted, setTrust, hasInjectableContent, worktreeInfo, trustAllWorktreesEnabled, setTrustAllWorktrees } from '../../../host/src/core/trust.js';
+import { isTrusted, setTrust, trustDetail, hasInjectableContent, worktreeInfo, trustAllWorktreesEnabled, setTrustAllWorktrees } from '../../../host/src/core/trust.js';
 import { loadDotEnv } from '../../../host/src/core/dotenv.js';
 import { logLine } from '../../../host/src/core/logline.js';
 import { updateTodosTool, readTodos } from '../adapter/todos.js';
@@ -2555,18 +2555,32 @@ export async function startHost({
     // every turn. .paiignore wins over pinning both at add time and render.
     // project trust — operator grant gates .pai/microagents auto-injection
     projectTrust: {
-      status: () => ({
-        trusted: isTrusted(core.paths.root, workdir),
-        hasInjectableContent: hasInjectableContent(workdir),
-        // dedup-h #228 worktree trust: a linked checkout reports its main
-        // root so the UI can explain WHY it needs a separate grant (or that
-        // it inherits under trustAllWorktrees).
-        worktree: worktreeInfo(workdir)?.mainRoot ?? null,
-        trustAllWorktrees: trustAllWorktreesEnabled(core.paths.root),
-      }),
-      set: (v) => {
-        const r = setTrust(core.paths.root, workdir, v === true);
-        core.audit.write({ kind: 'PROJECT_TRUST', data: { trusted: r.trusted } });
+      status: () => {
+        const d = trustDetail(core.paths.root, workdir);
+        return {
+          trusted: d.trusted,
+          scope: d.scope,
+          grantedBy: d.grantedBy,
+          hasInjectableContent: hasInjectableContent(workdir),
+          // dedup-h #228 worktree trust: a linked checkout reports its main
+          // root so the UI can explain WHY it needs a separate grant (or that
+          // it inherits under trustAllWorktrees).
+          worktree: worktreeInfo(workdir)?.mainRoot ?? null,
+          trustAllWorktrees: trustAllWorktreesEnabled(core.paths.root),
+          // dedup-h #1978 — the parent-directory trust choice needs the
+          // resolved parent path for its label.
+          parent: dirname(resolve(workdir)),
+        };
+      },
+      set: (v, scope = 'exact') => {
+        // dedup-h #1978 — scope choices: 'exact' (this dir only), 'recursive'
+        // (this dir + descendants), 'parent' (recursive grant on the parent —
+        // the point of the choice is that THIS dir ends up covered; an exact
+        // parent grant would leave the workdir untrusted, a UX lie).
+        const target = scope === 'parent' ? dirname(resolve(workdir)) : workdir;
+        const effScope = scope === 'exact' ? 'exact' : 'recursive';
+        const r = setTrust(core.paths.root, target, v === true, effScope);
+        core.audit.write({ kind: 'PROJECT_TRUST', data: { trusted: r.trusted, scope: r.scope, grantedTo: r.workdir, requested: scope } });
         return r;
       },
       setAllWorktrees: (v) => {

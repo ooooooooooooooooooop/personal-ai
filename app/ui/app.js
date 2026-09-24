@@ -391,15 +391,21 @@ async function checkProjectTrust() {
     </div>
     <div class="trust-body">检测到此目录的 <code>.pai/microagents</code> 包含上下文规则，需经您授权方可注入会话。</div>
     <div class="trust-foot">
-      <button type="button" class="btn sm trust-ok">信任并启用</button>
+      <button type="button" class="btn sm trust-ok" data-scope="exact">信任此目录</button>
+      <button type="button" class="btn sm trust-ok" data-scope="recursive">含全部子目录</button>
+      <button type="button" class="btn ghost sm trust-ok" data-scope="parent">信任上级目录</button>
       <button type="button" class="btn ghost sm trust-dismiss">暂不注入</button>
     </div>
   `;
-  div.querySelector('.trust-ok').onclick = async () => {
-    const g = await cmd('project_trust_set', { trusted: true });
-    if (g.success) { toast('已信任此项目规则'); div.remove(); }
-    else addSys(`信任失败：${g.error ?? '未知'}`, true);
-  };
+  // dedup-h #1978 — scope choices: this dir only / this dir + descendants /
+  // the parent directory. The server resolves 'parent' to the real path.
+  for (const b of div.querySelectorAll('.trust-ok')) {
+    b.onclick = async () => {
+      const g = await cmd('project_trust_set', { trusted: true, scope: b.dataset.scope });
+      if (g.success) { toast('已信任此项目规则'); div.remove(); }
+      else addSys(`信任失败：${g.error ?? '未知'}`, true);
+    };
+  }
   div.querySelector('.trust-dismiss').onclick = () => {
     div.remove();
   };

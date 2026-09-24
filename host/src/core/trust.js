@@ -17,7 +17,7 @@
  * checkout is trusted inherits the grant. Setting is operator-private.
  */
 import { existsSync, readFileSync, renameSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve, dirname, sep } from 'node:path';
 
 const file = (instanceRoot) => join(instanceRoot, 'project-trust.json');
 
@@ -68,23 +68,54 @@ export function trustAllWorktreesEnabled(instanceRoot) {
   return readDoc(instanceRoot).trustAllWorktrees === true;
 }
 
-export function isTrusted(instanceRoot, workdir) {
+/** True when `ancestor` path-grant covers `workdir` (self or a strict parent). */
+const covers = (ancestor, workdir) => {
+  const a = resolve(ancestor);
+  const w = resolve(workdir);
+  return w === a || w.startsWith(a.endsWith(sep) ? a : a + sep);
+};
+
+/**
+ * dedup-h #1978 — trust-scope detail: the operator's grant may be exact
+ * (this directory only) or recursive (this directory and everything under
+ * it). Returns {trusted, scope, grantedBy} — scope is 'exact' | 'recursive'
+ * | 'worktree' | null; grantedBy is the path whose grant covers the
+ * workdir (itself for exact, an ancestor for recursive inheritance).
+ */
+export function trustDetail(instanceRoot, workdir) {
   const map = loadMap(instanceRoot);
-  if (map[resolve(workdir)] === true) return true;
+  const key = resolve(workdir);
+  const grant = map[key];
+  if (grant === true || grant?.recursive === true) {
+    return { trusted: true, scope: grant === true ? 'exact' : 'recursive', grantedBy: key };
+  }
+  // A recursive grant on an ANCESTOR covers this workdir.
+  for (const [k, v] of Object.entries(map)) {
+    if (v?.recursive === true && k !== key && covers(k, workdir)) {
+      return { trusted: true, scope: 'recursive', grantedBy: k };
+    }
+  }
   // Opt-in inheritance only — Zed's default (own trust scope) is ours too.
   if (trustAllWorktreesEnabled(instanceRoot)) {
     const wt = worktreeInfo(workdir);
-    if (wt && map[resolve(wt.mainRoot)] === true) return true;
+    if (wt && map[resolve(wt.mainRoot)] === true) {
+      return { trusted: true, scope: 'worktree', grantedBy: resolve(wt.mainRoot) };
+    }
   }
-  return false;
+  return { trusted: false, scope: null, grantedBy: null };
 }
 
-export function setTrust(instanceRoot, workdir, trusted) {
+export function isTrusted(instanceRoot, workdir) {
+  return trustDetail(instanceRoot, workdir).trusted;
+}
+
+export function setTrust(instanceRoot, workdir, trusted, scope = 'exact') {
   const map = loadMap(instanceRoot);
   const key = resolve(workdir);
-  if (trusted) map[key] = true; else delete map[key];
+  if (trusted) map[key] = scope === 'recursive' ? { recursive: true } : true;
+  else delete map[key];
   writeDoc(instanceRoot, { ...readDoc(instanceRoot), workdirs: map }); // preserve flags
-  return { workdir: key, trusted: map[key] === true };
+  return { workdir: key, trusted: map[key] === true || map[key]?.recursive === true, scope: map[key] === true ? 'exact' : map[key]?.recursive === true ? 'recursive' : null };
 }
 
 export function setTrustAllWorktrees(instanceRoot, enabled) {

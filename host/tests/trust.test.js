@@ -18,7 +18,7 @@ test('absent or malformed trust file → untrusted (fail-closed)', () => {
 
 test('setTrust round-trips per workdir; false removes the grant', () => {
   const inst = dir(); const w1 = dir(); const w2 = dir();
-  assert.deepEqual(setTrust(inst, w1, true), { workdir: w1, trusted: true });
+  assert.deepEqual(setTrust(inst, w1, true), { workdir: w1, trusted: true, scope: 'exact' });
   assert.equal(isTrusted(inst, w1), true);
   assert.equal(isTrusted(inst, w2), false); // grant is per-workdir
   setTrust(inst, w2, true);
@@ -77,4 +77,47 @@ test('worktree trust: own scope by default, inherits under trustAllWorktrees', a
   // the flag survives later setTrust writes (doc merge, not rewrite)
   setTrust(inst, repo, true);
   assert.equal(isTrusted(inst, wt), true, 'flag preserved across setTrust');
+});
+
+// dedup-h #1978 — trust scopes: exact covers only this dir; recursive
+// covers descendants (never siblings/parents); a parent grant is just an
+// exact grant recorded on the ancestor path.
+test('trust scopes: recursive covers children only; exact never leaks; parent grant via ancestor path', async () => {
+  const inst = dir();
+  const parent = join(inst, 'proj');
+  const child = join(parent, 'sub', 'deep');
+  const sibling = join(inst, 'other');
+  mkdirSync(child, { recursive: true });
+  mkdirSync(sibling, { recursive: true });
+  const { trustDetail } = await import('../src/core/trust.js');
+
+  // exact grant does NOT cover a child dir
+  setTrust(inst, parent, true);
+  assert.equal(isTrusted(inst, parent), true);
+  assert.equal(isTrusted(inst, child), false, 'exact grant must not leak into children');
+  assert.equal(isTrusted(inst, sibling), false);
+
+  // recursive grant covers the descendant, reports inheritance honestly
+  setTrust(inst, parent, true, 'recursive');
+  const d = trustDetail(inst, child);
+  assert.equal(d.trusted, true);
+  assert.equal(d.scope, 'recursive');
+  assert.equal(d.grantedBy, parent);
+  assert.equal(isTrusted(inst, sibling), false, 'recursive never covers siblings');
+  // self reports scope recursive too
+  assert.equal(trustDetail(inst, parent).scope, 'recursive');
+
+  // a recursive grant on the CHILD does not reach back up
+  setTrust(inst, parent, false);
+  setTrust(inst, child, true, 'recursive');
+  assert.equal(isTrusted(inst, parent), false, 'child grant never covers its parent');
+  assert.equal(isTrusted(inst, child), true);
+
+  // 'parent' choice = a RECURSIVE grant on the ancestor path (facade
+  // resolves it) — the workdir ends up covered, which is the point.
+  setTrust(inst, child, false);
+  setTrust(inst, parent, true, 'recursive');
+  const dp = trustDetail(inst, child);
+  assert.equal(dp.trusted, true);
+  assert.equal(dp.grantedBy, parent, 'grant attributed to the ancestor, not the child');
 });

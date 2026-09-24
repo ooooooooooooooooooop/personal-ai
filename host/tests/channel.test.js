@@ -617,14 +617,25 @@ test('provider_add/provider_models_add: cost declaration validated and passed th
   assert.equal(mlBad.success, false);
 });
 
-test('M144 unicode_mode: ascii tier degrades event symbols, auto/unicode pass through', async () => {
+test('M144 unicode_mode: ascii tier degrades event symbols, auto/unicode pass through', async (t) => {
+  // `auto` resolves from TERM (charset.js: 'dumb'/'cons25' → ascii). The test
+  // used to assume the ambient terminal was not dumb — which held on some
+  // machines and silently failed on others (a dumb TERM is exactly what a CI
+  // runner or a piped shell reports). Control the input instead of inheriting
+  // it: the product is right either way, only the expectation was ambient.
+  const savedTerm = process.env.TERM;
+  process.env.TERM = 'xterm';
+  t.after(() => {
+    if (savedTerm === undefined) delete process.env.TERM; else process.env.TERM = savedTerm;
+  });
+
   const session = fakeSession();
   const ch = new HostChannel({ session });
   const seen = [];
   ch.subscribe((m) => seen.push(m));
   const fire = (message) => session.listeners.forEach((l) => l({ type: 'notify', message }));
 
-  // default auto resolves unicode on this test env — symbols pass through
+  // default auto resolves unicode when the terminal is capable — symbols pass through
   fire('── done → ok ✓');
   assert.equal(seen.at(-1).event.message, '── done → ok ✓');
 
@@ -696,4 +707,27 @@ test('mcp_resource_read routes to the mcp facade; unavailable facade + refused r
   const denied = await ch.handle({ type: 'mcp_resource_read', server: 'nope', uri: 'ui://x' });
   assert.equal(denied.success, false);
   assert.match(denied.error, /not connected/);
+});
+
+// dedup-h #1978 — project_trust_set scope: 'exact'|'recursive'|'parent'
+// validated then passed to the facade; unknown scope degrades to 'exact'.
+test('project_trust_set validates scope and passes it to the facade', async () => {
+  const calls = [];
+  const ch = new HostChannel({
+    session: fakeSession(),
+    projectTrust: {
+      status: () => ({ trusted: false }),
+      set: (v, scope) => { calls.push({ v, scope }); return { workdir: '/w', trusted: v, scope }; },
+    },
+  });
+  let r = await ch.handle({ type: 'project_trust_set', trusted: true, scope: 'recursive' });
+  assert.equal(r.success, true);
+  assert.equal(calls[0].scope, 'recursive');
+  r = await ch.handle({ type: 'project_trust_set', trusted: true, scope: 'parent' });
+  assert.equal(calls[1].scope, 'parent');
+  r = await ch.handle({ type: 'project_trust_set', trusted: true, scope: 'everything!!' });
+  assert.equal(calls[2].scope, 'exact', 'unknown scope degrades to exact, never honored raw');
+  r = await ch.handle({ type: 'project_trust_set', trusted: true });
+  assert.equal(calls[3].scope, 'exact', 'absent scope keeps the default');
+  ch.dispose();
 });

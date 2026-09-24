@@ -1016,7 +1016,10 @@ export class HostChannel {
             return reply(true, this.projectTrust.setAllWorktrees(cmd.allWorktrees === true));
           }
           if (!this.projectTrust?.set) return reply(false, undefined, 'trust facade unavailable');
-          return reply(true, this.projectTrust.set(cmd.trusted === true));
+          // dedup-h #1978 — {scope:'exact'|'recursive'|'parent'} chooses the
+          // grant footprint; absent scope keeps the exact-directory default.
+          const scope = ['exact', 'recursive', 'parent'].includes(cmd.scope) ? cmd.scope : 'exact';
+          return reply(true, this.projectTrust.set(cmd.trusted === true, scope));
         }
         // Operator surface for the durable schedule store — the model's
         // schedule_task creates entries; the operator needs the same

@@ -2861,3 +2861,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义**：per-runtime registry 分片 = **BOUNDARY**——openclaw 多进程 sandbox registry 争用语义；我方 `BodyRegistry` 是单实例单写者 + atomic tmp+rename（`host/src/core/registry.js`），无跨进程锁争用面可对位。
 - **证据**：机制面已有测试钉桩（channel.test.js:119），本条为分类核销无新增代码。
 - **核销**：candidates-open #1975 → `candidates-resolved.tsv` #135。
+
+### 28.132 648 清单逐条核销 #136：dedup-h #1978 approval-gate——trust-ux: 信任当前/父/递归目录选择（2026-09-25）
+
+- **行**：`dedup-h  1978  approval-gate  trust-ux: 信任当前/父/递归目录选择`（描述段为错位 Zed sidebar 修复片段）。
+- **判定**：**IMPLEMENTED**。源语义：信任目录时可选粒度——当前目录/上级目录/含子目录递归。核查真洞：`project-trust.json` 只有精确路径布尔授予，信任卡只有"信任并启用"一档——无粒度选择。
+  - **trust.js**：授予可带 scope——`setTrust(..., 'recursive')` 存 `{recursive:true}`（`true` 保持精确语义，旧文件全兼容）；新 `trustDetail` 返回 `{trusted, scope, grantedBy}`——祖先目录的递归授予覆盖子孙（`covers` 用 resolve+sep 边界，绝不前缀误伤 `foo`/`foobar`）；`isTrusted` 委托之，调用面零改。
+  - **channel/facade**：`project_trust_set {scope:'exact'|'recursive'|'parent'}`——未知 scope 降级 'exact'；facade 把 'parent' 解析为**上级目录的递归授予**（此选项的语义目的是本目录被覆盖——上级精确授予会让 workdir 仍不信任=UX 谎言）；审计带 `scope/grantedTo/requested`；`status()` 新增 `scope/grantedBy/parent` 供 UI 标注。
+  - **UI**：信任卡三档——"信任此目录 / 含全部子目录 / 信任上级目录" + 暂不注入。
+- **证据**：`host/tests/trust.test.js` +1=6/6（精确不渗漏子目录、递归覆盖子孙且 grantedBy 归祖、递归不盖兄弟/不回流父、'parent'=祖先递归授予）；`host/tests/channel.test.js` +1=38/38（scope 校验+透传+未知降级 exact）；host 全套 414/414；pi bootstrap+channel-facade 83/83。
+- **核销**：candidates-open #1978 → `candidates-resolved.tsv` #136。
