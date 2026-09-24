@@ -236,3 +236,64 @@ test('delegate_task refuses task text carrying a credential pattern', async () =
   assert.ok(!ok.isError, JSON.stringify(ok));
   assert.equal(spawned.length, 1);
 });
+
+// dedup-h #1393 — policy hot-reload: workdir trust changes take effect inside
+// the live daemon. A predicate `workdirTrusted` parses gated fields AND tags
+// the profile trustGated; the delegate tool re-evaluates the predicate at
+// every call — mid-session grant unlocks, mid-session revoke re-locks, no
+// restart. Boolean mode keeps the legacy load-time snapshot semantics.
+test('#1393: predicate trust hot-reloads — grant unlocks, revoke re-locks', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-prof1393-'));
+  const wd = join(dir, 'wd'); const inst = join(dir, 'inst');
+  mkdirSync(join(wd, '.pai', 'agents'), { recursive: true });
+  writeFileSync(join(wd, '.pai', 'agents', 'hot.md'),
+    '---\nname: hot\ntarget: pai\nenv: FOO=bar\ntools_allow: read\nisolate_steering: true\n---\ndo it\n');
+  let trusted = false;
+  const profiles = loadAgentProfiles({ workdir: wd, instanceRoot: inst, workdirTrusted: () => trusted });
+  const hot = profiles.get('hot');
+  assert.ok(hot, 'profile parses even while untrusted (deferred gate)');
+  assert.equal(hot.trustGated, true);
+  assert.equal(hot.env.FOO, 'bar'); // fields present; the gate lives at use-time
+
+  const spawned = [];
+  const executor = { spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j1', attempt_id: 'a1' }; } };
+  const tool = delegateTool(executor, {
+    commandFor: () => ({ command: 'node pai-channel.js --serve', enforceable: true }),
+    workdir: wd, profiles, workdirTrusted: () => trusted,
+  });
+
+  // untrusted → gated payload stripped, delegation still proceeds
+  const r1 = await tool.execute('c1', { profile: 'hot', task: 'x' });
+  assert.ok(!r1.isError, JSON.stringify(r1));
+  assert.ok(!spawned[0].includes('--env-json'), 'no env while untrusted');
+  assert.ok(!spawned[0].includes('--tools-allow'), 'no allowlist while untrusted');
+  assert.ok(!spawned[0].includes('--steering-off'));
+
+  // mid-session GRANT → next call picks it up, same loaded profiles map
+  trusted = true;
+  const r2 = await tool.execute('c2', { profile: 'hot', task: 'x' });
+  assert.ok(!r2.isError, JSON.stringify(r2));
+  assert.match(spawned[1], /--env-json "/);
+  assert.match(spawned[1], /--tools-allow "read"/);
+  assert.match(spawned[1], /--steering-off/);
+
+  // mid-session REVOKE → re-locks immediately
+  trusted = false;
+  const r3 = await tool.execute('c3', { profile: 'hot', task: 'x' });
+  assert.ok(!r3.isError, JSON.stringify(r3));
+  assert.ok(!spawned[2].includes('--env-json'), 'env re-stripped after revoke');
+  assert.ok(!spawned[2].includes('--steering-off'));
+});
+
+test('#1393: operator-private profiles are never trust-gated', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-prof1393b-'));
+  const wd = join(dir, 'wd'); const inst = join(dir, 'inst');
+  mkdirSync(join(inst, 'agents'), { recursive: true });
+  writeFileSync(join(inst, 'agents', 'ops.md'),
+    '---\nname: ops\ntarget: pai\nenv: FOO=bar\n---\ndo it\n');
+  const profiles = loadAgentProfiles({ workdir: wd, instanceRoot: inst, workdirTrusted: () => false });
+  const ops = profiles.get('ops');
+  assert.equal(ops.trustGated, undefined, 'instance-root profile carries no gate tag');
+  assert.equal(ops.env.FOO, 'bar');
+});

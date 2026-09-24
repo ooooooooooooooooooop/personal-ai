@@ -961,7 +961,7 @@ export async function startHost({
     // profile env fields only load under the same trust gate as microagents —
     // a repo-planted profile must never steer the delegate child's environment
     profiles: loadAgentProfiles({
-      workdir, instanceRoot: core.paths.root, workdirTrusted: isTrusted(core.paths.root, workdir),
+      workdir, instanceRoot: core.paths.root, workdirTrusted: () => isTrusted(core.paths.root, workdir),
       // dedup-h #63 plugin surface: managed extensions may contribute an
       // `agents/` dir of subagent personas. Extension code is operator-
       // installed release code (it can already run arbitrary JS) → envCapable.
@@ -985,6 +985,9 @@ export async function startHost({
     // every delegation becomes a mailbox-backed AgentTask — the bridge
     // binds --task-dir for real two-way coordination
     taskStore,
+    // dedup-h #1393 — trustGated profiles re-check this predicate at every
+    // delegate call so trust changes take effect inside the live daemon.
+    workdirTrusted: () => isTrusted(core.paths.root, workdir),
   }));
   // dedup-h #258: Workflow tool — the delegate tool object is shared so the
   // workflow's per-step admission travels the identical governed path.

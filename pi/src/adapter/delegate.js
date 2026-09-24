@@ -72,7 +72,7 @@ export function makeDelegationCommand(template, { enforceableTargets = new Set()
  *        delegation creates a task record and the bridge binds --task-dir,
  *        upgrading the one-shot job to a bidirectional AgentTask.
  */
-export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null, envOverlay = null, modelsAllow = null }) {
+export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEGATE_BRIDGE, getScope = null, budget = null, profiles = null, routes = null, taskStore = null, envOverlay = null, modelsAllow = null, workdirTrusted = null }) {
   return {
     name: 'delegate_task',
     label: 'Delegate Task',
@@ -139,17 +139,24 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         }
         target = p.target;
         if (p.preamble) task = `${p.preamble}\n\n---\n\n${task}`;
+        // dedup-h #1393 — policy hot-reload: a workdir-sourced profile is
+        // trustGated and re-evaluated at THIS call, not at profile load. A
+        // mid-session revoke strips env/model/tools payload immediately; a
+        // mid-session grant applies it — no restart. Predicate absent →
+        // treat as trusted (load-time gating already ran).
+        const gated = p.trustGated === true
+          && typeof workdirTrusted === 'function' && workdirTrusted() !== true;
         // OpenHands profile-scoped secrets analogue, inverted for a local
         // single-user harness: the profile narrows/annotates the child env.
-        if (p.env || p.envDeny) profileEnv = { set: p.env ?? {}, deny: p.envDeny ?? [] };
+        if (!gated && (p.env || p.envDeny)) profileEnv = { set: p.env ?? {}, deny: p.envDeny ?? [] };
         if (p.maxMinutes) maxMin = p.maxMinutes;
-        if (p.model) profileModel = p.model;
-        if (p.effort) profileEffort = p.effort;
-        if (p.isolateSteering) steeringOff = true;
-        if (p.toolsDeny?.length) toolsDeny = p.toolsDeny.join(',');
-        if (p.toolsAllow?.length) toolsAllow = p.toolsAllow.join(',');
-        if (p.mcpDeny?.length) mcpDeny = p.mcpDeny.join(',');
-        if (p.budget) profileBudget = p.budget;
+        if (!gated && p.model) profileModel = p.model;
+        if (!gated && p.effort) profileEffort = p.effort;
+        if (!gated && p.isolateSteering) steeringOff = true;
+        if (!gated && p.toolsDeny?.length) toolsDeny = p.toolsDeny.join(',');
+        if (!gated && p.toolsAllow?.length) toolsAllow = p.toolsAllow.join(',');
+        if (!gated && p.mcpDeny?.length) mcpDeny = p.mcpDeny.join(',');
+        if (!gated && p.budget) profileBudget = p.budget;
       }
       // M43/dedup-h-#43: omitting target AND profile is FORK mode — a
       // background subagent on the same body ('pai' resolves to the

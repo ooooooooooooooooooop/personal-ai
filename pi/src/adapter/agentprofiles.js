@@ -130,25 +130,36 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
  * @returns {Map<string, {name,target,description,preamble}>}
  */
 export function loadAgentProfiles({ workdir, instanceRoot, workdirTrusted = false, extraDirs = [] }) {
+  // dedup-h #1393 — policy hot-reload: `workdirTrusted` may be a predicate.
+  // Deferred mode parses the env-bearing fields AND tags the profile
+  // `trustGated` — the consumer re-evaluates the predicate at every use, so a
+  // mid-session grant unlocks and a mid-session revoke re-locks the gated
+  // payload without a body restart. A plain boolean keeps the legacy
+  // snapshot semantics (fields stripped at load when untrusted).
+  const liveTrust = typeof workdirTrusted === 'function' ? workdirTrusted : null;
+  const wdCapable = liveTrust ? true : workdirTrusted === true;
   const dirs = [
-    { dir: join(workdir, '.pai', 'agents'), envCapable: workdirTrusted },
+    { dir: join(workdir, '.pai', 'agents'), envCapable: wdCapable, trustGated: !!liveTrust },
     { dir: join(instanceRoot, 'agents'), envCapable: true }, // operator-private
     // compat: other harnesses' agent dirs, same file shape — workdir-side,
     // env fields gated on project trust like .pai/agents
-    { dir: join(workdir, '.cursor', 'agents'), envCapable: workdirTrusted },
-    { dir: join(workdir, '.kiro', 'agents'), envCapable: workdirTrusted },
-    { dir: join(workdir, '.claude', 'agents'), envCapable: workdirTrusted },
-    { dir: join(workdir, '.devin', 'agents'), envCapable: workdirTrusted },
+    { dir: join(workdir, '.cursor', 'agents'), envCapable: wdCapable, trustGated: !!liveTrust },
+    { dir: join(workdir, '.kiro', 'agents'), envCapable: wdCapable, trustGated: !!liveTrust },
+    { dir: join(workdir, '.claude', 'agents'), envCapable: wdCapable, trustGated: !!liveTrust },
+    { dir: join(workdir, '.devin', 'agents'), envCapable: wdCapable, trustGated: !!liveTrust },
     ...(extraDirs ?? []),
   ];
   const profiles = new Map();
-  for (const { dir, envCapable } of dirs) {
+  for (const { dir, envCapable, trustGated } of dirs) {
     if (!existsSync(dir)) continue;
     for (const f of readdirSync(dir)) {
       if (!f.endsWith('.md')) continue;
       try {
         const p = parseProfile(readFileSync(join(dir, f), 'utf-8'), basename(f, '.md'), { envCapable });
-        if (p && !profiles.has(p.name)) profiles.set(p.name, p);
+        if (p && !profiles.has(p.name)) {
+          if (trustGated) p.trustGated = true;
+          profiles.set(p.name, p);
+        }
       } catch { /* unreadable profile files are skipped, not fatal */ }
     }
   }

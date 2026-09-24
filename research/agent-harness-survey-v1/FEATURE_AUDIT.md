@@ -2447,3 +2447,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **边界诚实声明**：源语义若为"单体内并存多 worktree 会话"（per-session workdir 绑定），本仓不支持——`set_workdir` 是体级切换会影响该体全部会话；已按"draft 会话落进所选 worktree"的用户意图对齐，而非伪造 per-session 绑定。
 - **证据**：dom-gate 新增 `wtPickerListed`/`worktreeNewSession` 检查——真 Electron DOM 里点钮出菜单（含 wt-linked 项）、选中后真 supervisor set_workdir 落 `wt-linked` 路径 + 重spawn 体 + `session_new` 出 new.jsonl；fixture `worktree_list` 的 wt-linked 改为实例根下真实目录以过 existsSync 真校验；`session_new` 桩修正为如实切到 currentFile（真体语义）。app 测试 26 测 24 过 1 跳 1 预存失败（supervisor.test.js 七态 handoff——与本次改动无关，外来在途 host/ 改动所致，用旧 fixture 复跑同败）；lint css+html 双净。
 - **核销**：candidates-open #1353 → `candidates-resolved.tsv` #95。
+
+### 28.92 648 清单逐条核销 #96：dedup-h #1393 policy hot-reload——trust 变更 daemon 内即时生效（2026-09-24）
+
+- **行**：`dedup-h  1393  approval-gate  policy hot-reload: workspace trust changes daemon内即时生效`。
+- **判定**：**IMPLEMENTED**——审查发现 trust 读面本来就是热的（`isTrusted`/`trustAllWorktreesEnabled` 每次调用重读 `project-trust.json`，无缓存；microagents `knowledge.match` 每轮 prompt 现查），唯一冷点是 **agent profiles**：`loadAgentProfiles` 把 `workdirTrusted` 当装载期快照烘焙进 `envCapable`——会话中途授权不解锁 env/model/tools 字段，中途撤销也不回收。
+- **落法（热载语义）**：`workdirTrusted` 参数升级为谓词通道——传函数时 workdir 源目录照常解析 env 载荷并给 profile 打 `trustGated` 标；`delegateTask` 消费点新增 `workdirTrusted` 谓词选项，`trustGated && 谓词()!==true` 时当次剥掉 env/envDeny/model/effort/isolateSteering/toolsDeny/toolsAllow/mcpDeny/budget（preamble/target/maxMinutes 不受门）；谓词缺席 → 视为已信（装载期布尔门已跑）。host.js 两处接线同谓词 `() => isTrusted(root, workdir)`——授权→下一次 delegate 调用即生效，撤销→即收回，**零重启零重建**。
+- **兼容**：布尔 `workdirTrusted` 保留旧快照语义（现存测试全部原样通过）；operator-private 与 plugin 目录永不打门标。
+- **证据**：agentprofiles.test.js +2——同 profile map 同 tool 上授权→`--env-json`/`--tools-allow`/`--steering-off` 出现、撤销→全剥、operator 目录无门标；pi 479 测 471 过 8 跳。
+- **核销**：candidates-open #1393 → `candidates-resolved.tsv` #96。
