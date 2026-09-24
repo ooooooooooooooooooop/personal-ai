@@ -2592,3 +2592,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **接线**：`connectOne` 的 401 失败 entry 现在留存 `wwwAuth` 指针；`mcpOperatorSurface.oauthDiscoverRegister(name)` 编排全链（metadata 64KB/10s/http-loopback 界与 tokenUrl 同 posture）；`mcpFacade.auth` 在无配置 spec 时走发现——发现结果过同一 `validateOAuthSpec` 闸门（http 非环回照样拒）后进既有 loopback/device 流。**只在显式 /mcp-auth 意图上触发，连接路径绝不静默发现**。无注册端点时如实报错并给出手工 `--oauth-*` 配置指引。
 - **证据**：`mcp-ext.test.js` +1——真 401+PRM+ASM+DCR 装置：401 entry 留存 wwwAuth；发现返回的 spec 带正确端点+DCR client 且过 validateOAuthSpec 判为 authorization_code；token store 落 `client`；二次调用零注册 POST；registration 请求含 loopback redirect_uri；无 url 服务器如实报。mcp-ext 42/42、bootstrap startHost 完整性过。
 - **核销**：candidates-open #1514 → `candidates-resolved.tsv` #109。
+
+### 28.106 648 清单逐条核销 #110：dedup-h #1521 remote-mcp——stdio+HTTP transports+reconnection+resource/prompt（2026-09-24）
+
+- **行**：`dedup-h  1521  remote-mcp  remote-mcp: stdio+HTTP transports+reconnection+resource/prompt`。
+- **判定**：**IMPLEMENTED（补齐唯一缺口：重连）**。基线核查四分语义：stdio+HTTP 双传输早已实装（含 remote/streamableHttp/streamable_http 别名 + legacy SSE）；resource/prompt 面已实装（`resources/read`/`prompts/list`/`prompts/get` + prompt slash-command 面）。**唯一真缺口：死掉的传输没有任何复活路径**——`transport.onExit` 只 `#failAll` 挂起请求，entry 停在死 client 上，工具闭包绑定的是死快照。本次落地有界自动重连：
+  - **`McpClient.onServerExit(fn)`**：只在**意外**传输死亡时触发——`transport.onExit` 回调先判 `this.#closed`（`close()` 先置位），主动 close（shutdown/disable）绝不触发。意外死亡先 `#failAll`（挂起请求诚实失败）再派发 exit handlers。
+  - **`scheduleReconnect(name, spec)`**：`PAI_MCP_RECONNECT_DELAYS` 可调退避（缺省 2s/5s/10s，解析失败回退缺省），**3 次封顶**；`shuttingDown`（session_shutdown）/`disabled`（/mcp-disable）双闸门，挂起 timer 在两条路径上都 `clearTimeout`；同 entry 同时只存在一条重试链。
+  - **entry 复用 + `entry.client` 间接绑定（核心设计）**：`registerMcpTool`/`registerPromptCommand` 的 execute/handler 不再捕获 client 快照，改为运行时读 `entry.client`——重连换 client 后**全部已注册工具/prompt 无需重注册即复活**；`connected` entry 在成功/失败路径上都复用同一对象（catalog 与重试计数跨失败存活）。`entry.client` 为 null 时工具 fail-closed 报 "not connected"。
+  - **重连目录再发现**：`connectOne` 检测 `prev.client != null` → 走 `refreshTools`/`refreshPrompts` diff 路径（与 list_changed 同路）——复活的 server 少报的工具 tombstone、多报的注册；抽取公共 `refreshPrompts(name, entry)` 供 onNotification/pendingPrompt flush/重连三处共用。
+  - **诚实状态**：`/mcp` 新增 `RECONNECTING (attempt N/3)` 与 `CONNECTION LOST — reconnect retries exhausted; /mcp-enable <name> retries` 两种状态行，区分于 FAILED。
+- **证据**：`mcp-ext.test.js` +3——(a) `onServerExit` 单元：close() 不触发、意外退出恰好触发一次；(b) 端到端复活：假 server 首生答完目录后自杀，spawn 计数文件证明第 2 次拉起，**最初注册的工具闭包**在新连接上执行成功（entry.client 间接绑定的直接证据），/mcp 报 connected；(c) 耗尽：复活体即死装置下 spawn 计数**恰好=4**（1 初始+3 重试，界成立），/mcp 报 CONNECTION LOST，工具 fail-closed 报 not connected。mcp-ext 45/45、bootstrap startHost 完整性过。
+- **核销**：candidates-open #1521 → `candidates-resolved.tsv` #110。

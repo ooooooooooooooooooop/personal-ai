@@ -1009,11 +1009,22 @@ export class McpClient {
   #pending = new Map();
   #closed = false;
   #notifyHandlers = [];
+  #exitHandlers = [];
 
   constructor(transport) {
     this.#transport = transport;
     transport.onMessage?.((msg) => this.#dispatch(msg));
-    transport.onExit?.(() => this.#failAll(new McpError('mcp server process exited', { code: 'MCP_EXIT' })));
+    transport.onExit?.(() => {
+      // dedup-h #1521 — an UNINTENTIONAL death (server process exit, closed
+      // HTTP stream) notifies exit handlers so the extension can schedule a
+      // bounded reconnect; close() sets #closed first, so an intentional
+      // shutdown never fires them.
+      const intentional = this.#closed;
+      this.#failAll(new McpError('mcp server process exited', { code: 'MCP_EXIT' }));
+      if (!intentional) {
+        for (const fn of this.#exitHandlers) { try { fn(); } catch { /* best effort */ } }
+      }
+    });
   }
 
   /**
@@ -1023,6 +1034,10 @@ export class McpClient {
    * arrive there — handlers just never fire.
    */
   onNotification(fn) { this.#notifyHandlers.push(fn); }
+
+  // dedup-h #1521 — fires ONLY on unexpected transport death (never on
+  // close()); the extension uses it to schedule bounded reconnects.
+  onServerExit(fn) { this.#exitHandlers.push(fn); }
 
   static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS, serverName = null } = {}) {
     // dedup-h #583 — remote HTTP transport type + alias compatibility:
@@ -1456,7 +1471,10 @@ export default function mcpExtension(pi) {
   // New tools register live; REMOVED tools cannot be unregistered through the
   // pi API — they tombstone into an honest fail-closed error instead of
   // silently calling a tool the server no longer advertises.
-  const registerMcpTool = (serverName, client, entry, t) => {
+  // dedup-h #1521 — the tool binds the live ENTRY, not a client snapshot:
+  // a reconnected server swaps entry.client and every registered tool keeps
+  // working without re-registration.
+  const registerMcpTool = (serverName, entry, t) => {
     const toolName = `mcp__${serverName}__${t.name}`;
     const app = appMeta(t._meta); // #1504 — MCP Apps UI declaration
     pi.registerTool({
@@ -1476,7 +1494,13 @@ export default function mcpExtension(pi) {
           };
         }
         try {
-          const res = await client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
+          if (!entry.client) {
+            return {
+              content: [{ type: 'text', text: `mcp server '${serverName}' is not connected — it may be reconnecting or dead; check /mcp` }],
+              isError: true,
+            };
+          }
+          const res = await entry.client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
           const wrapped = wrapUntrusted(serverName, t.name, res, resultCharCap(entry.spec, t.name));
           // #1504 — surface the declared app resource on every call result.
           // #1507 — the host routes resources/read via details.mcpServer
@@ -1511,7 +1535,7 @@ export default function mcpExtension(pi) {
       const added = [];
       for (const t of fresh) {
         const tn = `mcp__${name}__${t.name}`;
-        if (!before.has(tn)) added.push(registerMcpTool(name, entry.client, entry, t));
+        if (!before.has(tn)) added.push(registerMcpTool(name, entry, t));
       }
       const removed = [...before].filter((tn) => !freshNames.has(tn));
       entry.dead = new Set(removed);
@@ -1520,11 +1544,30 @@ export default function mcpExtension(pi) {
     } catch { /* refresh failure keeps the last-known catalog */ }
   };
 
+  // dedup-h #1521 — prompts get the same diff-refresh path as tools (list_
+  // changed, pendingPrompt flush, and reconnect all share it): register only
+  // names the catalog gained; nothing can unregister, so removed prompts keep
+  // their honest no-text path.
+  const refreshPrompts = async (name, entry) => {
+    if (!entry?.client) return;
+    try {
+      const prompts = await entry.client.listPrompts();
+      const known = new Set((entry.prompts ?? []).map((p) => p.name));
+      for (const p of prompts) {
+        if (known.has(p.name)) continue;
+        entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
+        registerPromptCommand(name, p, entry);
+      }
+    } catch { /* refresh failure keeps the last-known catalog */ }
+  };
+
   // M82: an MCP prompt is an operator-invoked slash command that expands to
   // the server-supplied messages as a user turn. The operator asked for it
   // explicitly (like Claude Code's /mcp__server__prompt), but the transcript
   // keeps a provenance prefix — server text is still external content.
-  const registerPromptCommand = (serverName, prompt, client) => {
+  // dedup-h #1521 — takes the live ENTRY, not a client snapshot: a reconnected
+  // server swaps entry.client and every registered prompt keeps working.
+  const registerPromptCommand = (serverName, prompt, entry) => {
     const cmdName = `mcp-${serverName}-${prompt.name}`.replace(/[^a-zA-Z0-9_-]/g, '_');
     pi.registerCommand(cmdName, {
       description: `[mcp:${serverName}] ${prompt.description ?? prompt.name}`,
@@ -1544,7 +1587,11 @@ export default function mcpExtension(pi) {
           return;
         }
         try {
-          const res = await client.getPrompt(prompt.name, values);
+          if (!entry.client) {
+            ctx.ui?.notify?.(`mcp prompt '${prompt.name}' unavailable — server '${serverName}' is not connected`, 'error');
+            return;
+          }
+          const res = await entry.client.getPrompt(prompt.name, values);
           const text = (res?.messages ?? []).map((m) => {
             const c = m?.content;
             return typeof c === 'string' ? c : (c?.type === 'text' ? c.text : '');
@@ -1561,6 +1608,46 @@ export default function mcpExtension(pi) {
     });
   };
 
+  // dedup-h #1521 — bounded auto-reconnect: an unexpectedly dead transport
+  // (stdio exit, closed HTTP stream) respawns through the SAME connectOne
+  // path — the reused entry keeps tools/prompts bound via entry.client, and
+  // the catalog re-diffs like a list_changed. 3 attempts at 2s/5s/10s;
+  // exhausted → the entry stays honestly failed and /mcp says so.
+  // session_shutdown, /mcp-disable, and context-scoped entries never schedule.
+  let shuttingDown = false;
+  // Operator-tunable backoff (tests use it too): comma list in ms; a bad
+  // value falls back to the default rather than silently disabling retries.
+  const RECONNECT_DELAYS_MS = (process.env.PAI_MCP_RECONNECT_DELAYS ?? '')
+    .split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n > 0);
+  if (RECONNECT_DELAYS_MS.length === 0) RECONNECT_DELAYS_MS.push(2_000, 5_000, 10_000);
+  const scheduleReconnect = (name, spec) => {
+    if (shuttingDown || disabled.has(name)) return;
+    const entry = connected.get(name);
+    if (!entry || entry.reconnectTimer) return;
+    entry.reconnectAttempt = (entry.reconnectAttempt ?? 0) + 1;
+    if (entry.reconnectAttempt > RECONNECT_DELAYS_MS.length) {
+      entry.client = null;
+      entry.failed = true;
+      entry.reconnecting = false;
+      entry.reconnectExhausted = true;
+      return;
+    }
+    const delay = RECONNECT_DELAYS_MS[entry.reconnectAttempt - 1];
+    entry.reconnecting = true;
+    entry.reconnectTimer = setTimeout(async () => {
+      entry.reconnectTimer = null;
+      if (shuttingDown || disabled.has(name)) return;
+      try {
+        const fresh = await connectOne(name, spec);
+        if (fresh?.client) return; // revived — connectOne reset the counter
+      } catch { /* connectOne failure already lands on the entry */ }
+      // still dead — chain the next attempt through the same gate (counter,
+      // shutdown, disabled) until the bound is exhausted.
+      scheduleReconnect(name, spec);
+    }, delay);
+    entry.reconnectTimer.unref?.();
+  };
+
   // dedup-h #167: extracted per-server connect so /mcp-add hot-connects a
   // newly persisted entry through the EXACT same path as boot servers —
   // notification subscription, independent family discovery, pending
@@ -1575,8 +1662,24 @@ export default function mcpExtension(pi) {
       }
       try {
         const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS, serverName: name });
-        const entry = { client, tools: [], spec, prompts: [], booted: false };
+        // dedup-h #1521 — the entry is REUSED across reconnects: registered
+        // tools/prompts bind entry.client (never a dead snapshot), so a
+        // revived server restores the whole surface without re-registration.
+        const prev = connected.get(name);
+        const entry = prev ?? { client: null, tools: [], spec, prompts: [], dead: new Set(), booted: false };
+        const isReconnect = prev?.client != null;
+        entry.client = client;
+        entry.spec = spec;
+        entry.failed = false;
+        entry.authRequired = false;
+        entry.wwwAuth = null;
+        entry.reconnectExhausted = false;
+        entry.reconnectAttempt = 0;
+        entry.reconnecting = false;
         connected.set(name, entry);
+        // an unexpected transport death schedules a bounded reconnect; an
+        // intentional close() (shutdown, /mcp-disable) never does.
+        client.onServerExit?.(() => scheduleReconnect(name, spec));
         // M130: subscribe BEFORE family discovery — a list_changed pushed
         // while tools/list or prompts/list is still in flight (or hung on a
         // server that silently drops unknown methods) must not be lost.
@@ -1585,54 +1688,46 @@ export default function mcpExtension(pi) {
             if (!entry.booted) { entry.pendingRefresh = true; return; }
             await refreshTools(name, entry);
           };
-          const refreshPrompts = async () => {
+          const refreshP = async () => {
             if (!entry.booted) { entry.pendingPromptRefresh = true; return; }
-            try {
-              const prompts = await client.listPrompts();
-              const known = new Set((entry.prompts ?? []).map((p) => p.name));
-              for (const p of prompts) {
-                if (known.has(p.name)) continue;
-                entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
-                registerPromptCommand(name, p, client);
-              }
-            } catch { /* refresh failure keeps the last-known catalog */ }
+            await refreshPrompts(name, entry);
           };
           if (msg?.method === 'notifications/tools/list_changed') void refresh();
-          if (msg?.method === 'notifications/prompts/list_changed') void refreshPrompts();
+          if (msg?.method === 'notifications/prompts/list_changed') void refreshP();
         });
-        // M82: capability families discover independently — a prompt-only
-        // server answers Method-not-found on tools/list and that must NOT
-        // kill prompts/list (and vice versa). A connect/handshake failure is
-        // still fatal; a per-family failure is not.
-        const names = [];
-        try {
-          const tools = await client.listTools();
-          for (const t of tools) names.push(registerMcpTool(name, client, entry, t));
-          entry.tools = names;
-        } catch { /* no tools capability */ }
-        try {
-          const prompts = await client.listPrompts();
-          for (const p of prompts) {
-            entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
-            registerPromptCommand(name, p, client);
+        if (isReconnect) {
+          // #1521 — reconnection diffs the catalog like a list_changed:
+          // tools/prompts the revived server dropped tombstone honestly;
+          // new ones register live. Registered closures already bind
+          // entry.client, so unchanged tools just work.
+          entry.booted = true;
+          await refreshTools(name, entry);
+          await refreshPrompts(name, entry);
+        } else {
+          // M82: capability families discover independently — a prompt-only
+          // server answers Method-not-found on tools/list and that must NOT
+          // kill prompts/list (and vice versa). A connect/handshake failure is
+          // still fatal; a per-family failure is not.
+          const names = [];
+          try {
+            const tools = await client.listTools();
+            for (const t of tools) names.push(registerMcpTool(name, entry, t));
+            entry.tools = names;
+          } catch { /* no tools capability */ }
+          try {
+            const prompts = await client.listPrompts();
+            for (const p of prompts) {
+              entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
+              registerPromptCommand(name, p, entry);
+            }
+          } catch { /* no prompts capability */ }
+          // discovery done — flush any list_changed that arrived mid-boot
+          entry.booted = true;
+          if (entry.pendingRefresh) { entry.pendingRefresh = false; void refreshTools(name, entry); }
+          if (entry.pendingPromptRefresh) {
+            entry.pendingPromptRefresh = false;
+            void refreshPrompts(name, entry);
           }
-        } catch { /* no prompts capability */ }
-        // discovery done — flush any list_changed that arrived mid-boot
-        entry.booted = true;
-        if (entry.pendingRefresh) { entry.pendingRefresh = false; void refreshTools(name, entry); }
-        if (entry.pendingPromptRefresh) {
-          entry.pendingPromptRefresh = false;
-          void (async () => {
-            try {
-              const prompts = await client.listPrompts();
-              const known = new Set((entry.prompts ?? []).map((p) => p.name));
-              for (const p of prompts) {
-                if (known.has(p.name)) continue;
-                entry.prompts.push({ name: p.name, description: p.description ?? null, args: p.arguments ?? [] });
-                registerPromptCommand(name, p, client);
-              }
-            } catch { /* refresh failure keeps the last-known catalog */ }
-          })();
         }
       } catch (err) {
         // connect/handshake failure → this server contributes no tools;
@@ -1642,8 +1737,15 @@ export default function mcpExtension(pi) {
         // /mcp-auth path instead of a silent dead server.
         const authRequired = err?.code === 'MCP_AUTH_REQUIRED';
         // #1514 — the 401's WWW-Authenticate header is kept for the
-        // discovery path (resource_metadata pointer).
-        connected.set(name, { client: null, tools: [], spec, failed: true, authRequired, wwwAuth: err?.wwwAuthenticate ?? null });
+        // discovery path (resource_metadata pointer). #1521 — the entry is
+        // reused so catalog state and the retry counter survive failures.
+        const entry = connected.get(name) ?? { client: null, tools: [], spec, prompts: [], dead: new Set(), booted: false };
+        entry.client = null;
+        entry.spec = spec;
+        entry.failed = true;
+        entry.authRequired = authRequired;
+        entry.wwwAuth = err?.wwwAuthenticate ?? null;
+        connected.set(name, entry);
         if (authRequired) mcpOperatorSurface.onAuthRequired?.(name);
       }
       return connected.get(name);
@@ -1660,7 +1762,14 @@ export default function mcpExtension(pi) {
   })();
 
   pi.on('session_shutdown', () => {
-    for (const [, entry] of connected) entry.client?.close();
+    // #1521 — fail-closed: no reconnect may outlive the session. Pending
+    // retry timers are cancelled; live clients close (an intentional close
+    // never schedules a retry).
+    shuttingDown = true;
+    for (const [, entry] of connected) {
+      if (entry.reconnectTimer) { clearTimeout(entry.reconnectTimer); entry.reconnectTimer = null; }
+      entry.client?.close();
+    }
     connected.clear();
     for (const [, pend] of pendingAuth) pend.listen?.close?.();
     pendingAuth.clear();
@@ -1677,11 +1786,18 @@ export default function mcpExtension(pi) {
         lines.push(`config: ${configPath ?? 'unparseable'}`);
       }
       for (const [name, entry] of connected) {
-        lines.push(entry.failed
-          ? (entry.authRequired
-            ? `  ${name}: NEEDS AUTH (HTTP 401) — run /mcp-auth ${name} to authorize, then restart the session`
-            : `  ${name}: FAILED to connect/list — no tools exposed`)
-          : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`);
+        // #1521 — a reconnecting or exhausted entry gets an honest status
+        // instead of the generic FAILED line.
+        const statusLine = entry.reconnecting
+          ? `  ${name}: RECONNECTING (attempt ${entry.reconnectAttempt}/${RECONNECT_DELAYS_MS.length}) — tools will fail until the server revives`
+          : entry.reconnectExhausted
+            ? `  ${name}: CONNECTION LOST — reconnect retries exhausted; /mcp-enable ${name} retries`
+            : entry.failed
+              ? (entry.authRequired
+                ? `  ${name}: NEEDS AUTH (HTTP 401) — run /mcp-auth ${name} to authorize, then restart the session`
+                : `  ${name}: FAILED to connect/list — no tools exposed`)
+              : `  ${name}: connected — ${entry.tools.length} tools, ${entry.prompts?.length ?? 0} prompts`;
+        lines.push(statusLine);
         if (entry.client?.strippedEnv?.length) lines.push(`    env stripped (injection-vector keys): ${entry.client.strippedEnv.join(', ')}`);
         if (entry.client?.oauth) lines.push(`    auth: ${entry.client.oauth}`);
         const hdrCount = Object.keys(entry.spec?.headers ?? {}).length;
@@ -2017,6 +2133,8 @@ export default function mcpExtension(pi) {
       disabled.add(name);
       delete servers[name];
       const entry = connected.get(name);
+      // #1521 — an in-flight reconnect attempt dies with the disable too.
+      if (entry?.reconnectTimer) { clearTimeout(entry.reconnectTimer); entry.reconnectTimer = null; }
       if (entry?.client) { try { entry.client.close(); } catch { /* best effort */ } }
       connected.delete(name);
       ctx.ui?.notify?.(`'${name}' disabled — connection closed, ${w.path} updated; /mcp-enable ${name} restores it`, 'info');

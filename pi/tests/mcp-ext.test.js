@@ -2046,3 +2046,171 @@ test('#1514: oauthDiscoverRegister — 401 + PRM/ASM/DCR mints a usable oauth sp
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// dedup-h #1521 — bounded auto-reconnect on unexpected transport death.
+// The rig server counts spawns in MCP_FAKE_STATE; the FIRST spawn dies ~30ms
+// after serving prompts/list (discovery already done → a transport exit, not
+// a connect failure). MCP_FAKE_DIE_REVIVALS=1 makes every respawn exit
+// instantly so the retry bound can be observed exhausting.
+const RECONNECT_SERVER_JS = `
+const fs = require('fs');
+const sf = process.env.MCP_FAKE_STATE || '';
+let spawnN = 0;
+if (sf) {
+  try { spawnN = Number(fs.readFileSync(sf, 'utf8')); } catch { spawnN = 0; }
+  fs.writeFileSync(sf, String(spawnN + 1));
+}
+if (spawnN >= 1 && process.env.MCP_FAKE_DIE_REVIVALS === '1') process.exit(1);
+let buf = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (c) => {
+  buf += c;
+  let nl;
+  while ((nl = buf.indexOf('\\n')) >= 0) {
+    const line = buf.slice(0, nl).trim(); buf = buf.slice(nl + 1);
+    if (!line) continue;
+    const msg = JSON.parse(line);
+    if (msg.method === 'initialize') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'fake', version: '0' }, capabilities: { tools: {}, prompts: {} } } }) + '\\n');
+    } else if (msg.method === 'tools/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [{ name: 'echo', description: 'echo back', inputSchema: { type: 'object', properties: { text: { type: 'string' } }, required: ['text'] } }] } }) + '\\n');
+    } else if (msg.method === 'tools/call') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { content: [{ type: 'text', text: 'echo:' + (msg.params?.arguments?.text ?? '') }] } }) + '\\n');
+    } else if (msg.method === 'prompts/list') {
+      process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { prompts: [] } }) + '\\n');
+      if (spawnN === 0 && process.env.MCP_FAKE_DIE === '1') setTimeout(() => process.exit(1), 30);
+    }
+  }
+});
+setInterval(() => {}, 1000);
+`;
+
+test('#1521: McpClient.onServerExit fires on unexpected death, never on close()', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
+  try {
+    const serverPath = join(dir, 'server.js');
+    // prompts/list reply → self-exit: an unexpected transport death.
+    writeFileSync(serverPath, RECONNECT_SERVER_JS.replace(
+      "if (spawnN === 0 && process.env.MCP_FAKE_DIE === '1') setTimeout(() => process.exit(1), 30);",
+      'setTimeout(() => process.exit(1), 20);'));
+    const c1 = await McpClient.connect({ command: process.execPath, args: [serverPath] });
+    let fired = 0;
+    c1.onServerExit(() => { fired += 1; });
+    c1.close();
+    await new Promise((r) => setTimeout(r, 150));
+    assert.equal(fired, 0, 'intentional close() must not fire exit handlers');
+    const c2 = await McpClient.connect({ command: process.execPath, args: [serverPath] });
+    let fired2 = 0;
+    c2.onServerExit(() => { fired2 += 1; });
+    await c2.listPrompts(); // server self-exits right after the reply
+    const deadline = Date.now() + 5_000;
+    while (fired2 === 0 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 25));
+    assert.equal(fired2, 1, 'unexpected death fired the exit handler exactly once');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('#1521: unexpected death auto-reconnects — live entry rebinds, tool survives', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
+  const prevCfg = process.env.PAI_MCP_CONFIG;
+  const prevDelays = process.env.PAI_MCP_RECONNECT_DELAYS;
+  try {
+    const serverPath = join(dir, 'server.js');
+    const statePath = join(dir, 'state.txt');
+    writeFileSync(serverPath, RECONNECT_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({
+      mcpServers: {
+        srv: { command: process.execPath, args: [serverPath], env: { MCP_FAKE_STATE: statePath, MCP_FAKE_DIE: '1' } },
+      },
+    }));
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    process.env.PAI_MCP_RECONNECT_DELAYS = '30,40,50';
+    const pi = fakePi();
+    const notices = [];
+    const ctx = { ui: { notify: (m, l) => notices.push([l, m]) } };
+    mcpExtension(pi);
+    const deadline = Date.now() + 10_000;
+    while (!pi.tools.has('mcp__srv__echo') && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    const tool = pi.tools.get('mcp__srv__echo');
+    assert.ok(tool, 'echo tool registered');
+    // the first spawn dies ~30ms after boot discovery — a respawn proves the
+    // reconnect path fired (spawn counter in the state file).
+    const rdeadline = Date.now() + 8_000;
+    while (Number(readFileSync(statePath, 'utf8')) < 2 && Date.now() < rdeadline) {
+      await new Promise((r) => setTimeout(r, 40));
+    }
+    assert.ok(Number(readFileSync(statePath, 'utf8')) >= 2, 'server respawned by auto-reconnect');
+    // the ORIGINALLY registered tool closure rebinds to the revived client —
+    // poll until the revival handshake + refresh completes.
+    let res = null;
+    const edeadline = Date.now() + 8_000;
+    while (Date.now() < edeadline) {
+      res = await tool.execute('tc-r', { text: 'revived' });
+      if (!res?.isError) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    assert.ok(res && !res.isError, `tool executes on the revived connection: ${res?.content?.[0]?.text}`);
+    assert.match(res.content[0].text, /echo:revived/);
+    // /mcp reports the revival honestly — not reconnecting, not lost.
+    await pi.commands.get('mcp').handler(ctx);
+    assert.match(notices.map(([, m]) => m).join('\n'), /srv: connected/);
+    await pi.handlers.get('session_shutdown')?.();
+  } finally {
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevDelays === undefined) delete process.env.PAI_MCP_RECONNECT_DELAYS; else process.env.PAI_MCP_RECONNECT_DELAYS = prevDelays;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('#1521: retry bound exhausts — honest CONNECTION LOST, tool fails closed', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
+  const prevCfg = process.env.PAI_MCP_CONFIG;
+  const prevDelays = process.env.PAI_MCP_RECONNECT_DELAYS;
+  try {
+    const serverPath = join(dir, 'server.js');
+    const statePath = join(dir, 'state.txt');
+    writeFileSync(serverPath, RECONNECT_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({
+      mcpServers: {
+        srv: { command: process.execPath, args: [serverPath], env: { MCP_FAKE_STATE: statePath, MCP_FAKE_DIE: '1', MCP_FAKE_DIE_REVIVALS: '1' } },
+      },
+    }));
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    process.env.PAI_MCP_RECONNECT_DELAYS = '30,40,50';
+    const pi = fakePi();
+    const notices = [];
+    const ctx = { ui: { notify: (m, l) => notices.push([l, m]) } };
+    mcpExtension(pi);
+    const deadline = Date.now() + 10_000;
+    while (!pi.tools.has('mcp__srv__echo') && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 25));
+    }
+    assert.ok(pi.tools.has('mcp__srv__echo'), 'echo tool registered');
+    // spawn0 dies after discovery; spawns 1..3 die instantly → exactly 3
+    // retries (the bound), then the entry is honestly exhausted.
+    const ldeadline = Date.now() + 10_000;
+    let lost = false;
+    while (Date.now() < ldeadline && !lost) {
+      await pi.commands.get('mcp').handler(ctx);
+      lost = notices.map(([, m]) => m).join('\n').includes('CONNECTION LOST');
+      if (!lost) await new Promise((r) => setTimeout(r, 60));
+    }
+    assert.ok(lost, '/mcp reports CONNECTION LOST after the retry bound');
+    assert.equal(Number(readFileSync(statePath, 'utf8')), 4, 'exactly 1 initial + 3 retry spawns — the bound held');
+    // the tombstoned tool fails closed with an honest not-connected error
+    const res = await pi.tools.get('mcp__srv__echo').execute('tc-x', { text: 'x' });
+    assert.ok(res.isError, 'tool fails closed while the server is dead');
+    assert.match(res.content[0].text, /not connected/);
+    await pi.handlers.get('session_shutdown')?.();
+  } finally {
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevDelays === undefined) delete process.env.PAI_MCP_RECONNECT_DELAYS; else process.env.PAI_MCP_RECONNECT_DELAYS = prevDelays;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
