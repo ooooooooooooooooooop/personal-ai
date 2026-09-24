@@ -685,6 +685,24 @@ export async function startHost({
   if (proxyState.caFile) {
     core.audit.write({ kind: 'PROXY_CA_APPLIED', data: { caFile: String(proxyState.caFile).slice(0, 200) } });
   }
+  // dedup-h #2051 — agents.defaults.imageQuality analogue: operator-owned
+  // image-detail.json seeds the session's image tier; config_set still
+  // overrides per session. A present-but-bad file is audited, never silent.
+  {
+    let rawDetail = null;
+    try { rawDetail = readFileSync(join(instanceRoot, 'image-detail.json'), 'utf-8'); } catch { /* absent = 'high' default */ }
+    if (rawDetail != null) {
+      let detailDoc = null;
+      try { detailDoc = JSON.parse(rawDetail); } catch { /* malformed */ }
+      const tier = typeof detailDoc?.tier === 'string' ? detailDoc.tier : null;
+      if (tier === 'high' || tier === 'balanced' || tier === 'low') {
+        imageDetail.current = tier;
+        core.audit.write({ kind: 'IMAGE_DETAIL_DEFAULT', data: { tier } });
+      } else {
+        core.audit.write({ kind: 'IMAGE_DETAIL_DEFAULT_IGNORED', data: { reason: tier ? 'unknown_tier' : 'malformed', kept: imageDetail.current } });
+      }
+    }
+  }
   // dedup-h #1981 — MDM enforcement posture, recorded once at boot so the
   // audit trail shows whether an admin tier governs auto-run this session.
   if (process.env.PAI_ADMIN_CONFIG) {

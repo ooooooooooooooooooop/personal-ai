@@ -1683,3 +1683,51 @@ test('dedup-h #2010: proxy.tls.caFile extends the default CA trust root', async 
     instanceRoot: inst2, workdir: inst2, sessionOptions: { model: stubModel },
   }), /ENOENT|no such file/i);
 });
+
+// dedup-h #2051 — agents.defaults.imageQuality analogue: operator-owned
+// image-detail.json seeds the session image tier; malformed seeds are
+// audited and ignored, never silent.
+test('dedup-h #2051: image-detail.json seeds the image tier; invalid seed ignored+audited', async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-imgq-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  writeFileSync(join(inst, 'image-detail.json'), JSON.stringify({ tier: 'low' }));
+  const host = await startHost({
+    instanceRoot: inst, workdir: inst, sessionOptions: { model: stubModel },
+  });
+  try {
+    const st = await host.channel.handle({ type: 'config_get' });
+    assert.equal(st.data?.image_detail ?? st.image_detail, 'low', 'operator seed wins over the high default');
+    const lines = readFileSync(
+      join(inst, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+      .trim().split('\n').map(JSON.parse);
+    assert.ok(lines.some((e) => e.kind === 'IMAGE_DETAIL_DEFAULT' && e.data?.tier === 'low'),
+      'seed application audited');
+  } finally {
+    host.dispose();
+  }
+
+  // invalid tier → default kept, audited ignored
+  const inst2 = mkdtempSync(join(tmpdir(), 'pai-imgq2-'));
+  mkdirSync(join(inst2, 'canonical'), { recursive: true });
+  writeFileSync(join(inst2, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  writeFileSync(join(inst2, 'image-detail.json'), JSON.stringify({ tier: 'ultra' }));
+  const host2 = await startHost({
+    instanceRoot: inst2, workdir: inst2, sessionOptions: { model: stubModel },
+  });
+  try {
+    const st = await host2.channel.handle({ type: 'config_get' });
+    assert.equal(st.data?.image_detail ?? st.image_detail, 'high', 'unknown tier falls back to high');
+    const lines = readFileSync(
+      join(inst2, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+      .trim().split('\n').map(JSON.parse);
+    assert.ok(lines.some((e) => e.kind === 'IMAGE_DETAIL_DEFAULT_IGNORED' && e.data?.reason === 'unknown_tier'),
+      'ignored seed audited with reason');
+  } finally {
+    host2.dispose();
+  }
+});

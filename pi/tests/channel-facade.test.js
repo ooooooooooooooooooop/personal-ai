@@ -1596,3 +1596,60 @@ test('dedup-h #1922: transform_llm_output rewrites delivered text; deny/error wi
   assert.match(upd3[0].event.message.content.find((c) => c.type === 'text').text, /withheld.*failed closed/);
   dispose();
 });
+
+// dedup-h #2051: an EMPTY input declaration means "undeclared", not
+// "accepts nothing" — both the carry gate and the media-fallback pick must
+// treat input:[] like a missing list (upstream: two readers bypassed
+// modelHasCapability and stripped image input on an empty list).
+test('#2051 empty input list does not strip images; fallback pick shares the predicate', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.model = { provider: 'cpa', id: 'undeclared-1', input: [] };
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-emptycaps-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+
+  await ch.handle({
+    type: 'prompt', message: 'see this',
+    options: { attachments: [{ name: 'p.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  assert.deepEqual(calls[0][1].images, [{ type: 'image', data: 'aGk=', mimeType: 'image/png' }],
+    'empty input list must NOT strip the native image carry');
+  assert.ok(!events.some((m) => m.event?.type === 'notify' && /不支持图片输入/.test(m.event.message ?? '')),
+    'no degrade notice for an undeclared model');
+  dispose();
+
+  // explicit text-only declaration still strips — the gate is not gone
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-9', input: ['text'] };
+  const { channel: ch2, dispose: dispose2 } = createChannelHost({ session: fakeSessionRef, core });
+  await ch2.handle({
+    type: 'prompt', message: 'again',
+    options: { attachments: [{ name: 'q.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  assert.ok(!calls[1][1].images?.length, 'explicit text-only still degrades');
+  dispose2();
+
+  // fallback pick shares the predicate: an empty-declaration chain entry
+  // counts as vision-capable (same "undeclared = capable" contract as the
+  // carry gate) instead of being skipped.
+  fakeSessionRef.model = { provider: 'cpa', id: 'text-only-1', input: ['text'] };
+  const undeclared = { provider: 'other', id: 'vision-0', input: [] };
+  fakeSessionRef.modelRuntime = { getModel: (p, id) => (p === 'other' && id === 'vision-0' ? undeclared : null) };
+  fakeSessionRef.setModel = async (m) => { fakeSessionRef.model = m; };
+  const { channel: ch3, dispose: dispose3 } = createChannelHost({
+    session: fakeSessionRef, core,
+    fallbacks: { chain: [{ provider: 'other', model: 'vision-0' }] },
+  });
+  await ch3.handle({
+    type: 'prompt', message: 'fallback',
+    options: { attachments: [{ name: 'r.png', mime: 'image/png', data: 'aGk=' }] },
+  });
+  assert.equal(fakeSessionRef.model.id, 'vision-0', 'empty-declaration entry is a valid fallback pick');
+  assert.deepEqual(calls[2][1].images, [{ type: 'image', data: 'aGk=', mimeType: 'image/png' }]);
+  dispose3();
+});

@@ -2941,3 +2941,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **app.js**：`toolName` 起 `mcp__` 时审批卡插 `批准 <srv> 全部工具` 按钮（`data-a=allow_server` 复用通用绑定）；结局标签 `已批准该服务器全部工具`。
 - **证据**：`host/tests/asks.test.js` +1=26/26（非 mcp 工具拒 allow_server、mcp 卡收 allow_server→caller 见 allow+事件留真名、同服异工具零挂起直通、异服仍问、resetSession 清 grant）；host 全套 417/417。
 - **核销**：candidates-open #2027 → `candidates-resolved.tsv` #142。
+
+### 28.139 648 清单逐条核销 #143：dedup-h #2051 attachments——image-quality: agents.defaults.imageQuality 自适应压缩（2026-09-25）
+
+- **行**：`dedup-h  2051  attachments  image-quality: agents.defaults.imageQuality自适应压缩`（描述段为错位 openclaw 修复片段："空 capability 列表剥图片输入——两个读方绕过 modelHasCapability 直接测列表，empty≠null"）。
+- **判定**：**IMPLEMENTED**（双语义全落）。
+  - **标题语义（agents.defaults.imageQuality 持久默认档）**：核查现状——`imageDetail` 档位(high/balanced/low→maxEdge 1568/512)只有会话内 `config_set` 可改，**无操作员持久默认面**。落点：`image-detail.json`（operator-owned，沿用 proxy.json/command-allow.json per-concern 文件惯例）`{tier}` 于 bootstrap 播种 `imageDetail.current`；非法 JSON/未知档→`IMAGE_DETAIL_DEFAULT_IGNORED` 审计 + 保持 high（非安全门不锁死启动，但绝不静默）；生效播种记 `IMAGE_DETAIL_DEFAULT`。会话内 `config_set image_detail` 覆盖不变。
+  - **描述语义（empty input list 剥图 bug）**：**真洞确认**——`caps.images = !Array.isArray(curInput) || curInput.includes('image')` 把 `input:[]` 判为"无图片能力"剥图；而"未声明"契约本该 `[]`≡absent。两读方（carry gate 行462 + media-fallback 挑选行481）收敛到共享谓词 `acceptsImages(input)`：`!Array.isArray || length===0 || includes('image')`——同契约两调用点，正是上游"两读方绕过 modelHasCapability"修复的对位。
+- **证据**：`pi/tests/channel-facade.test.js` +1=48/48（`input:[]` 原生带图+无降级通知、`['text']` 仍剥、`input:[]` 回退链条目被选中）；`pi/tests/bootstrap.test.js` +1=40/40（tier:'low' 播种+审计、'ultra' 忽略+IGNORED 审计）；host 417/417 不受影响（纯 pi 侧）。
+- **核销**：candidates-open #2051 → `candidates-resolved.tsv` #143。

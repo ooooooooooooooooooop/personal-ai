@@ -22,6 +22,15 @@ const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhi
 // as an image block — it degrades to an honest descriptor at attach time.
 const VISION_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 
+// dedup-h #2051: a model's input declaration treats EMPTY the same as
+// ABSENT — `input: []` means "nothing declared", not "accepts nothing".
+// Both readers below (the carry gate and the media-fallback pick) share
+// this predicate; testing the raw list directly is how an empty list
+// silently stripped image input upstream.
+function acceptsImages(input) {
+  return !Array.isArray(input) || input.length === 0 || input.includes('image');
+}
+
 /** Atomic JSON write: tmp + rename — a torn write must not leave a half-file
  * behind (credential/config corruption is unrecoverable by reload). */
 function writeJsonAtomic(file, doc) {
@@ -451,7 +460,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         // attaching to a text-only model degrades to a descriptor and the
         // operator is told, instead of the SDK silently dropping bytes.
         const curInput = box.s?.model?.input;
-        const caps = { images: !Array.isArray(curInput) || curInput.includes('image') };
+        const caps = { images: acceptsImages(curInput) };
         let { native, degraded } = partitionByCapability(attachments, caps);
         const lostImages = degraded.filter((a) => a.kind === 'image').length;
         if (lostImages && caps.images === false) {
@@ -469,7 +478,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           const hit = (fallbacks?.chain ?? [])
             .filter((e) => !fallbacks?.allowed || fallbacks.allowed(e))
             .map((e) => { try { return rt?.getModel?.(e.provider, e.model) ?? null; } catch { return null; } })
-            .find((m) => m && Array.isArray(m.input) && m.input.includes('image'));
+            .find((m) => m && acceptsImages(m.input));
           const switched = hit && typeof box.s?.setModel === 'function'
             ? await box.s.setModel(hit).then(() => true, () => false)
             : false;
