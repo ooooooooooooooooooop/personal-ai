@@ -280,3 +280,108 @@ test('M133: >15K body routes to the summarizer; absent/failed summarizer falls b
     server.close();
   }
 });
+
+// dedup-h #1815 — inline session network policy: a non-allowlisted host asks
+// the operator instead of flat-refusing; allow_session grants, deny latches.
+test('#1815: allow_session grants the host for the session (one ask)', async () => {
+  const { server, port } = await serve((req, res) => res.end('granted page'));
+  try {
+    const grants = new Set();
+    const denies = new Set();
+    let askCount = 0;
+    const t = webFetchTool({
+      egressAllow: () => ['10.255.255.1'], // allowlist in force, localhost not on it
+      askEgress: async (host) => { askCount += 1; assert.equal(host, 'localhost'); return 'allow_session'; },
+      sessionGrants: grants,
+      sessionDenies: denies,
+    });
+    const r = await t.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(r.isError, undefined);
+    assert.match(r.content[0].text, /granted page/);
+    assert.ok(grants.has('localhost'), 'host joined sessionGrants');
+    const r2 = await t.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(r2.isError, undefined);
+    assert.equal(askCount, 1, 'session grant must not re-ask');
+  } finally {
+    server.close();
+  }
+});
+
+test('#1815: allow once admits only this call — next hop re-asks', async () => {
+  const { server, port } = await serve((req, res) => res.end('once page'));
+  try {
+    const grants = new Set();
+    let askCount = 0;
+    const t = webFetchTool({
+      egressAllow: () => ['10.255.255.1'],
+      askEgress: async () => { askCount += 1; return 'allow'; },
+      sessionGrants: grants,
+      sessionDenies: new Set(),
+    });
+    const r = await t.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(r.isError, undefined);
+    assert.equal(grants.size, 0, 'allow once must not join sessionGrants');
+    await t.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(askCount, 2, 'each call re-asks under allow-once');
+  } finally {
+    server.close();
+  }
+});
+
+test('#1815: deny latches the host for the session — no re-ask', async () => {
+  const { server, port } = await serve((req, res) => res.end('denied page'));
+  try {
+    const grants = new Set();
+    const denies = new Set();
+    let askCount = 0;
+    const t = webFetchTool({
+      egressAllow: () => ['10.255.255.1'],
+      askEgress: async () => { askCount += 1; return 'deny'; },
+      sessionGrants: grants,
+      sessionDenies: denies,
+    });
+    const r = await t.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(r.isError, true);
+    assert.match(r.content[0].text, /not on the operator egress allowlist/);
+    assert.ok(denies.has('localhost'), 'deny latches sessionDenies');
+    const r2 = await t.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(r2.isError, true);
+    assert.match(r2.content[0].text, /denied for this session/);
+    assert.equal(askCount, 1, 'session deny must refuse without re-asking');
+    assert.equal(grants.size, 0);
+  } finally {
+    server.close();
+  }
+});
+
+test('#1815: forbidden literals and unrestricted baseline never reach the ask', async () => {
+  let askCount = 0;
+  const grants = new Set();
+  const t = webFetchTool({
+    egressAllow: () => ['127.0.0.1'],
+    askEgress: async () => { askCount += 1; return 'allow_session'; },
+    sessionGrants: grants,
+    sessionDenies: new Set(),
+  });
+  // link-local/metadata literal → flat refuse, the ask must never fire
+  const r = await t.execute('c', { url: 'http://169.254.169.254/latest/meta-data' });
+  assert.equal(r.isError, true);
+  assert.equal(askCount, 0, 'forbidden literal bypasses the ask path');
+  assert.equal(grants.size, 0);
+  // unrestricted baseline (no allowlist file) → no ask either
+  let askCount2 = 0;
+  const { server, port } = await serve((req, res) => res.end('open'));
+  try {
+    const t2 = webFetchTool({
+      egressAllow: () => null,
+      askEgress: async () => { askCount2 += 1; return 'deny'; },
+      sessionGrants: new Set(),
+      sessionDenies: new Set(),
+    });
+    const r2 = await t2.execute('c', { url: `http://localhost:${port}/` });
+    assert.equal(r2.isError, undefined);
+    assert.equal(askCount2, 0, 'unrestricted baseline never asks');
+  } finally {
+    server.close();
+  }
+});

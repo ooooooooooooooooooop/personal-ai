@@ -434,6 +434,10 @@ export async function startHost({
   let asks = null;
   let riskMode = 'normal';
   let modeOverlay = null; // named preset overlay (Policy Preset Overlay)
+  // dedup-h #1815 inline session network policy: operator ask answers grant
+  // or deny web_fetch hosts for this session only — cleared in rebuildSession.
+  const sessionEgressGrants = new Set();
+  const sessionEgressDenies = new Set();
   // Presets re-read on every list/set so an edited modes.json takes effect
   // on the next mode_set without a respawn (two small JSONs — negligible).
   const loadModePresets = () => new ModePresets({ instanceRoot, workdir });
@@ -914,6 +918,24 @@ export async function startHost({
           return Array.isArray(doc?.allowDomains) ? doc.allowDomains.map(String) : null;
         } catch { return null; }
       },
+      // dedup-h #1815: a host outside the allowlist asks the operator inline
+      // instead of flat-refusing — allow_session/'always' grant for this
+      // session, deny latches a session deny. Fail-closed without a channel.
+      askEgress: (host) => (asks ? asks.ask({
+        toolName: 'web_fetch',
+        toolCallId: null,
+        rule: 'egress_allowlist',
+        summary: `web_fetch → ${host} (not on the egress allowlist)`,
+        detail: `web_fetch 要访问的 ${host} 不在 operator egress 允许名单。允许一次=仅本次请求；本会话允许=会话内该域名不再询问；拒绝=本会话拒绝该域名。`,
+        args: { host },
+        argsTruncated: false,
+        argsTotalChars: null,
+      }).then((answer) => {
+        core.audit.write({ kind: 'EGRESS_POLICY_ASK', toolName: 'web_fetch', data: { host: String(host).slice(0, 200), answer } });
+        return answer;
+      }) : Promise.resolve('deny')),
+      sessionGrants: sessionEgressGrants,
+      sessionDenies: sessionEgressDenies,
       // M133: over-size pages get an AI summary via the shared judge call
       // (gated fetch → billed; feature-models.json 'judge' routes it to a
       // cheap model). Null when no provider/auth — tool falls back to
@@ -1515,6 +1537,8 @@ export async function startHost({
     asks.resetSession(); // "本会话允许" grants die with the conversation
     riskMode = 'normal'; // plan mode is session-scoped too
     modeOverlay = null; // preset overlays die with the session as well
+    sessionEgressGrants.clear(); // #1815 inline egress grants are session-scoped
+    sessionEgressDenies.clear();
     const built = await buildSession(sessionManager);
     currentSession = built.session;
     claimTaskScope();

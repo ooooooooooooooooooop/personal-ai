@@ -2735,3 +2735,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **即时可见性**：会话文件按上游设计懒写（首条 assistant 消息才持久化）——分支须立即在 drawer 可见，故 `appendSessionInfo` 钉 `[分支]` 名条（同 `[导入]` 惯例）+ 手写 header+entries 落盘；首条真实持久化会整体重写 fileEntries，永不双 header。审计 `SESSION_BRANCHED_FRESH {parent, via: flag|hook}`。
 - **证据**：`pi/tests/bootstrap.test.js` +3=34/34——(a) hook 应答 skip：分支文件存在、header `parentSession` 钉源路径、零 message 条目、`SESSION_BRANCHED_FRESH via:hook` 审计；(b) 显式旗标：无 hook 同效 + `entryId+skip` 拒 + **普通 fork 仍带全转录（回归钉死）**；(c) hook deny：分支拒止、reason 透出。host 全套 401/401。
 - **核销**：candidates-open #1807 → `candidates-resolved.tsv` #123。
+
+### 28.120 648 清单逐条核销 #124：dedup-h #1815 sessions-history——policy-inline: chat→grant/deny session network policy（2026-09-25）
+
+- **行**：`dedup-h  1815  sessions-history  policy-inline: chat→grant/deny session network policy`（描述段为另一 changelog 的 resource-loader 片段，非本条语义）。
+- **判定**：**IMPLEMENTED**。源语义为"会话内 inline（对话中）授予/拒绝网络策略"——基线核查：egress 唯一会话网络策略面是 `web_fetch` 的 `<instance>/egress-allow.json` 域名白名单（逐调用重读、SSRF/DNS 边界 M63/M66）；非名单域名**平直拒绝**、无任何会话级 grant/deny 机制。落地：
+  - **会话集合**：`sessionEgressGrants`/`sessionEgressDenies` 声明于 bootstrap 会话作用域，`rebuildSession` 内随 `asks.resetSession()` 一并清空——inline 授与拒与会话同寿，绝不留残渣。
+  - **ask 缝**：`webFetchTool.askEgress` 仅在 allowlist 生效且域名未命中时触发，走 `PendingAsks.ask`（rule `egress_allowlist`），无操作员通道 fail-closed deny；每次决议审计 `EGRESS_POLICY_ASK {host, answer}`。
+  - **答案语义**（对齐 read/write_outside 先例）：`allow`=仅本次请求放行；`allow_session`/`always`=域名并入 sessionGrants 此后不问；`deny`=拒绝且**闩锁** sessionDenies（此后平直拒绝不再询问）；`timeout`/`aborted` 拒绝但不闩锁。
+  - **硬边界**：link-local/metadata 字面量（`isForbiddenAddress`，169.254.169.254 族）**永不进入 ask 路径**——云元数据类只能走 operator 文件名单，一次对话点击不可放行；grants 只扩展已配置名单，无名单时 unrestricted baseline 语义不变（不产生"加一项即成名单"的语义漂移）。
+  - **每跳生效**：redirect 逐跳重跑 egressCheck——重定向到未授权主机同样触发 ask/拒绝，DNS 私有解析边界不被会话 grant 放宽的例外仅限显式名单语义本身（operator 信任）。
+- **证据**：`pi/tests/web.test.js` +4=17/17——(a) `allow_session` 真放行 + 并入 grants + 二次调用零 ask；(b) `allow` 一次仅本次 + grants 不增 + 二次再 ask；(c) `deny` 闩锁 denies + 二次平直拒绝零 ask；(d) `169.254.169.254` 字面量零 ask 平直拒 + 无名单 unrestricted baseline 零 ask。聚焦回归 web+bootstrap+budgetfetch+sessioncmd 81/81。
+- **核销**：candidates-open #1815 → `candidates-resolved.tsv` #124。
