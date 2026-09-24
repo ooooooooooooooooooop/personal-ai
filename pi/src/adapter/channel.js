@@ -4,7 +4,7 @@
  * shapes get translated into plain-data snapshots a UI can consume.
  */
 import { HostChannel } from '../../../host/src/core/channel.js';
-import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText, materializeImageSource, pngDownscale, persistAttachment } from '../../../host/src/core/attachments.js';
+import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText, materializeImageSource, pngDownscale, persistAttachment, sniffMime } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { lookup as dnsLookup } from 'node:dns/promises';
@@ -16,6 +16,11 @@ import { parseSecretRef, resolveSecretRef } from '../../../host/src/core/secrets
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
+
+// dedup-h #1867: codecs every major vision provider reads natively. Anything
+// else (heic/tiff/svg/ico/bmp-untranscoded/avif…) must never reach the wire
+// as an image block — it degrades to an honest descriptor at attach time.
+const VISION_MIME = new Set(['image/png', 'image/jpeg', 'image/gif', 'image/webp']);
 
 /** Atomic JSON write: tmp + rename — a torn write must not leave a half-file
  * behind (credential/config corruption is unrecoverable by reload). */
@@ -447,6 +452,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
             });
           }
         }
+        let codecDropped = 0;
         if (native.length) {
           // M137 image_detail tier: high (default) = untouched; balanced /
           // low cap the longest edge (1568px / 512px, OpenAI-grid analogue)
@@ -462,6 +468,21 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           for (const a of native) {
             let data = materializeImageSource(a); // path → bytes (was silently undefined)
             if (data == null) { degraded.push(a); continue; }
+            // dedup-h #1867 vision-codec gate: provider image surfaces read
+            // png/jpeg/gif/webp — heic/tiff/svg/ico & friends must not ride a
+            // native image block and die inside the provider request; they
+            // degrade to a truthful descriptor at attach time instead. Bytes
+            // are ground truth: a sniffed codec overrides the declared mime.
+            let effMime = a.mime;
+            try {
+              const s = sniffMime(Buffer.from(data.slice(0, 96), 'base64'));
+              if (s) effMime = s;
+            } catch { /* keep declared */ }
+            if (!VISION_MIME.has(effMime)) {
+              a.mime = effMime; // descriptor names the true codec, not the label
+              degraded.push(a); codecDropped++; continue;
+            }
+            a.mime = effMime; // a mislabeled image rides under its true codec
             if (Number.isFinite(maxEdge) && a.mime === 'image/png') {
               const smaller = pngDownscale(Buffer.from(data, 'base64'), maxEdge);
               if (smaller) {
@@ -482,6 +503,14 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
               `<attachment kind="image" name="${a.name}" mime="${a.mime}" path="${String(a.persistedPath).replace(/"/g, '')}"/>`
             ).join('\n')}`;
           }
+        }
+        if (codecDropped) {
+          core.audit?.write({ kind: 'ATTACHMENT_CODEC_DEGRADED', data: { count: codecDropped } });
+          emit({
+            type: 'notify',
+            level: 'warn',
+            message: `${codecDropped} 张图片格式不可读（HEIC/TIFF/SVG/ICO 等非视觉编码）——已降级为文本描述，模型看不到像素`,
+          });
         }
         if (degraded.length) {
           // Extractable formats (text/code/ipynb) inline their CONTENT so the

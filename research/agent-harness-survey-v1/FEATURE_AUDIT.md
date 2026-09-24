@@ -2778,3 +2778,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **信任边界**：`post_tool` 仅 GATE_EVENTS——workdir `.pai/hooks.json` 声明即拒（agent 不可给自身工具结果注入）；prompt/agent 型条目答 `args`/`append` 需 `allowPromptInjection` 否则拒（#1143 内容字段规则）；改写/追加畸形→deny 闭。
 - **证据**：`host/tests/hooks.test.js` +3（args 改写组合/畸形+prompt 注入门/post_tool 收集+deny+workdir 拒声明）→ host 全套 **407/407**；`pi/tests/hook-rewrite.test.js` 新 6/6——改写就地生效且 kernel 见原始+改写双份参数（重进链实证）、改写后命中 commands.json denyPrefix 仍 `command_denylist`、二次改写 `pre_tool_hook` 拒、veto 语义不变、append 拼进 result、deny 抑制输出。pi 聚焦回归 128/130（两失败=外来 `instance.js` WORLD_MODEL_HOME 重定向 scrub-env 假象，与 #1846 同一外来在途）。
 - **核销**：candidates-open #1858 → `candidates-resolved.tsv` #127。
+
+### 28.124 648 清单逐条核销 #128：dedup-h #1867 skills-plugins——hook-events: after_provider_response(HTTP status/headers)（2026-09-25）
+
+- **行**：`dedup-h  1867  skills-plugins  hook-events: after_provider_response(HTTP status/headers)`（描述段为错位片段——HEIC/TIFF/SVG/BMP/ICO 等模型管线不可读图片格式 attach 时拒，picker/粘贴/拖拽三入口同语义）。
+- **判定**：
+  - **标题语义** = **ALREADY_COVERED**：`after_provider_response` hook 事件已由 dedup-h #1698 落地——`providerAuditExtension` 挂 pi 原生 `after_provider_response`，`llm_output` 观察性 hook 载荷恰为 `{seq, status, headers}`（响应行后、body 流前的诚实包络），workdir `.pai/hooks.json` 可订阅；tests `llm-hooks.test.js` 4/4。
+  - **描述语义** = **IMPLEMENTED（variant）**。源为 attach 时硬拒；我方对位是**诚实降级**：不可读 codec 绝不进 `{type:'image'}` 块死在 provider 请求里，而是降级为 `<attachment …/>` 文本描述（模型仍见真实引用+持久化路径可读）——信息不丢且防护等价。核查发现真缺口：`kind:'image'` 附件原不分 codec 全走 native 运载。落地：
+    - `attachments.js` `sniffMime` 补 ISO-BMFF ftyp 品牌（heic/heix/mif1/msf1/avif 等→`image/heic`/`image/avif`）+ TIFF 双端序 + ICO magic。
+    - `channel.js` native 运载环加 `VISION_MIME`（png/jpeg/gif/webp——主流 vision provider 全集）codec 门：**字节为真相**——sniff 出的 codec 覆盖声明 mime，真 PNG 误标 heic 纠偏照走、png 壳藏 tiff 拦下；降级时 `a.mime` 归真（描述符名实相符）；`ATTACHMENT_CODEC_DEGRADED` 审计 + warn 通知操作员。
+- **证据**：`host/tests/attachments.test.js` +1=10/10（heic/mif1/avif ftyp、tiff 双端序、ico、png 不误伤）；`pi/tests/channel-facade.test.js` +1=46/46——heic+tiff 不触 `opts.images`、真 png 与 heic 壳藏 png 双双以 `image/png` 上线、描述符 mime 归真、notify+审计齐。pi 聚焦回归 78/78。
+- **核销**：candidates-open #1867 → `candidates-resolved.tsv` #128。

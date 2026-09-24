@@ -170,3 +170,19 @@ test('clipboard BMP → PNG transcoding (BI_RGB only; else honest descriptor)', 
   const { attachments: a2 } = normalizeAttachments([{ name: 'x.bmp', mime: 'image/bmp', data: bad.toString('base64') }]);
   assert.equal(a2[0].mime, 'image/bmp');
 });
+
+test('#1867 codec sniffing: heic ftyp / tiff / ico named for the vision gate', () => {
+  // ISO-BMFF: 4-byte box size, 'ftyp' at 4, brand at 8-12
+  const heic = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftyp'), Buffer.from('heic'), Buffer.alloc(16)]);
+  assert.equal(sniffMime(heic), 'image/heic');
+  const mif1 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftyp'), Buffer.from('mif1'), Buffer.alloc(16)]);
+  assert.equal(sniffMime(mif1), 'image/heic');
+  const avif = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftyp'), Buffer.from('avif'), Buffer.alloc(16)]);
+  assert.equal(sniffMime(avif), 'image/avif');
+  // TIFF endian variants + ICO
+  assert.equal(sniffMime(Buffer.from([0x49, 0x49, 0x2a, 0x00, 1, 2, 3, 4])), 'image/tiff');
+  assert.equal(sniffMime(Buffer.from([0x4d, 0x4d, 0x00, 0x2a, 1, 2, 3, 4])), 'image/tiff');
+  assert.equal(sniffMime(Buffer.from([0x00, 0x00, 0x01, 0x00, 1, 2])), 'image/x-icon');
+  // a real PNG still wins over the container checks
+  assert.equal(sniffMime(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), 'image/png');
+});

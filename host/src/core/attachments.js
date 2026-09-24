@@ -51,12 +51,22 @@ const MAGIC = [
   [Buffer.from('%PDF', 'latin1'), 'application/pdf'],
   [Buffer.from([0x50, 0x4b, 0x03, 0x04]), 'application/zip'],
   [Buffer.from('MZ', 'latin1'), 'application/x-msdownload'],
+  [Buffer.from('II*\0', 'latin1'), 'image/tiff'],
+  [Buffer.from('MM\0*', 'latin1'), 'image/tiff'],
+  [Buffer.from([0x00, 0x00, 0x01, 0x00]), 'image/x-icon'],
 ];
 export function sniffMime(buf) {
   if (!buf || buf.length < 4) return null;
   // RIFF container disambiguates at bytes 8-12 (WEBP vs WAVE/AVI)
   if (buf.length >= 12 && buf.subarray(0, 4).toString('latin1') === 'RIFF'
       && buf.subarray(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+  // ISO-BMFF: 'ftyp' at offset 4, brand at 8-12 — HEIC/HEIF/AVIF are
+  // vision-surface rejects (dedup-h #1867 codec gate needs them named).
+  if (buf.length >= 12 && buf.subarray(4, 8).toString('latin1') === 'ftyp') {
+    const brand = buf.subarray(8, 12).toString('latin1');
+    if (brand === 'avif' || brand === 'avis') return 'image/avif';
+    if (['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1', 'heim', 'heis', 'hevm', 'hevs'].includes(brand)) return 'image/heic';
+  }
   for (const [magic, mime] of MAGIC) {
     if (buf.length >= magic.length && buf.subarray(0, magic.length).equals(magic)) return mime;
   }

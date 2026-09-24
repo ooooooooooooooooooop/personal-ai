@@ -1491,3 +1491,45 @@ test('#1406 auth_set_key: item outside the secrets.json allowlist refused; malfo
   assert.equal(stored, false);
   dispose();
 });
+
+// dedup-h #1867: unreadable vision codecs degrade at attach time instead of
+// dying inside the provider request — bytes are ground truth, not the label.
+test('vision-codec gate: heic/tiff degrade to descriptors; true codec wins', async () => {
+  const calls = [];
+  const auditEvents = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.model = { provider: 'cpa', id: 'vision-1', input: ['text', 'image'] };
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-codec-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir }, audit: { write: (e) => auditEvents.push(e) } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const events = [];
+  ch.subscribe((m) => events.push(m));
+
+  const heic = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftyp'), Buffer.from('heic'), Buffer.alloc(16)]).toString('base64');
+  const tiff = Buffer.from([0x49, 0x49, 0x2a, 0x00, 9, 9, 9, 9]).toString('base64');
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]).toString('base64');
+
+  await ch.handle({
+    type: 'prompt', message: 'look',
+    options: { attachments: [
+      { name: 'shot.heic', mime: 'image/heic', data: heic },
+      { name: 'fake.png', mime: 'image/png', data: tiff },       // mislabeled: bytes are TIFF
+      { name: 'ok.png', mime: 'image/png', data: png },
+      { name: 'weird.heic', mime: 'image/heic', data: png },     // mislabeled the other way: bytes are PNG
+    ] },
+  });
+  const [msg, opts] = calls[0];
+  // heic + mislabeled tiff never reach the wire; the real png and the
+  // heic-labeled-but-actually-png bytes ride under their TRUE codec
+  assert.equal(opts.images.length, 2);
+  assert.ok(opts.images.every((i) => i.mimeType === 'image/png'));
+  assert.match(msg, /<attachment kind="image" name="shot.heic" mime="image\/heic" bytes="\d+"\/>/);
+  assert.match(msg, /<attachment kind="image" name="fake.png" mime="image\/tiff" bytes="\d+"\/>/);
+  assert.ok(events.some((m) => m.event?.type === 'notify' && /格式不可读/.test(m.event.message ?? '')),
+    'operator is told images degraded on codec');
+  assert.ok(auditEvents.some((e) => e.kind === 'ATTACHMENT_CODEC_DEGRADED' && e.data.count === 2));
+  dispose();
+});
