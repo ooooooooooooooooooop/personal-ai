@@ -2519,3 +2519,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   2. `markAskResolved` 直接拿事件 answer 拼 class——编辑批准 envelope `{answer,edited}` 产生 `a-[object Object]`（含空格）→ `InvalidCharacterError`；自由文本 question 答案同病。归一 verdict+消毒 token；fake-channel 同步修成与真 host 一致发规范化 verdict（fixture 保真）。a11y：edit/wand 控件补 aria-label（axe critical 清零）。
 - **证据**：host/tests/channel.test.js +1（facade 缺席 fail-closed/成功/错误透传，host 400/400）；pi/tests/wand.test.js +2——本地 OpenAI 兼容端点实证 feature-models.json 'wand' 路由命中（请求体 model=wand-mini、指令进 user prompt）、改写回填、缺字段不触模型、死端点诚实报错（pi 全套回归见提交说明）；dom-gate +2 检查——`askEditWand`（编辑展开 wand 行可见）+`wandRewrite`（textarea 回填 `rm -rf scratch/ # 只删 .log 文件` + toast 提示审核后再批）；app lint css+html 净。
 - **核销**：candidates-open #1392 → `candidates-resolved.tsv` #102。
+
+### 28.99 648 清单逐条核销 #103：dedup-h #1398 origin-gate——browser-originated 连接全量 origin 校验（2026-09-24）
+
+- **行**：`dedup-h  1398  approval-gate  origin-gate: browser-originated WS全量origin校验`。
+- **判定**：**ALREADY_COVERED（variant——无 WS 传输，HTTP 面全量覆盖）**。源语义是"浏览器发起的通道必须过 origin 校验"。我方无 WebSocket 入站传输（`pi/src/adapter/browser.js`、`dsh/adapter/typert.js` 的 WebSocket 都是出向客户端），浏览器会话面是 loopback HTTP 桥：
+  - `app/server/http-bridge.js:69` `badHost` 全请求门——非字面 loopback Host 一律 403（DNS-rebinding 防线：重绑定域名会让恶意页面与监听同域，Host 门直接掐死同域假象）。
+  - `app/server/http-bridge.js:32` `badOrigin` 所有 POST（`/cmd`、`/api/pick-dir`）——Origin 主机名必须 loopback，`Sec-Fetch-Site` 只收 same-origin/same-site/none；无 Origin 头视为非浏览器客户端放行（与源"browser-originated"语义对齐）。
+  - GET 面（`/events` SSE、`/api/artifact(s)`、`/api/state`、`/api/metrics`、静态）全部只读 + 无 ACAO 头——浏览器跨源读取被 CORS 默认拒绝，Host 门再兜底 rebinding。
+  - 唯一另一入站监听 `pi/src/adapter/webhook.js`：token 认证端点（Bearer/`x-pai-secret` → sha256 常时比较，POST-only+路径枚举+体积帽+速率帽）——浏览器来源 POST 无 secret 即 403，secret 是比 origin 更强的该面之门；非 loopback bind 是显式操作员选择且 `WEBHOOK_BIND_WIDE` 大声审计。
+- **证据**：`app/tests/bridge.test.js:96`——跨源 POST /cmd 拒绝、loopback Origin 放行、无 Origin 非浏览器放行、Sec-Fetch-Site:cross-site 拒绝；`bridge.test.js:128`——非 loopback Host 在每个端点被拒（DNS rebinding 钉）。
+- **核销**：candidates-open #1398 → `candidates-resolved.tsv` #103。
