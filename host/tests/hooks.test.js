@@ -414,3 +414,87 @@ test('#1334 resolver returning falsy runs the raw command; throwing fails closed
   assert.ok(!existsSync(join(w2, 'ran.txt')), 'command must not run when exec env resolution fails');
   assert.ok(audit2.events.some((e) => e.kind === 'HOOK_ERROR' && /exec env resolution failed/.test(e.data.error)));
 });
+
+/* ---- dedup-h #1858: before_tool arg rewrite + post_tool output append ---- */
+
+test('#1858 gate: {"args":{…}} rewrites tool input and composes across hooks', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const gateFile = join(w, 'gate.json');
+  const echo = join(w, 'echo-args.json');
+  // hook 1 rewrites; hook 2 records the args it receives on stdin — the
+  // rewrite must compose so hook 2 sees hook 1's output, not the original.
+  const rw = join(w, 'rw.js');
+  writeFileSync(rw, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{console.log(JSON.stringify({args:{command:'rewritten-cmd',extra:1}}));});`);
+  const rec = join(w, 'rec.js');
+  writeFileSync(rec, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const p=JSON.parse(d);require('fs').writeFileSync(${JSON.stringify(echo)},JSON.stringify(p.args));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [
+    { command: `node ${JSON.stringify(rw)}` },
+    { command: `node ${JSON.stringify(rec)}` },
+  ] } }));
+  const g = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const r = await g.fireGate('pre_tool', { tool: 'bash', args: { command: 'orig-cmd' } });
+  assert.deepEqual(r.args, { command: 'rewritten-cmd', extra: 1 });
+  assert.deepEqual(JSON.parse(readFileSync(echo, 'utf-8')), { command: 'rewritten-cmd', extra: 1 });
+});
+
+test('#1858 gate: malformed args rewrite denies closed; prompt-kind needs opt-in', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const gateFile = join(w, 'gate.json');
+  const bad = join(w, 'bad.js');
+  writeFileSync(bad, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({args:'not-an-object'}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ command: `node ${JSON.stringify(bad)}` }] } }));
+  const g = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const d = await g.fireGate('pre_tool', { tool: 'bash', args: {} });
+  assert.match(d.deny, /malformed args rewrite/);
+  // model-backed entry: {args} is a content field — refused without opt-in
+  const llmFn = async () => JSON.stringify({ args: { command: 'x' } });
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ prompt: 'rewrite it' }] } }));
+  const g2 = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn });
+  const d2 = await g2.fireGate('pre_tool', { tool: 'bash', args: {} });
+  assert.match(d2.deny, /without allowPromptInjection/);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_INJECTION_REFUSED'));
+  // opted-in entry rewrites honestly
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ prompt: 'rewrite it', allowPromptInjection: true }] } }));
+  const g3 = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn });
+  const a3 = await g3.fireGate('pre_tool', { tool: 'bash', args: {} });
+  assert.deepEqual(a3.args, { command: 'x' });
+});
+
+test('#1858 gate: post_tool collects {"append"} across entries; malformed → deny; workdir cannot declare it', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const gateFile = join(w, 'gate.json');
+  const a1 = join(w, 'a1.js');
+  writeFileSync(a1, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({append:'ctx-one'}));});`);
+  const a2 = join(w, 'a2.js');
+  writeFileSync(a2, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({append:'ctx-two'}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { post_tool: [
+    { command: `node ${JSON.stringify(a1)}` },
+    { command: `node ${JSON.stringify(a2)}` },
+  ] } }));
+  const g = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const r = await g.fireGate('post_tool', { tool: 'read', args: {}, output: 'file body' });
+  assert.deepEqual(r.append, ['ctx-one', 'ctx-two']);
+  // deny on post_tool stays a veto (output suppression)
+  const dn = join(w, 'dn.js');
+  writeFileSync(dn, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({deny:'leaked secret'}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { post_tool: [{ command: `node ${JSON.stringify(dn)}` }] } }));
+  const g2 = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const r2 = await g2.fireGate('post_tool', { tool: 'read', output: 'x' });
+  assert.equal(r2.deny, 'leaked secret');
+  // malformed append → fail closed
+  const bd = join(w, 'bd.js');
+  writeFileSync(bd, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({append:42}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { post_tool: [{ command: `node ${JSON.stringify(bd)}` }] } }));
+  const g3 = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const r3 = await g3.fireGate('post_tool', { tool: 'read', output: 'x' });
+  assert.match(r3.deny, /malformed append/);
+  // workdir observational file can never declare post_tool — agent must not
+  // inject into its own tool results
+  cfg(w, { hooks: { post_tool: [{ command: 'echo x' }] } });
+  const h = new HookRunner(w, { audit });
+  assert.deepEqual(h.events, []);
+  assert.ok(audit.events.some((e) => e.kind === 'HOOK_CONFIG_ERROR' && e.data.rejectedEvents?.includes('post_tool')));
+});

@@ -2767,3 +2767,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - `histPush(text)` 移到两种 bang 公共路径——`!`/`!!` 输入都进 200 条上箭头回忆历史（此前 `!` 也不存）。
 - **证据**：`app/tests/fixtures/dom-gate.js` +1 检查、offscreen Electron DOM gate 绿——`!!echo domgate-nocontext` 后 `pendingBash` 保持空（输出不进 context）+ `promptHist` 末条恰为 `!!` 文本（存 history）+ `!echo domgate-bang` 亦在历史（`!` 入史回归钉死）；`bangStash`/`bangShell` 既有检查续绿（`!` 语义未变）。**app 全套 18/19**——唯一失败 `body_select handoff` 为**外来在途**所致：外来 `host/src/core/instance.js` 让 `instancePaths` 认 `WORLD_MODEL_HOME` env（本机已设），canonicalDir 重定向至 pilot 目录，fixture 硬编码 `<instance>/canonical` 读不到 policy.json 崩溃；stash=HEAD 时该测试 19/19 过，且测试路径不碰本条两文件——非本条回归，如实记录不修他人迁移。
 - **核销**：candidates-open #1846 → `candidates-resolved.tsv` #126。
+
+### 28.123 648 清单逐条核销 #127：dedup-h #1858 shell-tools——hook-forms: hooks.toml before_tool/after_tool shell scripts（2026-09-25）
+
+- **行**：`dedup-h  1858  shell-tools  hook-forms: hooks.toml before_tool/after_tool shell scripts`（源为 Gemini CLI hooks.toml：before/after_tool shell hook 可拒调用、改写工具输入、给输出追加 context；后续版本改名 pre/post_tool 且 hook 不经 shell 执行防注入）。
+- **判定**：**IMPLEMENTED（variant）**。配置形态为强化变体——我方 JSON hooks.json + 类型化条目（command/http/prompt/agent）+ stdin JSON 载荷（不经命令行插值，源"去 shell 防注入"顾虑在我方无落点：shell:true 的命令串本身是操作员私有文件自证信任边界，payload 走管道）。三语义面核查后落地两缺口：
+  - **拒调用** = `pre_tool` gate `{deny}`/`{requireApproval}`——**本已覆盖**。
+  - **改写工具输入** = 新落 `pre_tool` `{args:{…}}` 应答：`fireGate` 逐条组合（后续 hook stdin 见已改写 args）；decide.js 在 hook 点就地改写共享 `validatedArgs`（agent-loop 执行的同一对象）后**有界重进整条链**——改写参数重过 sanitize/kernel/decideToolCall/deny-prefix/.paiignore/边界/world-model 全部门，绝无绕门；二次 `{args}` 应答→拒（bound=1，防改写循环）。
+  - **追加输出 context** = 新 GATE 事件 `post_tool`（Gemini after_tool 对位）挂 pi `tool_result` 缝：`{append:"…"}` 应答追加 text 块进模型所见 result；`{deny}`/hook 失败抑制输出（门契约统一 fail-closed）；`requireApproval` 无执行后问询通道→扣留输出 fail-closed。
+  - **信任边界**：`post_tool` 仅 GATE_EVENTS——workdir `.pai/hooks.json` 声明即拒（agent 不可给自身工具结果注入）；prompt/agent 型条目答 `args`/`append` 需 `allowPromptInjection` 否则拒（#1143 内容字段规则）；改写/追加畸形→deny 闭。
+- **证据**：`host/tests/hooks.test.js` +3（args 改写组合/畸形+prompt 注入门/post_tool 收集+deny+workdir 拒声明）→ host 全套 **407/407**；`pi/tests/hook-rewrite.test.js` 新 6/6——改写就地生效且 kernel 见原始+改写双份参数（重进链实证）、改写后命中 commands.json denyPrefix 仍 `command_denylist`、二次改写 `pre_tool_hook` 拒、veto 语义不变、append 拼进 result、deny 抑制输出。pi 聚焦回归 128/130（两失败=外来 `instance.js` WORLD_MODEL_HOME 重定向 scrub-env 假象，与 #1846 同一外来在途）。
+- **核销**：candidates-open #1858 → `candidates-resolved.tsv` #127。

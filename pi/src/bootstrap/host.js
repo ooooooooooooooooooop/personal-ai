@@ -1277,6 +1277,9 @@ export async function startHost({
       // HookRunner is constructed later in this scope (observational config
       // parses beside the channel); provider events only fire post-boot.
       getHooks: () => { try { return hooks; } catch { return null; } },
+      // dedup-h #1858 — post_tool gate hook on the tool_result seam; the
+      // operator-private runner is constructed above (preToolGate).
+      getGateHooks: () => { try { return preToolGate; } catch { return null; } },
       // revalidate defaults to the session's own tool registry via pi-ai
       // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
       // ctx.toolName — translate at the boundary, don't leak Pi shape inward.

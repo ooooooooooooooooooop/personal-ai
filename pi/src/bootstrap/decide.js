@@ -159,7 +159,11 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     }
     return abs;
   };
-  const inner = async (ctx, signal) => {
+  const inner = async (ctx, signal, rewritten = false) => {
+    // dedup-h #1858: the object the executor runs is ctx.args AS PASSED IN
+    // (agent-loop validatedArgs) — capture it before the unicode sanitizer
+    // re-spreads ctx, so a pre_tool {args} rewrite mutates the real target.
+    const execArgs = ctx.args;
     const toolName = ctx.toolCall?.name ?? ctx.toolName;
     // Invisible-unicode sanitization FIRST (Goose analogue): the kernel must
     // classify the same text that would execute — zero-width chars can spoof
@@ -414,6 +418,25 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
           if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
             return { block: true, rule: 'pre_tool_hook', reason: `operator denied the hook-escalated call (${answer})` };
           }
+        }
+        // dedup-h #1858 — {args:{…}} input rewrite (Gemini before_tool
+        // analogue). The hook fires at this LATE point so it never spawns for
+        // a call already dead; a rewrite therefore mutates the shared
+        // validatedArgs in place and RE-ENTERS the whole chain — kernel,
+        // deny prefixes, boundaries, world-model all re-run on the rewritten
+        // call. Bounded to one rewrite: a second {args} answer denies closed.
+        if (g?.args !== undefined) {
+          if (rewritten || !execArgs || typeof execArgs !== 'object') {
+            return {
+              block: true,
+              rule: 'pre_tool_hook',
+              reason: `operator pre_tool hook ${rewritten ? 'rewrote args twice' : 'returned args for a call with no arg object'} — refusing (fail-closed)`,
+            };
+          }
+          for (const k of Object.keys(execArgs)) if (!(k in g.args)) delete execArgs[k];
+          Object.assign(execArgs, g.args);
+          core.audit.write({ kind: 'HOOK_ARGS_REWRITE', toolName, data: { toolCallId: ctx.toolCall?.id, keys: Object.keys(g.args).slice(0, 20) } });
+          return inner({ ...ctx, args: execArgs }, signal, true);
         }
       } catch (err) {
         // A broken gate must never silently pass — fail closed.

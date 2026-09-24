@@ -104,6 +104,55 @@ export function providerAuditExtension(audit, getHooks = null) {
   };
 }
 
+/**
+ * Host-owned inline extension: operator-private post_tool hook (dedup-h
+ * #1858 — Gemini after_tool analogue). Runs on the tool_result seam: a gate
+ * entry answering {"append":"…"} appends text blocks to the result the
+ * model sees; {"deny"} / a failed hook suppresses the output (gate contract
+ * stays fail-closed — an unvetted decoration never silently passes). The
+ * workdir observational file cannot declare post_tool — an agent-reachable
+ * hook must never inject into its own tool results.
+ */
+export function postToolHookExtension(getGateHooks) {
+  return {
+    name: 'pai-post-tool-hook',
+    factory: (pi) => {
+      pi.on('tool_result', async (event) => {
+        const gate = getGateHooks?.();
+        if (!gate) return undefined;
+        const output = (event.content ?? [])
+          .map((c) => (c?.type === 'text' ? c.text ?? '' : ''))
+          .filter(Boolean).join('\n');
+        const g = await gate.fireGate('post_tool', {
+          tool: event.toolName,
+          toolCallId: event.toolCallId ?? null,
+          args: event.input ?? {},
+          isError: Boolean(event.isError),
+          output: output.slice(0, 16384),
+          outputChars: output.length,
+          outputTruncated: output.length > 16384,
+        });
+        if (!g) return undefined;
+        if (g.deny) {
+          return { content: [{ type: 'text', text: `[post_tool hook refused this tool result: ${g.deny}]` }] };
+        }
+        if (g.requireApproval) {
+          return { content: [{ type: 'text', text: '[post_tool hook requested operator approval — post-execution asks are unsupported; output withheld (fail-closed)]' }] };
+        }
+        if (Array.isArray(g.append) && g.append.length) {
+          return {
+            content: [
+              ...(event.content ?? []),
+              ...g.append.map((t) => ({ type: 'text', text: String(t) })),
+            ],
+          };
+        }
+        return undefined;
+      });
+    },
+  };
+}
+
 /** Host-owned inline extension: ContextEnvelope → context seam per turn. */
 export function contextEnvelopeExtension(contextEnvelope) {
   return {
@@ -184,6 +233,7 @@ export async function createPiSession({
   excludeTools = [], // policy-derived initial suppression — model never sees them
   extraExtensions = [], // additional inline extension factories (e.g. the world-model shim)
   getHooks = null, // dedup-h #1698 — lazy HookRunner accessor for llm_input/llm_output
+  getGateHooks = null, // dedup-h #1858 — lazy GATE HookRunner for post_tool output hooks
 }) {
   const resourceLoader = new DefaultResourceLoader({
     cwd: workdir,
@@ -197,6 +247,7 @@ export async function createPiSession({
         ? [loopGovernanceExtension({ ...loopGovernance, contextEnvelope, audit, workdir })]
         : []),
       ...(outputSpool ? [outputSpoolExtension({ spool: outputSpool, audit })] : []),
+      ...(getGateHooks ? [postToolHookExtension(getGateHooks)] : []),
       // Inline factories supplied by the composition root (a body adapter's own
       // extension). Kept generic: createPiSession does not know what they do.
       ...extraExtensions,
