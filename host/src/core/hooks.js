@@ -98,7 +98,7 @@ export class HookRunner {
    *                                   point at the operator-private instance file)
    * @param {boolean} [deps.gate]      enable the 'pre_tool' veto event
    */
-  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null } = {}) {
+  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null } = {}) {
     this.workdir = workdir;
     this.audit = audit;
     this.env = env;
@@ -107,8 +107,28 @@ export class HookRunner {
     // Applied AFTER the secret scrub: an operator (or governed env_set) that
     // deliberately sets a key intends the child to see it.
     this.envOverlay = envOverlay;
+    // dedup-h #937 — hook forms beyond shell commands:
+    //   {command:"…"}  shell child (original form)
+    //   {http:"https://…"}  POST the payload JSON; last-line JSON of the
+    //       response body answers gate/value events like a command's stdout
+    //   {prompt:"…"} / {agent:"…"}  routed to llmFn(instruction, payload) —
+    //       agent is the same model call without a tool loop (honest: we do
+    //       not fake a tool-capable sub-agent inside a hook). No llmFn → the
+    //       entry counts as failed (observational: audited+skipped; gate:
+    //       fails closed).
+    this.llmFn = llmFn;
+    this.fetch = fetchImpl ?? globalThis.fetch;
     this.configPath = configPath ?? join(workdir, '.pai', 'hooks.json');
     this.hooks = this.#load();
+  }
+
+  /** Which runnable form an entry declares; null = not a hook entry. */
+  #entryKind(h) {
+    if (typeof h?.command === 'string' && h.command.trim()) return 'command';
+    if (typeof h?.http === 'string' && /^https?:\/\//.test(h.http.trim())) return 'http';
+    if (typeof h?.prompt === 'string' && h.prompt.trim()) return 'prompt';
+    if (typeof h?.agent === 'string' && h.agent.trim()) return 'agent';
+    return null;
   }
 
   #load() {
@@ -148,16 +168,16 @@ export class HookRunner {
    */
   async fire(event, payload = {}) {
     const entries = (this.hooks[event] ?? []).filter((h) =>
-      typeof h?.command === 'string' && h.command.trim()
+      this.#entryKind(h)
       && (typeof h.match !== 'string' || String(payload.toolName ?? '').startsWith(h.match)));
     if (!entries.length || this.#closed) return 0;
     let ran = 0;
     for (const h of entries) {
       ran++;
       const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-      this.audit?.write({ kind: 'HOOK_FIRE', data: { event, command: h.command.slice(0, 200) } });
+      this.audit?.write({ kind: 'HOOK_FIRE', data: { event, form: this.#entryKind(h), command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
       try {
-        const r = await this.#run(h.command, { event, ...payload }, timeoutMs);
+        const r = await this.#runEntry(h, { event, ...payload }, timeoutMs);
         this.audit?.write({ kind: 'HOOK_RESULT', data: { event, exitCode: r.code, tail: r.tail.slice(0, 500) } });
       } catch (err) {
         this.audit?.write({ kind: 'HOOK_ERROR', data: { event, error: String(err?.message ?? err).slice(0, 300) } });
@@ -176,13 +196,13 @@ export class HookRunner {
     if (!this.gate) throw new Error('fireGate on a non-gate HookRunner — observational hooks cannot veto');
     this.hooks = this.#load(); // live re-read: operator edits apply immediately
     const entries = (this.hooks[event] ?? []).filter((h) =>
-      typeof h?.command === 'string' && h.command.trim()
+      this.#entryKind(h)
       && (typeof h.match !== 'string' || String(payload.tool ?? '').startsWith(h.match)));
     for (const h of entries) {
       const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-      this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, command: h.command.slice(0, 200) } });
+      this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, form: this.#entryKind(h), command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
       try {
-        const r = await this.#run(h.command, { event, ...payload }, timeoutMs);
+        const r = await this.#runEntry(h, { event, ...payload }, timeoutMs);
         this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
         // stdout JSON {"deny":"reason"} is the structured refusal; a bare
         // non-zero exit refuses with the output tail as the reason.
@@ -219,12 +239,12 @@ export class HookRunner {
   async fireValue(event, payload = {}) {
     if (!this.gate) throw new Error('fireValue on a non-gate HookRunner — observational hooks cannot answer queries');
     this.hooks = this.#load(); // live re-read, same contract as fireGate
-    const entries = (this.hooks[event] ?? []).filter((h) => typeof h?.command === 'string' && h.command.trim());
+    const entries = (this.hooks[event] ?? []).filter((h) => this.#entryKind(h));
     if (!entries.length) return null;
     const h = entries[0];
     const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, value: true, command: h.command.slice(0, 200) } });
-    const r = await this.#run(h.command, { event, ...payload }, timeoutMs);
+    this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, value: true, form: this.#entryKind(h), command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
+    const r = await this.#runEntry(h, { event, ...payload }, timeoutMs);
     this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, value: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
     if (r.code !== 0) throw new Error(`${event} hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}`);
     try {
@@ -236,6 +256,44 @@ export class HookRunner {
 
   #closed = false;
   #children = new Set();
+
+  /**
+   * Run one hook entry in whichever form it declares (#937): shell command,
+   * HTTP POST, or LLM prompt/agent. All forms normalize to {code, tail} —
+   * the response's last-line JSON carries gate/value answers exactly like a
+   * command's stdout.
+   */
+  async #runEntry(h, payload, timeoutMs) {
+    const kind = this.#entryKind(h);
+    if (kind === 'command') return this.#run(h.command, payload, timeoutMs);
+    if (kind === 'http') {
+      try {
+        const res = await this.fetch(h.http.trim(), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        let tail = await res.text();
+        if (tail.length > MAX_OUTPUT_CHARS) tail = tail.slice(0, MAX_OUTPUT_CHARS);
+        return { code: res.ok ? 0 : 1, tail };
+      } catch (e) {
+        return { code: 1, tail: `http hook failed: ${String(e?.message ?? e).slice(0, 300)}` };
+      }
+    }
+    // prompt / agent — model-backed hook via injected llmFn.
+    const instruction = kind === 'prompt' ? h.prompt : h.agent;
+    if (!this.llmFn) return { code: 1, tail: `${kind} hook has no llmFn configured (PAI_HOOK_LLM_*)` };
+    try {
+      const text = await Promise.race([
+        this.llmFn(instruction, payload),
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`llm hook timed out after ${timeoutMs}ms`)), timeoutMs)),
+      ]);
+      return { code: 0, tail: String(text ?? '').slice(0, MAX_OUTPUT_CHARS) };
+    } catch (e) {
+      return { code: 1, tail: `llm hook failed: ${String(e?.message ?? e).slice(0, 300)}` };
+    }
+  }
 
   #run(command, payload, timeoutMs) {
     return new Promise((resolve, reject) => {

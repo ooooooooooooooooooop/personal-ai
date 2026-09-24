@@ -1036,11 +1036,39 @@ export async function startHost({
   // Absent file → empty runner, zero per-call cost. Created before
   // buildSession because the decide chain closes over it — and before
   // sessionDir because its 'session_directory' event may relocate sessions.
+  // dedup-h #937 — model-backed hook forms (prompt/agent) need an LLM the
+  // host core cannot own (zero-dep). Operator opts in via PAI_HOOK_LLM_*
+  // env: an OpenAI-compatible /chat/completions endpoint. Unset → prompt/
+  // agent hook entries fail loudly (gate) or audit-skip (observational).
+  const hookLlmFn = (() => {
+    const url = process.env.PAI_HOOK_LLM_URL;
+    const model = process.env.PAI_HOOK_LLM_MODEL;
+    if (!url || !model) return null;
+    const key = process.env.PAI_HOOK_LLM_KEY ?? null;
+    const timeoutMs = Number(process.env.PAI_HOOK_LLM_TIMEOUT_MS) || 10_000;
+    return async (instruction, payload) => {
+      const headers = { 'content-type': 'application/json' };
+      if (key) headers.authorization = `Bearer ${key}`;
+      const res = await fetch(url, {
+        method: 'POST', headers,
+        body: JSON.stringify({
+          model, temperature: 0, max_tokens: 1024,
+          messages: [{ role: 'user', content: `${String(instruction).slice(0, 4000)}\n\nHook payload (JSON):\n${JSON.stringify(payload).slice(0, 8000)}` }],
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      if (!res?.ok) throw new Error(`hook llm endpoint ${res?.status ?? 'unreachable'}`);
+      const doc = await res.json();
+      return doc?.choices?.[0]?.message?.content ?? '';
+    };
+  })();
+
   const preToolGate = new HookRunner(workdir, {
     audit: core.audit,
     configPath: join(core.paths.root, 'hooks.json'),
     gate: true,
     envOverlay,
+    llmFn: hookLlmFn,
   });
 
   // Sessions persist under the instance root — the app lists/resumes them.
@@ -1790,7 +1818,7 @@ export async function startHost({
   // (hook config is agent-writable workdir state; a veto there would let the
   // agent gate itself). Absent .pai/hooks.json → no-op; malformed config
   // throws at boot so the operator hears about it.
-  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay });
+  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   // dedup-h #391 — operator-side MCP surface: server list + OAuth

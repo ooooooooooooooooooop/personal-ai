@@ -267,3 +267,47 @@ test('prompt_submit gate (operator-private file) answers transform/deny JSON (#9
   assert.equal((await h.fireValue('prompt_submit', { text: 'bad' })).deny, 'nope');
   assert.equal((await h.fireValue('prompt_submit', { text: 'ok' })).context, 'C');
 });
+
+test('dedup-h #937: http/prompt/agent hook forms normalize to {code,tail}', async () => {
+  const w = dir();
+  // http form — POSTs the payload; response body last-line JSON answers gates
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ url, body: JSON.parse(init.body) });
+    return { ok: true, text: async () => 'noise\n{"deny":"http says no"}' };
+  };
+  cfg(w, { hooks: { prompt_submit: [{ http: 'https://hooks.local/x' }] } });
+  const hHttp = new HookRunner(w, { fetchImpl });
+  // observational fire runs the http entry
+  assert.equal(await hHttp.fire('prompt_submit', { preview: 'p' }), 1);
+  assert.equal(calls[0].url, 'https://hooks.local/x');
+  assert.equal(calls[0].body.event, 'prompt_submit');
+
+  // gate http: fireValue parses the body's last-line JSON
+  const gateFile = join(w, 'gate2.json');
+  writeFileSync(gateFile, JSON.stringify({ hooks: { prompt_submit: [{ http: 'https://hooks.local/gate' }] } }));
+  const hGate = new HookRunner(w, { gate: true, configPath: gateFile, fetchImpl });
+  const v = await hGate.fireValue('prompt_submit', { text: 'hi' });
+  assert.equal(v.deny, 'http says no');
+
+  // prompt form — routed through injected llmFn; response text is the tail
+  const w2 = dir();
+  cfg(w2, { hooks: { session_start: [{ prompt: 'summarize this event' }] } });
+  const llmCalls = [];
+  const hPrompt = new HookRunner(w2, { llmFn: async (instruction, payload) => { llmCalls.push({ instruction, payload }); return '{"ok":1}'; } });
+  assert.equal(await hPrompt.fire('session_start', { sessionId: 's1' }), 1);
+  assert.equal(llmCalls[0].instruction, 'summarize this event');
+  assert.equal(llmCalls[0].payload.sessionId, 's1');
+
+  // agent form without llmFn: observational = audited skip; gate = fail closed
+  const w3 = dir();
+  cfg(w3, { hooks: { tool_end: [{ agent: 'review the call' }] } });
+  const audit = fakeAudit();
+  const hNoLlm = new HookRunner(w3, { audit });
+  assert.equal(await hNoLlm.fire('tool_end', { toolName: 'bash' }), 1); // ran, entry failed internally
+  const gateFile3 = join(w3, 'gate3.json');
+  writeFileSync(gateFile3, JSON.stringify({ hooks: { pre_tool: [{ agent: 'veto check' }] } }));
+  const hGate3 = new HookRunner(w3, { gate: true, configPath: gateFile3 });
+  const g = await hGate3.fireGate('pre_tool', { tool: 'bash', args: {} });
+  assert.match(g.deny, /no llmFn|exited 1/);
+});
