@@ -13,6 +13,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 import { SandboxProvider, SandboxUnavailableError } from '../../../host/src/core/sandbox.js';
 
@@ -518,6 +519,19 @@ export class JobExecutor {
       this.audit?.write({ kind: 'JOB_SANDBOXED', data: { job_id: jobId, attempt_id: attemptId, provider: provider.kind, container: spec.containerName ?? null } });
     }
     this.running.set(jobId, child);
+    // #1291 — win-containment: a detached watchdog gives the child tree
+    // Job-Object-style kill-on-close. Without it a crashed host leaves the
+    // worker running until the NEXT boot's orphan recovery; the watchdog
+    // survives the host, notices the parent pid die, and taskkills /T
+    // immediately. It exits on its own once the child is gone, and the exit
+    // handler below also kills it directly.
+    let watchdog = null;
+    if (process.platform === 'win32' && child.pid) {
+      try {
+        watchdog = spawn(process.execPath, [fileURLToPath(new URL('./winjobwatch.js', import.meta.url)), String(process.pid), String(child.pid), spec.containerName ?? ''], { detached: true, stdio: 'ignore', windowsHide: true });
+        watchdog.unref();
+      } catch { watchdog = null; /* containment is best-effort — orphan-lease recovery still backstops */ }
+    }
     try { this.onJobStart?.({ jobId, attemptId, jobType, mutating }); } catch { /* observational — never blocks the spawn */ }
 
     // machine checkpoint — the resumability contract (atomic: recovery has no
@@ -611,6 +625,7 @@ export class JobExecutor {
       clearTimeout(timeoutTimer);
       this.running.delete(jobId);
       clearInterval(heartbeat);
+      try { watchdog?.kill(); } catch { /* already retired */ }
       // backgrounded grandchildren (nohup/&) inherit our stdio pipes — the
       // shell exit is the job boundary. Give the final flush a beat, then
       // drop our ends instead of holding FDs open until some detached
