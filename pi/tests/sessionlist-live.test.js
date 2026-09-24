@@ -23,12 +23,12 @@ const writeTask = (dir, meta) => {
   writeFileSync(join(td, 'task.json'), JSON.stringify({ acks: {}, ...meta }));
 };
 
-const writeSession = (dir, sid) => {
+const writeSession = (dir, sid, parentSessionPath) => {
   const sd = join(dir, 'sessions');
   mkdirSync(sd, { recursive: true });
   const file = join(sd, `2026-09-23T00-00-00-000Z_${sid}.jsonl`);
   writeFileSync(file,
-    `${JSON.stringify({ type: 'session', version: 3, id: sid, timestamp: '2026-09-23T00:00:00Z', cwd: dir })}\n`
+    `${JSON.stringify({ type: 'session', version: 3, id: sid, timestamp: '2026-09-23T00:00:00Z', cwd: dir, ...(parentSessionPath ? { parentSession: parentSessionPath } : {}) })}\n`
     + '{"type":"message","message":{"role":"user","content":[{"type":"text","text":"hi"}]}}\n'
     + '{"type":"message","message":{"role":"assistant","content":[{"type":"text","text":"yo"}]}}\n');
   return file;
@@ -75,6 +75,36 @@ test('sessions.list: task-bound open session is live; terminal-bound and unbound
     assert.ok(freeRow, 'unbound session row must exist');
     assert.equal(freeRow.live, undefined);
     assert.equal(freeRow.type, undefined);
+  } finally {
+    host.dispose();
+  }
+});
+
+/**
+ * dedup-h #753: sessions.list() must surface the engine's fork lineage
+ * (parentSessionPath) so the /resume picker can thread children under
+ * their parent. Unforked sessions report null.
+ */
+test('sessions.list: forked sessions expose parentSessionPath; roots report null', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-thread-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const rootSid = '00000000-1111-2222-3333-444444444444';
+  const kidSid = '55555555-6666-7777-8888-999999999999';
+  const rootFile = writeSession(dir, rootSid);
+  writeSession(dir, kidSid, rootFile);
+  const host = await startHost({
+    instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel },
+  });
+  try {
+    const rows = await host.channel.sessions.list();
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    assert.equal(byId.get(kidSid)?.parentSessionPath, rootFile,
+      'forked session row must name its parent file');
+    assert.equal(byId.get(rootSid)?.parentSessionPath, null,
+      'unforked session reports null parentSessionPath');
   } finally {
     host.dispose();
   }

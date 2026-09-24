@@ -199,6 +199,28 @@ const DRIVER = `(async () => {
     };
     sessRow?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
 
+    // dedup-h #753 — threaded /resume ordering: a fork renders indented
+    // (↳ title + padding) immediately under its parent inside its group.
+    const nowIso = new Date().toISOString();
+    sessionsCache.push(
+      { path: '/tmp/domgate/root.jsonl', name: 'TRoot', modified: nowIso, messageCount: 1 },
+      { path: '/tmp/domgate/child.jsonl', name: 'TChild', modified: nowIso, messageCount: 1, parentSessionPath: '/tmp/domgate/root.jsonl' },
+      { path: '/tmp/domgate/grand.jsonl', name: 'TGrand', modified: nowIso, messageCount: 1, parentSessionPath: '/tmp/domgate/child.jsonl' },
+    );
+    renderSessions();
+    const tTitles = [...document.querySelectorAll('#session-list .sess .sess-title')].map((t) => t.textContent);
+    const ri = tTitles.indexOf('TRoot');
+    const ci = tTitles.indexOf('↳ TChild');
+    const gi = tTitles.indexOf('↳ TGrand');
+    const tRows = [...document.querySelectorAll('#session-list .sess')];
+    checks.sessThread = {
+      ok: ri >= 0 && ci === ri + 1 && gi === ri + 2
+        && Number.parseInt(tRows[ci]?.style.paddingLeft ?? '0', 10) > 10
+        && Number.parseInt(tRows[gi]?.style.paddingLeft ?? '0', 10) > Number.parseInt(tRows[ci]?.style.paddingLeft ?? '0', 10),
+      order: [ri, ci, gi].join(','),
+    };
+    sessionsCache.length -= 3;
+
     // candidates-open #2 — /worktree dispatches job_spawn{worktree:true} and
     // lands the operator in the jobs view on success.
     inputEl.value = '/worktree echo domgate';

@@ -305,7 +305,7 @@
 |---|---|---|---|
 | 开屏 | OpenAI 登录/API key；`/init` 写 AGENTS.md | ✅ | /init 有 |
 | 输入 | TUI composer：图片附着、`@`文件、`!`shell 直跑？（shell 工具面）、自定义 prompt 文件（~/.codex/prompts） | 🟡 | @/图片/宏有；prompts 目录=宏同构 |
-| 会话 | `codex resume/fork/queue/archive`+`resume --last`+列表选择器；rollout JSONL 双 ID（thread/rollout）分叉共存 | ✅ | resume/fork/list/delete 同构 |
+| 会话 | `codex resume/fork/queue/archive`+`resume --last`+列表选择器；rollout JSONL 双 ID（thread/rollout）分叉共存 | ✅ | resume/fork/list/delete 同构；选择器按 parentSessionPath 树形排序（↳缩进 DFS，dedup-h #753） |
 | 会话 | TUI 内 `/review`（代码评审模式）/`/diff`/`/status`/`/model`/`/approvals`/`/compact`/`/mention` | 🟡 | 命令面同构；/review 评审模式无 |
 | 执行 | approval 模式 UnlessTrusted/OnRequest/Granular/Never × sandbox 策略 ReadOnly/WorkspaceWrite/DangerFullAccess/ExternalSandbox | ✅ | lattice+risk_mode+workdir 边界同构（无 OS 沙箱层） |
 | 执行 | **execpolicy** Starlark 规则（allow/prompt/forbidden+match 示例自校验，用户可写 .policy） | ✅ | policy.json 同构且更严（sha256 锚）；用户可写规则面对等 |

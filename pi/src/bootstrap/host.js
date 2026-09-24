@@ -1376,6 +1376,9 @@ export async function startHost({
     modified: s.modified?.toISOString?.() ?? null,
     messageCount: s.messageCount ?? 0,
     firstMessage: s.firstMessage ?? '',
+    // dedup-h #753: fork lineage — the engine stamps parentSession on
+    // forked headers; the picker threads children under their parent.
+    parentSessionPath: s.parentSessionPath ?? null,
   });
 
   // #1284 — an oversized parent transcript bricks the fork: forkFrom copies

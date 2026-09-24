@@ -1535,6 +1535,33 @@ function renderSessions() {
     if (!groups.has(g)) groups.set(g, []);
     groups.get(g).push(s);
   }
+  // dedup-h #753: threaded ordering — a fork renders indented right under
+  // its parent within the same group; a fork whose parent sits in another
+  // group still carries the ↳ marker. Ordering is a stable DFS over the
+  // date-sorted rows: roots first, each followed by its subtree.
+  const threadSessions = (rows) => {
+    const paths = new Set(rows.map((r) => r.path));
+    const byParent = new Map();
+    for (const r of rows) {
+      const p = r.parentSessionPath && paths.has(r.parentSessionPath) ? r.parentSessionPath : null;
+      if (!byParent.has(p)) byParent.set(p, []);
+      byParent.get(p).push(r);
+    }
+    const out = [], seen = new Set();
+    const walk = (p, depth) => {
+      for (const r of byParent.get(p) ?? []) {
+        if (seen.has(r.path)) continue; // pathological cycle guard
+        seen.add(r.path);
+        r._depth = depth;
+        out.push(r);
+        walk(r.path, depth + 1);
+      }
+    };
+    walk(null, 0);
+    for (const r of rows) if (!seen.has(r.path)) { r._depth = 0; out.push(r); }
+    return out;
+  };
+  for (const [g, rows] of groups) groups.set(g, threadSessions(rows));
   if (!items.length) {
     box.innerHTML = '<div class="sess-empty">还没有任务——从下方输入框开始</div>';
     return;
@@ -1547,12 +1574,14 @@ function renderSessions() {
     for (const s of rows) {
       const row = document.createElement('div');
       row.className = `sess${s.path === currentSessionFile ? ' active' : ''}${s.archived ? ' archived' : ''}`;
-      const typeTag = s.type === 'teammate' ? '👥 ' : s.type === 'subagent' ? '↳ ' : '';
+      const typeTag = s.type === 'teammate' ? '👥 ' : s.type === 'subagent' ? '↳ '
+        : s.parentSessionPath ? '↳ ' : '';
       const rawTitle = s.name || s.firstMessage;
       const cleanTitle = (!rawTitle || rawTitle.trim() === '(no messages)') ? '新对话' : rawTitle;
       const title = `${typeTag}${cleanTitle}`;
       row.innerHTML = `<span class="sess-dot"></span><span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
+      if (s._depth > 0) row.style.paddingLeft = `${12 + Math.min(s._depth, 4) * 14}px`;
       // C1 status dot: live = task-bound session still running, or the open
       // session mid-turn. Archived gets a hollow dot; plain sessions get
       // none — 完成/未完成 isn't derivable without reading transcript tails,
@@ -4084,8 +4113,28 @@ const SLASH = [
       const r = await cmd('session_list');
       const items = (r.data ?? []).filter((s) => s.path !== currentSessionFile);
       if (!items.length) { addSys('没有其它会话', true); return; }
-      openMenu(items.slice(0, 20).map((s) => ({
-        label: (s.name || s.firstMessage || '未命名任务').slice(0, 60),
+      // dedup-h #753: thread forks under their parents — stable DFS over the
+      // facade order (mtime desc): roots first, each followed by its subtree.
+      const paths = new Set(items.map((s) => s.path));
+      const byParent = new Map();
+      for (const s of items) {
+        const p = s.parentSessionPath && paths.has(s.parentSessionPath) ? s.parentSessionPath : null;
+        if (!byParent.has(p)) byParent.set(p, []);
+        byParent.get(p).push(s);
+      }
+      const ordered = [], seen = new Set();
+      const walk = (p, depth) => {
+        for (const s of byParent.get(p) ?? []) {
+          if (seen.has(s.path)) continue;
+          seen.add(s.path);
+          ordered.push({ s, depth });
+          walk(s.path, depth + 1);
+        }
+      };
+      walk(null, 0);
+      for (const s of items) if (!seen.has(s.path)) ordered.push({ s, depth: 0 });
+      openMenu(ordered.slice(0, 20).map(({ s, depth }) => ({
+        label: `${'　'.repeat(Math.min(depth, 3))}${depth ? '↳ ' : ''}${(s.name || s.firstMessage || '未命名任务').slice(0, 60)}`,
         sub: `${s.messageCount ?? 0} 条`,
         value: s,
       })), (it) => switchSession(it.value.path));
