@@ -117,11 +117,18 @@ export class HookRunner {
    *                                   point at the operator-private instance file)
    * @param {boolean} [deps.gate]      enable the 'pre_tool' veto event
    */
-  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null } = {}) {
+  constructor(workdir, { audit = null, env = process.env, configPath = null, gate = false, envOverlay = null, llmFn = null, fetchImpl = null, resolveExecEnv = null } = {}) {
     this.workdir = workdir;
     this.audit = audit;
     this.env = env;
     this.gate = gate;
+    // dedup-h #1334 — plugin-provided exec env: an optional resolver rewrites
+    // the command line before spawn (e.g. `sandbox-exec -- ` prefix). Falsy
+    // result = provider declines, raw command runs; a THROWN resolver fails
+    // closed — a configured containment env must not silently downgrade to an
+    // unwrapped spawn. Timeout/killTree/output caps are unchanged and now
+    // bound the wrapper's process tree as well.
+    this.resolveExecEnv = resolveExecEnv;
     // M121 session env overlay — () => plain object, consulted per spawn.
     // Applied AFTER the secret scrub: an operator (or governed env_set) that
     // deliberately sets a key intends the child to see it.
@@ -373,7 +380,15 @@ export class HookRunner {
 
   #run(command, payload, timeoutMs) {
     return new Promise((resolve, reject) => {
-      const child = spawn(command, {
+      let finalCommand = command;
+      try {
+        const wrapped = this.resolveExecEnv?.(command, payload);
+        if (wrapped) finalCommand = String(wrapped);
+      } catch (e) {
+        reject(new Error(`exec env resolution failed: ${String(e?.message ?? e).slice(0, 200)}`));
+        return;
+      }
+      const child = spawn(finalCommand, {
         cwd: this.workdir,
         shell: true,
         windowsHide: true,

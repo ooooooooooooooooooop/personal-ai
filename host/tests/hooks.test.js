@@ -371,3 +371,46 @@ test('#1143: model-backed hook answers veto-only unless allowPromptInjection', a
   const a4 = await g4.fireValue('prompt_submit', {});
   assert.equal(a4.text, 'ok');
 });
+
+/* ---- dedup-h #1334: plugin-provided exec env (resolve_exec_env) ---- */
+
+test('#1334 exec env wrapper prefixes the spawned command; payload still flows', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const marker = join(w, 'wrapped.txt');
+  // wrapper = node -e script that writes a marker then runs the inner command
+  // via the shell — proves the plugin env truly wraps (not replaces) the hook.
+  const wrapperScript = join(w, 'wrap.js');
+  writeFileSync(wrapperScript, `const i=process.argv.indexOf('--');const inner=process.argv.slice(i+1).join(' ');require('fs').writeFileSync(${JSON.stringify(marker)},'wrapped:'+inner.slice(0,80));require('child_process').spawnSync(inner,{shell:true,stdio:'inherit'});`);
+  const inner = join(w, 'inner.js');
+  writeFileSync(inner, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{require('fs').writeFileSync(${JSON.stringify(join(w,'inner-out.txt'))},'inner-ran');});`);
+  cfg(w, { hooks: { tool_end: [{ command: `node ${JSON.stringify(inner)}` }] } });
+  const h = new HookRunner(w, { audit, resolveExecEnv: (cmd) => `node ${JSON.stringify(wrapperScript)} -- ${cmd}` });
+  const ran = await h.fire('tool_end', { toolName: 'write' });
+  assert.equal(ran, 1);
+  const wrapped = readFileSync(marker, 'utf-8');
+  assert.match(wrapped, /^wrapped:/);
+  assert.match(wrapped, /inner\.js/, 'wrapper receives the original command line');
+  assert.equal(readFileSync(join(w, 'inner-out.txt'), 'utf-8'), 'inner-ran');
+});
+
+test('#1334 resolver returning falsy runs the raw command; throwing fails closed', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const outFile = join(w, 'raw.txt');
+  const script = join(w, 's.js');
+  writeFileSync(script, `require('fs').writeFileSync(${JSON.stringify(outFile)},'raw');`);
+  cfg(w, { hooks: { session_start: [{ command: `node ${JSON.stringify(script)}` }] } });
+  // falsy → provider declines → raw command still runs
+  const h1 = new HookRunner(w, { audit, resolveExecEnv: () => null });
+  await h1.fire('session_start');
+  assert.equal(readFileSync(outFile, 'utf-8'), 'raw');
+  // throwing resolver → fail closed: hook reports error, command never spawned
+  const w2 = dir();
+  const audit2 = fakeAudit();
+  cfg(w2, { hooks: { session_start: [{ command: 'echo should-never-run > ran.txt' }] } });
+  const h2 = new HookRunner(w2, { audit: audit2, resolveExecEnv: () => { throw new Error('plugin env unavailable'); } });
+  await h2.fire('session_start');
+  assert.ok(!existsSync(join(w2, 'ran.txt')), 'command must not run when exec env resolution fails');
+  assert.ok(audit2.events.some((e) => e.kind === 'HOOK_ERROR' && /exec env resolution failed/.test(e.data.error)));
+});

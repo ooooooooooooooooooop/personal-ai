@@ -1108,12 +1108,24 @@ export async function startHost({
     };
   })();
 
+  // dedup-h #1334 — plugin-provided exec env: PAI_HOOK_EXEC_WRAPPER supplies
+  // a command prefix every hook command runs under (e.g. a sandbox exec shim
+  // shipped by a plugin). Prefix form only — the hook entry content can never
+  // influence the wrapper. Resolver throwing fails the hook closed.
+  const hookExecEnv = (() => {
+    const wrapper = String(process.env.PAI_HOOK_EXEC_WRAPPER ?? '').trim();
+    if (!wrapper) return null;
+    core.audit.write({ kind: 'HOOK_EXEC_ENV', runId, data: { wrapper: wrapper.slice(0, 200) } });
+    return (command) => `${wrapper} ${command}`;
+  })();
+
   const preToolGate = new HookRunner(workdir, {
     audit: core.audit,
     configPath: join(core.paths.root, 'hooks.json'),
     gate: true,
     envOverlay,
     llmFn: hookLlmFn,
+    resolveExecEnv: hookExecEnv,
   });
 
   // Sessions persist under the instance root — the app lists/resumes them.
@@ -1891,7 +1903,7 @@ export async function startHost({
   // (hook config is agent-writable workdir state; a veto there would let the
   // agent gate itself). Absent .pai/hooks.json → no-op; malformed config
   // throws at boot so the operator hears about it.
-  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn });
+  const hooks = new HookRunner(workdir, { audit: core.audit, envOverlay, llmFn: hookLlmFn, resolveExecEnv: hookExecEnv });
 
   // M6: the UI-facing channel — consumers speak the host protocol, never pi's
   // dedup-h #391 — operator-side MCP surface: server list + OAuth
