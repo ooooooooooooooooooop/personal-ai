@@ -216,3 +216,19 @@ export async function resolvePacProxy({ pacUrl, hosts = [], fetchImpl } = {}) {
   }
   return { ok: true, proxy: uniq[0], noProxy: decisions.filter((d) => d.kind === 'direct').map((d) => d.host), decisions };
 }
+
+/**
+ * dedup-h #1027 — NO_PROXY entry grammar (the syntax the env var carries):
+ * '*' | hostname | .suffix | *.suffix | host:port | IPv4 | [IPv6] |
+ * IPv6 tail | CIDR. Rejected entries would silently no-op inside Node's
+ * env-proxy matcher, so callers must validate rather than pass typos
+ * through. Deliberately permissive on hostnames — the boundary job is to
+ * refuse malformed input, not to reimplement Node's matcher.
+ */
+export const NO_PROXY_ENTRY_RE =
+  /^(?:\*|\*?\.?[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*(?::\d{1,5})?|\d{1,3}(?:\.\d{1,3}){3}(?:\/\d{1,2})?(?::\d{1,5})?|\[?[0-9a-f:]+\]?(?::\d{1,5})?)$/i;
+
+/** @returns {string[]} the entries that violate the NO_PROXY grammar. */
+export function invalidNoProxyEntries(list) {
+  return (list ?? []).filter((e) => !NO_PROXY_ENTRY_RE.test(String(e).trim()));
+}

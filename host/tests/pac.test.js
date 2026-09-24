@@ -107,3 +107,12 @@ function FindProxyForURL(url, host) {
   const missing = await resolvePacProxy({ pacUrl: join(dir, 'nope.pac'), hosts: ['x.example'] });
   assert.match(missing.error, /fetch failed|ENOENT/i);
 });
+
+test('dedup-h #1027: NO_PROXY grammar — valid entries pass, malformed refuse', async () => {
+  const { invalidNoProxyEntries } = await import('../src/core/pac.js');
+  const good = ['*', 'example.com', '.internal.corp', '*.svc.local', 'host:8080', '10.0.0.1', '10.0.0.0/8', '[::1]', '::1', 'fe80::1:9090'];
+  assert.deepEqual(invalidNoProxyEntries(good), [], `valid entries refused: ${invalidNoProxyEntries(good)}`);
+  const bad = ['http://evil.com', 'https://x', 'with space', '', 'a b.com', 'host:abc', 'EXAM PLE', 'foo..bar'];
+  const out = invalidNoProxyEntries(bad);
+  assert.deepEqual(out.sort(), bad.filter(Boolean).concat(['']).sort(), `malformed entries must all be flagged: got ${out}`);
+});

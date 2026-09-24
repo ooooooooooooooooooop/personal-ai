@@ -21,7 +21,7 @@ import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
-import { resolvePacProxy } from '../../../host/src/core/pac.js';
+import { resolvePacProxy, invalidNoProxyEntries } from '../../../host/src/core/pac.js';
 import { HookRunner } from '../../../host/src/core/hooks.js';
 import { shadowJudgeFromEnv } from '../../../host/src/core/shadowjudge.js';
 import { loadSteering } from '../../../host/src/core/steering.js';
@@ -378,7 +378,12 @@ export async function startHost({
             process.env.NODE_USE_ENV_PROXY = '1';
             process.env.HTTP_PROXY = pac.proxy;
             process.env.HTTPS_PROXY = pac.proxy;
-            const noProxy = [...new Set([...(Array.isArray(spec?.noProxy) ? spec.noProxy : []), ...(pac.noProxy ?? [])])];
+            // dedup-h #1027: validate hand-written noProxy entries; PAC
+            // DIRECT hosts are real hostnames, spec.noProxy is freehand.
+            const specNoProxy = (Array.isArray(spec?.noProxy) ? spec.noProxy : []).filter((x) => typeof x === 'string' && x.trim());
+            const bad = invalidNoProxyEntries(specNoProxy);
+            if (bad.length) proxyState.noProxyDropped = bad;
+            const noProxy = [...new Set([...specNoProxy.filter((x) => !bad.includes(x)), ...(pac.noProxy ?? [])])];
             if (noProxy.length) process.env.NO_PROXY = noProxy.join(',');
             proxyState.active = { mode, url: pac.proxy, noProxy, decisions: pac.decisions };
           } else {
@@ -401,10 +406,16 @@ export async function startHost({
         process.env.NODE_USE_ENV_PROXY = '1';
         process.env.HTTP_PROXY = mode;
         process.env.HTTPS_PROXY = mode;
-        if (Array.isArray(spec?.noProxy) && spec.noProxy.every((x) => typeof x === 'string' && x)) {
-          process.env.NO_PROXY = spec.noProxy.join(',');
-        }
-        proxyState.active = { mode: 'url', url: mode, noProxy: spec?.noProxy ?? [] };
+        // dedup-h #1027: hand-edited proxy.json may carry entries that fail
+        // the NO_PROXY grammar — drop them with a loud audit rather than
+        // letting Node silently ignore an intended bypass. `core` does not
+        // exist yet — stash onto proxyState and audit below like pacError.
+        const noProxyList = (Array.isArray(spec?.noProxy) ? spec.noProxy : []).filter((x) => typeof x === 'string' && x.trim());
+        const badNoProxy = invalidNoProxyEntries(noProxyList);
+        if (badNoProxy.length) proxyState.noProxyDropped = badNoProxy;
+        const goodNoProxy = noProxyList.filter((x) => !badNoProxy.includes(x));
+        if (goodNoProxy.length) process.env.NO_PROXY = goodNoProxy.join(',');
+        proxyState.active = { mode: 'url', url: mode, noProxy: goodNoProxy };
       }
     }
   }
@@ -571,6 +582,9 @@ export async function startHost({
   // into the audit trail now that the writer is live (dedup-h #727).
   if (proxyState.pacError) {
     core.audit.write({ kind: 'PROXY_PAC_FAILED', data: { mode: proxyState.configured, error: String(proxyState.pacError).slice(0, 300) } });
+  }
+  if (proxyState.noProxyDropped?.length) {
+    core.audit.write({ kind: 'PROXY_NOPROXY_DROPPED', data: { entries: proxyState.noProxyDropped.slice(0, 10) } });
   }
 
   // PAI_ASK_TIMEOUT_MS — operator lever on the ask auto-deny clock (default
@@ -2030,7 +2044,16 @@ export async function startHost({
           }
         }
         const doc = { mode };
-        if (Array.isArray(spec?.noProxy) && spec.noProxy.every((x) => typeof x === 'string' && x)) doc.noProxy = spec.noProxy;
+        // dedup-h #1027: validate NO_PROXY grammar at the write boundary —
+        // a malformed entry would silently no-op inside Node's matcher.
+        if (spec?.noProxy != null) {
+          if (!Array.isArray(spec.noProxy) || !spec.noProxy.every((x) => typeof x === 'string' && x.trim())) {
+            return { error: 'proxy_mode noProxy must be an array of non-empty strings' };
+          }
+          const bad = invalidNoProxyEntries(spec.noProxy);
+          if (bad.length) return { error: `proxy_mode noProxy invalid entries: ${bad.map((b) => `'${b}'`).join(', ')} (want host|.suffix|*.suffix|host:port|ip|*)` };
+          doc.noProxy = spec.noProxy;
+        }
         if (mode === 'pac' || mode === 'wpad') {
           if (spec?.pacUrl != null) doc.pacUrl = String(spec.pacUrl);
           if (spec?.wpadUrl != null) doc.wpadUrl = String(spec.wpadUrl);
