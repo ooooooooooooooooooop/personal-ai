@@ -2611,3 +2611,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：**ALREADY_COVERED**（dedup-h #583 实装）。`McpClient.connect` 在 transport 校验**之前**做别名归一化：`{remote, streamablehttp, streamable_http}` → `streamable-http`（大小写不敏感经 `toLowerCase`），未知 transport 以 `MCP_SPEC` 诚实拒绝。归一化发生在 kind 校验前，所以 `streamableHttp`/`streamable_http` 拼写变体与 `remote` 全部落到同一 HTTP 传输构造路径。
 - **证据**：`pi/tests/mcp-ext.test.js:231`——真 HTTP 装置上 `remote`/`streamableHttp`/`streamable_http`/`streamable-http` 四种拼写逐一 `McpClient.connect` 成功握手；`carrier-pigeon` 未知值以 `/unsupported/` 拒绝。mcp-ext 45/45 全绿。
 - **核销**：candidates-open #1528 → `candidates-resolved.tsv` #111。
+
+### 28.108 648 清单逐条核销 #112：dedup-h #1538 remote-mcp——streamable http servers+bearer token（2026-09-24）
+
+- **行**：`dedup-h  1538  remote-mcp  remote-mcp: streamable http servers+bearer token`（源证据附注：env-configured HTTP/HTTPS proxy dispatchers 须先于 OAuth preflight/token exchange 初始化）。
+- **判定**：**ALREADY_COVERED（variant）**。三分语义逐条：
+  - **streamable HTTP servers**：`transport: http|streamable-http` + 别名（#583 核销）+ legacy `sse`，POST JSON-RPC + 可选 GET SSE push 面（#348 既有）。
+  - **bearer token**：双通道齐——静态 `spec.headers`（`Authorization` 自定义头 #396，status 只报数量不回显值）与 OAuth `Bearer ${token}` 自动续骑（token 失败一次 401 重取，全程 headers 同 posture；静态 Authorization + oauth 同配置被判歧义拒绝 #265）。
+  - **env proxy dispatcher 先初始化**：bootstrap `host.js:357` 在任何 fetch **之前**读 `<instance>/proxy.json`/`PAI_PROXY_URL` → `mode:'env'|<url>|'pac'|'wpad'` → 置 `NODE_USE_ENV_PROXY=1`（undici 全局 dispatcher 首请求时绑定一次）——扩展加载（line 542+）与其后的 OAuth preflight/token exchange/tools call 全部骑同一 dispatcher；运行时切换被诚实拒绝（`appliesOnRestart`）。
+- **证据**：`pi/tests/bootstrap.test.js` 既有断言——`NODE_USE_ENV_PROXY='1'`、HTTP(S)_PROXY 落值、`HOST_STARTED` 审计记 proxy posture、`get_state` 透出 active proxy、`config_set` 拒非 http scheme；PAC/WPAD 路径另有 #727 测试组。mcp-ext 45/45。
+- **核销**：candidates-open #1538 → `candidates-resolved.tsv` #112。
