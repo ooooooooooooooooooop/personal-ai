@@ -1559,7 +1559,7 @@
 | M105 工具级 checkpoint→rewind | **落地**——fileops 回执携带 toolCallId；`undoCall` 精确撤单调用全部文件变更、`undoFrom` 回退锚点及之后全部变更；UI 变更面板「撤调用」「回退到此」 |
 | M100 provider fallback 链 | **落地**——`<instance>/model-fallbacks.json` {chain:[{provider,model}]}；agent_end 检出 stopReason=error 时沿链切换会话模型+steer 重试；每任务链长上限、abort 永不触发、MODEL_FALLBACK 全审计；`model_fallbacks`/`model_fallback_set` 通道命令实时改链 |
 | M38 大输出占位符回取 | **落地**——OutputSpool（<instance>/spool，FIFO 50 文件帽）+ tool_result 接缝把 >64KB 文本换成带 handle 的占位符；`output_read(id,offset,limit)` 模型工具分页回取 |
-| M83 工具惰性加载 | **落地**——`<instance>/defer-tools.json` {defer:[names]}；ToolSurface.defer 隐藏但不 deny（不落 deny-memory、非治理拒绝）；`tool_search`/`tool_activate` 模型工具；decide 对直猜名字的 deferred 调用拦 `tool_deferred` |
+| M83 工具惰性加载 | **落地**——`<instance>/defer-tools.json` {defer:[names]}；ToolSurface.defer 隐藏但不 deny（不落 deny-memory、非治理拒绝）；`tool_search`/`tool_activate` 模型工具；decide 对直猜名字的 deferred 调用拦 `tool_deferred`；**+MCP `defer_loading:true`（#1059）**：spec 级声明把整台服务器的 `mcp__<srv>__*` 工具挂上 lazy 面——boot 期注册由 post-build 前缀展开兜住，连接后才注册者（异步 boot/`/mcp-add`/list_changed）经 `mcpOperatorSurface.onDeferTools` 钩补漏；`/mcp` 标注 defer_loading。**附带真修**：dispose/会话重建从不发 `session_shutdown`（`session.dispose()` 不走 runtime），MCP stdio 子进程泄漏——dispose 与 rebuild 路径现都在 `extensionRunner.emit` 上显式发 quit/switch |
 
 **仍待**：M64 实际删除、M71 免持久会话、M76 per-agent disallowedTools、M77 实况窗格、M80 sandbox.excluded、M81 多 profile、M82 MCP prompts、M86 ambient context、M90/M92/M99 UI 页、M94 per-agent 预算、M135 动态调速、M73 向量记忆（重依赖）。
 

@@ -1040,6 +1040,15 @@ export async function startHost({
     getAsks: () => asks,
   }));
   let toolSurface = null; // assigned once the session exists — decide runs later
+  // dedup-h #1059: defer_loading MCP tools that register AFTER the surface
+  // exists (async boot connect, /mcp-add, list_changed) join the lazy set
+  // through this hook; boot-time registrations are caught by the post-build
+  // prefix pass below.
+  mcpOperatorSurface.onDeferTools = (names) => {
+    const list = Array.isArray(names) ? names : [names];
+    if (!toolSurface || !list.length) return;
+    toolSurface.defer([...toolSurface.lazy, ...list.map(String)]);
+  };
   let currentDecide = null; // per-session decide fn — carries the turn-call budget
   let currentGovernor = null; // evidence contract governor — goals status source
   let currentLoopwatch = null; // per-session detector — pump feeds results into it
@@ -1239,6 +1248,21 @@ export async function startHost({
       const def = JSON.parse(readFileSync(join(instanceRoot, 'defer-tools.json'), 'utf-8'));
       if (Array.isArray(def?.defer) && def.defer.length) toolSurface.defer(def.defer.map(String));
     } catch { /* absent/invalid = nothing deferred */ }
+    // dedup-h #1059 — per-server `defer_loading:true` in mcp.json defers
+    // every mcp__<server>__* tool at session build (Claude Code MCP
+    // defer_loading analogue): the tools stay discoverable via tool_search
+    // and claimable via tool_activate, just off the eager schema surface.
+    try {
+      const { servers } = mcpOperatorSurface.loadConfig();
+      const prefixes = Object.keys(servers ?? {})
+        .filter((n) => servers[n]?.defer_loading === true)
+        .map((n) => `mcp__${n}__`);
+      if (prefixes.length) {
+        const all = [...(built.session.getActiveToolNames?.() ?? []), ...toolSurface.lastLazyHidden];
+        const extra = all.filter((n) => prefixes.some((p) => n.startsWith(p)));
+        if (extra.length) toolSurface.defer([...toolSurface.lazy, ...extra]);
+      }
+    } catch { /* unreadable mcp config — nothing deferred */ }
     return built;
   };
 
@@ -1396,6 +1420,10 @@ export async function startHost({
       },
       reason,
     });
+    // The rebuild path bypasses the engine runtime — emit session_shutdown
+    // on the outgoing runner so extension children (mcp stdio servers, etc.)
+    // close instead of leaking one process per rebuild.
+    try { old.extensionRunner?.emit?.({ type: 'session_shutdown', reason: 'switch' }); } catch { /* best-effort */ }
     old.dispose?.();
     core.audit.write({
       kind: 'SESSION_SWITCHED', runId,
@@ -2465,6 +2493,10 @@ export async function startHost({
     channelHandle.dispose();
     browserToolset.dispose?.(); // browser session teardown (kills the child)
     jsRepl.dispose?.(); // M114 REPL worker teardown
+    // Emit session_shutdown on the live extension runner — extension-owned
+    // children (mcp stdio servers, etc.) die here instead of leaking past
+    // host teardown. session.dispose() alone never reaches extensions.
+    try { currentSession?.extensionRunner?.emit?.({ type: 'session_shutdown', reason: 'quit' }); } catch { /* best-effort */ }
     currentSession.dispose?.();
     jobStore.db.close();
     core.leases.close();

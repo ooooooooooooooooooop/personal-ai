@@ -409,6 +409,10 @@ export async function oauthDevicePoll(oauth, {
 export const mcpOperatorSurface = {
   loadConfig, validateOAuthSpec, readTokenStore, writeTokenStore, tokenStorePath,
   oauthDeviceAuthorize, oauthDevicePoll,
+  // dedup-h #1059 — set by the bootstrap: (toolName) => deferred onto the
+  // lazy surface. Null before ToolSurface exists; the bootstrap's post-build
+  // prefix pass catches registrations that landed earlier.
+  onDeferTools: null,
 };
 
 // dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
@@ -1076,6 +1080,11 @@ export default function mcpExtension(pi) {
         }
       },
     });
+    // dedup-h #1059 — spec.defer_loading: the tool registers but joins the
+    // lazy surface instead of the eager schema list. The callback is set by
+    // the bootstrap once ToolSurface exists; before that, the bootstrap's
+    // post-build prefix pass defers boot-time registrations.
+    if (entry.spec?.defer_loading === true) mcpOperatorSurface.onDeferTools?.(toolName);
     return toolName;
   };
 
@@ -1245,6 +1254,7 @@ export default function mcpExtension(pi) {
         if (entry.client?.oauth) lines.push(`    auth: ${entry.client.oauth}`);
         const hdrCount = Object.keys(entry.spec?.headers ?? {}).length;
         if (hdrCount) lines.push(`    headers: ${hdrCount} configured (values redacted)`);
+        if (entry.spec?.defer_loading === true) lines.push('    defer_loading: tools lazy — discover via tool_search, claim via tool_activate');
         if (entry.dead?.size) lines.push(`    removed by server (list_changed): ${[...entry.dead].join(', ')}`);
         if (entry.lastRefresh) lines.push(`    last refresh ${entry.lastRefresh.at} (+${entry.lastRefresh.added}/-${entry.lastRefresh.removed})`);
         for (const t of entry.tools) lines.push(`    ${t}`);

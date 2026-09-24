@@ -1229,3 +1229,59 @@ test('mcp facade device flow: user code returned; detached poll stores token + f
     if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
   }
 });
+
+// dedup-h #1059 — mcp spec 'defer_loading:true': the server's tools register
+// onto the LAZY surface (off the eager schema list), still discoverable via
+// tool_search and claimable via tool_activate. Boot connect is async, so
+// the defer must hold whether tools land before or after the surface exists.
+test('mcp defer_loading: tools join lazy surface, tool_search finds, tool_activate claims', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcpdefer-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const serverPath = join(dir, 'fake-mcp.js');
+  // NB: single-quoted lines keep \\n as an escape INSIDE the written file —
+  // a template literal would render a real newline and break the child.
+  writeFileSync(serverPath, [
+    "let buf='';",
+    "process.stdin.on('data',(c)=>{buf+=c;let nl;",
+    "while((nl=buf.indexOf('\\n'))>=0){const line=buf.slice(0,nl).trim();buf=buf.slice(nl+1);if(!line)continue;",
+    "const msg=JSON.parse(line);",
+    "if(msg.method==='initialize'){process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:msg.id,result:{protocolVersion:'2025-06-18',serverInfo:{name:'fake',version:'0'},capabilities:{tools:{}}}})+'\\n');}",
+    "else if(msg.method==='tools/list'){process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:msg.id,result:{tools:[{name:'echo',description:'echo back',inputSchema:{type:'object',properties:{text:{type:'string'}}}}]}})+'\\n');}}});",
+    "setInterval(()=>{},1000);",
+  ].join('\n'));
+  const mcpCfg = join(dir, 'mcp.json');
+  writeFileSync(mcpCfg, JSON.stringify({ mcpServers: {
+    lazysrv: { command: process.execPath, args: [serverPath], defer_loading: true },
+  } }));
+  const prevCfg = process.env.PAI_MCP_CONFIG;
+  process.env.PAI_MCP_CONFIG = mcpCfg;
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    // boot connect is async — poll for the tool to land (either registered
+    // before the surface existed and deferred by the prefix pass, or late
+    // and deferred through the onDeferTools hook)
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) {
+      if (host.toolSurface.isLazy('mcp__lazysrv__echo')) break;
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert.ok(host.toolSurface.isLazy('mcp__lazysrv__echo'),
+      'defer_loading tool must join the lazy surface');
+    assert.ok(!host.session.getActiveToolNames().includes('mcp__lazysrv__echo'),
+      'deferred tool is off the eager surface');
+
+    // discoverable via tool_search; claimable via tool_activate
+    const tools = host.session.getAllTools?.() ?? [];
+    assert.ok(tools.some((t) => t.name === 'mcp__lazysrv__echo'), 'catalog still knows the tool');
+    const activated = host.toolSurface.activate(['mcp__lazysrv__echo']);
+    assert.deepEqual(activated, ['mcp__lazysrv__echo']);
+    assert.ok(host.session.getActiveToolNames().includes('mcp__lazysrv__echo'),
+      'activated tool returns to the visible surface');
+  } finally {
+    host.dispose();
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+  }
+});
