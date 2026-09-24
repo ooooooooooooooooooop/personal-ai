@@ -27,13 +27,95 @@
  */
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { readFileSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { isIP } from 'node:net';
 import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { ReadableStream } from 'node:stream/web';
 import { isPrivateResolved } from './web.js';
+
+/**
+ * dedup-h #1590 — Host-preserving transport. Provider/model `headers` may
+ * declare a custom `host` header for virtual-host-routed OpenAI-compatible
+ * gateways, but undici fetch silently strips `host` (Fetch forbidden-header
+ * list). When a request declares one, dispatch through node:http/https which
+ * sends the declared value verbatim; the CONNECT target still comes from the
+ * request URL, so the egress/budget gates above continue to judge the real
+ * destination. Redirects are not followed (returned to the caller honestly).
+ */
+function collectRequestHeaders(input, init) {
+  const headers = {};
+  const merge = (h) => {
+    if (!h) return;
+    if (typeof h.forEach === 'function') h.forEach((v, k) => { headers[k] = v; });
+    else if (Array.isArray(h)) for (const [k, v] of h) headers[k] = v;
+    else for (const [k, v] of Object.entries(h)) headers[k] = v;
+  };
+  if (input && typeof input === 'object') merge(input.headers);
+  merge(init?.headers);
+  return headers;
+}
+
+function declaredHostHeader(input, init) {
+  const headers = collectRequestHeaders(input, init);
+  const key = Object.keys(headers).find((k) => k.toLowerCase() === 'host');
+  return key ? headers[key] : null;
+}
+
+async function hostPreservingFetch(input, init) {
+  const url = new URL(typeof input === 'string' ? input : input?.url);
+  const doRequest = url.protocol === 'https:' ? httpsRequest : httpRequest;
+  const headers = collectRequestHeaders(input, init);
+  const method = init?.method ?? (input && typeof input === 'object' ? input.method : null) ?? 'GET';
+  let body = init?.body;
+  if (body === undefined && input && typeof input.arrayBuffer === 'function' && method !== 'GET' && method !== 'HEAD') {
+    body = Buffer.from(await input.arrayBuffer());
+  }
+  const sized = typeof body === 'string' ? Buffer.byteLength(body)
+    : Buffer.isBuffer(body) ? body.length
+    : body instanceof ArrayBuffer ? body.byteLength
+    : ArrayBuffer.isView(body) ? body.byteLength : null;
+  if (sized != null && !Object.keys(headers).some((k) => k.toLowerCase() === 'content-length')) {
+    headers['content-length'] = String(sized);
+  }
+  return await new Promise((resolve, reject) => {
+    const req = doRequest({
+      hostname: url.hostname,
+      port: url.port || (url.protocol === 'https:' ? 443 : 80),
+      path: `${url.pathname}${url.search}`,
+      method,
+      headers,
+    }, (res) => {
+      const h = new Headers();
+      const raw = res.rawHeaders ?? [];
+      for (let i = 0; i + 1 < raw.length; i += 2) h.append(raw[i], raw[i + 1]);
+      resolve(new Response(Readable.toWeb(res), {
+        status: res.statusCode,
+        statusText: res.statusMessage ?? '',
+        headers: h,
+      }));
+    });
+    const signal = init?.signal ?? (input && typeof input === 'object' ? input.signal : null);
+    const onAbort = () => req.destroy(signal?.reason instanceof Error
+      ? signal.reason
+      : new DOMException('This operation was aborted', 'AbortError'));
+    if (signal?.aborted) { onAbort(); return; }
+    signal?.addEventListener?.('abort', onAbort, { once: true });
+    req.on('error', (err) => { signal?.removeEventListener?.('abort', onAbort); reject(err); });
+    if (body == null) req.end();
+    else if (typeof body === 'string' || Buffer.isBuffer(body)) req.end(body);
+    else if (body instanceof ArrayBuffer) req.end(Buffer.from(body));
+    else if (ArrayBuffer.isView(body)) req.end(Buffer.from(body.buffer, body.byteOffset, body.byteLength));
+    else if (body instanceof ReadableStream) Readable.fromWeb(body).pipe(req);
+    else req.end(String(body));
+  });
+}
 
 export function installBudgetFetch({ budget, getScope, getProviderHosts, getPrivateAllowedHosts = null, audit, onGateEvent = null }) {
   const base = globalThis.fetch;
   if (typeof base !== 'function') return () => {};
+  const send = (input, init) => (declaredHostHeader(input, init) ? hostPreservingFetch(input, init) : base(input, init));
 
   const gated = async (input, init) => {
     let host = null;
@@ -42,7 +124,7 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       const url = typeof input === 'string' ? input : input?.url;
       if (url) { const u = new URL(url); host = u.host; hostname = u.hostname; }
     } catch { /* unparseable url → not a provider call we gate */ }
-    if (!host || !getProviderHosts().has(host)) return base(input, init);
+    if (!host || !getProviderHosts().has(host)) return send(input, init);
 
     // dedup-h #1402 egress policy — allowPrivateNetwork per-provider: provider
     // traffic may never silently target loopback/RFC1918/link-local/metadata
@@ -73,7 +155,7 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       }
     }
 
-    if (!budget?.configured) return base(input, init);
+    if (!budget?.configured) return send(input, init);
     const scope = getScope();
     const gate = budget.admit(scope);
     onGateEvent?.({ host, scope, admitted: gate.ok, rule: gate.rule ?? null });
@@ -83,7 +165,7 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       // channel's usage events (countCall:false there avoids double-count)
       try { budget.record({ scope, source: 'turn', usage: {}, countCall: true }); }
       catch { /* ledger went unwritable mid-run — next admit() fails closed */ }
-      return base(input, init);
+      return send(input, init);
     }
 
     audit?.write({

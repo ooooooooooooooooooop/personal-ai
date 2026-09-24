@@ -13,6 +13,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BudgetGovernor } from '../../host/src/core/budget.js';
@@ -271,4 +272,74 @@ test('collectPrivateAllowedHosts resolves $ENV baseUrl refs; unresolvable stays 
     assert.ok(allowed.has('172.16.5.5:4000'), 'env-ref resolved to its concrete host');
     assert.equal(allowed.size, 1, 'unset env-ref contributes nothing — fail-closed');
   } finally { delete process.env.PAI_TEST_PRIV_BASE; }
+});
+
+// ── dedup-h #1590: provider-declared `host` header reaches the wire ──────────
+// undici fetch silently strips `host` (Fetch forbidden-header list). A
+// virtual-host-routed OpenAI-compatible gateway needs the declared value on
+// the wire, so gated requests carrying one dispatch through node:http(s)
+// AFTER the same egress/budget gates — the CONNECT target still comes from
+// the URL, the Host header is presentation only.
+
+function realServer() {
+  const seen = [];
+  const srv = createServer((req, res) => {
+    const chunks = [];
+    req.on('data', (c) => chunks.push(c));
+    req.on('end', () => {
+      seen.push({ host: req.headers.host, method: req.method, body: Buffer.concat(chunks).toString() });
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ ok: true }));
+    });
+  });
+  return new Promise((resolve) => {
+    srv.listen(0, '127.0.0.1', () => resolve({ srv, seen, port: srv.address().port }));
+  });
+}
+
+test('declared host header is sent verbatim — virtual-host gateway works', async () => {
+  const { srv, seen, port } = await realServer();
+  const url = `http://127.0.0.1:${port}/v1/chat`;
+  const h = harness({ hosts: [`127.0.0.1:${port}`], privateHosts: new Set([`127.0.0.1:${port}`]) });
+  try {
+    const r = await globalThis.fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', host: 'virtual.gateway.local' },
+      body: JSON.stringify({ model: 'm', messages: [] }),
+    });
+    assert.equal(r.status, 200);
+    assert.deepEqual(await r.json(), { ok: true });
+    assert.equal(seen.length, 1);
+    assert.equal(seen[0].host, 'virtual.gateway.local', 'declared host reached the wire (undici would strip it)');
+    assert.equal(seen[0].body, JSON.stringify({ model: 'm', messages: [] }), 'POST body round-trips intact');
+  } finally { h.done(); srv.close(); }
+});
+
+test('host-declared request still passes egress and budget gates', async () => {
+  const { srv, seen, port } = await realServer();
+  const url = `http://127.0.0.1:${port}/v1/chat`;
+  // no private opt-in → egress refusal precedes the transport entirely
+  const denied = harness({ hosts: [`127.0.0.1:${port}`] });
+  try {
+    const r = await globalThis.fetch(url, { method: 'POST', headers: { host: 'v.gw.local' } });
+    assert.equal(r.status, 403);
+    assert.equal(seen.length, 0, 'egress refusal never reached the wire');
+  } finally { denied.done(); }
+  // opted in but over budget → 402, still no wire traffic
+  const over = harness({ hosts: [`127.0.0.1:${port}`], privateHosts: new Set([`127.0.0.1:${port}`]), limits: { maxTokensPerSession: 10 } });
+  over.budget.record({ scope: 'sess-1', source: 'turn', usage: { input: 20 }, countCall: false });
+  try {
+    const r = await globalThis.fetch(url, { method: 'POST', headers: { host: 'v.gw.local' } });
+    assert.equal(r.status, 402);
+    assert.equal(seen.length, 0, 'budget denial never reached the wire');
+  } finally { over.done(); srv.close(); }
+});
+
+test('requests without a host header keep the undici path (streaming intact)', async () => {
+  const h = harness({ limits: { maxCallsPerSession: 1 } });
+  try {
+    const r = await globalThis.fetch(PROVIDER, { method: 'POST', body: 'x' });
+    assert.equal(r.status, 200);
+    assert.deepEqual(h.calls, [PROVIDER], 'non-declared request routes through base fetch');
+  } finally { h.done(); }
 });
