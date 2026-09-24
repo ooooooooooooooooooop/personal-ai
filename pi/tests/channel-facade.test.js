@@ -1280,3 +1280,35 @@ test('dedup-h #535: compact_start/compact_end hooks carry reason context', async
   assert.match(fail?.payload.error, /summarizer died/);
   dispose();
 });
+
+test('dedup-h #935: prompt_submit gate intercepts/transforms/denies; broken gate fails closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-gate-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const core = { paths: { auditDir }, audit };
+
+  // transform: gate rewrites the prompt text
+  const gate = { fireValue: async (ev, p) => ev === 'prompt_submit' ? { text: 'REWRITTEN' } : null };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, preToolGate: gate });
+  await ch.handle({ type: 'prompt', message: 'original' });
+  assert.equal(fakeSessionRef.calls.at(-1), 'REWRITTEN');
+  // context: prepended, original preserved
+  gate.fireValue = async () => ({ context: 'CTX' });
+  await ch.handle({ type: 'prompt', message: 'keep me' });
+  assert.equal(fakeSessionRef.calls.at(-1), 'CTX\n\nkeep me');
+  // deny: refuses before the session sees it
+  gate.fireValue = async () => ({ deny: 'blocked input' });
+  const r = await ch.handle({ type: 'prompt', message: 'nope' });
+  assert.equal(r.success, false);
+  assert.match(String(r.error), /denied: blocked input/);
+  assert.equal(fakeSessionRef.calls.at(-1), 'CTX\n\nkeep me', 'denied prompt must not reach the session');
+  // broken gate fails closed
+  gate.fireValue = async () => { throw new Error('hook exploded'); };
+  const r2 = await ch.handle({ type: 'prompt', message: 'x' });
+  assert.equal(r2.success, false);
+  assert.match(String(r2.error), /failed closed/);
+  dispose();
+});

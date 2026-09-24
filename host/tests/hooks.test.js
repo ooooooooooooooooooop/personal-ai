@@ -255,3 +255,15 @@ test('file_checkpoint is a first-class observational event (#884)', async () => 
   assert.equal(n, 1);
   assert.equal(readFileSync(out, 'utf-8'), 'fired:file_checkpoint');
 });
+
+test('prompt_submit gate (operator-private file) answers transform/deny JSON (#935)', async () => {
+  const w = dir();
+  const gateFile = join(w, 'gate-hooks.json');
+  const script = join(w, 'gate.js');
+  writeFileSync(script, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const p=JSON.parse(d);console.log(JSON.stringify(p.text==='rewrite me'?{text:'REWRITTEN'}:p.text==='bad'?{deny:'nope'}:{context:'C'}));});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { prompt_submit: [{ command: `node ${JSON.stringify(script)}` }] } }));
+  const h = new HookRunner(w, { gate: true, configPath: gateFile });
+  assert.equal(await h.fireValue('prompt_submit', { text: 'rewrite me' }).then((r) => r.text), 'REWRITTEN');
+  assert.equal((await h.fireValue('prompt_submit', { text: 'bad' })).deny, 'nope');
+  assert.equal((await h.fireValue('prompt_submit', { text: 'ok' })).context, 'C');
+});

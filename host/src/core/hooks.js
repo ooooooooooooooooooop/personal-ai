@@ -64,7 +64,12 @@ export const HOOK_EVENTS = new Set([
 // answers {"directory": "..."} to relocate session persistence. Gate-only on
 // purpose — the agent-reachable observational file must never redirect where
 // transcripts land (that would be a self-service exfiltration path).
-export const GATE_EVENTS = new Set(['pre_tool', 'session_directory']);
+export const GATE_EVENTS = new Set(['pre_tool', 'session_directory', 'prompt_submit']);
+// dedup-h #935: 'prompt_submit' joins the gate set — in the operator-private
+// <instance>/hooks.json it may answer {"deny":"..."} | {"text":"rewritten"}
+// | {"context":"prepended"} (first configured hook answers, fireValue
+// contract). In the workspace .pai/hooks.json it stays observational —
+// an agent-reachable file can never rewrite what reaches the model.
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_CHARS = 4000;
 

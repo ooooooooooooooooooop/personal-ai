@@ -98,7 +98,7 @@ const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_p
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
 
-export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null }) {
+export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null, preToolGate = null }) {
 
   // Mutable session holder + fan-out pump: the facade delegates to whichever
   // session is current; rebind() retargets the pump to a rebuilt session.
@@ -288,6 +288,32 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     prompt: async (message, options) => {
       admitSpend();
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
+      // dedup-h #935 — input intercept/transform: the operator-private gate
+      // file may deny the prompt, rewrite it, or prepend context before the
+      // model ever sees it. A broken gate hook fails CLOSED (the prompt is
+      // refused, never silently passed untransformed).
+      if (preToolGate && typeof message === 'string' && message) {
+        let g = null;
+        try {
+          g = await preToolGate.fireValue('prompt_submit', { text: message });
+        } catch (e) {
+          core.audit?.write({ kind: 'PROMPT_GATE_FAILED', data: { error: String(e?.message ?? e).slice(0, 300) } });
+          throw new Error(`prompt_submit gate failed closed: ${String(e?.message ?? e).slice(0, 200)}`);
+        }
+        if (g) {
+          if (typeof g.deny === 'string' && g.deny.trim()) {
+            core.audit?.write({ kind: 'PROMPT_GATE_DENIED', data: { reason: g.deny.slice(0, 300) } });
+            throw new Error(`prompt_submit gate denied: ${g.deny.slice(0, 300)}`);
+          }
+          if (typeof g.text === 'string' && g.text.trim()) {
+            core.audit?.write({ kind: 'PROMPT_TRANSFORMED', data: { mode: 'replace', from: message.length, to: g.text.length } });
+            message = g.text;
+          } else if (typeof g.context === 'string' && g.context.trim()) {
+            core.audit?.write({ kind: 'PROMPT_TRANSFORMED', data: { mode: 'context', chars: g.context.length } });
+            message = `${g.context.trim()}\n\n${message}`;
+          }
+        }
+      }
       // Auto-name (Goose/OpenClaw): an unnamed session takes its first user
       // prompt as display name. Only fills the null slot — an operator
       // rename or a previous auto-name is never overwritten.

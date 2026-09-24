@@ -2215,6 +2215,8 @@ export async function startHost({
     budget,
     writeLease,
     hooks,
+    // dedup-h #935: operator-private prompt_submit gate (intercept/transform)
+    preToolGate,
     turns: { reset: () => currentDecide?.resetTurn?.() },
     getLoopwatch: () => currentLoopwatch,
     exec: (() => {
