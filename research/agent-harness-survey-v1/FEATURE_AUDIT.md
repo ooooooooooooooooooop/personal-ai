@@ -2604,3 +2604,10 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **诚实状态**：`/mcp` 新增 `RECONNECTING (attempt N/3)` 与 `CONNECTION LOST — reconnect retries exhausted; /mcp-enable <name> retries` 两种状态行，区分于 FAILED。
 - **证据**：`mcp-ext.test.js` +3——(a) `onServerExit` 单元：close() 不触发、意外退出恰好触发一次；(b) 端到端复活：假 server 首生答完目录后自杀，spawn 计数文件证明第 2 次拉起，**最初注册的工具闭包**在新连接上执行成功（entry.client 间接绑定的直接证据），/mcp 报 connected；(c) 耗尽：复活体即死装置下 spawn 计数**恰好=4**（1 初始+3 重试，界成立），/mcp 报 CONNECTION LOST，工具 fail-closed 报 not connected。mcp-ext 45/45、bootstrap startHost 完整性过。
 - **核销**：candidates-open #1521 → `candidates-resolved.tsv` #110。
+
+### 28.107 648 清单逐条核销 #111：dedup-h #1528 remote-mcp——streamable-http/streamableHttp/_ 别名兼容（2026-09-24）
+
+- **行**：`dedup-h  1528  remote-mcp  remote-mcp: streamable-http/streamableHttp/_别名兼容`。
+- **判定**：**ALREADY_COVERED**（dedup-h #583 实装）。`McpClient.connect` 在 transport 校验**之前**做别名归一化：`{remote, streamablehttp, streamable_http}` → `streamable-http`（大小写不敏感经 `toLowerCase`），未知 transport 以 `MCP_SPEC` 诚实拒绝。归一化发生在 kind 校验前，所以 `streamableHttp`/`streamable_http` 拼写变体与 `remote` 全部落到同一 HTTP 传输构造路径。
+- **证据**：`pi/tests/mcp-ext.test.js:231`——真 HTTP 装置上 `remote`/`streamableHttp`/`streamable_http`/`streamable-http` 四种拼写逐一 `McpClient.connect` 成功握手；`carrier-pigeon` 未知值以 `/unsupported/` 拒绝。mcp-ext 45/45 全绿。
+- **核销**：candidates-open #1528 → `candidates-resolved.tsv` #111。
