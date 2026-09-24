@@ -275,6 +275,98 @@ function validateOAuthSpec(spec) {
   };
 }
 
+// dedup-h #1514 — OAuth discovery: a bare remote server that answers 401
+// can still be authorized end-to-end — RFC 9728 protected-resource metadata
+// (or the WWW-Authenticate resource_metadata pointer) names the
+// authorization server; RFC 8414 metadata names its endpoints; RFC 7591
+// dynamic registration mints the client identity. All of it happens on the
+// operator's explicit /mcp-auth intent — never silently at connect.
+
+function parseWwwAuthenticate(header) {
+  if (typeof header !== 'string' || !header) return {};
+  const out = {};
+  const m = header.match(/resource_metadata="([^"]+)"/i);
+  if (m) out.resourceMetadata = m[1];
+  const s = header.match(/(?:^|[\s,])scope="([^"]+)"/i);
+  if (s) out.scope = s[1];
+  return out;
+}
+
+async function fetchOAuthJson(url, { timeoutMs = 10_000 } = {}) {
+  let u;
+  try { u = new URL(url); } catch { throw new McpError(`oauth metadata url '${String(url).slice(0, 80)}' is not a URL`); }
+  if (!['https:', 'http:'].includes(u.protocol)) throw new McpError('oauth metadata must be http(s)');
+  // metadata steers where credentials flow — plaintext http is loopback-only,
+  // same posture as tokenUrl itself.
+  if (u.protocol === 'http:' && !LOOPBACK_HOSTS.has(u.hostname.toLowerCase())) {
+    throw new McpError('oauth metadata over http is refused off-loopback');
+  }
+  const res = await fetch(u, { signal: AbortSignal.timeout(timeoutMs), headers: { accept: 'application/json' } });
+  const text = await res.text();
+  if (!res.ok) throw new McpError(`oauth metadata GET ${u.host}${u.pathname} → HTTP ${res.status}`);
+  if (text.length > 64 * 1024) throw new McpError('oauth metadata over 64KB refused');
+  try { return JSON.parse(text); } catch { throw new McpError('oauth metadata is not JSON'); }
+}
+
+// RFC 8414 §3.1 / RFC 9728 §3: the well-known segment inserts BEFORE the
+// issuer's path component.
+function wellKnown(base, name) {
+  const u = new URL(base);
+  return `${u.origin}/.well-known/${name}${u.pathname === '/' ? '' : u.pathname}`;
+}
+
+async function discoverOAuthMetadata(serverUrl, wwwAuth) {
+  const parsed = parseWwwAuthenticate(wwwAuth);
+  const srv = new URL(serverUrl);
+  const prmCandidates = [];
+  if (parsed.resourceMetadata) prmCandidates.push(parsed.resourceMetadata);
+  prmCandidates.push(wellKnown(srv, 'oauth-protected-resource'), `${srv.origin}/.well-known/oauth-protected-resource`);
+  let prm = null, lastErr = null;
+  for (const u of prmCandidates) {
+    try { prm = await fetchOAuthJson(u); break; } catch (e) { lastErr = e; }
+  }
+  if (!prm) throw lastErr ?? new McpError('no protected-resource metadata reachable');
+  const asList = Array.isArray(prm.authorization_servers) ? prm.authorization_servers.filter((x) => typeof x === 'string' && x) : [];
+  if (!asList.length) throw new McpError('protected-resource metadata names no authorization_servers');
+  const asm = await fetchOAuthJson(wellKnown(asList[0], 'oauth-authorization-server'));
+  if (typeof asm?.token_endpoint !== 'string' || !asm.token_endpoint) {
+    throw new McpError('authorization-server metadata has no token_endpoint');
+  }
+  return {
+    authorizationUrl: typeof asm.authorization_endpoint === 'string' ? asm.authorization_endpoint : null,
+    tokenUrl: asm.token_endpoint,
+    deviceAuthUrl: typeof asm.device_authorization_endpoint === 'string' ? asm.device_authorization_endpoint : null,
+    registrationUrl: typeof asm.registration_endpoint === 'string' ? asm.registration_endpoint : null,
+    scope: parsed.scope ?? (Array.isArray(prm.scopes_supported) ? prm.scopes_supported.join(' ') : null),
+    issuer: typeof asm.issuer === 'string' ? asm.issuer : null,
+  };
+}
+
+// RFC 7591 dynamic client registration — one JSON POST; the resulting
+// client identity persists in the operator token store (next to tokens,
+// same 0600 posture) so re-auth reuses it.
+async function registerOAuthClient(registrationUrl, { redirectUris } = {}) {
+  const res = await fetch(registrationUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({
+      client_name: 'personal-ai-mcp',
+      redirect_uris: redirectUris,
+      grant_types: ['authorization_code', 'refresh_token'],
+      response_types: ['code'],
+      token_endpoint_auth_method: 'none',
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const text = await res.text();
+  if (!res.ok) throw new McpError(`client registration → HTTP ${res.status}`);
+  if (text.length > 64 * 1024) throw new McpError('client registration response over 64KB refused');
+  let doc;
+  try { doc = JSON.parse(text); } catch { throw new McpError('client registration returned non-JSON'); }
+  if (typeof doc?.client_id !== 'string' || !doc.client_id) throw new McpError('client registration returned no client_id');
+  return { clientId: doc.client_id, clientSecret: typeof doc.client_secret === 'string' ? doc.client_secret : null };
+}
+
 // --- dedup-h #131: operator OAuth token store --------------------------------
 // Tokens live in a USER-private file (Claude Code's ~/.claude.json mcpOAuth
 // analogue), never in the workdir — the agent must not read bearer material.
@@ -513,6 +605,10 @@ export const mcpOperatorSurface = {
   // dedup-h #1507 — assigned inside mcpExtension(): (serverName, uri) =>
   // {ok, contents|error}; reads a ui:// resource through the live connection.
   readResource: null,
+  // dedup-h #1514 — assigned inside mcpExtension(): (serverName) =>
+  // {oauth, discovered|error}; RFC 9728/8414 discovery + RFC 7591 client
+  // registration for a server that 401s without a configured oauth spec.
+  oauthDiscoverRegister: null,
 };
 
 // dedup-h #404 — cross-process login (pai-host CLI, shell tooling): the
@@ -1304,6 +1400,58 @@ export default function mcpExtension(pi) {
     }
   };
 
+  // dedup-h #1514 — OAuth discovery for a server that 401s without a
+  // configured oauth spec: PRM → ASM metadata, then RFC 7591 dynamic
+  // client registration (reused across restarts via the token store's
+  // `client` field — registration is one-time, not per-auth).
+  mcpOperatorSurface.oauthDiscoverRegister = async (name) => {
+    const entry = connected.get(String(name ?? ''));
+    const { servers: cfgServers } = loadConfig();
+    const spec = entry?.spec ?? cfgServers?.[name];
+    if (!spec?.url) return { error: `server '${name}' has no remote url to discover from` };
+    let meta;
+    try {
+      meta = await discoverOAuthMetadata(spec.url, entry?.wwwAuth ?? null);
+    } catch (e) {
+      return { error: `oauth discovery failed: ${e?.message ?? e}` };
+    }
+    if (!meta.authorizationUrl && !meta.deviceAuthUrl) {
+      return { error: 'authorization server metadata offers no interactive flow (no authorization/device endpoint)' };
+    }
+    const store = readTokenStore();
+    let client = store[name]?.client;
+    if (!client?.clientId) {
+      if (!meta.registrationUrl) {
+        return {
+          error: 'server requires OAuth but offers no dynamic registration endpoint — configure oauth.clientId manually (see /mcp-add --oauth-*)',
+          discovered: { tokenUrl: meta.tokenUrl, authorizationUrl: meta.authorizationUrl },
+        };
+      }
+      try {
+        const c = await registerOAuthClient(meta.registrationUrl, {
+          redirectUris: ['http://localhost:8765/callback', 'urn:ietf:wg:oauth:2.0:oob'],
+        });
+        client = { clientId: c.clientId, clientSecret: c.clientSecret };
+      } catch (e) {
+        return { error: `client registration failed: ${e?.message ?? e}` };
+      }
+      store[name] = { ...(store[name] ?? {}), client };
+      writeTokenStore(store);
+    }
+    return {
+      oauth: {
+        tokenUrl: meta.tokenUrl,
+        ...(meta.authorizationUrl ? { authorizationUrl: meta.authorizationUrl } : {}),
+        ...(meta.deviceAuthUrl ? { deviceAuthUrl: meta.deviceAuthUrl } : {}),
+        clientId: client.clientId,
+        ...(client.clientSecret ? { clientSecret: client.clientSecret } : {}),
+        ...(meta.scope ? { scope: meta.scope } : {}),
+        loopbackRedirect: true,
+      },
+      discovered: { issuer: meta.issuer, registration: 'dynamic', scope: meta.scope },
+    };
+  };
+
   // M130 tools/list_changed: a server that hot-swaps its catalog re-lists.
   // New tools register live; REMOVED tools cannot be unregistered through the
   // pi API — they tombstone into an honest fail-closed error instead of
@@ -1493,7 +1641,9 @@ export default function mcpExtension(pi) {
         // authRequired and raise the operator hook so the UI can offer the
         // /mcp-auth path instead of a silent dead server.
         const authRequired = err?.code === 'MCP_AUTH_REQUIRED';
-        connected.set(name, { client: null, tools: [], spec, failed: true, authRequired });
+        // #1514 — the 401's WWW-Authenticate header is kept for the
+        // discovery path (resource_metadata pointer).
+        connected.set(name, { client: null, tools: [], spec, failed: true, authRequired, wwwAuth: err?.wwwAuthenticate ?? null });
         if (authRequired) mcpOperatorSurface.onAuthRequired?.(name);
       }
       return connected.get(name);

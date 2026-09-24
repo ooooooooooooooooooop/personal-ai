@@ -1955,3 +1955,94 @@ test('#1507: readResource — ui: bound, live-connection routed, honest errors',
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// dedup-h #1514 — OAuth discovery + dynamic registration: a 401'd server
+// with no configured oauth spec resolves PRM -> ASM -> DCR on the explicit
+// surface call; the registered client persists in the token store.
+test('#1514: oauthDiscoverRegister — 401 + PRM/ASM/DCR mints a usable oauth spec', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-disc-'));
+  const seen = { regBodies: [] };
+  // authorization server: metadata + dynamic registration
+  const asSrv = createServer((req, res) => {
+    if (req.url === '/.well-known/oauth-authorization-server') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({
+        issuer: `http://127.0.0.1:${asSrv.address().port}`,
+        authorization_endpoint: `http://127.0.0.1:${asSrv.address().port}/authorize`,
+        token_endpoint: `http://127.0.0.1:${asSrv.address().port}/token`,
+        registration_endpoint: `http://127.0.0.1:${asSrv.address().port}/register`,
+        scopes_supported: ['mcp:read'],
+      }));
+      return;
+    }
+    if (req.url === '/register' && req.method === 'POST') {
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        seen.regBodies.push(JSON.parse(body));
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ client_id: 'dyn-client-1', client_secret: 'dyn-sec-1' }));
+      });
+      return;
+    }
+    res.statusCode = 404; res.end();
+  });
+  // resource server: PRM metadata + MCP endpoint that 401s with the
+  // resource_metadata pointer.
+  const rsSrv = createServer((req, res) => {
+    if (req.url === '/.well-known/oauth-protected-resource') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({
+        resource: `http://127.0.0.1:${rsSrv.address().port}/mcp`,
+        authorization_servers: [`http://127.0.0.1:${asSrv.address().port}`],
+      }));
+      return;
+    }
+    res.setHeader('www-authenticate', `Bearer realm="mcp", resource_metadata="http://127.0.0.1:${rsSrv.address().port}/.well-known/oauth-protected-resource"`);
+    res.statusCode = 401; res.end();
+  });
+  await new Promise((r) => asSrv.listen(0, '127.0.0.1', r));
+  await new Promise((r) => rsSrv.listen(0, '127.0.0.1', r));
+  const prevCfg = process.env.PAI_MCP_CONFIG, prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  try {
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: { disc: { url: `http://127.0.0.1:${rsSrv.address().port}/mcp` } } }));
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    process.env.PAI_MCP_TOKEN_STORE = join(dir, 'mcp-oauth.json');
+    const pi = fakePi();
+    try {
+      mcpExtension(pi);
+      // let the connect attempt fail (401 → authRequired entry)
+      await new Promise((r) => setTimeout(r, 1500));
+      const disc = await mcpOperatorSurface.oauthDiscoverRegister('disc');
+      assert.ok(disc.oauth, `discovery should mint a spec: ${JSON.stringify(disc)}`);
+      assert.equal(disc.oauth.tokenUrl, `http://127.0.0.1:${asSrv.address().port}/token`);
+      assert.equal(disc.oauth.authorizationUrl, `http://127.0.0.1:${asSrv.address().port}/authorize`);
+      assert.equal(disc.oauth.clientId, 'dyn-client-1');
+      assert.equal(disc.oauth.clientSecret, 'dyn-sec-1');
+      assert.equal(disc.oauth.loopbackRedirect, true);
+      assert.equal(disc.discovered.registration, 'dynamic');
+      // the registered client persists in the token store — reused next time
+      const store = JSON.parse(readFileSync(join(dir, 'mcp-oauth.json'), 'utf-8'));
+      assert.equal(store.disc.client.clientId, 'dyn-client-1');
+      // second call reuses the persisted client — no second registration POST
+      const disc2 = await mcpOperatorSurface.oauthDiscoverRegister('disc');
+      assert.equal(disc2.oauth.clientId, 'dyn-client-1');
+      assert.equal(seen.regBodies.length, 1, 'registration is one-time');
+      assert.ok(seen.regBodies[0].redirect_uris.includes('http://localhost:8765/callback'));
+      // the minted spec validates like a configured one
+      const oauth = mcpOperatorSurface.validateOAuthSpec({ url: 'http://x/mcp', oauth: disc.oauth });
+      assert.equal(oauth.flow, 'authorization_code');
+      // honest error for a server with no remote url
+      const bad = await mcpOperatorSurface.oauthDiscoverRegister('nosuch');
+      assert.match(bad.error, /no remote url/);
+    } finally {
+      await pi.handlers.get('session_shutdown')?.();
+    }
+  } finally {
+    if (prevCfg === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prevCfg;
+    if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+    asSrv.close(); rsSrv.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

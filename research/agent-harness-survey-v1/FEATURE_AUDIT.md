@@ -2581,3 +2581,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **CLI 无 secret 声明路径**：`--oauth-client-id` 能进但机密半边进不来。新增 `--oauth-client-secret <s>`（字面持久化——operator 配置文件本就是明文仓，与 headers 先例一致）与 `--oauth-client-secret-env <V>`（持久化 `"${V}"` 引用——机密完全不落 mcp.json）。热连接用展开后的 spec 副本，持久化文件保留 `${VAR}` 引用。
 - **证据**：`mcp-ext.test.js` mcp-add 块 +#1509 断言——字面旗标持久化 `s3cr3t`；`-env` 旗标持久化 `'${MY_TOK_SECRET}'`；loadConfig 置 env 后解析出 `resolved-sec`、未置时保持字面且 `missingEnv` 列出变量名。mcp-ext 41/41。
 - **核销**：candidates-open #1509 → `candidates-resolved.tsv` #108。
+
+### 28.105 648 清单逐条核销 #109：dedup-h #1514 remote-mcp——OAuth discovery/authorization + custom headers（2026-09-24）
+
+- **行**：`dedup-h  1514  remote-mcp  remote-mcp: OAuth discovery/authorization + custom headers`。
+- **判定**：**IMPLEMENTED**。三分语义逐条：custom headers 早已实装（spec.headers 校验/发送/status 只报数量不回显值 #396）；authorization 三流全（PKCE+loopback、device、client_credentials）。真缺口是 **discovery**——401 的 `WWW-Authenticate` 只被透传在 error 上，无消费方。本次落地完整链：
+  - **RFC 9728 PRM**：`WWW-Authenticate Bearer 质询里的 resource_metadata=…` 指针优先，缺省走 `/.well-known/oauth-protected-resource`（path-aware + origin 双候选）→ `authorization_servers`。
+  - **RFC 8414 ASM**：well-known 段插到 issuer path 前 → `authorization_endpoint/token_endpoint/device_authorization_endpoint/registration_endpoint`。
+  - **RFC 7591 DCR**：`registration_endpoint` 存在时 POST 注册（loopback+oob 双 redirect_uri），`client_id/client_secret` 持久化在 token store `client` 字段（0600 同 posture）——注册一次性，复auth 不重复 POST。
+  - **接线**：`connectOne` 的 401 失败 entry 现在留存 `wwwAuth` 指针；`mcpOperatorSurface.oauthDiscoverRegister(name)` 编排全链（metadata 64KB/10s/http-loopback 界与 tokenUrl 同 posture）；`mcpFacade.auth` 在无配置 spec 时走发现——发现结果过同一 `validateOAuthSpec` 闸门（http 非环回照样拒）后进既有 loopback/device 流。**只在显式 /mcp-auth 意图上触发，连接路径绝不静默发现**。无注册端点时如实报错并给出手工 `--oauth-*` 配置指引。
+- **证据**：`mcp-ext.test.js` +1——真 401+PRM+ASM+DCR 装置：401 entry 留存 wwwAuth；发现返回的 spec 带正确端点+DCR client 且过 validateOAuthSpec 判为 authorization_code；token store 落 `client`；二次调用零注册 POST；registration 请求含 loopback redirect_uri；无 url 服务器如实报。mcp-ext 42/42、bootstrap startHost 完整性过。
+- **核销**：candidates-open #1514 → `candidates-resolved.tsv` #109。

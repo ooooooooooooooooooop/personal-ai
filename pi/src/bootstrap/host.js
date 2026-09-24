@@ -1955,12 +1955,24 @@ export async function startHost({
       }
       return { configPath: path, configError: error ?? null, missingEnv, servers: rows };
     },
-    auth: (name) => {
+    auth: async (name) => {
       const { servers } = mcpOperatorSurface.loadConfig();
       const spec = servers?.[name];
       if (!spec) return { error: `unknown server '${name}'` };
       let oauth;
       try { oauth = mcpOperatorSurface.validateOAuthSpec(spec); } catch (e) { return { error: e.message }; }
+      if (!oauth && mcpOperatorSurface.oauthDiscoverRegister) {
+        // dedup-h #1514 — no configured spec: RFC 9728/8414 discovery +
+        // RFC 7591 dynamic client registration mint the flow on the
+        // operator's explicit /mcp-auth intent (never silently at connect).
+        const disc = await mcpOperatorSurface.oauthDiscoverRegister(name);
+        if (disc?.oauth) {
+          try { oauth = mcpOperatorSurface.validateOAuthSpec({ ...spec, oauth: disc.oauth }); }
+          catch (e) { return { error: `discovered oauth spec invalid: ${e.message}` }; }
+        } else {
+          return { error: `server '${name}' has no interactive oauth flow configured — ${disc?.error ?? 'discovery unavailable'}` };
+        }
+      }
       if (oauth?.flow === 'device_code') {
         // RFC 8628 device flow (dedup-h #740): return the user-facing code
         // for the card; the host polls the token endpoint detached and
