@@ -2703,3 +2703,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **宿主 hook 层**：`HookRunner` 18 个观察性事件（session/prompt/tool/agent/compact/subagent/turn/message_sent/llm_input/llm_output 等）供 `.pai/hooks.json` + operator 私有 hooks 订阅——用户面向的事件面与扩展面向的事件面分层各自齐备。
 - **证据**：无代码改动——订阅面实测在用：`pi.on` 被五个内联扩展全量订阅（provider 审计/loop 治理/上下文/MCP/world-model）；`session.subscribe` 为 UI 流式渲染唯一事件泵（channel.js:174 rebind 重建订阅）；`message_sent` hook #1188 落地有测试；llm_input/llm_output #1698 刚落。
 - **核销**：candidates-open #1742 → `candidates-resolved.tsv` #120。
+
+### 28.117 648 清单逐条核销 #121：dedup-h #1751 scheduling——schedule-reuse: 排除已完成 + reuse已有session(sessionId)（2026-09-25）
+
+- **行**：`dedup-h  1751  scheduling  schedule-reuse: 排除已完成的reuse已有session(sessionId)`（描述段为另一 changelog 的磁盘配额片段，非本条语义）。
+- **判定**：**ALREADY_COVERED（variant/boundary）**。源语义为"调度火可复用既有会话（按 sessionId 寻址）、已完成会话排除出复用池"——逐面核查：
+  - **复用会话（IMPLEMENTED 语义在册，寻址模型不同）**：`schedule` 双轨目标——`target:'prompt'` 的条目火经 `promptSink` → 同一条受管 channel prompt 路由进**当前 coordinator 会话**（host.js:814——`channelHandle.channel.handle({type:'prompt'})`，预算准入/审计/逐工具治理全过），重复火在同一活跃会话内累积上下文——即"复用既有 session"语义落地；`target:job` 走 durable job（独立写租约/预算域/跨重启存活），是源模型里"新开 session"的对应轨。
+  - **sessionId 寻址（boundary）**：源模型是会话池按 id 寻址复用；我方是**单 coordinator 会话**模型——受管 prompt 面只有一个（channelHandle → currentSession），不存在可供调度按 id 挑选的会话池，`sessionId` 参数无落点（架构差异非缺失功能）。
+  - **排除已完成/不可用（在册）**：busy/无会话 → `promptSink` 返回 `{refused}` 且**该火保持 due 下 tick 重试**（schedule.js:96 `!TERMINAL.has(job.job_state)` 续跑 + refused spawn 不消费火）——不可用/运行中会话即被排除出当次复用；job 侧 TERMINAL 状态集（完成即不再 pump）与 finished-run webhook 完成语义齐备。
+- **证据**：无代码改动——复用/排除语义实测在用：`mcp` 无关；`schedule.test.js`/监控同路 promptSink busy-refused 契约有测试（monitor_wake/goal_tick/webhook 三 sink 同型 busy 拒收）；job TERMINAL 集与 depends_on 完成态在 jobs-executor 测试覆盖。
+- **核销**：candidates-open #1751 → `candidates-resolved.tsv` #121。
