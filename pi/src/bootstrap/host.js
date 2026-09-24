@@ -20,6 +20,7 @@ import { JudgeAdvisor } from '../../../host/src/core/judge.js';
 import { BudgetGovernor } from '../../../host/src/core/budget.js';
 import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
+import { applyBangAuth } from '../adapter/authbang.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
 import { resolvePacProxy, invalidNoProxyEntries } from '../../../host/src/core/pac.js';
 import { HookRunner } from '../../../host/src/core/hooks.js';
@@ -1287,6 +1288,11 @@ export async function startHost({
         if (extra.length) toolSurface.defer([...toolSurface.lazy, ...extra]);
       }
     } catch { /* unreadable mcp config — nothing deferred */ }
+    // dedup-h #1293 — `!command` credentials in <agentDir>/auth.json resolve
+    // at every session build into runtime api keys (runtime wins over the
+    // stored literal). Re-resolution per build picks up rotated secrets.
+    try { await applyBangAuth(agentDir, built.session?.modelRuntime, core.audit); }
+    catch (e) { core.audit.write({ kind: 'AUTH_BANG_FAILED', runId, data: { error: String(e?.message ?? e).slice(0, 200) } }); }
     return built;
   };
 

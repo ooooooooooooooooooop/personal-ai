@@ -10,7 +10,7 @@
 
 **壳/平台**: 桌面 Electron 壳 + 零构建网页 UI（`app/ui`）+ 零依赖 HTTP/SSE 桥（`app/server`）；单用户本地单机；无移动/Web/IDE/headless-CLI 产品面。
 
-**开屏/入口**: 无模型时 setup 引导卡接管空态（provider/密钥/模型选择）；设置页：provider 管理（含自定义 OpenAI 兼容端点）、密钥（`$ENV` 引用不落盘）、推理档、模型列表、workdir 目录浏览；empty-state starters。无逐步 onboarding 向导、无主题切换（固定暗色）、无更新通道。
+**开屏/入口**: 无模型时 setup 引导卡接管空态（provider/密钥/模型选择）；设置页：provider 管理（含自定义 OpenAI 兼容端点）、密钥（`$ENV` 引用不落盘；auth.json 支持 `!command` shell 求值 → runtime 注入不落明文，#1293）、推理档、模型列表、workdir 目录浏览；empty-state starters。无逐步 onboarding 向导、无主题切换（固定暗色）、无更新通道。
 
 **输入/composer**: 多行输入、Shift+Enter 换行；运行中队列（排队卡：文本+[立即发送=steer]+[编辑]+[排序]+[×]）；`@`文件引用附着真内容；粘贴/拖拽文本与图片（图片走 `PromptOptions.images`，R9 实证）；`/` slash 菜单 26 条；用户宏 `/macro`（保存模板，`/名字` 调用，`/unmacro` 删）；模型 chip + 推理档 chip。
 
