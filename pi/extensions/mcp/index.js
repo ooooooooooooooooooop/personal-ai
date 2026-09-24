@@ -396,6 +396,27 @@ export function oauthLoopbackListen({ port = 8765, path = '/callback', state, ti
   return { promise, port, close: () => { try { srv?.close(); } catch { /* best effort */ } } };
 }
 
+// dedup-h #1077 — interactive OAuth auto-opens the system browser instead of
+// making the operator copy the URL by hand. Best-effort: failure never breaks
+// the flow (the URL is still shown for manual open). PAI_OAUTH_NO_AUTO_OPEN=1
+// is the operator kill-switch for headless/locked-down environments.
+export function openBrowser(url, { spawnImpl = spawn, platform = process.platform } = {}) {
+  try {
+    if (process.env.PAI_OAUTH_NO_AUTO_OPEN) return false;
+    const u = new URL(url);
+    if (!['http:', 'https:'].includes(u.protocol)) return false;
+    const [bin, args] = platform === 'win32'
+      ? ['rundll32', ['url.dll,FileProtocolHandler', u.href]]
+      : platform === 'darwin'
+        ? ['open', [u.href]]
+        : ['xdg-open', [u.href]];
+    const child = spawnImpl(bin, args, { detached: true, stdio: 'ignore' });
+    child.on?.('error', () => {});
+    child.unref?.();
+    return true;
+  } catch { return false; }
+}
+
 // --- dedup-h #740: RFC 8628 device authorization grant ---------------------
 // Headless login: POST deviceAuthUrl → {device_code,user_code,verification_uri,
 // interval,expires_in}; the operator authorizes on ANY device; we poll the
@@ -477,6 +498,7 @@ export async function oauthDevicePoll(oauth, {
 export const mcpOperatorSurface = {
   loadConfig, validateOAuthSpec, readTokenStore, writeTokenStore, tokenStorePath,
   oauthDeviceAuthorize, oauthDevicePoll, loopbackListenSpec, oauthLoopbackListen,
+  openBrowser,
   // dedup-h #1059 — set by the bootstrap: (toolName) => deferred onto the
   // lazy surface. Null before ToolSurface exists; the bootstrap's post-build
   // prefix pass catches registrations that landed earlier.
@@ -1452,8 +1474,11 @@ export default function mcpExtension(pi) {
         try {
           const d = await oauthDeviceAuthorize(oauth);
           pendingAuth.set(name, { device: true, deadline: Date.now() + d.expiresInSec * 1000 });
+          // dedup-h #1077 — verification_uri_complete already embeds the user
+          // code; auto-opening it turns device login into one approval click.
+          const opened = mcpOperatorSurface.openBrowser(d.verificationUriComplete ?? d.verificationUri);
           ctx.ui?.notify?.(
-            `Device login for '${name}' — open ${d.verificationUri} on any device and enter code:\n\n` +
+            `Device login for '${name}' — ${opened ? 'opened in your browser' : `open ${d.verificationUri} on any device`} and enter code:\n\n` +
             `  ${d.userCode}\n\nexpires in ${Math.round(d.expiresInSec / 60)}min; polling automatically completes the login`,
             'info',
           );
@@ -1506,10 +1531,12 @@ export default function mcpExtension(pi) {
         }
       }
       pendingAuth.set(name, entry);
+      const opened = mcpOperatorSurface.openBrowser(url);
       ctx.ui?.notify?.(
-        `OAuth for '${name}' — open this URL, approve, then paste the code:\n\n${url}\n\n` +
+        `OAuth for '${name}' — ${opened ? 'opened in your browser' : 'open this URL'}, approve` +
+        `${entry.listen ? ' — the callback completes it automatically' : ', then paste the code'}:\n\n${url}\n\n` +
         (entry.listen
-          ? `Listening on ${oauth.redirectUri} — approval completes automatically (paste still works as fallback).`
+          ? `Listening on ${oauth.redirectUri} (paste still works as fallback).`
           : `Then run: /mcp-auth-done ${name} <code>   (valid for 10 minutes)`),
         'info',
       );

@@ -13,7 +13,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import mcpExtension, { McpClient, McpError, sanitizeSpecEnv } from '../extensions/mcp/index.js';
+import mcpExtension, { McpClient, McpError, sanitizeSpecEnv, openBrowser } from '../extensions/mcp/index.js';
 import { GovernanceKernel } from '../../host/src/core/governance.js';
 import { AttestedPolicy } from '../../host/src/core/policy.js';
 import { makeDecide } from '../src/bootstrap/decide.js';
@@ -476,9 +476,18 @@ test('mcp oauth authorization_code: PKCE dance stores token; transport carries i
     // begin: the command emits an authorize URL with PKCE + RFC8707 params
     const pi = fakePi();
     await mcpExtension(pi);
+    // dedup-h #1077 — the command auto-opens the browser; spy it (never spawn
+    // a real browser from tests) and assert it fired with the authorize URL
+    const opened = [];
+    const realOpen = mcpOperatorSurface.openBrowser;
+    mcpOperatorSurface.openBrowser = (u) => { opened.push(u); return true; };
     const notices = [];
     const ctx = { ui: { notify: (msg, level) => notices.push({ msg, level }) } };
     await pi.commands.get('mcp-auth').handler('remote', ctx);
+    assert.equal(opened.length, 1, 'authorize URL auto-opened in the browser');
+    assert.ok(opened[0].startsWith('http'));
+    assert.match(notices[0].msg, /opened in your browser/);
+    mcpOperatorSurface.openBrowser = realOpen;
     const urlLine = notices[0].msg.split('\n').find((l) => l.startsWith('http'));
     assert.ok(urlLine, 'authorize URL emitted');
     const au = new URL(urlLine);
@@ -1612,4 +1621,28 @@ test('loopback listener: matching state+code resolves; wrong state 400s and keep
   const denied = assert.rejects(l3.promise, /denied/); // attach BEFORE the trigger — an already-rejected promise flags unhandledRejection
   await fetch(`http://127.0.0.1:${free2}/callback?error=access_denied&state=s`);
   await denied;
+});
+
+// dedup-h #1077 — interactive OAuth opens the system browser itself.
+test('openBrowser: per-platform argv, kill-switch, non-http refused', () => {
+  const calls = [];
+  const spy = (bin, args, opts) => { calls.push([bin, args, opts]); return { on() {}, unref() {} }; };
+  assert.ok(openBrowser('https://idp.example/auth?x=1', { spawnImpl: spy, platform: 'win32' }));
+  assert.equal(calls[0][0], 'rundll32');
+  assert.deepEqual(calls[0][1], ['url.dll,FileProtocolHandler', 'https://idp.example/auth?x=1']);
+  assert.equal(calls[0][2].detached, true);
+  assert.ok(openBrowser('https://idp.example/', { spawnImpl: spy, platform: 'darwin' }));
+  assert.equal(calls[1][0], 'open');
+  assert.ok(openBrowser('https://idp.example/', { spawnImpl: spy, platform: 'linux' }));
+  assert.equal(calls[2][0], 'xdg-open');
+  assert.equal(openBrowser('file:///etc/passwd', { spawnImpl: spy }), false);
+  assert.equal(openBrowser('not-a-url', { spawnImpl: spy }), false);
+  assert.equal(calls.length, 3, 'refused inputs never spawn');
+  process.env.PAI_OAUTH_NO_AUTO_OPEN = '1';
+  try {
+    assert.equal(openBrowser('https://idp.example/', { spawnImpl: spy }), false);
+  } finally {
+    delete process.env.PAI_OAUTH_NO_AUTO_OPEN;
+  }
+  assert.equal(calls.length, 3, 'kill-switch suppresses the spawn');
 });

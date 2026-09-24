@@ -4001,11 +4001,19 @@ const SLASH = [
             if (a.data?.device) {
               const d = a.data.device;
               if (d.pending) { addSys(`'${s.name}' 设备登录已在进行——等待批准完成`); b.disabled = false; return; }
-              addSys(`设备登录 '${s.name}' — 在任意设备打开 ${d.verificationUri} 并输入代码：\n\n  ${d.userCode}\n\n${Math.round((d.expiresInSec ?? 900) / 60)} 分钟内有效，批准后自动完成`);
+              // dedup-h #1077 — verification_uri_complete embeds the code; one click
+              try { window.open?.(d.verificationUriComplete ?? d.verificationUri, '_blank', 'noopener'); } catch { /* headless */ }
+              addSys(`设备登录 '${s.name}' — 已在浏览器打开${d.verificationUriComplete ? '（代码已带入）' : ` ${d.verificationUri}`}，输入代码：\n\n  ${d.userCode}\n\n${Math.round((d.expiresInSec ?? 900) / 60)} 分钟内有效，批准后自动完成`);
               b.disabled = false;
               return;
             }
-            addSys(`OAuth '${s.name}' — 在浏览器打开以下 URL 批准后粘贴 code（${a.data?.expiresInSec ?? 600}s 内有效）：\n${a.data?.url}`);
+            try { if (a.data?.url) window.open?.(a.data.url, '_blank', 'noopener'); } catch { /* headless */ } // dedup-h #1077
+            if (a.data?.loopback?.auto) {
+              addSys(`OAuth '${s.name}' — 已自动打开浏览器，批准后回环回调自动完成授权（${a.data?.expiresInSec ?? 600}s 内有效）。粘贴备用：pai-host mcp-auth-done ${s.name} <code>`);
+              b.disabled = false;
+              return;
+            }
+            addSys(`OAuth '${s.name}' — 已在浏览器打开（${a.data?.expiresInSec ?? 600}s 内有效），批准后粘贴 code：\n${a.data?.url}`);
             const code = await askText(`完成 ${s.name} 授权`, '粘贴 authorization code');
             if (!code?.trim()) { b.disabled = false; return; }
             const fin = await cmd('mcp_auth_done', { server: s.name, code: code.trim() });

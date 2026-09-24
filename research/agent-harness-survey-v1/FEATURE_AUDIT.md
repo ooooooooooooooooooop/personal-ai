@@ -2072,7 +2072,7 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | 面 | 落点 |
 |---|---|
 | spec | `oauth.authorizationUrl` 存在 → `flow:'authorization_code'`；`redirectUri` 默认 `urn:ietf:wg:oauth:2.0:oob`（粘贴回流，无浏览器自动化依赖）；校验同 tokenUrl（https/loopback http、无 fragment） |
-| 起 | `/mcp-auth <server>`：PKCE verifier+S256 challenge+state，组 authorize URL（response_type/client_id/redirect_uri/scope/**resource**（RFC8707 override 复用））→ 通知操作员开链接、10 分钟有效 |
+| 起 | `/mcp-auth <server>`：PKCE verifier+S256 challenge+state，组 authorize URL（response_type/client_id/redirect_uri/scope/**resource**（RFC8707 override 复用））→ **自动开系统浏览器**（#1077：`openBrowser` 三平台 argv、`PAI_OAUTH_NO_AUTO_OPEN` 逃逸；回环 redirectUri 时回调自动收口）+ 通知兜底手开、10 分钟有效 |
 | 收 | `/mcp-auth-done <server> <code>`：`grant_type=authorization_code`+code_verifier 换 token → 用户私有库 `~/.personal-ai/mcp-oauth.json`（0600，`PAI_MCP_TOKEN_STORE` 覆盖）——**令牌永不进 workdir** |
 | 用 | `oauthStoredTokens`：连接按 serverName 读库；过期走 `refresh_token` 授予原地续期；无令牌→`MCP_UNAUTHORIZED` 诚实错误点名 `/mcp-auth <name>`；`/mcp` 状态只显示 flow 描述符 |
 

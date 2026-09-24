@@ -170,6 +170,7 @@ if (cmd === 'mcp-auth' || cmd === 'mcp-auth-done') {
   const {
     oauthBuildAuthorizeUrl, oauthExchangeCode, mcpOperatorSurface,
     oauthPendingLoad, oauthPendingSave,
+    loopbackListenSpec, oauthLoopbackListen, openBrowser,
   } = await import('../extensions/mcp/index.js');
   const name = process.argv[3] ?? '';
   if (!name) {
@@ -188,10 +189,39 @@ if (cmd === 'mcp-auth' || cmd === 'mcp-auth-done') {
   }
   if (cmd === 'mcp-auth') {
     const { url, verifier, state } = oauthBuildAuthorizeUrl(oauth, spec.url);
+    const lspec = loopbackListenSpec(oauth.redirectUri);
+    const opened = openBrowser(url); // dedup-h #1077 — auto-open, URL still printed
+    // loopback redirect configured → hold this process as the receiver: the
+    // browser callback completes the login without a second CLI invocation.
+    if (lspec) {
+      console.log(`OAuth '${name}' — ${opened ? 'opened in your browser' : 'open this URL'}; waiting for callback on ${oauth.redirectUri} (10min, Ctrl-C to abort):\n\n${url}`);
+      try {
+        const { code } = await oauthLoopbackListen({ ...lspec, state, timeoutMs: 10 * 60 * 1000 }).promise;
+        const t = await oauthExchangeCode(oauth, { code, verifier });
+        const store = mcpOperatorSurface.readTokenStore();
+        store[name] = {
+          access_token: t.accessToken, refresh_token: t.refreshToken,
+          expires_at: t.expiresAt, obtained: new Date().toISOString(), flow: 'authorization_code',
+        };
+        mcpOperatorSurface.writeTokenStore(store);
+        console.log(`OAuth complete for '${name}' — token stored`);
+        try {
+          const { HookRunner } = await import('../../host/src/core/hooks.js');
+          await new HookRunner(process.cwd(), {}).fire('notification', {
+            message: `OAuth complete for '${name}'`, level: 'info',
+            kind: 'auth_success', server: name, flow: 'authorization_code',
+          });
+        } catch { /* observational hooks never block the CLI */ }
+        process.exit(0);
+      } catch (e) {
+        console.error(`OAuth for '${name}' failed: ${e?.message ?? e}`);
+        process.exit(1);
+      }
+    }
     const pend = oauthPendingLoad();
     pend[name] = { verifier, state, deadline: Date.now() + 10 * 60 * 1000 };
     oauthPendingSave(pend);
-    console.log(`OAuth '${name}' — open, approve, then run:\n\n${url}\n\npai-host mcp-auth-done ${name} <code>   (valid 10 minutes)`);
+    console.log(`OAuth '${name}' — ${opened ? 'opened in your browser' : 'open'}, approve, then run:\n\n${url}\n\npai-host mcp-auth-done ${name} <code>   (valid 10 minutes)`);
     process.exit(0);
   }
   const code = process.argv[4] ?? '';

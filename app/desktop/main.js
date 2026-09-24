@@ -5,7 +5,7 @@
  * supervisor + HTTP bridge run in-process here, so the app is one process
  * owning: instance root → body channel child → renderer. No terminal needed.
  */
-import { app, BrowserWindow, dialog } from 'electron';
+import { app, BrowserWindow, dialog, shell } from 'electron';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BodySupervisor } from '../server/supervisor.js';
@@ -44,6 +44,17 @@ async function boot() {
     webPreferences: { contextIsolation: true, nodeIntegration: false },
   });
   win.removeMenu();
+  // dedup-h #1077 — window.open (OAuth/外链) goes to the SYSTEM browser, never
+  // an in-app window; only http(s) is allowed out.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const u = new URL(url);
+      if (u.protocol === 'http:' || u.protocol === 'https:') {
+        void shell.openExternal(u.href);
+      }
+    } catch { /* malformed target — deny the window either way */ }
+    return { action: 'deny' };
+  });
   await win.loadURL(`http://127.0.0.1:${port}/`);
 }
 
