@@ -2663,3 +2663,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **memory（ALREADY_COVERED，variant）**：pai-channel 委托子体是完整身体、持有自身 instance `MemoryStore` + `memory_*` 工具全集——代理具记忆面已齐；无 per-agent 独立命名空间（诚实边界：源语义为 CC `memory: user|project|local` 作用域选择，我方为 instance 单一规范域）。
 - **证据**：`pi/tests/agentprofiles.test.js` +3——(a) 解析信任门：untrusted 剥 maxTurns+disallowedTools、trusted 保留，`disallowedTools`/`disallowed_tools`/`maxTurns` 三拼写均认读；(b) delegate 级：enforceable 目标命令带 `--max-turns 40`，非 enforceable 目标 `unenforceable_max_turns` 拒且零 spawn；(c) 桥映射哨兵：`--max-turns`→`PAI_MAX_TOOL_CALLS`。agentprofiles 17/17、delegate/jobs/wand/bootstrap 102/102。
 - **核销**：candidates-open #1664 → `candidates-resolved.tsv` #116。
+
+### 28.113 648 清单逐条核销 #117：dedup-h #1696 other——/test命令:聊天界面上顺序重排测试会话（2026-09-24）
+
+- **行**：`dedup-h  1696  other  /test命令:聊天界面上顺序重排测试会话`（描述段为另一 changelog 的群聊上下文注入片段，非本条语义）。
+- **判定**：**REJECTED（boundary）**。语义面逐条核查：
+  - **"测试会话"实体不存在**：我方会话模型为 session store 的时序会话（`session_list` 按存储序返回，无 test/normal 分类）；不存在可"重排"的测试会话集合——重排对象缺省。
+  - **会话重排面无需求**：UI 会话列表为只读投影（`session_list` → `sessionsCache` 渲染），重排只是显示层 dev 调试便利，无用户语义——为模拟该 harness 的调试命令而造一个重排序面是噪声不是特性。
+  - **相邻 `/test` 语义已覆盖**：Aider `/test` 对等的验证命令面由 `/verify` 实装（app/ui/app.js:3926——触发 `.pai/verify.json` onWrite 命令）。
+- **证据**：无代码改动——拒绝基于实体的诚实判定（重排目标对象不存在）。命令面核查：`/verify` 在册、无 `/test` 注册、session_list 无排序参数。
+- **核销**：candidates-open #1696 → `candidates-resolved.tsv` #117。
