@@ -123,6 +123,10 @@ rl.on('line', async (line) => {
       return reply({ id: 'sess-2', file: cmd.path, name: 'resume-target' });
     case 'session_new':
       return reply({ id: 'sess-new', file: `${instance}/sessions/new.jsonl` });
+    case 'session_insights':
+      return reply(cmd.all
+        ? { sessions: 2, messages: 4, tokens: 120, cost: 0.01, errorBlocks: 0, avgDurationMs: 60000, topTools: [{ name: 'bash', count: 3 }], tips: ['覆盖良好'] }
+        : { file: cmd.path ?? 's1.jsonl', messages: 3, roles: { user: 2, assistant: 1 }, durationMs: 30000, tokens: 60, cost: 0, topTools: [], tips: [] });
     case 'model_set':
       return reply({ applied: true, model: { provider: cmd.provider ?? 'fake', id: cmd.model ?? cmd.alias ?? 'fake-2' } });
     case 'config_get':

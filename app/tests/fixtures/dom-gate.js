@@ -221,6 +221,17 @@ const DRIVER = `(async () => {
     };
     sessionsCache.length -= 3;
 
+    // dedup-h #895 — Session Insights button: on-demand aggregate analysis
+    // from the drawer; nothing computes insights unless asked.
+    const insBtn = [...document.querySelectorAll('.sess-insights-btn')][0];
+    insBtn?.click();
+    await sleep(250);
+    const insTxt = document.querySelector('#transcript')?.textContent ?? '';
+    checks.sessInsights = {
+      ok: !!insBtn && insTxt.includes('聚合剖析 2 个会话') && insTxt.includes('bash×3'),
+      btn: !!insBtn, saw: insTxt.includes('聚合剖析'),
+    };
+
     // candidates-open #2 — /worktree dispatches job_spawn{worktree:true} and
     // lands the operator in the jobs view on success.
     inputEl.value = '/worktree echo domgate';

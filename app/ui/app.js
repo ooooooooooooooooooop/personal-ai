@@ -1460,6 +1460,23 @@ function sessionGroup(dateStr) {
 // filter is too short to bother the backend.
 let searchHits = null;
 let showArchived = false;
+// dedup-h #390/#895 — aggregate session insights, shared by /insights all
+// and the session-drawer insights button. On-demand only: nothing runs
+// analysis in the background.
+async function showInsightsAll() {
+  const r = await cmd('session_insights', { all: true });
+  if (!r.success) { addSys(`insights 失败：${r.error ?? '未知'}`, true); return; }
+  const d = r.data ?? {};
+  const top = (d.topTools ?? []).map((t) => `${t.name}×${t.count}`).join(' ') || '无';
+  addSys([
+    `📊 聚合剖析 ${d.sessions ?? 0} 个会话${d.unreadable?.length ? `（${d.unreadable.length} 个不可读）` : ''}`,
+    `总消息 ${d.messages ?? 0} · 总 tokens ${d.tokens ?? 0} · 累计 $${d.cost ?? 0} · 错误块 ${d.errorBlocks ?? 0}`,
+    `时长：均值 ${d.avgDurationMs != null ? `${Math.round(d.avgDurationMs / 60000)}min` : 'n/a'}${d.longest ? ` · 最长 ${Math.round(d.longest.durationMs / 60000)}min（${d.longest.file}）` : ''}`,
+    `工具：${top}`,
+    ...(d.tips ?? []).map((t) => `💡 ${t}`),
+  ].join('\n'));
+}
+
 function renderSessions() {
   const box = $('session-list');
   const filter = $('side-filter').value.trim().toLowerCase();
@@ -1477,6 +1494,15 @@ function renderSessions() {
     t.className = 'sess-arch-toggle';
     t.textContent = showArchived ? '收起归档' : `显示归档（${sessionsCache.filter((s) => s.archived).length}）`;
     t.onclick = () => { showArchived = !showArchived; renderSessions(); };
+    box.appendChild(t);
+  }
+  // dedup-h #895 — Session Insights button analogue: on-demand aggregate
+  // analysis straight from the drawer; nothing analyzes in the background.
+  if (sessionsCache.length) {
+    const t = document.createElement('button');
+    t.className = 'sess-arch-toggle sess-insights-btn';
+    t.textContent = '📊 会话剖析（聚合全部会话）';
+    t.onclick = () => showInsightsAll();
     box.appendChild(t);
   }
   // Sweep affordance: archive candidates = unpinned sessions idle >14d
@@ -3926,20 +3952,7 @@ const SLASH = [
     run: async (arg) => {
       const a = String(arg ?? '').trim();
       // dedup-h #390 — aggregate mode: fleet stats across the session dir
-      if (a === 'all' || a === '*') {
-        const r = await cmd('session_insights', { all: true });
-        if (!r.success) { addSys(`insights 失败：${r.error ?? '未知'}`, true); return; }
-        const d = r.data ?? {};
-        const top = (d.topTools ?? []).map((t) => `${t.name}×${t.count}`).join(' ') || '无';
-        addSys([
-          `📊 聚合剖析 ${d.sessions ?? 0} 个会话${d.unreadable?.length ? `（${d.unreadable.length} 个不可读）` : ''}`,
-          `总消息 ${d.messages ?? 0} · 总 tokens ${d.tokens ?? 0} · 累计 $${d.cost ?? 0} · 错误块 ${d.errorBlocks ?? 0}`,
-          `时长：均值 ${d.avgDurationMs != null ? `${Math.round(d.avgDurationMs / 60000)}min` : 'n/a'}${d.longest ? ` · 最长 ${Math.round(d.longest.durationMs / 60000)}min（${d.longest.file}）` : ''}`,
-          `工具：${top}`,
-          ...(d.tips ?? []).map((t) => `💡 ${t}`),
-        ].join('\n'));
-        return;
-      }
+      if (a === 'all' || a === '*') return showInsightsAll();
       const p = a || currentSessionFile;
       if (!p) { toast('当前会话未落盘——/insights 需要文件会话', 'err'); return; }
       const r = await cmd('session_insights', { path: p });
