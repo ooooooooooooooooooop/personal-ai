@@ -2684,3 +2684,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **桥接**：`createPiSession` 新 `getHooks` 懒取参 → `providerAuditExtension(audit, getHooks)`；bootstrap 传 `() => hooks`——HookRunner 在作用域后段才构造（观察性配置随 channel 解析），provider 事件 post-boot 才触发，try-catch 兜 TDZ/未建态退化为 audit-only。两侧 fire 均 try 包裹：hook 抛错绝不阻塞 provider 路径。
 - **证据**：`pi/tests/llm-hooks.test.js` +4——(a) llm_input：seq/model/messages/hash/bytes 全字段 + preview 恰 16384 截断（40KB 消息体驱动）+ PROVIDER_REQUEST 审计并存；(b) llm_output：status 429 + headers 原样透出 + seq 与前序 input 配对 + PROVIDER_RESPONSE 审计；(c) 无 getHooks 退化为 audit-only 零抛错、hook 抛异常不中断 provider 路径；(d) 契约哨兵：两事件在 HOOK_EVENTS 且不在 GATE_EVENTS。host 全套 401/401。
 - **核销**：candidates-open #1698 → `candidates-resolved.tsv` #118。
+
+### 28.115 648 清单逐条核销 #119：dedup-h #1740 sandbox-exec——fs-perms: deny-read glob policies+platform sandbox enforce（2026-09-25）
+
+- **行**：`dedup-h  1740  sandbox-exec  fs-perms: deny-read glob policies+platform sandbox enforce`（描述段为另一 changelog 的 Web Shell 远端工作区片段，非本条语义）。
+- **判定**：**ALREADY_COVERED（variant）**。两语义面逐一核查，实落点齐备：
+  - **deny-read glob policies**：`.paiignore`（`host/src/core/paiignore.js`）即此面——gitignore 风格 glob（`*`/`**`/`?`/dir-only/anchored），decide 链内对 **read 与 write 两族同时拒止**（排除路径既不可见也不可触——比源语义"deny-read"更强，是 deny-read 的超集）；agent-writable 但单调（模式只增限制、永不授权）。exec 族另有 `.pai/commands.json {denyPrefixes}` 项目级命令拒表在准入前拦截。
+  - **platform sandbox enforce**：`host/src/core/sandbox.js` `SandboxProvider`——非 userspace profile 而是**内核边界梯度**：wsl（独立 OS/独立 fs 视图）、docker（一次性容器，workdir rw 挂载即天然出界不可见）、ssh（远端主机，命令 base64 内嵌远端脚本杜绝 quoting 走私）。`PAI_SANDBOX` env + per-job `sandbox` spec 选择，不可用后端 fail-closed（spawnSpec 先抛 `SandboxUnavailableError`，进程未生即拒）；`sandbox-exclude.json` operator 私有旁路表逐 spawn 重读热生效。spec 返回 `{file,args,shell:false}`——用户命令作单一 argv 元过沙箱解释器，无 cmd 引号重组。**诚实边界**：覆盖 durable-job 面，前台工具路径为 opt-in passthrough（v1 设计注释明示"until a containment story covers the foreground tool path"）——variant 判定依据。
+- **证据**：无代码改动——双面在册有测试：`m8-wiring.test.js:305` .paiignore 拦 read+write 两族；`sandbox.test.js` 9 测——argv spec 安全（用户命令单 argv 元不被引号重组）、wsl/distro/不可用后端 fail-closed、docker 容器名/ssh BatchMode；`fastcontext.test.js` .paiignore 在检索面同样生效。
+- **核销**：candidates-open #1740 → `candidates-resolved.tsv` #119。
