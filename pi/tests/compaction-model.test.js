@@ -202,3 +202,60 @@ test('#1546 e2e: nothing configured → no interception (native summarizer path)
     host.dispose();
   }
 });
+
+// dedup-h #2087 — model request wait time honors the configured timeout:
+// a feature-models.json {timeout_ms} reaches the actual fetch, it is not
+// shadowed by the callsite default (the "first-token timeout ignored" fix).
+test('#2087 e2e: feature timeout_ms bounds the summarization request', async () => {
+  let delayMs = 400;
+  const srv = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => setTimeout(() => {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ choices: [{ message: { content: 'SUMMARY OK' } }] }));
+    }, delayMs));
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const port = srv.address().port;
+  try {
+    const dir = mkdtempSync(join(tmpdir(), 'pai-compact-to-'));
+    provision(dir);
+    mkdirSync(join(dir, 'pi-agent'), { recursive: true });
+    writeFileSync(join(dir, 'pi-agent', 'models.json'), JSON.stringify({
+      providers: { compp: { baseUrl: `http://127.0.0.1:${port}`, allowPrivateNetwork: true } },
+    }));
+    // 60ms configured timeout vs 400ms server → premature-cancel axis: the
+    // configured value, not the 30s callsite default, bounds the request.
+    writeFileSync(join(dir, 'feature-models.json'), JSON.stringify({
+      compaction: { provider: 'compp', model: 'compact-x', timeout_ms: 60 },
+    }));
+    const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+    try {
+      const emit = () => host.session.extensionRunner.emit({
+        type: 'session_before_compact',
+        preparation: fakePreparation(),
+        branchEntries: [], reason: 'threshold', willRetry: false,
+        signal: new AbortController().signal,
+      });
+      const res = await emit();
+      assert.equal(res?.compaction, undefined,
+        'configured 60ms timeout aborts a 400ms response (default 30s would have waited)');
+      const kinds = () => readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+        .trim().split('\n').map((l) => JSON.parse(l).kind);
+      assert.ok(kinds().includes('COMPACTION_MODEL_FALLBACK'), 'abort surfaces as the honest fallback');
+
+      // a generous configured timeout reaches the wire too — not a clamp
+      writeFileSync(join(dir, 'feature-models.json'), JSON.stringify({
+        compaction: { provider: 'compp', model: 'compact-x', timeout_ms: 10_000 },
+      }));
+      delayMs = 50;
+      const res2 = await emit();
+      assert.equal(res2?.compaction?.summary, 'SUMMARY OK', 'configured 10s admits the response');
+    } finally {
+      host.dispose();
+    }
+  } finally {
+    srv.close();
+  }
+});

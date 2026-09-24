@@ -538,7 +538,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
 const STEP_ID = /^[a-z][a-z0-9_-]{0,31}$/;
 const MAX_WORKFLOW_STEPS = 12;
 
-export function workflowTool(delegate) {
+export function workflowTool(delegate, { planCritic = null } = {}) {
   return {
     name: 'workflow',
     label: 'Workflow',
@@ -619,6 +619,18 @@ export function workflowTool(delegate) {
       }
       if (order.length !== steps.length) {
         return fail('workflow: depends_on contains a cycle — no execution order exists', 'cyclic_plan');
+      }
+      // dedup-h #2087 — planning critic: every workflow plan is agent-authored
+      // (non-human) by definition, so when a critic is wired it reviews the
+      // whole plan AFTER structural validation and BEFORE admission. An
+      // explicit reject blocks; an unavailable/failed critic degrades
+      // (advisory — every step still rides governed delegation downstream).
+      if (planCritic) {
+        let verdict = null;
+        try { verdict = await planCritic(steps); } catch { verdict = null; }
+        if (verdict && verdict.approve === false) {
+          return fail(`workflow: plan critic rejected the plan — ${String(verdict.reason ?? 'no reason given').slice(0, 300)}`, 'plan_critic_rejected');
+        }
       }
       const wfId = `wf-${Math.random().toString(36).slice(2, 8)}`;
       const label = String(params?.name ?? '').trim();

@@ -156,3 +156,47 @@ test('workflow: plan validation + topo admission + honest stop on refusal', asyn
   assert.equal(calls.length, 2, 'third step never submitted');
   assert.match(stop.content[0].text, /one → job-1/);
 });
+
+// dedup-h #2087: planning critic — an explicit reject refuses the plan
+// before any admission; unavailable/degraded critic answers stay advisory.
+test('workflow planCritic: reject blocks admission; unavailable critic degrades advisory', async () => {
+  const { workflowTool } = await import('../src/adapter/delegate.js');
+  const calls = [];
+  const delegate = { execute: async (_id, p) => { calls.push(p); return { content: [{ type: 'text', text: 'ok' }], details: { job_id: `job-${calls.length}` } }; } };
+
+  // explicit reject → refused before any delegate call
+  const wfNo = workflowTool(delegate, { planCritic: async () => ({ approve: false, reason: 'step order contradicts the goal' }) });
+  const r = await wfNo.execute('tc', { steps: [{ id: 'a', task: 'x' }] });
+  assert.equal(r.details.reason, 'plan_critic_rejected');
+  assert.match(r.content[0].text, /step order contradicts/);
+  assert.equal(calls.length, 0, 'rejected plan admits nothing');
+
+  // critic sees the real steps (agent-authored plan is what it reviews)
+  let seen = null;
+  const wfSpy = workflowTool(delegate, { planCritic: async (steps) => { seen = steps; return { approve: true }; } });
+  const ok = await wfSpy.execute('tc', { steps: [{ id: 'a', task: 'x' }, { id: 'b', task: 'y', depends_on: ['a'] }] });
+  assert.equal(ok.details.workflow.slice(0, 3), 'wf-');
+  assert.equal(seen.length, 2, 'critic reviewed the full plan');
+  assert.equal(calls.length, 2, 'approved plan admits');
+
+  // structural refusal still beats the critic (critic never sees bad plans)
+  let fired = 0;
+  const wfBad = workflowTool(delegate, { planCritic: async () => { fired++; return { approve: true }; } });
+  const bad = await wfBad.execute('tc', { steps: [{ id: 'a', task: 'x', depends_on: ['a'] }] });
+  assert.equal(bad.details.reason, 'self_dependency');
+  assert.equal(fired, 0, 'invalid plan never reaches the critic');
+
+  // throwing / unavailable critic → advisory degrade, plan still admits
+  calls.length = 0;
+  const wfDead = workflowTool(delegate, { planCritic: async () => { throw new Error('endpoint down'); } });
+  const ok2 = await wfDead.execute('tc', { steps: [{ id: 'a', task: 'x' }] });
+  assert.equal(ok2.details.workflow.slice(0, 3), 'wf-');
+  assert.equal(calls.length, 1, 'critic outage does not brick workflows');
+
+  // no critic wired → old path, untouched
+  calls.length = 0;
+  const wfPlain = workflowTool(delegate);
+  const ok3 = await wfPlain.execute('tc', { steps: [{ id: 'a', task: 'x' }] });
+  assert.equal(ok3.details.workflow.slice(0, 3), 'wf-');
+  assert.equal(calls.length, 1);
+});

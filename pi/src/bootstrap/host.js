@@ -533,6 +533,11 @@ export async function startHost({
     const base = auth?.auth?.baseUrl ?? p?.baseUrl;
     const model = feature?.model ?? currentSession?.model?.id ?? currentSession?.model?.model;
     if (!base || !model) return null;
+    // dedup-h #2087: an operator-declared feature timeout must reach the
+    // request — a feature-models.json {timeout_ms} overrides the callsite
+    // default (routing a judge to a slow model must not die on the hardcoded
+    // 8s wait — the upstream "first-token timeout ignored" fix).
+    const effectiveTimeoutMs = Number(feature?.timeout_ms) > 0 ? Number(feature.timeout_ms) : timeoutMs;
     const headers = { 'content-type': 'application/json', ...(p?.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
     if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
     const res = await fetch(`${String(base).replace(/\/+$/, '')}/chat/completions`, {
@@ -546,7 +551,7 @@ export async function startHost({
           { role: 'user', content: user },
         ],
       }),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(effectiveTimeoutMs)]) : AbortSignal.timeout(effectiveTimeoutMs),
     });
     if (!res.ok) return null;
     const body = await res.json().catch(() => null);
@@ -1172,7 +1177,40 @@ export async function startHost({
   // workflow's per-step admission travels the identical governed path.
   if (delegationCommand) {
     const delegate = customTools.find((t) => t.name === 'delegate_task');
-    if (delegate) customTools.push(workflowTool(delegate));
+    // dedup-h #2087 — planning critic (PAI_PLAN_CRITIC=1 opt-in, PAI_JUDGE
+    // precedent): a second model reviews every agent-authored workflow plan
+    // after structural validation, before admission. Routes via
+    // feature-models.json 'plancritic'; an explicit reject refuses the plan;
+    // unreachable/malformed critic answers degrade with an audit row — the
+    // reviewer is advisory, the governed delegate path is the real gate.
+    const planCritic = process.env.PAI_PLAN_CRITIC === '1'
+      ? async (steps) => {
+          const summary = steps.map((s) => ({ id: s.id, task: s.task, depends_on: s.depends_on ?? [] }));
+          const text = await judgeCall(
+            'You are a planning critic reviewing an agent-authored workflow plan (JSON steps: id/task/depends_on). ' +
+            'Reply ONLY with JSON {"approve":true} or {"approve":false,"reason":"…"} — reject only for real defects ' +
+            '(missing step for the stated goal, wrong dependency order, a task too ambiguous to execute), not style.',
+            JSON.stringify(summary).slice(0, 12_000),
+            'plancritic', { maxTokens: 200, timeoutMs: 15_000 },
+          );
+          if (text == null) {
+            core.audit?.write({ kind: 'PLAN_CRITIC', data: { outcome: 'unavailable', steps: steps.length } });
+            return null; // advisory degrade — no model runtime answers
+          }
+          let doc = null;
+          try { doc = JSON.parse(String(text).replace(/^```(?:json)?|```$/g, '').trim()); } catch { /* malformed */ }
+          if (doc == null || typeof doc.approve !== 'boolean') {
+            core.audit?.write({ kind: 'PLAN_CRITIC', data: { outcome: 'malformed', steps: steps.length } });
+            return null;
+          }
+          core.audit?.write({
+            kind: 'PLAN_CRITIC',
+            data: { outcome: doc.approve ? 'approved' : 'rejected', steps: steps.length, reason: doc.reason ? String(doc.reason).slice(0, 300) : undefined },
+          });
+          return doc;
+        }
+      : null;
+    if (delegate) customTools.push(workflowTool(delegate, { planCritic }));
   }
 
   // M2 production wiring: policy-denied tools never reach the visible surface

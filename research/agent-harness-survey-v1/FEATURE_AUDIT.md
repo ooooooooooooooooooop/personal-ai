@@ -2950,3 +2950,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（empty input list 剥图 bug）**：**真洞确认**——`caps.images = !Array.isArray(curInput) || curInput.includes('image')` 把 `input:[]` 判为"无图片能力"剥图；而"未声明"契约本该 `[]`≡absent。两读方（carry gate 行462 + media-fallback 挑选行481）收敛到共享谓词 `acceptsImages(input)`：`!Array.isArray || length===0 || includes('image')`——同契约两调用点，正是上游"两读方绕过 modelHasCapability"修复的对位。
 - **证据**：`pi/tests/channel-facade.test.js` +1=48/48（`input:[]` 原生带图+无降级通知、`['text']` 仍剥、`input:[]` 回退链条目被选中）；`pi/tests/bootstrap.test.js` +1=40/40（tier:'low' 播种+审计、'ultra' 忽略+IGNORED 审计）；host 417/417 不受影响（纯 pi 侧）。
 - **核销**：candidates-open #2051 → `candidates-resolved.tsv` #143。
+
+### 28.140 648 清单逐条核销 #144：dedup-h #2087 bugfix——critic: Planning Critic 二次 agent 审非人工 plans（2026-09-25）
+
+- **行**：`dedup-h  2087  bugfix  critic: Planning Critic二次agent审非人工plans`（描述段为错位修复片段："model 请求等待时间对齐 first-token 超时配置，防过早取消"）。
+- **判定**：**IMPLEMENTED**（双语义全落）。
+  - **标题语义（Planning Critic 二次 agent 审非人工 plans）**：核查——`workflow()` 是我方唯一计划执行面，且计划天然全部 agent 著（"非人工"区分内在成立），结构校验(topo/cycle/size)后**直接准入**，无二次评审缝。落点：`workflowTool(delegate, {planCritic})`——结构校验过、wfId 铸造前过 critic；`PAI_PLAN_CRITIC=1` opt-in（`PAI_JUDGE=1` 先例），`judgeCall('plancritic')` 复用 feature-models.json 路由+二次模型面；应答契约 `{"approve":bool,"reason"}` 剥离 ```json 围栏解析；**显式 reject→`plan_critic_rejected` 拒绝**（零准入）；critic 不可达/应答畸形→`PLAN_CRITIC` 审计降级放行（评审是 advisory——真正的门在下游每步治理委托，审计绝不静默）。
+  - **描述语义（配置超时架空 bug）**：核查——`judgeCall` 是我方自有 LLM 请求面（feature-models.json 路由），但 `timeoutMs` 硬编码于调用点(8s/30s)，操作员配置无法到达请求=上游"first-token 超时被忽略"同构。落点：feature-models.json 条目支持 `timeout_ms`→`effectiveTimeoutMs` 覆盖调用点默认；`Number>0` 才生效（非数/0/负不落）。
+- **证据**：`pi/tests/tasktools.test.js` +1=5/5（reject 零准入/approve 见全计划/结构拒先于 critic/critic 抛错降级/无 critic 旧路径）；`pi/tests/compaction-model.test.js` +1=6/6（`timeout_ms:60` 砍掉 400ms 应答=配置真实到达、`timeout_ms:10000` 放行=非 clamp）；host 417/417 不受影响。
+- **核销**：candidates-open #2087 → `candidates-resolved.tsv` #144。
