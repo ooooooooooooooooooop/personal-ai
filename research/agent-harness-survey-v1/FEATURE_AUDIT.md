@@ -2909,3 +2909,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述**：`sandbox.excludedCommands` 复合命令骑白名单绕沙箱——我方 `sandbox-exclude.json` 早带同源守卫（jobs.js:379-406：仅单一简单 unit、无重定向/写目标/danger-env/env 赋值/扩展、`raw===command` 全等校验、SANDBOX_EXCLUDED 审计），注释本身引用上游被咬的同一 bug。
 - **证据**：`host/tests/asks.test.js` +1=25/25（未声明→非法应答、声明→label 载事件+verbatim resolve、非 allow-family 不短路后续 ask、畸形降级）；`host/tests/hooks.test.js` +1（requireApproval+externalVerify 解析/畸形丢弃/prompt 型免 opt-in 可声明）；`pi/tests/hook-rewrite.test.js` +2=8/8（external_verify 有界重发带旗标+verdict 绑定、静默=放行、链式升级→拒）；host 全套 416/416。
 - **核销**：candidates-open #2004 → `candidates-resolved.tsv` #139。
+
+### 28.136 648 清单逐条核销 #140：dedup-h #2010 approval-gate——proxy: HTTPS managed forward-proxy + proxy.tls.caFile CA 信任（2026-09-25）
+
+- **行**：`dedup-h  2010  approval-gate  proxy: HTTPS managed forward-proxy+proxy.tls.caFile CA trust`（描述段为错位 channel permission relay 片段=1975 已核销域）。
+- **判定**：**IMPLEMENTED**。前向代理面已有（`proxy.json {mode}`/PAI_PROXY_URL/PAC/WPAD/#1027 noProxy 校验）；真缺口 = **proxy.tls.caFile**——企业 MITM/自签根的受管 CA 信任面缺失。
+  - **机制**：`proxy.json {tls:{caFile}}`（operator 自有文件）→ `tls.setDefaultCACertificates([...rootCertificates, pem])`——operator 声明的 CA 并入默认信任根，作用于其后全部 TLS context（代理隧道、上游源、provider SDK、web_fetch、http hook 同一份 trust）。Node 24 `tls.setDefaultCACertificates` 是运行时 CA 的正规机制（undici 不可 import、NODE_EXTRA_CA_CERTS 只在进程启动读取=死路）。
+  - **位点**：`mode !== 'off'` 代理配置块内——`proxy.tls.*` 命名空间语义只在代理激活时成立；路径 resolve 到 instanceRoot（可移植）。
+  - **fail-loud**：CA 文件不可读 → boot 直接抛（同畸形 proxy URL 的失败层级——静默忽略信任材料会弱化 operator 意图）。
+  - **姿态**：`PROXY_CA_APPLIED` boot 审计 + `proxyState.caFile` 经 `status()`/`get_state` 上报。
+- **证据**：`pi/tests/bootstrap.test.js` +1=39/39 端到端——先摘除该 CA 再经 caFile 路径装回（X509 fingerprint256 证明真 PEM 入根而非计数假象）、审计行落地、status 面报路径、missing.pem → startHost 拒启。流程全局 CA 列表在 finally 恢复不污染邻测。
+- **核销**：candidates-open #2010 → `candidates-resolved.tsv` #140。

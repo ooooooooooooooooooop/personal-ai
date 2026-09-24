@@ -3,6 +3,7 @@ import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from '../a
 import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync, mkdirSync, copyFileSync, statSync, writeFileSync, appendFileSync, existsSync, unlinkSync, renameSync, rmSync, openSync, writeSync, closeSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import tls from 'node:tls';
 import { createHostCore } from '../../../host/src/app/host.js';
 import { createPiSession, sessionManagers } from '../adapter/index.js';
 import { createWorldModelShim } from '../adapter/world-model-shim.js';
@@ -445,6 +446,20 @@ export async function startHost({
         if (goodNoProxy.length) process.env.NO_PROXY = goodNoProxy.join(',');
         proxyState.active = { mode: 'url', url: mode, noProxy: goodNoProxy };
       }
+      // dedup-h #2010 — proxy.tls.caFile: managed forward-proxy CA trust.
+      // The operator-declared CA joins the default trust root for every
+      // subsequent TLS context (proxy tunnel, upstream origins, provider
+      // SDKs, web_fetch, http hooks) — corporate MITM inspection needs a
+      // root, not per-call overrides. Path resolves against instanceRoot;
+      // unreadable trust material throws at boot like a malformed URL —
+      // silently ignoring a CA spec would weaken the operator's intent.
+      const caFile = spec?.tls?.caFile;
+      if (caFile != null) {
+        const caPath = resolve(instanceRoot, String(caFile));
+        const pem = readFileSync(caPath, 'utf-8');
+        tls.setDefaultCACertificates([...tls.rootCertificates, pem]);
+        proxyState.caFile = caPath;
+      }
     }
   }
   // Operator-ask registry: constructed right after core (it audits), but the
@@ -666,6 +681,9 @@ export async function startHost({
   }
   if (proxyState.noProxyDropped?.length) {
     core.audit.write({ kind: 'PROXY_NOPROXY_DROPPED', data: { entries: proxyState.noProxyDropped.slice(0, 10) } });
+  }
+  if (proxyState.caFile) {
+    core.audit.write({ kind: 'PROXY_CA_APPLIED', data: { caFile: String(proxyState.caFile).slice(0, 200) } });
   }
   // dedup-h #1981 — MDM enforcement posture, recorded once at boot so the
   // audit trail shows whether an admin tier governs auto-run this session.

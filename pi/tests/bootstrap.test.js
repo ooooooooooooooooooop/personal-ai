@@ -1632,3 +1632,54 @@ test('dedup-h #1985: skill_install upload path is operator-gated default-off', a
     assert.equal(inst.data.name, 'demo');
   } finally { host.dispose(); }
 });
+
+test('dedup-h #2010: proxy.tls.caFile extends the default CA trust root', async () => {
+  const tls = await import('node:tls');
+  const savedCa = tls.getCACertificates('default');
+  const inst = mkdtempSync(join(tmpdir(), 'pai-tlsca-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-tlsca-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  // a real PEM stands in for the corporate MITM root
+  writeFileSync(join(inst, 'corp-ca.pem'), tls.rootCertificates[0]);
+  writeFileSync(join(inst, 'proxy.json'), JSON.stringify({
+    mode: 'http://127.0.0.1:8080', tls: { caFile: 'corp-ca.pem' },
+  }));
+  // prove the mechanism actually applies: remove the cert from the default
+  // list first — the caFile path must be what puts it back
+  tls.setDefaultCACertificates(tls.rootCertificates.slice(1));
+  const host = await startHost({ instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const now = tls.getCACertificates('default');
+    assert.equal(now.length, tls.rootCertificates.length, 'operator CA rejoined via caFile');
+    const { X509Certificate } = await import('node:crypto');
+    const want = new X509Certificate(tls.rootCertificates[0]).fingerprint256;
+    assert.ok(now.some((pem) => new X509Certificate(pem).fingerprint256 === want),
+      'the caFile PEM is in the trust root (fingerprint match)');
+    const audits = readdirSync(join(inst, 'audit')).flatMap((f) =>
+      readFileSync(join(inst, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+    assert.ok(audits.some((e) => e.kind === 'PROXY_CA_APPLIED'), 'CA application audited');
+    const st = await host.channel.handle({ type: 'get_state' });
+    assert.match(String(st.data.proxy?.caFile ?? ''), /corp-ca\.pem$/, 'status surfaces the CA path');
+  } finally {
+    tls.setDefaultCACertificates(savedCa); // process-global — restore
+    delete process.env.NODE_USE_ENV_PROXY; delete process.env.HTTP_PROXY;
+    delete process.env.HTTPS_PROXY; delete process.env.NO_PROXY;
+    host.dispose();
+  }
+
+  // unreadable trust material fails loud at boot — never silently ignored
+  const inst2 = mkdtempSync(join(tmpdir(), 'pai-tlsca2-'));
+  mkdirSync(join(inst2, 'canonical'), { recursive: true });
+  writeFileSync(join(inst2, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  writeFileSync(join(inst2, 'proxy.json'), JSON.stringify({
+    mode: 'http://127.0.0.1:8080', tls: { caFile: 'missing.pem' },
+  }));
+  await assert.rejects(() => startHost({
+    instanceRoot: inst2, workdir: inst2, sessionOptions: { model: stubModel },
+  }), /ENOENT|no such file/i);
+});
