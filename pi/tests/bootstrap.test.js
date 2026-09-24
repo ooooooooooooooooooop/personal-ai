@@ -1854,3 +1854,37 @@ test('#2118 project_list returns distinct session cwds, newest first', async () 
   assert.equal(rows[1].sessions, 2, 'alpha had two sessions');
   host.dispose();
 });
+
+// dedup-h #2132 — PI_PACKAGE_DIR (upstream pi Nix/Guix support): the env
+// override re-roots the package dir — observable via the recorded pi
+// lockfile hash, which must now name OUR fake lockfile's digest.
+test('#2132 PI_PACKAGE_DIR re-roots the pi package dir (lockfile hash proves it)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-pkgdir-'));
+  const fakePkg = mkdtempSync(join(tmpdir(), 'pai-fakepkg-'));
+  const fakeLock = JSON.stringify({ name: 'fake-pi', lockfileVersion: 3 });
+  writeFileSync(join(fakePkg, 'package-lock.json'), fakeLock);
+  // the override is the WHOLE package root — a store path must carry the
+  // managed-extension manifest too (empty set = nothing to verify)
+  mkdirSync(join(fakePkg, 'extensions'), { recursive: true });
+  writeFileSync(join(fakePkg, 'extensions', 'managed-manifest.json'), JSON.stringify({ version: 1, extensions: [] }));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+  }));
+  const prev = process.env.PI_PACKAGE_DIR;
+  process.env.PI_PACKAGE_DIR = fakePkg;
+  try {
+    const host = await startHost({
+      instanceRoot: dir, workdir: dir,
+      sessionOptions: { model: stubModel },
+    });
+    host.dispose();
+  } finally {
+    if (prev == null) delete process.env.PI_PACKAGE_DIR; else process.env.PI_PACKAGE_DIR = prev;
+  }
+  const identity = JSON.parse(readFileSync(join(dir, 'runtime.json'), 'utf-8'));
+  const { createHash } = await import('node:crypto');
+  const want = createHash('sha256').update(fakeLock).digest('hex');
+  assert.equal(identity.lockfile_sha256.pi, want,
+    'PI_PACKAGE_DIR must re-root PI_ROOT — the recorded pi lockfile hash should name the override package');
+});

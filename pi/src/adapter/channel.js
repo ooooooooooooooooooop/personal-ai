@@ -113,6 +113,9 @@ function sessionToMarkdown(sessionFile, { quarto = false, sessionId = null } = {
  *   not to the session object itself.
  */
 const VERIFY_WRITE_TOOLS = new Set(['write', 'edit', 'delete', 'patch', 'apply_patch', 'create']);
+// dedup-h #2132: delta-lint tool set — write-family + multi_edit (which the
+// verify set predates); end-gated separately so afterWrite stays unchanged.
+const LINT_WRITE_TOOLS = new Set([...VERIFY_WRITE_TOOLS, 'multi_edit']);
 // Shell-family tools whose side effects get a workspace-delta notice
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
@@ -169,6 +172,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   // before/after the call; the NEW-dirty set is what the command touched.
   // Best-effort — non-git workdirs and slow git simply yield no notice.
   const pendingDelta = new Map(); // toolCallId → Promise<Set<path>|null>
+  const pendingLintPaths = new Map(); // toolCallId → write-target paths (#2132)
   let gitProbe = null; // null=unprobed · true=repo · false=disabled (not a repo)
   const gitDirty = () => new Promise((res) => {
     if (!workdir || gitProbe === false) return res(null);
@@ -274,6 +278,14 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         hooks?.fire('tool_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
         if (ev.toolName?.startsWith('delegate')) hooks?.fire('subagent_start', { toolName: ev.toolName, toolCallId: ev.toolCallId });
         if (EXEC_TOOLS.has(ev.toolName) && ev.toolCallId) pendingDelta.set(ev.toolCallId, gitDirty());
+        // dedup-h #2132: capture the write target NOW — tool_execution_end
+        // carries no args, so the post-write lint resolves the file here.
+        if (LINT_WRITE_TOOLS.has(ev.toolName) && ev.toolCallId) {
+          const a = ev.args ?? {};
+          pendingLintPaths.set(ev.toolCallId, ev.toolName === 'multi_edit'
+            ? (Array.isArray(a.edits) ? a.edits.map((e) => e?.path).filter(Boolean) : [])
+            : [a.path ?? a.file ?? a.target].filter((x) => typeof x === 'string'));
+        }
       } else if (ev?.type === 'tool_execution_end') {
         // bashEditDiff analogue: report which files the command newly dirtied.
         // Detached — the tool_execution_end event itself must not wait on git.
@@ -344,6 +356,14 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // .pai/verify.json command (armed only if policy allows its class)
       if (ev?.type === 'tool_execution_end' && !ev.isError && VERIFY_WRITE_TOOLS.has(ev.toolName)) {
         verify?.afterWrite().catch(() => {});
+      }
+      // dedup-h #2132 — built-in post-write syntax lint on the touched
+      // file(s); detached like afterWrite so the event never waits. Own
+      // tool set (LINT_WRITE_TOOLS ⊃ VERIFY_WRITE_TOOLS + multi_edit).
+      if (ev?.type === 'tool_execution_end') {
+        const lp = pendingLintPaths.get(ev.toolCallId);
+        pendingLintPaths.delete(ev.toolCallId);
+        if (lp?.length && !ev.isError && LINT_WRITE_TOOLS.has(ev.toolName)) verify?.lintPaths?.(lp).catch(() => {});
       }
       // Roo mistake_limit: consecutive tool errors escalate to the operator;
       // 'deny' sets loopwatch.stopped → the decide chain refuses further calls.

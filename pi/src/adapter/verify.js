@@ -13,11 +13,68 @@
  */
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, isAbsolute } from 'node:path';
 import { scrubHookEnv } from '../../../host/src/core/hooks.js';
 
 const BURST_MS = 5_000;
 const OUT_CAP = 64 * 1024;
+const LINT_TIMEOUT_MS = 10_000;
+
+// dedup-h #2132 — built-in post-write delta lint (roo/aider auto-syntax
+// analogue): a successful write/edit on a lintable file gets its syntax
+// checked WITHOUT operator config — the failure reflects back through the
+// observation stream just like verify_fail. Checker coverage is honest:
+// .json is always checked (JSON.parse); .py/.toml/.yaml ride the system
+// python ONLY when a probe proves it exists (py_compile, stdlib tomllib,
+// pyyaml respectively). No interpreter → JSON still checks, the rest are
+// skipped honestly (never a fake hand-rolled "parser").
+const pyProbe = { bin: null, checked: false, toml: false, yaml: false };
+async function pythonBin(envOverlay) {
+  if (pyProbe.checked) return pyProbe.bin;
+  pyProbe.checked = true;
+  for (const cand of (process.platform === 'win32' ? ['python', 'py -3'] : ['python3', 'python'])) {
+    const r = await runBounded(`${cand} --version`, undefined, 5_000, envOverlay);
+    if (r.code === 0) {
+      pyProbe.bin = cand;
+      // Probe stdlib tomllib (3.11+) and pyyaml once — stderr-free exit = usable.
+      pyProbe.toml = (await runBounded(`${cand} -c "import tomllib"`, undefined, 5_000, envOverlay)).code === 0;
+      pyProbe.yaml = (await runBounded(`${cand} -c "import yaml"`, undefined, 5_000, envOverlay)).code === 0;
+      break;
+    }
+  }
+  return pyProbe.bin;
+}
+
+/** @returns {Promise<{path, checked:boolean, ok:boolean, detail:string|null}>} */
+async function lintOne(path, envOverlay) {
+  const ext = (path.match(/\.([a-z0-9]+)$/i)?.[1] ?? '').toLowerCase();
+  try {
+    if (ext === 'json') {
+      JSON.parse(readFileSync(path, 'utf-8'));
+      return { path, checked: true, ok: true, detail: null };
+    }
+    if (ext === 'py' || ext === 'toml' || ext === 'yaml' || ext === 'yml') {
+      const bin = await pythonBin(envOverlay);
+      if (!bin) return { path, checked: false, ok: true, detail: 'no python interpreter — syntax check skipped' };
+      if ((ext === 'toml' && !pyProbe.toml) || ((ext === 'yaml' || ext === 'yml') && !pyProbe.yaml)) {
+        return { path, checked: false, ok: true, detail: `no ${ext} module in probed python — syntax check skipped` };
+      }
+      // The path rides the env, never argv — a shell-metachar filename must
+      // not break out of the -c string (same injection class as {task}).
+      const snippet = ext === 'py'
+        ? `import py_compile,os; py_compile.compile(os.environ['PAI_LINT_PATH'],doraise=True)`
+        : ext === 'toml'
+          ? `import tomllib,os; tomllib.load(open(os.environ['PAI_LINT_PATH'],'rb'))`
+          : `import yaml,os; yaml.safe_load(open(os.environ['PAI_LINT_PATH'],encoding='utf-8'))`;
+      const lintEnv = () => ({ ...(envOverlay?.() ?? {}), PAI_LINT_PATH: path });
+      const r = await runBounded(`${bin} -c "${snippet}"`, undefined, LINT_TIMEOUT_MS, lintEnv);
+      return { path, checked: true, ok: r.code === 0, detail: r.code === 0 ? null : r.output.slice(-2000) };
+    }
+    return { path, checked: false, ok: true, detail: null };
+  } catch (e) {
+    return { path, checked: true, ok: false, detail: String(e?.message ?? e).slice(0, 2000) };
+  }
+}
 
 function runBounded(command, cwd, timeoutMs, envOverlay) {
   return new Promise((resolveP) => {
@@ -83,6 +140,34 @@ export function createVerifier({ workdir, classify, riskActions, audit = null, e
      */
     async runNow() {
       return run(Date.now(), 'manual');
+    },
+    /**
+     * dedup-h #2132 — built-in post-write delta lint: syntax-check the files
+     * a write-family tool just touched (json always; py/toml/yaml via a
+     * probed python). NOT burst-coalesced — each file is checked once per
+     * write. Failures reflect into the observation stream + audit; skipped
+     * (unchecked) files stay silent — no fake pass, no fake fail.
+     */
+    async lintPaths(paths) {
+      const list = [...new Set((paths ?? []).filter((p) => typeof p === 'string' && p.trim()))].slice(0, 8);
+      const results = [];
+      for (const raw of list) {
+        const p = isAbsolute(raw) ? raw : resolve(workdir, raw);
+        const r = await lintOne(p, envOverlay);
+        results.push(r);
+        if (!r.checked) continue;
+        audit?.write({ kind: 'DELTA_LINT', data: { path: p.slice(0, 300), ok: r.ok, detail: r.ok ? null : r.detail?.slice(0, 500) ?? null } });
+        if (!r.ok) {
+          emit?.({ type: 'verify_result', command: `delta-lint ${p}`, ok: false });
+          observations?.record({
+            kind: 'delta_lint_fail',
+            subject: p.slice(0, 200),
+            detail: { tail: r.detail?.slice(-2000) ?? '' },
+            actor: 'host',
+          });
+        }
+      }
+      return results;
     },
   };
 

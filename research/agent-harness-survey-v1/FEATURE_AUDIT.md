@@ -3006,3 +3006,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **--context-mode**：**VARIANT**——gptme 的 mode 选子进程上下文剖面；我方委托恒为新会话（不带父转录=固定 fresh），`PAI_STEERING_OFF`（桥 `--steering-off`）给"含项目 steering 上下文 vs 裸上下文"两档=mode 变体。
 - **证据**：新 `pi/tests/pai-channel-cli.test.js` 2/2——坏 JSON/缺 @path/数组各 exit 2；合法 inline+@file 真启动服务 stdin。
 - **核销**：candidates-open #2124 → `candidates-resolved.tsv` #149。
+
+### 28.146 648 清单逐条核销 #150：dedup-h #2132 file-edit——write-verify: post-write delta lint(Python/JSON/YAML/TOML syntax)（2026-09-25）
+
+- **行**：`dedup-h  2132  file-edit  write-verify: post-write delta lint(Python/JSON/YAML/TOML syntax)`（描述段为错位 PI_PACKAGE_DIR 片段："Nix/Guix support: PI_PACKAGE_DIR environment variable overrides the package path"）。
+- **判定**：标题 **IMPLEMENTED**；描述 **IMPLEMENTED**。
+  - **标题语义（内建写后语法校验）**：核查——`.pai/verify.json{onWrite}` 是**操作员配置**命令，无内建免配校验。落点：`createVerifier.lintPaths(paths)`——`.json` 恒 `JSON.parse`；`.py`/`.toml`/`.yaml` 经系统 python 探针（`py_compile`/stdlib `tomllib`/`pyyaml`，探针失败=诚实跳过不造伪结果）；文件路径走 `PAI_LINT_PATH` env 不进 argv（同 `{task}` 注入类防护）；失败落 `DELTA_LINT` 审计 + `verify_result` emit + `delta_lint_fail` 观察流（同 verify_fail 反射链入模型上下文）。接线：`tool_execution_start` 的 `ev.args` 捕获写目标（end 事件无 args）→ `pendingLintPaths` map → `tool_execution_end` 成功即 lint；`LINT_WRITE_TOOLS` ⊃ VERIFY 集 + `multi_edit`（edits[] 逐路径）。
+  - **描述语义（PI_PACKAGE_DIR）**：上游 pi Nix/Guix 支持——`PI_ROOT` 硬编码模块相对路径无法表达内容寻址 store 路径。落点：`PI_ROOT`→惰性 `PI_ROOT()` 函数，`process.env.PI_PACKAGE_DIR` 覆盖即全包重根（managed-manifest/extensions/recipes/package-lock 全部随根）；env 使用点读取=组装时生效而非仅模块加载时；错配目录 fail-closed（manifest 缺失拒启动=诚实）。
+- **证据**：`verify.test.js` +3=11/11（坏 JSON 反射观察流+审计、好 JSON 静默、非 lint 扩展跳过、缺文件=fail 非 throw、python 探针存在与否两态诚实）；`channel-facade.test.js` +1=51/51（start 捕获 args→end lint、multi_edit 多路径、错误写不 lint）；`bootstrap.test.js` +1=44/44（PI_PACKAGE_DIR 重根后 `lockfile_sha256.pi` 记录假包 digest=覆盖实证）。
+- **核销**：candidates-open #2132 → `candidates-resolved.tsv` #150。

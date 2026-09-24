@@ -112,3 +112,46 @@ test('timeout tree-kills the verifier — the grandchild process does not outliv
   try { process.kill(pid, 0); } catch { alive = false; }
   assert.equal(alive, false, `grandchild pid ${pid} must be tree-killed, not orphaned`);
 });
+
+// dedup-h #2132 — built-in post-write delta lint: JSON always checked;
+// py/toml/yaml via probed python (skipped honestly when absent).
+test('#2132 delta lint: bad JSON reflects into observations; good JSON silent', async () => {
+  const { workdir, audits, emitted, obs, verify } = fixture();
+  writeFileSync(join(workdir, 'bad.json'), '{broken');
+  writeFileSync(join(workdir, 'good.json'), '{"a":1}');
+  writeFileSync(join(workdir, 'note.txt'), 'not a lintable ext');
+
+  const results = await verify.lintPaths(['bad.json', 'good.json', 'note.txt']);
+  assert.equal(results.length, 3);
+  assert.equal(results[0].checked, true);
+  assert.equal(results[0].ok, false, 'broken json must fail');
+  assert.equal(results[1].checked, true);
+  assert.equal(results[1].ok, true);
+  assert.equal(results[2].checked, false, 'non-lintable extension skipped');
+
+  const fail = obs.find((o) => o.kind === 'delta_lint_fail');
+  assert.ok(fail, 'lint failure must reflect into the observation stream');
+  assert.match(fail.subject, /bad\.json/);
+  assert.equal(emitted.some((e) => e.type === 'verify_result' && e.ok === false), true);
+  assert.ok(audits.some((a) => a.kind === 'DELTA_LINT' && a.data.ok === false));
+  assert.ok(audits.some((a) => a.kind === 'DELTA_LINT' && a.data.ok === true), 'pass is audited too');
+});
+
+test('#2132 delta lint: missing file reports as a fail, not a throw', async () => {
+  const { obs, verify } = fixture();
+  const results = await verify.lintPaths(['ghost.json']);
+  assert.equal(results[0].checked, true);
+  assert.equal(results[0].ok, false);
+  assert.ok(obs.some((o) => o.kind === 'delta_lint_fail'));
+});
+
+test('#2132 delta lint: python path checked only when a probe succeeds', async () => {
+  const { workdir, verify } = fixture();
+  writeFileSync(join(workdir, 'ok.py'), 'x = 1\n');
+  const results = await verify.lintPaths(['ok.py']);
+  assert.equal(results.length, 1);
+  // Either python exists (checked, passes) or does not (honest skip) —
+  // never a fake pass or a thrown probe.
+  if (results[0].checked) assert.equal(results[0].ok, true);
+  else assert.match(results[0].detail, /no python interpreter|no py module/);
+});

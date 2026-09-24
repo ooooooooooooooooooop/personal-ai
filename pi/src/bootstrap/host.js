@@ -166,7 +166,15 @@ import {
 import { createHash } from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 
-const PI_ROOT = fileURLToPath(new URL('../../', import.meta.url));
+// dedup-h #2132 — PI_PACKAGE_DIR env override (upstream pi Nix/Guix
+// support): content-addressed installs land the package at a store path the
+// module-relative default cannot express, so the operator names the package
+// root explicitly. Read lazily — env must be honored whenever the host
+// assembles, not only at module load. Falls back to the module-relative
+// root when unset.
+const PI_ROOT = () => (process.env.PI_PACKAGE_DIR
+  ? resolve(process.env.PI_PACKAGE_DIR)
+  : fileURLToPath(new URL('../../', import.meta.url)));
 const HOST_ROOT = fileURLToPath(new URL('../../../host/', import.meta.url));
 
 // #915 path-shadowing mitigation, process-wide: on Windows, bare command
@@ -637,7 +645,7 @@ export async function startHost({
   const outputSpool = new OutputSpool(join(instanceRoot, 'spool'));
   const core = createHostCore({
     instanceRoot,
-    manifestPath: join(PI_ROOT, 'extensions', 'managed-manifest.json'),
+    manifestPath: join(PI_ROOT(), 'extensions', 'managed-manifest.json'),
     governance: {
       // pi body supplies the real shell parser; host never imports pi code
       commandClassifier: parseShellCommand,
@@ -694,7 +702,7 @@ export async function startHost({
       adapter: { id: 'pi', version: '0.85.1' },
       lockfiles: {
         host: join(HOST_ROOT, 'package-lock.json'),
-        pi: join(PI_ROOT, 'package-lock.json'),
+        pi: join(PI_ROOT(), 'package-lock.json'),
       },
       runId,
     },
@@ -794,7 +802,7 @@ export async function startHost({
   });
 
   const managedExtensions = resolveManagedExtensions(core.manifest, {
-    baseDir: PI_ROOT,
+    baseDir: PI_ROOT(),
   });
 
   // Bounded autonomy: cumulative spend gate. Limit precedence (highest first):
@@ -1115,7 +1123,7 @@ export async function startHost({
       }),
       // dedup-h #655: bundled recipe presets (pi/recipes/) resolve after the
       // workdir's own .pai/recipes — operator package always wins.
-      builtinDir: join(PI_ROOT, 'recipes'),
+      builtinDir: join(PI_ROOT(), 'recipes'),
     }),
     // Claude ExitPlanMode analogue: the model REQUESTS a mode switch; the
     // operator approves on an ask card. Never self-applies — a model asking
@@ -1146,7 +1154,7 @@ export async function startHost({
     // M120 — doctor: environment health battery (read-only, advisory)
     doctorTool({
       paths: core.paths, workdir, policy: core.policy,
-      extRoot: join(PI_ROOT, 'extensions'),
+      extRoot: join(PI_ROOT(), 'extensions'),
       ignored: repoMapIgnore, sessionEnv,
     }),
     // M83 — lazy tool surface: deferred tools are discovered via tool_search
@@ -1176,9 +1184,9 @@ export async function startHost({
       // Appended last — a plugin profile never shadows operator/workdir names.
       extraDirs: (() => {
         try {
-          return readdirSync(join(PI_ROOT, 'extensions'), { withFileTypes: true })
+          return readdirSync(join(PI_ROOT(), 'extensions'), { withFileTypes: true })
             .filter((d) => d.isDirectory())
-            .map((d) => ({ dir: join(PI_ROOT, 'extensions', d.name, 'agents'), envCapable: true }));
+            .map((d) => ({ dir: join(PI_ROOT(), 'extensions', d.name, 'agents'), envCapable: true }));
         } catch { return []; }
       })(),
     }),
@@ -1622,7 +1630,7 @@ export async function startHost({
     adapter: { id: 'pi', version: '0.85.1' },
     lockfiles: {
       host: join(HOST_ROOT, 'package-lock.json'),
-      pi: join(PI_ROOT, 'package-lock.json'),
+      pi: join(PI_ROOT(), 'package-lock.json'),
     },
     sessionId: session.sessionId ?? null,
     runId,

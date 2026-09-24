@@ -1754,3 +1754,32 @@ test('#2118 adaptive routes per-turn by task text; explicit pick pins; alias un-
   assert.equal(calls.length, 5, 'unmatched prompt reaches the model untouched');
   dispose();
 });
+
+// dedup-h #2132 — write-target capture at tool_execution_start feeds the
+// post-write delta lint at tool_execution_end (end events carry no args).
+test('#2132 write tool start captures args; end lints the touched file', async () => {
+  const linted = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const auditDir = mkdtempSync(join(tmpdir(), 'pai-lintwire-'));
+  const core = { paths: { auditDir }, audit: { write() {} } };
+  const verify = { afterWrite: async () => {}, lintPaths: async (paths) => { linted.push(paths); } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, verify, workdir: auditDir });
+
+  for (const l of [...listeners]) l({ type: 'tool_execution_start', toolCallId: 'w1', toolName: 'write', args: { path: 'src/ok.json' } });
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'w1', toolName: 'write', isError: false });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(linted, [['src/ok.json']], 'end event must lint the path captured at start');
+
+  // multi_edit carries edits[] — every edited path is linted
+  for (const l of [...listeners]) l({ type: 'tool_execution_start', toolCallId: 'w2', toolName: 'multi_edit', args: { edits: [{ path: 'a.json' }, { path: 'b.py' }] } });
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'w2', toolName: 'multi_edit', isError: false });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.deepEqual(linted.at(-1), ['a.json', 'b.py']);
+
+  // errored write → no lint (the file may not exist / partial state)
+  for (const l of [...listeners]) l({ type: 'tool_execution_start', toolCallId: 'w3', toolName: 'write', args: { path: 'x.json' } });
+  for (const l of [...listeners]) l({ type: 'tool_execution_end', toolCallId: 'w3', toolName: 'write', isError: true });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(linted.length, 2, 'errored write never lints');
+  dispose();
+});
