@@ -10,6 +10,7 @@
  *   node pi/bin/pai-channel.js --instance <instanceRoot> [--workdir <dir>]
  *     [--delegate-command <shell-template>]
  *     [--append-system-prompt <text>]… [--append-system-prompt-file <path>]…
+ *     [--output-schema <json>|@<path>]
  *
  * Every stdout line is either:
  *   {"id":…,"type":"response","command":…,"success":…,"data"|"error":…}
@@ -66,6 +67,35 @@ const appendSystemPrompt = args
     return String(a);
   });
 
+// dedup-h #2124 — gptme subprocess --output-schema analogue: a subprocess
+// operator invokes this CLI, not raw prompt options, so the schema arm is a
+// flag. <json> inline or @<path> (read HERE so a bad path/schema fails loud
+// at startup, same posture as --append-system-prompt-file). Armed on every
+// prompt that does not carry its own outputSchema — the per-prompt field
+// still wins. Validation/injection/agent_end gate reuse the #238 path.
+const outputSchemaSpec = (() => {
+  const raw = opt('output-schema', null);
+  if (raw == null) return null;
+  const text = raw.startsWith('@')
+    ? (() => {
+        const p = raw.slice(1);
+        try { return readFileSync(p, 'utf-8'); }
+        catch (e) {
+          process.stderr.write(`pai-channel: --output-schema ${p}: ${e.message}\n`);
+          process.exit(2);
+        }
+      })()
+    : raw;
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('schema must be a JSON object');
+    return parsed;
+  } catch (e) {
+    process.stderr.write(`pai-channel: --output-schema is not a valid JSON schema object: ${e.message}\n`);
+    process.exit(2);
+  }
+})();
+
 // Planted-exe defense (Cline 4.1.19 analogue): on Windows, cmd.exe resolves
 // bare commands through the current directory first — a checkout containing
 // a planted npm.exe/git.exe would execute it on any `npm …` call. Setting
@@ -115,6 +145,9 @@ rl.on('line', async (line) => {
   } catch {
     write({ type: 'response', success: false, error: 'invalid JSON' });
     return;
+  }
+  if (outputSchemaSpec && cmd?.type === 'prompt' && cmd?.options?.outputSchema == null) {
+    cmd.options = { ...(cmd.options ?? {}), outputSchema: outputSchemaSpec };
   }
   write(await host.channel.handle(cmd));
 });

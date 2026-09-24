@@ -2995,3 +2995,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（projects 命令）**：新 `project_list` 通道 op → `sessionsFacade.projects()` 扫 instance 会话仓首行头取 `cwd` 去重，返回 `{cwd, sessions, lastModified}` 按最近活动排序；坏头跳过不致命。会话仓即"agent 跑过的项目"事实源，等价 crush `projects`。
 - **证据**：`modelroutes.test.js` +1=4/4（adaptive 标志透传）；`channel-facade.test.js` +1=50/50（按文本路由、显式 pick 钉出、adaptive 别名解钉、未命中不切换）；`bootstrap.test.js` +1=43/43（project_list 去重+排序+坏头跳过）；host 417/417。
 - **核销**：candidates-open #2118 → `candidates-resolved.tsv` #148。
+
+### 28.145 648 清单逐条核销 #149：dedup-h #2124 cli-flags——headless: context-mode/context-include/output-schema flags（2026-09-25）
+
+- **行**：`dedup-h  2124  cli-flags  headless: context-mode/context-include/output-schema flags`（描述段同语义："feat(cli): add context-mode, context-include, output-schema flags for subprocess mode"）。
+- **源**：gptme v0.31.1.dev20260227 #987——subprocess 模式三旗（gptme subprocess=我方 delegate 路径，pai-channel 即被 spawn 的子进程本体）。
+- **判定**：三旗分项核销。
+  - **--output-schema**：**IMPLEMENTED**。子进程操作员调 CLI 而非裸 prompt options——新 `--output-schema <json>|@<path>` 旗，启动即解析校验（坏 JSON/非对象/不可读 @path 一律 exit 2 响亮失败，同 `--append-system-prompt-file` 姿态）；REPL 对未自带 `outputSchema` 的 prompt 注入之——per-prompt 字段仍优先；校验/契约注入/agent_end 验收门全部复用 #238 已验路径。
+  - **--context-include**：**ALREADY_COVERED(variant)**——`--append-system-prompt`/`--append-system-prompt-file`（可重复、保序，#2091 落地）即"子进程上下文附加"语义。
+  - **--context-mode**：**VARIANT**——gptme 的 mode 选子进程上下文剖面；我方委托恒为新会话（不带父转录=固定 fresh），`PAI_STEERING_OFF`（桥 `--steering-off`）给"含项目 steering 上下文 vs 裸上下文"两档=mode 变体。
+- **证据**：新 `pi/tests/pai-channel-cli.test.js` 2/2——坏 JSON/缺 @path/数组各 exit 2；合法 inline+@file 真启动服务 stdin。
+- **核销**：candidates-open #2124 → `candidates-resolved.tsv` #149。
