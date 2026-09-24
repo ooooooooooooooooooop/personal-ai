@@ -24,14 +24,14 @@
  * capability is never advertised (deny→hide consistent). Per-capability
  * failures are NOT fatal: tools/list and prompts/list discover independently
  * so prompt-only and tools-only servers both expose what they have.
- * notifications/tools|prompts/list_changed hot-refresh the surface (stdio
- * only — HTTP transport carries no push channel); newly listed tools register
- * live, removed tools tombstone into honest errors since pi has no
- * unregisterTool.
+ * notifications/tools|prompts/list_changed hot-refresh the surface; newly
+ * listed tools register live, removed tools tombstone into honest errors
+ * since pi has no unregisterTool.
  *
  * The client below is zero-dependency. stdio framing is newline-delimited
  * JSON-RPC 2.0; Streamable HTTP is one POST per request answered as JSON or
- * SSE (server→client GET SSE is intentionally unsupported in v1). Server
+ * SSE, plus the spec's optional server→client GET SSE push stream (#1075).
+ * Server
  * specs may carry secrets — nothing here logs env/argv.
  */
 import { spawn } from 'node:child_process';
@@ -628,6 +628,65 @@ function httpTransport(spec, { serverName = null } = {}) {
   if (tokens && oauthSpec.exchange) tokens = oauthExchangedTokens(tokens, oauthSpec);
   const postTimeoutMs = spec.postTimeoutMs ?? POST_TIMEOUT_MS;
   let sessionId = null;
+  // dedup-h #1075 — Streamable HTTP server→client channel: the spec lets the
+  // server answer GET on the endpoint with a long-lived SSE stream carrying
+  // server-initiated messages (notifications like tools/list_changed, and
+  // requests). Without it remote servers can never push — stdio/sse already
+  // deliver such frames through onMessage, http was silently deaf.
+  let messageHandler = null;
+  let listenCtl = null;
+  let postCompleted = false; // a bare GET before initialize must not burn the "no push" verdict
+  const listen = async () => {
+    const ctl = new AbortController();
+    listenCtl = ctl;
+    let retried401 = false;
+    while (!ctl.signal.aborted) {
+      let res;
+      try {
+        res = await fetch(spec.url, {
+          method: 'GET',
+          headers: {
+            accept: 'text/event-stream',
+            ...(sessionId ? { 'mcp-session-id': sessionId } : {}),
+            ...(spec.headers ?? {}),
+            ...(tokens ? { authorization: `Bearer ${await tokens.token()}` } : {}),
+          },
+          signal: ctl.signal,
+        });
+      } catch { return; } // aborted/unreachable — POST callers surface their own errors
+      if (res.status === 401 && tokens && !retried401) { retried401 = true; tokens.invalidate(); continue; }
+      if (!res.ok || !(res.headers.get('content-type') ?? '').includes('text/event-stream')) {
+        res.body?.cancel().catch(() => {}); // server offers no push stream (405/404/json) — do not retry
+        return;
+      }
+      retried401 = false;
+      try {
+        let buf = '';
+        const dec = new TextDecoder();
+        for await (const chunk of res.body) {
+          buf += dec.decode(chunk, { stream: true });
+          let sep;
+          while ((sep = buf.search(/\r?\n\r?\n/)) >= 0) {
+            const block = buf.slice(0, sep);
+            buf = buf.slice(sep + buf.slice(sep).match(/^\r?\n\r?\n/)[0].length);
+            const data = parseSseBlock(block);
+            if (!data) continue;
+            try { messageHandler?.(JSON.parse(data)); } catch { /* malformed frame skipped */ }
+          }
+        }
+      } catch { /* stream reset or aborted */ }
+      if (ctl.signal.aborted) return;
+      // stream ended cleanly — the spec allows re-listening; bounded backoff
+      await new Promise((r) => {
+        const t = setTimeout(r, 1000);
+        ctl.signal.addEventListener('abort', () => { clearTimeout(t); r(); }, { once: true });
+      });
+    }
+  };
+  const maybeListen = () => {
+    if (!messageHandler || !postCompleted || listenCtl) return;
+    void listen();
+  };
   const post = async (msg, signal) => {
     const doPost = async () => fetch(spec.url, {
       method: 'POST',
@@ -669,11 +728,16 @@ function httpTransport(spec, { serverName = null } = {}) {
   };
   return {
     kind: 'http',
-    onMessage: () => {}, // no push channel in v1
+    onMessage: (fn) => { messageHandler = fn; maybeListen(); },
     onExit: () => {},
-    callHttp: async (msg, signal) => readResponse(await post(msg, signal)),
+    callHttp: async (msg, signal) => {
+      const out = readResponse(await post(msg, signal));
+      postCompleted = true;
+      maybeListen(); // start the push stream once initialize has run
+      return out;
+    },
     notify: async (msg) => { await post(msg, AbortSignal.timeout(postTimeoutMs)).catch(() => {}); },
-    close: () => {},
+    close: () => { listenCtl?.abort(); },
     oauth: tokens?.describe() ?? null,
   };
 }

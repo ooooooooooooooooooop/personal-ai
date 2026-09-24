@@ -1707,7 +1707,7 @@ M125–M147 逐条对照实现面取证（不依赖外部审查）。安全相�
 
 | 项 | 终态 | 证据/实现 |
 |---|---|---|
-| M130 MCP list_changed | **REAL** | `notifications/tools/list_changed` 推送→`refreshTools` 重列：新工具即时注册，移除工具 tombstone 成诚实 fail-closed 错误（pi API 无 unregisterTool）；`/mcp` 报刷新状态。订阅提前到 connect 后立即挂（boot 期间到达的通知记 pendingRefresh 补刷——不再静默丢）。stdio 推送通道，HTTP 无推送面即不触发。哨兵：v1 注册→call 触发目录翻转→v2 新工具活+被删工具墓碑+存活工具仍可调（`9d4ad70`） |
+| M130 MCP list_changed | **REAL** | `notifications/tools/list_changed` 推送→`refreshTools` 重列：新工具即时注册，移除工具 tombstone 成诚实 fail-closed 错误（pi API 无 unregisterTool）；`/mcp` 报刷新状态。订阅提前到 connect 后立即挂（boot 期间到达的通知记 pendingRefresh 补刷——不再静默丢）。stdio/SSE/HTTP 三传输推送通道全通（HTTP GET SSE 于 #1075 落地）。哨兵：v1 注册→call 触发目录翻转→v2 新工具活+被删工具墓碑+存活工具仍可调（`9d4ad70`） |
 | M131 slash frontmatter mode | **REAL** | recipe frontmatter `mode:` 触发时经共享 `requestModeSwitch` 走治理 ask 链（与 mode_request 同链：catalog 校验→operator ask→applyMode），拒绝时如实附注不静默。哨兵：合法切换/未知模式/无 ask 通道三态（`9d4ad70`） |
 | M132 /config 会话内设置 | **REAL** | channel `config_get`/`config_set` + UI `/config`：key 白名单（model/thinking/mode）分发到现有治理 facade（models.set/setThinking/modes.setMode），非旁路持久化；未知 key 与缺失 facade 均 fail-closed。哨兵：快照读/slash 解析/未知键拒绝/裸 facade 拒绝（`9d4ad70`） |
 | M136 自治 Curator | **REAL (advisory)** | `curateLibrary`（host 纯函数）：staleness/thin/triggerless/overlap 评分+merge/prune/keep 提案；`curator_scan` 工具出报告——**提案永不自动执行**，修剪仍走 skill_delete 治理链（破坏性动作走 ask 是该条目的设计内语义）。哨兵：评分扣分项/重叠对合并取新者存活/低分修剪提案/扫描零副作用（curator.test.js） |

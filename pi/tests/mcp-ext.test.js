@@ -101,6 +101,7 @@ test('mcp stdio: abort posts notifications/cancelled', async () => {
 test('mcp http: JSON + SSE answers, session-id echo', async () => {
   const seen = { sessionIds: [], sseCalls: 0 };
   const server = createServer((req, res) => {
+    if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
@@ -142,10 +143,94 @@ test('mcp http: JSON + SSE answers, session-id echo', async () => {
   }
 });
 
+// dedup-h #1075 — Streamable HTTP server→client channel: GET on the endpoint
+// opens an SSE stream carrying server-initiated frames (list_changed etc.).
+test('mcp http push: GET SSE stream delivers notifications; end of stream re-listens', async () => {
+  const pushed = [];
+  let getCount = 0;
+  const server = createServer((req, res) => {
+    if (req.method === 'GET') {
+      getCount++;
+      const n = getCount;
+      res.setHeader('content-type', 'text/event-stream');
+      // delay the push so the client has time to attach onNotification
+      setTimeout(() => {
+        res.write(`data: ${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/tools/list_changed', params: { n } })}\n\n`);
+        setTimeout(() => res.end(), 50);
+      }, 150);
+      return;
+    }
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+      res.setHeader('mcp-session-id', 'sess-push');
+      res.setHeader('content-type', 'application/json');
+      if (msg.method === 'initialize') {
+        res.end(JSON.stringify(rpcRes({ protocolVersion: '2025-06-18', serverInfo: { name: 'pushfake' } })));
+      } else if (!msg.id) {
+        res.statusCode = 202; res.end();
+      } else {
+        res.end(JSON.stringify(rpcRes({ tools: [] })));
+      }
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const client = await McpClient.connect({ url: `http://127.0.0.1:${server.address().port}/mcp` });
+    try {
+      client.onNotification((m) => pushed.push(m));
+      const t0 = Date.now();
+      while (pushed.length < 2 && Date.now() - t0 < 8000) await new Promise((r) => setTimeout(r, 25));
+      assert.deepEqual(pushed.map((m) => m.params.n), [1, 2], 'first stream + re-listen after clean end');
+      assert.equal(pushed[0].method, 'notifications/tools/list_changed');
+    } finally {
+      client.close();
+    }
+  } finally {
+    server.close();
+  }
+});
+
+test('mcp http push: server without GET stream is probed once, not stormed', async () => {
+  let getCount = 0;
+  const server = createServer((req, res) => {
+    if (req.method === 'GET') { getCount++; res.statusCode = 405; res.end(); return; }
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      res.setHeader('content-type', 'application/json');
+      if (msg.method === 'initialize') {
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'nopush' } } }));
+      } else if (!msg.id) {
+        res.statusCode = 202; res.end();
+      } else {
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { tools: [] } }));
+      }
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const client = await McpClient.connect({ url: `http://127.0.0.1:${server.address().port}/mcp` });
+    try {
+      client.onNotification(() => {});
+      await new Promise((r) => setTimeout(r, 1500));
+      assert.ok(getCount <= 1, `no-push server must see one probe, got ${getCount}`);
+    } finally {
+      client.close();
+    }
+  } finally {
+    server.close();
+  }
+});
+
 // dedup-h #583: remote HTTP transport type + spelling aliases normalize
 // to the canonical streamable-http kind BEFORE validation.
 test('mcp transport aliases: remote / streamableHttp / streamable_http all connect over HTTP', async () => {
   const server = createServer((req, res) => {
+    if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
@@ -183,6 +268,7 @@ const makeOAuthRig = (seen, opts = {}) => {
     });
   });
   const mcp = createServer((req, res) => {
+    if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
@@ -358,6 +444,7 @@ test('mcp oauth authorization_code: PKCE dance stores token; transport carries i
   });
   // mcp endpoint: answers initialize/tools-call; records the bearer seen
   const mcp = createServer((req, res) => {
+    if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
     let body = '';
     req.on('data', (c) => { body += c; });
     req.on('end', () => {
@@ -442,6 +529,7 @@ test('mcp oauth authorization_code: no stored token → honest unauthorized, nam
     process.env.PAI_MCP_TOKEN_STORE = join(dir, 'empty.json');
     // no stored token: even initialize fails — honestly, naming the fix
     const mcp = createServer((req, res) => {
+      if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
       let body = '';
       req.on('data', (c) => { body += c; });
       req.on('end', () => {
@@ -1043,6 +1131,7 @@ test('mcp-add: positional URL persists + hot-connects; stdio + duplicates + deny
   try {
     // live http MCP server to add against
     const srv = createServer((req, res) => {
+      if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
       let body = '';
       req.on('data', (c) => { body += c; });
       req.on('end', () => {
