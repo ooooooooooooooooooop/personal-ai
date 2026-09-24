@@ -67,7 +67,10 @@ export class WebhookReceiver {
     for (const ep of Array.isArray(doc?.endpoints) ? doc.endpoints : []) {
       const id = String(ep?.id ?? '');
       if (!/^[a-zA-Z0-9_-]{1,64}$/.test(id)) { this.configError = `bad endpoint id '${id}'`; continue; }
-      if (!ep.secret && !ep.secretSha256) { this.configError = `endpoint '${id}' has no secret`; continue; }
+      // dedup-h #2100 — a whitespace-only secret is blank for every practical
+      // purpose (and usually a config typo); treat it as missing.
+      const blankSecret = ep.secret != null && !String(ep.secret).trim();
+      if ((!ep.secret && !ep.secretSha256) || blankSecret) { this.configError = `endpoint '${id}' has no secret`; continue; }
       const n = Number(ep.max_per_hour);
       this.endpoints.set(id, {
         id,
@@ -86,6 +89,14 @@ export class WebhookReceiver {
   listen() {
     const cfg = this.#load();
     if (!cfg.enabled) return Promise.resolve({ disabled: true, reason: this.configError ?? 'no enabled config' });
+    // dedup-h #2100 — fail closed on a listener with nothing to serve:
+    // endpoints missing or blank secrets are dropped at #load with
+    // configError; if EVERY declared endpoint died in validation, binding a
+    // port that answers 404 to all traffic is not a listener — refuse to
+    // start so the operator sees the config error in status().
+    if (this.endpoints.size === 0) {
+      return Promise.resolve({ disabled: true, reason: this.configError ?? 'enabled but no valid endpoints' });
+    }
     const port = Number(cfg.port);
     if (!Number.isInteger(port) || port < 0 || port > 65535) {
       return Promise.resolve({ disabled: true, reason: `bad port '${cfg.port}'` });

@@ -2968,3 +2968,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义**：我方 @ 补全无缓存——`atComplete` 每击键实时调 `files_list`（带 seq 过期守卫），`files_list` 每次全新 walk workdir，"新文件不提示"无存在条件。已覆盖。
 - **证据**：`pi/tests/bootstrap.test.js` +1=41/41（双条目中序追加、信封居首、跨会话无泄漏）；CLI 冒烟：缺失文件 exit 2、正常旗启动应答 get_state。
 - **核销**：candidates-open #2091 → `candidates-resolved.tsv` #145。
+
+### 28.142 648 清单逐条核销 #146：dedup-h #2100 cli-flags——policy-mdm: MDM 下发 outbound HTTP proxy 配置（2026-09-25）
+
+- **行**：`dedup-h  2100  cli-flags  policy-mdm: MDM下发outbound HTTP proxy配置`（描述段为错位飞书/webhook 加固片段："缺 encryptKey/空 callback token 时 fail-closed 拒启动"）。
+- **判定**：**IMPLEMENTED**（双语义全落）。
+  - **标题语义（MDM 下发 outbound proxy）**：核查——`PAI_ADMIN_CONFIG`(#1981)只有 autoRun 层，proxy 面全在操作员文件/env。落点：`readAdminConfig` 扩 `proxy` 字段（`{mode,noProxy,tls}` proxy.json 同形）；admin proxy **整体替换**操作员 proxy.json+PAI_PROXY_URL（enforcement 独占不合并——操作员文件不得弱化 admin 推送的出线路由）；同一校验路径复用（URL 语法/NO_PROXY lint/tls.caFile，caFile 基目录=admin 文件所在目录=MDM 域）；admin 不可读→此面零贡献（autoRun 锁死已 fail-closed）。运行时 `config_set proxy_mode` 在 adminManaged 下**拒写**（否则文件说谎、伪装 appliesOnRestart）。`proxy.status()` 自动带 `adminManaged`；`ADMIN_PROXY` 启动审计 + `ADMIN_AUTORUN` 行标 proxy:true。
+  - **描述语义（webhook 缺 secret/空 token 拒启动）**：**真洞**——`enabled:true` 且全部端点死在校验（缺/空白 secret/非法 id）→ 监听器仍绑端口全 404。落点：`listen()` 在 `endpoints.size===0` 时拒启动返回 `{disabled,reason:configError}`；空白（纯空格）secret 按缺失处理；`status().configError` 透出。
+- **证据**：`pi/tests/webhook.test.js` +2=6/6（全无效→拒启动+configError、混合→坏端点丢弃但错误留存）；`pi/tests/bootstrap.test.js` +1=42/42（admin URL 盖过 proxy.json+env、noProxy 应用、adminManaged 状态、ADMIN_PROXY 审计、proxy_mode 拒写且文件未被改）。
+- **核销**：candidates-open #2100 → `candidates-resolved.tsv` #146。

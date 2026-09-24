@@ -122,3 +122,50 @@ test('rate cap + busy sink are honest refusals', async () => {
     await rcv2.close();
   } finally { await rcv.close(); rmSync(dir, { recursive: true, force: true }); }
 });
+
+// dedup-h #2100 — fail closed on missing/blank secrets: enabled config
+// whose endpoints all die in validation must refuse to start (binding a
+// port that only answers 404 is not a listener).
+test('enabled but zero valid endpoints → refuse to start, configError surfaced', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wh-allbad-'));
+  try {
+    const { rcv } = rig(dir, {
+      enabled: true, port: 0,
+      endpoints: [
+        { id: 'nosecret', prompt: 'x' },                    // missing secret
+        { id: 'blank', secret: '   ', prompt: 'y' },        // whitespace-only secret
+        { id: 'bad id!', secret: 's', prompt: 'z' },        // invalid id
+      ],
+    });
+    const r = await rcv.listen();
+    assert.equal(r.disabled, true, 'zero valid endpoints refuses to start');
+    assert.ok(r.reason, 'a reason is given');
+    const st = rcv.status();
+    assert.equal(st.listening, false);
+    assert.ok(st.configError, 'the config error is surfaced, not silent');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('one bad endpoint among good ones → listener starts, bad id dropped + error kept', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-wh-mixed-'));
+  try {
+    const { rcv, fired } = rig(dir, {
+      enabled: true, port: 0,
+      endpoints: [
+        { id: 'ok', secret: 's3cret', prompt: 'go' },
+        { id: 'blank', secret: '  ', prompt: 'dropped' },
+      ],
+    });
+    const { port } = await rcv.listen();
+    const st = rcv.status();
+    assert.equal(st.listening, true);
+    assert.equal(st.endpoints.length, 1, 'blank-secret endpoint never registered');
+    assert.ok(st.configError, 'the dropped endpoint is reported');
+    const miss = await post(port, '/hook/blank', { secret: '  ' });
+    assert.equal(miss.status, 404, 'dropped endpoint answers unknown-endpoint');
+    const good = await post(port, '/hook/ok', { secret: 's3cret' });
+    assert.equal(good.status, 200);
+    assert.equal(fired.length, 1);
+    await rcv.close();
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

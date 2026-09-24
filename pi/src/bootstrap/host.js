@@ -45,11 +45,15 @@ function numEnv(name) {
   return Number.isFinite(v) && v > 0 ? v : undefined;
 }
 
-/** dedup-h #1981 — read the admin-deployed MDM config (PAI_ADMIN_CONFIG).
- *  Returns null when the env var is unset (pure operator path); otherwise
- *  {prefixes, exclusive, ok}. Env set + file unreadable/malformed →
- *  fail-closed lockdown {exclusive:true, prefixes:[], ok:false}. */
-function readAdminAutoRun() {
+/** dedup-h #1981/#2100 — read the admin-deployed MDM config
+ *  (PAI_ADMIN_CONFIG). Returns null when the env var is unset (pure
+ *  operator path); otherwise {prefixes, exclusive, ok, proxy, path}.
+ *  `proxy` (dedup-h #2100) is the MDM-pushed outbound proxy spec —
+ *  {mode, noProxy?, tls?} in proxy.json shape — applied exclusively over
+ *  the operator's proxy.json/PAI_PROXY_URL when present.
+ *  Env set + file unreadable/malformed → fail-closed lockdown
+ *  {exclusive:true, prefixes:[], ok:false}. */
+function readAdminConfig() {
   const p = process.env.PAI_ADMIN_CONFIG;
   if (!p) return null;
   try {
@@ -58,6 +62,8 @@ function readAdminAutoRun() {
     return {
       prefixes: (Array.isArray(ar.allowPrefixes) ? ar.allowPrefixes : []).map((x) => String(x).trim()).filter(Boolean).slice(0, 100),
       exclusive: ar.exclusive === true,
+      proxy: doc?.proxy && typeof doc.proxy === 'object' ? doc.proxy : null,
+      path: String(p),
       ok: true,
     };
   } catch { return { prefixes: [], exclusive: true, ok: false }; }
@@ -384,8 +390,22 @@ export async function startHost({
     // OpenClaw's OPENCLAW_PROXY_URL: an operator-named env var naming the
     // proxy outright. Lowest precedence — an explicit proxy.json wins.
     const envProxy = process.env.PAI_PROXY_URL?.trim();
-    const mode = String(spec?.mode ?? (envProxy ? envProxy : 'off')).trim();
-    if (envProxy && !spec?.mode) proxyState.envSource = 'PAI_PROXY_URL';
+    // dedup-h #2100 — MDM-pushed outbound proxy: PAI_ADMIN_CONFIG
+    // {proxy:{mode,noProxy,tls}} REPLACES the operator's proxy.json and the
+    // env channel outright (managed enforcement is exclusive, not merged —
+    // an operator file must not weaken an admin-pushed egress route). The
+    // same validation path then applies: URL grammar, NO_PROXY lint, and
+    // tls.caFile all behave exactly as for proxy.json — only the spec
+    // source and the caFile base directory change. An unreadable admin file
+    // contributes nothing here; its autoRun lockdown already fails closed.
+    const adminBoot = readAdminConfig();
+    const specBase = adminBoot?.proxy ? dirname(adminBoot.path) : instanceRoot;
+    if (adminBoot?.proxy) {
+      spec = adminBoot.proxy;
+      proxyState.adminManaged = true;
+    }
+    const mode = String(spec?.mode ?? (!proxyState.adminManaged && envProxy ? envProxy : 'off')).trim();
+    if (envProxy && !proxyState.adminManaged && !spec?.mode) proxyState.envSource = 'PAI_PROXY_URL';
     proxyState.configured = mode || 'off';
     if (mode && mode !== 'off') {
       if (mode === 'env') {
@@ -428,7 +448,7 @@ export async function startHost({
         }
       } else {
         let u;
-        const src = proxyState.envSource ?? 'proxy.json';
+        const src = proxyState.adminManaged ? 'admin config' : (proxyState.envSource ?? 'proxy.json');
         try { u = new URL(mode); } catch { throw new Error(`${src}: mode '${mode}' is not off|env|a proxy URL`); }
         if (u.protocol !== 'http:' && u.protocol !== 'https:') {
           throw new Error(`${src}: scheme '${u.protocol}' unsupported (http/https only)`);
@@ -456,7 +476,7 @@ export async function startHost({
       // silently ignoring a CA spec would weaken the operator's intent.
       const caFile = spec?.tls?.caFile;
       if (caFile != null) {
-        const caPath = resolve(instanceRoot, String(caFile));
+        const caPath = resolve(specBase, String(caFile));
         const pem = readFileSync(caPath, 'utf-8');
         tls.setDefaultCACertificates([...tls.rootCertificates, pem]);
         proxyState.caFile = caPath;
@@ -657,7 +677,7 @@ export async function startHost({
       commandAllowlist: (ctx, meta) => {
         const arg = { powershell: 'command', bash: 'command', shell: 'command', cmd: 'command', job_spawn: 'command' }[ctx.toolName];
         const c = arg ? ctx.args?.[arg] : null;
-        const admin = readAdminAutoRun();
+        const admin = readAdminConfig();
         const prefixes = [...(admin?.prefixes ?? [])];
         if (admin?.exclusive !== true) {
           try {
@@ -712,11 +732,14 @@ export async function startHost({
   // dedup-h #1981 — MDM enforcement posture, recorded once at boot so the
   // audit trail shows whether an admin tier governs auto-run this session.
   if (process.env.PAI_ADMIN_CONFIG) {
-    const admin = readAdminAutoRun();
+    const admin = readAdminConfig();
     core.audit.write({
       kind: 'ADMIN_AUTORUN',
-      data: { path: String(process.env.PAI_ADMIN_CONFIG).slice(0, 200), ok: admin.ok, exclusive: admin.exclusive, prefixes: admin.prefixes.length },
+      data: { path: String(process.env.PAI_ADMIN_CONFIG).slice(0, 200), ok: admin.ok, exclusive: admin.exclusive, prefixes: admin.prefixes.length, proxy: admin?.proxy != null },
     });
+  }
+  if (proxyState.adminManaged) {
+    core.audit.write({ kind: 'ADMIN_PROXY', data: { mode: proxyState.configured, enforced: true } });
   }
 
   // PAI_ASK_TIMEOUT_MS — operator lever on the ask auto-deny clock (default
@@ -2477,6 +2500,12 @@ export async function startHost({
     proxy: {
       status: () => ({ ...proxyState }),
       set: (spec) => {
+        // dedup-h #2100: an MDM-pushed proxy is enforcement — the operator's
+        // proxy_mode write must not shadow it (the file would lie about the
+        // effective route and pretend appliesOnRestart).
+        if (proxyState.adminManaged) {
+          return { error: 'proxy_mode is admin-managed (PAI_ADMIN_CONFIG) — operator override refused' };
+        }
         const mode = String(spec?.mode ?? '').trim();
         if (mode !== 'off' && mode !== 'env' && mode !== 'pac' && mode !== 'wpad') {
           let u;

@@ -1774,3 +1774,52 @@ test('dedup-h #2091: appendSystemPrompt entries reach the session system prompt'
     host2.dispose();
   }
 });
+
+// dedup-h #2100 — MDM-pushed outbound proxy: PAI_ADMIN_CONFIG {proxy:{...}}
+// replaces the operator's proxy.json AND PAI_PROXY_URL outright; runtime
+// proxy_mode override is refused under admin management.
+test('dedup-h #2100: admin config proxy replaces operator proxy sources; runtime override refused', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-admproxy-'));
+  const adminDir = mkdtempSync(join(tmpdir(), 'pai-admcfg2-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  // operator sources that must ALL lose to the admin spec
+  writeFileSync(join(dir, 'proxy.json'), JSON.stringify({ mode: 'http://127.0.0.1:9999' }));
+  const adminFile = join(adminDir, 'admin-config.json');
+  writeFileSync(adminFile, JSON.stringify({ proxy: { mode: 'http://127.0.0.1:8888', noProxy: ['corp.internal'] } }));
+  const envKeys = ['PAI_ADMIN_CONFIG', 'PAI_PROXY_URL', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'NODE_USE_ENV_PROXY'];
+  const saved = Object.fromEntries(envKeys.map((k) => [k, process.env[k]]));
+  process.env.PAI_ADMIN_CONFIG = adminFile;
+  process.env.PAI_PROXY_URL = 'http://127.0.0.1:7777';
+  try {
+    const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+    try {
+      assert.equal(process.env.HTTP_PROXY, 'http://127.0.0.1:8888', 'admin URL applied, not proxy.json/env');
+      assert.equal(process.env.NO_PROXY, 'corp.internal', 'admin noProxy applied');
+      const st = await host.channel.handle({ type: 'get_state' });
+      assert.equal(st.data?.proxy?.configured ?? st.data?.proxy?.mode, 'http://127.0.0.1:8888');
+      const px = (await host.channel.handle({ type: 'config_get' })).data?.proxy
+        ?? (await host.channel.handle({ type: 'get_state' })).data?.proxy;
+      assert.equal(px.adminManaged, true, 'status surfaces the managed posture');
+      const lines = readFileSync(
+        join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+        .trim().split('\n').map(JSON.parse);
+      assert.ok(lines.some((e) => e.kind === 'ADMIN_PROXY' && e.data?.mode === 'http://127.0.0.1:8888'),
+        'admin proxy application audited');
+      // runtime operator override refused under MDM
+      const set = await host.channel.handle({ type: 'config_set', key: 'proxy_mode', value: 'off' });
+      assert.equal(set.success, false);
+      assert.match(set.error ?? '', /admin-managed/);
+      // and the operator file was NOT rewritten
+      assert.match(readFileSync(join(dir, 'proxy.json'), 'utf-8'), /9999/);
+    } finally {
+      host.dispose();
+    }
+  } finally {
+    for (const k of envKeys) {
+      if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
+    }
+  }
+});
