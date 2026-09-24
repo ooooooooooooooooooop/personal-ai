@@ -1552,6 +1552,12 @@ export async function startHost({
   let channelHandle = null;
   const rebuildSession = async (sessionManager, reason) => {
     const old = currentSession;
+    // dedup-h #1907 — session lifecycle finalize: session_end was declared in
+    // HOOK_EVENTS but never fired. The outgoing session finalizes HERE —
+    // before abort — so a hook sees a live sessionId (ambient context reads
+    // currentSession, still the old one; the explicit payload field wins).
+    // Observational only: a hook cannot veto a session switch.
+    hooks?.fire('session_end', { sessionId: old?.sessionId ?? null, reason });
     await old.abort?.().catch(() => {});
     asks.abortPending(); // questions/asks from the old session must not leak
     asks.resetSession(); // "本会话允许" grants die with the conversation
@@ -1563,6 +1569,11 @@ export async function startHost({
     currentSession = built.session;
     claimTaskScope();
     channelHandle.rebind(built.session);
+    // dedup-h #1907 — symmetric lifecycle: session_start fired once at
+    // channel creation (channel.js) but never on rebuild. The new session
+    // owns the surface now — fire its start so session_end/session_start
+    // bracket every conversation the hooks plane sees.
+    hooks?.fire('session_start', { sessionId: built.session.sessionId ?? null, reason });
     channelHandle.channel.emitEvent({
       type: 'session_changed',
       session: {
@@ -2768,6 +2779,9 @@ export async function startHost({
     // children (mcp stdio servers, etc.) die here instead of leaking past
     // host teardown. session.dispose() alone never reaches extensions.
     try { currentSession?.extensionRunner?.emit?.({ type: 'session_shutdown', reason: 'quit' }); } catch { /* best-effort */ }
+    // dedup-h #1907 — host teardown is the last finalize: session_end fires
+    // with reason 'quit' so hooks see the boundary even without a switch.
+    hooks?.fire('session_end', { sessionId: currentSession?.sessionId ?? null, reason: 'quit' });
     for (const [, pend] of mcpOAuthPending) pend.listen?.close?.(); // loopback receivers die with the host
     mcpOAuthPending.clear();
     currentSession.dispose?.();

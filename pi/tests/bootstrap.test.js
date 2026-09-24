@@ -1439,3 +1439,51 @@ test('#1807: before_branch hook deny refuses the fork closed', async () => {
     assert.match(String(r.error ?? r), /branches frozen for review/);
   } finally { host.dispose(); }
 });
+
+// dedup-h #1907 — session lifecycle hooks (finalize/reset): session_end was
+// declared in HOOK_EVENTS but never fired; session_start fired once at
+// channel creation and never on rebuild. A session_new must now bracket the
+// boundary: session_end(old, reason) → session_start(new, reason).
+test('#1907 session_new fires session_end for the old and session_start for the new', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-1907-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({ version: 1, deny: [], tools: {}, riskActions: {} }));
+  const marker = join(dir, 'lifecycle.jsonl');
+  const hookScript = join(dir, 'hook.js');
+  writeFileSync(hookScript, `let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const p=JSON.parse(d);require('fs').appendFileSync(${JSON.stringify(marker)},JSON.stringify({ev:p.event,sessionId:p.sessionId,reason:p.reason})+String.fromCharCode(10));});`);
+  const hookCmd = `"${process.execPath}" ${JSON.stringify(hookScript)}`;
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  writeFileSync(join(dir, '.pai', 'hooks.json'), JSON.stringify({
+    hooks: { session_start: [{ command: hookCmd }], session_end: [{ command: hookCmd }] },
+  }));
+  const host = await startHost({
+    instanceRoot: dir,
+    workdir: dir,
+    sessionOptions: { model: stubModel },
+  });
+  try {
+    const firstId = host.channel.handle ? (await host.channel.handle({ type: 'session_list' })).data?.[0]?.id ?? null : null;
+    const r = await host.channel.handle({ type: 'session_new' });
+    assert.equal(r.success, true, JSON.stringify(r));
+    const newId = r.data.id;
+    // hooks fire detached — wait for all three markers
+    const deadline = Date.now() + 8000;
+    let fired = [];
+    while (Date.now() < deadline) {
+      if (existsSync(marker)) {
+        fired = readFileSync(marker, 'utf-8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
+        if (fired.filter((f) => f.ev === 'session_start').length >= 2 && fired.some((f) => f.ev === 'session_end')) break;
+      }
+      await new Promise((r2) => setTimeout(r2, 100));
+    }
+    const starts = fired.filter((f) => f.ev === 'session_start');
+    const ends = fired.filter((f) => f.ev === 'session_end');
+    assert.ok(starts.length >= 2, `two session_start fires expected (boot + new), got ${JSON.stringify(fired)}`);
+    assert.ok(ends.length >= 1, `session_end fired (got ${JSON.stringify(fired)})`);
+    assert.equal(ends[0].reason, 'new');
+    // the new session_start carries the NEW session's id and the reason
+    const newStart = starts[starts.length - 1];
+    assert.equal(newStart.sessionId, newId);
+    assert.equal(newStart.reason, 'new');
+  } finally { host.dispose(); }
+});

@@ -2798,3 +2798,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义** = **ALREADY_COVERED**：纯数字 skill 名全链路字符串——`skill_save` SLUG `/^[a-z0-9][a-z0-9_-]{0,60}$/i` 收 `12306`，`loadMicroagents` 名=文件名纯字符串，`matchMicroagents`/`renderKnowledge` 无数值强转——无 Internal error 落点；新增测试钉死。
 - **证据**：`host/tests/hooks.test.js` +1（ambient 并入观察性事件、显式字段覆盖、gate fireValue 同带、provider 抛错降级）→ host 全套 **409/409**；`host/tests/microagents.test.js` +1=6/6（`12306.md` 载/match/render 全过）。pi 聚焦：bootstrap 34/34 + hook 族 19/19（scrub-env 正规路径）。
 - **核销**：candidates-open #1870 → `candidates-resolved.tsv` #129。
+
+### 28.126 648 清单逐条核销 #130：dedup-h #1907 skills-plugins——plugin-surface: plugins 注入 CLI subcommands + request-scoped hooks(correlation)（2026-09-25）
+
+- **行**：`dedup-h  1907  skills-plugins  plugin-surface: plugins注册CLI subcommands+request-scoped hooks(correlation)`（源为 hermes v2026.4.8 插件系统扩展：插件注册 CLI 子命令、收 request-scoped API hooks 带 correlation ID、安装期提示必需 env 变量、挂 session 生命周期事件 finalize/reset；描述段为错位 iOS share 片段）。
+- **判定**（四语义面分列）：
+  - **plugins 注册 CLI 子命令** = **BOUNDARY（variant）**：我方是 channel 驱动宿主，无 argv 子命令派发面（`pai-channel`/`pai-host`/`delegate-bridge` 三个固定入口）；命令贡献的对位面已存在——MCP prompts 注册为 slash 命令（M82）+ 插件 agent profile 目录（dedup-h #63，插件目录永不遮蔽 operator/workdir）。
+  - **request-scoped API hooks 带 correlation ID** = **ALREADY_COVERED（variant）**：每次 hook fire 本就按事件/请求作用域；关联字段链齐备——tool 事件带 toolCallId、`llm_input`/`llm_output` 带 seq、dedup-h #1870 刚落的 ambient `{sessionId, model, agentId}` 并入全事件载荷。"request-scoped 的 hook 生存期"（hook 仅活一个请求）我方无此概念——hook 由配置声明而非请求登记，记 boundary。
+  - **安装期提示必需 env 变量** = **BOUNDARY（variant）**：我方无插件安装流（插件=配置声明的受管扩展目录，无 installer UX）；env 必需性的对位是 mcp `${VAR}` 展开——缺变量在 connect 期诚实诊断命名该变量（测试在册），非提示而是诚实失败。
+  - **session 生命周期事件（finalize/reset）** = **IMPLEMENTED**：核查发现 **`session_end` 声明在 HOOK_EVENTS 却从不 fire**（声明-未发=不实契约），且 `session_start` 只在 channel 创建时发一次、rebuild 不重发——会话边界对 hooks 面完全不可见。落地三处（全观察性，hook 不可否决会话切换）：`rebuildSession` 在 abort 前 fire `session_end{sessionId:旧, reason}`（ambient context 读 currentSession 仍是旧会话，显式字段优先）；rebind 后 fire `session_start{sessionId:新, reason}` 与既有 emitEvent `session_changed` 对称；host `dispose()` fire `session_end{reason:'quit'}`——无切换的退出也有 finalize 边界。
+- **证据**：`pi/tests/bootstrap.test.js` +1=35/35——session_new 后 marker 序列含 boot session_start + `session_end{reason:'new'}` + `session_start{sessionId:新id, reason:'new'}`。
+- **核销**：candidates-open #1907 → `candidates-resolved.tsv` #130。
