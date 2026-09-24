@@ -128,6 +128,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       let toolsDeny = null; // M76 — dedicated bridge flag, never --env-json
       let toolsAllow = null; // dedup-h #1112 — CC-style `tools:` allowlist
       let mcpDeny = null;   // C3 — same dedicated-flag channel
+      let agentId = null;   // dedup-h #1390 — mcp.servers.<name>.context scoping
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -157,6 +158,11 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (!gated && p.toolsAllow?.length) toolsAllow = p.toolsAllow.join(',');
         if (!gated && p.mcpDeny?.length) mcpDeny = p.mcpDeny.join(',');
         if (!gated && p.budget) profileBudget = p.budget;
+        // #1390 — the resolved profile name IS the child's agent-context id:
+        // the mcp extension matches it against spec.context on each server.
+        // Base64 — a profile name is operator text and must survive the shell
+        // argv channel byte-exact without a charset refusal gate.
+        agentId = Buffer.from(String(params.profile).toLowerCase(), 'utf-8').toString('base64');
       }
       // M43/dedup-h-#43: omitting target AND profile is FORK mode — a
       // background subagent on the same body ('pai' resolves to the
@@ -418,7 +424,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       const envFlag = profileEnv
         ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
         : '';
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${toolsAllow ? ` --tools-allow "${toolsAllow}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${toolsAllow ? ` --tools-allow "${toolsAllow}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${agentId ? ` --agent-id-b64 ${agentId}` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,

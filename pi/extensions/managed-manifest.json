@@ -1,15 +1,15 @@
 {
-  "version": 1,
-  "extensions": [
-    {
-      "id": "mcp-client",
-      "path": "extensions/mcp/index.js",
-      "sha256": "681f7972121a338f1d0decc844755c962f88dea5674403367a9dfdd2d5423d29"
-    },
-    {
-      "id": "lsp-readonly",
-      "path": "extensions/lsp/index.js",
-      "sha256": "b25e4292e463ade49ce0f7dda4a62ac224d42e7500444abb062284962a2ea410"
-    }
-  ]
+ "version": 1,
+ "extensions": [
+  {
+   "id": "mcp-client",
+   "path": "extensions/mcp/index.js",
+   "sha256": "da5b3ae816a9ab46d81fd35ec3b05e8079b6e52ef06fa827f57b5440ece1193d"
+  },
+  {
+   "id": "lsp-readonly",
+   "path": "extensions/lsp/index.js",
+   "sha256": "b25e4292e463ade49ce0f7dda4a62ac224d42e7500444abb062284962a2ea410"
+  }
+ ]
 }

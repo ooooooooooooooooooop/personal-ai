@@ -1102,6 +1102,57 @@ test('C3: mcp_deny on an enforceable pai-channel target rides the bridge', async
   store.close();
 });
 
+test('#1390: profile delegation stamps PAI_AGENT_ID on the child (bridge → env end-to-end)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-aid-'));
+  const { store, executor } = rig(dir);
+  const profiles = new Map([
+    ['reviewer', { target: 'pi' }],
+  ]);
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const tool = delegateTool(executor, {
+    commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
+    workdir: tmpdir(),
+    profiles,
+  });
+  const res = await tool.execute('tc1', { profile: 'reviewer', task: 'x' });
+  assert.equal(res.details.refused, undefined, `not refused: ${res.content[0].text}`);
+  await new Promise((r) => setTimeout(r, 3000));
+  const attempt = store.getAttempts(res.details.job_id)[0];
+  const envelope = JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
+  const m = String(envelope.output_tail ?? '').match(/CHILD_ENV (\{[^}]*\})/);
+  assert.ok(m, `fixture child env echo in output_tail; got: ${String(envelope.output_tail).slice(0, 300)}`);
+  const env = JSON.parse(m[1]);
+  assert.equal(env.PAI_AGENT_ID, 'reviewer', 'bridge stamps PAI_AGENT_ID with the profile name');
+  store.close();
+});
+
+test('#1390: profile-less delegation leaves PAI_AGENT_ID unset (inherits parent context)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-deleg-aid0-'));
+  const { store, executor } = rig(dir);
+  const fixtureChannel = join(here, 'fixtures', 'pai-channel.js');
+  const prevAgent = process.env.PAI_AGENT_ID;
+  delete process.env.PAI_AGENT_ID;
+  try {
+    const tool = delegateTool(executor, {
+      commandFor: () => ({ command: `"${process.execPath}" "${fixtureChannel}"`, enforceable: true }),
+      workdir: tmpdir(),
+      profiles: new Map(),
+    });
+    const res = await tool.execute('tc1', { task: 'x' });
+    assert.equal(res.details.refused, undefined, `not refused: ${res.content[0].text}`);
+    await new Promise((r) => setTimeout(r, 3000));
+    const attempt = store.getAttempts(res.details.job_id)[0];
+    const envelope = JSON.parse(readFileSync(attempt.result_envelope_ref, 'utf-8'));
+    const m = String(envelope.output_tail ?? '').match(/CHILD_ENV (\{[^}]*\})/);
+    assert.ok(m, `fixture child env echo; got: ${String(envelope.output_tail).slice(0, 300)}`);
+    assert.equal(JSON.parse(m[1]).PAI_AGENT_ID, null, 'no profile → no stamp');
+  } finally {
+    if (prevAgent === undefined) delete process.env.PAI_AGENT_ID;
+    else process.env.PAI_AGENT_ID = prevAgent;
+    store.close();
+  }
+});
+
 // ─── M76/M94-R2: task-text cannot spoof enforceability ─────────────────────
 // The old `/pai-channel\.js/.test(inner)` sniffed the INTERPOLATED command —
 // `inner` carries model-controlled task text, so `task="inspect pai-channel.js"`

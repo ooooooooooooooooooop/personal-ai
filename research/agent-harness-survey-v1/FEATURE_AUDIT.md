@@ -1772,7 +1772,7 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 | M123 bash spawn hook | **REAL** | `bash_run` 走 exec facade 旁路了 session pump 的 hook 派发——在 `exec.run` 补发观测性 `tool_start`/`tool_end`（toolName=bash_run），沿用既有 HookRunner 治理/env 消毒。哨兵：bootstrap.test.js +1（真子进程钩子实证：写盘 marker 验证 PAI_HOOK_EVENT+toolName） |
 | M110 Skill Workshop | **REAL** | skilltools 补齐工坊回路：`skill_list`/`skill_read`/`skill_test`——`skill_test` 复用生产匹配谓词 `matchMicroagents()`（host/src/core/microagents.js）做触发器 dry-run，不写第二个解析器；写入仍走既有 skill_save 治理面。哨兵：skilltools.test.js +2（test 命中/不命中、list/read 巡检） |
 | M114 持久 js_repl | **REAL** | `jsrepl-worker.js`（持久 node 子进程 + vm context，`globalThis` 作 context——exec 类语义全量 node 全局，stdout/stderr 逐次捕获，JSONL 协议：stdout 仅响应包、诊断走 stderr）+ `jsrepl.js`（工具封装：懒启动/跨调用保态/Promise await/重启清空/输出有界/子进程 env 经 scrubHookEnv 剥密钥）。治理：governance `EXEC_BODY_TOOLS` 导出把 js_repl 归 exec 族（tool allow 不软化 risk class）；decide 列入 mutating 写租约面；host.js 注册+dispose。哨兵：jsrepl.test.js +2（声明持久/异步 await/restart 清空/子进程 env 密钥剥离实证） |
-| C3 MCP profile 限定 | **REAL** | 镜像 M76 tools_deny 范式：profile `mcp_deny` 字段（同信任闸——untrusted workdir 剥除）→ delegate `--mcp-deny` 专用桥旗（PAI_* 通道，env-json 永不携带）→ `PAI_MCP_DENY` env → mcp 扩展在连接前过滤 denied server（连握手都不发生），`/mcp` 状态明示 denied 名单；非 pai-channel 目标 fail-closed 拒派（unenforceable_mcp_deny）。哨兵：agentprofiles（信任闸）+jobs-executor（拒派+桥旗实证）+mcp-ext（连接级过滤+/mcp 可见） |
+| C3 MCP profile 限定 | **REAL** | 镜像 M76 tools_deny 范式：profile `mcp_deny` 字段（同信任闸——untrusted workdir 剥除）→ delegate `--mcp-deny` 专用桥旗（PAI_* 通道，env-json 永不携带）→ `PAI_MCP_DENY` env → mcp 扩展在连接前过滤 denied server（连握手都不发生），`/mcp` 状态明示 denied 名单；非 pai-channel 目标 fail-closed 拒派（unenforceable_mcp_deny）。哨兵：agentprofiles（信任闸）+jobs-executor（拒派+桥旗实证）+mcp-ext（连接级过滤+/mcp 可见）。互补方向已落（#1390）：server 侧 `spec.context` 声明允许的 agent id 集（`'operator'`=主体 / profile 名=委派子体经 `PAI_AGENT_ID` 盖章），不匹配者不连接，`/mcp` 明示 scoped 名单 |
 
 修复位点说明：批3 全部落在**执行路径**（worker/工具/桥旗/扩展装载面），非文档声明；M114 排障中发现并修复两真 bug——裸 vm context 缺 node 全局（改 `globalThis`）+ restart 竞态（旧 child 的 exit 晚到误清新 child pending——exit 处理器只对当前 child 生效）。回归：host 294 / pi 313+1skip 全绿。
 
@@ -2494,3 +2494,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **边界诚实声明**：hint 只影响展示文案——`{{var}}` 替换、params 必填判定、mode/model 审批链全部不变；recipe 文件是不可信 workdir 内容，hint 仅作 textContent 渲染（不 eval、不拼命令），无注入面。
 - **证据**：dom-gate 新增 `recipeArgHint` 检查——真 Electron DOM 里 `/recipe` 菜单列出 `hinted` 配方且副标题显示 `[topic] [depth]`，选中后缺参提示行携带同一作者签名而非合成 k=v；fixture 在实例 workdir 写真 `.pai/recipes/hinted.md`（frontmatter+`{{topic}}`/`{{depth}}` 占位）。顺带修掉两个 gate 级缺陷：#3094 检查原先排在 set_workdir 之后导致 recipe 根目录已被切走（前移）；`worktreeNewSession` 的 toast waitFor 会命中 `/worktree-open` 残留的 `/repo/wt-linked` 旧 toast 提前断言（改匹"新会话"字样 + state 轮询）。app 26 测 24 过 1 跳 1 预存失败（七态 handoff，外来在途改动所致）；lint css+html 双净。
 - **核销**：candidates-open #3094 → `candidates-resolved.tsv` #100。
+
+### 28.97 648 清单逐条核销 #101：dedup-h #1390 mcp-profile——`mcp.servers.<name>.context` 按 agent id 范围限定（2026-09-24）
+
+- **行**：`dedup-h  1390  approval-gate  mcp-profile: mcp.servers.<name>.context按agent id范围限定`。
+- **判定**：**IMPLEMENTED（server 侧声明方向）**——既有 `mcp_deny` 是 profile→server 的拒绝表（子体枚举里点名排除）；`context` 是反向：server 自己声明可见的 agent 上下文集，收窄语义等价且部署点更贴切（操作员在 server 条目上一次圈定，不必逐 profile 维护 deny）。落法四件套：
+  - `pi/extensions/mcp/index.js`：`AGENT_ID = PAI_AGENT_ID || 'operator'`（主交互体）；`spec.context`（string|list，`'*'` 通配）非空时做成员匹配——不匹配进 `contextExcluded`，boot 过滤层就排除（连握手探测都不发生）；`connectOne` 内置同判兜底（`/mcp-add`、`/mcp-enable` 热重读路径绕不过）；`/mcp` 状态明示 `scoped to other agent context` 名单；enable/add 两命令对 scoped 服务器给诚实提示而非静默。
+  - `pi/bin/delegate-bridge.js`：`--agent-id-b64` 专用桥旗 → `PAI_AGENT_ID`（b64 编码任意 profile 名都安全过 argv；`--env-json` 拒 PAI_* 前缀，profile/env 无法侧注身份）。
+  - `pi/src/adapter/delegate.js`：profile 委派时把解析出的 profile 名（lowercase）b64 盖章上桥——profile 名即 agent id；profile-less 委派不盖章，经 `childEnv` 透传继承父上下文（context 约束沿委派树向下传播）。
+- **边界诚实声明**：`context` 只能收窄不能放宽——operator 私有配置里圈定即生效；workdir 可写配置里的 context 与其余字段同等信任级（agent 可写目录本就能新增无 context 条目，这是既有配置信任面，非本次新增暴露面）；空列表/非法值 → 收窄为不可见（fail-closed），`/mcp` 可见可诊断。
+- **证据**：mcp-ext.test.js +1——四 server 矩阵（无 context 全员可见 / `context:'reviewer'` 单值 / list 成员 / `'*'` 通配）在 operator 与 reviewer 两种 `PAI_AGENT_ID` 下连接结果正确，`/mcp` 列出 scoped 名单；jobs-executor.test.js +2——profile 委派经真 bridge 子进程把 `PAI_AGENT_ID=reviewer` 送达子体 env（fixture CHILD_ENV 回显实证），profile-less 委派子体收到 null（纯继承）；mcp-ext 40/40；pi 全套回归见提交说明。
+- **核销**：candidates-open #1390 → `candidates-resolved.tsv` #101。

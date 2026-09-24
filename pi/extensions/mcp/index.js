@@ -1230,6 +1230,24 @@ export default function mcpExtension(pi) {
   const denied = new Set(
     String(process.env.PAI_MCP_DENY ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   );
+  // dedup-h #1390 — per-server agent-context scoping: spec.context limits
+  // which agent id may connect ('operator' = the primary interactive body;
+  // delegate children run under their profile name via PAI_AGENT_ID, a
+  // dedicated bridge flag a profile/env can never inject). Narrowing only —
+  // a non-matching context never connects, not even to probe. Absent
+  // context = every agent sees the server (back-compat); '*' = wildcard.
+  const AGENT_ID = (process.env.PAI_AGENT_ID ?? '').trim() || 'operator';
+  const contextList = (spec) => {
+    if (spec == null || typeof spec !== 'object' || spec.context == null) return null;
+    const c = spec.context;
+    return (Array.isArray(c) ? c : [c]).map((s) => String(s).trim()).filter(Boolean);
+  };
+  const contextAllowed = (spec) => {
+    const list = contextList(spec);
+    if (list == null) return true;                    // no context field → global
+    return list.includes('*') || list.includes(AGENT_ID);
+  };
+  const contextExcluded = new Set();                // context declared, current agent not in it
   // dedup-h #524 — per-server enable/disable: spec.enabled===false (or the
   // legacy spec.disabled===true) keeps the entry configured but never
   // connects it. The toggle is mutable: /mcp-disable closes the live
@@ -1238,6 +1256,7 @@ export default function mcpExtension(pi) {
   const disabled = new Set();
   const servers = Object.fromEntries(Object.entries(allServers).filter(([name, spec]) => {
     if (denied.has(name)) return false;
+    if (!contextAllowed(spec)) { contextExcluded.add(name); return false; }
     if (spec && typeof spec === 'object' && (spec.enabled === false || spec.disabled === true)) {
       disabled.add(name);
       return false;
@@ -1359,6 +1378,13 @@ export default function mcpExtension(pi) {
   // notification subscription, independent family discovery, pending
   // refresh flush, honest failed marker.
   const connectOne = async (name, spec) => {
+      // #1390 backstop: /mcp-add and /mcp-enable re-read the config and reach
+      // here directly, bypassing the boot filter — a context-scoped server
+      // must not connect for the wrong agent id on those paths either.
+      if (!contextAllowed(spec)) {
+        contextExcluded.add(name);
+        return { failed: true, contextScoped: true, tools: [], spec };
+      }
       try {
         const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS, serverName: name });
         const entry = { client, tools: [], spec, prompts: [], booted: false };
@@ -1482,6 +1508,9 @@ export default function mcpExtension(pi) {
       if (denied.size) {
         const hit = [...denied].filter((n) => n in allServers);
         if (hit.length) lines.push(`  denied by profile (PAI_MCP_DENY): ${hit.join(', ')}`);
+      }
+      if (contextExcluded.size) {
+        lines.push(`  scoped to other agent context (spec.context): ${[...contextExcluded].join(', ')} — hidden for agent '${AGENT_ID}'`);
       }
       if (disabled.size) {
         lines.push(`  disabled (enabled:false in config — /mcp-enable <name> to restore): ${[...disabled].join(', ')}`);
@@ -1733,6 +1762,11 @@ export default function mcpExtension(pi) {
       servers[name] = spec;
       const entry = await connectOne(name, spec);
       const kind = spec.url ? `${spec.transport === 'sse' ? 'sse' : 'http'} ${redactUrl(spec.url)}` : `stdio '${[spec.command, ...(spec.args ?? [])].join(' ')}'`;
+      if (entry?.contextScoped) {
+        delete servers[name];
+        ctx.ui?.notify?.(`added '${name}' (${kind}) to ${target} — scoped to agent context ${JSON.stringify(contextList(spec))}; not connected under agent '${AGENT_ID}'`, 'info');
+        return;
+      }
       if (entry?.failed || !entry?.client) {
         ctx.ui?.notify?.(`added '${name}' (${kind}) to ${target} — connect FAILED; /mcp shows the error, fix the spec and restart`, 'error');
         return;
@@ -1803,6 +1837,11 @@ export default function mcpExtension(pi) {
       }
       servers[name] = fresh;
       const entry = await connectOne(name, fresh);
+      if (entry?.contextScoped) {
+        delete servers[name];
+        ctx.ui?.notify?.(`'${name}' enabled in config but scoped to agent context ${JSON.stringify(contextList(fresh))} — not connected under agent '${AGENT_ID}'`, 'error');
+        return;
+      }
       if (entry?.failed || !entry?.client) {
         ctx.ui?.notify?.(`'${name}' enabled — connect FAILED; /mcp shows the error`, 'error');
         return;

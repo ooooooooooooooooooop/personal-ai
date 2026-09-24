@@ -88,6 +88,17 @@ if (toolsAllow) childEnv.PAI_TOOLS_ALLOW = String(toolsAllow).slice(0, 2000);
 // extension reads PAI_MCP_DENY and skips denied servers at connect time.
 const mcpDeny = flagVal('--mcp-deny');
 if (mcpDeny) childEnv.PAI_MCP_DENY = String(mcpDeny).slice(0, 4000);
+// dedup-h #1390 — agent context id for mcp.servers.<name>.context scoping:
+// the profile name this delegate child runs under. Base64 so any profile
+// name (unicode included) survives the shell argv channel byte-exact; a
+// dedicated flag because --env-json refuses PAI_*. Profile-less children
+// inherit the parent id through env passthrough — context scope propagates
+// down the delegation tree.
+const agentIdB64 = flagVal('--agent-id-b64');
+if (agentIdB64) {
+  try { childEnv.PAI_AGENT_ID = Buffer.from(agentIdB64, 'base64').toString('utf-8').slice(0, 200); }
+  catch { /* malformed stamp — child inherits the parent context */ }
+}
 // Profile env fields (OpenHands profile-scoped secrets analogue): set/deny
 // ride the bridge so the CHILD's env is shaped — the parent process env is
 // untouched. PAI_* keys are refused outright, so profile env can never

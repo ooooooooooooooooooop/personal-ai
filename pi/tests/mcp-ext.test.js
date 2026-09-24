@@ -645,6 +645,71 @@ test('C3: PAI_MCP_DENY filters denied servers before connect', async () => {
   }
 });
 
+test('#1390: spec.context scopes a server to listed agent ids (PAI_AGENT_ID)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
+  const prev = process.env.PAI_MCP_CONFIG;
+  const prevAgent = process.env.PAI_AGENT_ID;
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, FAKE_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({
+      mcpServers: {
+        global: { command: process.execPath, args: [serverPath] },
+        reviewonly: { command: process.execPath, args: [serverPath], context: 'reviewer' },
+        multi: { command: process.execPath, args: [serverPath], context: ['reviewer', 'planner'] },
+        star: { command: process.execPath, args: [serverPath], context: '*' },
+      },
+    }));
+    process.env.PAI_MCP_CONFIG = cfgPath;
+
+    // Wrong context: 'operator' sees only global + star; scoped servers
+    // never connect — not even to probe.
+    delete process.env.PAI_AGENT_ID;
+    const pi = fakePi();
+    const ctx = { ui: { notify: () => {} } };
+    const notices = [];
+    ctx.ui.notify = (m, l) => notices.push([l, m]);
+    const waitTool = async (inst, name, ms = 10_000) => {
+      const deadline = Date.now() + ms;
+      while (!inst.tools.has(name) && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 25));
+      }
+      return inst.tools.has(name);
+    };
+    mcpExtension(pi);
+    try {
+      assert.ok(await waitTool(pi, 'mcp__global__echo'), 'unscoped server connects for operator');
+      assert.ok(await waitTool(pi, 'mcp__star__echo'), 'wildcard context connects for operator');
+      assert.ok(!pi.tools.has('mcp__reviewonly__echo'), 'reviewer-scoped server hidden from operator');
+      assert.ok(!pi.tools.has('mcp__multi__echo'), 'list-scoped server hidden when id not listed');
+      await pi.commands.get('mcp').handler(ctx);
+      const status = notices.map(([, m]) => m).join('\n');
+      assert.match(status, /scoped to other agent context.*reviewonly/);
+      assert.match(status, /scoped to other agent context.*multi/);
+    } finally {
+      await pi.handlers.get('session_shutdown')?.();
+    }
+
+    // Matching context: PAI_AGENT_ID=reviewer connects reviewonly + multi.
+    process.env.PAI_AGENT_ID = 'reviewer';
+    const pi2 = fakePi();
+    mcpExtension(pi2);
+    try {
+      assert.ok(await waitTool(pi2, 'mcp__reviewonly__echo'), 'context match connects');
+      assert.ok(await waitTool(pi2, 'mcp__multi__echo'), 'list membership connects');
+    } finally {
+      await pi2.handlers.get('session_shutdown')?.();
+    }
+  } finally {
+    if (prev === undefined) delete process.env.PAI_MCP_CONFIG;
+    else process.env.PAI_MCP_CONFIG = prev;
+    if (prevAgent === undefined) delete process.env.PAI_AGENT_ID;
+    else process.env.PAI_AGENT_ID = prevAgent;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('M82: mcp prompts register as slash commands; get expands to a user message', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-'));
   try {
