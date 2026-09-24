@@ -605,3 +605,32 @@ test('dedup-h #1969: http hook egress guard — private-network refuse, allowlis
   await h4.fire('prompt_submit', {});
   assert.equal(calls.length, 2);
 });
+
+test('dedup-h #2004: requireApproval may describe an externalVerify choice', async () => {
+  const w = dir();
+  const gateFile = join(w, 'gate-hooks.json');
+  const script = join(w, 'ask-ev.js');
+  writeFileSync(script, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({requireApproval:'deploy?',externalVerify:{label:'verify via hardware key'}}))});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ command: `node ${JSON.stringify(script)}` }] } }));
+  const g = new HookRunner(w, { configPath: gateFile, gate: true });
+  const r = await g.fireGate('pre_tool', { tool: 'bash' });
+  assert.equal(r.requireApproval, 'deploy?');
+  assert.deepEqual(r.externalVerify, { label: 'verify via hardware key' });
+
+  // malformed externalVerify degrades to absent — never throws
+  const script2 = join(w, 'ask-ev2.js');
+  writeFileSync(script2, `process.stdin.resume();process.stdin.on('end',()=>{console.log(JSON.stringify({requireApproval:'q2',externalVerify:{label:42}}))});`);
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ command: `node ${JSON.stringify(script2)}` }] } }));
+  const g2 = new HookRunner(w, { configPath: gateFile, gate: true });
+  const r2 = await g2.fireGate('pre_tool', { tool: 'bash' });
+  assert.equal(r2.requireApproval, 'q2');
+  assert.equal(r2.externalVerify, undefined);
+
+  // prompt-kind hook without injection opt-in may still attach externalVerify
+  // (veto-adjacent presentation field, not content injection)
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ prompt: 'judge' }] } }));
+  const g3 = new HookRunner(w, { configPath: gateFile, gate: true, llmFn: async () => '{"requireApproval":"q3","externalVerify":{"label":"ext"}}' });
+  const r3 = await g3.fireGate('pre_tool', { tool: 'bash' });
+  assert.equal(r3.requireApproval, 'q3');
+  assert.deepEqual(r3.externalVerify, { label: 'ext' });
+});

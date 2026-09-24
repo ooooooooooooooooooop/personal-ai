@@ -383,7 +383,7 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     // hook process is never spawned for a call already dead. Fail-closed.
     if (preToolGate) {
       try {
-        const g = await preToolGate.fireGate('pre_tool', {
+        let g = await preToolGate.fireGate('pre_tool', {
           tool: toolName,
           toolCallId: ctx.toolCall?.id ?? null,
           args: ctx.args ?? {},
@@ -413,9 +413,34 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
             args: ctx.args ?? {},
             argsTruncated: false,
             argsTotalChars: null,
+            // dedup-h #2004 — plugin-described external verification choice
+            // rides the approval presentation; the host still owns the
+            // answer set and the final decision.
+            externalVerify: g.externalVerify ?? null,
           }, signal);
           core.audit.write({ kind: 'HOOK_ESCALATE_RESOLVED', toolName, data: { toolCallId: ctx.toolCall?.id, answer } });
-          if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
+          if (answer === 'external_verify') {
+            // The operator chose the hook-described external verification
+            // path — re-fire the SAME gate once with the flag so the hook
+            // performs its out-of-band check and answers through the normal
+            // contract. Bounded: a second requireApproval denies closed —
+            // the host keeps the final decision, the hook cannot chain asks.
+            core.audit.write({ kind: 'HOOK_EXTERNAL_VERIFY', toolName, data: { toolCallId: ctx.toolCall?.id, label: g.externalVerify?.label?.slice(0, 120) ?? null } });
+            const g2 = await preToolGate.fireGate('pre_tool', {
+              tool: toolName,
+              toolCallId: ctx.toolCall?.id ?? null,
+              args: ctx.args ?? {},
+              externalVerification: true,
+            });
+            if (g2?.deny) {
+              core.audit.write({ kind: 'HOOK_VETO', toolName, data: { toolCallId: ctx.toolCall?.id, reason: g2.deny.slice(0, 300), via: 'external_verification' } });
+              return { block: true, rule: 'pre_tool_hook', reason: `external verification refused: ${g2.deny}` };
+            }
+            if (g2?.requireApproval) {
+              return { block: true, rule: 'pre_tool_hook', reason: 'external verification cannot re-escalate — hook must return a verdict (fail-closed)' };
+            }
+            g = g2; // args rewrite / silent-allow fall through the normal path
+          } else if (answer !== 'allow' && answer !== 'allow_session' && answer !== 'always') {
             return { block: true, rule: 'pre_tool_hook', reason: `operator denied the hook-escalated call (${answer})` };
           }
         }

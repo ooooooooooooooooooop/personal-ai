@@ -19,7 +19,7 @@ import { postToolHookExtension } from '../src/adapter/index.js';
 import { FileOpsGuard } from '../src/adapter/fileops.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
 
-function rig({ gate, kernelArgs = null, denyPrefixes = [] } = {}) {
+function rig({ gate, kernelArgs = null, denyPrefixes = [], asks = null } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'pai-hr-'));
   mkdirSync(join(dir, 'audit'), { recursive: true });
   const audit = new AuditWriter({ auditDir: join(dir, 'audit') });
@@ -35,7 +35,7 @@ function rig({ gate, kernelArgs = null, denyPrefixes = [] } = {}) {
   };
   const decide = makeDecide({
     core, executor: null, fileOps, getSurface: () => null,
-    workdir: dir, asks: null, preToolGate: gate ?? null,
+    workdir: dir, asks, preToolGate: gate ?? null,
   });
   return { dir, decide, seen, audit };
 }
@@ -124,4 +124,46 @@ test('#1858 post_tool deny suppresses the output; absent gate passes through', a
   postToolHookExtension(() => null).factory({ on: (ev, fn) => { h2[ev] = fn; } });
   const pass = await h2.tool_result({ toolName: 'read', content: [{ type: 'text', text: 'x' }] });
   assert.equal(pass, undefined);
+});
+
+test('#2004 external_verify re-fires the gate with the flag; the verdict binds', async () => {
+  const calls = [];
+  const gate = {
+    fireGate: async (ev, p) => {
+      calls.push(p);
+      return p.externalVerification
+        ? { deny: 'out-of-band check refused' }
+        : { requireApproval: 'deploy?', externalVerify: { label: 'hardware key' } };
+    },
+  };
+  const pendings = [];
+  const asks = { ask: async (d) => { pendings.push(d); return 'external_verify'; } };
+  const { decide } = rig({ gate, asks });
+  const r = await decide(bashCtx('deploy'));
+  assert.equal(r?.block, true, 'external verification refusal blocks');
+  assert.match(r.reason, /out-of-band check refused/);
+  assert.equal(calls.length, 2, 'gate fired twice: escalate, then verify');
+  assert.equal(calls[1].externalVerification, true, 'second fire carries the flag');
+  assert.deepEqual(pendings[0].externalVerify, { label: 'hardware key' }, 'choice rides the pending descriptor');
+});
+
+test('#2004 external_verify + silent second answer admits; chained escalation denies', async () => {
+  // hook verifies externally and stays silent — verification passed
+  const gateOk = {
+    fireGate: async (ev, p) => p.externalVerification ? null
+      : { requireApproval: 'deploy?', externalVerify: { label: 'x' } },
+  };
+  const asks = { ask: async () => 'external_verify' };
+  const ok = await rig({ gate: gateOk, asks }).decide(bashCtx('deploy'));
+  assert.equal(ok, undefined, 'external verification pass admits through the chain');
+
+  // hook tries to chain a second ask instead of returning a verdict — closed
+  const gateLoop = {
+    fireGate: async (ev, p) => p.externalVerification
+      ? { requireApproval: 'again?' }
+      : { requireApproval: 'deploy?', externalVerify: { label: 'x' } },
+  };
+  const blocked = await rig({ gate: gateLoop, asks }).decide(bashCtx('deploy'));
+  assert.equal(blocked?.block, true, 'a second requireApproval denies closed');
+  assert.match(blocked.reason, /cannot re-escalate/);
 });

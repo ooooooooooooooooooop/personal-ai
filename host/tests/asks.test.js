@@ -453,3 +453,38 @@ test('#1829 env assignments skip to the real binary; edited commands persist the
   assert.deepEqual(persisted2[1], { tool: 'bash', commandPrefix: 'git status' });
   assert.equal(await asks.ask(desc({ args: { command: 'git status --porcelain' } })), 'allow');
 });
+
+test('dedup-h #2004: external_verify resolves only when the asker declared it', async () => {
+  const asks = new PendingAsks({ timeoutMs: 5000 });
+  const events = [];
+  asks.subscribe((e) => events.push(e));
+
+  // undeclared — 'external_verify' is not a valid approval answer
+  const p0 = asks.ask(desc());
+  const r0 = asks.resolve(asks.list()[0].id, 'external_verify');
+  assert.equal(r0.ok, false);
+  assert.match(r0.error, /answer must be one of/);
+  asks.resolve(asks.list()[0].id, 'allow'); // 'deny' would deny-cascade the identical sig
+  assert.equal(await p0, 'allow');
+
+  // declared — label rides the governance_ask event; answer resolves verbatim
+  const p1 = asks.ask(desc({ externalVerify: { label: '用硬件密钥验证' } }));
+  const askEvents = () => events.filter((e) => e.type === 'governance_ask');
+  assert.equal(askEvents().at(-1).ask.externalVerify.label, '用硬件密钥验证');
+  const r1 = asks.resolve(asks.list()[0].id, 'external_verify');
+  assert.equal(r1.ok, true);
+  assert.equal(await p1, 'external_verify');
+
+  // external_verify is NOT an allow-family answer: no session grant, no
+  // always persist, no deny cascade — the next identical ask still suspends
+  const p2 = asks.ask(desc());
+  assert.equal(asks.list().length, 1, 'external_verify must not short-circuit later asks');
+  asks.resolve(asks.list()[0].id, 'allow');
+  assert.equal(await p2, 'allow');
+
+  // malformed externalVerify degrades to absent — never throws through ask()
+  const p3 = asks.ask(desc({ externalVerify: { label: 42 } }));
+  assert.equal(askEvents().at(-1).ask.externalVerify, null);
+  asks.resolve(asks.list()[0].id, 'allow');
+  assert.equal(await p3, 'allow');
+});

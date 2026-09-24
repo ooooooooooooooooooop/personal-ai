@@ -701,6 +701,7 @@ let askTick = null;
 const ANSWER_LABEL = {
   allow: '已允许', allow_session: '本会话已允许', always: '总是允许',
   deny: '已拒绝', timeout: '超时未答 · 已拒绝', aborted: '已中止',
+  external_verify: '已转外部验证',
 };
 
 function ensureAskTick() {
@@ -762,6 +763,16 @@ function addAskCard(ask) {
       <button class="ask-btn" data-a="always">总是允许</button>
       <button class="ask-btn danger" data-a="deny">拒绝</button>
     </div>`;
+  // dedup-h #2004 — plugin/hook-described external verification choice:
+  // an extra labelled answer button when the asker declared one; the
+  // answer routes back to the requester, it never admits by itself.
+  if (ask.externalVerify?.label) {
+    const ev = document.createElement('button');
+    ev.className = 'ask-btn';
+    ev.dataset.a = 'external_verify';
+    ev.textContent = String(ask.externalVerify.label).slice(0, 120);
+    div.querySelector('.ask-foot').insertBefore(ev, div.querySelector('.ask-btn.danger'));
+  }
   div.querySelector('.ask-tool').textContent = `${kind.verb} · ${ask.toolName}`;
   // SecurityAnalyzer-style risk line: WHICH class and WHICH units earned it
   if (ask.risk?.class) {

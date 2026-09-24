@@ -261,6 +261,13 @@ export class PendingAsks {
           : null,
         summary: descriptor.summary ?? '',
         detail: descriptor.detail ?? null,
+        // dedup-h #2004 — plugin-described external verification choice
+        // (openclaw approval-verification analogue): the asker may attach a
+        // labelled extra answer; the host still owns identity, answer-set
+        // authorization, timeout, and the final decision — 'external_verify'
+        // resolves back to the asker, it never admits by itself.
+        externalVerify: kind === 'approval' && descriptor.externalVerify && typeof descriptor.externalVerify.label === 'string'
+          ? { label: String(descriptor.externalVerify.label).slice(0, 120) } : null,
         risk: descriptor.risk ?? null,
         args: descriptor.args ?? null,
         // WYSIWYG chain: the UI's truncation warning depends on these
@@ -344,8 +351,12 @@ export class PendingAsks {
         if (bad) return { ok: false, error: `edited key '${bad[0]}' is not an existing string arg` };
       }
     }
-    if (!['allow', 'allow_session', 'always', 'deny'].includes(answer)) {
-      return { ok: false, error: "answer must be 'allow', 'allow_session', 'always' or 'deny'" };
+    const validAnswers = ['allow', 'allow_session', 'always', 'deny'];
+    // #2004 — 'external_verify' is authorized only when the asker declared
+    // the choice on the pending record; it is never an allow-family answer.
+    if (rec.externalVerify) validAnswers.push('external_verify');
+    if (!validAnswers.includes(answer)) {
+      return { ok: false, error: `answer must be one of: ${validAnswers.join(', ')}` };
     }
     if (edited && answer === 'deny') {
       return { ok: false, error: 'a denial cannot carry edits' };

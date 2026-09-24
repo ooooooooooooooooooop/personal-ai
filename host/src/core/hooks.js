@@ -106,7 +106,7 @@ const MAX_OUTPUT_CHARS = 4000;
 // never inject content fields (text/context/directory/…) into prompts,
 // session state, or query answers. Command/http entries are operator-
 // authored shell — the trust boundary there is the config file itself.
-const VETO_ONLY_KEYS = new Set(['deny', 'block', 'requireApproval', 'reason', 'continueOnBlock']);
+const VETO_ONLY_KEYS = new Set(['deny', 'block', 'requireApproval', 'externalVerify', 'reason', 'continueOnBlock']);
 const HOOK_ENTRY_KINDS = new Set(['command', 'http', 'prompt', 'agent']);
 
 // Secret-looking environment keys withheld from OBSERVATIONAL hook processes.
@@ -328,7 +328,16 @@ export class HookRunner {
         // decide chain resolves it through PendingAsks (async, real card);
         // a hook can never approve, only escalate.
         if (structured && typeof structured.requireApproval === 'string' && structured.requireApproval.trim()) {
-          return { requireApproval: structured.requireApproval.slice(0, 500) };
+          // dedup-h #2004 — the hook may describe an external verification
+          // choice on the card ({"externalVerify":{"label":"…"}}); the host
+          // keeps the answer set, timeout and final decision.
+          const ev = structured.externalVerify;
+          const externalVerify = ev && typeof ev === 'object' && typeof ev.label === 'string' && ev.label.trim()
+            ? { label: ev.label.trim().slice(0, 120) } : null;
+          return {
+            requireApproval: structured.requireApproval.slice(0, 500),
+            ...(externalVerify ? { externalVerify } : {}),
+          };
         }
         if (r.code !== 0) {
           return { deny: `pre_tool hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}` };

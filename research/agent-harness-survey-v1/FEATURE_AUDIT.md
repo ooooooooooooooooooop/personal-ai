@@ -2895,3 +2895,17 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **审计**：`SKILL_INSTALLED{name,triggers,bytes}`。
 - **证据**：`pi/tests/bootstrap.test.js` +1=38/38 端到端（gate 关→拒+无落盘+审计、operator 开→装+文件含 front-matter+skills_list 可见、gate 开不放松校验——坏名/无 trigger 拒、双审计落地）；host 全套 414/414（channel 新 case 无破面）。
 - **核销**：candidates-open #1985 → `candidates-resolved.tsv` #138。
+
+### 28.135 648 清单逐条核销 #139：dedup-h #2004 approval-gate——approval-forms: plugin approval 附 external verification 选项（2026-09-25）
+
+- **行**：`dedup-h  2004  approval-gate  approval-forms: plugin的approval可以附加external verification选项`（描述段为错位 WorkBuddy 片段：`sandbox.excludedCommands` 不再绕沙箱）。
+- **源语义**（openclaw v2026.8.2）：`Plugin approval verification`——plugin 可在 approval 展示上描述一个 external verification 选项，而 OpenClaw 保留 approval 身份、授权、超时与最终决定权。
+- **判定**：**IMPLEMENTED**（标题语义）+ **ALREADY_COVERED**（描述语义）。
+  - **标题**：plugin/扩展描述的审批可附"外部验证"选项。对位面 = operator-private `hooks.json` 的 `pre_tool` gate `{requireApproval}` 升级流（plugin 对位），不是 agent 可写面。
+    - `hooks.js fireGate`：`{requireApproval:"…", externalVerify:{label:"…"}}` 应答解析（label ≤120，畸形降级 absent）；`externalVerify` 入 `VETO_ONLY_KEYS`——veto 邻接的展示字段，非内容注入，prompt/agent 型 hook 无需 `allowPromptInjection` 即可声明。
+    - `asks.js`：pending 记录载 `externalVerify{label}`（仅 approval kind、host 侧再校验——UI 是渲染器不是契约方）；`resolve` 应答集按声明授权——`'external_verify'` 仅在记录声明时合法；它**不是** allow-family：不进 sessionAllows、不持久化 always、不进 deny 级联。
+    - `decide.js`：operator 选 `external_verify` → **同一 gate 有界重发一次**载荷带 `externalVerification:true`——hook 执行带外检查并经正常契约回 verdict；`{deny}`→block、`{args}`→走正常改写路径、静默→放行；**二次 requireApproval→fail-closed deny**（host 保留最终决定，hook 不能链式挂起）。
+    - `app.js`：审批卡条件渲染 plugin 描述的 label 按钮（`data-a=external_verify`，复用 `[data-a]` 通用绑定）；`ANSWER_LABEL` 补 `已转外部验证` 结局显示。
+  - **描述**：`sandbox.excludedCommands` 复合命令骑白名单绕沙箱——我方 `sandbox-exclude.json` 早带同源守卫（jobs.js:379-406：仅单一简单 unit、无重定向/写目标/danger-env/env 赋值/扩展、`raw===command` 全等校验、SANDBOX_EXCLUDED 审计），注释本身引用上游被咬的同一 bug。
+- **证据**：`host/tests/asks.test.js` +1=25/25（未声明→非法应答、声明→label 载事件+verbatim resolve、非 allow-family 不短路后续 ask、畸形降级）；`host/tests/hooks.test.js` +1（requireApproval+externalVerify 解析/畸形丢弃/prompt 型免 opt-in 可声明）；`pi/tests/hook-rewrite.test.js` +2=8/8（external_verify 有界重发带旗标+verdict 绑定、静默=放行、链式升级→拒）；host 全套 416/416。
+- **核销**：candidates-open #2004 → `candidates-resolved.tsv` #139。
