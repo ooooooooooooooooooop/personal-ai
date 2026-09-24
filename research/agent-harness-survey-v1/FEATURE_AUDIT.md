@@ -2413,3 +2413,8 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：IMPLEMENTED。源条目（v2.105.0）= 内建 deep research workflow + `/deep-research` 命令：一句话发起多角度并行研究，进度走后台任务通知。落地三件套：**(a) 内建配方** `pi/recipes/deep-research.md`（params `topic(required), angles=4, report`——拆角度 → `workflow` 并行后台委派 → synthesize 汇成 `.pai/reports/*.md` → `notify_user` 知会，研究绝不内联编造）；**(b) recipe_run 解析序**：workdir `.pai/recipes/` 优先、内建 `pi/recipes/` 兜底（操作员配方永远压过内建默认）；**(c) UI `/deep-research <主题>`** 发送 recipe_run 调用指令走正常 prompt 链。
 - **边界诚实**：进度通知不是新机制——复用 job 生命周期事件 + `notify_user`；配方是编排指令而非新执行引擎（多角度并行靠既有 workflow/delegate 准入链，治理照常）。
 - **证据**：skilltools 10/10（builtin 解析+workdir 遮蔽+双根 miss 报实）；dom-gate `/deep-research` 发送含 recipe_run+topic 的真 prompt 并回显；pi 全套 428/424/0/4、app 25/26。
+
+### 28.87 648 清单逐条核销 #61：dedup-h #670 `request_permissions` 运行时请求权限（2026-09-24）
+
+- **判定**：ALREADY_COVERED。源条目 = Codex SDK delayed control request：模型在 turn 内运行时向操作员请求权限。我方 `request_permission`（pi/src/adapter/modetools.js）同构：模型带 `{tool, reason}` 发起 → 操作员 ask 卡裁决（`permission_request` 规则）→ allow/allow_session/always 才 `grantSession(tool)` 解锁本会话免卡；模型永不自我提权，grant 仅会话域（新会话重问）。
+- **证据**：modetools 测试（allow 授予 + refuse/无通道不授予）、asks.test grantSession 会话解锁、bootstrap 工具清单 471 行含 request_permission。
