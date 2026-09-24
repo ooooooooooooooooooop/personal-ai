@@ -44,6 +44,24 @@ function numEnv(name) {
   return Number.isFinite(v) && v > 0 ? v : undefined;
 }
 
+/** dedup-h #1981 — read the admin-deployed MDM config (PAI_ADMIN_CONFIG).
+ *  Returns null when the env var is unset (pure operator path); otherwise
+ *  {prefixes, exclusive, ok}. Env set + file unreadable/malformed →
+ *  fail-closed lockdown {exclusive:true, prefixes:[], ok:false}. */
+function readAdminAutoRun() {
+  const p = process.env.PAI_ADMIN_CONFIG;
+  if (!p) return null;
+  try {
+    const doc = JSON.parse(readFileSync(String(p), 'utf-8'));
+    const ar = doc?.autoRun ?? {};
+    return {
+      prefixes: (Array.isArray(ar.allowPrefixes) ? ar.allowPrefixes : []).map((x) => String(x).trim()).filter(Boolean).slice(0, 100),
+      exclusive: ar.exclusive === true,
+      ok: true,
+    };
+  } catch { return { prefixes: [], exclusive: true, ok: false }; }
+}
+
 /** Bounded shell for `!cmd` operator direct-exec — 200KB cap, 120s kill. */
 function runShell(command, cwd, { detachedDir = null } = {}) {
   return new Promise((resolveP) => {
@@ -605,14 +623,28 @@ export async function startHost({
       // (never the workdir): matching prefixes skip the approval card. Only
       // consulted inside the kernel's ask path — it can soften an ask, never
       // a deny. Re-read per call so operator edits take effect live.
+      // dedup-h #1981 — MDM enforcement tier: PAI_ADMIN_CONFIG points at an
+      // admin-deployed JSON OUTSIDE the instance root (the instance root is
+      // the operator's own domain — a managed policy must not live where the
+      // managed party can edit it). Shape:
+      //   { "autoRun": { "allowPrefixes": [...], "exclusive": bool } }
+      // Admin prefixes merge with the operator list; exclusive:true ignores
+      // the operator file entirely (lockdown — only admin-approved commands
+      // auto-run). Env set + file unreadable/malformed → fail-closed
+      // lockdown: an enforcement pointer that can't be read must not silently
+      // disable enforcement. Re-read per call so MDM pushes take effect live.
       commandAllowlist: (ctx, meta) => {
         const arg = { powershell: 'command', bash: 'command', shell: 'command', cmd: 'command', job_spawn: 'command' }[ctx.toolName];
         const c = arg ? ctx.args?.[arg] : null;
-        let prefixes = [];
-        try {
-          const doc = JSON.parse(readFileSync(join(instanceRoot, 'command-allow.json'), 'utf-8'));
-          prefixes = (Array.isArray(doc?.allowPrefixes) ? doc.allowPrefixes : []).map((p) => String(p).trim()).filter(Boolean).slice(0, 100);
-        } catch { return false; }
+        const admin = readAdminAutoRun();
+        const prefixes = [...(admin?.prefixes ?? [])];
+        if (admin?.exclusive !== true) {
+          try {
+            const doc = JSON.parse(readFileSync(join(instanceRoot, 'command-allow.json'), 'utf-8'));
+            prefixes.push(...(Array.isArray(doc?.allowPrefixes) ? doc.allowPrefixes : []).map((p) => String(p).trim()).filter(Boolean).slice(0, 100));
+          } catch { /* operator file absent = no operator prefixes */ }
+        }
+        if (!prefixes.length) return false;
         return commandAllowlistMatch(c, meta, prefixes);
       },
     },
@@ -634,6 +666,15 @@ export async function startHost({
   }
   if (proxyState.noProxyDropped?.length) {
     core.audit.write({ kind: 'PROXY_NOPROXY_DROPPED', data: { entries: proxyState.noProxyDropped.slice(0, 10) } });
+  }
+  // dedup-h #1981 — MDM enforcement posture, recorded once at boot so the
+  // audit trail shows whether an admin tier governs auto-run this session.
+  if (process.env.PAI_ADMIN_CONFIG) {
+    const admin = readAdminAutoRun();
+    core.audit.write({
+      kind: 'ADMIN_AUTORUN',
+      data: { path: String(process.env.PAI_ADMIN_CONFIG).slice(0, 200), ok: admin.ok, exclusive: admin.exclusive, prefixes: admin.prefixes.length },
+    });
   }
 
   // PAI_ASK_TIMEOUT_MS — operator lever on the ask auto-deny clock (default

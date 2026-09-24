@@ -2871,3 +2871,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **UI**：信任卡三档——"信任此目录 / 含全部子目录 / 信任上级目录" + 暂不注入。
 - **证据**：`host/tests/trust.test.js` +1=6/6（精确不渗漏子目录、递归覆盖子孙且 grantedBy 归祖、递归不盖兄弟/不回流父、'parent'=祖先递归授予）；`host/tests/channel.test.js` +1=38/38（scope 校验+透传+未知降级 exact）；host 全套 414/414；pi bootstrap+channel-facade 83/83。
 - **核销**：candidates-open #1978 → `candidates-resolved.tsv` #136。
+
+### 28.133 648 清单逐条核销 #137：dedup-h #1981 approval-gate——policy-mdm: 企业 admin 强制 auto-run terminal commands（MDM enforcement）（2026-09-25）
+
+- **行**：`dedup-h  1981  approval-gate  policy-mdm: 企业admin强制auto-run terminal commands(MDM enforcement)`（描述段为错位片段：hidden `--a2a` stdio 服务——与标题无关，A2A 程序化服务面属另一条候选域）。
+- **判定**：**IMPLEMENTED**。源语义（Gemini CLI MDM 面）：企业管理员经 MDM 推送托管配置，管控 auto-run 终端命令清单。核查真洞：`command-allow.json` 单层 operator 域——无 admin 级管控面，无法表达"管理员批准集"或"operator 清单作废"的强制语义。
+  - **机制**：`PAI_ADMIN_CONFIG` env → admin 部署的 JSON（**实例根外**——实例根是 operator 自有域，托管策略绝不能放在被管方可写处）；形状 `{autoRun:{allowPrefixes:[...], exclusive:bool}}`。admin 前缀**合并**进 `commandAllowlist` 闭包；`exclusive:true` 时 operator 文件整个作废（锁死——仅 admin 批准命令可 auto-run）。
+  - **fail-closed**：env 已设 + 文件不可读/畸形 → `{exclusive:true, prefixes:[], ok:false}`——强制指针读不到时绝不能静默解除强制；env 未设 = 纯 operator 旧路径零变化。
+  - **live-reread**：与 operator 文件同节奏每次调用重读——MDM 推送即生效。
+  - **审计**：boot 时记 `ADMIN_AUTORUN {path, ok, exclusive, prefixes}` 姿态（同 PROXY_PAC_FAILED 模式）。
+  - **A2A 描述片段**：BOUNDARY——stdio A2A 服务是另一条程序化接入面语义，与本条 admin 管控标题无涉；我方 channel 已有 HTTP/SSE 桥（app/server）承接程序化接入。
+- **证据**：`pi/tests/bootstrap.test.js` +1=37/37 端到端（policy `riskActions:{network:'ask'}` 驱动：admin 前缀→allow、非匹配→ask、operator 合并→allow、exclusive 后 operator 作废→ask+admin 仍 allow——live-reread 实证、ADMIN_AUTORUN 姿态审计落地、admin 文件删除后新 host 全锁死 ask + ok:false）。聚焦回归 m2-governance/writeboundary/hook-rewrite/m8-wiring 70/70。
+- **核销**：candidates-open #1981 → `candidates-resolved.tsv` #137。

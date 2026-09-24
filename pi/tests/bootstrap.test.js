@@ -1534,3 +1534,59 @@ test('http hook egress: metadata literal refused + audited, localhost posts', as
     assert.ok(!seen.some((s) => String(s.url).includes('meta')), 'metadata URL never fetched');
   } finally { host.dispose(); srv.close(); }
 });
+
+test('dedup-h #1981: PAI_ADMIN_CONFIG MDM tier governs auto-run — merge, exclusive lockdown, unreadable fail-closed', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-adm-'));
+  const adminDir = mkdtempSync(join(tmpdir(), 'pai-admcfg-')); // outside instanceRoot — operator cannot edit it
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { network: 'ask' }, // curl needs approval
+  }));
+  const adminFile = join(adminDir, 'admin-config.json');
+  writeFileSync(adminFile, JSON.stringify({ autoRun: { allowPrefixes: ['curl https://corp.example'], exclusive: false } }));
+  const prev = process.env.PAI_ADMIN_CONFIG;
+  process.env.PAI_ADMIN_CONFIG = adminFile;
+  try {
+    const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+    try {
+      const dry = (command) => host.channel.handle({ type: 'governance_dryrun', tool: 'bash', args: { command } });
+      // admin prefix auto-runs — the ask is skipped
+      assert.equal((await dry('curl https://corp.example/a')).data.action, 'allow');
+      // non-matching command still asks
+      assert.equal((await dry('curl https://other.example')).data.action, 'ask');
+      // operator file merges when not exclusive
+      writeFileSync(join(dir, 'command-allow.json'), JSON.stringify({ allowPrefixes: ['curl https://other.example'] }));
+      assert.equal((await dry('curl https://other.example')).data.action, 'allow');
+      // exclusive → operator file ignored (live re-read of the MDM file)
+      writeFileSync(adminFile, JSON.stringify({ autoRun: { allowPrefixes: ['curl https://corp.example'], exclusive: true } }));
+      assert.equal((await dry('curl https://other.example')).data.action, 'ask');
+      assert.equal((await dry('curl https://corp.example/a')).data.action, 'allow');
+      // boot posture audited
+      const audits = readdirSync(join(dir, 'audit')).flatMap((f) =>
+        readFileSync(join(dir, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+      const posture = audits.find((e) => e.kind === 'ADMIN_AUTORUN');
+      assert.ok(posture, 'admin posture audited at boot');
+      assert.equal(posture.data.ok, true);
+      assert.equal(posture.data.exclusive, false); // boot-time snapshot: file read before the exclusive flip
+    } finally { host.dispose(); }
+
+    // env set + file unreadable → fail-closed lockdown: nothing auto-runs
+    rmSync(adminFile);
+    const dir2 = mkdtempSync(join(tmpdir(), 'pai-adm2-'));
+    mkdirSync(join(dir2, 'canonical'), { recursive: true });
+    writeFileSync(join(dir2, 'canonical', 'policy.json'), JSON.stringify({
+      version: 1, deny: [], tools: {}, riskActions: { network: 'ask' },
+    }));
+    writeFileSync(join(dir2, 'command-allow.json'), JSON.stringify({ allowPrefixes: ['curl https://other.example'] }));
+    const host2 = await startHost({ instanceRoot: dir2, workdir: dir2, sessionOptions: { model: stubModel } });
+    try {
+      const r = await host2.channel.handle({ type: 'governance_dryrun', tool: 'bash', args: { command: 'curl https://other.example' } });
+      assert.equal(r.data.action, 'ask', 'unreadable admin file = lockdown: operator list ignored');
+      const audits = readdirSync(join(dir2, 'audit')).flatMap((f) =>
+        readFileSync(join(dir2, 'audit', f), 'utf-8').trim().split('\n').map(JSON.parse));
+      assert.equal(audits.find((e) => e.kind === 'ADMIN_AUTORUN')?.data.ok, false);
+    } finally { host2.dispose(); }
+  } finally {
+    if (prev === undefined) delete process.env.PAI_ADMIN_CONFIG; else process.env.PAI_ADMIN_CONFIG = prev;
+  }
+});
