@@ -297,3 +297,46 @@ test('#1393: operator-private profiles are never trust-gated', async () => {
   assert.equal(ops.trustGated, undefined, 'instance-root profile carries no gate tag');
   assert.equal(ops.env.FOO, 'bar');
 });
+
+test('#1546: compaction_model loads under trust, strips without it', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-prof-cm-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-prof-cmi-'));
+  const rich = '---\nname: summ\ntarget: pi\ncompaction_model: compp/cheap-sum\n---\nwork\n';
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  mkdirSync(join(inst, 'agents'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'agents', 'summ.md'), rich);
+  writeFileSync(join(inst, 'agents', 'summ2.md'), rich.replace('name: summ', 'name: summ2'));
+  const cold = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: false });
+  assert.equal(cold.get('summ').compactionModel, undefined, 'untrusted workdir profile cannot steer summarization spend');
+  assert.equal(cold.get('summ2').compactionModel, 'compp/cheap-sum', 'operator-private profile carries the field');
+  const warm = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: true });
+  assert.equal(warm.get('summ').compactionModel, 'compp/cheap-sum', 'trusted workdir profile keeps it');
+});
+
+test('#1546: profile compaction_model stamps --compaction-model-b64; unenforceable target refused', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-prof-cmd-'));
+  const spawned = [];
+  const executor = { spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j1', attempt_id: 'a1' }; } };
+  const profiles = new Map([
+    ['summ', { name: 'summ', target: 'pai', preamble: '', compactionModel: 'compp/cheap-sum' }],
+    ['summ2', { name: 'summ2', target: 'codex', preamble: '', compactionModel: 'x' }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: (t) => (t === 'pai'
+      ? { command: 'node pai-channel.js --serve', enforceable: true }
+      : 'codex run'),
+    workdir: dir,
+    profiles,
+  });
+  const r = await tool.execute('c1', { profile: 'summ', task: 'do thing' });
+  assert.ok(!r.isError, JSON.stringify(r));
+  const m = /--compaction-model-b64 ([A-Za-z0-9+/=]+)/.exec(spawned[0]);
+  assert.ok(m, 'bridge flag stamped into the spawned command');
+  assert.equal(Buffer.from(m[1], 'base64').toString('utf-8'), 'compp/cheap-sum', 'value survives the argv channel byte-exact');
+  // unenforceable target with a declared compaction_model → refused pre-spawn
+  const r2 = await tool.execute('c2', { profile: 'summ2', task: 'do thing' });
+  assert.equal(r2.details.refused, true);
+  assert.equal(r2.details.reason, 'unenforceable_compaction_model');
+  assert.equal(spawned.length, 1, 'refused before spawn');
+});

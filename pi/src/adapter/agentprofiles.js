@@ -32,6 +32,10 @@
  *                            servers EXCEPT these; reaches the child via
  *                            PAI_MCP_DENY, enforced by the mcp extension at
  *                            connect time — pai-channel bodies only)
+ *   compaction_model: cheap/model (dedup-h #1546 — the child's compaction
+ *                            summaries route to this model instead of the
+ *                            session model; reaches the child via
+ *                            PAI_COMPACTION_MODEL — pai-channel bodies only)
  *   budget_tokens: 50000    (M94 per-agent context budget — child is stamped
  *   budget_calls: 20         with a hard request-level cap; only enforceable
  *   budget_cost: 0.50        on pai-channel children, refused surface-wide else)
@@ -111,6 +115,9 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
     ...(envCapable && envDeny.length ? { envDeny } : {}),
     ...(envCapable && fields.model ? { model: fields.model } : {}),
     ...(envCapable && fields.effort ? { effort: fields.effort } : {}),
+    // dedup-h #1546 — same trust gate as model: a repo-planted profile must
+    // never steer the child's summarization spend either.
+    ...(envCapable && fields.compaction_model ? { compactionModel: fields.compaction_model } : {}),
     ...(envCapable && /^(1|true|yes)$/i.test(fields.isolate_steering ?? '') ? { isolateSteering: true } : {}),
     ...(toolsDeny.length ? { toolsDeny } : {}),
     ...(toolsAllow.length ? { toolsAllow } : {}),

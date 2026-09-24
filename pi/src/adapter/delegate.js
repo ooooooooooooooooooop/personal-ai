@@ -129,6 +129,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       let toolsAllow = null; // dedup-h #1112 — CC-style `tools:` allowlist
       let mcpDeny = null;   // C3 — same dedicated-flag channel
       let agentId = null;   // dedup-h #1390 — mcp.servers.<name>.context scoping
+      let compactionModel = null; // dedup-h #1546 — profile-declared summarizer
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -158,6 +159,9 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         if (!gated && p.toolsAllow?.length) toolsAllow = p.toolsAllow.join(',');
         if (!gated && p.mcpDeny?.length) mcpDeny = p.mcpDeny.join(',');
         if (!gated && p.budget) profileBudget = p.budget;
+        // dedup-h #1546 — agent.compaction_model: the child's compaction
+        // summaries route to this model (PAI_COMPACTION_MODEL env).
+        if (!gated && p.compactionModel) compactionModel = p.compactionModel;
         // #1390 — the resolved profile name IS the child's agent-context id:
         // the mcp extension matches it against spec.context on each server.
         // Base64 — a profile name is operator text and must survive the shell
@@ -296,6 +300,20 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           details: { refused: true, reason: 'unenforceable_tools_allow', rule: 'tools_allow' },
         };
       }
+      // #1546: identical fail-closed rule for compaction_model — only a
+      // pai-channel child reads PAI_COMPACTION_MODEL into its compaction
+      // path; a foreign body ignores the stamp, so refuse rather than lie.
+      if (compactionModel && !childEnforceable) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: profile '${params.profile}' declares compaction_model, but target '${target}' cannot route ` +
+              'compaction summarization — remove compaction_model or point the profile at a pai-channel body',
+          }],
+          details: { refused: true, reason: 'unenforceable_compaction_model', rule: 'compaction_model' },
+          isError: true,
+        };
+      }
       // C3: identical fail-closed rule for mcp_deny — the mcp extension drops
       // denied servers at connect time inside a pai-channel child; a foreign
       // body ignores the stamp, so refuse pre-spawn rather than lie.
@@ -424,7 +442,13 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       const envFlag = profileEnv
         ? ` --env-json "${Buffer.from(JSON.stringify(profileEnv)).toString('base64')}"`
         : '';
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${toolsAllow ? ` --tools-allow "${toolsAllow}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${agentId ? ` --agent-id-b64 ${agentId}` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
+      // #1546 — the compaction model is operator text (provider/model or bare
+      // model); base64 like agent-id so any spelling survives the shell argv
+      // channel byte-exact.
+      const compactionB64 = compactionModel
+        ? Buffer.from(String(compactionModel), 'utf-8').toString('base64')
+        : null;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${toolsAllow ? ` --tools-allow "${toolsAllow}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${agentId ? ` --agent-id-b64 ${agentId}` : ''}${compactionB64 ? ` --compaction-model-b64 ${compactionB64}` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,

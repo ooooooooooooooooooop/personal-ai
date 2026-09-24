@@ -99,6 +99,15 @@ if (agentIdB64) {
   try { childEnv.PAI_AGENT_ID = Buffer.from(agentIdB64, 'base64').toString('utf-8').slice(0, 200); }
   catch { /* malformed stamp — child inherits the parent context */ }
 }
+// dedup-h #1546 — agent.compaction_model: the profile-declared summarizer
+// model rides the same dedicated-flag channel (PAI_* refused via --env-json).
+// The child's bootstrap resolves it into the compaction path; a bare value
+// means "model on the session provider", provider/model pins both.
+const compactionB64 = flagVal('--compaction-model-b64');
+if (compactionB64) {
+  try { childEnv.PAI_COMPACTION_MODEL = Buffer.from(compactionB64, 'base64').toString('utf-8').slice(0, 300); }
+  catch { /* malformed stamp — child compacts on its session model */ }
+}
 // Profile env fields (OpenHands profile-scoped secrets analogue): set/deny
 // ride the bridge so the CHILD's env is shaped — the parent process env is
 // untouched. PAI_* keys are refused outright, so profile env can never

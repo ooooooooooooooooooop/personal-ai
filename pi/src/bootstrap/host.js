@@ -475,17 +475,21 @@ export async function startHost({
   // credential of the session's default provider. Runs through the gated
   // fetch → it IS billed as a provider call. Returns null when the session
   // or provider auth isn't resolvable — the card then shows no advice.
-  const judgeCall = async (system, user, featureName = 'judge') => {
+  const judgeCall = async (system, user, featureName = 'judge', { featureOverride = null, maxTokens = 160, timeoutMs = 8000, signal = null } = {}) => {
     const rt = currentSession?.modelRuntime;
     if (!rt) return null;
     // per-feature model routing: <instance>/feature-models.json may point the
     // judge at a cheaper/stronger model than the session's — judge calls are
     // frequent and low-stakes, so a small model is usually the right pick.
-    let feature = null;
-    try {
-      const fm = JSON.parse(readFileSync(join(instanceRoot, 'feature-models.json'), 'utf-8'));
-      feature = fm?.[featureName] ?? null;
-    } catch { /* absent file = session model */ }
+    // featureOverride (dedup-h #1546) skips the file lookup — the caller
+    // already resolved the routing (e.g. the PAI_COMPACTION_MODEL env stamp).
+    let feature = featureOverride;
+    if (!feature) {
+      try {
+        const fm = JSON.parse(readFileSync(join(instanceRoot, 'feature-models.json'), 'utf-8'));
+        feature = fm?.[featureName] ?? null;
+      } catch { /* absent file = session model */ }
+    }
     const pid = feature?.provider ?? currentSession?.model?.provider ?? rt.getProviders?.()[0]?.id;
     const p = rt.getProvider?.(pid);
     const auth = await rt.getAuth?.(pid).catch(() => undefined);
@@ -499,17 +503,48 @@ export async function startHost({
       body: JSON.stringify({
         model,
         temperature: 0,
-        max_tokens: 160,
+        max_tokens: maxTokens,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user },
         ],
       }),
-      signal: AbortSignal.timeout(8000),
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]) : AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return null;
     const body = await res.json().catch(() => null);
     return body?.choices?.[0]?.message?.content ?? null;
+  };
+  // dedup-h #1546 — agent.compaction_model: a profile-declared summarizer
+  // model stamps PAI_COMPACTION_MODEL onto the pai-channel child (bare value
+  // = model on the session provider; provider/model pins both). The
+  // operator-level equivalent for the main session is feature-models.json
+  // 'compaction'. Null when NEITHER is configured — pi's native summarizer
+  // then runs the identical session model, so intercepting would add risk
+  // for zero routing gain.
+  const compactionFeature = () => {
+    const stamp = String(process.env.PAI_COMPACTION_MODEL ?? '').trim();
+    if (stamp) {
+      const slash = stamp.indexOf('/');
+      return slash > 0
+        ? { provider: stamp.slice(0, slash), model: stamp.slice(slash + 1) }
+        : { model: stamp };
+    }
+    try {
+      const f = JSON.parse(readFileSync(join(instanceRoot, 'feature-models.json'), 'utf-8'))?.compaction;
+      return f && typeof f === 'object' && f.model ? f : null;
+    } catch { return null; }
+  };
+  const compactionSummarize = async (system, user, signal = null) => {
+    const feature = compactionFeature();
+    if (!feature) return null;
+    try {
+      // compaction summaries run long — 2048 out, 30s, still budget-gated
+      // through the same global fetch as every provider call; the caller's
+      // abort signal (pi's compaction abort) reaches the fetch too.
+      const text = await judgeCall(system, user, 'compaction', { featureOverride: feature, maxTokens: 2048, timeoutMs: 30_000, signal });
+      return text ? { text, model: `${feature.provider ?? 'session'}/${feature.model ?? 'session'}` } : null;
+    } catch { return null; }
   };
   // M100 provider fallback chain: <instance>/model-fallbacks.json —
   // {chain:[{provider, model}, ...]}. The object is shared by reference with
@@ -1274,6 +1309,9 @@ export async function startHost({
         // agent_end gate validates the final reply and disarms on a
         // conforming/exhausted verdict.
         structured: structuredOut,
+        // dedup-h #1546 — agent.compaction_model routed summarizer; null
+        // inside the extension means the native session-model path runs.
+        compactionSummarize,
       },
       outputSpool,
     });
