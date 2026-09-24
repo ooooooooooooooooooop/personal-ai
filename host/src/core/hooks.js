@@ -77,6 +77,16 @@ export const GATE_EVENTS = new Set(['pre_tool', 'session_directory', 'prompt_sub
 const DEFAULT_TIMEOUT_MS = 10_000;
 const MAX_OUTPUT_CHARS = 4000;
 
+// dedup-h #1143 — allowPromptInjection: a prompt/agent hook's output is
+// MODEL-GENERATED content. Without an explicit opt-in (per-entry
+// `allowPromptInjection: true` or config-wide `"allowPromptInjection":
+// true`) it may only VETO — deny/block/requireApproval + their reason —
+// never inject content fields (text/context/directory/…) into prompts,
+// session state, or query answers. Command/http entries are operator-
+// authored shell — the trust boundary there is the config file itself.
+const VETO_ONLY_KEYS = new Set(['deny', 'block', 'requireApproval', 'reason', 'continueOnBlock']);
+const HOOK_ENTRY_KINDS = new Set(['command', 'http', 'prompt', 'agent']);
+
 // Secret-looking environment keys withheld from OBSERVATIONAL hook processes.
 // The workdir config is agent-reachable (one approved .pai/ write away); a
 // full-env spawn turns it into a credential-exfiltration channel. Gate hooks
@@ -136,6 +146,7 @@ export class HookRunner {
   }
 
   #load() {
+    this.#allowInjection = false;
     if (!existsSync(this.configPath)) return {};
     let doc;
     try {
@@ -148,6 +159,10 @@ export class HookRunner {
       return {};
     }
     const hooks = doc?.hooks ?? {};
+    // dedup-h #1143: allowPromptInjection may sit at doc root or inside
+    // `hooks` (a boolean there is a flag, not an event list).
+    this.#allowInjection = doc?.allowPromptInjection === true || hooks?.allowPromptInjection === true;
+    delete hooks.allowPromptInjection;
     const allowed = this.gate ? new Set([...HOOK_EVENTS, ...GATE_EVENTS]) : HOOK_EVENTS;
     const bad = Object.keys(hooks).filter((name) => !allowed.has(name));
     if (bad.length) {
@@ -159,6 +174,30 @@ export class HookRunner {
       // in the audit trail instead of crashing the lifecycle.
       this.audit?.write({ kind: 'HOOK_CONFIG_ERROR', data: { rejectedEvents: bad, valid: [...HOOK_EVENTS].join(',') } });
       for (const name of bad) delete hooks[name];
+    }
+    // dedup-h #1143: unknown TYPED hook entries are a load-time error, not a
+    // silently-dead hook. An entry must declare a known runnable form
+    // (command/http/prompt/agent); an explicit `type` field must match a
+    // known kind and agree with the field actually present. Gate file
+    // throws; the agent-reachable file drops the bad entries + audits.
+    for (const [event, list] of Object.entries(hooks)) {
+      if (!Array.isArray(list)) {
+        if (this.gate) throw new Error(`hooks.json: '${event}' must be an array of hook entries`);
+        this.audit?.write({ kind: 'HOOK_CONFIG_ERROR', data: { event, rejectedEntries: 'non-array' } });
+        delete hooks[event];
+        continue;
+      }
+      const kept = [];
+      for (const h of list) {
+        const kind = this.#entryKind(h);
+        const typedOk = h?.type === undefined || (HOOK_ENTRY_KINDS.has(h.type) && h.type === kind);
+        if (kind && typedOk) kept.push(h);
+        else if (this.gate) throw new Error(`hooks.json: '${event}' entry has no known hook form (command/http/prompt/agent) or a mismatched 'type'`);
+      }
+      if (kept.length !== list.length) {
+        this.audit?.write({ kind: 'HOOK_CONFIG_ERROR', data: { event, rejectedEntries: list.length - kept.length, reason: 'unknown hook form' } });
+        hooks[event] = kept;
+      }
     }
     return hooks;
   }
@@ -246,13 +285,32 @@ export class HookRunner {
     const entries = (this.hooks[event] ?? []).filter((h) => this.#entryKind(h));
     if (!entries.length) return null;
     const h = entries[0];
+    const kind = this.#entryKind(h);
     const timeoutMs = h.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-    this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, value: true, form: this.#entryKind(h), command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
+    this.audit?.write({ kind: 'HOOK_FIRE', data: { event, gate: true, value: true, form: kind, command: String(h.command ?? h.http ?? h.prompt ?? h.agent ?? '').slice(0, 200) } });
     const r = await this.#runEntry(h, { event, ...payload }, timeoutMs);
     this.audit?.write({ kind: 'HOOK_RESULT', data: { event, gate: true, value: true, exitCode: r.code, tail: r.tail.slice(0, 500) } });
     if (r.code !== 0) throw new Error(`${event} hook exited ${r.code}: ${r.tail.trim().slice(0, 300) || 'no output'}`);
     try {
       const answer = JSON.parse(r.tail.trim().split('\n').pop() ?? '');
+      // dedup-h #1143: a model-backed hook's answer may only VETO unless the
+      // operator opted into prompt injection (entry flag or config-wide).
+      // Content fields (text/context/directory/…) are stripped and audited;
+      // an answer left with nothing is a loud failure, not an empty allow.
+      if ((kind === 'prompt' || kind === 'agent') && !(h.allowPromptInjection === true || this.#allowInjection)) {
+        if (answer && typeof answer === 'object') {
+          const stripped = Object.keys(answer).filter((k) => !VETO_ONLY_KEYS.has(k));
+          if (stripped.length) {
+            this.audit?.write({ kind: 'HOOK_INJECTION_REFUSED', data: { event, form: kind, stripped: stripped.slice(0, 16) } });
+            for (const k of stripped) delete answer[k];
+          }
+          if (!Object.keys(answer).length) {
+            const err = new Error(`${event} ${kind} hook produced only injection fields — set allowPromptInjection to accept generated content`);
+            err.injectionRefused = true;
+            throw err;
+          }
+        }
+      }
       // dedup-h #1034: expose the matched entry (non-enumerable, never
       // serialized) so callers can honor per-entry flags like
       // continueOnBlock without re-reading the config file.
@@ -260,13 +318,15 @@ export class HookRunner {
         Object.defineProperty(answer, 'hookEntry', { value: h, enumerable: false });
       }
       return answer;
-    } catch {
+    } catch (err) {
+      if (err?.injectionRefused) throw err;
       throw new Error(`${event} hook produced no JSON payload`);
     }
   }
 
   #closed = false;
   #children = new Set();
+  #allowInjection = false;
 
   /**
    * Run one hook entry in whichever form it declares (#937): shell command,

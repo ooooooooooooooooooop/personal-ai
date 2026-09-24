@@ -311,3 +311,63 @@ test('dedup-h #937: http/prompt/agent hook forms normalize to {code,tail}', asyn
   const g = await hGate3.fireGate('pre_tool', { tool: 'bash', args: {} });
   assert.match(g.deny, /no llmFn|exited 1/);
 });
+
+// dedup-h #1143 — unknown typed hook entries are load-time errors (gate)
+// or audited drops (untrusted); allowPromptInjection gates model output.
+test('#1143: unknown typed hook entries — gate throws, untrusted drops+audits', async () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-hook1143-'));
+  // entry with an unrecognized type / no known runnable form
+  cfg(w, { hooks: { session_start: [{ type: 'teleport', foo: 'x' }, { command: 'echo ok' }] } });
+  const auditRows = [];
+  const audit = { write: (r) => auditRows.push(r) };
+  const h = new HookRunner(w, { audit });
+  assert.equal((h.hooks.session_start ?? []).length, 1, 'bad entry dropped, good entry kept');
+  assert.ok(auditRows.some((r) => r.kind === 'HOOK_CONFIG_ERROR' && r.data?.reason === 'unknown hook form'));
+  // gate file: same entry shape refuses the whole load
+  const gateFile = join(w, 'gate-hooks.json');
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ type: 'teleport' }] } }));
+  assert.throws(() => new HookRunner(w, { gate: true, configPath: gateFile }), /no known hook form/);
+  // type that disagrees with the field present is also invalid
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ type: 'prompt', command: 'x' }] } }));
+  assert.throws(() => new HookRunner(w, { gate: true, configPath: gateFile }), /no known hook form|mismatched/);
+  // non-array event value rejected
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: 'nope' } }));
+  assert.throws(() => new HookRunner(w, { gate: true, configPath: gateFile }), /must be an array/);
+  // declared type matching the field is accepted
+  writeFileSync(gateFile, JSON.stringify({ hooks: { pre_tool: [{ type: 'command', command: 'exit 0' }] } }));
+  assert.doesNotThrow(() => new HookRunner(w, { gate: true, configPath: gateFile }));
+});
+
+test('#1143: model-backed hook answers veto-only unless allowPromptInjection', async () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-hook1143b-'));
+  const gateFile = join(w, 'gate.json');
+  const auditRows = [];
+  const audit = { write: (r) => auditRows.push(r) };
+  const llmFn = async () => '{"text":"INJECTED","context":"INJECTED","deny":"no"}';
+  // no opt-in: injection fields stripped, veto survives
+  writeFileSync(gateFile, JSON.stringify({ hooks: { prompt_submit: [{ prompt: 'judge this' }] } }));
+  const g1 = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn });
+  const a1 = await g1.fireValue('prompt_submit', { text: 'hi' });
+  assert.equal(a1.deny, 'no', 'veto field survives');
+  assert.equal(a1.text, undefined);
+  assert.equal(a1.context, undefined);
+  assert.ok(auditRows.some((r) => r.kind === 'HOOK_INJECTION_REFUSED'));
+  // answer that is ONLY injection fields → loud failure (fail closed)
+  const g1b = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn: async () => '{"text":"INJECTED"}' });
+  await assert.rejects(() => g1b.fireValue('prompt_submit', {}), /only injection fields/);
+  // per-entry opt-in lets generated content through
+  writeFileSync(gateFile, JSON.stringify({ hooks: { prompt_submit: [{ prompt: 'judge', allowPromptInjection: true }] } }));
+  const g2 = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn });
+  const a2 = await g2.fireValue('prompt_submit', {});
+  assert.equal(a2.text, 'INJECTED');
+  // config-wide opt-in (inside hooks map) works too
+  writeFileSync(gateFile, JSON.stringify({ hooks: { allowPromptInjection: true, prompt_submit: [{ prompt: 'judge' }] } }));
+  const g3 = new HookRunner(w, { gate: true, configPath: gateFile, audit, llmFn });
+  const a3 = await g3.fireValue('prompt_submit', {});
+  assert.equal(a3.text, 'INJECTED');
+  // command entries are operator-authored — injection flag irrelevant
+  writeFileSync(gateFile, JSON.stringify({ hooks: { prompt_submit: [{ type: 'command', command: `node -e "console.log(JSON.stringify({text:'ok'}))"` }] } }));
+  const g4 = new HookRunner(w, { gate: true, configPath: gateFile, audit });
+  const a4 = await g4.fireValue('prompt_submit', {});
+  assert.equal(a4.text, 'ok');
+});
