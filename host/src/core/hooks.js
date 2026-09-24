@@ -55,6 +55,10 @@ export const HOOK_EVENTS = new Set([
   // queue; task_started = a durable job's child process exists; heartbeat
   // rides the operator heartbeat.json cadence (no second timer).
   'turn_started', 'prompt_queued', 'task_started', 'session_heartbeat',
+  // dedup-h #884 (unstable_Checkpoint analogue): a governed file mutation
+  // just receipted its pre-image — payload {op, target, receiptId,
+  // toolCallId}. Observational only; the checkpoint already exists.
+  'file_checkpoint',
 ]);
 // session_directory (dedup-h #202): a gate-only extension event whose hook
 // answers {"directory": "..."} to relocate session persistence. Gate-only on

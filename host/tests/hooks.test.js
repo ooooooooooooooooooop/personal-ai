@@ -242,3 +242,16 @@ test('dedup-h #280: turn_started/prompt_queued/task_started/session_heartbeat ac
   assert.equal(await h.fire('task_started', { jobId: 'j1' }), 1);
   assert.equal(await h.fire('prompt_queued', { preview: 'x' }), 1);
 });
+
+test('file_checkpoint is a first-class observational event (#884)', async () => {
+  const w = dir();
+  const out = join(w, 'hit.txt');
+  const script = join(w, 's.js');
+  writeFileSync(script, `require('fs').writeFileSync(${JSON.stringify(out)}, 'fired:'+process.env.PAI_HOOK_EVENT);`);
+  cfg(w, { hooks: { file_checkpoint: [{ command: `node ${JSON.stringify(script)}` }] } });
+  const h = new HookRunner(w);
+  assert.deepEqual(h.events, ['file_checkpoint']);
+  const n = await h.fire('file_checkpoint', { op: 'write', target: 'x', receiptId: 'fo-1' });
+  assert.equal(n, 1);
+  assert.equal(readFileSync(out, 'utf-8'), 'fired:file_checkpoint');
+});

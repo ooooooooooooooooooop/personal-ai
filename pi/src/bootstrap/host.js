@@ -987,7 +987,12 @@ export async function startHost({
     const n = t.trim();
     if (/^[a-zA-Z][\w*-]*$/.test(n) && !initialDeny.includes(n)) initialDeny.push(n);
   }
-  const fileOps = new FileOpsGuard(core.paths.root, { workdir });
+  const fileOps = new FileOpsGuard(core.paths.root, {
+    workdir,
+    // dedup-h #884: every mutation receipt fires the file_checkpoint hook
+    // event — the pre-image backup IS the snapshot, this is the signal.
+    onCheckpoint: (e) => hooks?.fire('file_checkpoint', e),
+  });
   // M143: batch exact-match edits across files — atomic preflight, per-file
   // fileOps backup receipts under one call (batch-undoable). Registered here,
   // not in the literal above, because fileOps doesn't exist yet there.

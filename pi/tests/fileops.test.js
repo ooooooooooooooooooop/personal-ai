@@ -118,3 +118,27 @@ test('#1277 tombstone restore reaps agent-created empty dirs, keeps dirs holding
   assert.ok(!existsSync(t2));
   assert.ok(existsSync(join(ws, 'keep', 'user.txt')), 'dir with user content survives');
 });
+
+test('file_checkpoint: every mutation receipt notifies onCheckpoint; purge stays silent (#884)', async () => {
+  const hits = [];
+  const { dir, fo } = rig({ onCheckpoint: (e) => hits.push(e) });
+  const target = join(dir, 'c.txt');
+  writeFileSync(target, 'v1');
+  await fo.write(target, 'v2', { toolCallId: 'tc9' });
+  assert.deepEqual(hits.map((h) => h.op), ['write']);
+  assert.equal(hits[0].target, target);
+  assert.equal(hits[0].toolCallId, 'tc9');
+  assert.match(hits[0].receiptId, /^fo-/);
+  await fo.delete(target);
+  assert.deepEqual(hits.map((h) => h.op), ['write', 'delete']);
+  // purge receipts carry no receiptId and never fire — internal GC is not a
+  // file-modification checkpoint.
+  const before = hits.length;
+  fo.artifactCap = 0;
+  await fo.write(join(dir, 'd.txt'), 'x');
+  assert.ok(hits.length > before); // the new write fires; any purge does not
+  assert.ok(!hits.some((h) => h.op === 'purge'));
+  // a throwing callback must not break the mutation path
+  const fo2 = new FileOpsGuard(dir, { onCheckpoint: () => { throw new Error('boom'); } });
+  await fo2.write(join(dir, 'e.txt'), 'y'); // must not throw
+});

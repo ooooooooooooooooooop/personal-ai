@@ -27,7 +27,7 @@ export class FileOpsGuard {
    *        already degrade honestly when an artifact is gone (recoverable:false
    *        in list(), 'artifact gone' in diff()), so eviction is safe.
    */
-  constructor(instanceRoot, { artifactCap = 200, workdir = null } = {}) {
+  constructor(instanceRoot, { artifactCap = 200, workdir = null, onCheckpoint = null } = {}) {
     this.root = instanceRoot;
     // GC boundary for dirsCreated receipts: only directories strictly inside
     // the workspace are ever candidates for empty-dir removal on undo.
@@ -36,6 +36,11 @@ export class FileOpsGuard {
     this.backupDir = join(instanceRoot, 'backups');
     this.opsLog = join(instanceRoot, 'fileops.jsonl');
     this.artifactCap = artifactCap;
+    // dedup-h #884 — unstable_Checkpoint analogue: every mutation receipt
+    // (pre-image already captured) additionally notifies this callback so
+    // the host can fire a `file_checkpoint` hook event. 'purge' sweeps and
+    // non-mutating logs stay silent.
+    this.onCheckpoint = onCheckpoint;
     for (const d of [this.recycleDir, this.backupDir]) mkdirSync(d, { recursive: true });
   }
 
@@ -333,5 +338,10 @@ export class FileOpsGuard {
 
   #log(entry) {
     appendFileSync(this.opsLog, `${JSON.stringify({ ...entry, at: Date.now() })}\n`);
+    if (this.onCheckpoint && entry.receiptId && entry.op !== 'purge') {
+      try {
+        this.onCheckpoint({ op: entry.op, target: entry.target, receiptId: entry.receiptId, toolCallId: entry.toolCallId ?? null });
+      } catch { /* hook failures must never break the mutation path */ }
+    }
   }
 }

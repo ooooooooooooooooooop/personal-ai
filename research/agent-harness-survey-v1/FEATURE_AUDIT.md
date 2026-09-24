@@ -108,7 +108,7 @@
 |---|---|---|---|
 | 开屏 | IDE 导入 VS Code 配置、登录订阅、codebase index 自动建 | 🟡 | 无 IDE；setup 卡对等登录面 |
 | 输入 | Agent 面板 composer + inline edit（Cmd+K）+ Tab 补全 + @引用 + 图片 | 🟡 | @文件+图片有；inline edit/Tab 补全是编辑器能力不适用 |
-| 会话 | 会话持久化+resume/fork；**per-turn checkpoints 快照文件态可一键回滚**（独立于 git） | 🟡 | rewind（会话态）+fileops 回执（文件态）双 scope；非"每回合自动快照"——`/reset` 手动触发 |
+| 会话 | 会话持久化+resume/fork；**per-turn checkpoints 快照文件态可一键回滚**（独立于 git） | 🟡 | rewind（会话态）+fileops 回执（文件态）双 scope；文件修改自动快照=fileops pre-image 回执（每次写/删前自动备份）+`file_checkpoint` hook 事件（dedup-h #884）；回滚触发仍手动 `/reset` |
 | 执行 | 模式 Agent/Ask/Plan/custom；队列消息转向；question/clarification 工具（agent 结构化提问暂停等答） | 🟡 | plan/act+steer 有；**结构化提问工具无**（我们只有 ask 批准卡，非开放问答） |
 | 执行 | Run 策略：Auto-Run+allowlist / Run Everything / 全手动；Auto-Review 标危险命令 | 🟡 | 风险分类+lattice 同构；allowlist 语法/policy 编辑面弱 |
 | 执行 | OS 沙箱（Seatbelt/Landlock/seccomp+网络策略） | ❌ | 同上，无 OS 沙箱 |
