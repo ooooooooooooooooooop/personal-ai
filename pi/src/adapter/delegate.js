@@ -130,6 +130,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       let mcpDeny = null;   // C3 — same dedicated-flag channel
       let agentId = null;   // dedup-h #1390 — mcp.servers.<name>.context scoping
       let compactionModel = null; // dedup-h #1546 — profile-declared summarizer
+      let maxTurns = null;    // dedup-h #1664 — one-shot child's tool-call ceiling
       if (params.profile != null && params.profile !== '') {
         const p = profiles?.get(String(params.profile).toLowerCase());
         if (!p) {
@@ -162,6 +163,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         // dedup-h #1546 — agent.compaction_model: the child's compaction
         // summaries route to this model (PAI_COMPACTION_MODEL env).
         if (!gated && p.compactionModel) compactionModel = p.compactionModel;
+        if (!gated && p.maxTurns) maxTurns = p.maxTurns;
         // #1390 — the resolved profile name IS the child's agent-context id:
         // the mcp extension matches it against spec.context on each server.
         // Base64 — a profile name is operator text and must survive the shell
@@ -327,6 +329,20 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           details: { refused: true, reason: 'unenforceable_mcp_deny', rule: 'mcp_deny' },
         };
       }
+      // #1664: identical fail-closed rule for max_turns — a pai-channel
+      // child reads PAI_MAX_TOOL_CALLS into its decide cap; a foreign body
+      // ignores the stamp, so refuse pre-spawn rather than lie.
+      if (maxTurns && !childEnforceable) {
+        return {
+          content: [{
+            type: 'text',
+            text: `delegation refused: profile '${params.profile}' declares max_turns, but target '${target}' cannot enforce ` +
+              'a child tool-call ceiling — remove max_turns or point the profile at a pai-channel body',
+          }],
+          details: { refused: true, reason: 'unenforceable_max_turns', rule: 'max_turns' },
+          isError: true,
+        };
+      }
       const scope = getScope?.() ?? null;
       // Codex thread-tree depth cap: PAI_SPAWN_DEPTH counts how many nested
       // delegations produced this process (0 = operator's session). A child
@@ -448,7 +464,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       const compactionB64 = compactionModel
         ? Buffer.from(String(compactionModel), 'utf-8').toString('base64')
         : null;
-      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${toolsAllow ? ` --tools-allow "${toolsAllow}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${agentId ? ` --agent-id-b64 ${agentId}` : ''}${compactionB64 ? ` --compaction-model-b64 ${compactionB64}` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
+      const command = `"${process.execPath}" "${bridgePath}" --target ${target}${budgetFlags}${envFlag}${steeringOff ? ' --steering-off' : ''}${toolsDeny ? ` --tools-deny "${toolsDeny}"` : ''}${toolsAllow ? ` --tools-allow "${toolsAllow}"` : ''}${mcpDeny ? ` --mcp-deny "${mcpDeny}"` : ''}${maxTurns ? ` --max-turns ${Math.floor(maxTurns)}` : ''}${agentId ? ` --agent-id-b64 ${agentId}` : ''}${compactionB64 ? ` --compaction-model-b64 ${compactionB64}` : ''}${agentTask ? ` --task-dir "${taskStore.taskDir(agentTask.task_id)}"` : ''} --task-depth ${depth + 1} -- ${inner}`;
       const r = await executor.spawnCommandJob({
         command,
         workdir,

@@ -2650,3 +2650,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **执行面**：`sendWithRotation` 在 gated fetch 内——唯一传输汇聚点（SDK 同 key 重试早已先跑，本层只处理同 key 重试仍失败后的换 key）。**池声明即权威**：请求 Bearer 重写为 `pool[cursor]`（cursor 起 0，primary 应放 index 0）；无 authorization 头注入 Bearer；**非 Bearer 值（Basic/签名类）绝不改写、单发直通**。auth/quota 类响应（401/403/429）+ 可重放 body → cursor 推进重发；**cursor 进程级粘滞**（死 key 不再逐请求重试）；界=池长，耗尽返回末次响应诚实暴露；流式 body 单发不重放。审计 `PROVIDER_KEY_ROTATED {host, keyIndex, status}` + `PROVIDER_KEY_POOL_NEAR_EXHAUSTION`，**key 字节永不落日志**。轮换与预算/egress 门禁共存：门禁审判 URL CONNECT 目标不变，轮换只改 Bearer 呈现值；`!budget?.configured` 路径同样走轮换（无预算时池仍生效）。
 - **证据**：`pi/tests/budgetfetch.test.js` +5——(a) **L2 反事实**：真 server 按 key 应答，序列 `Bearer sk-dead → Bearer sk-good` 上线，401→200 轮换成功；同进程第二请求**无 authorization 输入**仍发 `Bearer sk-good`（粘滞 cursor 直接证据）+ `PROVIDER_KEY_ROTATED` 审计；(b) 三 key 全死：请求数**恰好=3**（界成立），返回末次 401，ROTATED×2 + NEAR_EXHAUSTION 审计；(c) `Authorization: Basic abc` 非 Bearer → 单发原值直通不改写；(d) `collectKeyPool` 单测：models.json+auth.json 双 host 映射、`$ENV` 解析、单 key/畸形条不成池；(e) 无文件→空池→零行为变化。budgetfetch 24/24、bootstrap 31/31。
 - **核销**：candidates-open #1636 → `candidates-resolved.tsv` #115。
+
+### 28.112 648 清单逐条核销 #116：dedup-h #1664 orchestration——agent-frontmatter: maxTurns/background/initialPrompt/effort/disallowedTools/memory 字段（2026-09-24）
+
+- **行**：`dedup-h  1664  orchestration  agent-frontmatter: maxTurns/background/initialPrompt/effort/disallowedTools/memory字段`（描述段为另一 changelog 的多 agent 角色片段，非本字段语义）。
+- **判定**：**IMPLEMENTED（maxTurns + disallowedTools 别名）+ ALREADY_COVERED（effort/background/initialPrompt/memory，逐字段 variant）**。六字段逐一：
+  - **effort**：`effort:` frontmatter 已实装（`{effort}` 模板槽填充，envCapable 信任门）。
+  - **disallowedTools**：`tools_deny` 已实装（M76，PAI_TOOLS_DENY 桥旗标 + unenforceable 拒）。本次补 `disallowedTools`/`disallowed_tools` 拼写别名并入 toolsDeny——我方加载 `.claude/agents` 等外来目录，源拼写须被认读。
+  - **maxTurns（IMPLEMENTED）**：委托子体是一次性任务工——其有效"轮次界"即单轮内的工具调用环。新增 `max_turns`/`maxTurns` 字段（envCapable 门，≤10000 截断）→ `--max-turns N` 专用桥旗标 → `PAI_MAX_TOOL_CALLS` env → 子体 `decide()` 每轮准入工具调用封顶；非 enforceable 目标 pre-spawn 拒 `unenforceable_max_turns`（与 tools_deny/mcp_deny/compaction_model 同型 fail-closed）。
+  - **background（ALREADY_COVERED，variant）**：`delegate_task` 恒为耐久后台 job（立即返回 job id、跨重启存活、mailbox 可通信）——无前台模式，background=true 是恒定语义。
+  - **initialPrompt（ALREADY_COVERED，variant）**：frontmatter 正文 = `preamble`，每次委托前置注入任务文本——即初始提示角色。
+  - **memory（ALREADY_COVERED，variant）**：pai-channel 委托子体是完整身体、持有自身 instance `MemoryStore` + `memory_*` 工具全集——代理具记忆面已齐；无 per-agent 独立命名空间（诚实边界：源语义为 CC `memory: user|project|local` 作用域选择，我方为 instance 单一规范域）。
+- **证据**：`pi/tests/agentprofiles.test.js` +3——(a) 解析信任门：untrusted 剥 maxTurns+disallowedTools、trusted 保留，`disallowedTools`/`disallowed_tools`/`maxTurns` 三拼写均认读；(b) delegate 级：enforceable 目标命令带 `--max-turns 40`，非 enforceable 目标 `unenforceable_max_turns` 拒且零 spawn；(c) 桥映射哨兵：`--max-turns`→`PAI_MAX_TOOL_CALLS`。agentprofiles 17/17、delegate/jobs/wand/bootstrap 102/102。
+- **核销**：candidates-open #1664 → `candidates-resolved.tsv` #116。

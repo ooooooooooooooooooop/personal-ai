@@ -27,7 +27,12 @@
  *        ONLY these; trailing * = prefix. Alias: tools_allow)
  *   tools_deny: bash,deploy (child tool surface suppression — reaches the
  *                            child via PAI_TOOLS_DENY env; honored by our own
- *                            pai bodies, inert hint for foreign harnesses)
+ *                            pai bodies, inert hint for foreign harnesses.
+ *                            Aliases: disallowedTools, disallowed_tools)
+ *   max_turns: 40           (dedup-h #1664 — CC/Crush maxTurns analogue: the
+ *                            one-shot child's tool-call ceiling, stamped as
+ *                            PAI_MAX_TOOL_CALLS via --max-turns; enforceable
+ *                            targets only, refused surface-wide otherwise)
  *   mcp_deny: github,web     (C3 — child connects to all configured MCP
  *                            servers EXCEPT these; reaches the child via
  *                            PAI_MCP_DENY, enforced by the mcp extension at
@@ -82,7 +87,8 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
   // M76 per-agent disallowed tools — same trust gate as env/model: a
   // repo-planted profile must never narrow the child's enforcement surface.
   const toolsDeny = envCapable
-    ? String(fields.tools_deny ?? '').split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 32)
+    ? String(fields.tools_deny ?? fields.disallowedtools ?? fields.disallowed_tools ?? '')
+        .split(',').map((t) => t.trim()).filter((t) => /^[a-zA-Z][\w*-]*$/.test(t)).slice(0, 32)
     : [];
   // dedup-h #1112 — CC-compatible `tools:` allowlist (alias `tools_allow`):
   // the child sees/calls ONLY these names (trailing * = prefix). Same trust
@@ -106,6 +112,13 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
     }
   }
   const maxMin = Number(fields.max_minutes);
+  // dedup-h #1664 — agent frontmatter maxTurns (CC/Crush analogue): a
+  // delegate child is a one-shot task worker, so its effective "turns" bound
+  // is the tool-call loop inside that single turn — stamped onto the child
+  // as PAI_MAX_TOOL_CALLS via a dedicated bridge flag (enforceable targets
+  // only). Same trust gate: a repo-planted profile must not narrow the
+  // child's autonomy.
+  const maxTurns = envCapable ? Number(fields.max_turns ?? fields.maxturns) : NaN;
   return {
     name,
     target,
@@ -124,6 +137,7 @@ function parseProfile(text, fallbackName, { envCapable = false } = {}) {
     ...(mcpDeny.length ? { mcpDeny } : {}),
     ...(Object.keys(budget).length ? { budget } : {}),
     maxMinutes: Number.isFinite(maxMin) && maxMin > 0 ? Math.min(maxMin, 24 * 60) : null,
+    ...(Number.isFinite(maxTurns) && maxTurns > 0 ? { maxTurns: Math.min(Math.floor(maxTurns), 10000) } : {}),
   };
 }
 

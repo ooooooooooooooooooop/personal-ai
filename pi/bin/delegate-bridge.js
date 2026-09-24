@@ -88,6 +88,13 @@ if (toolsAllow) childEnv.PAI_TOOLS_ALLOW = String(toolsAllow).slice(0, 2000);
 // extension reads PAI_MCP_DENY and skips denied servers at connect time.
 const mcpDeny = flagVal('--mcp-deny');
 if (mcpDeny) childEnv.PAI_MCP_DENY = String(mcpDeny).slice(0, 4000);
+// dedup-h #1664 — agent frontmatter maxTurns: the one-shot child's
+// tool-call ceiling, same dedicated-flag channel (PAI_* refused via
+// --env-json). The child's decide() reads PAI_MAX_TOOL_CALLS as its
+// per-turn admitted-tool-call cap — for a single-task delegate that is
+// the effective turns bound.
+const maxTurns = flagVal('--max-turns');
+if (maxTurns && /^\d{1,5}$/.test(maxTurns)) childEnv.PAI_MAX_TOOL_CALLS = maxTurns;
 // dedup-h #1390 — agent context id for mcp.servers.<name>.context scoping:
 // the profile name this delegate child runs under. Base64 so any profile
 // name (unicode included) survives the shell argv channel byte-exact; a

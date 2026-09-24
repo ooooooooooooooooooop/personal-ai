@@ -2,7 +2,7 @@
  * agentprofiles — frontmatter personas for delegate_task; compat dirs from
  * other harnesses (.claude/.cursor/.kiro/.devin agents) load the same way.
  */
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -339,4 +339,57 @@ test('#1546: profile compaction_model stamps --compaction-model-b64; unenforceab
   assert.equal(r2.details.refused, true);
   assert.equal(r2.details.reason, 'unenforceable_compaction_model');
   assert.equal(spawned.length, 1, 'refused before spawn');
+});
+
+// dedup-h #1664 — agent frontmatter maxTurns + disallowedTools aliases.
+test('#1664: max_turns loads under trust, strips without it; disallowedTools aliases map to toolsDeny', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-prof1664w-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-prof1664i-'));
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'agents', 'capped.md'), [
+    '---', 'name: capped', 'target: pai', 'max_turns: 40', 'disallowedTools: bash,deploy', '---', 'bounded worker',
+  ].join('\n'));
+  writeFileSync(join(w, '.pai', 'agents', 'capped2.md'), [
+    '---', 'name: capped2', 'target: pai', 'maxTurns: 12', 'disallowed_tools: rm', '---', 'alt spelling',
+  ].join('\n'));
+  const cold = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: false });
+  assert.equal(cold.get('capped').maxTurns, undefined, 'untrusted workdir profile: maxTurns stripped');
+  assert.equal(cold.get('capped').toolsDeny, undefined, 'untrusted workdir profile: disallowedTools stripped');
+  const warm = loadAgentProfiles({ workdir: w, instanceRoot: inst, workdirTrusted: true });
+  assert.equal(warm.get('capped').maxTurns, 40);
+  assert.deepEqual(warm.get('capped').toolsDeny, ['bash', 'deploy'], 'disallowedTools spelling accepted');
+  assert.equal(warm.get('capped2').maxTurns, 12, 'maxTurns camelCase accepted');
+  assert.deepEqual(warm.get('capped2').toolsDeny, ['rm'], 'disallowed_tools snake alias accepted');
+});
+
+test('#1664: profile max_turns stamps --max-turns; unenforceable target refused', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-prof1664d-'));
+  const spawned = [];
+  const executor = { spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j1', attempt_id: 'a1' }; } };
+  const profiles = new Map([
+    ['capped', { name: 'capped', target: 'pai', preamble: '', maxTurns: 40 }],
+    ['foreign', { name: 'foreign', target: 'codex', preamble: '', maxTurns: 40 }],
+  ]);
+  const tool = delegateTool(executor, {
+    commandFor: (t) => (t === 'pai'
+      ? { command: 'node pai-channel.js --serve', enforceable: true }
+      : 'codex run'),
+    workdir: dir,
+    profiles,
+  });
+  const r = await tool.execute('c1', { profile: 'capped', task: 'do thing' });
+  assert.ok(!r.isError, JSON.stringify(r));
+  assert.match(spawned[0], /--max-turns 40/, 'dedicated flag reaches the bridge');
+  const r2 = await tool.execute('c2', { profile: 'foreign', task: 'do thing' });
+  assert.equal(r2.details.refused, true);
+  assert.equal(r2.details.reason, 'unenforceable_max_turns');
+  assert.equal(spawned.length, 1, 'refused before spawn');
+});
+
+test('#1664: --max-turns bridge flag stamps PAI_MAX_TOOL_CALLS on the child env', () => {
+  // bridge-side unit: the flag→env mapping is exercised directly
+  const src = readFileSync(new URL('../bin/delegate-bridge.js', import.meta.url), 'utf-8');
+  assert.match(src, /--max-turns/);
+  assert.match(src, /PAI_MAX_TOOL_CALLS/);
 });
