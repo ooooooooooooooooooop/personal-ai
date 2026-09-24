@@ -7,8 +7,11 @@ import { HostChannel } from '../../../host/src/core/channel.js';
 import { normalizeAttachments, partitionByCapability, describeAttachment, extractAttachmentText, materializeImageSource, pngDownscale, persistAttachment } from '../../../host/src/core/attachments.js';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, renameSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
 import { join, dirname, resolve } from 'node:path';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from './paths.js';
+import { isPrivateResolved } from './web.js';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
@@ -1045,6 +1048,24 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     // then a runtime refresh. Keys never go into models.json — auth_set_key
     // writes them to the credential store instead.
     addProvider: async (spec) => {
+      // dedup-h #1402 — private-egress registration gate (the runtime check in
+      // budgetfetch is the real enforcement; this is the early honest hint):
+      // a baseUrl targeting loopback/RFC1918/link-local space needs an
+      // explicit allowPrivateNetwork opt-in — persisted on the provider entry
+      // where the egress gate reads it.
+      let baseHost = null;
+      try { baseHost = new URL(String(spec.baseUrl ?? '')).hostname; } catch { /* malformed → let the write surface it */ }
+      if (baseHost) {
+        let hit = null;
+        if (isIP(baseHost)) hit = isPrivateResolved(baseHost) ? baseHost : null;
+        else {
+          const addrs = await dnsLookup(baseHost, { all: true }).then((r) => r.map((a) => a.address)).catch(() => []);
+          hit = addrs.find((a) => isPrivateResolved(a)) ?? null;
+        }
+        if (hit && spec.allowPrivateNetwork !== true) {
+          return { ok: false, error: `provider baseUrl '${spec.baseUrl}' targets private/loopback address ${hit} — set allowPrivateNetwork to register a self-hosted endpoint` };
+        }
+      }
       const file = join(core.paths.root, 'pi-agent', 'models.json');
       let cfg = { providers: {} };
       if (existsSync(file)) {
@@ -1054,6 +1075,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       cfg.providers[spec.provider] = {
         baseUrl: spec.baseUrl,
         api: spec.api,
+        ...(spec.allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
         // env-ref only ($NAME) — literal keys belong in the credential store
         // via auth_set_key, never in a committed-able JSON file.
         ...(spec.apiKeyEnv ? { apiKey: `$${spec.apiKeyEnv}` } : {}),

@@ -116,7 +116,7 @@ export function isForbiddenAddress(ip) {
 }
 
 /** Resolved-address private pivot: superset of forbidden + loopback/RFC1918. */
-function isPrivateResolved(ip) {
+export function isPrivateResolved(ip) {
   const h = normalizeHostLiteral(ip);
   if (isForbiddenAddress(h)) return true;
   const v4 = parseV4(h);

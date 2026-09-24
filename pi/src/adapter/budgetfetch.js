@@ -20,24 +20,60 @@
  * past it before usage is billed. Absolute hard caps would require
  * reservation/headroom accounting; not implemented, deliberately.
  *
- * Denial shape: a synthetic `402` JSON response. A 4xx client error is
+ * Denial shape: a synthetic `402`/`403` JSON response. A 4xx client error is
  * non-retryable for provider adapters (unlike a thrown network error or 429,
- * which trigger retry policies), so an over-budget request fails once with a
+ * which trigger retry policies), so a denied request fails once with a
  * readable reason instead of burning N denied retries.
  */
-export function installBudgetFetch({ budget, getScope, getProviderHosts, audit, onGateEvent = null }) {
+import { lookup as dnsLookup } from 'node:dns/promises';
+import { readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
+import { join } from 'node:path';
+import { isPrivateResolved } from './web.js';
+
+export function installBudgetFetch({ budget, getScope, getProviderHosts, getPrivateAllowedHosts = null, audit, onGateEvent = null }) {
   const base = globalThis.fetch;
   if (typeof base !== 'function') return () => {};
 
   const gated = async (input, init) => {
-    if (!budget?.configured) return base(input, init);
     let host = null;
+    let hostname = null;
     try {
       const url = typeof input === 'string' ? input : input?.url;
-      host = url ? new URL(url).host : null;
+      if (url) { const u = new URL(url); host = u.host; hostname = u.hostname; }
     } catch { /* unparseable url → not a provider call we gate */ }
     if (!host || !getProviderHosts().has(host)) return base(input, init);
 
+    // dedup-h #1402 egress policy — allowPrivateNetwork per-provider: provider
+    // traffic may never silently target loopback/RFC1918/link-local/metadata
+    // space. A self-hosted endpoint is an explicit opt-in declared on the
+    // provider entry; enforcement lives HERE at egress time (a registration-
+    // time hint is UX — hand-edited models.json and DNS-rebinding still hit
+    // this gate). Runs before the budget short-circuit: the egress rule is
+    // not a spend rule.
+    if (!getPrivateAllowedHosts?.().has(host)) {
+      let addrs = [];
+      if (isIP(hostname)) addrs = [hostname];
+      else {
+        try { addrs = (await dnsLookup(hostname, { all: true })).map((a) => a.address); }
+        catch { /* unresolvable — the real fetch will fail honestly downstream */ }
+      }
+      const hit = addrs.find((a) => isPrivateResolved(a));
+      if (hit) {
+        audit?.write({ kind: 'PROVIDER_PRIVATE_EGRESS_REFUSED', data: { host, resolved: hit } });
+        return new Response(
+          JSON.stringify({
+            error: {
+              type: 'private_egress_refused',
+              message: `provider host '${host}' resolves to private/loopback address ${hit} — declare allowPrivateNetwork on the provider to use a self-hosted endpoint`,
+            },
+          }),
+          { status: 403, headers: { 'content-type': 'application/json' } },
+        );
+      }
+    }
+
+    if (!budget?.configured) return base(input, init);
     const scope = getScope();
     const gate = budget.admit(scope);
     onGateEvent?.({ host, scope, admitted: gate.ok, rule: gate.rule ?? null });
@@ -88,4 +124,40 @@ export function collectProviderHosts(modelRuntime) {
     }
   } catch { /* runtime not ready — built-in hosts still apply */ }
   return hosts;
+}
+
+/**
+ * dedup-h #1402: URL-hosts whose provider declared `allowPrivateNetwork` —
+ * the self-hosted opt-in set consulted by the egress gate above. Reads
+ * <agentDir>/models.json provider entries plus auth.json baseUrl overrides
+ * (an auth-level endpoint override inherits the provider's flag — same trust
+ * domain). Both files are operator-private. An env-ref baseUrl ($NAME) is
+ * resolved through process.env; an unresolvable ref contributes no host —
+ * fail-closed, the provider's traffic stays refused until the operator
+ * declares a concrete endpoint.
+ */
+export function collectPrivateAllowedHosts(agentDir) {
+  const allowed = new Set();
+  const hostOf = (base) => {
+    const b = typeof base === 'string' && base.startsWith('$') ? process.env[base.slice(1)] : base;
+    try { return new URL(String(b ?? '')).host || null; } catch { return null; }
+  };
+  let cfg = null;
+  try { cfg = JSON.parse(readFileSync(join(agentDir, 'models.json'), 'utf-8')); } catch { /* absent */ }
+  const flagged = new Set();
+  for (const [pid, spec] of Object.entries(cfg?.providers ?? {})) {
+    if (spec?.allowPrivateNetwork !== true) continue;
+    flagged.add(pid);
+    const h = hostOf(spec?.baseUrl);
+    if (h) allowed.add(h);
+  }
+  try {
+    const auth = JSON.parse(readFileSync(join(agentDir, 'auth.json'), 'utf-8'));
+    for (const [pid, cred] of Object.entries(auth ?? {})) {
+      if (!flagged.has(pid)) continue;
+      const h = hostOf(cred?.baseUrl ?? cred?.auth?.baseUrl);
+      if (h) allowed.add(h);
+    }
+  } catch { /* absent */ }
+  return allowed;
 }

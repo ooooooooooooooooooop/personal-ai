@@ -2530,3 +2530,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - 唯一另一入站监听 `pi/src/adapter/webhook.js`：token 认证端点（Bearer/`x-pai-secret` → sha256 常时比较，POST-only+路径枚举+体积帽+速率帽）——浏览器来源 POST 无 secret 即 403，secret 是比 origin 更强的该面之门；非 loopback bind 是显式操作员选择且 `WEBHOOK_BIND_WIDE` 大声审计。
 - **证据**：`app/tests/bridge.test.js:96`——跨源 POST /cmd 拒绝、loopback Origin 放行、无 Origin 非浏览器放行、Sec-Fetch-Site:cross-site 拒绝；`bridge.test.js:128`——非 loopback Host 在每个端点被拒（DNS rebinding 钉）。
 - **核销**：candidates-open #1398 → `candidates-resolved.tsv` #103。
+
+### 28.100 648 清单逐条核销 #104：dedup-h #1402 egress——`allowPrivateNetwork` per-provider 自托管例外（2026-09-24）
+
+- **行**：`dedup-h  1402  approval-gate  egress: allowPrivateNetwork per-provider开关(自托管例外)`。
+- **判定**：**IMPLEMENTED**。源语义是 provider 出口默认拒绝私网目标、自托管端点需 per-provider 显式开关。落地三层：
+  - **egress 门（真执行面）**：`pi/src/adapter/budgetfetch.js` 在 `globalThis.fetch` 包装内、**预算短路之前**插入私网检查（egress 不是消费规则）。注册 provider 的 `u.host` 命中 `getProviderHosts()` 后，除非该 host 在 `getPrivateAllowedHosts()` 集合内，否则 IP 字面量直接判、域名走 `dnsLookup(all)` 后逐个过 `isPrivateResolved`（loopback/RFC1918/0.x/169.254 link-local-metadata/IPv6 ULA-link-local-unspecified——复用 `web.js` 同一分类器，已从内部函数导出）。命中即合成 `403 private_egress_refused`（4xx 不可重试，同预算拒绝语义）+ `PROVIDER_PRIVATE_EGRESS_REFUSED` 审计（host+resolved）。域名→私网的 DNS rebinding pivot 也被兜住。
+  - **opt-in 集合**：`collectPrivateAllowedHosts(agentDir)` 每次调用重读 `<agentDir>/models.json` 里 `providers.*.allowPrivateNetwork===true` 的条目收集其 `baseUrl` host；`auth.json` 的 `baseUrl` 覆盖只在 provider 已打标时继承（同信任域）；`$ENV` 引用经 `process.env` 解析，不可解析=不贡献 host=fail-closed。per-call 重读→改文件即时生效，无需重启。
+  - **注册门（早期诚实提示）**：`pi/src/adapter/channel.js addProvider` 对私网 baseUrl 要求 `allowPrivateNetwork:true` 否则 `{ok:false}` 拒绝并点名 flag；旗标持久化在 provider 条目（公网 provider 不杜撰旗标）。`host/src/core/channel.js` spec 透传 + 修了一个同域真 bug——`provider_add`/`provider_models_add` 的 `{ok:false}` facade 约定被 `reply(true,…)` 吞成 `success:true`（UI 会报"已添加"），现按 `r?.ok===false→reply(false)` 惯例翻译。UI `cp-priv` 复选框明示"自托管端点"。
+- **覆盖诚实声明**：egress 门装在 `globalThis.fetch`——主模型调用、judgeCall 次级调用（wand/rewrite）、自动重试全部走同一门，无直 fetch 旁路；非 provider 流量的私网 fetch 不受影响（该门面属 web 工具域控不是本候选）。WS/SDK 传输不在此门面（budgetfetch 不变量声明）。
+- **证据**：`pi/tests/budgetfetch.test.js` +7（无私网旗标 403+审计+零字节出站；loopback/link-local 默认拒；opt-in 精确 scoped 放行而另一私网 provider 仍拒；公网字面量不受影响；非 provider 私网流量不拦；egress 先于预算裁决；`collectPrivateAllowedHosts` flag/auth-override/$ENV/畸形 fail-closed）；`pi/tests/wand.test.js` +2 e2e（无旗标 loopback feature-model 端点 command_rewrite fail-closed+审计行；provider_add 私网无旗标拒、有旗标持久化、公网免旗标）；`host/tests/channel.test.js` +1（allowPrivateNetwork spec 透传/缺省无键）；既有 fixture 补旗标（acceptance/compiled-e2e/wand 的 127.0.0.1 自托管端点——诚实语义顺带覆盖正路径）。
+- **核销**：candidates-open #1402 → `candidates-resolved.tsv` #104。

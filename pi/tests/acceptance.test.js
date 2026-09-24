@@ -51,6 +51,8 @@ test('M3 acceptance: real provider end-to-end chain', { skip: SKIP, timeout: 180
         baseUrl: 'http://127.0.0.1:8317/v1',
         api: 'openai-completions',
         apiKey: '$CPA_API_KEY',
+        // dedup-h #1402 — self-hosted loopback endpoint: explicit egress opt-in
+        allowPrivateNetwork: true,
         models: [{
           id: 'gpt-5.6-luna-max',
           name: 'gpt-5.6-luna-max',

@@ -395,12 +395,16 @@ export class HostChannel {
             contextWindow: cmd.contextWindow ? Number(cmd.contextWindow) : undefined,
             maxTokens: cmd.maxTokens ? Number(cmd.maxTokens) : undefined,
             apiKeyEnv: cmd.apiKeyEnv ? String(cmd.apiKeyEnv).replace(/^\$/, '') : undefined,
+            // dedup-h #1402 — self-hosted opt-in: private-network baseUrls
+            // are refused at registration and at egress unless this flag is set
+            ...(cmd.allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
             ...(cost ? { cost } : {}),
           };
           if (!spec.provider || !spec.baseUrl || !spec.api || !spec.model) {
             return reply(false, undefined, 'provider_add requires {provider, baseUrl, api, model}');
           }
-          return reply(true, await this.models.addProvider(spec));
+          const added = await this.models.addProvider(spec);
+          return added?.ok === false ? reply(false, added, added.error) : reply(true, added);
         }
         case 'provider_models_fetch': {
           if (!this.models?.fetchModels) return reply(false, undefined, 'models facade unavailable');
@@ -413,7 +417,8 @@ export class HostChannel {
           if (!provider || !modelIds.length) return reply(false, undefined, 'provider_models_add requires {provider, models[]}');
           const cost = parseCostDecl(cmd.cost, 'provider_models_add');
           if (cost?.error) return reply(false, undefined, cost.error);
-          return reply(true, await this.models.addModels({ provider, modelIds, ...(cost ? { cost } : {}) }));
+          const res = await this.models.addModels({ provider, modelIds, ...(cost ? { cost } : {}) });
+          return res?.ok === false ? reply(false, res, res.error) : reply(true, res);
         }
         case 'session_list': {
           if (!this.sessions?.list) return reply(false, undefined, 'sessions facade unavailable');

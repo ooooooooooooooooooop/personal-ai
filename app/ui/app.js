@@ -2359,6 +2359,9 @@ $('cp-add').onclick = async () => {
     baseUrl: $('cp-base').value.trim(),
     api: $('cp-api').value,
     apiKeyEnv: $('cp-keyenv').value.trim() || undefined,
+    // dedup-h #1402 — private-network baseUrl needs the explicit opt-in;
+    // the adapter registration gate and the runtime egress gate both read it
+    allowPrivateNetwork: $('cp-priv')?.checked === true ? true : undefined,
   };
   const msg = $('cp-msg');
   if (!spec.provider || !spec.model || !spec.baseUrl) {

@@ -18,7 +18,7 @@ import { JobExecutor } from '../adapter/jobs.js';
 import { SandboxProvider } from '../../../host/src/core/sandbox.js';
 import { JudgeAdvisor } from '../../../host/src/core/judge.js';
 import { BudgetGovernor } from '../../../host/src/core/budget.js';
-import { installBudgetFetch, collectProviderHosts } from '../adapter/budgetfetch.js';
+import { installBudgetFetch, collectProviderHosts, collectPrivateAllowedHosts } from '../adapter/budgetfetch.js';
 import { WorkspaceWriteLease } from '../adapter/writelease.js';
 import { applyBangAuth } from '../adapter/authbang.js';
 import { LoopDetector } from '../../../host/src/core/loopwatch.js';
@@ -1362,6 +1362,9 @@ export async function startHost({
     budget,
     getScope: () => currentSession?.sessionId ?? 'unknown',
     getProviderHosts: () => collectProviderHosts(currentSession?.modelRuntime),
+    // dedup-h #1402 — private-egress opt-in set, re-read per call so a
+    // models.json/auth.json edit takes effect without a respawn.
+    getPrivateAllowedHosts: () => collectPrivateAllowedHosts(agentDir),
     audit: core.audit,
     onGateEvent: process.env.PAI_BUDGET_GATE_DEBUG
       ? (e) => logLine('budget-gate', 'gate event', { event: e })

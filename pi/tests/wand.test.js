@@ -5,7 +5,7 @@
  * the rewritten command FOR REVIEW — it never approves or executes.
  */
 import { createServer } from 'node:http';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
@@ -47,7 +47,9 @@ test('#1392 command_rewrite — NL instruction reaches the fast model; rewrite r
     // feature-models.json routes the 'wand' feature key to it.
     mkdirSync(join(dir, 'pi-agent'), { recursive: true });
     writeFileSync(join(dir, 'pi-agent', 'models.json'), JSON.stringify({
-      providers: { wandp: { baseUrl: `http://127.0.0.1:${port}` } },
+      // allowPrivateNetwork (dedup-h #1402): the feature model is a self-hosted
+      // loopback endpoint — the provider egress gate requires the opt-in
+      providers: { wandp: { baseUrl: `http://127.0.0.1:${port}`, allowPrivateNetwork: true } },
     }));
     writeFileSync(join(dir, 'feature-models.json'), JSON.stringify({
       wand: { provider: 'wandp', model: 'wand-mini' },
@@ -80,7 +82,7 @@ test('#1392 command_rewrite fail-closed — unreachable feature model → honest
   provision(dir);
   mkdirSync(join(dir, 'pi-agent'), { recursive: true });
   writeFileSync(join(dir, 'pi-agent', 'models.json'), JSON.stringify({
-    providers: { wandp: { baseUrl: 'http://127.0.0.1:9' } },
+    providers: { wandp: { baseUrl: 'http://127.0.0.1:9', allowPrivateNetwork: true } },
   }));
   writeFileSync(join(dir, 'feature-models.json'), JSON.stringify({
     wand: { provider: 'wandp', model: 'm' },
@@ -90,6 +92,68 @@ test('#1392 command_rewrite fail-closed — unreachable feature model → honest
     const r = await host.channel.handle({ type: 'command_rewrite', command: 'rm -rf a', instruction: 'narrow it' });
     assert.equal(r.success, false);
     assert.match(r.error, /rewrite|model/i);
+  } finally {
+    host.dispose();
+  }
+});
+
+test('#1402 provider egress gate — private feature-model endpoint WITHOUT opt-in refused, audited', async () => {
+  // Counterfactual: the same self-hosted endpoint, but the provider entry
+  // lacks allowPrivateNetwork → the egress gate must refuse the judgeCall
+  // fetch (secondary calls share the gate with main model calls).
+  const dir = mkdtempSync(join(tmpdir(), 'pai-egress-'));
+  provision(dir);
+  mkdirSync(join(dir, 'pi-agent'), { recursive: true });
+  writeFileSync(join(dir, 'pi-agent', 'models.json'), JSON.stringify({
+    providers: { wandp: { baseUrl: 'http://127.0.0.1:9' } }, // no flag → refused
+  }));
+  writeFileSync(join(dir, 'feature-models.json'), JSON.stringify({
+    wand: { provider: 'wandp', model: 'm' },
+  }));
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    const r = await host.channel.handle({ type: 'command_rewrite', command: 'rm -rf a', instruction: 'x' });
+    assert.equal(r.success, false, 'private egress without opt-in fails closed');
+    const audit = readFileSync(join(dir, 'audit', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf-8')
+      .trim().split('\n').map((l) => JSON.parse(l));
+    const row = audit.find((e) => e.kind === 'PROVIDER_PRIVATE_EGRESS_REFUSED');
+    assert.ok(row, 'egress refusal is audited');
+    assert.match(row.data.host, /^127\.0\.0\.1:/);
+  } finally {
+    host.dispose();
+  }
+});
+
+test('#1402 provider_add registration gate — private baseUrl needs the flag; flag persists', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-preg-'));
+  provision(dir);
+  const host = await startHost({ instanceRoot: dir, workdir: dir, sessionOptions: { model: stubModel } });
+  try {
+    // private baseUrl without the flag → refused at registration
+    const denied = await host.channel.handle({
+      type: 'provider_add', provider: 'lan1', baseUrl: 'http://10.20.30.40:8080/v1',
+      api: 'openai-completions', model: 'm',
+    });
+    assert.equal(denied.success, false);
+    assert.match(denied.error, /allowPrivateNetwork/);
+
+    // explicit opt-in → registered, flag persisted on the provider entry
+    const ok = await host.channel.handle({
+      type: 'provider_add', provider: 'lan1', baseUrl: 'http://10.20.30.40:8080/v1',
+      api: 'openai-completions', model: 'm', allowPrivateNetwork: true,
+    });
+    assert.equal(ok.success, true);
+    const cfg = JSON.parse(readFileSync(join(dir, 'pi-agent', 'models.json'), 'utf-8'));
+    assert.equal(cfg.providers.lan1.allowPrivateNetwork, true);
+
+    // public baseUrl without the flag → fine (no opt-in needed)
+    const pub = await host.channel.handle({
+      type: 'provider_add', provider: 'pub1', baseUrl: 'http://203.0.113.10/v1',
+      api: 'openai-completions', model: 'm',
+    });
+    assert.equal(pub.success, true);
+    const cfg2 = JSON.parse(readFileSync(join(dir, 'pi-agent', 'models.json'), 'utf-8'));
+    assert.equal(cfg2.providers.pub1.allowPrivateNetwork, undefined, 'no flag invented for public providers');
   } finally {
     host.dispose();
   }

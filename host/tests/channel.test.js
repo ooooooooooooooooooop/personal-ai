@@ -601,6 +601,15 @@ test('provider_add/provider_models_add: cost declaration validated and passed th
     assert.match(r.error, /cost/);
   }
 
+  // dedup-h #1402 — the self-hosted opt-in flag passes through to the body;
+  // absent flag contributes no key (facade never invents an opt-in)
+  const priv = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://127.0.0.1:8317/v1', api: 'a', model: 'm', allowPrivateNetwork: true });
+  assert.equal(priv.success, true);
+  assert.equal(added.at(-1).allowPrivateNetwork, true);
+  const pub = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://x', api: 'a', model: 'm' });
+  assert.equal(pub.success, true);
+  assert.equal(added.at(-1).allowPrivateNetwork, undefined);
+
   const ml = await ch.handle({ type: 'provider_models_add', provider: 'cpa', models: ['a', 'b'], cost: { input: 1 } });
   assert.equal(ml.success, true);
   assert.deepEqual(added.at(-1).cost, { input: 1 });
