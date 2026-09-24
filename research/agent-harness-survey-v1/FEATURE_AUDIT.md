@@ -2401,3 +2401,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：ALREADY_COVERED（CLI-flag 面=架构边界）。源条目（Cline cli-v3.0.3）= `--worktree` 自动建 `~/.cline/worktrees/` 下隔离 checkout 跑任务 + `--taskId/--continue` 在隔离 worktree 续跑换思路。我方两个真实用户面均已覆盖：**操作员** `/worktree <cmd>` → channel `job_spawn{worktree:true}`（#2 同链 decide 治理）；**模型** `job_spawn{worktree:true}` / `in_worktree`（#509）；JobExecutor detached checkout 至 `<instance>/jobs/worktrees`、净 worktree 退出即收、脏 worktree 保留+审计（M13）。**--continue 对等** = M90 restart 回放 `spec.worktree:true` + 原 authorizedRoot → 重建全新隔离 checkout 续跑（replay 的是合约不是残留目录）。
 - **边界**：`pai-host` 是宿主守护进程不是任务 CLI，没有可挂 flag 的任务启动子命令；用户入口在 UI/model 两侧已覆盖。
 - **证据**：M13 worktree job e2e + #2/#509 链路测试现役绿（pi 425/421/0/4）。
+
+### 28.85 648 清单逐条核销 #59：dedup-h #652 descriptor-first 工具规划器（2026-09-23）
+
+- **判定**：ALREADY_COVERED（M83 同构；插件运行时缓存片=架构边界）。源条目（OpenClaw v2026.5.2）= 平台级 tool descriptor planner：descriptor-first 可见性 + generic availability 检查 + executor 引用 + 插件工具描述符缓存（prompt 规划免加载插件运行时）。我方 M83 四件套逐一对应：`tool_search` 在 **deferred 目录的 name+description** 上检索（全 schema 不露面=descriptor-first）；`activatable()` availability 谓词（denied/mode-hidden 不进搜索结果）；executor 引用=名字键解析——defer 只藏 schema surface，执行器对象在注册表原处，`tool_activate` 按需上表面，猜调 deferred 工具被 decide `tool_deferred` 拒；`defer-tools.json` 实例级声明。
+- **边界**：源特性的"插件描述符缓存跳过运行时加载"以独立插件运行时存在为前提——我方 managed extension/MCP 工具在 boot/连接时已构建，没有"可跳过的插件加载层"；defer 在我方是 surface 可见性而非加载延迟。机制语义全数落地。
+- **证据**：M83 测试现役绿（deferred 不 activate 不可调、denied 不可激活、activate 后调用通）；pi 425/421/0/4。
