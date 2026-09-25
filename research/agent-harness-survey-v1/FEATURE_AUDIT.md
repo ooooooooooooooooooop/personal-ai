@@ -3261,3 +3261,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（ACP reasoning effort levels Default→Max）**：**边界**——#2174/#2219 同判：栈内无 ACP 协议面（非编辑器内嵌 agent），ACP wire 字段无挂载点；effort 档位底层语义已由 thinking levels 覆盖（off/minimal/low/medium/high/xhigh，`/think`+`set-thinking`+`config_set thinking` 三面可达，effort→thinking 映射在 adaptive 路由亦复用）。
   - **描述语义（统一 /settings 菜单整合 thinking/theme/queue/auto-compact/images/changelog 等）**：**已覆盖**——`/settings` 命令直达统一设置视图（index.html `view-settings`）：8 分组 pill——模型凭据（provider/key/推理强度 `set-thinking`/模型列表/自定义提供方）、命令准入、策略治理、预算上限、运行模式、工作目录、长期记忆、外观界面；合并菜单语义同构。
 - **核销**：candidates-open #2302 → `candidates-resolved.tsv` #176。
+
+#### 28.177 modelPolicy.allow + aliases + Kimi catalog/reasoning replay (#2345 — title ALREADY_COVERED / desc ALREADY_COVERED variant)
+
+- **status**: both covered — implicit allowlist + alias surface exist; provider-catalog variant + thinking-block replay covered.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（modelPolicy.allow 隐式 allowlist + aliases）**：**已覆盖**——`<instance>/models-allow.json {allow:[{provider,model}]}`（modelallow.js #282）：隐式文件白名单——缺失=不限制、畸形=fail-closed 全拒、`*` 通配、逐调用重读 live 生效；`model-aliases.json` 别名面（aliasList/Set/Del+`model_set {alias}`）。
+  - **描述语义（Kimi K2.7 目录 + 跨工具轮 reasoning 内容保留）**：
+    - *目录*：**已覆盖(variant)**——无硬编码上游目录（变体=操作员注册制）：`api.moonshot.cn` 已在已知 provider 主机表（budgetfetch.js:249），模型经 provider 面板/`provider_add`/`set-fetch-models` 注册即用——"目录新增"是上游发货形态，我方是操作员声明形态；
+    - *reasoning replay*：**已覆盖**——`thinking` 是转录一等块类型：replay 过滤器显式豁免 `['text','thinking','toolCall','tool_use']`（channel.js:919），thinking 块跨工具轮原生保留不被剥；M115 媒体块降级为带界描述符而非静默丢弃。
+- **核销**：candidates-open #2345 → `candidates-resolved.tsv` #177。
