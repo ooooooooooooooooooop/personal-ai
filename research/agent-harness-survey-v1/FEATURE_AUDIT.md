@@ -3361,3 +3361,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（20+ hook events：tool failures/sub-agent lifecycle/task management/permission approvals/file watching）**：**已覆盖**——同 #2408：24 命名事件（19 观测+5 门控），task_started/heartbeat 对位 task management。
 - **证据**：`host/src/core/policy.js` attestation 模型；`pi/src/adapter/hooks.js` 事件表。
 - **核销**：candidates-open #2428 → `candidates-resolved.tsv` #187。
+
+#### 28.188 delegate-resume + background subagents (#2431 — title IMPLEMENTED / desc covered)
+
+- **status**: title implemented — `resume_task` rebind; desc already covered.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义（恢复之前 sub-task sessions / staged agents）**：**IMPLEMENTED**——`delegate_task` 新增 `resume_task` 参数：task_id 命中既有 OPEN AgentTask 则 rebind（`bindJob` 的 `job_ids` 历史本为多 job 设计，本次接线成命令面）——同 task-dir=同 inbox/outbox/事件史=staged agent 会话延续；fail-closed 于 previous job 仍 live（`resume_task_live`，两 worker 共享邮箱会交错 outbox 游标）、closed（`resume_task_closed`）、missing（`resume_task_missing`）；details 带 `resumed:true`。
+  - **描述语义（delegate_task(background=true) 即时返回后台跑）**：**已覆盖**——durable job 即时返回 `job_id`（#2398 同判）。
+- **证据**：agentprofiles.test.js +1（rebind/历史保留/task-dir 到达桥/三类拒）；tasktools 回归绿。
+- **核销**：candidates-open #2431 → `candidates-resolved.tsv` #188。

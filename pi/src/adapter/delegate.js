@@ -103,6 +103,11 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
         // the value interpolates into a shell template, so spaces/metachars
         // are refused outright; the operator models-allow list still gates
         // it; a profile pin wins (conflict = honest refusal).
+        // dedup-h #2431 — delegate-resume: rebind an existing OPEN AgentTask
+        // (staged agent) instead of minting a new one. The resumed task keeps
+        // its task-dir — inbox/outbox/event history persists — so the child
+        // is spawned into the same coordination mailbox it had before.
+        resume_task: { type: 'string', description: 'task_id of an existing OPEN AgentTask to resume — the new delegation rebinds that task (same task-dir mailbox/history) instead of creating a new one; refused while its previous job is still live' },
         model: { type: 'string', description: 'optional model override for the delegate child (e.g. claude-opus-5) — refused when the chosen profile already pins a different model or the operator allowlist forbids it' },
         effort: { type: 'string', enum: ['low', 'medium', 'high', 'max'], description: 'optional effort override — same conflict/allowlist rules as model' },
       },
@@ -431,16 +436,35 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
       // markers→outbox/events. v1 is strictly parent↔child.
       const tname = params.name ? String(params.name).trim() : null;
       const tteam = params.team ? String(params.team).trim() : null;
-      const agentTask = taskStore
-        ? taskStore.create({
-            label: tname ? `@${tname} ${task.slice(0, 60)}` : task.slice(0, 80),
-            parent: scope,
-            kind: tname ? 'teammate' : 'delegation',
-            name: tname,
-            team: tteam,
-            spawnSpec: tname ? { target, profile: params.profile ?? null, task, depth: depth + 1 } : null,
-          })
-        : null;
+      // dedup-h #2431 — resume path: an existing OPEN task is rebound rather
+      // than recreated. Fail-closed when the previous bound job is still
+      // live — two workers on one mailbox would interleave outbox cursors.
+      let agentTask = null;
+      if (params.resume_task != null) {
+        const rt = taskStore?.get(String(params.resume_task));
+        if (!rt) {
+          return { content: [{ type: 'text', text: `delegation refused: resume_task '${params.resume_task}' not found` }], details: { refused: true, reason: 'resume_task_missing' } };
+        }
+        if (rt.state !== 'open') {
+          return { content: [{ type: 'text', text: `delegation refused: task ${rt.task_id} is ${rt.state} — only open tasks can be resumed` }], details: { refused: true, reason: 'resume_task_closed', task_state: rt.state } };
+        }
+        const prevJob = rt.job_id ? executor.store?.getJob(rt.job_id) : null;
+        if (prevJob && !['COMPLETED', 'FAILED', 'CANCELLED'].includes(prevJob.job_state)) {
+          return { content: [{ type: 'text', text: `delegation refused: task ${rt.task_id} still has a live job (${rt.job_id} ${prevJob.job_state}) — task_send/task_interrupt it instead` }], details: { refused: true, reason: 'resume_task_live', job_id: rt.job_id, job_state: prevJob.job_state } };
+        }
+        agentTask = rt;
+      } else {
+        agentTask = taskStore
+          ? taskStore.create({
+              label: tname ? `@${tname} ${task.slice(0, 60)}` : task.slice(0, 80),
+              parent: scope,
+              kind: tname ? 'teammate' : 'delegation',
+              name: tname,
+              team: tteam,
+              spawnSpec: tname ? { target, profile: params.profile ?? null, task, depth: depth + 1 } : null,
+            })
+          : null;
+      }
       // depth propagates through the bridge into the child's env so a nested
       // delegate_task sees its own depth, not the parent's
       // caller-level max_minutes wins over the profile's declared ceiling;
@@ -517,7 +541,7 @@ export function delegateTool(executor, { commandFor, workdir, bridgePath = DELEG
           job_id, attempt_id, target, profile: params.profile ?? null,
           mode: forked ? 'fork' : 'delegate',
           ...(routedVia ? { routed_via: routedVia } : {}),
-          ...(agentTask ? { task_id: agentTask.task_id } : {}),
+          ...(agentTask ? { task_id: agentTask.task_id, resumed: params.resume_task != null } : {}),
           ...(budgetFlags ? { child_budget: budgetFlags.trim() } : {}),
         },
       };

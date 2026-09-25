@@ -393,3 +393,41 @@ test('#1664: --max-turns bridge flag stamps PAI_MAX_TOOL_CALLS on the child env'
   assert.match(src, /--max-turns/);
   assert.match(src, /PAI_MAX_TOOL_CALLS/);
 });
+
+test('#2431: resume_task rebinds an existing open task; live/closed/missing refused', async () => {
+  const { delegateTool } = await import('../src/adapter/delegate.js');
+  const { TaskStore } = await import('../../host/src/core/tasks.js');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-resume-'));
+  const store = new TaskStore(join(dir, 'tasks'));
+  const spawned = [];
+  const executor = {
+    store: { getJob: (id) => ({ job_id: id, job_state: id === 'j-live' ? 'RUNNING' : 'COMPLETED' }) },
+    spawnCommandJob: async (spec) => { spawned.push(spec.command); return { job_id: 'j-new', attempt_id: 'a1' }; },
+  };
+  const tool = delegateTool(executor, {
+    commandFor: () => ({ command: 'node pai-channel.js --serve', enforceable: true }),
+    workdir: dir,
+    taskStore: store,
+  });
+  const done = store.create({ label: 'prior', jobId: 'j-old' });       // finished job → resumable
+  const live = store.create({ label: 'busy', jobId: 'j-live' });       // live job → refuse
+  const closed = store.create({ label: 'shut', jobId: 'j-old' });
+  store.setState(closed.task_id, 'closed');
+
+  const r1 = await tool.execute('c1', { task: 'continue the work', resume_task: done.task_id });
+  assert.ok(!r1.isError, JSON.stringify(r1));
+  assert.equal(r1.details.task_id, done.task_id, 'same task rebound');
+  assert.equal(r1.details.resumed, true);
+  assert.equal(store.get(done.task_id).job_id, 'j-new', 'bindJob advances latest');
+  assert.deepEqual(store.get(done.task_id).job_ids, ['j-old', 'j-new'], 'history preserved');
+  assert.match(spawned[0], new RegExp(`--task-dir "[^"]*${done.task_id}`), 'same task-dir reaches bridge');
+
+  const r2 = await tool.execute('c2', { task: 'x', resume_task: live.task_id });
+  assert.equal(r2.details.refused, true);
+  assert.equal(r2.details.reason, 'resume_task_live');
+  const r3 = await tool.execute('c3', { task: 'x', resume_task: closed.task_id });
+  assert.equal(r3.details.reason, 'resume_task_closed');
+  const r4 = await tool.execute('c4', { task: 'x', resume_task: 'task-nope' });
+  assert.equal(r4.details.reason, 'resume_task_missing');
+  assert.equal(spawned.length, 1, 'all refusals before spawn');
+});
