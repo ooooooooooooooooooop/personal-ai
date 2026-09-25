@@ -4124,6 +4124,17 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #2178 — composer vim-mode toggle (upstream: agent panel
+    // editor vim-mode). Persisted opt-in; OFF never changes behavior.
+    cmd: '/vim', label: 'Vim 编辑模式', hint: '/vim——切换 composer vim 编辑：Esc=normal，i/a/A/I/o/O=insert；hjkl/w/b/0/$、x/dd/u',
+    run: async () => {
+      const on = !vimEnabled();
+      try { localStorage.setItem('pai:vim', on ? '1' : '0'); } catch {}
+      vimState = 'insert'; vimPending = ''; vimPaint();
+      toast(on ? 'vim 已开——Esc 进入 normal，i 回到 insert' : 'vim 已关', 'info');
+    },
+  },
+  {
     cmd: '/worktree-open', label: '打开既有 worktree', hint: '/worktree-open <路径|名> <命令>——在已存在的 git worktree 里跑后台任务（zed "open worktree in new window" 对等）',
     run: async (arg) => {
       const m = /^(\S+)\s+(.+)$/s.exec(String(arg ?? '').trim());
@@ -5011,6 +5022,134 @@ async function loadRecipes() {
   }
   return out;
 }
+
+/* ---------- composer vim-mode (dedup-h #2178) ---------- */
+// Upstream (Zed agent panel): vim-mode in the composer editor. Bounded,
+// honest variant for a <textarea>: modal editing with a documented subset —
+// motions h j k l 0 $ w b e, edits x dd u, insert entries i a A I o O.
+// Opt-in via /vim (persisted in localStorage); OFF = zero behavior change.
+// The handler sits on document CAPTURE so normal-mode keys never reach the
+// composer's own keydown chain (Enter must not send while navigating).
+// Escape semantics preserved one keystroke deeper: first Esc (insert) →
+// normal; Esc in normal mode passes through unchanged (abort / queue-drop).
+let vimState = 'insert'; // 'insert' | 'normal'
+let vimPending = '';     // pending multi-stroke op ('d' → dd)
+const vimChip = $('vim-chip');
+function vimEnabled() { try { return localStorage.getItem('pai:vim') === '1'; } catch { return false; } }
+function vimPaint() {
+  if (!vimChip) return;
+  const on = vimEnabled();
+  vimChip.classList.toggle('hidden', !on);
+  vimChip.textContent = on ? (vimState === 'normal' ? 'NORMAL' : 'INSERT') : '';
+  vimChip.title = 'composer vim 模式（/vim 切换）';
+}
+function vimLineBounds(pos) {
+  const v = input.value;
+  const s = pos === 0 ? 0 : v.lastIndexOf('\n', pos - 1) + 1;
+  const e = v.indexOf('\n', pos);
+  return [s, e === -1 ? v.length : e];
+}
+function vimPrevLineStart(ls) {
+  if (ls === 0) return null;
+  return input.value.lastIndexOf('\n', ls - 2) + 1; // ls-1 is the '\n'
+}
+function vimMove(pos) { input.selectionStart = input.selectionEnd = Math.max(0, Math.min(input.value.length, pos)); }
+function vimWordForward(pos) {
+  const v = input.value, w = /[\w]/;
+  let i = pos + 1;
+  while (i < v.length && w.test(v[i]) && w.test(v[pos] ?? '')) i++;
+  while (i < v.length && !w.test(v[i])) i++;
+  return Math.min(i, v.length);
+}
+function vimWordEnd(pos) {
+  const v = input.value, w = /[\w]/;
+  let i = pos + 1;
+  while (i < v.length && !w.test(v[i])) i++;
+  while (i < v.length - 1 && w.test(v[i + 1])) i++;
+  return i;
+}
+function vimWordBack(pos) {
+  const v = input.value, w = /[\w]/;
+  let i = pos - 1;
+  while (i > 0 && !w.test(v[i])) i--;
+  while (i > 0 && w.test(v[i - 1])) i--;
+  return Math.max(i, 0);
+}
+function vimMutate() { input.dispatchEvent(new Event('input', { bubbles: true })); }
+function vimDelLine() {
+  const v = input.value, [s, e] = vimLineBounds(input.selectionStart);
+  const cutEnd = e < v.length ? e + 1 : e; // swallow trailing newline
+  const cutStart = e === v.length && s > 0 ? s - 1 : s; // last line: swallow leading
+  input.value = v.slice(0, cutStart) + v.slice(cutEnd);
+  vimMove(cutStart); vimMutate();
+}
+function vimToInsert(pos) { if (pos != null) vimMove(pos); vimState = 'insert'; vimPending = ''; vimPaint(); }
+document.addEventListener('keydown', (e) => {
+  if (e.target !== input || !vimEnabled()) return;
+  if (vimState === 'insert') {
+    // Esc → normal (always). Abort stays one keystroke away: in normal mode
+    // Escape passes straight through to the composer chain, so a second Esc
+    // while busy still aborts — same for the queue-drop double-Esc window.
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); vimState = 'normal'; vimPaint(); }
+    return;
+  }
+  // normal mode — Escape/shortcuts pass through to the composer chain
+  if (e.key === 'Escape' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key, pos = input.selectionStart;
+  const eat = () => { e.preventDefault(); e.stopPropagation(); };
+  if (vimPending === 'd') {
+    vimPending = '';
+    if (k === 'd') { eat(); vimDelLine(); return; }
+  }
+  const v = input.value, [ls, le] = vimLineBounds(pos);
+  const col = pos - ls;
+  switch (k) {
+    case 'h': eat(); vimMove(pos - 1); return;
+    case 'l': eat(); vimMove(Math.min(pos + 1, le)); return;
+    case 'j': case 'k': {
+      eat();
+      if (k === 'j') {
+        if (le >= v.length) return; // already on last line
+        const [ns, ne] = vimLineBounds(le + 1);
+        vimMove(Math.min(ns + col, ne));
+      } else {
+        const ns = vimPrevLineStart(ls);
+        if (ns === null) return; // already on first line
+        const ne = ls - 1; // position of the '\n' = end of previous line
+        vimMove(Math.min(ns + col, ne));
+      }
+      return;
+    }
+    case '0': eat(); vimMove(ls); return;
+    case '$': eat(); vimMove(Math.max(ls, le - (le > ls ? 1 : 0))); return;
+    case 'w': eat(); vimMove(vimWordForward(pos)); return;
+    case 'b': eat(); vimMove(vimWordBack(pos)); return;
+    case 'e': eat(); vimMove(vimWordEnd(pos)); return;
+    case 'x': if (pos < v.length && v[pos] !== '\n') { eat(); input.value = v.slice(0, pos) + v.slice(pos + 1); vimMove(pos); vimMutate(); } return;
+    case 'd': eat(); vimPending = 'd'; return;
+    case 'u': {
+      if (!draftUndo.length) return;
+      eat();
+      const cur = input.value;
+      let prev = draftUndo.pop();
+      if (prev === cur && draftUndo.length) prev = draftUndo.pop();
+      if (prev === cur) { draftUndo.push(prev); return; }
+      draftRedo.push(cur);
+      input.value = prev; prevDraft = prev;
+      vimMove(Math.min(pos, prev.length)); autogrow();
+      if (histSearch) slashFilterHist(); else slashFilter();
+      return;
+    }
+    case 'i': eat(); vimToInsert(pos); return;
+    case 'a': eat(); vimToInsert(Math.min(pos + 1, v.length)); return;
+    case 'A': eat(); vimToInsert(le); return;
+    case 'I': eat(); vimToInsert(ls); return;
+    case 'o': eat(); input.value = v.slice(0, le) + '\n' + v.slice(le); vimToInsert(le + 1); vimMutate(); return;
+    case 'O': eat(); input.value = v.slice(0, ls) + '\n' + v.slice(ls); vimToInsert(ls); vimMutate(); return;
+    default: eat(); return; // normal mode swallows plain keys — no stray typing
+  }
+}, true);
+vimPaint();
 
 /* ---------- attachments: paste/drop files + images into the composer ---------- */
 // Browser File API reads the bytes locally — no server-side path access, so

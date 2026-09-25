@@ -3095,3 +3095,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（branch picker: create a branch from a default branch）**：`worktreeCreate` 加 `newBranch`——`git worktree add -b <newBranch> <path> <base>`；base=`ref`（给定）否则仓库默认（`origin/HEAD`→`main`/`master`→`HEAD` 兜底）；`[\w./-]{1,120}` 校验在 spawn 前拒注入；重名分支由 git 诚实失败；既有边界（workdir/jobs/worktrees 内、已存在路径拒、审计 WORKTREE_CREATED/REFUSED）全保留；channel `worktree_create` op 透传 + `/worktree-new <路径> [--branch <名>] [ref]` UI 命令（`--branch` 即"从默认分支建新分支"语义）。
 - **证据**：`cryptostore.test.js`（DPAPI 平台真 roundtrip+无明文泄漏）host 418/418；`mcp-token-store.test.js`（密文落盘+legacy 迁移）+`mcp-ext.test.js` 46/46；`bootstrap.test.js` 47/47（`#2177 worktree_create newBranch`：真 git 仓从默认分支建 `feat/x`、HEAD=main tip、重名拒、坏名 spawn 前拒）。
 - **核销**：candidates-open #2177 → `candidates-resolved.tsv` #159。
+
+#### 28.160 composer vim-mode + settings HTTP-transport MCP servers (#2178 — title ALREADY_COVERED variant / desc IMPLEMENTED)
+
+- **status**: title covered — url-keyed mcpServers entries ARE the HTTP transport; desc implemented — opt-in modal vim editing on the composer.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **IMPLEMENTED**。
+  - **标题语义（settings → HTTP transport MCP servers）**：**已覆盖(variant)**——设置文件 `mcpServers` spec `{ "url": "http(s)://…", "headers": {…} }` → Streamable HTTP 传输（`pi/extensions/mcp/index.js` config shape 文档化）；`/mcp-add <name> <http(s)-url> [--header "K: V"]*` 持久化到配置文件 + connectOne 热连接；variant=传输由 `url` 键推断而非显式 `transport` 枚举，但机制同一。
+  - **描述语义（Agent: vim-mode support in the agent panel's editor）**：**已实现**——composer `<textarea>` 模态 vim 编辑，`/vim` 命令 opt-in（localStorage 持久，关闭=零行为变化）：document capture 层拦截 normal 模式按键（Enter 不误发）；motions `h j k l 0 $ w b e`，编辑 `x dd u`（u 复用 draft undo 栈），insert 入口 `i a A I o O`；`#vim-chip` 指示 NORMAL/INSERT；Esc 语义逐层保留——insert 首 Esc→normal，normal 态 Esc 透传（busy abort/queue-drop 原样可达）。
+- **证据**：`dom-gate.js` `vimMode` 检查（真 KeyboardEvent：Esc→NORMAL chip、`w`→词首 col 6、`x` 删字符、Enter `defaultPrevented` 证明不误发、`i`→insert）ui-dom 1/1；app lint 净（`role="status"` aria-live 替代非法 aria-label）。
+- **核销**：candidates-open #2178 → `candidates-resolved.tsv` #160。

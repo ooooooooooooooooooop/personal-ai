@@ -242,6 +242,32 @@ const DRIVER = `(async () => {
       text: metas.join(' | '),
     };
 
+    // dedup-h #2178 — composer vim-mode: opt-in flag → modal editing on the
+    // real textarea (Esc→normal, motions/edits consumed, Enter never sends,
+    // i→insert). Driven through real keydown events on the DOM.
+    const key = (k) => { const ev = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }); input.dispatchEvent(ev); return ev; };
+    try {
+      localStorage.setItem('pai:vim', '1'); vimState = 'insert'; vimPaint();
+      input.value = 'hello world'; input.selectionStart = input.selectionEnd = 0;
+      input.focus();
+      key('Escape'); // insert → normal
+      const chipNormal = document.getElementById('vim-chip')?.textContent === 'NORMAL';
+      key('w'); // → 'world'
+      const wPos = input.selectionStart;
+      const xEv = key('x'); // delete 'w' → 'hello orld'
+      const afterX = input.value;
+      const enterEv = key('Enter'); // must be eaten — never a send
+      const iOk = (key('i'), vimState === 'insert');
+      checks.vimMode = {
+        ok: chipNormal && vimState === 'insert' && iOk && wPos === 6 && xEv.defaultPrevented && afterX === 'hello orld' && enterEv.defaultPrevented,
+        chip: chipNormal, wPos, afterX, enterAte: enterEv.defaultPrevented, state: vimState,
+      };
+      localStorage.setItem('pai:vim', '0'); vimState = 'insert'; vimPaint();
+      input.value = ''; input.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch (e) {
+      checks.vimMode = { ok: false, error: String(e?.stack ?? e).slice(0, 200) };
+    }
+
     // dedup-h #753 — threaded /resume ordering: a fork renders indented
     // (↳ title + padding) immediately under its parent inside its group.
     const nowIso = new Date().toISOString();
