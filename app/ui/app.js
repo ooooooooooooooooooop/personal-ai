@@ -54,6 +54,7 @@ let sawMessage = false;
 let nearBottom = true;
 let modelStatus = null;   // last model_status payload
 let sessionsCache = [];   // last session_list payload
+let worktreeBranchByPath = new Map(); // #2173 — worktree path → branch for sidebar tags
 let currentSessionFile = null;
 
 async function cmd(type, params = {}) {
@@ -1698,7 +1699,10 @@ function renderSessions() {
       const rawTitle = s.name || s.firstMessage;
       const cleanTitle = (!rawTitle || rawTitle.trim() === '(no messages)') ? '新对话' : rawTitle;
       const title = `${typeTag}${cleanTitle}`;
-      row.innerHTML = `<span class="sess-dot"></span><span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条</span>`;
+      // #2173 — branch tag for sessions living in a git worktree
+      const wtn = String(s.cwd ?? '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+      const wtBranch = wtn ? worktreeBranchByPath.get(wtn) : null;
+      row.innerHTML = `<span class="sess-dot"></span><span class="sess-title"></span><span class="sess-meta">${s.pinned ? '📌 ' : ''}${s.messageCount ?? 0} 条${wtBranch ? ` · ⎇ ${wtBranch}` : ''}</span>`;
       row.querySelector('.sess-title').textContent = title.length > 40 ? `${title.slice(0, 40)}…` : title;
       if (s._depth > 0) row.style.paddingLeft = `${12 + Math.min(s._depth, 4) * 14}px`;
       // C1 status dot: live = task-bound session still running, or the open
@@ -1846,6 +1850,18 @@ async function refreshSessions() {
   const r = await cmd('session_list');
   if (r.success) {
     sessionsCache = r.data ?? [];
+    // dedup-h #2173 — sidebar branch tag (upstream "branch name next to
+    // worktree in the thread list"): one worktree_list per refresh builds
+    // path→branch; sessions whose cwd IS a worktree path show the branch
+    // next to the count. Non-git workdirs just never match — no fake tag.
+    worktreeBranchByPath = new Map();
+    try {
+      const wr = await cmd('worktree_list');
+      const norm = (p) => String(p ?? '').replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+      for (const w of wr.success ? (wr.data?.worktrees ?? []) : []) {
+        if (w.branch) worktreeBranchByPath.set(norm(w.path), w.branch);
+      }
+    } catch { /* non-git — no tags */ }
     renderSessions();
   }
 }

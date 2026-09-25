@@ -233,6 +233,15 @@ const DRIVER = `(async () => {
     };
     sessRow?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
 
+    // dedup-h #2173 — a session whose cwd is a git worktree carries the
+    // branch name in its sess-meta (upstream sidebar branch display).
+    await refreshSessions();
+    const metas = [...document.querySelectorAll('#session-list .sess .sess-meta')].map((m) => m.textContent);
+    checks.sessBranchTag = {
+      ok: metas.some((m) => m.includes('⎇ main')) && metas.every((m) => !m.includes('⎇') || m.includes('⎇ main')),
+      text: metas.join(' | '),
+    };
+
     // dedup-h #753 — threaded /resume ordering: a fork renders indented
     // (↳ title + padding) immediately under its parent inside its group.
     const nowIso = new Date().toISOString();

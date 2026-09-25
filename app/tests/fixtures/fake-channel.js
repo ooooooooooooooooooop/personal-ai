@@ -139,7 +139,9 @@ rl.on('line', async (line) => {
     case 'pending_list': return reply([]);
     case 'session_list': {
       const rows = [
-        { path: `${instance}/sessions/s1.jsonl`, id: 'sess-1', name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3 },
+        // cwd '/repo' matches the worktree_list entry with branch 'main' —
+        // the #2173 sidebar branch tag renders off this pair.
+        { path: `${instance}/sessions/s1.jsonl`, id: 'sess-1', name: 'DOM验收', firstMessage: 'hello', modified: '2026-01-01T00:00:00Z', messageCount: 3, cwd: '/repo' },
       ];
       // #143 dom-gate needs a second, distinct session to prove resume
       // actually switches — other fixtures see the original single row.

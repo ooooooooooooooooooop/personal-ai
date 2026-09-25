@@ -3060,3 +3060,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（unicode_mode auto/unicode/ascii 终端降级）**：**已覆盖**——M144 `host/src/core/charset.js`：三档合法值、auto 一次性环境解析（dumb-terminal 标记→ascii）、符号层 transliterate（box-drawing/箭头/状态 glyph→ASCII），语言文本永不剥（降级 chrome 不降级内容）；`config_set unicode_mode` 在 allowlist 暴露。
 - **证据**：`channel-facade.test.js` +1=52/52（全局独禁、项目覆写、畸形双层各自降级、live 翻转）。
 - **核销**：candidates-open #2164 → `candidates-resolved.tsv` #155。
+
+#### 28.156 sidebar worktree branch tag + `/mcp-add` slash command (#2173 — desc IMPLEMENTED / title ALREADY_COVERED variant)
+
+- **status**: desc implemented (branch name in sidebar thread list); title already covered (variant spelling).
+- **判定**：描述 **IMPLEMENTED**；标题 **ALREADY_COVERED(variant)**。
+  - **描述语义（sidebar 线程条目旁显 worktree 分支名）**：`refreshSessions` 每刷一次性 `worktree_list`→`worktreeBranchByPath`（路径归一：斜杠/尾斜杠/大小写）；`renderSessions` 在 `sess-meta` 对 cwd 命中 worktree 的会话追加 `· ⎇ <branch>`；非 git workdir 永不命中=不假标签。
+  - **标题语义（/mcp add slash command for OAuth servers）**：**已覆盖(variant)**——`/mcp-add`（#167）Claude 兼容位置参数：`/mcp-add <name> <url|command>`，`--header/--env/--transport sse` 及全套 `--oauth-*` 旗（client-id/token-url/authorize-url/scope/client-secret[-env]）；持久化到解析配置文件（或 `.pai/mcp.json`）+ connectOne 热连接；variant=`/mcp-add` 命令拼写而非 `/mcp add` 子命令。
+- **证据**：`dom-gate.js` +1（`sessBranchTag`：跨行找 `⎇ main`、无 cwd 行不带标签）；fake-channel s1 行加 `cwd:'/repo'` 匹配 worktree fixture。
+- **已知前置失败（非本次引入）**：`app/tests/supervisor.test.js` handoff 用例失败 `body process exited`——stash 验证无我方改动同败；fake-channel fixture 直接 import `host/src/core/{policy,instance,observation}.js`，该目录被另一会话的 world-model 迁移在途修改，属外来在途态。
+- **核销**：candidates-open #2173 → `candidates-resolved.tsv` #156。
