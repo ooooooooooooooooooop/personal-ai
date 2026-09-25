@@ -3370,3 +3370,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（delegate_task(background=true) 即时返回后台跑）**：**已覆盖**——durable job 即时返回 `job_id`（#2398 同判）。
 - **证据**：agentprofiles.test.js +1（rebind/历史保留/task-dir 到达桥/三类拒）；tasktools 回归绿。
 - **核销**：candidates-open #2431 → `candidates-resolved.tsv` #188。
+
+#### 28.189 delegate backends + persistent sessions (#2433 — title BOUNDARY / desc covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（team members 三 backend：in-process/detached/tmux）**：**BOUNDARY**——架构刻意单后端：delegate 一律经 bridge spawn 为 detached durable job（重启存活+checkpoint/lease/recovery）；in-process 委派会丢持久性，tmux 无对位面。多后端选择器不适用。
+  - **描述语义（persistent sessions/subagent runs 在父树中可编辑可 steer）**：**已覆盖(variant)**——task_send→inbox.jsonl→child stdin `steer` 帧（delegate-bridge.js:168-180）；resume_task 持久会话延续（#2431）；task center/task_list 呈现父↔子绑定树。
+- **证据**：`pi/bin/delegate-bridge.js` steering 转发链；`host/src/core/tasks.js` 邮箱模型。
+- **核销**：candidates-open #2433 → `candidates-resolved.tsv` #189。
