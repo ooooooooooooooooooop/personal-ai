@@ -3191,3 +3191,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（ClawPDF extraction + encrypted PDF + MCP structured content）**：**已覆盖(variant)**——#2212 同判：`pdf_read` 一等工具+`pdf.json` 有界+judgeCall 分析；加密 PDF=探测后诚实拒（variant=零依赖不解密）；`structuredContent` 随 tools/call 结果透传。
 - **证据**：`mcp-ext.test.js` +1（#2221：真 HTTP server——请求携带 progressToken、SSE 流内两 progress 帧经 onProgress 到达、token 回显一致、进度帧不进通知通道）48/48；manifest sha256 重算（`11ab3715…`）。
 - **核销**：candidates-open #2221 → `candidates-resolved.tsv` #169。
+
+#### 28.170 dedicated compaction model command + auth-profile model pinning (#2227 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented — live compaction-model pick via model_compaction ops; desc boundary (no multi-credential auth-profile surface).
+- **判定**：标题 **IMPLEMENTED**；描述 **BOUNDARY**。
+  - **标题语义（`/model --compaction` 专用压缩模型）**：**已实现**——`modelsFacade.compaction()/setCompaction(feature|null)` + host `model_compaction`/`model_compaction_set` 操作对：
+    - 写 `<instance>/feature-models.json` `compaction` 键（merge 读写——`judge`/`pdf`/`plancritic`/`timeout_ms` 等其他键原样保留）；
+    - 即时生效：loop 的 `compactionFeature()` 每次压缩事件重读文件，下一次压缩即用新模型经 judgeCall 路由（复用 #1546 缝）；
+    - `clear`/`off`/无 model → 删键回退 pi 原生会话模型压缩器；`MODEL_COMPACTION_CONFIG` 审计；
+    - 裸 model=会话 provider，`{provider,model}` 双钉（与 `PAI_COMPACTION_MODEL` 语法一致）。
+  - **描述语义（`/model X@profile` 钉到会话 + user-locked auth profile 即使不在 per-agent auth 序）**：**边界**——栈内无多凭据 auth-profile 面：`auth.json` 每 provider 单凭据（SDK ModelRuntime），M81 `profiles.json` 是 {model,thinking,mode} 预设非凭据档，无"per-agent auth order"概念——上游修的是 Codex CLI 多 OAuth 档切换场景，此处无对位机制可挂。
+- **证据**：`channel-facade.test.js` +1（#2227：set/get/clear 全往返、其他键保留、双清幂等）54/54；host 418/418。
+- **核销**：candidates-open #2227 → `candidates-resolved.tsv` #170。

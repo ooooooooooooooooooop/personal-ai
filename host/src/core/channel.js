@@ -363,6 +363,18 @@ export class HostChannel {
           if (!this.models?.setFallbacks) return reply(false, undefined, 'fallback chain unavailable');
           return reply(true, await this.models.setFallbacks(cmd.chain));
         }
+        // dedup-h #2227 — `/model --compaction <model>` analogue: dedicated
+        // compaction summarizer pick; {model:null|absent + clear:true} or
+        // {off:true} clears back to the native session-model summarizer.
+        case 'model_compaction': {
+          if (!this.models?.compaction) return reply(false, undefined, 'compaction model facade unavailable');
+          return reply(true, await this.models.compaction());
+        }
+        case 'model_compaction_set': {
+          if (!this.models?.setCompaction) return reply(false, undefined, 'compaction model facade unavailable');
+          if (cmd.clear || cmd.off || cmd.model == null) return reply(true, await this.models.setCompaction(null));
+          return reply(true, await this.models.setCompaction({ provider: cmd.provider, model: String(cmd.model) }));
+        }
         case 'model_alias_del': {
           if (!this.models?.aliasDel) return reply(false, undefined, 'models facade unavailable');
           return reply(true, this.models.aliasDel({ name: cmd.name }));

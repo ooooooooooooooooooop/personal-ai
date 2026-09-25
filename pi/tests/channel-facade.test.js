@@ -1860,3 +1860,45 @@ test('#2194 pseudo tool call in assistant text → bounded remind via _continuat
   assert.equal(reminds().length, 2, 'benign assistant text stays silent');
   dispose();
 });
+
+// dedup-h #2227 — `/model --compaction` analogue: model_compaction_set writes
+// feature-models.json 'compaction' (other keys preserved), model_compaction
+// reads it back, clear removes the key → native session-model summarizer.
+test('#2227 compaction model: set/get/clear round-trips feature-models.json', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-comp-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir, root: dir }, audit: { write: () => {} } };
+  // pre-existing keys must survive a compaction pick
+  writeFileSync(join(dir, 'feature-models.json'), JSON.stringify({ judge: { provider: 'p', model: 'j1' }, timeout_ms: 9000 }));
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  let r = await ch.handle({ type: 'model_compaction' });
+  assert.equal(r.data.compaction, null, 'absent key → null (native summarizer)');
+
+  r = await ch.handle({ type: 'model_compaction_set', model: 'haiku-mini' });
+  assert.equal(r.data.compaction.model, 'haiku-mini');
+  assert.equal(r.data.compaction.provider, undefined, 'bare model rides the session provider');
+
+  r = await ch.handle({ type: 'model_compaction_set', provider: 'anthropic', model: 'claude-haiku' });
+  assert.equal(r.data.compaction.provider, 'anthropic');
+
+  const doc = JSON.parse(readFileSync(join(dir, 'feature-models.json'), 'utf-8'));
+  assert.deepEqual(doc.compaction, { provider: 'anthropic', model: 'claude-haiku' });
+  assert.deepEqual(doc.judge, { provider: 'p', model: 'j1' }, 'other feature keys preserved');
+  assert.equal(doc.timeout_ms, 9000);
+
+  r = await ch.handle({ type: 'model_compaction' });
+  assert.equal(r.data.compaction.model, 'claude-haiku', 'live read-back');
+
+  r = await ch.handle({ type: 'model_compaction_set', clear: true });
+  assert.equal(r.data.compaction, null);
+  assert.equal(r.data.removed, true);
+  assert.equal(JSON.parse(readFileSync(join(dir, 'feature-models.json'), 'utf-8')).compaction, undefined);
+
+  r = await ch.handle({ type: 'model_compaction_set' }); // no model at all → clear path
+  assert.equal(r.data.compaction, null);
+  assert.equal(r.data.removed, false, 'second clear reports nothing removed');
+  dispose();
+});

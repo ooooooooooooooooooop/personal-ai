@@ -991,6 +991,18 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     if (!aliasPath) throw new Error('instance root unavailable');
     writeJsonAtomic(aliasPath, doc);
   };
+  // dedup-h #2227 — feature-models.json merge reader/writer. Other keys
+  // ('judge', 'pdf', 'plancritic', timeout_ms…) are preserved untouched.
+  const featureModelsPath = core.paths.root ? join(core.paths.root, 'feature-models.json') : null;
+  const readFeatureModels = () => {
+    if (!featureModelsPath) return {};
+    try { const d = JSON.parse(readFileSync(featureModelsPath, 'utf-8')); return d && typeof d === 'object' ? d : {}; }
+    catch { return {}; }
+  };
+  const writeFeatureModels = (doc) => {
+    if (!featureModelsPath) throw new Error('instance root unavailable');
+    writeJsonAtomic(featureModelsPath, doc);
+  };
 
   const modelsFacade = {
     status: async () => {
@@ -1210,6 +1222,35 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       const had = delete doc[String(name)];
       writeAliases(doc);
       return { removed: had };
+    },
+    // dedup-h #2227 — `/model --compaction` analogue: pick the dedicated
+    // compaction summarizer model live. Writes feature-models.json
+    // 'compaction'; the loop's compactionFeature() re-reads it per
+    // compaction event so the pick applies to the NEXT compaction, no
+    // respawn. `null`/empty clears the key → pi's native session-model
+    // summarizer resumes. Provider is optional (bare model rides the
+    // session provider, same grammar as PAI_COMPACTION_MODEL).
+    compaction: () => {
+      const doc = readFeatureModels();
+      return { compaction: doc.compaction ?? null };
+    },
+    setCompaction: (feature) => {
+      const doc = readFeatureModels();
+      if (feature == null) {
+        const had = 'compaction' in doc;
+        delete doc.compaction;
+        writeFeatureModels(doc);
+        core.audit?.write({ kind: 'MODEL_COMPACTION_CONFIG', data: { cleared: had } });
+        return { compaction: null, removed: had };
+      }
+      if (typeof feature !== 'object' || typeof feature.model !== 'string' || !feature.model.trim()) {
+        throw new Error('setCompaction requires {model} or null (optional provider)');
+      }
+      const clean = { ...(feature.provider ? { provider: String(feature.provider) } : {}), model: String(feature.model) };
+      doc.compaction = clean;
+      writeFeatureModels(doc);
+      core.audit?.write({ kind: 'MODEL_COMPACTION_CONFIG', data: { model: `${clean.provider ?? 'session'}/${clean.model}` } });
+      return { compaction: clean };
     },
     setThinking: async (level) => {
       const s = box.s;
