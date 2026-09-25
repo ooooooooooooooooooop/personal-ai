@@ -3149,3 +3149,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - *relative agent-role config paths 解析*：**已覆盖**——`.pai/agents/*.md`（项目）+`<instance>/agents`（操作员）+扩展 `agents/` 三层目录均按 workdir/instance/包内相对解析（agentprofiles.js:7,148）。
     - *MCP bearer-token 字段隐藏*：**已覆盖**——`/mcp` 状态面 headers 显示 `N configured (values redacted)`（index.js:1908），值永不渲染；OAuth token 仅以存储指示符出现。
 - **核销**：candidates-open #2208 → `candidates-resolved.tsv` #165。
+
+#### 28.166 ClawPDF extraction/encrypted PDF/structuredContent + OAuth login prompt on add (#2212 — title ALREADY_COVERED variant / desc ALREADY_COVERED)
+
+- **status**: title covered with encrypted-PDF as honest variant; desc covered — 401 surfaces a login prompt through the whole path.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **ALREADY_COVERED**。
+  - **标题语义（pdf: ClawPDF extraction + encrypted PDF + MCP structured content）**：
+    - *extraction*：**已覆盖**——`pdf_read` 一等工具（#560）：零依赖抽取器（attachments.js）+`pdf.json` 有界（maxBytesMb/maxPages，畸形 fail-closed）+`question` 经 feature-models.json `pdf` 路由分析。
+    - *encrypted PDF*：**VARIANT**——加密/纯图像/怪编码探测到→诚实拒并指明"try OCR externally"（pdftool.js:92）；零依赖路线不解密，是已声明的能力边界而非静默失败。
+    - *MCP structured content*：**已覆盖**——`structured: result?.structuredContent` 随每次 tools/call 结果透传（index.js:1405）。
+  - **描述语义（加支持 OAuth 的 streamable HTTP server 时提示 mcp login）**：**已覆盖**——`connectOne` 遇 401→`entry.authRequired`+`onAuthRequired`→operator notify"requires OAuth authorization — run /mcp-auth <name>"（add 路径同走 connectOne 故同样触发）；`/mcp` 面板显 NEEDS AUTH+授权按钮（自动开浏览器+回环回调）；#1514 `oauthDiscoverRegister` 401+PRM/ASM/DCR 自动发现 oauth spec。
+- **核销**：candidates-open #2212 → `candidates-resolved.tsv` #166。
