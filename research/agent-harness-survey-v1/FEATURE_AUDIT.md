@@ -3078,3 +3078,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（ACP client-provided MCP servers）**：上游=编辑器（VS Code/Zed/JetBrains）经 Agent Client Protocol 握手向 agent 供给 MCP servers。我方无 ACP 协议实现面——MCP intake 只有 operator 配置文件（`<instance>`/`.pai/mcp.json`/`.mcp.json`/`PAI_MCP_CONFIG`）+ `/mcp-add`；非编辑器内嵌 agent 形态，无挂点。诚实边界非能力缺口。
   - **描述语义（@-mention branch diff）**：已由 **#2144** 落地——`@diff`/`@diff:<ref>` 经 atMention 缝展开 `git merge-base <ref> HEAD` + bounded diff（variant=显式前缀形避免与 @file 提及撞名）。
 - **核销**：candidates-open #2174 → `candidates-resolved.tsv` #157。
+
+#### 28.158 `ToolDefinition.prepareArguments` + binary download digest verification (#2176 — title ALREADY_COVERED / desc BOUNDARY)
+
+- **status**: title already covered by the pinned SDK chain + our post-mutation revalidation; desc boundary (no binary download surface).
+- **判定**：标题 **ALREADY_COVERED**；描述 **BOUNDARY**。
+  - **标题语义（prepareArguments hook + schema validation before raw args）**：pin `@earendil-works/pi-agent-core` agent-loop.js:388-391 原生执行链 `tool.prepareArguments(call.arguments)` → `validateToolArguments`——每个工具（SDK 内建 + customTools + 扩展注册工具）raw args 先经工具自备 prepare 再 schema 校验后才 execute；我方 `revalidate.js` 在扩展 `tool_call` 桥突变后再做第二层 schema 校验（post-mutation schema violation block）。钩形与校验保证俱在。
+  - **描述语义（二进制下载 digest 校验+缓存跳过）**：**边界**——栈内无二进制下载面；lsp 扩展只 spawn operator 已装的 LSP 可执行（`.pai/lsp.json`/`PAI_LSP_CONFIG` 命令声明），无 rust-analyzer/clangd 获取机制可挂 digest 校验。
+- **核销**：candidates-open #2176 → `candidates-resolved.tsv` #158。
