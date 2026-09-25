@@ -60,3 +60,37 @@ test('no provider → honest unavailable note; absent token → no-op (returns u
   ] });
   assert.equal(r4, undefined, 'only user-role text is scanned');
 });
+
+test('#2144 @diff expands: ref reaches provider, token stripped, <branch-diff> appended', () => {
+  const pi = fakePi();
+  atMentionExtension().factory(pi);
+  const ctx = pi.handlers.get('context');
+  const seen = [];
+  const un = registerContextProvider('diff', (ref) => { seen.push(ref); return `diff of HEAD vs '${ref}'`; });
+  try {
+    const orig = userMsg('review @diff:main please');
+    const r = ctx({ type: 'context', messages: [orig] });
+    assert.equal(r.messages[0].content[0].text, 'review  please');
+    assert.equal(orig.content[0].text, 'review @diff:main please', 'session text untouched');
+    assert.deepEqual(seen, ['main']);
+    assert.match(r.messages.at(-1).content[0].text, /<branch-diff ref="main">\ndiff of HEAD vs 'main'\n<\/branch-diff>/);
+    // bare @diff defaults to main
+    const r2 = ctx({ type: 'context', messages: [userMsg('check @diff')] });
+    assert.deepEqual(seen, ['main', 'main']);
+    assert.match(r2.messages.at(-1).content[0].text, /<branch-diff ref="main">/);
+  } finally { un(); }
+});
+
+test('#2144 @diff edge cases: no provider → honest note; @diff:bad! chars untouched; absent → no-op', () => {
+  const pi = fakePi();
+  atMentionExtension().factory(pi);
+  const ctx = pi.handlers.get('context');
+  const r = ctx({ type: 'context', messages: [userMsg('@diff:feature/x')] });
+  assert.match(r.messages.at(-1).content[0].text, /branch diff unavailable/);
+  // ref charset bound: `@diff:foo;rm` — `;` outside the class means the whole
+  // token fails the lookahead, so nothing expands
+  const r2 = ctx({ type: 'context', messages: [userMsg('run @diff:foo;rm now')] });
+  assert.equal(r2, undefined);
+  const r3 = ctx({ type: 'context', messages: [userMsg('plain')] });
+  assert.equal(r3, undefined);
+});

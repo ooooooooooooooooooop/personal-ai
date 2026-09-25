@@ -15,6 +15,6 @@ export function registerContextProvider(name, fn) {
 }
 
 /** Pull a provider's current context; null when absent or when it throws. */
-export function collectContext(name) {
-  try { return providers.get(name)?.() ?? null; } catch { return null; }
+export function collectContext(name, arg = undefined) {
+  try { return providers.get(name)?.(arg) ?? null; } catch { return null; }
 }

@@ -3033,3 +3033,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **description — covered (spelling closed this candidate)**: `--workdir <dir>` was already the custom-workspace flag; `--workspace` and `-w` added as accepted spellings of the same flag (`pai-channel.js`).
 - **evidence**: pai-channel-cli.test.js 3/3 green — all three spellings boot the host.
 - **核销**：candidates-open #2137 → `candidates-resolved.tsv` #152。
+
+#### 28.153 `@diff:<ref>` branch-diff context form + apply_patch Add-File rejection (#2144 — title IMPLEMENTED variant / desc BOUNDARY)
+
+- **status**: title implemented as an explicit `@diff`/`@diff:<ref>` mention variant; desc boundary (no apply_patch tool exists in this stack).
+- **判定**：标题 **IMPLEMENTED(variant)**；描述 **BOUNDARY（无对应工具面）**。
+  - **标题语义（@-mention branch diff）**：上游 = `git: branch diff`（当前分支 vs main 的全量 changes 作上下文）。落点：复用 #1937 `@diagnostics` 缝——`atMentionExtension` 新增 `@diff`/`@diff:<ref>` token（剥 token、`<branch-diff ref>` 块注入、仅扫 user 角色、transient 不改会话原文）；`collectContext(name, arg)` 透传 ref；`host.js` 注册 `diff` provider——`git merge-base <ref> HEAD` + `git diff <base>...HEAD`（argv 传 ref 非 shell、ref 字符集有界、96k 截断、非仓/坏 ref 报诚实原因不砖 prompt）。variant=显式 `@diff:` 前缀形而非裸 `@<branch>`——避免与 `@` 文件补全撞名（`@main` 可能是个文件名）。
+  - **描述语义（apply_patch Add File→existing 拒写）**：**边界**——本栈无 apply_patch/Add-File 工具面（`patch`/`apply_patch` 仅是治理分类集里的名字，防身体层浮现同名工具）；既有 `write` 工具的覆盖语义非静默——每次写既有文件先 byte-copy 备份 + receipt（M105 undo/rewind 可回滚），"silently overwriting" 的危害面由备份+审计链覆盖。
+- **证据**：`at-mention.test.js` +2=5/5（ref 到达 provider、token 剥离、坏字符 token 不展开）；`bootstrap.test.js` +1=46/46（真 git 仓 merge-base diff 到块、坏 ref/非仓诚实降级）。
+- **核销**：candidates-open #2144 → `candidates-resolved.tsv` #153。

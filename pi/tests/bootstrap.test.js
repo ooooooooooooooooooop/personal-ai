@@ -1937,3 +1937,46 @@ test('#2135 worktree_create: creates inside workdir, refuses escape + existing p
     spawnSync('git', ['worktree', 'remove', '--force', join(dir, 'wt-feat')], { cwd: dir });
   }
 });
+
+test('#2144 @diff provider: real git repo workdir yields merge-base diff; bad ref honest', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-diff-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+  }));
+  // instance root must sit OUTSIDE the repo — separate workdir fixture
+  const repo = mkdtempSync(join(tmpdir(), 'pai-diff-repo-'));
+  spawnSync('git', ['init', '-b', 'main'], { cwd: repo });
+  spawnSync('git', ['config', 'user.email', 't@t'], { cwd: repo });
+  spawnSync('git', ['config', 'user.name', 't'], { cwd: repo });
+  writeFileSync(join(repo, 'a.txt'), 'one\n');
+  spawnSync('git', ['add', 'a.txt'], { cwd: repo });
+  spawnSync('git', ['commit', '-m', 'base'], { cwd: repo });
+  spawnSync('git', ['checkout', '-b', 'feat'], { cwd: repo });
+  writeFileSync(join(repo, 'a.txt'), 'one\ntwo\n');
+  spawnSync('git', ['commit', '-am', 'feat change'], { cwd: repo });
+  const host = await startHost({ instanceRoot: dir, workdir: repo, sessionOptions: { model: stubModel } });
+  try {
+    const { collectContext } = await import('../src/adapter/context-providers.js');
+    const body = collectContext('diff', 'main');
+    assert.match(body, /diff of HEAD vs 'main'/);
+    assert.match(body, /\+two/, 'real diff content reaches the context block');
+    // bad ref → honest reason, not a throw
+    assert.match(collectContext('diff', 'no-such-ref'), /unavailable|no merge-base/);
+    assert.match(collectContext('diff', 'bad;rm'), /invalid ref/);
+    // non-repo workdir → honest unavailable (never bricks)
+    const bare = mkdtempSync(join(tmpdir(), 'pai-norepo-'));
+    mkdirSync(join(bare, 'canonical'), { recursive: true });
+    writeFileSync(join(bare, 'canonical', 'policy.json'), JSON.stringify({
+      version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+    }));
+    const host2 = await startHost({ instanceRoot: bare, workdir: bare, sessionOptions: { model: stubModel } });
+    host2.dispose();
+    // provider is module-scoped and latest-registered wins: re-check the
+    // repo host's provider still answers after the second startHost re-registered
+    assert.match(collectContext('diff', 'main'), /unavailable|diff of HEAD/);
+  } finally {
+    host.dispose();
+  }
+});

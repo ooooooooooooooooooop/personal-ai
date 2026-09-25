@@ -112,6 +112,7 @@ function runShell(command, cwd, { detachedDir = null } = {}) {
 import { delegateTool, jobStatusTool, workflowTool } from '../adapter/delegate.js';
 import { jobSpawnTool } from '../adapter/jobs.js';
 import { OutputSpool, outputReadTool } from '../adapter/outspool.js';
+import { registerContextProvider } from '../adapter/context-providers.js';
 import { toolActivateTool, toolSearchTool } from '../adapter/toollazy.js';
 import { taskTools } from '../adapter/tasktools.js';
 import { memoryTools } from '../adapter/memtools.js';
@@ -1406,6 +1407,25 @@ export async function startHost({
 
   // M107: /btw posture pieces live at module level (btwReadonlyDecide /
   // BTW_READONLY_TOOLS) so tests can exercise the wrapper directly.
+
+  // dedup-h #2144 — `@diff:<ref>` context provider (upstream `git: branch
+  // diff` vs main, mention spelling): merge-base then `git diff <base>...HEAD`,
+  // bounded and fail-soft — a non-repo workdir or unresolvable ref reports an
+  // honest reason, never bricks a prompt. argv-passed ref, never a shell.
+  registerContextProvider('diff', (ref) => {
+    const r = ref || 'main';
+    if (!/^[\w./-]{1,120}$/.test(r)) return `branch diff unavailable: invalid ref '${r}'`;
+    try {
+      const base = spawnSync('git', ['merge-base', r, 'HEAD'],
+        { cwd: workdir, timeout: 5000, encoding: 'utf-8', windowsHide: true });
+      if (base.status !== 0) return `branch diff unavailable: no merge-base with '${r}'`;
+      const d = spawnSync('git', ['diff', `${base.stdout.trim()}...HEAD`],
+        { cwd: workdir, timeout: 10000, encoding: 'utf-8', maxBuffer: 8 * 1024 * 1024, windowsHide: true });
+      if (d.status !== 0) return `branch diff unavailable: git diff failed`;
+      const body = d.stdout.trim() ? d.stdout.slice(0, 96000) : '(no changes)';
+      return `diff of HEAD vs '${r}' (merge-base ${base.stdout.trim().slice(0, 12)}):\n${body}`;
+    } catch (e) { return `branch diff unavailable: ${String(e?.message ?? e).slice(0, 200)}`; }
+  });
 
   // Session construction is a closure because session_new/session_switch
   // rebuild it in-process: same guard + envelopes + tools, new SessionManager.

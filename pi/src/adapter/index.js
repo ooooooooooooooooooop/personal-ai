@@ -192,6 +192,11 @@ export function contextEnvelopeExtension(contextEnvelope) {
  */
 export function atMentionExtension() {
   const TOKEN = /(^|\s)@diagnostics(?=\s|$)/;
+  // dedup-h #2144 — `@diff` / `@diff:<ref>` branch-diff context form
+  // (upstream `git: branch diff` vs main, mention spelling). Explicit
+  // `@diff` keeps `@<name>` free for file mentions. Ref charset is
+  // bounded — execFile passes it as argv, never a shell string.
+  const DIFF_TOKEN = /(^|\s)@diff(?::([\w./-]{1,120}))?(?=\s|$)/;
   return {
     name: 'pai-at-mention',
     factory: (pi) => {
@@ -201,18 +206,33 @@ export function atMentionExtension() {
         for (let i = msgs.length - 1; i >= 0; i--) { if (msgs[i]?.role === 'user') { idx = i; break; } }
         if (idx < 0) return undefined;
         const content = Array.isArray(msgs[idx].content) ? msgs[idx].content : [];
-        if (!content.some((c) => typeof c?.text === 'string' && TOKEN.test(c.text))) return undefined;
+        const texts = content.map((c) => c?.text);
+        const hasDiag = texts.some((t) => typeof t === 'string' && TOKEN.test(t));
+        const diffRef = texts.reduce((acc, t) => {
+          if (acc !== undefined || typeof t !== 'string') return acc;
+          const m = t.match(DIFF_TOKEN);
+          return m ? (m[2] ?? 'main') : undefined;
+        }, undefined);
+        if (!hasDiag && diffRef === undefined) return undefined;
         const stripped = {
           ...msgs[idx],
-          content: content.map((c) => (typeof c?.text === 'string' ? { ...c, text: c.text.replace(new RegExp(TOKEN.source, 'g'), '$1') } : c)),
+          content: content.map((c) => (typeof c?.text === 'string'
+            ? { ...c, text: c.text.replace(new RegExp(TOKEN.source, 'g'), '$1').replace(new RegExp(DIFF_TOKEN.source, 'g'), '$1') }
+            : c)),
         };
-        const body = collectContext('diagnostics')
-          ?? 'no diagnostics available — no LSP servers configured or none reporting';
+        const extra = [];
+        if (hasDiag) {
+          const body = collectContext('diagnostics')
+            ?? 'no diagnostics available — no LSP servers configured or none reporting';
+          extra.push({ role: 'user', content: [{ type: 'text', text: `<diagnostics>\n${body.slice(0, 16000)}\n</diagnostics>` }] });
+        }
+        if (diffRef !== undefined) {
+          const body = collectContext('diff', diffRef)
+            ?? `branch diff unavailable — no diff provider registered`;
+          extra.push({ role: 'user', content: [{ type: 'text', text: `<branch-diff ref="${diffRef}">\n${body.slice(0, 48000)}\n</branch-diff>` }] });
+        }
         return {
-          messages: [
-            ...msgs.slice(0, idx), stripped, ...msgs.slice(idx + 1),
-            { role: 'user', content: [{ type: 'text', text: `<diagnostics>\n${body.slice(0, 16000)}\n</diagnostics>` }] },
-          ],
+          messages: [...msgs.slice(0, idx), stripped, ...msgs.slice(idx + 1), ...extra],
         };
       });
     },
