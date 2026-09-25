@@ -1903,6 +1903,61 @@ test('#2227 compaction model: set/get/clear round-trips feature-models.json', as
   dispose();
 });
 
+// dedup-h #2346 — `/fast` priority-queue analogue: model_fast_set writes
+// samplingParams.service_tier onto the ACTIVE model's models.json entry
+// (SDK merges sampling params verbatim into the request body). Whole-entry
+// replace semantics mean an absent entry is seeded from the composed model;
+// other providers/models/sampling keys untouched; off removes the key.
+test('#2346 fast tier: set/read/off round-trips service_tier on the active model', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-fast-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(join(dir, 'pi-agent'), { recursive: true });
+  const audits = [];
+  const core = { paths: { auditDir, root: dir }, audit: { write: (e) => audits.push(e) } };
+  let refreshed = 0;
+  fakeSessionRef.modelRuntime = {
+    getProvider: (p) => (p === 'cpa' ? { id: 'cpa', baseUrl: 'https://api.example', api: 'openai-responses' } : null),
+    refresh: async () => { refreshed++; },
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const file = join(dir, 'pi-agent', 'models.json');
+  const doc = () => JSON.parse(readFileSync(file, 'utf-8'));
+
+  let r = await ch.handle({ type: 'model_fast' });
+  assert.equal(r.data.enabled, false, 'no entry → default queue');
+
+  r = await ch.handle({ type: 'model_fast_set', tier: 'priority' });
+  assert.equal(r.data.enabled, true);
+  assert.equal(r.data.provider, 'cpa');
+  assert.equal(refreshed, 1, 'runtime reloaded after write');
+  let entry = doc().providers.cpa.models.find((m) => m.id === 'gpt-5.6-luna-max');
+  assert.equal(entry.samplingParams.service_tier, 'priority');
+  assert.equal(doc().providers.cpa.baseUrl, 'https://api.example', 'provider seeded from runtime catalog');
+
+  r = await ch.handle({ type: 'model_fast' });
+  assert.equal(r.data.enabled, true, 'live read-back from the file entry');
+
+  // sibling sampling keys survive an explicit tier change
+  const d2 = doc();
+  d2.providers.cpa.models[0].samplingParams.temperature = 0.5;
+  writeFileSync(file, JSON.stringify(d2));
+  r = await ch.handle({ type: 'model_fast_set', tier: 'flex' });
+  assert.equal(doc().providers.cpa.models[0].samplingParams.temperature, 0.5, 'other sampling keys preserved');
+  assert.equal(doc().providers.cpa.models[0].samplingParams.service_tier, 'flex');
+
+  r = await ch.handle({ type: 'model_fast_set', off: true });
+  assert.equal(r.data.enabled, false);
+  entry = doc().providers.cpa.models[0];
+  assert.deepEqual(entry.samplingParams, { temperature: 0.5 }, 'service_tier key removed, siblings kept');
+  assert.ok(audits.some((e) => e.kind === 'MODEL_SERVICE_TIER' && e.data.tier === null), 'clear audited');
+
+  r = await ch.handle({ type: 'model_fast_set', tier: 'bogus' });
+  assert.equal(r.success, false, 'unknown tier refused');
+  dispose();
+});
+
 // dedup-h #2263 — bill() stamps the live model onto the ledger row so the
 // traces surface can do per-model breakdown.
 test('#2263 bill stamps model onto ledger rows for the traces surface', async () => {

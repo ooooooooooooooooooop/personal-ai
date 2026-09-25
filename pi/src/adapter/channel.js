@@ -1004,6 +1004,23 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     if (!featureModelsPath) throw new Error('instance root unavailable');
     writeJsonAtomic(featureModelsPath, doc);
   };
+  // dedup-h #2346 — models.json reader shared by the `/fast` service-tier
+  // surface. Tolerates a malformed/absent file (rewritten wholesale by the
+  // governed writer path); the provider catalog itself is never invented —
+  // entries only materialize for a runtime-known provider/model pair.
+  const modelsJsonPath = core.paths.root ? join(core.paths.root, 'pi-agent', 'models.json') : null;
+  const readModelsJson = () => {
+    const cfg = { providers: {} };
+    if (!modelsJsonPath) return cfg;
+    try {
+      const d = JSON.parse(readFileSync(modelsJsonPath, 'utf-8'));
+      if (d && typeof d === 'object') {
+        for (const [k, v] of Object.entries(d)) if (k !== 'providers') cfg[k] = v;
+        if (d.providers && typeof d.providers === 'object') cfg.providers = d.providers;
+      }
+    } catch { /* absent or malformed — rewrite below */ }
+    return cfg;
+  };
 
   const modelsFacade = {
     status: async () => {
@@ -1252,6 +1269,58 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       writeFeatureModels(doc);
       core.audit?.write({ kind: 'MODEL_COMPACTION_CONFIG', data: { model: `${clean.provider ?? 'session'}/${clean.model}` } });
       return { compaction: clean };
+    },
+    // dedup-h #2346 — `/fast` priority-queue toggle. The SDK assigns
+    // model.samplingParams verbatim into the request body, so writing
+    // service_tier onto the active model's models.json entry reaches the
+    // provider on the next call. models.json replaces a whole entry by id,
+    // so an absent entry is seeded from the composed model — built-in
+    // fields (cost/contextWindow/input…) survive. The flag is forwarded by
+    // API paths that merge sampling params (openai-responses family); on
+    // other providers it is inert config, surfaced honestly.
+    fast: () => {
+      const m = box.s.model;
+      if (!m) return { enabled: false, error: 'no active model' };
+      const cfg = readModelsJson();
+      const entry = cfg.providers?.[m.provider]?.models?.find?.((x) => x?.id === m.id);
+      const tier = entry?.samplingParams?.service_tier ?? m.samplingParams?.service_tier ?? null;
+      return { enabled: tier === 'priority', tier, provider: m.provider, model: m.id };
+    },
+    setFast: async ({ on, tier } = {}) => {
+      const m = box.s.model;
+      if (!m) throw new Error('no active model');
+      const val = on === false ? null : String(tier ?? 'priority').toLowerCase();
+      if (val !== null && !['auto', 'default', 'flex', 'priority', 'scale'].includes(val)) {
+        throw new Error(`unknown service tier '${val}' — expected auto|default|flex|priority|scale or off`);
+      }
+      const file = modelsJsonPath;
+      if (!file) throw new Error('instance root unavailable');
+      const cfg = readModelsJson();
+      const rtProv = box.s.modelRuntime.getProvider(m.provider);
+      if (!rtProv) throw new Error(`provider '${m.provider}' unknown to model runtime`);
+      const prov = cfg.providers[m.provider] ?? {
+        ...(rtProv.baseUrl ? { baseUrl: rtProv.baseUrl } : {}),
+        ...(typeof rtProv.api === 'string' ? { api: rtProv.api } : {}),
+      };
+      prov.models = Array.isArray(prov.models) ? prov.models : [];
+      let entry = prov.models.find((x) => x?.id === m.id);
+      if (!entry) {
+        const { provider: _p, api: _a, baseUrl: _b, ...fields } = m;
+        entry = fields;
+        prov.models.push(entry);
+      }
+      entry.samplingParams = { ...(entry.samplingParams && typeof entry.samplingParams === 'object' ? entry.samplingParams : {}) };
+      if (val === null) {
+        delete entry.samplingParams.service_tier;
+        if (!Object.keys(entry.samplingParams).length) delete entry.samplingParams;
+      } else {
+        entry.samplingParams.service_tier = val;
+      }
+      if (!cfg.providers[m.provider]) cfg.providers[m.provider] = prov;
+      writeJsonAtomic(file, cfg);
+      await box.s.modelRuntime.refresh?.().catch(() => {});
+      core.audit?.write({ kind: 'MODEL_SERVICE_TIER', data: { model: `${m.provider}/${m.id}`, tier: val } });
+      return { enabled: val === 'priority', tier: val, provider: m.provider, model: m.id };
     },
     setThinking: async (level) => {
       const s = box.s;

@@ -3833,6 +3833,29 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #2346 — `/fast` priority-queue toggle. Writes service_tier
+    // onto the active model's models.json entry; the provider API path
+    // merges sampling params into the request body on the next call.
+    cmd: '/fast', label: '优先队列', hint: '/fast——切换当前模型 priority service tier；/fast off|auto|flex|scale 指定',
+    run: async (arg) => {
+      const t = String(arg ?? '').trim().toLowerCase();
+      if (t === 'off' || t === 'auto' || t === 'default' || t === 'flex' || t === 'scale') {
+        const r = t === 'off' ? await cmd('model_fast_set', { off: true }) : await cmd('model_fast_set', { tier: t });
+        if (!r.success) { addSys(`设置失败：${r.error ?? '未知'}`, true); return; }
+        addSys(t === 'off' ? 'service tier 已恢复默认' : `service tier → ${r.data?.tier ?? t}（${r.data?.provider ?? ''}/${r.data?.model ?? ''}，下次调用生效）`);
+        return;
+      }
+      if (t) { addSys('用法：/fast [off|auto|default|flex|scale]——空参切换 priority', true); return; }
+      const cur = await cmd('model_fast');
+      if (!cur.success) { addSys(`读取失败：${cur.error ?? '未知'}`, true); return; }
+      const r = await cmd('model_fast_set', cur.data?.enabled ? { off: true } : { tier: 'priority' });
+      if (!r.success) { addSys(`切换失败：${r.error ?? '未知'}`, true); return; }
+      addSys(r.data?.enabled
+        ? `priority 队列已开启（${r.data.provider}/${r.data.model}，下次调用生效；适用转发 sampling params 的 API 路径）`
+        : 'service tier 已恢复默认');
+    },
+  },
+  {
     cmd: '/config', label: '会话设置', hint: '/config 查看；/config key=value 设置（model/thinking/mode）',
     run: async (arg) => {
       const text = String(arg ?? '').trim();

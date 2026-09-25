@@ -174,6 +174,22 @@ export function doctorTool(deps) {
     parameters: { type: 'object', properties: {} },
     async execute() {
       const r = await runDoctor(deps);
+      // dedup-h #2346 — web_search onboarding: the tool is hidden while
+      // unconfigured, so the operator needs a discoverable pointer to the
+      // env contract. Pi-side check (the env contract is pi-owned); never
+      // echoes the key — only whether one is set.
+      const url = process.env.PAI_WEB_SEARCH_URL;
+      r.checks.push({
+        id: 'web_search',
+        ...(!url
+          ? { status: 'warn', detail: 'web_search unconfigured — tool stays hidden until an endpoint is set', fix: 'export PAI_WEB_SEARCH_URL=<https endpoint> (+optional PAI_WEB_SEARCH_KEY for bearer auth)' }
+          : /^https?:\/\//i.test(url)
+            ? { status: 'pass', detail: `web_search endpoint configured${process.env.PAI_WEB_SEARCH_KEY ? ' (+api key)' : ''}` }
+            : { status: 'fail', detail: 'PAI_WEB_SEARCH_URL is not http(s)', fix: 'point it at an http(s) search endpoint that accepts {q,count} POST' }),
+      });
+      r.pass = r.checks.filter((c) => c.status === 'pass').length;
+      r.warn = r.checks.filter((c) => c.status === 'warn').length;
+      r.fail = r.checks.filter((c) => c.status === 'fail').length;
       const icon = { pass: 'PASS', warn: 'WARN', fail: 'FAIL' };
       const lines = r.checks.map((c) => `[${icon[c.status]}] ${c.id}: ${c.detail}${c.fix ? `\n      fix: ${c.fix}` : ''}`);
       lines.push(`— ${r.pass} pass / ${r.warn} warn / ${r.fail} fail`);

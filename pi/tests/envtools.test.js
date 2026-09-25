@@ -186,3 +186,32 @@ test('env_set: op:// / bw:// refs resolve via secrets.json source and store mask
   assert.equal(r4.isError, true);
   assert.equal(env.view().PATH, undefined);
 });
+
+// dedup-h #2346 — doctor surfaces web_search onboarding: unconfigured → warn
+// with the env contract as the fix; configured → pass reporting only key
+// PRESENCE; non-http(s) → fail. The key value is never echoed.
+test('#2346 doctor web_search check: onboarding states, key never echoed', async () => {
+  const { doctorTool } = await import('../src/adapter/envtools.js');
+  const t = doctorTool({ paths: {}, workdir: mkdtempSync(join(tmpdir(), 'pai-doc-')) });
+  const find = (r) => (r.details?.checks ?? []).find((c) => c.id === 'web_search');
+
+  delete process.env.PAI_WEB_SEARCH_URL;
+  delete process.env.PAI_WEB_SEARCH_KEY;
+  let r = await t.execute();
+  assert.equal(find(r).status, 'warn');
+  assert.match(find(r).fix, /PAI_WEB_SEARCH_URL/);
+  assert.equal(r.details.warn, r.details.checks.filter((c) => c.status === 'warn').length, 'summary recounts the appended check');
+
+  process.env.PAI_WEB_SEARCH_URL = 'https://search.example/api';
+  process.env.PAI_WEB_SEARCH_KEY = 'topsecret-value';
+  r = await t.execute();
+  assert.equal(find(r).status, 'pass');
+  assert.match(find(r).detail, /\+api key/);
+  assert.ok(!r.content[0].text.includes('topsecret-value'), 'key material never rendered');
+
+  process.env.PAI_WEB_SEARCH_URL = 'ftp://x';
+  r = await t.execute();
+  assert.equal(find(r).status, 'fail');
+  delete process.env.PAI_WEB_SEARCH_URL;
+  delete process.env.PAI_WEB_SEARCH_KEY;
+});

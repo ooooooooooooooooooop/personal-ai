@@ -3271,3 +3271,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - *目录*：**已覆盖(variant)**——无硬编码上游目录（变体=操作员注册制）：`api.moonshot.cn` 已在已知 provider 主机表（budgetfetch.js:249），模型经 provider 面板/`provider_add`/`set-fetch-models` 注册即用——"目录新增"是上游发货形态，我方是操作员声明形态；
     - *reasoning replay*：**已覆盖**——`thinking` 是转录一等块类型：replay 过滤器显式豁免 `['text','thinking','toolCall','tool_use']`（channel.js:919），thinking 块跨工具轮原生保留不被剥；M115 媒体块降级为带界描述符而非静默丢弃。
 - **核销**：candidates-open #2345 → `candidates-resolved.tsv` #177。
+
+#### 28.178 /fast priority queue toggle + bundled web search (#2346 — title IMPLEMENTED / desc IMPLEMENTED variant)
+
+- **status**: title implemented — `/fast` toggle writes service_tier onto the active model; desc implemented — web_search guarded surface + new doctor onboarding check.
+- **判定**：标题 **IMPLEMENTED**；描述 **IMPLEMENTED(variant)**。
+  - **标题语义（/fast priority queue toggle OpenAI/Anthropic）**：**已实现**——`/fast` 命令（空参切 priority、显式 `off|auto|default|flex|scale`）→ `model_fast`/`model_fast_set` ops → `modelsFacade.fast/setFast` 把 `samplingParams.service_tier` 写当前模型的 models.json 条目。机制链路：SDK `buildBaseOptions` 合并 `model.samplingParams` → openai-responses `buildParams` `Object.assign(params, samplingParams)` 逐字进请求体，下次调用即生效、重启持久。整条目替换语义下缺条目由组合模型全字段播种（builtin 字段不丢）；`off` 删 key（空 samplingParams 整删）、兄弟键保留、tier 白名单、`MODEL_SERVICE_TIER` 审计。诚实边界：仅转发 sampling params 的 API 路径生效（openai-responses 系已验证；anthropic 路径不消费 samplingParams=惰性配置，命令输出如实说明）；priority 计费调整按 StreamOptions.serviceTier 计价，samplingParams 路径 usage.cost 按声明费率计。
+  - **描述语义（并行 web search 打包）**：**已实现(variant)**——子项逐核：API-key discovery=`PAI_WEB_SEARCH_KEY` env→bearer；guarded endpoint=有界 POST/超时/512KiB 流式截断/JSON 校验/SSRF+egress gate；cache-safe session=无搜索缓存层（危害类不存在），session 级状态仅 sessionGrants/sessionDenies 随会话生灭；onboarding+docs=**本次落** doctor `web_search` 检查（未配置 warn+fix 指 env 契约、key 只报存在不回显、非 http(s) fail）；"parallel"=variant（单端点单次调用，无多查询扇出——loop 本就并行调度工具调用）。
+- **证据**：channel-facade 56/56（service_tier set/read/off 全程+兄弟键保留+非法 tier 拒）；host 420/420；pi 全套 547/539/8跳/0败；app lint 净。
+- **核销**：candidates-open #2346 → `candidates-resolved.tsv` #178。

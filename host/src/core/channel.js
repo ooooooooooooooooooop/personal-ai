@@ -375,6 +375,19 @@ export class HostChannel {
           if (cmd.clear || cmd.off || cmd.model == null) return reply(true, await this.models.setCompaction(null));
           return reply(true, await this.models.setCompaction({ provider: cmd.provider, model: String(cmd.model) }));
         }
+        // dedup-h #2346 — `/fast` priority-queue toggle analogue: writes the
+        // service tier onto the active model's models.json entry
+        // (samplingParams.service_tier is merged into the request body by the
+        // provider API path). {off:true} clears back to the provider default.
+        case 'model_fast': {
+          if (!this.models?.fast) return reply(false, undefined, 'fast-tier facade unavailable');
+          return reply(true, await this.models.fast());
+        }
+        case 'model_fast_set': {
+          if (!this.models?.setFast) return reply(false, undefined, 'fast-tier facade unavailable');
+          if (cmd.off) return reply(true, await this.models.setFast({ on: false }));
+          return reply(true, await this.models.setFast({ on: true, tier: cmd.tier }));
+        }
         case 'model_alias_del': {
           if (!this.models?.aliasDel) return reply(false, undefined, 'models facade unavailable');
           return reply(true, this.models.aliasDel({ name: cmd.name }));
