@@ -2276,3 +2276,37 @@ test('#2202 elicitation: capability gated on handler; request answered, unknown 
     server.close();
   }
 });
+
+// dedup-h #2215 — RFC 9207 iss on the loopback callback: a state-matching
+// callback carrying a WRONG iss is a mix-up → fatal reject; a matching iss
+// (or absent iss) still resolves; no expected issuer → iss passes through.
+test('#2215 oauth loopback iss: mismatch rejects fatally, match resolves, unconfigured iss tolerated', async () => {
+  const srv = createServer();
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const freePort = srv.address().port; srv.close();
+  const l = mcpOperatorSurface.oauthLoopbackListen({ port: freePort, path: '/cb', state: 'st', timeoutMs: 8000, iss: 'https://as.example.com' });
+  // wrong iss with right state → 400 + promise rejects (mix-up is fatal)
+  const rej = assert.rejects(l.promise, /iss mismatch/);
+  const bad = await fetch(`http://127.0.0.1:${freePort}/cb?code=x&state=st&iss=https://evil.example.com`);
+  assert.equal(bad.status, 400);
+  await rej;
+
+  // matching iss resolves
+  const srv2 = createServer();
+  await new Promise((r) => srv2.listen(0, '127.0.0.1', r));
+  const free2 = srv2.address().port; srv2.close();
+  const l2 = mcpOperatorSurface.oauthLoopbackListen({ port: free2, path: '/cb', state: 'st', timeoutMs: 8000, iss: 'https://as.example.com' });
+  const hit = await fetch(`http://127.0.0.1:${free2}/cb?code=OK&state=st&iss=https%3A%2F%2Fas.example.com`);
+  assert.equal(hit.status, 200);
+  const got = await l2.promise;
+  assert.equal(got.code, 'OK');
+
+  // iss-advertising server + unconfigured expectation → accepted (login succeeds)
+  const srv3 = createServer();
+  await new Promise((r) => srv3.listen(0, '127.0.0.1', r));
+  const free3 = srv3.address().port; srv3.close();
+  const l3 = mcpOperatorSurface.oauthLoopbackListen({ port: free3, path: '/cb', state: 'st', timeoutMs: 8000 });
+  const hit3 = await fetch(`http://127.0.0.1:${free3}/cb?code=OK3&state=st&iss=https%3A%2F%2Fany.example.com`);
+  assert.equal(hit3.status, 200);
+  assert.equal((await l3.promise).code, 'OK3');
+});

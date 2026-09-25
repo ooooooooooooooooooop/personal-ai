@@ -263,6 +263,14 @@ function validateOAuthSpec(spec) {
     }
     exchange = { url: url.href, audience: ex.audience ?? null, resource: exResource };
   }
+  // dedup-h #2215 — RFC 9207 issuer identification: when known, the loopback
+  // receiver validates a state-matching callback's `iss` against it.
+  let issuer = null;
+  if (o.issuer != null) {
+    try { issuer = new URL(o.issuer); } catch { throw new McpError('oauth.issuer is not an absolute URI'); }
+    if (issuer.hash) throw new McpError('oauth.issuer must not carry a fragment');
+    issuer = issuer.href;
+  }
   // a static Authorization header AND oauth is ambiguous auth — refuse
   for (const h of Object.keys(spec.headers ?? {})) {
     if (h.toLowerCase() === 'authorization') {
@@ -271,7 +279,7 @@ function validateOAuthSpec(spec) {
   }
   return {
     tokenUrl: tokenUrl.href, clientId: o.clientId, clientSecret: o.clientSecret ?? null,
-    scope: o.scope ?? null, resource, authorizationUrl, deviceAuthUrl, redirectUri, exchange,
+    scope: o.scope ?? null, resource, authorizationUrl, deviceAuthUrl, redirectUri, exchange, issuer,
     flow: flow ?? (authorizationUrl ? 'authorization_code' : deviceAuthUrl ? 'device_code' : 'client_credentials'),
   };
 }
@@ -475,7 +483,7 @@ export function loopbackListenSpec(redirectUri) {
  * ?error=, timeout, or bind failure. A state MISMATCH answers 400 and keeps
  * waiting (a stray hit must not kill a valid in-flight approval).
  */
-export function oauthLoopbackListen({ port = 8765, path = '/callback', state, timeoutMs = 5 * 60 * 1000 } = {}) {
+export function oauthLoopbackListen({ port = 8765, path = '/callback', state, timeoutMs = 5 * 60 * 1000, iss = null } = {}) {
   let done = false;
   let srv;
   const promise = new Promise((resolve, reject) => {
@@ -496,6 +504,16 @@ export function oauthLoopbackListen({ port = 8765, path = '/callback', state, ti
       if (u.searchParams.get('state') !== state) {
         // wrong state = not our callback (or CSRF) — refuse but keep waiting
         res.writeHead(400, { 'content-type': 'text/plain' }).end('state mismatch — this callback is not for the in-flight authorization');
+        return;
+      }
+      // dedup-h #2215 — RFC 9207 issuer identification: when the server
+      // advertises `iss` and we know the expected issuer, a state-MATCHING
+      // callback carrying a different iss is a real mix-up — fatal reject,
+      // not a stray hit to keep waiting on.
+      const cbIss = u.searchParams.get('iss');
+      if (iss && cbIss && cbIss !== iss) {
+        res.writeHead(400, { 'content-type': 'text/plain' }).end('iss mismatch — authorization response issuer does not match the configured issuer');
+        finish(reject, new McpError(`oauth iss mismatch: got '${cbIss.slice(0, 120)}', expected '${iss.slice(0, 120)}'`, { code: 'MCP_OAUTH_ISS' }));
         return;
       }
       const code = u.searchParams.get('code');
@@ -1524,6 +1542,7 @@ export default function mcpExtension(pi) {
         clientId: client.clientId,
         ...(client.clientSecret ? { clientSecret: client.clientSecret } : {}),
         ...(meta.scope ? { scope: meta.scope } : {}),
+        ...(meta.issuer ? { issuer: meta.issuer } : {}),
         loopbackRedirect: true,
       },
       discovered: { issuer: meta.issuer, registration: 'dynamic', scope: meta.scope },
@@ -2007,7 +2026,7 @@ export default function mcpExtension(pi) {
       const entry = { verifier, state, deadline: Date.now() + OAUTH_PENDING_TTL_MS };
       if (lspec) {
         try {
-          entry.listen = oauthLoopbackListen({ ...lspec, state, timeoutMs: OAUTH_PENDING_TTL_MS });
+          entry.listen = oauthLoopbackListen({ ...lspec, state, timeoutMs: OAUTH_PENDING_TTL_MS, iss: oauth.issuer ?? null });
           entry.listen.promise.then(({ code }) => {
             const pend = pendingAuth.get(name);
             if (!pend) return;

@@ -3160,3 +3160,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - *MCP structured content*：**已覆盖**——`structured: result?.structuredContent` 随每次 tools/call 结果透传（index.js:1405）。
   - **描述语义（加支持 OAuth 的 streamable HTTP server 时提示 mcp login）**：**已覆盖**——`connectOne` 遇 401→`entry.authRequired`+`onAuthRequired`→operator notify"requires OAuth authorization — run /mcp-auth <name>"（add 路径同走 connectOne 故同样触发）；`/mcp` 面板显 NEEDS AUTH+授权按钮（自动开浏览器+回环回调）；#1514 `oauthDiscoverRegister` 401+PRM/ASM/DCR 自动发现 oauth spec。
 - **核销**：candidates-open #2212 → `candidates-resolved.tsv` #166。
+
+#### 28.167 OAuth login prompt + RFC 9207 iss + connect-setup timeout (#2215 — title ALREADY_COVERED / desc IMPLEMENTED+covered)
+
+- **status**: title covered (same path as #2212); desc = iss validation implemented, connect timeout already covered.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED+covered**。
+  - **标题语义（streamable HTTP server 支持 oauth 时提示 mcp login）**：**已覆盖**——#2212 核销同链路：401→`authRequired`+`onAuthRequired` notify 指 `/mcp-auth`+NEEDS AUTH 按钮+#1514 自动发现。
+  - **描述语义（两子项）**：
+    - *RFC 9207 issuer identification*：**已实现**——`oauthLoopbackListen` 加 `iss` 参数：已知 issuer 且回调带 `iss`→state-matching 但 iss 不符=真 mix-up 致命拒（`MCP_OAUTH_ISS`，非 stray-hit 等待）；匹配/无 iss/未配置期望 iss→照常解析（iss-advertising server 登录本不因未知参数失败=上游 bug 类不存在+防御校验补齐）。`oauth.issuer` 经 `validateOAuthSpec` 白名单透传（URL+禁 fragment）+#1514 discovery 把 `meta.issuer` 注入 oauth spec。
+    - *MCP connection setup 超时*：**已覆盖**——`CONNECT_TIMEOUT_MS=10s` 于 connectOne/initialize，#394 死远程 server 共享预算内并发失败不拖垮启动。
+- **证据**：`mcp-ext.test.js` +1（#2215：错 iss+对 state→400+致命拒；匹配 iss→解析；未配置 iss+任意 iss→照常解析=登录成功）47/47；manifest sha256 重算。
+- **核销**：candidates-open #2215 → `candidates-resolved.tsv` #167。
