@@ -3322,3 +3322,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（parallel subagents + Vercel AI Gateway）**：**已覆盖**——`delegate_task` 即时返回 durable job id（异步并行设计）：多 delegate 并发各自 job；`worktree:true` 显式为"parallel delegates cannot collide"隔离；`depends_on` 扇出队列；teammate pool 命名寻址。`vercel-ai-gateway` 已在 pin provider/env-key 表（`AI_GATEWAY_API_KEY`），经统一 modelRuntime/provider_add 面可用。
   - **描述语义（Bedrock endpoint 遵从 AWS_REGION/PROFILE 不钉死内置端点）**：**已覆盖**——pin 走 AWS SDK 原生解析链：`loadNodeConfig(NODE_REGION_CONFIG_OPTIONS)`=环境变量 `AWS_REGION`→`AWS_DEFAULT_REGION`→profile config→IMDS 回退；endpoint 由 resolved region 动态生成无内置区钉死；us.*/eu.* inference profile 前缀按 region 解析自然恢复。
 - **核销**：candidates-open #2398 → `candidates-resolved.tsv` #183。
+
+#### 28.184 max thinking level + Adaptive model option (#2405 — title ALREADY_COVERED / desc ALREADY_COVERED variant)
+
+- **status**: title covered — xhigh is the max tier with literal 'max' alias; desc covered — operator-routed adaptive model option.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（max thinking level）**：**已覆盖**——THINKING_LEVELS 顶层 `xhigh`（off→minimal→low→medium→high→xhigh），`EFFORT_TO_THINKING={max:'xhigh'}` 字面 max 映射；capability gate（非 reasoning 模型仅 off）+`set-thinking`/config_set 面。
+  - **描述语义（Adaptive 模型选项，按任务自动选模型省配额）**：**已覆盖(variant)**——`<instance>/model-routes.json {adaptive:true}` 开自适应路由：逐 prompt 文本对操作员路由表解析选模型，`model_set adaptive` 别名解钉、显式选模 opt-out、路由未命中不动当前模型；变体=上游服务端智能选择，我方是操作员声明式路由表（可审计、无黑盒）。
+- **核销**：candidates-open #2405 → `candidates-resolved.tsv` #184。
