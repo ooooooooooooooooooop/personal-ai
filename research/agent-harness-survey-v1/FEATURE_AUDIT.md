@@ -3204,3 +3204,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（`/model X@profile` 钉到会话 + user-locked auth profile 即使不在 per-agent auth 序）**：**边界**——栈内无多凭据 auth-profile 面：`auth.json` 每 provider 单凭据（SDK ModelRuntime），M81 `profiles.json` 是 {model,thinking,mode} 预设非凭据档，无"per-agent auth order"概念——上游修的是 Codex CLI 多 OAuth 档切换场景，此处无对位机制可挂。
 - **证据**：`channel-facade.test.js` +1（#2227：set/get/clear 全往返、其他键保留、双清幂等）54/54；host 418/418。
 - **核销**：candidates-open #2227 → `candidates-resolved.tsv` #170。
+
+#### 28.171 postCompactionSections + panel MCP delete/configure (#2239 — title ALREADY_COVERED variant / desc IMPLEMENTED)
+
+- **status**: title covered as variant (per-turn re-injection superset + apply-mode selectors); desc implemented — /mcp-del.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **IMPLEMENTED**。
+  - **标题语义（compaction.postCompactionSections——选哪些 AGENTS.md 段压缩后重注入）**：**已覆盖(variant)**——我方重注入是**逐轮**而非仅压缩后：`.pai/steering/*.md`+compat 文件（AGENTS.md 等）+pins 每次 prompt 经 context envelope 重读渲染，压缩后自动回来，无需 post-compaction 特例；选择器对位=steering frontmatter apply-modes（`manual` 只索引不注入、glob 声明作用域）+pins add/remove。variant=机制更强（每轮重注入）+选择粒度是文件/作用域而非节段名。
+  - **描述语义（设置面板删除/配置 MCP servers）**：**已实现**——`/mcp-del <name>`：从加载的配置文件（env→`.pai/mcp.json`→`.mcp.json` 首个命中）删条目（mcpServers/servers 键自适应、兄弟条目保留、原子 tmp+rename）→关活连接（清 reconnectTimer+close client）→**删 token 存储行**（同名重加不继承陈旧授权=诚实安全姿态）→已注册工具墓碑 fail-closed；未知名/无配置文件/不可读逐项响亮拒。配置侧由既有面覆盖：`/mcp-add`（全旗）+`/mcp-disable|enable`（enabled 持久化+热切换）。
+- **证据**：`mcp-ext.test.js` +1（#2239：真 stdio server——配置条目删/兄弟留/token 行清/工具墓碑/兄弟仍活/未知名拒）49/49；manifest sha256 重算。
+- **核销**：candidates-open #2239 → `candidates-resolved.tsv` #171。

@@ -2357,3 +2357,63 @@ test('#2221 progress: request carries progressToken; progress frames reach onPro
     } finally { client.close(); }
   } finally { server.close(); }
 });
+
+// dedup-h #2239 — /mcp-del: entry removed from the config file, live client
+// closed, stored OAuth tokens dropped, tools fail closed, unknown refused.
+test('#2239 mcp-del: config entry removed; connection closed; tokens dropped; tools fail closed', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-mcp-del-'));
+  const prev = process.env.PAI_MCP_CONFIG;
+  const prevStore = process.env.PAI_MCP_TOKEN_STORE;
+  try {
+    const serverPath = join(dir, 'server.js');
+    writeFileSync(serverPath, FAKE_SERVER_JS);
+    const cfgPath = join(dir, 'mcp.json');
+    writeFileSync(cfgPath, JSON.stringify({ mcpServers: {
+      doomed: { command: process.execPath, args: [serverPath] },
+      stays: { command: process.execPath, args: [serverPath] },
+    } }));
+    process.env.PAI_MCP_CONFIG = cfgPath;
+    process.env.PAI_MCP_TOKEN_STORE = join(dir, 'mcp-oauth.json');
+    const pi = fakePi();
+    await mcpExtension(pi);
+    const until = Date.now() + 10_000;
+    while (!pi.tools.has('mcp__doomed__echo') && Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
+    assert.ok(pi.tools.has('mcp__doomed__echo'), 'server connected pre-delete');
+
+    // seed a stored token row for the doomed server
+    const store = mcpOperatorSurface.readTokenStore();
+    store.doomed = { access_token: 'x'.repeat(24), expires_at: Date.now() + 60_000 };
+    mcpOperatorSurface.writeTokenStore(store);
+
+    const notices = [];
+    const cap = { ui: { notify: (m) => notices.push(m) } };
+    await pi.commands.get('mcp-del').handler('doomed', cap);
+
+    const doc = JSON.parse(readFileSync(cfgPath, 'utf-8'));
+    assert.ok(!('doomed' in doc.mcpServers), 'config entry deleted');
+    assert.ok('stays' in doc.mcpServers, 'sibling entry preserved');
+    assert.ok(!('doomed' in mcpOperatorSurface.readTokenStore()), 'stored tokens dropped');
+    assert.ok(notices.some((m) => m.includes('deleted')), 'operator notified');
+
+    const dead = await pi.tools.get('mcp__doomed__echo').execute('c1', { text: 'x' })
+      .then((r) => ({ resolved: true, r })).catch((e) => ({ resolved: false }));
+    if (dead.resolved) {
+      assert.ok(dead.r?.isError === true || /not connected|fail|error/i.test(JSON.stringify(dead.r)),
+        `deleted server answered success-looking: ${JSON.stringify(dead.r).slice(0, 200)}`);
+    }
+    // sibling unaffected
+    const t = await pi.tools.get('mcp__stays__echo').execute('c2', { text: 'ok' });
+    assert.match(t.content[0].text, /echo:ok/, 'sibling server still live');
+
+    await pi.commands.get('mcp-del').handler('ghost', cap);
+    assert.ok(notices.some((m) => m.includes("unknown server 'ghost'")), 'unknown name refused');
+
+    await pi.handlers.get('session_shutdown')?.();
+  } finally {
+    if (prev === undefined) delete process.env.PAI_MCP_CONFIG; else process.env.PAI_MCP_CONFIG = prev;
+    if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
+    rmSync(dir, { recursive: true, force: true });
+  }
+});

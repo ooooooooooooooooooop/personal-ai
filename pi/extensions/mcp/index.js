@@ -2330,4 +2330,46 @@ export default function mcpExtension(pi) {
       ctx.ui?.notify?.(`'${name}' enabled — connected: ${entry.tools.length} tools, ${(entry.prompts ?? []).length} prompts`, 'info');
     },
   });
+
+  // dedup-h #2239 — operator delete: /mcp-del removes the server entry from
+  // the loaded config file, closes the live connection NOW (reconnect timer
+  // included), drops its stored OAuth tokens (a re-added same-name server
+  // must not silently inherit stale auth), and leaves its registered tools
+  // tombstoned — they fail closed with the honest "not connected" stub.
+  pi.registerCommand('mcp-del', {
+    description: 'Delete an MCP server — removes it from the config file, closes its connection, drops stored tokens',
+    handler: async (arg, ctx) => {
+      const name = String(arg ?? '').trim();
+      if (!name) { ctx.ui?.notify?.('usage: /mcp-del <server>', 'error'); return; }
+      if (!(name in allServers)) { ctx.ui?.notify?.(`unknown server '${name}'`, 'error'); return; }
+      const { path: cfgPath } = loadConfig();
+      if (!cfgPath) { ctx.ui?.notify?.('no MCP config file loaded — nothing to edit', 'error'); return; }
+      let doc;
+      try { doc = JSON.parse(readFileSync(cfgPath, 'utf-8')); }
+      catch (e) { ctx.ui?.notify?.(`config '${cfgPath}' unreadable: ${e.message}`, 'error'); return; }
+      const key = doc.mcpServers != null ? 'mcpServers' : (doc.servers != null ? 'servers' : null);
+      if (!key || !doc[key]?.[name] || typeof doc[key][name] !== 'object') {
+        ctx.ui?.notify?.(`server '${name}' not found in ${cfgPath}`, 'error'); return;
+      }
+      delete doc[key][name];
+      try {
+        const tmp = `${cfgPath}.tmp-${process.pid}`;
+        writeFileSync(tmp, JSON.stringify(doc, null, 2) + '\n');
+        renameSync(tmp, cfgPath);
+      } catch (e) { ctx.ui?.notify?.(`persist failed: ${e.message}`, 'error'); return; }
+      const entry = connected.get(name);
+      if (entry?.reconnectTimer) { clearTimeout(entry.reconnectTimer); entry.reconnectTimer = null; }
+      if (entry?.client) { try { entry.client.close(); } catch { /* best effort */ } }
+      connected.delete(name);
+      delete servers[name];
+      delete allServers[name];
+      disabled.delete(name);
+      let tokenNote = '';
+      try {
+        const store = readTokenStore();
+        if (name in store) { delete store[name]; writeTokenStore(store); tokenNote = '; stored OAuth tokens dropped'; }
+      } catch { /* token cleanup is best-effort — the config delete already landed */ }
+      ctx.ui?.notify?.(`'${name}' deleted — ${cfgPath} updated, connection closed${tokenNote}; its tools now fail closed`, 'info');
+    },
+  });
 }
