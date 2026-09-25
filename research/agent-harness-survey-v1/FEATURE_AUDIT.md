@@ -3129,3 +3129,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（tools/list_changed 通知自动刷新 tool list）**：**已覆盖**——M130 订阅 `notifications/tools|prompts/list_changed`（stdio id-less frames+HTTP 同理），重列后 diff 目录（新增工具即时注册、移除工具标记 dead 并注入可见告知消息 #1517）；#1521 live `entry` 绑定使重连后目录再 diff。
   - **描述语义（模型输出超限截断 tool call 参数→重试机制）**：**已覆盖**——pin `@earendil-works/pi-agent-core` agent-loop.js:137：`stopReason === "length"` 时该消息全部 tool calls 不执行，`failToolCallsFromTruncatedMessage` 为每个调用发 error tool_result（"arguments may be truncated. Re-issue the tool call with complete arguments"）→ `terminate:false` 循环续跑，模型收到失败结果即重发——与上游"重试截断调用"同语义且更安全（截断参数绝不执行）；我方 post-mutation schema revalidate 为第二层。
 - **核销**：candidates-open #2201 → `candidates-resolved.tsv` #163。
+
+#### 28.164 MCP elicitation + tools/list_changed refresh (#2202 — title IMPLEMENTED / desc ALREADY_COVERED)
+
+- **status**: title implemented — server→client request channel + schema-driven operator prompts; desc covered — list_changed diff-refresh (M130/#1521, ledgered #2201).
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义（remote-mcp: Elicitation——tool 执行中间 prompt）**：**已实现**——`McpClient` 新增 server→client 请求面：`#requestHandlers` + `onRequest()` + `#dispatch` 把 method+id 帧路由为请求（此前静默丢弃，改为未知方法应答 `-32601` 绝不让 server 挂起）；应答原语按传输分流（stdio/sse `send`、streamable-http `notify` POST）；`initialize` 仅当 `elicitation/create` handler 绑定时声明 `elicitation:{}` capability（server 只向有能力的 client 发请求）。扩展侧：`session_start` 捕获 `ctx.ui`（`hasUI` 判定）→ `handleElicitation` 按 `requestedSchema` 逐字段 prompt（boolean→confirm、enum 提示可选值、number 转型、required 空值/取消→`cancel`、10 字段封顶）；无 UI→规范合规 `decline`。
+  - **描述语义（tools/list_changed 自动刷新）**：**已覆盖**——M130 订阅+diff-refresh+dead 标记+移除可见告知，#1521 live entry 重连再 diff（详 #2201 核销）。
+- **证据**：`mcp-ext.test.js` +1（#2202：真 HTTP server 推 `elicitation/create`+未知方法——绑定端 capability 声明+`{action:'accept',content}` 应答回传，未绑定端 capability 不声明+`-32601` 应答）46/46；managed-manifest sha256 重算 `e2e125af`。
+- **核销**：candidates-open #2202 → `candidates-resolved.tsv` #164。

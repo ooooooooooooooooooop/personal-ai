@@ -2214,3 +2214,65 @@ test('#1521: retry bound exhausts — honest CONNECTION LOST, tool fails closed'
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// dedup-h #2202 — MCP elicitation: server→client request mid-call. Capability
+// advertised only when a handler is bound; bound handler's answer rides back
+// as the JSON-RPC result; unbound client answers -32601 instead of dropping.
+test('#2202 elicitation: capability gated on handler; request answered, unknown → -32601', async () => {
+  const seen = { caps: [], answers: [] };
+  let getCount = 0;
+  const server = createServer((req, res) => {
+    if (req.method === 'GET') {
+      getCount++;
+      const elicitId = getCount === 1 ? 910 : 911;
+      res.setHeader('content-type', 'text/event-stream');
+      res.setHeader('mcp-session-id', `s${getCount}`);
+      res.write(`data: ${JSON.stringify({ jsonrpc: '2.0', id: elicitId, method: 'elicitation/create', params: { message: 'need a city', requestedSchema: { type: 'object', properties: { city: { type: 'string' } }, required: ['city'] } } })}\n\n`);
+      res.write(`data: ${JSON.stringify({ jsonrpc: '2.0', id: elicitId + 100, method: 'bogus/unknown', params: {} })}\n\n`);
+      return; // stream stays open
+    }
+    let body = ''; req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      if (msg.method === 'initialize') {
+        seen.caps.push(msg.params?.capabilities ?? null);
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: msg.id, result: { protocolVersion: '2025-06-18', serverInfo: { name: 'elicit-fake' }, capabilities: {} } }));
+        return;
+      }
+      if (msg.id != null && msg.method == null) { seen.answers.push(msg); res.statusCode = 202; res.end(); return; }
+      res.statusCode = 202; res.end();
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/mcp`;
+    // client WITH an elicitation handler → capability + accept answer
+    const c1 = await McpClient.connect({ url }, {
+      serverRequests: { 'elicitation/create': async () => ({ action: 'accept', content: { city: 'shanghai' } }) },
+    });
+    try {
+      const t0 = Date.now();
+      while (!seen.answers.some((a) => a.id === 910) && Date.now() - t0 < 5000) await new Promise((r) => setTimeout(r, 40));
+      const ans = seen.answers.find((a) => a.id === 910);
+      assert.ok(ans, 'elicitation response arrived');
+      assert.deepEqual(ans.result, { action: 'accept', content: { city: 'shanghai' } });
+      const unk = seen.answers.find((a) => a.id === 1010);
+      assert.ok(unk?.error, 'unknown server request answered with error');
+      assert.equal(unk.error.code, -32601);
+      assert.ok(seen.caps[0]?.elicitation, 'elicitation capability advertised');
+    } finally { c1.close(); }
+    // client WITHOUT a handler → no capability; request answered -32601
+    const c2 = await McpClient.connect({ url });
+    try {
+      const t0 = Date.now();
+      while (!seen.answers.some((a) => a.id === 911) && Date.now() - t0 < 5000) await new Promise((r) => setTimeout(r, 40));
+      const ans2 = seen.answers.find((a) => a.id === 911);
+      assert.ok(ans2?.error, 'unbound elicitation answered with error');
+      assert.equal(ans2.error.code, -32601);
+      assert.ok(!seen.caps[1]?.elicitation, 'no elicitation capability without handler');
+    } finally { c2.close(); }
+  } finally {
+    server.close();
+  }
+});

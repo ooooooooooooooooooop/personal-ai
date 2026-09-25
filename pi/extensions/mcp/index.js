@@ -1035,6 +1035,7 @@ export class McpClient {
   #closed = false;
   #notifyHandlers = [];
   #exitHandlers = [];
+  #requestHandlers = new Map(); // dedup-h #2202 — server→client requests (elicitation)
 
   constructor(transport) {
     this.#transport = transport;
@@ -1060,11 +1061,14 @@ export class McpClient {
    */
   onNotification(fn) { this.#notifyHandlers.push(fn); }
 
+  /** dedup-h #2202 — handle a server→client request (e.g. elicitation/create). */
+  onRequest(method, fn) { this.#requestHandlers.set(method, fn); }
+
   // dedup-h #1521 — fires ONLY on unexpected transport death (never on
   // close()); the extension uses it to schedule bounded reconnects.
   onServerExit(fn) { this.#exitHandlers.push(fn); }
 
-  static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS, serverName = null } = {}) {
+  static async connect(spec, { timeoutMs = DEFAULT_TIMEOUT_MS, serverName = null, serverRequests = null } = {}) {
     // dedup-h #583 — remote HTTP transport type + alias compatibility:
     // 'remote' (v2.50.2 remote transport) and streamable-http spelling
     // variants normalize to the canonical kind BEFORE validation.
@@ -1077,6 +1081,14 @@ export class McpClient {
       : kind === 'sse' ? sseTransport(spec, { serverName })
       : httpTransport(spec, { serverName });
     const client = new McpClient(transport);
+    // dedup-h #2202 — server→client request handlers must be bound BEFORE
+    // initialize: the advertised elicitation capability and the dispatch
+    // table are decided from the same map.
+    if (serverRequests && typeof serverRequests === 'object') {
+      for (const [m, fn] of Object.entries(serverRequests)) {
+        if (typeof fn === 'function') client.#requestHandlers.set(m, fn);
+      }
+    }
     client.strippedEnv = transport.strippedEnv ?? [];
     client.oauth = transport.oauth ?? null;
     try {
@@ -1092,15 +1104,35 @@ export class McpClient {
 
   #dispatch(msg) {
     if (msg == null || typeof msg !== 'object') return;
-    // Server→client notification: has method, no id. Server requests
-    // (method + id) are unsupported — we carry no server->client request
-    // handlers, so dropping them is the honest no-op.
+    // Server→client notification: has method, no id. Server REQUEST: has
+    // method AND id — routed to #requestHandlers (dedup-h #2202); unknown
+    // methods get a real -32601 answer instead of a silent drop, so the
+    // server is never left hanging on a request we cannot serve.
     if (msg.id == null) {
       if (typeof msg.method === 'string') {
         for (const fn of this.#notifyHandlers) {
           try { fn(msg); } catch { /* a bad handler must not kill the pump */ }
         }
       }
+      return;
+    }
+    if (typeof msg.method === 'string') {
+      const h = this.#requestHandlers.get(msg.method);
+      // reply primitive differs by transport: stdio/sse write the frame,
+      // streamable-http POSTs it fire-and-forget via notify().
+      const reply = (frame) => {
+        try {
+          if (typeof this.#transport.send === 'function') this.#transport.send(frame);
+          else this.#transport.notify?.(frame)?.catch?.(() => {});
+        } catch { /* transport gone */ }
+      };
+      void Promise.resolve()
+        .then(() => h(msg.params ?? {}))
+        .then((result) => reply({ jsonrpc: '2.0', id: msg.id, result }))
+        .catch((err) => reply({
+          jsonrpc: '2.0', id: msg.id,
+          error: { code: h ? -32603 : -32601, message: String(err?.message ?? err ?? 'method not found').slice(0, 300) },
+        }));
       return;
     }
     const entry = this.#pending.get(msg.id);
@@ -1122,7 +1154,13 @@ export class McpClient {
   async initialize({ timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
     const msg = {
       jsonrpc: '2.0', id: this.#nextId++, method: 'initialize',
-      params: { protocolVersion: PROTOCOL_VERSION, capabilities: {}, clientInfo: CLIENT_INFO },
+      // dedup-h #2202 — elicitation capability is advertised exactly when an
+      // 'elicitation/create' handler is bound: servers only send requests a
+      // capable client answered for.
+      params: {
+        protocolVersion: PROTOCOL_VERSION, clientInfo: CLIENT_INFO,
+        capabilities: this.#requestHandlers.has('elicitation/create') ? { elicitation: {} } : {},
+      },
     };
     const result = this.#transport.kind === 'http'
       ? await this.#requestHttp(msg, { timeoutMs })
@@ -1686,7 +1724,13 @@ export default function mcpExtension(pi) {
         return { failed: true, contextScoped: true, tools: [], spec };
       }
       try {
-        const client = await McpClient.connect(spec, { timeoutMs: CONNECT_TIMEOUT_MS, serverName: name });
+        const client = await McpClient.connect(spec, {
+          timeoutMs: CONNECT_TIMEOUT_MS, serverName: name,
+          // dedup-h #2202 — elicitation: server may ask the operator for
+          // structured input mid-tool-call. Bound before initialize so the
+          // capability is advertised only when the handler exists.
+          serverRequests: { 'elicitation/create': (params) => handleElicitation(name, params) },
+        });
         // dedup-h #1521 — the entry is REUSED across reconnects: registered
         // tools/prompts bind entry.client (never a dead snapshot), so a
         // revived server restores the whole surface without re-registration.
@@ -1786,7 +1830,42 @@ export default function mcpExtension(pi) {
     }));
   })();
 
+  // dedup-h #2202 — MCP elicitation: a server request mid-tool-call asks the
+  // operator for structured input (message + JSON-schema fields). With a
+  // real UI each field prompts interactively (boolean→confirm, others→input,
+  // enum values hinted); undefined input or an empty required field answers
+  // 'cancel'. Without a UI we answer 'decline' — spec-compliant and the
+  // server is never left hanging either way. Bounded at 10 fields.
+  let uiCtx = null;
+  const handleElicitation = async (serverName, params) => {
+    if (!uiCtx) return { action: 'decline' };
+    const message = String(params?.message ?? 'input requested').slice(0, 160);
+    const schema = params?.requestedSchema ?? {};
+    const props = schema?.properties ?? {};
+    const required = new Set(Array.isArray(schema?.required) ? schema.required : []);
+    const content = {};
+    try {
+      for (const n of Object.keys(props).slice(0, 10)) {
+        const f = props[n] ?? {};
+        const title = `mcp:${serverName} — ${message} — ${n}`.slice(0, 180);
+        if (f.type === 'boolean') {
+          content[n] = await uiCtx.confirm(title, String(f.description ?? n).slice(0, 200));
+          continue;
+        }
+        const enumHint = Array.isArray(f.enum) ? ` [${f.enum.slice(0, 8).join(' | ')}]` : '';
+        const raw = await uiCtx.input(title, `${String(f.description ?? '').slice(0, 100)}${enumHint}`.trim() || n);
+        if (raw == null) return { action: 'cancel' };
+        if (required.has(n) && raw === '') return { action: 'cancel' };
+        content[n] = (f.type === 'number' || f.type === 'integer') ? Number(raw) : raw;
+      }
+      return { action: 'accept', content };
+    } catch {
+      return { action: 'cancel' };
+    }
+  };
+  pi.on('session_start', (_ev, ctx) => { uiCtx = ctx?.hasUI ? ctx.ui : null; });
   pi.on('session_shutdown', () => {
+    uiCtx = null;
     // #1521 — fail-closed: no reconnect may outlive the session. Pending
     // retry timers are cancelled; live clients close (an intentional close
     // never schedules a retry).
