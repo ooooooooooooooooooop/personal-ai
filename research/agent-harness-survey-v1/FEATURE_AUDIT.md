@@ -3112,3 +3112,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（MCP stored prompts 支持）**：**已覆盖**——`prompts/list` 独立发现（prompt-only server 亦可用）+ `prompts/get` 调用面：每个 server prompt 注册为 `/mcp-<srv>-<prompt>` 操作员斜杠命令（M82），命名/位置参数解析 + required 缺失响亮提示，server 消息作为 user turn 注入并带 `[mcp prompt srv/name]` 来源前缀；`prompts/list_changed` diff-refresh（#1521）+ 断线重连经 live `entry.client` 换绑，prompt 命令不失效。
   - **描述语义（dynamic authorization states 被过宽匹配误清）**：**已覆盖（该缺陷类不存在）**——token store 全部读写按精确 `store[serverName]` 键；`invalidate()` 为 per-server 闭包只清自身 `cached`（401 重试仅失该 server 令牌，不碰 store 或兄弟条目）；无按 URL/前缀/通配的批量清除路径。gateway token-exchange 亦注记"subject token 不失效，仅重换"。
 - **核销**：candidates-open #2193 → `candidates-resolved.tsv` #161。
+
+#### 28.162 remote `mcp add <url>` + OAuth + text-serialized tool call reminder (#2194 — title ALREADY_COVERED / desc IMPLEMENTED)
+
+- **status**: title covered — url add + OAuth flags + PKCE auth flow; desc implemented — agent_end pseudo-tool-call detection with bounded continuation reminder.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED**。
+  - **标题语义（remote-mcp: mcp add figma --url … OAuth）**：**已覆盖**——`/mcp-add <name> <http(s)-url>`（#167）持久化+热连接；`--oauth-*` 全套旗（client-id/token-url/authorize-url/scope/client-secret[-env]）+ `/mcp-auth <server>` PKCE 授权码流 + 动态注册探测 + `mcp_auth_done`；远程 server OAuth 端到端可达。
+  - **描述语义（长上下文模型把工具调用输出为纯文本→任务中断，系统自动提醒模型）**：**已实现**——`message_end` 捕获 assistant 文本尾（4KB 有界）；`agent_end` 经保守模式检测伪调用（`<tool_call>` 标记或 `"name":"x","arguments":` JSON 对）；命中即经 `_continuation` 通道自动提醒模型用真 tool_use 重发；连续 2 次提醒封顶（审计 `TEXT_TOOLCALL_REMIND_CAP` 不再注入），真实操作员轮次重置计数；审计 `TEXT_TOOLCALL_REMINDED` 带匹配片段。
+- **证据**：`channel-facade.test.js` +1（#2194：JSON 伪调用→提醒 prompt 发出+审计；连续 3 次→2 提醒+CAP 审计；良性文本静默）53/53。
+- **核销**：candidates-open #2194 → `candidates-resolved.tsv` #162。

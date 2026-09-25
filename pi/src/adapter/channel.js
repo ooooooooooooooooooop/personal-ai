@@ -119,6 +119,13 @@ const LINT_WRITE_TOOLS = new Set([...VERIFY_WRITE_TOOLS, 'multi_edit']);
 // Shell-family tools whose side effects get a workspace-delta notice
 // (CC bashEditDiffEnabled analogue — the diff panel for command edits).
 const EXEC_TOOLS = new Set(['bash', 'shell', 'powershell', 'cmd']);
+// dedup-h #2194 — pseudo tool call: in long contexts the model sometimes
+// serializes the call into assistant TEXT instead of a real tool_use block,
+// silently ending the task. Detected at agent_end → bounded continuation
+// reminds the model to emit a real call. Conservative patterns only —
+// explicit <tool_call> markup or a JSON object pairing a tool-ish name with
+// an arguments payload.
+const TEXT_TOOLCALL_RE = /<tool_call\b|"(?:name|tool|function)"\s*:\s*"[\w-]+"\s*,\s*"(?:arguments|parameters|input|args)"\s*:/i;
 
 export function createChannelHost({ session, core, jobs = null, jobDetail = null, bodies = null, handoff = null, sessions = null, asks = null, fileops = null, budget = null, writeLease = null, modes = null, hooks = null, turns = null, tasks = null, memory = null, knowledge = null, exec = null, goals = null, verify = null, commands = null, pins = null, getLoopwatch = null, projectTrust = null, schedules = null, repoMap = null, workdir = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, fallbacks = null, leases = null, sessionFlags = null, proxy = null, structured = null, mcp = null, preToolGate = null, assist = null, secretSpawnFn = null, modelRoutes = null }) {
 
@@ -173,6 +180,8 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   // Best-effort — non-git workdirs and slow git simply yield no notice.
   const pendingDelta = new Map(); // toolCallId → Promise<Set<path>|null>
   const pendingLintPaths = new Map(); // toolCallId → write-target paths (#2132)
+  let lastAssistantText = ''; // bounded tail of the latest assistant message (#2194)
+  let textToolCallReminds = 0;
   let gitProbe = null; // null=unprobed · true=repo · false=disabled (not a repo)
   const gitDirty = () => new Promise((res) => {
     if (!workdir || gitProbe === false) return res(null);
@@ -200,6 +209,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         try {
           const text = (Array.isArray(ev.message?.content) ? ev.message.content : [])
             .map((c) => (c?.type === 'text' ? c.text : '')).join('').slice(0, 4000);
+          lastAssistantText = text;
           hooks?.fire('message_sent', {
             text, chars: text.length,
             model: ev.message?.model ?? null,
@@ -340,6 +350,29 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
               core.audit?.write({ kind: 'AGENT_STOP_CONTINUE_FAILED', data: { error: String(e?.message ?? e).slice(0, 200) } });
             }
           }).catch(() => {});
+        }
+        // dedup-h #2194 — pseudo tool call serialized into assistant text:
+        // the model "called" a tool in prose, ending the task silently.
+        // Remind it via the same bounded _continuation path the stop-gate
+        // uses — capped so a stuck model cannot loop forever, audited both
+        // ways. Runs independent of preToolGate (internal mechanism).
+        if (box.s && lastAssistantText && TEXT_TOOLCALL_RE.test(lastAssistantText)) {
+          const snippet = lastAssistantText.match(TEXT_TOOLCALL_RE)?.[0]?.slice(0, 120) ?? '';
+          if (textToolCallReminds >= 2) {
+            core.audit?.write({ kind: 'TEXT_TOOLCALL_REMIND_CAP', data: { matched: snippet } });
+          } else {
+            textToolCallReminds++;
+            core.audit?.write({ kind: 'TEXT_TOOLCALL_REMINDED', data: { matched: snippet, n: textToolCallReminds } });
+            Promise.resolve().then(async () => {
+              try {
+                await sessionFacade.prompt(
+                  `[system] 检测到你在文本中输出了工具调用而不是真正的工具调用（matched: ${snippet}）。任务可能因此中断。请用真正的 tool_use 块重新发起该调用，或明确说明不再需要它。`,
+                  { _continuation: true });
+              } catch (e) {
+                core.audit?.write({ kind: 'TEXT_TOOLCALL_REMIND_FAILED', data: { error: String(e?.message ?? e).slice(0, 200) } });
+              }
+            }).catch(() => {});
+          }
         }
       } else if (ev?.type === 'compaction_start') {
         // dedup-h #535: hooks see WHY the compaction fired — the engine
@@ -491,6 +524,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         options = rest;
       } else {
         stopContinues = 0;
+        textToolCallReminds = 0; // a real operator turn re-arms the reminder (#2194)
       }
       hooks?.fire('prompt_submit', { preview: String(message ?? '').slice(0, 200) });
       // dedup-h #935 — input intercept/transform: the operator-private gate

@@ -1824,3 +1824,39 @@ test('#2164 global+project settings merge: project overrides global live', async
   assert.equal(calls.length, 2, 'both layers malformed → enabled');
   dispose();
 });
+
+test('#2194 pseudo tool call in assistant text → bounded remind via _continuation', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-tt-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const audited = [];
+  const core = { paths: { auditDir }, audit: { write: (e) => audited.push(e) } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const emit = (ev) => { for (const l of [...listeners]) l(ev); };
+  const flush = () => new Promise((r) => setTimeout(r, 60));
+  const reminds = () => fakeSessionRef.calls.filter((c) => typeof c === 'string' && c.includes('工具调用'));
+
+  // assistant serializes the call as TEXT — then the agent ends with no real call
+  emit({ type: 'message_end', message: { role: 'assistant', usage: { input: 1, output: 1 }, content: [{ type: 'text', text: 'Let me run that: {"name": "bash", "arguments": {"command": "ls"}}' }] } });
+  emit({ type: 'agent_end' });
+  await flush();
+  assert.ok(reminds().length >= 1, 'reminder prompt fired for text-serialized call');
+  assert.ok(audited.some((e) => e.kind === 'TEXT_TOOLCALL_REMINDED'), 'remind audited');
+
+  // consecutive pseudo-calls → second remind, third hits the cap (audited, no prompt)
+  emit({ type: 'message_end', message: { role: 'assistant', usage: {}, content: [{ type: 'text', text: '{"name": "write", "arguments": {"path": "x"}}' }] } });
+  emit({ type: 'agent_end' });
+  await flush();
+  emit({ type: 'message_end', message: { role: 'assistant', usage: {}, content: [{ type: 'text', text: '<tool_call>{"name":"read"}</tool_call>' }] } });
+  emit({ type: 'agent_end' });
+  await flush();
+  assert.equal(reminds().length, 2, 'reminder capped at 2 consecutive');
+  assert.ok(audited.some((e) => e.kind === 'TEXT_TOOLCALL_REMIND_CAP'), 'cap audited');
+
+  // benign text never triggers even after cap armed
+  emit({ type: 'message_end', message: { role: 'assistant', usage: {}, content: [{ type: 'text', text: 'All done — edited 3 files, tests pass.' }] } });
+  emit({ type: 'agent_end' });
+  await flush();
+  assert.equal(reminds().length, 2, 'benign assistant text stays silent');
+  dispose();
+});
