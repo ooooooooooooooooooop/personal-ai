@@ -847,6 +847,14 @@ export class HostChannel {
           }
           return reply(true, this.budget.rollup(opts));
         }
+        // dedup-h #2263 — per-call LLM trace view (TracesView analogue):
+        // token split + model per call, cache-hit rate, per-model rollup.
+        case 'usage_traces': {
+          if (!this.budget?.traces) return reply(false, undefined, 'usage traces unavailable');
+          const scope = cmd.scope != null ? String(cmd.scope)
+            : (await this.session?.getState?.().catch?.(() => null))?.session?.id ?? null;
+          return reply(true, this.budget.traces({ scope, n: cmd.n }));
+        }
         // Operator budget control surface: the spend dial was previously
         // reachable ONLY by hand-editing policy.json — an operator wedged at
         // a limit had no governed way out. Channel commands are operator-tier

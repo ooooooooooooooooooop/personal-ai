@@ -58,7 +58,7 @@ export class BudgetGovernor {
    * HTTP request = one call); usage-billing events pass countCall:false so a
    * turn's retries/compaction don't double-count.
    */
-  record({ scope, runId = null, source = 'turn', usage = {}, countCall = true }) {
+  record({ scope, runId = null, source = 'turn', usage = {}, countCall = true, model = null }) {
     const row = {
       at: Date.now(), scope, runId, source,
       tokens: Number(usage.input ?? 0) + Number(usage.output ?? 0)
@@ -68,6 +68,16 @@ export class BudgetGovernor {
       // usage.calls overrides (delegation commits charge the child's whole
       // call slice; refunds charge negative); default = one call per record
       calls: usage.calls != null ? Number(usage.calls) : (countCall ? 1 : 0),
+      // dedup-h #2263 — per-call trace detail for the traces surface: model
+      // + token split (cache reads drive the hit-rate metric). Absent on
+      // legacy rows and callers that cannot name a model — never guessed.
+      ...(model ? { model: String(model) } : {}),
+      ...(usage.input != null || usage.output != null || usage.cacheRead != null || usage.cacheWrite != null
+        ? { detail: {
+            input: Number(usage.input ?? 0), output: Number(usage.output ?? 0),
+            cacheRead: Number(usage.cacheRead ?? 0), cacheWrite: Number(usage.cacheWrite ?? 0),
+          } }
+        : {}),
     };
     appendFileSync(this.ledgerPath, JSON.stringify(row) + '\n');
     return this.consumed(scope);
@@ -131,6 +141,46 @@ export class BudgetGovernor {
       out.rows += 1;
     }
     return out;
+  }
+
+  /**
+   * dedup-h #2263 — per-call trace view (TracesView analogue): the last N
+   * usage rows for a scope with the token split + model they carry, plus a
+   * computed cache-hit rate (cacheRead / (input + cacheRead)) and a
+   * per-model breakdown. Refund rows (negative calls) net out of the
+   * aggregates but stay visible — the ledger never lies about what ran.
+   *
+   * @param {object} [o] {scope, n?} — n capped at 50
+   * @returns {{rows:Array, cacheHitRate:number|null, byModel:object, shown:number}}
+   */
+  traces({ scope, n = 20 } = {}) {
+    const rows = this._rows()
+      .filter((r) => !r.kind && (scope == null || r.scope === scope))
+      .slice(-Math.min(Math.max(1, Number(n) || 20), 50));
+    let cacheRead = 0, input = 0;
+    const byModel = {};
+    for (const r of rows) {
+      const d = r.detail ?? {};
+      cacheRead += Number(d.cacheRead ?? 0);
+      input += Number(d.input ?? 0);
+      const m = r.model ?? '(unattributed)';
+      const acc = byModel[m] ??= { calls: 0, tokens: 0, cost: 0 };
+      acc.calls += r.calls ?? 0;
+      acc.tokens += r.tokens ?? 0;
+      acc.cost += r.cost ?? 0;
+    }
+    return {
+      scope: scope ?? null,
+      shown: rows.length,
+      rows: rows.map((r) => ({
+        at: r.at, source: r.source, model: r.model ?? null,
+        input: r.detail?.input ?? null, output: r.detail?.output ?? null,
+        cacheRead: r.detail?.cacheRead ?? null, cacheWrite: r.detail?.cacheWrite ?? null,
+        tokens: r.tokens, cost: r.cost, calls: r.calls,
+      })),
+      cacheHitRate: (input + cacheRead) > 0 ? cacheRead / (input + cacheRead) : null,
+      byModel,
+    };
   }
 
   /** First breached limit for a scope, or null. */

@@ -731,3 +731,24 @@ test('project_trust_set validates scope and passes it to the facade', async () =
   assert.equal(calls[3].scope, 'exact', 'absent scope keeps the default');
   ch.dispose();
 });
+
+// dedup-h #2263 — usage_traces: scope defaults to the live session id when
+// the facade can name one, explicit scope wins, absent facade fails closed.
+test('#2263 usage_traces: session-scope default, explicit scope, facade passthrough', async () => {
+  const calls = [];
+  const budget = { traces: (o) => { calls.push(o); return { shown: 0, rows: [], cacheHitRate: null, byModel: {} }; } };
+  const session = fakeSession();
+  session.getState = async () => ({ session: { id: 'sess-9' } });
+  const ch = new HostChannel({ session, budget });
+
+  const r = await ch.handle({ type: 'usage_traces' });
+  assert.equal(r.success, true);
+  assert.deepEqual(calls.at(-1), { scope: 'sess-9', n: undefined }, 'default scope = live session id');
+
+  await ch.handle({ type: 'usage_traces', scope: 'other-scope', n: 5 });
+  assert.deepEqual(calls.at(-1), { scope: 'other-scope', n: 5 }, 'explicit scope+n pass through');
+
+  const bare = new HostChannel({ session: fakeSession() });
+  const r2 = await bare.handle({ type: 'usage_traces' });
+  assert.equal(r2.success, false, 'absent budget facade fails closed');
+});

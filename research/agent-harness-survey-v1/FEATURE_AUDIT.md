@@ -3232,3 +3232,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - *plugin compact*：**已覆盖(variant)**——`compactionSummarize` 回调是注入缝（loopGovernanceExtension 参数）+`<instance>/feature-models.json {compaction}` 操作员路由+delegate profile `compaction_model`（#1546 全链 fail-closed）；variant=路由到具名模型/provider 的 summarizer 回调而非任意 plugin registry，无 provider 注册表面但同语义可插拔。
   - **描述语义（压缩后错误继续用 compact agent 的缺陷）**：**已覆盖（缺陷类不存在）**——`compactionSummarize` 经 `judgeCall(featureOverride)` 独立 fetch 调摘要模型，**不触** `setModel`/会话模型态；pi 原生压缩器用会话模型内部执行亦不回写模型字段；压缩后下一轮沿用压缩前模型——无"压缩 agent 泄漏"面。
 - **核销**：candidates-open #2260 → `candidates-resolved.tsv` #173。
+
+#### 28.174 personal-local memory file + per-call LLM traces (#2263 — title ALREADY_COVERED variant / desc IMPLEMENTED)
+
+- **status**: title covered (local-md convention already loads last); desc implemented — usage_traces surface.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **IMPLEMENTED**。
+  - **标题语义（CODEBUDDY.local.md 个人偏好文件，不入版本控制）**：**已覆盖(variant)**——steering `*.local.md` 家族（`AGENTS.local.md`/`CLAUDE.local.md`/`GEMINI.local.md`/`CONVENTIONS.local.md`/`.clinerules.local`，steering.js:34-39 即标 CodeBuddy 对位）最后加载带 local 标记；"不入 VCS"是用户侧 `.gitignore` 责任——本仓无强制 gitignore 面（variant=约定俗成而非强制执行）。
+  - **描述语义（TracesView：LLM 调用统计/缓存命中率/多模型显示）**：**已实现**——四层落地：
+    - *账本*：`budget.record()` 持久化 `model`+`detail:{input,output,cacheRead,cacheWrite}`（旧行无字段=诚实 absent，聚合 consumed 数学不变）；pi `bill()` 传 `box.s.model?.id`；
+    - *读取面*：`BudgetGovernor.traces({scope,n≤50})`——尾 N 行+cacheHitRate=cacheRead/(input+cacheRead)（无明细行→null 非伪造 0%）+byModel 分解（无 model 行归 `(unattributed)`）；
+    - *通道*：`usage_traces {scope?,n?}` op——scope 缺省取活会话 id；
+    - *UI*：`/traces [N]` 命令——逐调用行（时间/来源/模型/token 拆分/cache）+命中率+分模型汇总。
+- **证据**：budget.test.js +1（模型戳/拆分/命中率/byModel/scope 滤/n 帽/旧行 null）14/14；channel.test.js +1（scope 缺省=活会话/显式透传/无 facade fail-closed）34/34；channel-facade.test.js +1（bill 真账本行 model+detail 落盘）55/55；app lint 净。
+- **核销**：candidates-open #2263 → `candidates-resolved.tsv` #174。

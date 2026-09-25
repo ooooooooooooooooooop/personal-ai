@@ -148,7 +148,8 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       const scope = box.s.sessionId ?? box.s.sessionManager?.getSessionId?.() ?? 'unknown';
       // tokens/cost only — the provider request itself was already counted
       // at the fetch gate (one HTTP call = one call, retries included)
-      budget.record({ scope, source, usage, countCall: false });
+      // dedup-h #2263: the model stamp feeds the per-call traces surface.
+      budget.record({ scope, source, usage, countCall: false, model: box.s?.model?.id ?? null });
       const c = budget.consumed(scope);
       const l = budget.limits ?? {};
       const pct = Math.max(

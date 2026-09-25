@@ -125,7 +125,13 @@ test('commit-on-issue is durable: a fresh governor sees the committed slice', ()
 
 test('rollup aggregates across scopes with windowing, skips non-usage rows, nets refunds', () => {
   const { gov } = rig(null);
-  const now = Date.now();
+  // PIN THE CLOCK. The rows below are placed relative to `now` and bucketed by
+  // UTC date, so with the real clock this test's meaning changes with the time
+  // of day: run it within an hour after UTC midnight and `now - 1h` is still the
+  // PREVIOUS day, so rows land in the wrong bucket and the split assertions fail.
+  // It passed for months and then failed at 00:05Z. Ambient state the test does
+  // not control is the defect — control it.
+  const now = Date.UTC(2026, 8, 23, 12, 0, 0); // midday UTC: no boundary within ±24h
   // hand-write rows so `at` is pinned (record() stamps Date.now())
   const rows = [
     { at: now - 86_400_000, scope: 's-old', source: 'turn', tokens: 500, cost: 0.5, calls: 2 },
@@ -175,4 +181,35 @@ test('read-path cache: external (cross-process) appends invalidate via stat fing
   appendFileSync(gov.ledgerPath, JSON.stringify({ at: Date.now(), scope: 's1', source: 'job', tokens: 77, cost: 0, calls: 1 }) + '\n');
   assert.equal(gov.consumed('s1').tokens, 87, 'external append visible on the next read');
   assert.equal(gov.rollup().total.tokens, 87);
+});
+
+// dedup-h #2263 — per-call trace surface: record() persists model + token
+// split; traces() returns last-N rows, cache-hit rate, per-model rollup.
+test('#2263 traces: model stamp, token split, cache-hit rate, byModel, scope filter', () => {
+  const { gov } = rig(null);
+  gov.record({ scope: 's1', source: 'turn', usage: { input: 700, output: 100, cacheRead: 200, cacheWrite: 0, cost: { total: 0.05 } }, countCall: false, model: 'gpt-x' });
+  gov.record({ scope: 's1', source: 'compaction', usage: { input: 300, output: 50, cost: { total: 0.02 } }, countCall: false, model: 'haiku' });
+  gov.record({ scope: 's2', source: 'turn', usage: { input: 10, output: 5 }, countCall: false, model: 'other' }); // foreign scope
+  appendFileSync(gov.ledgerPath, JSON.stringify({ at: Date.now(), scope: 's1', source: 'turn', tokens: 42, cost: 0.001, calls: 1 }) + '\n'); // legacy row, no detail/model
+
+  const t = gov.traces({ scope: 's1', n: 20 });
+  assert.equal(t.shown, 3, 'foreign scope excluded; legacy row included');
+  assert.equal(t.rows[0].model, 'gpt-x');
+  assert.deepEqual({ input: t.rows[0].input, output: t.rows[0].output, cacheRead: t.rows[0].cacheRead }, { input: 700, output: 100, cacheRead: 200 });
+  assert.equal(t.rows[2].model, null, 'legacy row honestly unattributed');
+  assert.equal(t.rows[2].input, null, 'legacy row has no token split');
+  // cacheHitRate = cacheRead / (input + cacheRead) = 200 / 1200
+  assert.ok(Math.abs(t.cacheHitRate - 200 / 1200) < 1e-9, `hit rate ${t.cacheHitRate}`);
+  assert.equal(t.byModel['gpt-x'].tokens, 1000);
+  assert.equal(t.byModel['haiku'].calls, 0, 'countCall:false bills zero calls');
+  assert.ok('(unattributed)' in t.byModel, 'legacy rows bucket as unattributed');
+
+  const capped = gov.traces({ scope: 's1', n: 1 });
+  assert.equal(capped.shown, 1, 'n bounds the tail slice');
+
+  const noCache = gov.traces({ scope: 's2' });
+  assert.equal(noCache.cacheHitRate, 0, 'input-bearing calls with zero cache → honest 0%');
+  // a scope whose rows carry no detail at all → null, never a fabricated rate
+  appendFileSync(gov.ledgerPath, JSON.stringify({ at: Date.now(), scope: 's3', source: 'turn', tokens: 5, cost: 0, calls: 1 }) + '\n');
+  assert.equal(gov.traces({ scope: 's3' }).cacheHitRate, null, 'detail-less rows → null, not a fake 0%');
 });

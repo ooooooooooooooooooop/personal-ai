@@ -1902,3 +1902,32 @@ test('#2227 compaction model: set/get/clear round-trips feature-models.json', as
   assert.equal(r.data.removed, false, 'second clear reports nothing removed');
   dispose();
 });
+
+// dedup-h #2263 — bill() stamps the live model onto the ledger row so the
+// traces surface can do per-model breakdown.
+test('#2263 bill stamps model onto ledger rows for the traces surface', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-bill-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const { BudgetGovernor } = await import('../../host/src/core/budget.js');
+  const { AuditWriter } = await import('../../host/src/core/audit.js');
+  const audit = new AuditWriter({ auditDir });
+  const ledgerPath = join(dir, 'budget-ledger.jsonl');
+  const budget = new BudgetGovernor({ ledgerPath, limits: {}, audit });
+  const core = { paths: { auditDir }, audit };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, budget });
+  fakeSessionRef.sessionId = 's-bill';
+  fakeSessionRef.sessionManager = { getSessionId: () => 's-bill' };
+
+  for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant', usage: { input: 50, output: 20, cacheRead: 10, cost: { total: 0.01 } } } });
+  await new Promise((r) => setTimeout(r, 20));
+  const rows = readFileSync(ledgerPath, 'utf-8').trim().split('\n').map((l) => JSON.parse(l));
+  const last = rows.at(-1);
+  assert.equal(last.model, 'gpt-5.6-luna-max', 'live model id stamped');
+  assert.deepEqual(last.detail, { input: 50, output: 20, cacheRead: 10, cacheWrite: 0 }, 'token split persisted');
+  const t = budget.traces({ scope: 's-bill' });
+  assert.equal(t.shown, 1);
+  assert.equal(t.byModel['gpt-5.6-luna-max'].tokens, 80);
+  dispose();
+});

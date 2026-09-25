@@ -3811,6 +3811,28 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #2263 — per-call LLM traces (TracesView analogue): token split,
+    // cache-hit rate, per-model breakdown from the append-only budget ledger.
+    cmd: '/traces', label: '调用轨迹', hint: '/traces [N]——最近 N 次 LLM 调用：模型/token 拆分/缓存命中',
+    run: async (arg) => {
+      const n = Math.min(Math.max(1, parseInt(arg, 10) || 15), 50);
+      const r = await cmd('usage_traces', { n });
+      if (!r.success) { addSys(`轨迹不可用：${r.error ?? '未知'}`, true); return; }
+      const t = r.data ?? {};
+      if (!t.shown) { addSys('尚无 LLM 调用记录'); return; }
+      const hit = t.cacheHitRate == null ? '—' : `${Math.round(t.cacheHitRate * 100)}%`;
+      const lines = [`最近 ${t.shown} 次调用 · 缓存命中率 ${hit}`];
+      for (const row of (t.rows ?? []).slice(-12)) {
+        const d = row.input != null ? `in ${row.input} · out ${row.output ?? 0}` : `${row.tokens} tok`;
+        const cache = (row.cacheRead ?? 0) > 0 ? ` · cache ${row.cacheRead}` : '';
+        lines.push(`  ${new Date(row.at).toLocaleTimeString()} ${row.source ?? '?'} ${row.model ?? '(未署名)'} — ${d}${cache}`);
+      }
+      const models = Object.entries(t.byModel ?? {});
+      if (models.length > 1) lines.push(`分模型：${models.map(([m, a]) => `${m} ${a.calls}次/${(a.tokens ?? 0).toLocaleString()}tok`).join(' · ')}`);
+      addSys(lines.join('\n'));
+    },
+  },
+  {
     cmd: '/config', label: '会话设置', hint: '/config 查看；/config key=value 设置（model/thinking/mode）',
     run: async (arg) => {
       const text = String(arg ?? '').trim();
