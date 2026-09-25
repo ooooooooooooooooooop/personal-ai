@@ -414,16 +414,28 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   let stopContinues = 0;
 
   // dedup-h #2101 — project kill switch (.zed/settings.json disable_ai
-  // analogue): <workdir>/.pai/settings.json {disable_ai:true} refuses AI
-  // turns for this project. Re-read per prompt so a live flip applies
-  // immediately; absent/malformed file = enabled. This gates model turns
-  // only — bash_run/jobs/exec are not "AI features" and stay reachable.
-  const projectAiDisabled = () => {
-    if (!workdir) return false;
-    try {
-      return JSON.parse(readFileSync(join(workdir, '.pai', 'settings.json'), 'utf-8'))?.disable_ai === true;
-    } catch { return false; }
+  // analogue): {disable_ai:true} refuses AI turns. Re-read per prompt so a
+  // live flip applies immediately; absent/malformed layer = {} (enabled).
+  // dedup-h #2164 — two-layer settings (upstream pi global
+  // ~/.pi/agent/settings.json + project <cwd>/.pi/settings.json, project
+  // wins): <instance>/settings.json is the operator-global layer, the
+  // workdir .pai/settings.json overrides it key-by-key. A malformed layer
+  // degrades to {} rather than poisoning the merge. This gates model
+  // turns only — bash_run/jobs/exec are not "AI features" and stay
+  // reachable.
+  const mergedSettings = () => {
+    const read = (p) => {
+      try {
+        const d = JSON.parse(readFileSync(p, 'utf-8'));
+        return d && typeof d === 'object' && !Array.isArray(d) ? d : {};
+      } catch { return {}; }
+    };
+    return {
+      ...(core.paths?.root ? read(join(core.paths.root, 'settings.json')) : {}),
+      ...(workdir ? read(join(workdir, '.pai', 'settings.json')) : {}),
+    };
   };
+  const projectAiDisabled = () => mergedSettings().disable_ai === true;
 
   // dedup-h #2118 — crush "Adaptive" default model: model-routes.json
   // {adaptive:true} resolves every prompt's text against the routing table

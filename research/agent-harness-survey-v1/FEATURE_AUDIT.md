@@ -3051,3 +3051,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（Tencent Yuanbao/QQBot channel coverage）**：**边界**——元宝/QQBot 是厂商私有 IM 渠道集成；我方入站面只有认证 webhook（#2100），无第三方聊天平台渠道层可挂；非能力缺口的诚实边界。
 - **证据**：`browser.test.js` +1=10/10（resolved secret 到页面、result/audit 无明文、互斥/缺失/解析失败三拒、失败零输入）。
 - **核销**：candidates-open #2160 → `candidates-resolved.tsv` #154。
+
+#### 28.155 two-layer settings merge + `unicode_mode` terminal degrade (#2164 — desc IMPLEMENTED / title ALREADY_COVERED)
+
+- **status**: desc implemented (global+project settings layering); title already covered by M144.
+- **判定**：描述 **IMPLEMENTED**；标题 **ALREADY_COVERED**。
+  - **描述语义（global+project settings override）**：新增 `mergedSettings()`——`<instance>/settings.json`（操作员全局层，对位 `~/.pi/agent/settings.json`）垫底、`<workdir>/.pai/settings.json`（项目层，对位 `<cwd>/.pi/settings.json`）按键覆盖；双层均逐次 prompt 重读 live 生效；单层畸形降级 `{}` 不污染合并；`disable_ai` 消费合并视图（全局可禁、项目可覆写、双层同禁/同开语义直觉）。
+  - **标题语义（unicode_mode auto/unicode/ascii 终端降级）**：**已覆盖**——M144 `host/src/core/charset.js`：三档合法值、auto 一次性环境解析（dumb-terminal 标记→ascii）、符号层 transliterate（box-drawing/箭头/状态 glyph→ASCII），语言文本永不剥（降级 chrome 不降级内容）；`config_set unicode_mode` 在 allowlist 暴露。
+- **证据**：`channel-facade.test.js` +1=52/52（全局独禁、项目覆写、畸形双层各自降级、live 翻转）。
+- **核销**：candidates-open #2164 → `candidates-resolved.tsv` #155。

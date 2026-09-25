@@ -1783,3 +1783,44 @@ test('#2132 write tool start captures args; end lints the touched file', async (
   assert.equal(linted.length, 2, 'errored write never lints');
   dispose();
 });
+
+// dedup-h #2164 — two-layer settings: <instance>/settings.json (global)
+// under <workdir>/.pai/settings.json (project), project wins per key.
+test('#2164 global+project settings merge: project overrides global live', async () => {
+  const calls = [];
+  fakeSessionRef = fakeSession(); listeners.clear();
+  fakeSessionRef.prompt = async (m, o) => calls.push([m, o]);
+  const dir = mkdtempSync(join(tmpdir(), 'pai-layers-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-layers-inst-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(join(dir, '.pai'), { recursive: true });
+  const core = { paths: { auditDir, root: inst }, audit: { write() {} } };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, workdir: dir });
+
+  // global layer alone can disable
+  writeFileSync(join(inst, 'settings.json'), JSON.stringify({ disable_ai: true }));
+  const r = await ch.handle({ type: 'prompt', message: 'a' });
+  assert.equal(r.success, false, 'global disable_ai refuses');
+  assert.equal(calls.length, 0);
+
+  // project overrides global per key → re-enabled
+  writeFileSync(join(dir, '.pai', 'settings.json'), JSON.stringify({ disable_ai: false }));
+  await ch.handle({ type: 'prompt', message: 'b' });
+  assert.equal(calls.length, 1, 'project disable_ai:false overrides global true');
+
+  // project enables its own kill on top of a silent global
+  writeFileSync(join(dir, '.pai', 'settings.json'), JSON.stringify({ disable_ai: true }));
+  writeFileSync(join(inst, 'settings.json'), JSON.stringify({}));
+  const r2 = await ch.handle({ type: 'prompt', message: 'c' });
+  assert.equal(r2.success, false, 'project disable still fires under empty global');
+
+  // malformed global degrades to {} — project layer still decides
+  writeFileSync(join(inst, 'settings.json'), 'not json{');
+  const r3 = await ch.handle({ type: 'prompt', message: 'd' });
+  assert.equal(r3.success, false, 'malformed global cannot poison the merge');
+  writeFileSync(join(dir, '.pai', 'settings.json'), 'also bad{');
+  await ch.handle({ type: 'prompt', message: 'e' });
+  assert.equal(calls.length, 2, 'both layers malformed → enabled');
+  dispose();
+});
