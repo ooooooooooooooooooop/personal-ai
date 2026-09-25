@@ -3025,3 +3025,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（/config key=value）**：**已覆盖**——`/config` 斜杠命令裸用查看（config_get）、`key=value` 经 `config_set` 设置；variant=allowlist 六键（model/thinking/mode/unicode_mode/image_detail/proxy_mode）是"any setting"的有界诚实对位（密钥/代理类不走裸命令）。
 - **证据**：`bootstrap.test.js` +1=45/45（真 `git worktree add` 建出+列表可见+逃逸/已存在/坏 ref 三拒）；host 417/417；app lint 净。
 - **核销**：candidates-open #2135 → `candidates-resolved.tsv` #151。
+
+#### 28.152 codex `-w, --workspace <path>` workspace flag + slash command frontmatter `mode:` field (#2137 — ALREADY_COVERED + covered)
+
+- **status**: both halves already implemented. Source: codex-tui slash-command frontmatter mode + workspace CLI flag.
+- **title — ALREADY_COVERED**: recipe files (`.pai/recipes/*.md`) carry frontmatter `mode: <name>` — on trigger the recipe requests a governed mode switch through the operator ask card (skilltools.js M131 block); a recipe file can never force a posture change, refusal is reported honestly in the recipe output, `RECIPE_MODE` audit records the outcome. Same analogue as Claude command frontmatter.
+- **description — covered (spelling closed this candidate)**: `--workdir <dir>` was already the custom-workspace flag; `--workspace` and `-w` added as accepted spellings of the same flag (`pai-channel.js`).
+- **evidence**: pai-channel-cli.test.js 3/3 green — all three spellings boot the host.
+- **核销**：candidates-open #2137 → `candidates-resolved.tsv` #152。

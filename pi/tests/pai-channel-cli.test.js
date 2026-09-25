@@ -48,3 +48,16 @@ test('#2124 --output-schema: valid spec (inline + @file) boots and serves stdin'
   const atPath = run(['--instance', d, '--workdir', d, '--output-schema', `@${schemaFile}`]);
   assert.notEqual(atPath.status, 2, `@path flag rejected: ${atPath.stderr}`);
 });
+
+test('#2137 --workspace/-w spellings accepted alongside --workdir', () => {
+  const d = dir();
+  mkdirSync(join(d, 'canonical'), { recursive: true });
+  writeFileSync(join(d, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+  }));
+  // each spelling must reach the host (boot fails loudly on --instance only)
+  for (const flag of ['--workdir', '--workspace', '-w']) {
+    const r = run(['--instance', d, flag, d]);
+    assert.notEqual(r.status, 2, `${flag} rejected: ${r.stderr}`);
+  }
+});

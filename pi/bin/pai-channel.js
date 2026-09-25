@@ -33,7 +33,15 @@ if (!instanceRoot) {
   process.stderr.write('pai-channel: --instance <instanceRoot> required\n');
   process.exit(2);
 }
-const workdir = opt('workdir', process.cwd());
+// dedup-h #2137 — codex `-w, --workspace <path>` analogue: --workdir is the
+// canonical flag; --workspace/-w are accepted spellings of the same thing.
+const workdir = (() => {
+  for (const flag of ['--workdir', '--workspace', '-w']) {
+    const i = args.indexOf(flag);
+    if (i >= 0) return args[i + 1];
+  }
+  return process.cwd();
+})();
 const delegateCmd = opt('delegate-command', null);
 // M76/M94-R3: when the template can branch on {target}, the operator names
 // which resolved targets carry a real enforcement gate (repeatable or
