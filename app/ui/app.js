@@ -349,13 +349,26 @@ function addThinking(text) {
 }
 /* Collapsible pre-formatted block — /diff output, /btw answers. Reuses the
    think-row collapse pattern but renders monospace payload. */
+// dedup-h #2408 — git-panel diff stats analogue: count +/- payload lines
+// (skipping ---/+++ headers and the \-marker) so each block header carries
+// the same +ins/-del summary a git panel shows per changed file.
+function diffStats(text) {
+  let ins = 0, del = 0;
+  for (const line of String(text ?? '').split('\n')) {
+    if (line.startsWith('+++') || line.startsWith('---')) continue;
+    if (line.startsWith('+')) ins += 1;
+    else if (line.startsWith('-')) del += 1;
+  }
+  return { ins, del };
+}
 function addDiffBlock(title, badge, text) {
   noteMessage();
   actGroup = null;
   const div = document.createElement('div');
   div.className = 'think-row diff-row open';
   div.innerHTML = `<button class="think-head"><span class="t-caret">${CARET}</span><span class="op-badge op-${badge === 'btw' ? 'create' : badge}">${badge}</span> <span class="diff-title"></span></button><pre class="diff-body"></pre>`;
-  div.querySelector('.diff-title').textContent = title;
+  const st = badge === 'btw' ? null : diffStats(text);
+  div.querySelector('.diff-title').textContent = st && (st.ins || st.del) ? `${title}  +${st.ins}/-${st.del}` : title;
   div.querySelector('.diff-body').textContent = text;
   div.querySelector('.think-head').onclick = () => div.classList.toggle('open');
   transcript.appendChild(div);
@@ -3902,6 +3915,10 @@ const SLASH = [
       if (!r.success) { addSys(`diff 失败：${r.error ?? '未知'}`, true); return; }
       const { diffs = [], skipped = [] } = r.data ?? {};
       if (!diffs.length) { addSys('没有可展示的改动', true); return; }
+      // dedup-h #2408 — git-panel stats line: aggregate across shown diffs.
+      let ti = 0, td = 0;
+      for (const d of diffs) { const s = diffStats(d.diff); ti += s.ins; td += s.del; }
+      addSys(`${diffs.length} 处改动 · +${ti}/-${td}`);
       for (const d of diffs) {
         addDiffBlock(d.target.split(/[\\/]/).pop(), d.op, d.diff || '（无文本差异）');
       }

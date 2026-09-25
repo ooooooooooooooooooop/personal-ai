@@ -3330,3 +3330,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（max thinking level）**：**已覆盖**——THINKING_LEVELS 顶层 `xhigh`（off→minimal→low→medium→high→xhigh），`EFFORT_TO_THINKING={max:'xhigh'}` 字面 max 映射；capability gate（非 reasoning 模型仅 off）+`set-thinking`/config_set 面。
   - **描述语义（Adaptive 模型选项，按任务自动选模型省配额）**：**已覆盖(variant)**——`<instance>/model-routes.json {adaptive:true}` 开自适应路由：逐 prompt 文本对操作员路由表解析选模型，`model_set adaptive` 别名解钉、显式选模 opt-out、路由未命中不动当前模型；变体=上游服务端智能选择，我方是操作员声明式路由表（可审计、无黑盒）。
 - **核销**：candidates-open #2405 → `candidates-resolved.tsv` #184。
+
+#### 28.185 hook event family + release bundle (#2408 — title ALREADY_COVERED / desc IMPLEMENTED partial-variant)
+
+- **status**: title covered — 24 named hook events; desc partially implemented — git diff stats landed, other bundle items covered or n/a.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED(variant，子项分级)**。
+  - **标题语义（20+ hook events：tool failures/sub-agent lifecycle/permission/file watching）**：**已覆盖**——HOOK_EVENTS 观测 19（session_start/end、prompt_submit、tool_start/end、agent_stop、compact_*、subagent_start/stop、notification、turn_started、prompt_queued、task_started、session_heartbeat、file_checkpoint、message_sent、llm_input/llm_output）+ GATE_EVENTS 门控 5（pre_tool/post_tool/session_directory/before_branch/transform_llm_output）=24 命名事件；子项对位：tool failures=tool_end(error 载荷)、sub-agent lifecycle=subagent_*、permission=pre_tool 门控事件、file watching=file_checkpoint（治理回执缝）。
+  - **描述语义（发布集：parallel subagents/Vercel gateway/git diff stats/compound emojis）**：
+    - parallel subagents=已覆盖（#2398 durable-job 并行）；
+    - Vercel AI Gateway=已覆盖（#2398 builtin provider）；
+    - git diff stats=**本次落** `/diff` 面板：每块标题 `+ins/-del` 行级统计（---/+++ 头豁免）+聚合 `N 处改动 · +x/-y` 头行；
+    - compound emojis=**N/A**（无自定义文本渲染层——浏览器原生处理 ZWJ 复合 emoji）。
+- **证据**：diffStats 单测断言（ins2/del1、无差异=0/0）；app lint 净；hook 事件表 hooks.js:47-89。
+- **核销**：candidates-open #2408 → `candidates-resolved.tsv` #185。
