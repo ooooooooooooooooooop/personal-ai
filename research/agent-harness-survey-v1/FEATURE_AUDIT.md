@@ -3245,3 +3245,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - *UI*：`/traces [N]` 命令——逐调用行（时间/来源/模型/token 拆分/cache）+命中率+分模型汇总。
 - **证据**：budget.test.js +1（模型戳/拆分/命中率/byModel/scope 滤/n 帽/旧行 null）14/14；channel.test.js +1（scope 缺省=活会话/显式透传/无 facade fail-closed）34/34；channel-facade.test.js +1（bill 真账本行 model+detail 落盘）55/55；app lint 净。
 - **核销**：candidates-open #2263 → `candidates-resolved.tsv` #174。
+
+#### 28.175 memory injection guard + backup/import migration (#2274 — title ALREADY_COVERED / desc ALREADY_COVERED)
+
+- **status**: both covered — M125 write-boundary injection scan; backup+runtimexfer migration surfaces.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED**。
+  - **标题语义（memory_store 拒 prompt-like 注入文本）**：**已覆盖**——M125：`scanForInjection` 在写边界拒注入形文本（"ignore/disregard/forget/override all previous instructions" 等模式族，memory.js:49-67）；记忆召回注入每轮信封，存一条注入=持久注入——`store()` 返回 `{refused: 'injection-shaped content — never persisted'}`（memory.js:147-150），与秘密扫描并列双闸。
+  - **描述语义（hermes backup & hermes import——配置/会话/技能/记忆全量备份恢复+跨机迁移/快照）**：**已覆盖**——`host/src/core/backup.js`：create（allowlist 状态打包、秘密排除并记录、sqlite VACUUM 一致快照）+verify（manifest 哈希全核对、缺失/错配/多出全报）+restore（校验通过才解包、已存状态拒覆除非 force、force 前先快照）+list；`pi/src/adapter/runtimexfer.js`：可携带态导出/导入（.pai microagents/plans/specs+instance memory/profiles/model-aliases/feature-models/model-fallbacks，治理配置与会话永不导出——跨机迁移语义同构）。
+- **核销**：candidates-open #2274 → `candidates-resolved.tsv` #175。
