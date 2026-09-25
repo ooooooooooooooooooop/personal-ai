@@ -3121,3 +3121,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（长上下文模型把工具调用输出为纯文本→任务中断，系统自动提醒模型）**：**已实现**——`message_end` 捕获 assistant 文本尾（4KB 有界）；`agent_end` 经保守模式检测伪调用（`<tool_call>` 标记或 `"name":"x","arguments":` JSON 对）；命中即经 `_continuation` 通道自动提醒模型用真 tool_use 重发；连续 2 次提醒封顶（审计 `TEXT_TOOLCALL_REMIND_CAP` 不再注入），真实操作员轮次重置计数；审计 `TEXT_TOOLCALL_REMINDED` 带匹配片段。
 - **证据**：`channel-facade.test.js` +1（#2194：JSON 伪调用→提醒 prompt 发出+审计；连续 3 次→2 提醒+CAP 审计；良性文本静默）53/53。
 - **核销**：candidates-open #2194 → `candidates-resolved.tsv` #162。
+
+#### 28.163 tools/list_changed auto-refresh + truncated tool-call retry (#2201 — title ALREADY_COVERED / desc ALREADY_COVERED)
+
+- **status**: both covered — catalog hot-refresh via list_changed; truncation retry native to the pinned SDK loop.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED**。
+  - **标题语义（tools/list_changed 通知自动刷新 tool list）**：**已覆盖**——M130 订阅 `notifications/tools|prompts/list_changed`（stdio id-less frames+HTTP 同理），重列后 diff 目录（新增工具即时注册、移除工具标记 dead 并注入可见告知消息 #1517）；#1521 live `entry` 绑定使重连后目录再 diff。
+  - **描述语义（模型输出超限截断 tool call 参数→重试机制）**：**已覆盖**——pin `@earendil-works/pi-agent-core` agent-loop.js:137：`stopReason === "length"` 时该消息全部 tool calls 不执行，`failToolCallsFromTruncatedMessage` 为每个调用发 error tool_result（"arguments may be truncated. Re-issue the tool call with complete arguments"）→ `terminate:false` 循环续跑，模型收到失败结果即重发——与上游"重试截断调用"同语义且更安全（截断参数绝不执行）；我方 post-mutation schema revalidate 为第二层。
+- **核销**：candidates-open #2201 → `candidates-resolved.tsv` #163。
