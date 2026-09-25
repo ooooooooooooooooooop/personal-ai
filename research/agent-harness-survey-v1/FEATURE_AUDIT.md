@@ -3297,3 +3297,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（session-level fast toggles /fast+TUI+Control UI+ACP）**：**已覆盖(variant)**——`/fast` 命令已由 #2346 落地（空参切 priority、显式档位、`config_get`-adjacent 读面、持久于 models.json）。诚实差异：上游是会话级切换，我方是 per-model 持久配置（重启存活、跨会话对该模型生效=更强而非更弱）；TUI/ACP 控制面无对应物（boundary——栈内唯一用户面是 app UI 命令层，该面已有 `/fast`）。
   - **描述语义（Edge TTS provider fallback，keyless+MP3 retry）**：**BOUNDARY**——栈内无 TTS/语音输出面：输出通道是文本（chat/SSE/webhook），无 audio 工具、无 TTS provider 注册点、无语音管线。
 - **核销**：candidates-open #2375 → `candidates-resolved.tsv` #180。
+
+#### 28.181 ordered fallback provider chain + /v1/chat/completions gateway (#2376 — title ALREADY_COVERED / desc BOUNDARY)
+
+- **status**: title covered — M100 ordered fallback chain; desc boundary — same gateway surface judged at #2355.
+- **判定**：标题 **ALREADY_COVERED**；描述 **BOUNDARY**。
+  - **标题语义（有序 fallback provider 链，primary 失败自动切）**：**已覆盖**——`<instance>/model-fallbacks.json` operator 排序链（M100）：terminal provider error（429/5xx/网络/auth/context-overflow）→ 按序走链；request-invariant 错误（400/422/校验）不烧 hop 跳过；每条目过 models-allow 门+已注册+有 auth 三重闸；`fallbackHops` 单任务跳数封顶；`MODEL_FALLBACK`/SKIPPED 审计全程；`fallbacks_set/list` ops 热改+持久化。
+  - **描述语义（/v1/chat/completions gateway）**：**BOUNDARY**——同 #2355 标题判定：入站面仅认证 webhook+localhost UI 桥，无 LLM 服务化面。
+- **核销**：candidates-open #2376 → `candidates-resolved.tsv` #181。
