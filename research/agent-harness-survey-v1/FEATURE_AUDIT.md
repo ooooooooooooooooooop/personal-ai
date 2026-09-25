@@ -3222,3 +3222,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（命令输出入聊时 token 计数反馈）**：**已实现**——`!cmd`（bang 模式）输出暂存 `pendingBash` 后 `addSys` 反馈：按实际入上下文量（4000 字符发送帽内）≈chars/4 tokens 估算+超长截断明示+多段计数；`!!` context-free 形不反馈（本就不入上下文）。
 - **证据**：`compaction-model.test.js` +2（#2240：200KiB 源→尾保+头弃+带内标记+审计行；欠帽源不带标记无审计）8/8；app lint 净。
 - **核销**：candidates-open #2240 → `candidates-resolved.tsv` #172。
+
+#### 28.173 compact hook events + plugin compaction + post-compact model recovery (#2260 — title ALREADY_COVERED variant / desc ALREADY_COVERED)
+
+- **status**: both covered — hooks fire around compaction, summarizer is pluggable, and no compact-agent leak exists.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **ALREADY_COVERED**。
+  - **标题语义（session:compact:before/after hook 事件 + plugin compact provider）**：
+    - *hook 事件*：**已覆盖**——channel 在 `compaction_start`/`compaction_end` SDK 事件上 fire `compact_start`/`compact_end` hook（带 reason/runId/usage 载荷，channel.js:377-384）；hooks 事件族 `compact_*` 已登记加载（gate+observational 双形态可用）。
+    - *plugin compact*：**已覆盖(variant)**——`compactionSummarize` 回调是注入缝（loopGovernanceExtension 参数）+`<instance>/feature-models.json {compaction}` 操作员路由+delegate profile `compaction_model`（#1546 全链 fail-closed）；variant=路由到具名模型/provider 的 summarizer 回调而非任意 plugin registry，无 provider 注册表面但同语义可插拔。
+  - **描述语义（压缩后错误继续用 compact agent 的缺陷）**：**已覆盖（缺陷类不存在）**——`compactionSummarize` 经 `judgeCall(featureOverride)` 独立 fetch 调摘要模型，**不触** `setModel`/会话模型态；pi 原生压缩器用会话模型内部执行亦不回写模型字段；压缩后下一轮沿用压缩前模型——无"压缩 agent 泄漏"面。
+- **核销**：candidates-open #2260 → `candidates-resolved.tsv` #173。
