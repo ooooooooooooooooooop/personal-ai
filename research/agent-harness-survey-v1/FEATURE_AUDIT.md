@@ -3104,3 +3104,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（Agent: vim-mode support in the agent panel's editor）**：**已实现**——composer `<textarea>` 模态 vim 编辑，`/vim` 命令 opt-in（localStorage 持久，关闭=零行为变化）：document capture 层拦截 normal 模式按键（Enter 不误发）；motions `h j k l 0 $ w b e`，编辑 `x dd u`（u 复用 draft undo 栈），insert 入口 `i a A I o O`；`#vim-chip` 指示 NORMAL/INSERT；Esc 语义逐层保留——insert 首 Esc→normal，normal 态 Esc 透传（busy abort/queue-drop 原样可达）。
 - **证据**：`dom-gate.js` `vimMode` 检查（真 KeyboardEvent：Esc→NORMAL chip、`w`→词首 col 6、`x` 删字符、Enter `defaultPrevented` 证明不误发、`i`→insert）ui-dom 1/1；app lint 净（`role="status"` aria-live 替代非法 aria-label）。
 - **核销**：candidates-open #2178 → `candidates-resolved.tsv` #160。
+
+#### 28.161 MCP stored prompts + dynamic authorization state clearing (#2193 — title ALREADY_COVERED / desc ALREADY_COVERED)
+
+- **status**: title covered — server prompts are operator-invocable slash commands; desc covered — auth state is exact-name keyed, no broad-match clearing exists.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED**。
+  - **标题语义（MCP stored prompts 支持）**：**已覆盖**——`prompts/list` 独立发现（prompt-only server 亦可用）+ `prompts/get` 调用面：每个 server prompt 注册为 `/mcp-<srv>-<prompt>` 操作员斜杠命令（M82），命名/位置参数解析 + required 缺失响亮提示，server 消息作为 user turn 注入并带 `[mcp prompt srv/name]` 来源前缀；`prompts/list_changed` diff-refresh（#1521）+ 断线重连经 live `entry.client` 换绑，prompt 命令不失效。
+  - **描述语义（dynamic authorization states 被过宽匹配误清）**：**已覆盖（该缺陷类不存在）**——token store 全部读写按精确 `store[serverName]` 键；`invalidate()` 为 per-server 闭包只清自身 `cached`（401 重试仅失该 server 令牌，不碰 store 或兄弟条目）；无按 URL/前缀/通配的批量清除路径。gateway token-exchange 亦注记"subject token 不失效，仅重换"。
+- **核销**：candidates-open #2193 → `candidates-resolved.tsv` #161。
