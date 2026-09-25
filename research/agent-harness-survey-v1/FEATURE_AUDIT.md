@@ -3289,3 +3289,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（idle watchdog 覆盖 provider 流建立期，防静默挂死等满全程超时）**：**已实现**——机制链核实：agent loop 逐 provider 调用读 `settingsManager.getHttpIdleTimeoutMs()`→`effectiveTimeoutMs`→stream `timeoutMs`，请求级超时覆盖 stream-setup pending（响应 promise 在 headers 到达前即受时限约束），SDK 默认 300s。缺的是操作员面：`config_set http_idle_timeout=<ms>` → `modelsFacade.setIdleTimeout` → `settingsManager.setHttpIdleTimeoutMs` 持久化（逐调用重读即时生效）；`config_get` 快照带 `http_idle_timeout`；整数 0–3600000 校验、0=禁用（operator choice）、`HTTP_IDLE_TIMEOUT` 审计；`/config` 用法串补新键。诚实边界：undici 层 `configureHttpDispatcher` 是 TUI 启动路径内联不导出（pin 内部面），headersTimeout 二级看门狗不在我方可达面——描述要求的语义已由 settings→request-timeout 链承载。
 - **证据**：channel-facade 57/57（set/get 往返+0 禁用+非整数/负数拒）；host 420/420；pi 全套 549/541/8跳/0败；app lint 净。
 - **核销**：candidates-open #2355 → `candidates-resolved.tsv` #179。
+
+#### 28.180 session-level /fast toggles + Edge TTS fallback (#2375 — title ALREADY_COVERED variant / desc BOUNDARY)
+
+- **status**: title covered by #2346 `/fast` (scope variant); desc boundary — no TTS/audio surface exists in the stack.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（session-level fast toggles /fast+TUI+Control UI+ACP）**：**已覆盖(variant)**——`/fast` 命令已由 #2346 落地（空参切 priority、显式档位、`config_get`-adjacent 读面、持久于 models.json）。诚实差异：上游是会话级切换，我方是 per-model 持久配置（重启存活、跨会话对该模型生效=更强而非更弱）；TUI/ACP 控制面无对应物（boundary——栈内唯一用户面是 app UI 命令层，该面已有 `/fast`）。
+  - **描述语义（Edge TTS provider fallback，keyless+MP3 retry）**：**BOUNDARY**——栈内无 TTS/语音输出面：输出通道是文本（chat/SSE/webhook），无 audio 工具、无 TTS provider 注册点、无语音管线。
+- **核销**：candidates-open #2375 → `candidates-resolved.tsv` #180。
