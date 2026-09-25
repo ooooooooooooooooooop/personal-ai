@@ -897,12 +897,16 @@ function httpTransport(spec, { serverName = null } = {}) {
     const ct = res.headers.get('content-type') ?? '';
     if (ct.includes('text/event-stream')) {
       const text = await res.text();
-      // last JSON-RPC message in the stream wins (progress frames precede it)
+      // last response message wins; intermediate frames (notifications,
+      // progress updates) are dispatched live through the message handler.
       let last = null;
       for (const block of text.split(/\r?\n\r?\n/)) {
         const data = parseSseBlock(block);
         if (!data) continue;
-        try { last = JSON.parse(data); } catch { /* skip malformed frame */ }
+        let parsed;
+        try { parsed = JSON.parse(data); } catch { continue; }
+        if (parsed.id == null && typeof parsed.method === 'string') messageHandler?.(parsed);
+        else last = parsed;
       }
       return last;
     }
@@ -1054,6 +1058,7 @@ export class McpClient {
   #notifyHandlers = [];
   #exitHandlers = [];
   #requestHandlers = new Map(); // dedup-h #2202 — server→client requests (elicitation)
+  #progressHandlers = []; // dedup-h #2221 — notifications/progress → operator surface
 
   constructor(transport) {
     this.#transport = transport;
@@ -1081,6 +1086,9 @@ export class McpClient {
 
   /** dedup-h #2202 — handle a server→client request (e.g. elicitation/create). */
   onRequest(method, fn) { this.#requestHandlers.set(method, fn); }
+
+  /** dedup-h #2221 — notifications/progress frames ({progressToken, progress, total?, message?}). */
+  onProgress(fn) { this.#progressHandlers.push(fn); }
 
   // dedup-h #1521 — fires ONLY on unexpected transport death (never on
   // close()); the extension uses it to schedule bounded reconnects.
@@ -1128,7 +1136,10 @@ export class McpClient {
     // server is never left hanging on a request we cannot serve.
     if (msg.id == null) {
       if (typeof msg.method === 'string') {
-        for (const fn of this.#notifyHandlers) {
+        // dedup-h #2221 — notifications/progress rides its own channel so a
+        // chatty long-running tool cannot bury catalog-change notifications.
+        const fns = msg.method === 'notifications/progress' ? this.#progressHandlers : this.#notifyHandlers;
+        for (const fn of fns) {
           try { fn(msg); } catch { /* a bad handler must not kill the pump */ }
         }
       }
@@ -1196,6 +1207,9 @@ export class McpClient {
   #requestStdio(msg, { timeoutMs = DEFAULT_TIMEOUT_MS, signal } = {}) {
     if (this.#closed) return Promise.reject(new McpError('mcp client closed', { code: 'MCP_CLOSED' }));
     const id = msg.id;
+    // dedup-h #2221 — advertise a progressToken so servers may answer with
+    // notifications/progress for this request (spec-reserved _meta key).
+    msg.params = { ...(msg.params ?? {}), _meta: { ...(msg.params?._meta ?? {}), progressToken: id } };
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#pending.delete(id);
@@ -1230,6 +1244,8 @@ export class McpClient {
 
   async #requestHttp(msg, { timeoutMs = DEFAULT_TIMEOUT_MS, signal } = {}) {
     if (this.#closed) throw new McpError('mcp client closed', { code: 'MCP_CLOSED' });
+    // dedup-h #2221 — same progressToken advertisement as the stdio path.
+    msg.params = { ...(msg.params ?? {}), _meta: { ...(msg.params?._meta ?? {}), progressToken: msg.id } };
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), timeoutMs);
     const onAbort = async () => {
@@ -1768,6 +1784,25 @@ export default function mcpExtension(pi) {
         // an unexpected transport death schedules a bounded reconnect; an
         // intentional close() (shutdown, /mcp-disable) never does.
         client.onServerExit?.(() => scheduleReconnect(name, spec));
+        // dedup-h #2221 — tool progress updates: notifications/progress →
+        // operator-visible line. Throttled per token: a chatty tool gets one
+        // notify per message-change or 2s, plus the completion frame — never
+        // a notify storm. No UI → frames are consumed and dropped honestly.
+        client.onProgress?.((m) => {
+          const p = m?.params ?? {};
+          const token = String(p.progressToken ?? '?');
+          const key = `${name}:${token}`;
+          const msg = typeof p.message === 'string' ? p.message.slice(0, 160) : null;
+          const frac = (typeof p.progress === 'number')
+            ? (typeof p.total === 'number' && p.total > 0 ? ` ${Math.round((p.progress / p.total) * 100)}%` : ` ${p.progress}`) : '';
+          const now = Date.now();
+          const last = progressThrottle.get(key) ?? { at: 0, msg: null };
+          const done = typeof p.total === 'number' && p.progress >= p.total;
+          if (!done && now - last.at < 2000 && last.msg === msg) return;
+          progressThrottle.set(key, { at: now, msg });
+          if (done) progressThrottle.delete(key);
+          uiCtx?.notify?.(`mcp '${name}' progress${frac}${msg ? ` — ${msg}` : ''}`, 'info');
+        });
         // M130: subscribe BEFORE family discovery — a list_changed pushed
         // while tools/list or prompts/list is still in flight (or hung on a
         // server that silently drops unknown methods) must not be lost.
@@ -1856,6 +1891,7 @@ export default function mcpExtension(pi) {
   // 'cancel'. Without a UI we answer 'decline' — spec-compliant and the
   // server is never left hanging either way. Bounded at 10 fields.
   let uiCtx = null;
+  const progressThrottle = new Map(); // dedup-h #2221 — `${srv}:${token}` → last notify
   const handleElicitation = async (serverName, params) => {
     if (!uiCtx) return { action: 'decline' };
     const message = String(params?.message ?? 'input requested').slice(0, 160);
@@ -1896,6 +1932,7 @@ export default function mcpExtension(pi) {
     connected.clear();
     for (const [, pend] of pendingAuth) pend.listen?.close?.();
     pendingAuth.clear();
+    progressThrottle.clear();
   });
 
   pi.registerCommand('mcp', {

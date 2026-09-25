@@ -2310,3 +2310,50 @@ test('#2215 oauth loopback iss: mismatch rejects fatally, match resolves, unconf
   assert.equal(hit3.status, 200);
   assert.equal((await l3.promise).code, 'OK3');
 });
+
+// dedup-h #2221 — tool progress updates: requests advertise _meta.progressToken;
+// notifications/progress route to onProgress handlers (never to notifyHandlers).
+test('#2221 progress: request carries progressToken; progress frames reach onProgress', async () => {
+  const seen = { tokens: [], pushes: 0 };
+  const server = createServer((req, res) => {
+    if (req.method === 'GET') { res.statusCode = 405; res.end(); return; }
+    let body = ''; req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const msg = JSON.parse(body);
+      const rpcRes = (result) => ({ jsonrpc: '2.0', id: msg.id, result });
+      res.setHeader('content-type', 'application/json');
+      if (msg.method === 'initialize') {
+        res.end(JSON.stringify(rpcRes({ protocolVersion: '2025-06-18', serverInfo: { name: 'prog-fake' }, capabilities: {} })));
+      } else if (msg.method === 'tools/call') {
+        seen.tokens.push(msg.params?._meta?.progressToken ?? null);
+        // answer over SSE: two progress frames then the result (last wins)
+        res.setHeader('content-type', 'text/event-stream');
+        res.end(
+          `data: ${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: msg.params._meta.progressToken, progress: 1, total: 2, message: 'half' } })}\n\n`
+          + `data: ${JSON.stringify({ jsonrpc: '2.0', method: 'notifications/progress', params: { progressToken: msg.params._meta.progressToken, progress: 2, total: 2 } })}\n\n`
+          + `data: ${JSON.stringify(rpcRes({ content: [{ type: 'text', text: 'done' }] }))}\n\n`,
+        );
+      } else {
+        res.statusCode = 202; res.end();
+      }
+    });
+  });
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const url = `http://127.0.0.1:${server.address().port}/mcp`;
+    const client = await McpClient.connect({ url });
+    try {
+      const frames = [];
+      const notifies = [];
+      client.onProgress((m) => frames.push(m.params));
+      client.onNotification((m) => notifies.push(m));
+      const res = await client.callTool('slow', {});
+      assert.equal(res.content[0].text, 'done');
+      assert.ok(seen.tokens[0] != null, 'progressToken advertised on the request');
+      assert.equal(frames.length, 2, 'both progress frames reached onProgress');
+      assert.equal(frames[0].message, 'half');
+      assert.equal(frames[0].progressToken, seen.tokens[0], 'token echoes the advertised value');
+      assert.ok(!notifies.some((m) => m.method === 'notifications/progress'), 'progress kept off the notification channel');
+    } finally { client.close(); }
+  } finally { server.close(); }
+});

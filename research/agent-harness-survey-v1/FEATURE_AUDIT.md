@@ -3179,3 +3179,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（RFC 9207 issuer identification OAuth）**：**已覆盖**——#2215 落地：`oauthLoopbackListen` `iss` 校验（state-matching 错 iss=致命 mix-up `MCP_OAUTH_ISS`；匹配/缺省/未配置照常解析）+`oauth.issuer` spec 白名单透传+discovery 注入；登录对 iss-advertising server 本不因未知参数失败。
   - **描述语义（ACP client-provided MCP servers——编辑器注册自有 MCP servers）**：**边界**——#2174 同判：无 ACP 协议面（非编辑器内嵌 agent 形态）；MCP intake=operator 配置文件+`/mcp-add`。
 - **核销**：candidates-open #2219 → `candidates-resolved.tsv` #168。
+
+#### 28.169 MCP tool progress updates + ClawPDF/encrypted-PDF/structuredContent (#2221 — title IMPLEMENTED / desc ALREADY_COVERED variant)
+
+- **status**: title implemented — progressToken advertised, progress frames dispatched live, throttled operator surface; desc covered (same trio as #2212).
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（remote-mcp: tool progress updates TUI/SDK）**：**已实现**——三处接线：
+    - *请求侧*：`#requestStdio`/`#requestHttp` 为每个请求注入 spec 保留字段 `_meta.progressToken`（=请求 id），server 从此可针对该请求回 `notifications/progress`；已有 `_meta` 合并不覆盖。
+    - *分发侧*：`notifications/progress` 走独立 `#progressHandlers` 通道（`onProgress(fn)` API），不与 catalog-change 通知混流；stdio 泵与 HTTP 应答路径均派发——`readResponse` 的 SSE 流改为逐帧解析：通知帧实时过 `messageHandler`，响应帧仍取最后一条（修复 last-wins 吞中间帧的缺口）。
+    - *上报侧*：connectOne 挂 `onProgress`→`uiCtx.notify`，按 `${srv}:${token}` 节流——消息变更或 ≥2s 一报、完成帧必报后清键，长任务工具不产生 notify 风暴；无 UI 时帧消费后诚实丢弃；`session_shutdown` 清节流表。
+  - **描述语义（ClawPDF extraction + encrypted PDF + MCP structured content）**：**已覆盖(variant)**——#2212 同判：`pdf_read` 一等工具+`pdf.json` 有界+judgeCall 分析；加密 PDF=探测后诚实拒（variant=零依赖不解密）；`structuredContent` 随 tools/call 结果透传。
+- **证据**：`mcp-ext.test.js` +1（#2221：真 HTTP server——请求携带 progressToken、SSE 流内两 progress 帧经 onProgress 到达、token 回显一致、进度帧不进通知通道）48/48；manifest sha256 重算（`11ab3715…`）。
+- **核销**：candidates-open #2221 → `candidates-resolved.tsv` #169。
