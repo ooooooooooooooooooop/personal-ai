@@ -431,3 +431,22 @@ test('#2431: resume_task rebinds an existing open task; live/closed/missing refu
   assert.equal(r4.details.reason, 'resume_task_missing');
   assert.equal(spawned.length, 1, 'all refusals before spawn');
 });
+
+test('#2438: built-in verifier profile present by default; operator file shadows it', () => {
+  const w = mkdtempSync(join(tmpdir(), 'pai-ver-'));
+  const inst = mkdtempSync(join(tmpdir(), 'pai-ver-inst-'));
+  let profiles = loadAgentProfiles({ workdir: w, instanceRoot: inst });
+  const v = profiles.get('verifier');
+  assert.ok(v, 'built-in registered with zero config');
+  assert.equal(v.builtin, true);
+  assert.equal(v.target, 'pai', 'forks parent body');
+  assert.ok(v.toolsDeny.includes('file_edit'), 'write tools denied');
+  assert.match(v.preamble, /VERIFIER|verifier/i);
+
+  // operator verifier.md shadows the built-in
+  mkdirSync(join(w, '.pai', 'agents'), { recursive: true });
+  writeFileSync(join(w, '.pai', 'agents', 'verifier.md'), PROFILE('codex', 'operator verifier wins', 'verifier'));
+  profiles = loadAgentProfiles({ workdir: w, instanceRoot: inst });
+  assert.equal(profiles.get('verifier').preamble, 'operator verifier wins');
+  assert.equal(profiles.get('verifier').builtin, undefined);
+});

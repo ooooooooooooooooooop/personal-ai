@@ -3388,3 +3388,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（TUI fuzzy selectors：slash-token/alpha-number 匹配）**：**BOUNDARY**——栈内无 TUI 面（app web UI 的 delegate 选择走 task_list/task_center，无 fuzzy-select 控件对应物）。
 - **证据**：`delegate.js:107-108` model/effort 参数定义。
 - **核销**：candidates-open #2434 → `candidates-resolved.tsv` #190。
+
+#### 28.191 built-in verifier profile + agent lifecycle bundle (#2438 — title IMPLEMENTED / desc covered)
+
+- **status**: title implemented — built-in `verifier` profile; desc covered.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（built-in verifier profile：subagent review/validation）**：**IMPLEMENTED**——`loadAgentProfiles` 零配置注册 `verifier` 内置人格：target `pai`（fork 母体）、评审 preamble（severity 排序+file:line 证据+只观察不改写）、`toolsDeny` 拒 file_edit/file_write/multi_edit/file_delete（留 bash 跑测试）；`builtin:true` 标记；operator `.pai/agents/verifier.md` shadow 覆盖内置。
+  - **描述语义（queued follow-ups/manual-turn priority/subagent completion handoffs/session locks/context usage/fallback diagnostics/final payloads）**：**已覆盖(variant)**——depends_on durable 队列=queued follow-ups；task_send/task_interrupt=turn 级 steer；result envelope+job_bound=completion handoff；write lease=session lock；budget ledger+/traces=context usage；fallback 审计行=diagnostics；envelope=final payload。
+- **证据**：agentprofiles.test.js +1（内置存在/shadow 胜）；pi 全套回归见台账。
+- **核销**：candidates-open #2438 → `candidates-resolved.tsv` #191。

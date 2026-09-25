@@ -184,5 +184,23 @@ export function loadAgentProfiles({ workdir, instanceRoot, workdirTrusted = fals
       } catch { /* unreadable profile files are skipped, not fatal */ }
     }
   }
+  // dedup-h #2438 — built-in verifier profile: an out-of-box review/
+  // validation persona (forks the parent body, write tools denied so the
+  // critique stays read-only while bash remains for running tests).
+  // File-loaded profiles shadow it — an operator verifier.md always wins.
+  if (!profiles.has('verifier')) {
+    profiles.set('verifier', {
+      name: 'verifier',
+      target: 'pai',
+      builtin: true,
+      description: 'built-in review/validation persona — severity-ordered critique of the referenced change with file:line evidence; never edits',
+      preamble:
+        'You are a VERIFIER subagent. Review the referenced work critically: ' +
+        'correctness bugs, security issues, missing edge cases, contract violations. ' +
+        'Report findings as a severity-ordered list with file:line evidence. ' +
+        'Do NOT modify files — observation and verdict only.',
+      toolsDeny: ['file_edit', 'file_write', 'multi_edit', 'file_delete'],
+    });
+  }
   return profiles;
 }
