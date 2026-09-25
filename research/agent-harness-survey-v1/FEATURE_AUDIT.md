@@ -3138,3 +3138,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（tools/list_changed 自动刷新）**：**已覆盖**——M130 订阅+diff-refresh+dead 标记+移除可见告知，#1521 live entry 重连再 diff（详 #2201 核销）。
 - **证据**：`mcp-ext.test.js` +1（#2202：真 HTTP server 推 `elicitation/create`+未知方法——绑定端 capability 声明+`{action:'accept',content}` 应答回传，未绑定端 capability 不声明+`-32601` 应答）46/46；managed-manifest sha256 重算 `e2e125af`。
 - **核销**：candidates-open #2202 → `candidates-resolved.tsv` #164。
+
+#### 28.165 streamable-HTTP OAuth flag + config/schema hardening trio (#2208 — title ALREADY_COVERED variant / desc MIXED covered+boundary)
+
+- **status**: title covered unconditionally; desc = two covered, one boundary (no multi-agent thread-limit config surface).
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **部分覆盖+BOUNDARY**。
+  - **标题语义（streamable HTTP OAuth behind feature flag）**：**已覆盖(variant)**——streamable-http 传输的 OAuth 无条件可用：`oauth` spec 校验（tokenUrl/authorizationUrl/deviceAuthUrl http(s)+off-loopback 拒）+authorization_code PKCE+device_code+client_credentials+gateway exchange 全流，upstream 的 feature flag 是灰度发布机制非用户语义；我方直接发布态。
+  - **描述语义（三项 config/schema 处理）**：
+    - *conflicting MultiAgentV2 thread limits 拒绝*：**BOUNDARY**——无 MultiAgentV2 式多 agent thread-limit 配置面；`max_turns` 为 per-profile 字段经 trust 门分层优先（单赢家无冲突可判），`--max-turns`/`PAI_MAX_TOOL_CALLS` 桥接环境层不形成"冲突声明"对。
+    - *relative agent-role config paths 解析*：**已覆盖**——`.pai/agents/*.md`（项目）+`<instance>/agents`（操作员）+扩展 `agents/` 三层目录均按 workdir/instance/包内相对解析（agentprofiles.js:7,148）。
+    - *MCP bearer-token 字段隐藏*：**已覆盖**——`/mcp` 状态面 headers 显示 `N configured (values redacted)`（index.js:1908），值永不渲染；OAuth token 仅以存储指示符出现。
+- **核销**：candidates-open #2208 → `candidates-resolved.tsv` #165。
