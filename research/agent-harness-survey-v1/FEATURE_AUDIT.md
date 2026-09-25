@@ -3379,3 +3379,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（persistent sessions/subagent runs 在父树中可编辑可 steer）**：**已覆盖(variant)**——task_send→inbox.jsonl→child stdin `steer` 帧（delegate-bridge.js:168-180）；resume_task 持久会话延续（#2431）；task center/task_list 呈现父↔子绑定树。
 - **证据**：`pi/bin/delegate-bridge.js` steering 转发链；`host/src/core/tasks.js` 邮箱模型。
 - **核销**：candidates-open #2433 → `candidates-resolved.tsv` #189。
+
+#### 28.190 delegate model param + TUI selectors (#2434 — title covered / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED**；描述 **BOUNDARY**。
+  - **标题语义（Task tool model 参数 lite/reasoning 变体）**：**已覆盖**——`delegate_task` `model`/`effort` 参数（#1169）：profile pin 冲突诚实拒+operator allowlist 门+模板安全字符校验；`effort` low/medium/high/max 对位 lite/reasoning 档。
+  - **描述语义（TUI fuzzy selectors：slash-token/alpha-number 匹配）**：**BOUNDARY**——栈内无 TUI 面（app web UI 的 delegate 选择走 task_list/task_center，无 fuzzy-select 控件对应物）。
+- **证据**：`delegate.js:107-108` model/effort 参数定义。
+- **核销**：candidates-open #2434 → `candidates-resolved.tsv` #190。
