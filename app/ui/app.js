@@ -3353,6 +3353,10 @@ async function openJobDetail(jobId) {
         <span class="jd-k">等待前序依赖</span>
         <span class="jd-deps"></span>
       </div>
+      <div class="jd-row jd-events-row hidden">
+        <span class="jd-k">事件时间线</span>
+        <div class="jd-events"></div>
+      </div>
       <div class="jd-row">
         <div class="jd-row-head">
           <span class="jd-k">终端输出日志</span>
@@ -3377,6 +3381,29 @@ async function openJobDetail(jobId) {
     depRow.classList.add('hidden');
   }
   panel.querySelector('.jd-out').textContent = detail?.output_tail || '（暂无输出）';
+
+  // dedup-h #2422 — multitask progress analogue: render the durable job-event
+  // ledger (lifecycle/tool activity the store recorded) so the detail panel
+  // shows what the background worker actually did, not only its final output.
+  const evRow = panel.querySelector('.jd-events-row');
+  const evList = Array.isArray(detail?.events) ? detail.events : [];
+  if (evList.length) {
+    evRow.classList.remove('hidden');
+    const fmtPayload = (raw) => {
+      let p = raw;
+      try { p = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { /* leave raw */ }
+      if (p == null) return '';
+      const s = typeof p === 'string' ? p : JSON.stringify(p);
+      return s.length > 140 ? `${s.slice(0, 140)}…` : s;
+    };
+    panel.querySelector('.jd-events').innerHTML = evList.map((e) => {
+      const ts = (e.timestamp || '').slice(11, 19) || e.timestamp || '';
+      const payload = fmtPayload(e.payload_json);
+      return `<div class="jd-ev"><span class="jd-ev-ts">${escapeHtml(ts)}</span> <span class="jd-ev-type">${escapeHtml(e.event_type ?? '?')}</span>${payload ? ` <span class="jd-ev-payload">${escapeHtml(payload)}</span>` : ''}</div>`;
+    }).join('');
+  } else {
+    evRow.classList.add('hidden');
+  }
 
   const cmdCopy = panel.querySelector('.jd-copy-cmd');
   if (cmdCopy) {

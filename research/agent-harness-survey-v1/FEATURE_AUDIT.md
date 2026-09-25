@@ -3343,3 +3343,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - compound emojis=**N/A**（无自定义文本渲染层——浏览器原生处理 ZWJ 复合 emoji）。
 - **证据**：diffStats 单测断言（ins2/del1、无差异=0/0）；app lint 净；hook 事件表 hooks.js:47-89。
 - **核销**：candidates-open #2408 → `candidates-resolved.tsv` #185。
+
+#### 28.186 authenticated pairing + multitask progress (#2422 — title BOUNDARY / desc IMPLEMENTED variant)
+
+- **status**: desc implemented — job-detail event timeline; title boundary.
+- **判定**：标题 **BOUNDARY**；描述 **IMPLEMENTED(variant)**。
+  - **标题语义（authenticated local gateway-client self-connections 免 device pairing）**：**BOUNDARY**——栈内无 device-pairing 仪式面；localhost UI 桥本就是 trust-local 设计，"已认证自连免配对"无对应缺陷面。
+  - **描述语义（Web/WorkBuddy 实时展示后台 worker 的 tool calls/results/final responses）**：**IMPLEMENTED(variant)**——job detail 面板渲染 `detail.events` 持久事件账（`job_status` 已返回 last-10：JOB_CREATED/状态迁移/respawn/validation 带 ISO 时戳+payload 摘要截断 140 字符）+ 既有 output_tail/results/deps 行=外部 worker 模型的最近语义（worker 为分离进程，无 in-process tool-call 流；event ledger 即其活动记录）。
+- **证据**：`app/ui/app.js` jd-events-row 渲染（escapeHtml 全程）；`.jd-events` 既有样式规则扩展+`.jd-ev-*`；app lint 净、`node --check` 过。
+- **核销**：candidates-open #2422 → `candidates-resolved.tsv` #186。
