@@ -3070,3 +3070,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **证据**：`dom-gate.js` +1（`sessBranchTag`：跨行找 `⎇ main`、无 cwd 行不带标签）；fake-channel s1 行加 `cwd:'/repo'` 匹配 worktree fixture。
 - **已知前置失败（非本次引入）**：`app/tests/supervisor.test.js` handoff 用例失败 `body process exited`——stash 验证无我方改动同败；fake-channel fixture 直接 import `host/src/core/{policy,instance,observation}.js`，该目录被另一会话的 world-model 迁移在途修改，属外来在途态。
 - **核销**：candidates-open #2173 → `candidates-resolved.tsv` #156。
+
+#### 28.157 ACP client-provided MCP servers + `@diff` branch-diff mention (#2174 — title BOUNDARY / desc ALREADY_COVERED)
+
+- **status**: no ACP protocol surface exists; desc covered by #2144.
+- **判定**：标题 **BOUNDARY**；描述 **ALREADY_COVERED**。
+  - **标题语义（ACP client-provided MCP servers）**：上游=编辑器（VS Code/Zed/JetBrains）经 Agent Client Protocol 握手向 agent 供给 MCP servers。我方无 ACP 协议实现面——MCP intake 只有 operator 配置文件（`<instance>`/`.pai/mcp.json`/`.mcp.json`/`PAI_MCP_CONFIG`）+ `/mcp-add`；非编辑器内嵌 agent 形态，无挂点。诚实边界非能力缺口。
+  - **描述语义（@-mention branch diff）**：已由 **#2144** 落地——`@diff`/`@diff:<ref>` 经 atMention 缝展开 `git merge-base <ref> HEAD` + bounded diff（variant=显式前缀形避免与 @file 提及撞名）。
+- **核销**：candidates-open #2174 → `candidates-resolved.tsv` #157。
