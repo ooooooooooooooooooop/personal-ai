@@ -3253,3 +3253,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（memory_store 拒 prompt-like 注入文本）**：**已覆盖**——M125：`scanForInjection` 在写边界拒注入形文本（"ignore/disregard/forget/override all previous instructions" 等模式族，memory.js:49-67）；记忆召回注入每轮信封，存一条注入=持久注入——`store()` 返回 `{refused: 'injection-shaped content — never persisted'}`（memory.js:147-150），与秘密扫描并列双闸。
   - **描述语义（hermes backup & hermes import——配置/会话/技能/记忆全量备份恢复+跨机迁移/快照）**：**已覆盖**——`host/src/core/backup.js`：create（allowlist 状态打包、秘密排除并记录、sqlite VACUUM 一致快照）+verify（manifest 哈希全核对、缺失/错配/多出全报）+restore（校验通过才解包、已存状态拒覆除非 force、force 前先快照）+list；`pi/src/adapter/runtimexfer.js`：可携带态导出/导入（.pai microagents/plans/specs+instance memory/profiles/model-aliases/feature-models/model-fallbacks，治理配置与会话永不导出——跨机迁移语义同构）。
 - **核销**：candidates-open #2274 → `candidates-resolved.tsv` #175。
+
+#### 28.176 ACP reasoning-effort levels + unified /settings menu (#2302 — title BOUNDARY / desc ALREADY_COVERED)
+
+- **status**: title boundary (no ACP surface; effort concept covered by thinking levels); desc covered — unified settings panel exists.
+- **判定**：标题 **BOUNDARY**；描述 **ALREADY_COVERED**。
+  - **标题语义（ACP reasoning effort levels Default→Max）**：**边界**——#2174/#2219 同判：栈内无 ACP 协议面（非编辑器内嵌 agent），ACP wire 字段无挂载点；effort 档位底层语义已由 thinking levels 覆盖（off/minimal/low/medium/high/xhigh，`/think`+`set-thinking`+`config_set thinking` 三面可达，effort→thinking 映射在 adaptive 路由亦复用）。
+  - **描述语义（统一 /settings 菜单整合 thinking/theme/queue/auto-compact/images/changelog 等）**：**已覆盖**——`/settings` 命令直达统一设置视图（index.html `view-settings`）：8 分组 pill——模型凭据（provider/key/推理强度 `set-thinking`/模型列表/自定义提供方）、命令准入、策略治理、预算上限、运行模式、工作目录、长期记忆、外观界面；合并菜单语义同构。
+- **核销**：candidates-open #2302 → `candidates-resolved.tsv` #176。
