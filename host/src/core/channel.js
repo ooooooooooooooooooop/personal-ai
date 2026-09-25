@@ -247,7 +247,7 @@ export class HostChannel {
           // `git worktree add`; the picker (#1353) then offers it as a target.
           if (!this.exec?.worktreeCreate) return reply(false, undefined, 'worktree create unavailable');
           if (!cmd.path) return reply(false, undefined, 'worktree_create requires {path}');
-          const r = await this.exec.worktreeCreate({ path: String(cmd.path), ref: cmd.ref != null ? String(cmd.ref) : null, detach: cmd.detach === true });
+          const r = await this.exec.worktreeCreate({ path: String(cmd.path), ref: cmd.ref != null ? String(cmd.ref) : null, detach: cmd.detach === true, newBranch: cmd.newBranch != null ? String(cmd.newBranch) : null });
           return r?.ok === false ? reply(false, undefined, r.error) : reply(true, r);
         }
         case 'worktree_list': {

@@ -39,6 +39,7 @@ import { createServer } from 'node:http';
 import { randomBytes, createHash } from 'node:crypto';
 import { existsSync, readFileSync, mkdirSync, writeFileSync, renameSync, chmodSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { dpapiAvailable, dpapiEncrypt, dpapiDecrypt } from '../../../host/src/core/cryptostore.js';
 
 const PROTOCOL_VERSION = '2025-06-18';
 const CLIENT_INFO = { name: 'personal-ai', version: '1' };
@@ -376,13 +377,37 @@ function tokenStorePath() {
     ?? join(process.env.HOME ?? process.env.USERPROFILE ?? process.cwd(), '.personal-ai', 'mcp-oauth.json');
 }
 function readTokenStore() {
-  try { return JSON.parse(readFileSync(tokenStorePath(), 'utf-8')) ?? {}; } catch { return {}; }
+  try {
+    const doc = JSON.parse(readFileSync(tokenStorePath(), 'utf-8')) ?? {};
+    // dedup-h #2177 — v2 files are DPAPI ciphertext; decrypt failure means
+    // re-auth, never a plaintext guess (wrong-OS-user blobs stay sealed).
+    if (doc?.enc === 'dpapi') {
+      const plain = dpapiDecrypt(doc.data);
+      if (plain == null) return {};
+      try { return JSON.parse(plain) ?? {}; } catch { return {}; }
+    }
+    return doc;
+  } catch { return {}; }
 }
 function writeTokenStore(doc) {
   const p = tokenStorePath();
   mkdirSync(dirname(p), { recursive: true });
+  // dedup-h #2177 — encrypted local credential storage (upstream CLI+MCP
+  // OAuth credential store): on DPAPI platforms the file holds only a
+  // CurrentUser-scope ciphertext blob — copying it off this user/machine
+  // yields nothing. Encrypt failure is fail-closed (no silent plaintext
+  // downgrade); platforms without DPAPI keep the plaintext store honestly
+  // (user-private dir + 0600), same posture as before.
+  let payload = doc;
+  if (dpapiAvailable()) {
+    const blob = dpapiEncrypt(JSON.stringify(doc));
+    if (blob == null) {
+      throw new Error('mcp token store: DPAPI encrypt failed — refusing to write plaintext credentials');
+    }
+    payload = { v: 2, enc: 'dpapi', data: blob };
+  }
   const tmp = `${p}.${process.pid}.tmp`;
-  writeFileSync(tmp, JSON.stringify(doc, null, 2));
+  writeFileSync(tmp, JSON.stringify(payload, null, 2));
   try { chmodSync(tmp, 0o600); } catch { /* windows ACLs — best effort */ }
   renameSync(tmp, p);
 }

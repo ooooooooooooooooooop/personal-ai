@@ -4103,12 +4103,23 @@ const SLASH = [
     },
   },
   {
-    cmd: '/worktree-new', label: '新建 worktree', hint: '/worktree-new <路径> [ref]——git worktree add（zed 创建动作对等）；建好后 /worktree 列表与草稿 worktree picker 可见',
+    cmd: '/worktree-new', label: '新建 worktree', hint: '/worktree-new <路径> [--branch <新分支>] [ref]——git worktree add（zed 创建动作对等）；--branch 从 ref（缺省=默认分支）建新分支（#2177）',
     run: async (arg) => {
-      const m = /^(\S+)(?:\s+(\S+))?$/.exec(String(arg ?? '').trim());
-      if (!m) { toast('用法：/worktree-new <路径> [ref]', 'err'); return; }
-      const r = await cmd('worktree_create', { path: m[1], ref: m[2] ?? null });
-      if (r.success) toast(`worktree 已建：${r.data?.path ?? m[1]}`);
+      // dedup-h #2177 — "create branch from default branch" (upstream git
+      // branch picker): `--branch <name>` mints the new branch off `ref`
+      // (or the repo default when ref is omitted).
+      const parts = String(arg ?? '').trim().split(/\s+/).filter(Boolean);
+      let path = null, ref = null, newBranch = null;
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i] === '--branch') { newBranch = parts[++i] ?? null; }
+        else if (path === null) path = parts[i];
+        else if (ref === null) ref = parts[i];
+      }
+      if (!path || (parts.includes('--branch') && !newBranch)) {
+        toast('用法：/worktree-new <路径> [--branch <新分支>] [ref]', 'err'); return;
+      }
+      const r = await cmd('worktree_create', { path, ref, newBranch });
+      if (r.success) toast(`worktree 已建：${r.data?.path ?? path}${r.data?.branch ? `（新分支 ${r.data.branch}）` : ''}`);
       else addSys(`新建 worktree 失败：${r.error ?? '未知'}`, true);
     },
   },

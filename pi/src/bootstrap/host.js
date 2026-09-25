@@ -2908,7 +2908,7 @@ export async function startHost({
       // managed <instance>/jobs/worktrees root — an operator-typed escape
       // ('../../etc') must not write a checkout outside the boundary.
       // ref/detach mirror git; a git failure is refused, not thrown.
-      worktreeCreate: async ({ path, ref = null, detach = false }) => {
+      worktreeCreate: async ({ path, ref = null, detach = false, newBranch = null }) => {
         if (typeof path !== 'string' || !path.trim()) return { ok: false, error: 'worktree path required' };
         const abs = resolve(workdir, path.trim());
         const managedRoot = resolve(join(core.paths.root, 'jobs', 'worktrees'));
@@ -2924,18 +2924,41 @@ export async function startHost({
         if (ref != null && !/^[\w.\/-]{1,120}$/.test(ref)) {
           return { ok: false, error: `invalid ref '${ref}' — branch/commit names use [\\w./-] only` };
         }
+        if (newBranch != null && !/^[\w.\/-]{1,120}$/.test(newBranch)) {
+          return { ok: false, error: `invalid branch name '${newBranch}' — [\\w./-] only` };
+        }
+        // dedup-h #2177 — "create branch from default branch" (upstream git
+        // branch picker): newBranch mints `git worktree add -b <name>`; the
+        // base is `ref` when given, else the repo default (origin/HEAD,
+        // then main/master, then HEAD). A name git already has → the -b
+        // call fails honestly below.
+        let base = ref;
+        if (newBranch && !base) {
+          const head = spawnSync('git', ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'],
+            { cwd: workdir, windowsHide: true, timeout: 5000, encoding: 'utf-8' });
+          base = head.status === 0 ? head.stdout.trim() : null;
+          if (!base) {
+            for (const cand of ['main', 'master']) {
+              const probe = spawnSync('git', ['rev-parse', '--verify', '--quiet', `refs/heads/${cand}`],
+                { cwd: workdir, windowsHide: true, timeout: 5000 });
+              if (probe.status === 0) { base = cand; break; }
+            }
+          }
+          base = base ?? 'HEAD';
+        }
         const argv = ['worktree', 'add'];
+        if (newBranch) argv.push('-b', newBranch);
         if (detach) argv.push('--detach');
         argv.push(abs);
-        if (ref) argv.push(ref);
+        if (base) argv.push(base);
         const r = spawnSync('git', argv, { cwd: workdir, windowsHide: true, timeout: 30_000, encoding: 'utf-8' });
         if (r.status !== 0) {
           const reason = `git worktree add failed: ${(r.stderr || r.error?.message || 'unknown').trim().slice(0, 300)}`;
           core.audit.write({ kind: 'WORKTREE_CREATE_REFUSED', data: { path: abs, reason } });
           return { ok: false, error: reason };
         }
-        core.audit.write({ kind: 'WORKTREE_CREATED', data: { path: abs, ref: ref ?? null, detach, managed: inManaged } });
-        return { ok: true, path: abs, managed: inManaged };
+        core.audit.write({ kind: 'WORKTREE_CREATED', data: { path: abs, ref: base ?? null, newBranch: newBranch ?? null, detach, managed: inManaged } });
+        return { ok: true, path: abs, branch: newBranch ?? null, managed: inManaged };
       },
       // Operator worktree/job spawn (sidebar worktree-creation analogue,
       // candidates-open #2): a durable background task the operator launches

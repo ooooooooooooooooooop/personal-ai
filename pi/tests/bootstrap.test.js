@@ -1980,3 +1980,43 @@ test('#2144 @diff provider: real git repo workdir yields merge-base diff; bad re
     host.dispose();
   }
 });
+
+test('#2177 worktree_create newBranch: mints branch from default base; duplicate refused', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const dir = mkdtempSync(join(tmpdir(), 'pai-boot-nb-'));
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: { destructive: 'deny', privilege: 'deny' },
+  }));
+  const repo = mkdtempSync(join(tmpdir(), 'pai-nb-repo-'));
+  spawnSync('git', ['init', '-b', 'main'], { cwd: repo });
+  spawnSync('git', ['config', 'user.email', 't@t'], { cwd: repo });
+  spawnSync('git', ['config', 'user.name', 't'], { cwd: repo });
+  writeFileSync(join(repo, 'b.txt'), 'base\n');
+  spawnSync('git', ['add', 'b.txt'], { cwd: repo });
+  spawnSync('git', ['commit', '-m', 'base'], { cwd: repo });
+  const host = await startHost({ instanceRoot: dir, workdir: repo, sessionOptions: { model: stubModel } });
+  try {
+    // newBranch with no ref → base resolves to the repo default (main)
+    const r = await host.channel.handle({ type: 'worktree_create', path: 'wt-nb', newBranch: 'feat/x' });
+    assert.equal(r.success, true, JSON.stringify(r));
+    assert.equal(r.data.branch, 'feat/x');
+    const verify = spawnSync('git', ['-C', join(repo, 'wt-nb'), 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf-8' });
+    assert.equal(verify.stdout.trim(), 'feat/x');
+    // the new branch's base is the default branch tip
+    const nbHead = spawnSync('git', ['-C', join(repo, 'wt-nb'), 'rev-parse', 'HEAD'], { encoding: 'utf-8' }).stdout.trim();
+    const mainHead = spawnSync('git', ['-C', repo, 'rev-parse', 'main'], { encoding: 'utf-8' }).stdout.trim();
+    assert.equal(nbHead, mainHead, 'new branch minted from the default branch');
+    // duplicate branch name → git fails honestly
+    const dup = await host.channel.handle({ type: 'worktree_create', path: 'wt-dup', newBranch: 'feat/x' });
+    assert.equal(dup.success, false);
+    assert.match(dup.error, /worktree add failed|already exists/i);
+    // invalid branch name refused before spawning
+    const bad = await host.channel.handle({ type: 'worktree_create', path: 'wt-b', newBranch: 'bad;name' });
+    assert.equal(bad.success, false);
+    assert.match(bad.error, /invalid branch name/);
+  } finally {
+    host.dispose();
+    spawnSync('git', ['worktree', 'remove', '--force', join(repo, 'wt-nb')], { cwd: repo });
+  }
+});

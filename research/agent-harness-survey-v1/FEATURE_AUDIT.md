@@ -3086,3 +3086,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（prepareArguments hook + schema validation before raw args）**：pin `@earendil-works/pi-agent-core` agent-loop.js:388-391 原生执行链 `tool.prepareArguments(call.arguments)` → `validateToolArguments`——每个工具（SDK 内建 + customTools + 扩展注册工具）raw args 先经工具自备 prepare 再 schema 校验后才 execute；我方 `revalidate.js` 在扩展 `tool_call` 桥突变后再做第二层 schema 校验（post-mutation schema violation block）。钩形与校验保证俱在。
   - **描述语义（二进制下载 digest 校验+缓存跳过）**：**边界**——栈内无二进制下载面；lsp 扩展只 spawn operator 已装的 LSP 可执行（`.pai/lsp.json`/`PAI_LSP_CONFIG` 命令声明），无 rust-analyzer/clangd 获取机制可挂 digest 校验。
 - **核销**：candidates-open #2176 → `candidates-resolved.tsv` #158。
+
+#### 28.159 encrypted OAuth token store + branch picker "new branch from default" (#2177 — title IMPLEMENTED / desc IMPLEMENTED)
+
+- **status**: title implemented via DPAPI-backed cryptostore; desc implemented via `worktree_create newBranch` minting `git worktree add -b` off the repo default.
+- **判定**：标题 **IMPLEMENTED**；描述 **IMPLEMENTED**。
+  - **标题语义（secrets: encrypted local storage for CLI/MCP OAuth credentials）**：此前 `tokenStorePath()` 明文 JSON+0600。新增 `host/src/core/cryptostore.js`——Windows 走 DPAPI `CurrentUser` scope（PowerShell `ProtectedData`，零依赖）；秘密经 `PAI_DPAPI_INPUT` env 传递绝不进 argv/命令行；磁盘文件=纯 base64 密文；读路径自动迁移遗留明文（读旧格式→重写密文）；原子临时文件替换保留；非 Windows/DPAPI 不可用时 fail-closed（拒绝写入而非静默降级明文）。`pi/extensions/mcp/index.js` 读写经该 helper；managed-manifest sha256 重算（`a64e7747…`）。
+  - **描述语义（branch picker: create a branch from a default branch）**：`worktreeCreate` 加 `newBranch`——`git worktree add -b <newBranch> <path> <base>`；base=`ref`（给定）否则仓库默认（`origin/HEAD`→`main`/`master`→`HEAD` 兜底）；`[\w./-]{1,120}` 校验在 spawn 前拒注入；重名分支由 git 诚实失败；既有边界（workdir/jobs/worktrees 内、已存在路径拒、审计 WORKTREE_CREATED/REFUSED）全保留；channel `worktree_create` op 透传 + `/worktree-new <路径> [--branch <名>] [ref]` UI 命令（`--branch` 即"从默认分支建新分支"语义）。
+- **证据**：`cryptostore.test.js`（DPAPI 平台真 roundtrip+无明文泄漏）host 418/418；`mcp-token-store.test.js`（密文落盘+legacy 迁移）+`mcp-ext.test.js` 46/46；`bootstrap.test.js` 47/47（`#2177 worktree_create newBranch`：真 git 仓从默认分支建 `feat/x`、HEAD=main tip、重名拒、坏名 spawn 前拒）。
+- **核销**：candidates-open #2177 → `candidates-resolved.tsv` #159。
