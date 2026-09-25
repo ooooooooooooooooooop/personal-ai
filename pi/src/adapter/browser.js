@@ -23,6 +23,7 @@ import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomInt } from 'node:crypto';
 import { resolveChecked } from './web.js';
+import { resolveSecretRef } from '../../../host/src/core/secretsource.js';
 
 const CMD_TIMEOUT_MS = 20_000;
 const NAV_SETTLE_MS = 900;
@@ -343,9 +344,9 @@ const ok = (t, details) => ({ content: [{ type: 'text', text: t }], ...(details 
 /**
  * Build the browser tool set. Returns [] when no browser binary exists —
  * unconfigured capability is never advertised on the tool surface.
- * @param {object} o {instanceRoot, audit, env}
+ * @param {object} o {instanceRoot, audit, env, secretResolver}
  */
-export function browserTools({ instanceRoot, audit = null, env = process.env } = {}) {
+export function browserTools({ instanceRoot, audit = null, env = process.env, secretResolver = null } = {}) {
   const exe = findBrowserExe(env);
   if (!exe) return [];
   const blockedHosts = String(env.PAI_BROWSER_BLOCKED ?? '')
@@ -390,13 +391,38 @@ export function browserTools({ instanceRoot, audit = null, env = process.env } =
     },
     {
       name: 'browser_type', label: 'Browser Type',
-      description: 'Focus an element by CSS selector and type text into it.',
+      description: 'Focus an element by CSS selector and type text into it. Pass `secretRef` (op://vault/item/field or bw://item/field) instead of `text` to fill a brokered credential — the resolved value goes straight into the page and never appears in this call\'s result.',
       parameters: {
         type: 'object',
-        properties: { selector: { type: 'string' }, text: { type: 'string' } },
-        required: ['selector', 'text'],
+        properties: {
+          selector: { type: 'string' },
+          text: { type: 'string' },
+          secretRef: { type: 'string' },
+        },
+        required: ['selector'],
       },
-      execute: run(async (p) => { await session.type(p.selector, p.text); return ok(`typed ${String(p.text).length} chars into ${p.selector}`); }),
+      execute: run(async (p) => {
+        // dedup-h #2160 — brokered credential fill (1Password/Bitwarden
+        // "sign in without ever seeing a secret" analogue): the ref resolves
+        // through the same secretsource broker used by env/provider keys;
+        // plaintext reaches the page via CDP but never the transcript.
+        if (p.secretRef != null && p.text != null) {
+          return err('browser_type: pass either text or secretRef, not both');
+        }
+        if (p.secretRef != null) {
+          const r = (secretResolver ?? resolveSecretRef)(String(p.secretRef), { instanceRoot });
+          if (!r.ok) {
+            audit?.write({ kind: 'BROWSER_SECRET_FILL', data: { selector: String(p.selector), ok: false, reason: String(r.reason).slice(0, 160) } });
+            return err(`browser_type secret fill refused: ${r.reason}`);
+          }
+          audit?.write({ kind: 'BROWSER_SECRET_FILL', data: { selector: String(p.selector), ok: true, scheme: r.scheme, item: r.item } });
+          await session.type(p.selector, r.value);
+          return ok(`brokered secret filled into ${p.selector}`);
+        }
+        if (p.text == null) return err('browser_type: text or secretRef required');
+        await session.type(p.selector, p.text);
+        return ok(`typed ${String(p.text).length} chars into ${p.selector}`);
+      }),
     },
     {
       name: 'browser_eval', label: 'Browser Eval',

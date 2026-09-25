@@ -192,3 +192,53 @@ test('localhost names stay navigable (local dev baseline)', async () => {
   const r = await s.navigate('http://localhost:3000/');
   assert.equal(r.title, 'dev');
 });
+
+// #2160: browser_type secretRef — brokered credential fill: the resolved
+// secret reaches the page (session.type) but never the tool result.
+test('browser_type secretRef types the resolved secret; result/audit never carry it', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-'));
+  const fake = join(dir, 'fake-browser.exe');
+  writeFileSync(fake, 'x');
+  const audits = [];
+  const tools = browserTools({
+    instanceRoot: dir,
+    audit: { write: (e) => audits.push(e) },
+    env: { PAI_BROWSER_EXE: fake, PROGRAMFILES: '/nonexistent', 'PROGRAMFILES(X86)': '/nonexistent', LOCALAPPDATA: '/nonexistent' },
+    secretResolver: (ref) => ({ ok: true, value: 'S3CR3T-value', scheme: 'op', item: 'vault/login' }),
+  });
+  const typed = [];
+  const origType = BrowserSession.prototype.type;
+  BrowserSession.prototype.type = async function (sel, text) { typed.push([sel, text]); return true; };
+  try {
+    const type = tools.find((t) => t.name === 'browser_type');
+    const r = await type.execute('c1', { selector: '#pw', secretRef: 'op://vault/login/password' });
+    assert.deepEqual(typed, [['#pw', 'S3CR3T-value']], 'resolved secret went into the page');
+    assert.equal(r.isError, undefined);
+    assert.doesNotMatch(r.content[0].text, /S3CR3T/, 'result text never carries the plaintext');
+    assert.ok(audits.some((e) => e.kind === 'BROWSER_SECRET_FILL' && e.data.ok === true));
+    assert.ok(!JSON.stringify(audits).includes('S3CR3T'), 'audit never carries the plaintext');
+    // both text and secretRef → refused honestly
+    const r2 = await type.execute('c2', { selector: '#pw', text: 'x', secretRef: 'op://v/i/f' });
+    assert.equal(r2.isError, true);
+    // neither → refused
+    const r3 = await type.execute('c3', { selector: '#pw' });
+    assert.equal(r3.isError, true);
+    // resolver failure → fail-closed error, nothing typed
+    const tools2 = browserTools({
+      instanceRoot: dir,
+      audit: { write: (e) => audits.push(e) },
+      env: { PAI_BROWSER_EXE: fake, PROGRAMFILES: '/nonexistent', 'PROGRAMFILES(X86)': '/nonexistent', LOCALAPPDATA: '/nonexistent' },
+      secretResolver: () => ({ ok: false, reason: 'source not enabled' }),
+    });
+    const t2 = tools2.find((t) => t.name === 'browser_type');
+    const r4 = await t2.execute('c4', { selector: '#pw', secretRef: 'op://v/i/f' });
+    assert.equal(r4.isError, true);
+    assert.match(r4.content[0].text, /refused|not enabled/);
+    assert.equal(typed.length, 1, 'failed resolution typed nothing');
+    assert.ok(audits.some((e) => e.kind === 'BROWSER_SECRET_FILL' && e.data.ok === false));
+    tools2.dispose();
+  } finally {
+    BrowserSession.prototype.type = origType;
+    tools.dispose();
+  }
+});

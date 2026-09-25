@@ -3042,3 +3042,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（apply_patch Add File→existing 拒写）**：**边界**——本栈无 apply_patch/Add-File 工具面（`patch`/`apply_patch` 仅是治理分类集里的名字，防身体层浮现同名工具）；既有 `write` 工具的覆盖语义非静默——每次写既有文件先 byte-copy 备份 + receipt（M105 undo/rewind 可回滚），"silently overwriting" 的危害面由备份+审计链覆盖。
 - **证据**：`at-mention.test.js` +2=5/5（ref 到达 provider、token 剥离、坏字符 token 不展开）；`bootstrap.test.js` +1=46/46（真 git 仓 merge-base diff 到块、坏 ref/非仓诚实降级）。
 - **核销**：candidates-open #2144 → `candidates-resolved.tsv` #153。
+
+#### 28.154 `browser_type secretRef` brokered credential fill + Yuanbao/QQBot channels (#2160 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented (browser secret-fill analogue of "sign in/pay/fill without seeing the secret"); desc boundary (no third-party chat-platform channel surface exists).
+- **判定**：标题 **IMPLEMENTED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（secrets-broker 代填不见明文）**：`browser_type` 新增 `secretRef` 参数——`op://vault/item/field`/`bw://item/field` 经同一 `resolveSecretRef` broker（#820，secrets.json fail-closed 门 + item allowlist）解析后经 CDP `Input.insertText` 直进页面；解析值**绝不**出现在 tool result/转录/审计（result 只报 "brokered secret filled"；`BROWSER_SECRET_FILL` 审计只记 scheme+item+selector）；text 与 secretRef 互斥、解析失败零输入 fail-closed。variant=代填面是 `browser_type` 参数而非独立 vault 集成（凭据 broker 本体 #820 已在）。
+  - **描述语义（Tencent Yuanbao/QQBot channel coverage）**：**边界**——元宝/QQBot 是厂商私有 IM 渠道集成；我方入站面只有认证 webhook（#2100），无第三方聊天平台渠道层可挂；非能力缺口的诚实边界。
+- **证据**：`browser.test.js` +1=10/10（resolved secret 到页面、result/audit 无明文、互斥/缺失/解析失败三拒、失败零输入）。
+- **核销**：candidates-open #2160 → `candidates-resolved.tsv` #154。
