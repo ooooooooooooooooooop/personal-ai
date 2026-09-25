@@ -3171,3 +3171,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
     - *MCP connection setup 超时*：**已覆盖**——`CONNECT_TIMEOUT_MS=10s` 于 connectOne/initialize，#394 死远程 server 共享预算内并发失败不拖垮启动。
 - **证据**：`mcp-ext.test.js` +1（#2215：错 iss+对 state→400+致命拒；匹配 iss→解析；未配置 iss+任意 iss→照常解析=登录成功）47/47；manifest sha256 重算。
 - **核销**：candidates-open #2215 → `candidates-resolved.tsv` #167。
+
+#### 28.168 RFC 9207 issuer identification + ACP client-provided MCP servers (#2219 — title ALREADY_COVERED / desc BOUNDARY)
+
+- **status**: title covered by the just-landed #2215 iss validation; desc boundary (no ACP surface, same as #2174).
+- **判定**：标题 **ALREADY_COVERED**；描述 **BOUNDARY**。
+  - **标题语义（RFC 9207 issuer identification OAuth）**：**已覆盖**——#2215 落地：`oauthLoopbackListen` `iss` 校验（state-matching 错 iss=致命 mix-up `MCP_OAUTH_ISS`；匹配/缺省/未配置照常解析）+`oauth.issuer` spec 白名单透传+discovery 注入；登录对 iss-advertising server 本不因未知参数失败。
+  - **描述语义（ACP client-provided MCP servers——编辑器注册自有 MCP servers）**：**边界**——#2174 同判：无 ACP 协议面（非编辑器内嵌 agent 形态）；MCP intake=operator 配置文件+`/mcp-add`。
+- **核销**：candidates-open #2219 → `candidates-resolved.tsv` #168。
