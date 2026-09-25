@@ -3314,3 +3314,11 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（unified model runtime + provider auth + dynamic catalogs）**：**已覆盖**——`modelRuntime`（builtins+models.json 合并目录、`getProviders/getProvider/getAvailable/refresh`）+provider-owned `/login`（OAuth selector+auth.json）+动态目录（`provider_add`/`addModels` 抓取合并 upsert）+`provider_refresh`/面板即统一运行时面。
 - **证据**：m8-wiring 39/39（policy 分类真值表+400 包裹走链+拒绝原文可见）；pi 全套待附。
 - **核销**：candidates-open #2384 → `candidates-resolved.tsv` #182。
+
+#### 28.183 parallel subagents + Vercel gateway + Bedrock region resolution (#2398 — title ALREADY_COVERED / desc ALREADY_COVERED)
+
+- **status**: both covered — durable-job parallel delegates + builtin vercel-ai-gateway provider; pin uses AWS SDK native region chain.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED**。
+  - **标题语义（parallel subagents + Vercel AI Gateway）**：**已覆盖**——`delegate_task` 即时返回 durable job id（异步并行设计）：多 delegate 并发各自 job；`worktree:true` 显式为"parallel delegates cannot collide"隔离；`depends_on` 扇出队列；teammate pool 命名寻址。`vercel-ai-gateway` 已在 pin provider/env-key 表（`AI_GATEWAY_API_KEY`），经统一 modelRuntime/provider_add 面可用。
+  - **描述语义（Bedrock endpoint 遵从 AWS_REGION/PROFILE 不钉死内置端点）**：**已覆盖**——pin 走 AWS SDK 原生解析链：`loadNodeConfig(NODE_REGION_CONFIG_OPTIONS)`=环境变量 `AWS_REGION`→`AWS_DEFAULT_REGION`→profile config→IMDS 回退；endpoint 由 resolved region 动态生成无内置区钉死；us.*/eu.* inference profile 前缀按 region 解析自然恢复。
+- **核销**：candidates-open #2398 → `candidates-resolved.tsv` #183。
