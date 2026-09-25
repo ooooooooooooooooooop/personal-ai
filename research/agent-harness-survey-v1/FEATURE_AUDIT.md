@@ -3352,3 +3352,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（Web/WorkBuddy 实时展示后台 worker 的 tool calls/results/final responses）**：**IMPLEMENTED(variant)**——job detail 面板渲染 `detail.events` 持久事件账（`job_status` 已返回 last-10：JOB_CREATED/状态迁移/respawn/validation 带 ISO 时戳+payload 摘要截断 140 字符）+ 既有 output_tail/results/deps 行=外部 worker 模型的最近语义（worker 为分离进程，无 in-process tool-call 流；event ledger 即其活动记录）。
 - **证据**：`app/ui/app.js` jd-events-row 渲染（escapeHtml 全程）；`.jd-events` 既有样式规则扩展+`.jd-ev-*`；app lint 净、`node --check` 过。
 - **核销**：candidates-open #2422 → `candidates-resolved.tsv` #186。
+
+#### 28.187 layered permission compose + hook family (#2428 — title BOUNDARY / desc covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY**；描述 **ALREADY_COVERED**。
+  - **标题语义（enterprise/mode/user/project/subagent 权限层 predictable compose）**：**BOUNDARY**——我方权限模型=单一 canonical `policy.json`（attested checksum、drift=FAIL_CLOSED）+ asks allow/deny/session 两 scope 级联，本就确定；无多层配置文件叠放面可 compose。
+  - **描述语义（20+ hook events：tool failures/sub-agent lifecycle/task management/permission approvals/file watching）**：**已覆盖**——同 #2408：24 命名事件（19 观测+5 门控），task_started/heartbeat 对位 task management。
+- **证据**：`host/src/core/policy.js` attestation 模型；`pi/src/adapter/hooks.js` 事件表。
+- **核销**：candidates-open #2428 → `candidates-resolved.tsv` #187。
