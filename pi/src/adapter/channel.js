@@ -1335,6 +1335,25 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       if (s.model) s.settingsManager?.setModelThinkingLevel?.(s.model.provider, s.model.id, lvl);
       return { thinkingLevel: s.thinkingLevel ?? lvl };
     },
+    // dedup-h #2355 — LLM idle watchdog lever. The agent loop reads
+    // settingsManager.getHttpIdleTimeoutMs() per provider call and uses it
+    // as the request timeoutMs — which bounds STREAM-SETUP pending too, so
+    // a hung pre-stream connection dies on this clock, not the full agent
+    // timeout. 0 = disabled (operator choice); default is the SDK's 300s.
+    idleTimeout: () => {
+      const ms = box.s.settingsManager?.getHttpIdleTimeoutMs?.();
+      return { timeoutMs: typeof ms === 'number' ? ms : null };
+    },
+    setIdleTimeout: (ms) => {
+      const n = Number(ms);
+      if (!Number.isInteger(n) || n < 0 || n > 3_600_000) {
+        throw new Error(`http_idle_timeout must be an integer 0–3600000 ms (0 disables), got '${ms}'`);
+      }
+      if (!box.s.settingsManager?.setHttpIdleTimeoutMs) throw new Error('settings facade unavailable');
+      box.s.settingsManager.setHttpIdleTimeoutMs(n);
+      core.audit?.write({ kind: 'HTTP_IDLE_TIMEOUT', data: { timeoutMs: n } });
+      return { timeoutMs: n };
+    },
     setApiKey: async ({ provider, key }) => {
       // external secret sources (Bitwarden/1Password "fill without seeing"):
       // op://vault/item/field → `op read`; bw://item → `bw get password`.

@@ -932,6 +932,9 @@ export class HostChannel {
           out.charset = resolveCharset(this.unicodeMode);
           if (this.imageDetail) out.image_detail = this.imageDetail.current ?? 'high';
           if (this.proxy?.status) out.proxy = this.proxy.status();
+          // dedup-h #2355 — surface the LLM idle watchdog so operators can
+          // discover it from config_get, not just set it blind.
+          if (this.models?.idleTimeout) out.http_idle_timeout = (await this.models.idleTimeout())?.timeoutMs ?? null;
           return reply(true, out);
         }
         case 'config_set': {
@@ -985,8 +988,15 @@ export class HostChannel {
               if (out?.error) return reply(false, undefined, `config_set: ${out.error}`);
               return reply(true, out);
             }
+            // dedup-h #2355 — LLM idle watchdog lever: the loop applies it
+            // as the request timeoutMs, so it bounds stream-setup pending
+            // too (0 disables — operator choice).
+            case 'http_idle_timeout': {
+              if (!this.models?.setIdleTimeout) return reply(false, undefined, 'idle-timeout facade unavailable');
+              return reply(true, await this.models.setIdleTimeout(value));
+            }
             default:
-              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode, image_detail, proxy_mode)`);
+              return reply(false, undefined, `config_set: unknown key '${key}' (settable: model, thinking, mode, unicode_mode, image_detail, proxy_mode, http_idle_timeout)`);
           }
         }
         case 'modes_read': {

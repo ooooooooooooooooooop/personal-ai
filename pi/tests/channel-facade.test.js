@@ -1958,6 +1958,51 @@ test('#2346 fast tier: set/read/off round-trips service_tier on the active model
   dispose();
 });
 
+// dedup-h #2355 — LLM idle watchdog lever: config_set http_idle_timeout
+// persists via settingsManager.setHttpIdleTimeoutMs (the loop reads it per
+// provider call as the request timeoutMs — bounds stream-setup pending, not
+// just the full agent timeout). config_get surfaces the live value.
+test('#2355 http_idle_timeout: config_set/get round-trip via settings manager', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-idle-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  const audits = [];
+  const core = { paths: { auditDir, root: dir }, audit: { write: (e) => audits.push(e) } };
+  let stored = 300000;
+  fakeSessionRef.settingsManager = {
+    getHttpIdleTimeoutMs: () => stored,
+    setHttpIdleTimeoutMs: (ms) => { stored = ms; },
+  };
+  fakeSessionRef.modelRuntime = {
+    getProviders: () => [],
+    getProvider: () => null,
+    getProviderAuthStatus: () => null,
+    getAvailable: async () => [],
+    refresh: async () => {},
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  let r = await ch.handle({ type: 'config_get' });
+  assert.equal(r.data.http_idle_timeout, 300000, 'SDK default surfaced');
+
+  r = await ch.handle({ type: 'config_set', key: 'http_idle_timeout', value: '45000' });
+  assert.equal(r.data.timeoutMs, 45000);
+  assert.equal(stored, 45000, 'settings manager persisted');
+  r = await ch.handle({ type: 'config_get' });
+  assert.equal(r.data.http_idle_timeout, 45000, 'live read-back');
+  assert.ok(audits.some((e) => e.kind === 'HTTP_IDLE_TIMEOUT' && e.data.timeoutMs === 45000));
+
+  r = await ch.handle({ type: 'config_set', key: 'http_idle_timeout', value: '0' });
+  assert.equal(r.data.timeoutMs, 0, '0 disables — operator choice');
+
+  r = await ch.handle({ type: 'config_set', key: 'http_idle_timeout', value: 'abc' });
+  assert.equal(r.success, false, 'non-integer refused');
+  r = await ch.handle({ type: 'config_set', key: 'http_idle_timeout', value: '-5' });
+  assert.equal(r.success, false, 'negative refused');
+  dispose();
+});
+
 // dedup-h #2263 — bill() stamps the live model onto the ledger row so the
 // traces surface can do per-model breakdown.
 test('#2263 bill stamps model onto ledger rows for the traces surface', async () => {

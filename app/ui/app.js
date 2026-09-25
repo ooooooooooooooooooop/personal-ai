@@ -3867,7 +3867,7 @@ const SLASH = [
         return;
       }
       const m = text.match(/^(\w+)\s*=\s*(.+)$/);
-      if (!m) { addSys('用法：/config model=<provider/id 或别名> | thinking=<off|low|medium|high> | mode=<名>', true); return; }
+      if (!m) { addSys('用法：/config model=<provider/id 或别名> | thinking=<off|low|medium|high> | mode=<名> | http_idle_timeout=<ms,0=关>', true); return; }
       const r = await cmd('config_set', { key: m[1], value: m[2].trim() });
       if (!r.success) { addSys(`设置失败：${r.error ?? '未知'}`, true); return; }
       toast(`已设置 ${m[1]} = ${m[2].trim()}`);

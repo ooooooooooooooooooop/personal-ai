@@ -3280,3 +3280,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（并行 web search 打包）**：**已实现(variant)**——子项逐核：API-key discovery=`PAI_WEB_SEARCH_KEY` env→bearer；guarded endpoint=有界 POST/超时/512KiB 流式截断/JSON 校验/SSRF+egress gate；cache-safe session=无搜索缓存层（危害类不存在），session 级状态仅 sessionGrants/sessionDenies 随会话生灭；onboarding+docs=**本次落** doctor `web_search` 检查（未配置 warn+fix 指 env 契约、key 只报存在不回显、非 http(s) fail）；"parallel"=variant（单端点单次调用，无多查询扇出——loop 本就并行调度工具调用）。
 - **证据**：channel-facade 56/56（service_tier set/read/off 全程+兄弟键保留+非法 tier 拒）；host 420/420；pi 全套 547/539/8跳/0败；app lint 净。
 - **核销**：candidates-open #2346 → `candidates-resolved.tsv` #178。
+
+#### 28.179 OpenAI-compat gateway + LLM idle watchdog (#2355 — title BOUNDARY / desc IMPLEMENTED)
+
+- **status**: title boundary — no inbound LLM-serving surface; desc implemented — `http_idle_timeout` operator lever over the settings-driven request timeout that already bounds stream-setup pending.
+- **判定**：标题 **BOUNDARY**；描述 **IMPLEMENTED**。
+  - **标题语义（gateway /v1/chat/completions auth+SSE+per-agent routing）**：**BOUNDARY**——栈是 agent 运行时非 LLM 服务网关：入站面仅认证 webhook（webhook.js POST→governed sink）+ localhost UI 桥（http-bridge.js）；OpenAI 兼容模型服务端点是另一产品类，无对应面亦无引入意图。
+  - **描述语义（idle watchdog 覆盖 provider 流建立期，防静默挂死等满全程超时）**：**已实现**——机制链核实：agent loop 逐 provider 调用读 `settingsManager.getHttpIdleTimeoutMs()`→`effectiveTimeoutMs`→stream `timeoutMs`，请求级超时覆盖 stream-setup pending（响应 promise 在 headers 到达前即受时限约束），SDK 默认 300s。缺的是操作员面：`config_set http_idle_timeout=<ms>` → `modelsFacade.setIdleTimeout` → `settingsManager.setHttpIdleTimeoutMs` 持久化（逐调用重读即时生效）；`config_get` 快照带 `http_idle_timeout`；整数 0–3600000 校验、0=禁用（operator choice）、`HTTP_IDLE_TIMEOUT` 审计；`/config` 用法串补新键。诚实边界：undici 层 `configureHttpDispatcher` 是 TUI 启动路径内联不导出（pin 内部面），headersTimeout 二级看门狗不在我方可达面——描述要求的语义已由 settings→request-timeout 链承载。
+- **证据**：channel-facade 57/57（set/get 往返+0 禁用+非整数/负数拒）；host 420/420；pi 全套 549/541/8跳/0败；app lint 净。
+- **核销**：candidates-open #2355 → `candidates-resolved.tsv` #179。
