@@ -5249,7 +5249,16 @@ async function send() {
     const r = await cmd('bash_run', { command });
     if (!r.success) addSys(`执行不可用：${r.error ?? '未知'}`, true);
     else if (r.data?.blocked) addSys(`已拦截：${(r.data.reason ?? '').slice(0, 300)}`, true);
-    else if (r.data && !contextFree) pendingBash.push({ command, output: r.data.output ?? '' });
+    else if (r.data && !contextFree) {
+      // dedup-h #2240 — token count feedback: the staged block is what rides
+      // into context (output is later capped at 4000 chars); ~4 chars/token
+      // matches the repo's standard token estimate.
+      const out = r.data.output ?? '';
+      pendingBash.push({ command, output: out });
+      const staged = out.slice(0, 4000);
+      const est = Math.ceil(staged.length / 4);
+      addSys(`输出已暂存，随下条提问入上下文：约 ${est} tokens${out.length > staged.length ? '（超长部分已截断）' : ''}${pendingBash.length > 1 ? ` · 共 ${pendingBash.length} 段` : ''}`);
+    }
     return;
   }
   // `#note` — quick-capture into long-term memory (Claude Code hash mode).

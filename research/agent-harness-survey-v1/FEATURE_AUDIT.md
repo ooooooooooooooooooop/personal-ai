@@ -3213,3 +3213,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（设置面板删除/配置 MCP servers）**：**已实现**——`/mcp-del <name>`：从加载的配置文件（env→`.pai/mcp.json`→`.mcp.json` 首个命中）删条目（mcpServers/servers 键自适应、兄弟条目保留、原子 tmp+rename）→关活连接（清 reconnectTimer+close client）→**删 token 存储行**（同名重加不继承陈旧授权=诚实安全姿态）→已注册工具墓碑 fail-closed；未知名/无配置文件/不可读逐项响亮拒。配置侧由既有面覆盖：`/mcp-add`（全旗）+`/mcp-disable|enable`（enabled 持久化+热切换）。
 - **证据**：`mcp-ext.test.js` +1（#2239：真 stdio server——配置条目删/兄弟留/token 行清/工具墓碑/兄弟仍活/未知名拒）49/49；manifest sha256 重算。
 - **核销**：candidates-open #2239 → `candidates-resolved.tsv` #171。
+
+#### 28.172 maxActiveTranscriptBytes + command-output token feedback (#2240 — title IMPLEMENTED / desc IMPLEMENTED)
+
+- **status**: both implemented — bounded compaction transcript + staged-output token estimate.
+- **判定**：标题 **IMPLEMENTED**；描述 **IMPLEMENTED**。
+  - **标题语义（maxActiveTranscriptBytes preflight）**：**已实现**——`serializeForCompaction` 加 `MAX_COMPACTION_TRANSCRIPT_BYTES=128KiB` 字节界：超帽保**尾部**（续跑最需要的是最近工作）+带内 `[transcript truncated — kept the most recent N of M bytes]` 标记+`COMPACTION_TRANSCRIPT_TRUNC` 审计，绝不静默中段切；`session_before_compact` 发给压缩摘要器的输入从此有界。
+  - **描述语义（命令输出入聊时 token 计数反馈）**：**已实现**——`!cmd`（bang 模式）输出暂存 `pendingBash` 后 `addSys` 反馈：按实际入上下文量（4000 字符发送帽内）≈chars/4 tokens 估算+超长截断明示+多段计数；`!!` context-free 形不反馈（本就不入上下文）。
+- **证据**：`compaction-model.test.js` +2（#2240：200KiB 源→尾保+头弃+带内标记+审计行；欠帽源不带标记无审计）8/8；app lint 净。
+- **核销**：candidates-open #2240 → `candidates-resolved.tsv` #172。

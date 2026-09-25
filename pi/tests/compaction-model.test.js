@@ -259,3 +259,36 @@ test('#2087 e2e: feature timeout_ms bounds the summarization request', async () 
     srv.close();
   }
 });
+
+// dedup-h #2240 — maxActiveTranscriptBytes analogue: the serialized
+// transcript fed to the summarizer is byte-bounded; over-cap keeps the
+// most recent bytes, marks the drop in-band AND audits it.
+test('#2240 loop: oversized transcript is tail-bounded, marked, and audited', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-compact-cap-'));
+  const seen = [];
+  const { handlers } = loopRig(dir, async (system, user) => {
+    seen.push(user);
+    return { text: 'S', model: 'cheap/fast' };
+  });
+  const prep = fakePreparation();
+  prep.messagesToSummarize = [
+    { role: 'user', content: 'OLD-HEAD-' + 'x'.repeat(200 * 1024) },
+    { role: 'assistant', content: [{ type: 'text', text: 'RECENT-TAIL-KEPT' }] },
+  ];
+  await handlers.session_before_compact({ reason: 'overflow', preparation: prep });
+  const user = seen[0];
+  assert.ok(user.startsWith('[transcript truncated'), 'truncation marked in-band');
+  assert.ok(user.includes('RECENT-TAIL-KEPT'), 'most recent content preserved');
+  assert.ok(!user.includes('OLD-HEAD-'), 'over-cap head dropped');
+  assert.ok(Buffer.byteLength(user, 'utf-8') < 200 * 1024, 'bounded well under the oversized source');
+  assert.ok(auditKinds(dir).includes('COMPACTION_TRANSCRIPT_TRUNC'), 'truncation audited');
+});
+
+test('#2240 loop: under-cap transcript passes through unmarked', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-compact-nocap-'));
+  const seen = [];
+  const { handlers } = loopRig(dir, async (s, user) => { seen.push(user); return { text: 'S', model: 'm' }; });
+  await handlers.session_before_compact({ reason: 'manual', preparation: fakePreparation() });
+  assert.ok(!seen[0].startsWith('[transcript truncated'), 'small transcript unmarked');
+  assert.ok(!auditKinds(dir).includes('COMPACTION_TRANSCRIPT_TRUNC'), 'no spurious audit');
+});
