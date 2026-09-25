@@ -3305,3 +3305,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **标题语义（有序 fallback provider 链，primary 失败自动切）**：**已覆盖**——`<instance>/model-fallbacks.json` operator 排序链（M100）：terminal provider error（429/5xx/网络/auth/context-overflow）→ 按序走链；request-invariant 错误（400/422/校验）不烧 hop 跳过；每条目过 models-allow 门+已注册+有 auth 三重闸；`fallbackHops` 单任务跳数封顶；`MODEL_FALLBACK`/SKIPPED 审计全程；`fallbacks_set/list` ops 热改+持久化。
   - **描述语义（/v1/chat/completions gateway）**：**BOUNDARY**——同 #2355 标题判定：入站面仅认证 webhook+localhost UI 桥，无 LLM 服务化面。
 - **核销**：candidates-open #2376 → `candidates-resolved.tsv` #181。
+
+#### 28.182 usage-policy refusal failover + unified ModelRuntime (#2384 — title IMPLEMENTED / desc ALREADY_COVERED)
+
+- **status**: title implemented — usage-policy refusals now walk the fallback chain; desc covered — unified model runtime/auth/catalog exists.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义（provider usage-policy refusal 时切换到下一 model 链）**：**已实现**——新增 `isUsagePolicyError` 判别（content_filter/usage policy/policy violation/moderation/safety/invalid_prompt/acceptable-use），先于 invariant 闸放行走链：policy 拒绝是 provider 特异（下一链目跑不同评估器）非 envelope 特异；400 包裹的 policy 拒绝不再被 `isRequestInvariantError` 吞掉；拒绝原文进 fallback steer 明面可见，其余 invariant/auth/allowlist/hop-cap 闸不变。
+  - **描述语义（unified model runtime + provider auth + dynamic catalogs）**：**已覆盖**——`modelRuntime`（builtins+models.json 合并目录、`getProviders/getProvider/getAvailable/refresh`）+provider-owned `/login`（OAuth selector+auth.json）+动态目录（`provider_add`/`addModels` 抓取合并 upsert）+`provider_refresh`/面板即统一运行时面。
+- **证据**：m8-wiring 39/39（policy 分类真值表+400 包裹走链+拒绝原文可见）；pi 全套待附。
+- **核销**：candidates-open #2384 → `candidates-resolved.tsv` #182。

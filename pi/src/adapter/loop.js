@@ -57,6 +57,25 @@ export function isRequestInvariantError(message) {
     || /\bvalidation (?:error|failed)\b/i.test(m);
 }
 
+// dedup-h #2384 — usage-policy refusal discriminator. A provider refusing
+// on CONTENT grounds is provider-SPECIFIC, not request-invariant: the next
+// chain entry runs a different policy evaluator, so the refusal walks the
+// chain (the operator-ordered chain is explicit consent to try alternates;
+// the refusal itself is surfaced verbatim in the fallback steer). Checked
+// BEFORE the invariant gate — many providers deliver policy refusals as
+// bare 400s, which would otherwise be swallowed by the envelope check.
+export function isUsagePolicyError(message) {
+  const m = String(message ?? '');
+  return /\bcontent[_ -]?filter(?:ed|ing)?\b/i.test(m)
+    || /\b(?:usage|content|safety|moderation|acceptable)[_ -]?policy\b/i.test(m)
+    || /\bpolicy[_ -]?violation\b/i.test(m)
+    || /\bcontent[_ -]?(?:management|filtering|safety)\b/i.test(m)
+    || /\binvalid_prompt\b/i.test(m)
+    || /\bmoderation\b/i.test(m)
+    || /\bsafety[_ -]?(?:filter|system|violation)\b/i.test(m)
+    || /\brefus(?:ed|al)\b.{0,60}\b(?:policy|safety|content)\b/i.test(m);
+}
+
 // dedup-h #1546 — prompt used when a configured compaction_model generates
 // the summary (pi's own SUMMARIZATION_SYSTEM_PROMPT stays on the native path;
 // this one carries the same contract: preserve durable state, drop noise).
@@ -235,8 +254,11 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
         const last = [...(event?.messages ?? [])].reverse().find((m) => m?.role === 'assistant');
         if (last?.stopReason !== 'error') return;
         // request-invariant errors (our envelope's shape, not the provider's
-        // health) fail identically at every chain entry — don't walk
-        if (isRequestInvariantError(last.errorMessage)) {
+        // health) fail identically at every chain entry — don't walk.
+        // dedup-h #2384: usage-policy refusals are exempt — they judge
+        // content under THIS provider's policy, so the next evaluator may
+        // differ; walking is the honest failover, refusal surfaced verbatim.
+        if (isRequestInvariantError(last.errorMessage) && !isUsagePolicyError(last.errorMessage)) {
           audit.write({
             kind: 'MODEL_FALLBACK_SKIPPED',
             data: {

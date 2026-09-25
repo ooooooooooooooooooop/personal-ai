@@ -683,6 +683,52 @@ test('M100 error classes: request-invariant errors skip the chain; provider faul
   assert.equal(sent.length, 1, 'transient error falls back as before');
 });
 
+// dedup-h #2384 — usage-policy refusals are provider-specific (the next
+// chain entry runs a different evaluator), so they walk even when wrapped
+// in a 400 that the invariant gate would otherwise swallow.
+test('#2384 usage-policy refusals walk the chain despite the 400 wrapper', async () => {
+  const { loopGovernanceExtension, isRequestInvariantError, isUsagePolicyError } = await import('../src/adapter/loop.js');
+
+  for (const policy of [
+    'status code 400: content_filter — prompt triggered content management policy',
+    'HTTP 400: invalid_prompt — usage policy violation',
+    'Error 400: safety system refusal',
+    'moderation_blocked: content policy',
+    'request refused: acceptable use policy',
+  ]) {
+    assert.ok(isUsagePolicyError(policy), `policy: ${policy}`);
+  }
+  assert.ok(!isUsagePolicyError('HTTP 429 rate limited'), 'transient is not a policy error');
+  assert.ok(!isUsagePolicyError('status code 400: invalid_request_error — role is required'), 'envelope error is not policy');
+  // the wrapper matters: a bare policy refusal may also LOOK like a 400 —
+  // the invariant classifier still sees it; the exemption is what walks it.
+  assert.ok(isRequestInvariantError('status code 400: content_filter'), 'policy 400 still reads invariant to the raw gate');
+
+  const events = {};
+  const sent = [];
+  const models = { 'anthropic/claude-b': { provider: 'anthropic', id: 'claude-b' } };
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    setModel: async () => true,
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const auditEvents = [];
+  loopGovernanceExtension({
+    audit: { write: (e) => auditEvents.push(e) },
+    fallbacks: { chain: [{ provider: 'anthropic', model: 'claude-b' }] },
+  }).factory(pi);
+
+  events.agent_start();
+  await events.agent_end(
+    { messages: [{ role: 'assistant', stopReason: 'error', errorMessage: 'status code 400: content_filter — usage policy refusal' }] },
+    { model: { provider: 'openai', id: 'gpt-5' }, modelRegistry: { find: (p, id) => models[`${p}/${id}`] }, sendUserMessage: (t) => sent.push(t) },
+  );
+  assert.equal(sent.length, 1, 'policy refusal walks the chain — different evaluator may differ');
+  assert.match(sent[0], /content_filter/, 'the refusal is surfaced verbatim, not hidden');
+  assert.ok(auditEvents.some((e) => e.kind === 'MODEL_FALLBACK' && e.data.to === 'anthropic/claude-b'));
+  assert.ok(!auditEvents.some((e) => e.kind === 'MODEL_FALLBACK_SKIPPED'), 'policy exemption bypasses the invariant skip');
+});
+
 test('stale agent_end: a duplicated end-of-run event without a new start is dropped + audited', async () => {
   const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
   const events = {};
