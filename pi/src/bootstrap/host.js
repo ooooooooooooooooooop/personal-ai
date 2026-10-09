@@ -1641,6 +1641,13 @@ export async function startHost({
     onGateEvent: process.env.PAI_BUDGET_GATE_DEBUG
       ? (e) => logLine('budget-gate', 'gate event', { event: e })
       : null,
+    // dedup-h #2449 — codex.rate_limits analogue: a final 429 surfaces a
+    // session-level notify so throttling is visible, not just audited.
+    onRateLimited: ({ host }) => channelHandle?.channel.emitEvent({
+      type: 'notify',
+      level: 'warning',
+      message: `provider ${host} is rate-limiting requests (HTTP 429 after retries) — responses may be delayed or fall back`,
+    }),
   });
 
   // runtime identity completes once the session exists — session id is part of

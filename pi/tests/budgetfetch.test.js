@@ -463,3 +463,40 @@ test('no key-pool.json → empty pool → requests untouched', async () => {
     assert.deepEqual(h.calls, [PROVIDER]);
   } finally { h.done(); }
 });
+
+test('#2449: final 429 fires onRateLimited once + PROVIDER_RATE_LIMITED audit; 200 silent', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-rl-'));
+  const auditRows = [];
+  const budget = new BudgetGovernor({ ledgerPath: join(dir, 'ledger.jsonl'), limits: null });
+  const signals = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('{}', { status: 429 });
+  const ungate = installBudgetFetch({
+    budget,
+    getScope: () => 'sess-1',
+    getProviderHosts: () => new Set([new URL(PROVIDER).host]),
+    audit: { write: (r) => auditRows.push(r) },
+    onRateLimited: (e) => signals.push(e),
+  });
+  try {
+    const r = await globalThis.fetch(PROVIDER, { method: 'POST' });
+    assert.equal(r.status, 429);
+    assert.equal(signals.length, 1, 'one signal per rate-limited call');
+    assert.equal(signals[0].host, new URL(PROVIDER).host);
+    assert.ok(auditRows.some((a) => a.kind === 'PROVIDER_RATE_LIMITED'));
+  } finally { ungate(); globalThis.fetch = realFetch; }
+
+  // non-429 → no signal
+  const signals2 = [];
+  globalThis.fetch = async () => new Response('{}', { status: 200 });
+  const ungate2 = installBudgetFetch({
+    budget,
+    getScope: () => 'sess-1',
+    getProviderHosts: () => new Set([new URL(PROVIDER).host]),
+    onRateLimited: (e) => signals2.push(e),
+  });
+  try {
+    await globalThis.fetch(PROVIDER, { method: 'POST' });
+    assert.equal(signals2.length, 0);
+  } finally { ungate2(); globalThis.fetch = realFetch; }
+});

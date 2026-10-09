@@ -132,7 +132,7 @@ function withBearerAuthorization(input, init, key) {
   return { ...(init ?? {}), headers };
 }
 
-export function installBudgetFetch({ budget, getScope, getProviderHosts, getPrivateAllowedHosts = null, getKeyPool = null, audit, onGateEvent = null }) {
+export function installBudgetFetch({ budget, getScope, getProviderHosts, getPrivateAllowedHosts = null, getKeyPool = null, audit, onGateEvent = null, onRateLimited = null }) {
   const base = globalThis.fetch;
   if (typeof base !== 'function') return () => {};
   const send = (input, init) => (declaredHostHeader(input, init) ? hostPreservingFetch(input, init) : base(input, init));
@@ -205,7 +205,20 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       }
     }
 
-    if (!budget?.configured) return sendWithRotation(input, init, host);
+    // dedup-h #2449 — rate-limit side signal: a final 429 (after the SDK's
+    // own retries and any key-pool rotations) surfaces one event so the
+    // operator sees the provider is throttling, not silently hanging.
+    const sendObserved = async () => {
+      const res = await sendWithRotation(input, init, host);
+      if (res?.status === 429) {
+        const scope = getScope();
+        audit?.write({ kind: 'PROVIDER_RATE_LIMITED', data: { host, scope } });
+        try { onRateLimited?.({ host, scope }); } catch { /* signal path never breaks the call */ }
+      }
+      return res;
+    };
+
+    if (!budget?.configured) return sendObserved();
     const scope = getScope();
     const gate = budget.admit(scope);
     onGateEvent?.({ host, scope, admitted: gate.ok, rule: gate.rule ?? null });
@@ -215,7 +228,7 @@ export function installBudgetFetch({ budget, getScope, getProviderHosts, getPriv
       // channel's usage events (countCall:false there avoids double-count)
       try { budget.record({ scope, source: 'turn', usage: {}, countCall: true }); }
       catch { /* ledger went unwritable mid-run — next admit() fails closed */ }
-      return sendWithRotation(input, init, host);
+      return sendObserved();
     }
 
     audit?.write({

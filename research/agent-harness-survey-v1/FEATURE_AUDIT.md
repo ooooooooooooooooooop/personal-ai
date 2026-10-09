@@ -3397,3 +3397,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（queued follow-ups/manual-turn priority/subagent completion handoffs/session locks/context usage/fallback diagnostics/final payloads）**：**已覆盖(variant)**——depends_on durable 队列=queued follow-ups；task_send/task_interrupt=turn 级 steer；result envelope+job_bound=completion handoff；write lease=session lock；budget ledger+/traces=context usage；fallback 审计行=diagnostics；envelope=final payload。
 - **证据**：agentprofiles.test.js +1（内置存在/shadow 胜）；pi 全套回归见台账。
 - **核销**：candidates-open #2438 → `candidates-resolved.tsv` #191。
+
+#### 28.192 rate-limit side signal + per-window hooks (#2449 — title IMPLEMENTED / desc covered)
+
+- **status**: title implemented — final-429 operator signal; desc covered.
+- **判定**：标题 **IMPLEMENTED(variant)**；描述 **ALREADY_COVERED**。
+  - **标题语义（codex.rate_limits 事件 websocket 侧信号）**：**IMPLEMENTED(variant)**——`installBudgetFetch` 新增 `onRateLimited` 缝：provider 最终响应 429（SDK 重试+key-pool 轮换之后仍限速）→ `PROVIDER_RATE_LIMITED` 审计行 + `emitEvent` session-level notify（"provider X is rate-limiting"）；`sendObserved` 公共出口覆盖 configured/unconfigured 两路径；信号缝异常不破坏请求。
+  - **描述语义（hooks 从 VS Code window 解析 workspace 而非共享全局态）**：**已覆盖**——HookRunner 构造收 `workdir` 每实例注入（`cwd:this.workdir` spawn）；无共享全局 workspace 态缺陷类。
+- **证据**：budgetfetch.test.js +1（429→单信号+审计、200→静默）；pi 全套见台账。
+- **核销**：candidates-open #2449 → `candidates-resolved.tsv` #192。
+
+#### 28.192 rate-limit side signal + hook workspace resolution (#2449 — title IMPLEMENTED / desc covered)
+
+- **status**: title implemented — `onRateLimited` session notify; desc covered.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义（rate_limits 事件/websocket 侧信号）**：**IMPLEMENTED**——`installBudgetFetch` 新增 `onRateLimited`：最终 429（SDK 自带重试与 key-pool 轮换之后仍限速）落 `PROVIDER_RATE_LIMITED` 审计 + `emitEvent({type:'notify',level:'warning'})` 推到会话事件流——UI 可见限速信号而非静默挂起；`sendObserved` 包两条路径（budget 未配置/已准入）不重复报（轮换命中已另行审计）。
+  - **描述语义（hooks 按窗口 workspace 解析而非共享全局态）**：**已覆盖**——`HookRunner(workdir)` 实例构造、`cwd:this.workdir` spawn、`<workdir>/.pai/hooks.json` per-workdir 配置，本无全局态共享缺陷面。
+- **证据**：budgetfetch.test.js +1（429→signal+audit；200 静默）；pi 全套见台账。
+- **核销**：candidates-open #2449 → `candidates-resolved.tsv` #192。
