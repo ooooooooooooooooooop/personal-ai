@@ -4697,3 +4697,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`session_search` 全文检索跨持久化 transcript+`session_read` 定点读=会话搜索（FTS vs embedding RAG=variant）。描述 **缺陷类不存在**——无 WhatsApp/隐式系统投递面（同 #3815）。
 - **核销**：candidates-open #3819 → `candidates-resolved.tsv` #386。
+
+#### 28.385 /clone 分支复制 + usage footer (#3831 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`session_fork{path,entryId,skipConversationRestore}`=分支复制新 session 面。描述 **COVERED(variant)**——会话用量尾栏+per-call traces（per-turn usage state=变体）。
+- **核销**：candidates-open #3831 → `candidates-resolved.tsv` #387。
+
+#### 28.386 resume include_turns/tier/metadata (#3841 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`entryId` fork 锚点=turn 边界语义（include_turns 变体）；`service_tier` 在 models.json samplingParams（provider 级非 per-resume）；source metadata=fork 事件含锚点。描述 **COVERED(variant)**——job 完成遥信=终态事件账+webhook 投递（teardown 路径漏报=缺陷类不存在）。
+- **核销**：candidates-open #3841 → `candidates-resolved.tsv` #388。
+
+#### 28.387 原生 OS 通知 + /resume 污染 (#3845 — title PARTIAL(variant) / desc DEFECT-ABSENT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`notify_user` 工具+UI 通知事件在册；原生 OS toast 面=variant 未落。描述 **缺陷类不存在**——`/resume` 是 UI 命令→session_resume op，命令文本永不写 transcript。
+- **核销**：candidates-open #3845 → `candidates-resolved.tsv` #389。

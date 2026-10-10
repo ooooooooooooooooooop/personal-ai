@@ -385,3 +385,6 @@ dedup-h	3811	loop	adaptive /loop	COVERED(variant):ContinuationGovernor agent_end
 dedup-h	3813	skill	Curator autonomous	BOUNDARY:no curator surface,explicit skills.json;desc VARIANT #3789
 dedup-h	3815	sched	implicit delivery allowlist	DEFECT-ABSENT:webhook explicit-spec only;desc VARIANT nested lane
 dedup-h	3819	search	RAG session search	COVERED(variant):session_search FTS+session_read;desc DEFECT-ABSENT #3815
+dedup-h	3831	session	/clone branch	COVERED(variant):session_fork entryId+skipRestore;desc VARIANT usage footer
+dedup-h	3841	resume	include_turns+service_tier	PARTIAL(variant):entryId anchor,tier provider-level;desc VARIANT completion telemetry
+dedup-h	3845	notify	native OS notify	PARTIAL(variant):notify_user in-app only;desc DEFECT-ABSENT resume cmd not in transcript
