@@ -364,3 +364,6 @@ dedup-h	3684	handoff	remote Devin handoff	BOUNDARY:no remote session surface;des
 dedup-h	3713	api	commands.list RPC	PARTIAL(variant):op docstring list,no discovery RPC;desc BOUNDARY stream-json
 dedup-h	3720	shell	persistent shell mode	PARTIAL(variant):env overlay persists,cwd pinned workdir by design;desc BOUNDARY TTS
 dedup-h	3732	parallel	--parallel flag	COVERED(variant):delegate/jobs fan-out;desc BOUNDARY headless
+dedup-h	3734	mcp	OAuth 2.1 remote	COVERED:discovery+auth_code+device_code+refresh #740;desc BOUNDARY TUI esc
+dedup-h	3739	sandbox	elevated sandbox cmd	PARTIAL(variant):sandbox in jobs,no elevate cmd;desc BOUNDARY commit template
+dedup-h	3740	worktree	worktree+sandbox	COVERED:same job spec both fields;desc VARIANT Bedrock SDK

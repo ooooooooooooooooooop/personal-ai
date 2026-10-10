@@ -4567,3 +4567,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——并行同 prompt 多任务=delegate_task fan-out+job 并行（CLI `--parallel` 旗=variant）。描述 **BOUNDARY**——headless 默认消息=无 headless 驱动面。
 - **核销**：candidates-open #3732 → `candidates-resolved.tsv` #365。
+
+#### 28.364 remote MCP OAuth 2.1 + TUI escape (#3734 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——MCP OAuth 2.1 流族（discovery+authorization_code+device_code+client_credentials+刷新持久化）于远程 HTTP/SSE server 全链在册（#740 起）。描述 **BOUNDARY**——SSH 终端 escape 超时=无 TUI 面。
+- **核销**：candidates-open #3734 → `candidates-resolved.tsv` #366。
+
+#### 28.365 elevated sandbox + commit template (#3739 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——sandbox provider 机制在 job spawnSpec（none/wsl 边界+显式 bypass 哨兵）；onboarding/`/elevate-sandbox` 提权命令面无对应物（提权=刻意操作员动作）。描述 **BOUNDARY**——git commit template 远程项目=外部协作面。
+- **核销**：candidates-open #3739 → `candidates-resolved.tsv` #367。
+
+#### 28.366 worktree+sandbox + Bedrock Mantle (#3740 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`worktree`/`sandbox` 同 job spec 共存（jobs.js:272 spec 同帧、executeAttempt 同时收 worktreePath+sandboxProvider）。描述 **COVERED(variant)**——Bedrock=SDK provider 面（bedrock-converse api-shape）；Mantle 端点目录项=variant。
+- **核销**：candidates-open #3740 → `candidates-resolved.tsv` #368。
