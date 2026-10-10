@@ -4513,3 +4513,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`host/src/core/channel.js`、`pi/src/adapter/channel.js`、`pi/src/bootstrap/host.js`、`app/ui/app.js`。
 - **证据**：host channel **35/35**（新增 #3621 dispatch+fail-closed 测试）、node --check 净、html-validate 净。
 - **核销**：candidates-open #3621 → `candidates-resolved.tsv` #356。
+
+#### 28.355 per-contact models + response 卡 token 计数 (#3624 — title BOUNDARY / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无多联系人/DM 会话面。描述 **PARTIAL(variant)**——会话 token/成本尾栏+`/stats`+per-call traces（#3938）在册；per-message 响应卡 token 计数=variant 未落。
+- **核销**：candidates-open #3624 → `candidates-resolved.tsv` #357。
+
+#### 28.356 messages.transform/system.transform + ty beta (#3633 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`transform_llm_output` 门控在册（#1922 text 重写契约）；input 方向 messages/system transform=variant 未落（llm_input 刻意观测只读）。描述 **BOUNDARY**——ty language-server 下载配置=外部编辑器面。
+- **核销**：candidates-open #3633 → `candidates-resolved.tsv` #358。
+
+#### 28.357 企业默认模型 + 工具头点击跳文件 (#3640 — title BOUNDARY / desc PARTIAL(boundary))
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 enterprise MDM 默认模型面（同 #3561 判例）。描述 **PARTIAL(boundary)**——工具头点击=展开/折叠；编辑器跳文件面无对应物（无内嵌编辑器）。
+- **核销**：candidates-open #3640 → `candidates-resolved.tsv` #359。

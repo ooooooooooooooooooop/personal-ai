@@ -355,3 +355,6 @@ dedup-h	3599	task	workflow workingDir pin	COVERED:spec.workdir/authorized_root/w
 dedup-h	3605	secret	gateway SecretRef	BOUNDARY:no gateway surface;desc PARTIAL(variant) agent-name display,color absent
 dedup-h	3610	update	daemon idle auto-update	BOUNDARY:source checkout no self-update;desc COVERED /new exists
 dedup-h	3621	web	/web url scrape cmd	IMPLEMENTED:channel op->same webFetchTool->/web staged attach;desc BOUNDARY review ledger post
+dedup-h	3624	model	per-contact models	BOUNDARY:no DM/contact surface;desc PARTIAL(variant) per-msg token cards absent
+dedup-h	3633	hook	messages/system.transform	PARTIAL(variant):transform_llm_output gate only,input-side observational;desc BOUNDARY ty LSP
+dedup-h	3640	policy	enterprise default model	BOUNDARY:no MDM surface;desc PARTIAL(boundary) tool-head click=fold only,no editor
