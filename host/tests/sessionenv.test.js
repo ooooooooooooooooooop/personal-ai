@@ -48,3 +48,19 @@ test('clear: secret flags go with the values', () => {
   env.set('TOK', 'z');
   assert.equal(env.list().find((r) => r.key === 'TOK').value, 'z', 'post-clear set is not secret-flagged');
 });
+
+test('#2547: JVM build-tool flags + glibc tunables refused as injection vectors', () => {
+  const env = new SessionEnv({});
+  for (const bad of [
+    'MAVEN_OPTS', 'SBT_OPTS', 'GRADLE_OPTS', 'ANT_OPTS',
+    'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS',
+    'GLIBC_TUNABLES', 'GCONV_PATH',
+    'DOTNET_STARTUP_HOOKS', 'DOTNET_ADDITIONAL_DEPS',
+    'SHELLOPTS', 'IFS', 'PS1',
+  ]) {
+    const r = env.set(bad, '-javaagent:/tmp/x.jar');
+    assert.equal(r.ok, false, bad);
+    assert.equal(env.view()[bad], undefined);
+  }
+  assert.equal(env.set('MY_BUILD_FLAG', 'release').ok, true, 'ordinary keys still set');
+});

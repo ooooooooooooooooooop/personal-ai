@@ -3542,3 +3542,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（Windows/WSL 键位默认值——避开终端保留键）**：**BOUNDARY**——无 TUI/键位映射面（web UI 浏览器按键）。
 - **证据**：`host/src/core/sandbox.js`（workdir 挂载粒度）；`grep write_paths` 空集。
 - **核销**：candidates-open #2542 → `candidates-resolved.tsv` #207。
+
+#### 28.207 JVM/glibc env injection block + macOS sandbox backup (#2547 — title IMPLEMENTED / desc covered variant)
+
+- **status**: title gap closed (generator-source fix); desc classified.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（env-sandbox: block JVM 注入 MAVEN_OPTS/SBT_OPTS/GRADLE_OPTS/ANT_OPTS + glibc tunables）**：**IMPLEMENTED**——命令行内联 env（`DANGER_ENV_RE`）本就覆盖该族并升级 ask；**缺的是 spawn 边界两份 `ENV_INJECT_RE`**：sessionenv overlay `env_set MAVEN_OPTS=--javaagent:…` 与 MCP spawn env 均可绕过——两份名单补齐 `JAVA_TOOL_OPTIONS|_JAVA_OPTIONS|JDK_JAVA_OPTIONS|MAVEN_OPTS|SBT_OPTS|GRADLE_OPTS|ANT_OPTS|GLIBC_TUNABLES|GCONV_PATH|DOTNET_STARTUP_HOOKS|DOTNET_ADDITIONAL_DEPS|SHELLOPTS|IFS|PS1`，与 `DANGER_ENV_RE` 对齐。
+  - **描述语义（macOS sandbox 写/重定向前备份 pipeline）**：**已覆盖(variant)**——per-mutation receipt+pre-image+`file_checkpoint`+restore displace=平台无关变体。
+- **位点**：`host/src/core/sessionenv.js:20`、`pi/extensions/mcp/index.js:69`（生成器源码——名单原语，非补丁）。
+- **证据**：sessionenv 新断言 14 key 全拒+普通键放行；host **421/421**；envtools+mcp-ext 聚焦全绿（49 项 ✔，收尾挂点照旧规避）。
+- **核销**：candidates-open #2547 → `candidates-resolved.tsv` #208。
