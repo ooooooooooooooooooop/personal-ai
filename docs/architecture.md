@@ -1,6 +1,10 @@
 # 仓库架构
 
-本仓库是 Personal AI 公开发布仓（机制层 + soul/ 认知层），不是运行时工作区。
+本仓库是 Personal AI 公开发布仓（机制层 + 认知层），不是运行时工作区。
+
+> **认知层有三个成员，按功能位划分**：
+> `soul/` **状态**（它信什么）· `mind/` **更新**（它怎么变）· `host/` **控制**（它许什么）。
+> `mind/` 是 harness 无关、且在 agent 权限之外的维护工具链——见 [`mind/README.md`](../mind/README.md)。
 
 ## 项目类型
 
@@ -8,8 +12,9 @@
 源码仓库层
   skills.json + skills/<name>/ Skill 包
   mcp.json + mcp/ 下 MCP 包
-  dsh/ 下 DSH 插件包（不设注册表）
+  dsh/ 下 DSH 插件包（不设注册表；包内只放身体适配器）
   soul/ Personal AI 可携带认知状态（通用 L2/L3 + schema + briefing 契约 + bootstrap）
+  mind/ 认知状态的维护工具链（harness 无关；在 agent 权限之外）
           |
           v
 质量与发布层
