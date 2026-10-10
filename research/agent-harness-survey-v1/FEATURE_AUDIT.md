@@ -4805,3 +4805,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——同 #3883 desc（policy deny/profile gate=开关语义）。描述 **BOUNDARY**——无 cloud session 浏览/配置面。
 - **核销**：candidates-open #3894 → `candidates-resolved.tsv` #404。
+
+#### 28.403 security checkpoint + worktree 启动顺序 (#3895 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——风险确认=projectTrust+riskActions asks 操作员仲裁（交互式 checkpoint 语义）；`--non-interactive --accept-risk` CLI 形态=variant 未落。描述 **COVERED(variant)**——worktree job 直落树内 spawn（先建后进=无漂移窗=更强次序）。
+- **核销**：candidates-open #3895 → `candidates-resolved.tsv` #405。
+
+#### 28.404 model 作用域选择 + IM 通道族 (#3903 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——模型=session 级固定语义；session/agent/global 作用域选择器=variant 未落。描述 **BOUNDARY**——WhatsApp/QQ/Twitch/IRC/Slack 外部通道面。
+- **核销**：candidates-open #3903 → `candidates-resolved.tsv` #406。
+
+#### 28.405 repoless REST + Slack 线程 (#3906 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：两面 **BOUNDARY**——无 repoless REST 服务面；Slack 线程路由=外部通道。
+- **核销**：candidates-open #3906 → `candidates-resolved.tsv` #407。

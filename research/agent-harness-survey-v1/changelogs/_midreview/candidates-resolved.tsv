@@ -403,3 +403,6 @@ dedup-h	3886	rewind	Rewind to here	COVERED:per-msg edit btn->session_rewind entr
 dedup-h	3888	task	task protocol resume	COVERED(variant):store state machine seq/rebind/closed;desc VARIANT scroll state
 dedup-h	3890	model	session-only model key	COVERED(variant):/config model session-scoped;desc BOUNDARY aiohttp
 dedup-h	3894	flag	subagents_enabled	COVERED(variant):policy deny+profile gate #3883;desc BOUNDARY cloud sessions
+dedup-h	3895	onboard	security checkpoint prompt	PARTIAL(variant):projectTrust+riskAction asks;desc VARIANT worktree direct-spawn
+dedup-h	3903	model	model change scope picker	PARTIAL(variant):session-level only;desc BOUNDARY IM channels
+dedup-h	3906	api	repoless REST sessions	BOUNDARY:no REST surface;desc BOUNDARY Slack threads
