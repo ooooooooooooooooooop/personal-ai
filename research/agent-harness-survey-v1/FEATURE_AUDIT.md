@@ -3451,3 +3451,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（workflow trigger 加 user-login guard 防 autofix bot triage）**：**BOUNDARY**——CI workflow/trigger 面不存在于本栈。
 - **证据**：`pi/extensions/mcp/index.js` OAuth 流+token-exchange+header 注入。
 - **核销**：candidates-open #2482 → `candidates-resolved.tsv` #196。
+
+#### 28.197 hook forms + auto-recall (#2483 — title covered / desc resolved)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（HTTP Hook/Function Hook/Async Hook）**：**已覆盖**——`HOOK_ENTRY_KINDS` 四形态 `{command|http|prompt|agent}`：http=HTTP Hook（POST payload JSON+last-line JSON 答 gate）；prompt/agent=model-backed Function Hook（allowPromptInjection 门）；观测 `fire()` 不 await=Async fire-and-forget 语义；gate `fireGate` 同步应答。
+  - **描述语义（opt-in Auto Recall 搜外部 context+内置安全限）**：**已覆盖(variant)**——同 #2450：per-turn memory injection 覆盖 recall 语义；外抓自动注入=egress+注入边界刻意不设。
+- **证据**：`host/src/core/hooks.js` #entryKind/fire/fireGate。
+- **核销**：candidates-open #2483 → `candidates-resolved.tsv` #197。
