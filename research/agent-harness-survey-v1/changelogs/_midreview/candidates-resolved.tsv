@@ -283,3 +283,6 @@ dedup-h	3158	read	indentation semantic blocks	PARTIAL(variant):line-range reads+
 dedup-h	3162	ci	--exit-on-error	COVERED(variant):job exit_code/terminal propagation;desc BOUNDARY qa-profile
 dedup-h	3171	hook	session_tree branch hooks	COVERED(variant):before_branch gate #1807+session lifecycle family;desc BOUNDARY GitLab homepage
 dedup-h	3179	worktree	--worktree-branch base	COVERED:worktree_create ref+newBranch default-branch resolve #2177;desc N/A no XML tool protocol
+dedup-h	3180	worktree	EnterWorktree path param	COVERED:in_worktree opens named existing+worktree_list;desc BOUNDARY Cloud Team
+dedup-h	3187	context	rules as context	COVERED:steering envelope+pins;desc PARTIAL no git log history view
+dedup-h	3191	rpc	strict LF JSONL framing	COVERED(variant):JSONL-by-design readline framing,CRLF-tolerant;desc BOUNDARY ACP servers panel

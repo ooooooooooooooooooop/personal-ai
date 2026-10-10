@@ -4072,3 +4072,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`worktree_create {ref, newBranch}`：ref 显式 base；newBranch 未给 base 时按 origin/HEAD→main/master→HEAD 解析（#2177）。描述 **N/A**——无 XML tool protocol 面（SDK 原生 tool 格式唯一）。
 - **核销**：candidates-open #3179 → `candidates-resolved.tsv` #284。
+
+#### 28.284 EnterWorktree path + Cloud Team (#3180 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`in_worktree` 参数接具名既有 worktree（`worktree_list` 枚举+不存在诚报错）=EnterWorktree(path) 语义。描述 **BOUNDARY**——无 Cloud Team 管理面。
+- **核销**：candidates-open #3180 → `candidates-resolved.tsv` #285。
+
+#### 28.285 rules 作 context + git history 视图 (#3187 — title COVERED / desc PARTIAL)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——steering/rules 文件注入 envelope（.pai/steering+compat dirs+frontmatter apply 模式+`pins` 手动加入）=rules-as-context。描述 **PARTIAL**——`/diff` 面板在；git log commit-list history 视图未实现。
+- **核销**：candidates-open #3187 → `candidates-resolved.tsv` #286。
+
+#### 28.286 strict LF JSONL + ACP restart (#3191 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——channel 是 JSONL-by-design（`mirrors the pi --mode rpc surface`），supervisor↔body 走 readline 行分隔——readline 宽容 CRLF=严格 LF-only 的变体（宽松解析方向无害）。描述 **BOUNDARY**——无 ACP agent-servers 面板。
+- **核销**：candidates-open #3191 → `candidates-resolved.tsv` #287。
