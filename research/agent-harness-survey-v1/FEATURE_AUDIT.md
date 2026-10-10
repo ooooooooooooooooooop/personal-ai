@@ -4294,3 +4294,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——memory_fts 自定义 CJK 分词（unicode61 无 CJK 断词→JS 段化索引+`ftsAndQuery` 查询侧同段化）=日文/中日韩查询展开语义（stop-words 表=variant）。描述 **ALREADY_COVERED**——audit redact：key-name+value-level 深度脱敏（credential 任何深度不落账）——refresh 失败原因文本过同一 redact 管。
 - **核销**：candidates-open #3313 → `candidates-resolved.tsv` #320。
+
+#### 28.321 extraCollections 跨会话 + compaction clamp (#3314 — title VARIANT / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`scope:'user'` 行对 instance 内全部会话/agent 可见+`memory_recall` 工具=跨会话搜索（extraCollections 集合语法=variant）。描述 **PARTIAL(variant)**——compaction `maxTokens:2048` 固定预算+featureOverride 模型；按模型 output limit 逐钳未实现（SDK 侧可能再钳=上游语义变体）。
+- **核销**：candidates-open #3314 → `candidates-resolved.tsv` #321。
+
+#### 28.322 FTS fallback + 查询展开 (#3315 — title COVERED(variant))
+
+- **status**: classification only.
+- **判定**：**COVERED(variant)**——`ftsAndQuery`：CJK 段化+逐词 AND 短语查询；无命中时 recall 退化到 pinned 注入+recent（非硬失败）=fallback 语义；query expansion=段化 token 展开变体。
+- **核销**：candidates-open #3315 → `candidates-resolved.tsv` #322。
+
+#### 28.323 memory 日记文件 + OpenTelemetry (#3320 — title BOUNDARY(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——短期 recall 走 instance SQLite FTS（pinned+FTS 注入），非 `memory/**/YYYY-MM-DD.md` 日记文件结构=不同架构同语义（日期维度=created 列）。描述 **BOUNDARY**——无 OpenTelemetry exporter；等价观测面=audit ledger+usage_traces+LOG_JSON。
+- **核销**：candidates-open #3320 → `candidates-resolved.tsv` #323。

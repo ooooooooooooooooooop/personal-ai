@@ -319,3 +319,6 @@ dedup-h	3272	hook	session_compact_failed	COVERED(variant):compact_end carries st
 dedup-h	3282	compact	pre-compaction memory flush	COVERED(variant):compact_start hook can wire flush,no builtin;desc PARTIAL usage via traces/stats no /context view
 dedup-h	3305	session	incognito transcripts in-memory	COVERED:M71 ephemeral inMemory sessions zero persistence;desc same
 dedup-h	3313	memory	Japanese-aware FTS	COVERED(variant):custom CJK segmentation index+query;desc COVERED audit depth redaction
+dedup-h	3314	memory	extraCollections cross-session	COVERED(variant):user scope instance-visible+memory_recall;desc PARTIAL fixed 2048 no per-model clamp
+dedup-h	3315	memory	FTS fallback+query expansion	COVERED(variant):segmented AND query,pinned+recent fallback
+dedup-h	3320	memory	daily notes recall	BOUNDARY(variant):SQLite FTS not markdown files;desc BOUNDARY no OTel exporter
