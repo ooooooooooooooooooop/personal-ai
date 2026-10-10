@@ -4679,3 +4679,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——loop.js ContinuationGovernor 每 `agent_end` 评估 continue/blocked/complete（governed continuation=比"model 决定"更强的门控变体）。描述 **BOUNDARY**——gateway sidecar 启动序列面不存在。
 - **核销**：candidates-open #3811 → `candidates-resolved.tsv` #383。
+
+#### 28.382 Curator 自治 + promptOverride 重复 (#3813 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无自治 skill curator 面（skills.json=操作员显式登记，刻意不自治评级/合并）。描述 **COVERED(variant)**——#3789（profile preamble）。
+- **核销**：candidates-open #3813 → `candidates-resolved.tsv` #384。
+
+#### 28.383 隐式投递 allowlist + cron 嵌套 lane (#3815 — title DEFECT-ABSENT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **缺陷类不存在**——无隐式 scheduled/system 投递面（webhook=显式 spec 声明才投递=先天 allowlist 语义）。描述 **COVERED(variant)**——cron 嵌套执行=detach job+prompt-target lane 无死锁形态。
+- **核销**：candidates-open #3815 → `candidates-resolved.tsv` #385。
+
+#### 28.384 RAG 会话搜索 + WhatsApp allowlist (#3819 — title VARIANT / desc DEFECT-ABSENT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`session_search` 全文检索跨持久化 transcript+`session_read` 定点读=会话搜索（FTS vs embedding RAG=variant）。描述 **缺陷类不存在**——无 WhatsApp/隐式系统投递面（同 #3815）。
+- **核销**：candidates-open #3819 → `candidates-resolved.tsv` #386。

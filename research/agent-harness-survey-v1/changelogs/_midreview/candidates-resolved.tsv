@@ -382,3 +382,6 @@ dedup-h	3799	cron	cron-owned wake lane	COVERED(variant):prompt-target tick lane;
 dedup-h	3808	sched	event-driven wake	COVERED(variant):monitor_add change-trigger;desc VARIANT malformed fail-closed
 dedup-h	3809	session	sessions cleanup cmd	COVERED(variant):session_delete+instance.purge M64;desc BOUNDARY #3788
 dedup-h	3811	loop	adaptive /loop	COVERED(variant):ContinuationGovernor agent_end eval stronger;desc BOUNDARY gateway
+dedup-h	3813	skill	Curator autonomous	BOUNDARY:no curator surface,explicit skills.json;desc VARIANT #3789
+dedup-h	3815	sched	implicit delivery allowlist	DEFECT-ABSENT:webhook explicit-spec only;desc VARIANT nested lane
+dedup-h	3819	search	RAG session search	COVERED(variant):session_search FTS+session_read;desc DEFECT-ABSENT #3815
