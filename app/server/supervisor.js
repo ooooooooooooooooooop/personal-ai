@@ -592,6 +592,30 @@ export class BodySupervisor {
           const obs = new ObservationStore(this.paths.worldModelDir);
           const open = preds.openPredictions();
           const recent = obs.recent(n);
+          // §4.3 #2/#3 — the COMPILED projections, not the governed source
+          // files: briefing.md is canonical_compile's 7-section output
+          // (§1 residuals / §2 reliability alerts / §3 best models+falsifiers);
+          // runtime-state.json is its machine twin. Both are read-only compiled
+          // artifacts — absent means "canonical never compiled", surfaced
+          // honestly as null rather than an empty fabrication.
+          let briefing = null;
+          let runtimeState = null;
+          try {
+            const bp = join(this.paths.canonicalDir, 'briefing.md');
+            if (existsSync(bp)) briefing = readFileSync(bp, 'utf8');
+            const sp = join(this.paths.canonicalDir, 'runtime-state.json');
+            if (existsSync(sp)) {
+              const st = JSON.parse(readFileSync(sp, 'utf8'));
+              runtimeState = {
+                compiled_at: st.compiled_at ?? null,
+                theory_version: st.theory_version ?? null,
+                schema_version: st.schema_version ?? null,
+                continuity_epoch: st.continuity_epoch ?? null,
+                lineage_head: st.lineage_head ?? null,
+                active_body: st.active_body ?? null,
+              };
+            }
+          } catch { /* compiled artifacts absent or torn — report what exists */ }
           return reply(true, {
             openPredictions: open.map((p) => ({
               id: p.id, claim: p.claim ?? null, irreversible: Boolean(p.irreversible), at: p.at ?? null,
@@ -599,6 +623,8 @@ export class BodySupervisor {
             observations: recent.map((o) => ({
               id: o.id, kind: o.kind, subject: o.subject, actor: o.actor ?? null, at: o.at ?? null,
             })),
+            briefing,
+            runtimeState,
             counts: { openPredictions: open.length, observationsReturned: recent.length },
           });
         }

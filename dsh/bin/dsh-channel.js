@@ -24,6 +24,7 @@ import { createTypertClient } from '../adapter/typert.js';
 import { createDshChannel } from '../adapter/channel.js';
 import { DshBody } from '../adapter/index.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
+import { ObservationStore } from '../../host/src/core/observation.js';
 import { instancePaths } from '../../host/src/core/instance.js';
 
 const args = process.argv.slice(2);
@@ -101,12 +102,19 @@ const facts = new DshBody({ runId: 'channel', dshCli: dshBin }).facts();
 const audit = instanceRoot
   ? new AuditWriter(instancePaths(instanceRoot), { annotations: { body: 'dsh' } })
   : null;
+// Operator-evidence parity with the pi body: the same instance world-model
+// store receives dsh-side operator_* rows (decision/interrupt/undo/exec) —
+// pending asks and the HostChannel dispatch record through it.
+const observations = instanceRoot
+  ? new ObservationStore(instancePaths(instanceRoot).worldModelDir)
+  : null;
 const { channel, dispose } = createDshChannel({
   client,
   sessionId: created.sessionId,
   cwd: workdir,
   facts,
   audit,
+  observations,
 });
 
 const write = (obj) => process.stdout.write(`${JSON.stringify(obj)}\n`);

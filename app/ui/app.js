@@ -2605,6 +2605,25 @@ async function refreshWorldModelCard() {
       predsBox.appendChild(div);
     }
   }
+  // §4.3 #2/#3 — the compiled projection: briefing §1 residuals / §2
+  // reliability alerts / §3 best-models+falsifiers, plus the epoch stamp from
+  // runtime-state.json. Absent canonical compile shows honestly as "未编译".
+  const brief = $('wm-briefing');
+  const epoch = $('wm-epoch');
+  if (brief) {
+    if (d.briefing) {
+      brief.textContent = d.briefing;
+      brief.classList.remove('hidden');
+    } else {
+      brief.textContent = 'canonical 尚未编译——无简报产物（回路未跑过 wm_cycle/canonical_compile 或该实例无 canonical）';
+      brief.classList.remove('hidden');
+    }
+  }
+  if (epoch) {
+    epoch.textContent = d.runtimeState
+      ? `epoch ${d.runtimeState.continuity_epoch ?? '?'} · theory ${d.runtimeState.theory_version ?? '?'}${d.runtimeState.compiled_at ? ` · ${String(d.runtimeState.compiled_at).slice(0, 10)}` : ''}`
+      : '';
+  }
   obsBox.innerHTML = '';
   if (!d.observations?.length) {
     obsBox.innerHTML = '<div class="dim" style="padding:8px">无观察记录</div>';
@@ -2693,6 +2712,22 @@ function renderGovCard(p) {
   $('gov-denied').textContent += (b && (b.maxTokensPerSession || b.maxCostPerSessionUsd || b.maxCallsPerSession))
     ? `；预算上限：${[b.maxTokensPerSession && `${b.maxTokensPerSession} tok`, b.maxCostPerSessionUsd && `$${b.maxCostPerSessionUsd}`, b.maxCallsPerSession && `${b.maxCallsPerSession} 次调用`].filter(Boolean).join(' · ')}`
     : '；无预算上限（所有用量仍记 append-only 账）';
+  // §5.5 fix 3 — resident surface: operator ask-resolution outcomes plus the
+  // rules that kept being resolved (the precipitation signal). /stats stays;
+  // this line makes the signal visible without typing a command.
+  cmd('agent_stats').then((r) => {
+    const el = $('gov-asks');
+    if (!el) return;
+    const a = r?.data?.asks ?? {};
+    const total = ['allow', 'allow_session', 'always', 'deny', 'timeout', 'aborted', 'question_answered']
+      .reduce((s, k) => s + (a[k] ?? 0), 0);
+    if (!r?.success || !total) { el.textContent = '批准卡结局：暂无记录'; return; }
+    const rules = Object.entries(r.data.askRules ?? {})
+      .sort((x, y) => y[1] - x[1]).slice(0, 4)
+      .map(([k, v]) => `${k}×${v}`).join(' · ');
+    el.textContent = `批准卡结局：放行 ${a.allow ?? 0} · 本会话 ${a.allow_session ?? 0} · 总是 ${a.always ?? 0} · 拒绝 ${a.deny ?? 0} · 超时 ${a.timeout ?? 0} · 中止 ${a.aborted ?? 0} · 问答 ${a.question_answered ?? 0}`
+      + (rules ? `｜规则：${rules}` : '');
+  }).catch(() => {});
 }
 /* Governance dry-run: rehearse a tool call against the real decide chain.
  * Verdict rendering mirrors the gov-card vocabulary (放行/拒绝/询问). */
@@ -3973,8 +4008,11 @@ const SLASH = [
       if (!r.success) { addSys(`统计失败：${r.error ?? '未知'}`, true); return; }
       const s = r.data ?? {};
       const a = s.asks ?? {};
-      const asksLine = (a.allow || a.deny || a.timeout || a.always)
-        ? `\n批准卡结局：放行 ${a.allow ?? 0} · 总是允许 ${a.always ?? 0} · 本会话放行 ${a.allow_session ?? 0} · 拒绝 ${a.deny ?? 0} · 超时 ${a.timeout ?? 0}` : '';
+      // §5.5 fix: allow_session / question_answered / aborted must also trigger
+      // the line — "only ever clicked session-allow" previously rendered
+      // nothing at all.
+      const asksLine = (a.allow || a.allow_session || a.deny || a.timeout || a.always || a.aborted || a.question_answered)
+        ? `\n批准卡结局：放行 ${a.allow ?? 0} · 总是允许 ${a.always ?? 0} · 本会话放行 ${a.allow_session ?? 0} · 拒绝 ${a.deny ?? 0} · 超时 ${a.timeout ?? 0} · 中止 ${a.aborted ?? 0} · 回答问题 ${a.question_answered ?? 0}` : '';
       addSys(`累计 ${s.sessions ?? 0} 个会话 · ${s.messages ?? 0} 条消息（你发了 ${s.userMessages ?? 0} 条）· ${(s.tokens ?? 0).toLocaleString()} tok · $${s.cost ?? 0}`
         + (s.firstSession ? `——自 ${new Date(s.firstSession).toLocaleDateString()} 起` : '') + asksLine);
       // M75 process telemetry rides the same report — honest RSS/heap/uptime

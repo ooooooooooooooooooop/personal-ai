@@ -2238,6 +2238,10 @@ export async function startHost({
       // Vibe AgentStats outcome buckets — approval answers counted by结局
       // from the ASK_RESOLVED audit trail (survives session reloads)
       const asks = { allow: 0, allow_session: 0, always: 0, deny: 0, timeout: 0, aborted: 0, question_answered: 0 };
+      // §5.5 fix: `rule` must survive aggregation — "which rule keeps being
+      // refused" is the precipitation signal the world model consumes; the
+      // flat bucket alone throws it away.
+      const askRules = {};
       try {
         const auditDir = core.paths?.auditDir;
         if (auditDir && existsSync(auditDir)) {
@@ -2246,8 +2250,10 @@ export async function startHost({
               if (!line || !line.includes('ASK_RESOLVED')) continue;
               let e; try { e = JSON.parse(line); } catch { continue; }
               const a = e?.data?.answer;
+              const rule = String(e?.data?.rule ?? 'ask');
               if (e?.data?.kind === 'question') { if (a && a !== 'timeout' && a !== 'aborted') asks.question_answered++; else if (a) asks[a]++; }
               else if (a && asks[a] != null) asks[a]++;
+              if (a && a !== 'aborted') askRules[rule] = (askRules[rule] ?? 0) + 1;
             }
           }
         }
@@ -2256,6 +2262,7 @@ export async function startHost({
         ...agg,
         cost: Number(agg.cost.toFixed(4)),
         asks,
+        askRules,
         firstSession: first?.toISOString?.() ?? null,
         lastSession: last?.toISOString?.() ?? null,
       };

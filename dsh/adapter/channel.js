@@ -92,7 +92,7 @@ function foldHistory(entries) {
  *        Absent = observable-only channel (tests, dry runs).
  * @returns {{channel: HostChannel, dispose: () => void}}
  */
-export function createDshChannel({ client, sessionId, cwd, facts = null, audit = null }) {
+export function createDshChannel({ client, sessionId, cwd, facts = null, audit = null, observations = null }) {
   const uiListeners = new Set();
   const emit = (ev) => {
     for (const l of uiListeners) {
@@ -112,7 +112,10 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
     projection: null, // last session/projection frame (goal/subagent tree)
   };
 
-  const asks = new PendingAsks({});
+  // Operator evidence: dsh approvals/questions resolve through the same
+  // PendingAsks ASK_RESOLVED point — wiring observations here makes dsh-side
+  // operator decisions land in the instance world-model stream like pi's.
+  const asks = new PendingAsks({ observations });
 
   /* ---------- mux event pump (reconnecting, single generation at a time) ---------- */
   let running = true;
@@ -348,10 +351,14 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
         mode: 'steer',
         content: [{ type: 'text', text: String(message) }],
       });
+      try { observations?.record?.({ kind: 'operator_steer', subject: `operator steered: ${String(message ?? '').slice(0, 200)}`, actor: 'operator' }); } catch { /* best-effort */ }
     },
     abort: async () => {
       await client.call('session.cancel', { sessionId: state.sessionId });
       asks.abortPending();
+      // operator_interrupt — same semantic as the pi facade: this abort path
+      // is the operator's stop; nothing else reaches it.
+      try { observations?.record?.({ kind: 'operator_interrupt', subject: 'operator interrupted the dsh run', actor: 'operator' }); } catch { /* best-effort */ }
     },
     getState: async () => ({
       model: state.model,
@@ -492,6 +499,7 @@ export function createDshChannel({ client, sessionId, cwd, facts = null, audit =
     todos: todosFacade,
     jobs: jobsFacade,
     asks,
+    observations,
   });
 
   const dispose = () => {
