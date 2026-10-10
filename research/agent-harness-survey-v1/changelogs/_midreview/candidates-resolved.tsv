@@ -418,3 +418,6 @@ dedup-h	3945	rewind	/rewind file restore	COVERED(variant):session_rewind+file_ch
 dedup-h	3948	policy	allow all server tools	COVERED(variant):toolsAllow mcp__* wildcard;desc VARIANT #3845 notify
 dedup-h	3955	shell	configurable default shell	PARTIAL(variant):platform COMSPEC/SHELL,no explicit key;desc BOUNDARY alt-key
 dedup-h	3956	tui	display_image tool	COVERED(variant):UI image preview/screenshot render;desc BOUNDARY zed windows
+dedup-h	3958	toolset	codex_tools alt set	COVERED(variant):profile tools allowlist;desc BOUNDARY completions
+dedup-h	3959	tui	interactive PTY terminal	BOUNDARY:no PTY surface;desc BOUNDARY terminal timeout
+dedup-h	3960	hook	bash spawn hook	PARTIAL(variant):pre_tool gate only,no arg rewrite;desc BOUNDARY inline terminal

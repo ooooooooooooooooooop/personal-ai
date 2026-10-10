@@ -4897,3 +4897,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——图片经 attachment/browser screenshot 预览渲染给操作员（终端内 display_image/chafa=变体，无 TUI 面）。描述 **BOUNDARY**——Zed 多窗口恢复=外部编辑器面。
 - **核销**：candidates-open #3956 → `candidates-resolved.tsv` #419。
+
+#### 28.418 codex_tools 工具集 + shell completions (#3958 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——profile `tools:` allowlist=per-agent 工具集选择（codex_tools 命名集=variant）。描述 **BOUNDARY**——无 CLI completion 生成面。
+- **核销**：candidates-open #3958 → `candidates-resolved.tsv` #420。
+
+#### 28.419 内嵌 PTY + 终端超时 (#3959 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：两面 **BOUNDARY**——无内嵌终端/PTY 面（browser 工具是 CDP 非 shell）；终端连接超时配置=同面无。
+- **核销**：candidates-open #3959 → `candidates-resolved.tsv` #421。
+
+#### 28.420 spawn 参数 hook + 内嵌终端输入 (#3960 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`pre_tool` gate 可拒 bash；spawn 时改 command/cwd/env 的 hook=variant 未落（观测面刻意不改写）。描述 **BOUNDARY**——in-line terminal 直输=无终端面。
+- **核销**：candidates-open #3960 → `candidates-resolved.tsv` #422。
