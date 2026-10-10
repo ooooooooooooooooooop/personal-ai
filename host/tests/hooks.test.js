@@ -634,3 +634,14 @@ test('dedup-h #2004: requireApproval may describe an externalVerify choice', asy
   assert.equal(r3.requireApproval, 'q3');
   assert.deepEqual(r3.externalVerify, { label: 'ext' });
 });
+
+test('hooks.enabled=false silences the whole file + audits (findings-cand #1513)', async () => {
+  const w = dir();
+  const audit = fakeAudit();
+  const gateFile = join(w, 'gate-hooks.json');
+  writeFileSync(gateFile, JSON.stringify({ enabled: false, hooks: { pre_tool: [{ command: 'exit 9' }] } }));
+  const g = new HookRunner(w, { configPath: gateFile, gate: true, audit });
+  const r = await g.fireGate('pre_tool', { tool: 'bash' });
+  assert.equal(r, null); // no gate → allow
+  assert.ok(audit.events.some((e) => e.kind === 'HOOKS_DISABLED'));
+});

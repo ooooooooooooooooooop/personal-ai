@@ -503,3 +503,7 @@ dedup-l	5968	loop	skipLoopDetection	IMPLEMENTED:PAI_SKIP_LOOP_DETECTION removes 
 dedup-l	7351	edit	sent-msg edit+re-answer	COVERED(variant):fork at msg+resend
 dedup-l	9262	secure	CODEX_SECURE_MODE	BOUNDARY:no observability-limit surface
 dedup-l	10524	edit	user msg edit/delete	COVERED(variant):same fork-resend family
+findings-cand	1513	hooks	hooks.enabled master switch	IMPLEMENTED:enabled:false silences file+HOOKS_DISABLED audit
+findings-cand	1090	hooks	attribution manifest-dir	COVERED(variant):configPath+HOOK_* audit attribution
+findings-cand	1292	config	value source provenance	BOUNDARY:config=file/env no provenance panel
+findings-cand	1562	subagent	--subagent-permission-mode	COVERED(variant):profile toolsAllow/Deny

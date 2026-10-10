@@ -5420,3 +5420,17 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：#9262 标题 **BOUNDARY**——进程可观测性限制档无对位物（spawn env 白名单+scrub=等价硬化）。#10524 标题 **COVERED(variant)**——同 #7351 fork-重答面。
 - **核销**：candidates-open dedup-l#9262 → `candidates-resolved.tsv` #503；dedup-l#10524 → `candidates-resolved.tsv` #504。
+
+#### 28.502 hooks.enabled 总开关 + hook 扩展归因 (#1513+#1090 — IMPLEMENTED / COVERED)
+
+- **status**: #1513 title implemented; #1090 classification only.
+- **判定**：#1513 标题 **IMPLEMENTED**——hooks.json 根级 `enabled:false` 静默整文件（不删条目），装载即 `HOOKS_DISABLED` 审计；gate/observational 两模式同生效。#1090 标题 **COVERED(variant)**——hook 来源归因=configPath 审计+HOOK_* 事件族；hook 无"扩展包"维度（来源即文件）。
+- **位点**：`host/src/core/hooks.js` `#load`。
+- **证据**：hooks 31/31（新增 enabled=false 静默+审计测试）。
+- **核销**：candidates-open findings-cand#1513 → `candidates-resolved.tsv` #505；findings-cand#1090 → `candidates-resolved.tsv` #506。
+
+#### 28.503 配置值来源溯源 + subagent 权限档 (#1292+#1562 — BOUNDARY / COVERED)
+
+- **status**: classification only.
+- **判定**：#1292 标题 **BOUNDARY**——constrained requirement values 带 source provenance 面板无对位物（配置即文件/env，来源=文件本体）。#1562 标题 **COVERED(variant)**——delegate profile `toolsAllow`/`toolsDeny`+写工具 deny=per-subagent 权限档对应物（CLI flag 形态差异）。
+- **核销**：candidates-open findings-cand#1292 → `candidates-resolved.tsv` #507；findings-cand#1562 → `candidates-resolved.tsv` #508。

@@ -216,6 +216,13 @@ export class HookRunner {
       this.audit?.write({ kind: 'HOOK_CONFIG_ERROR', data: { error: String(err?.message ?? err).slice(0, 300), ignored: true } });
       return {};
     }
+    // findings-cand #1513 — hooks.enabled master switch (CC analogue):
+    // {"enabled":false} at doc root silences the whole file without deleting
+    // entries. Audited on load — a disabled hook set must be provable.
+    if (doc?.enabled === false) {
+      this.audit?.write({ kind: 'HOOKS_DISABLED', data: { path: this.configPath } });
+      return {};
+    }
     const hooks = doc?.hooks ?? {};
     // dedup-h #1143: allowPromptInjection may sit at doc root or inside
     // `hooks` (a boolean there is a flag, not an event list).
