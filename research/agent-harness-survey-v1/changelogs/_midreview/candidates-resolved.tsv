@@ -295,3 +295,6 @@ dedup-h	3204	mcp	tool_timeout_ms per-server	IMPLEMENTED:toolTimeoutFor clamped 1
 dedup-h	3205	mcp	GET /mcp status endpoint	COVERED(variant):mcp_status channel op;desc COVERED rules context #3187
 dedup-h	3206	guard	external tool guard provider	COVERED(variant):shadowJudge+pre_tool gates+decide chain;desc subfolder repo workdir-any-dir variant
 dedup-h	3208	mcp	dup of 3204	COVERED:tool_timeout_ms landed #3204;desc BOUNDARY Slack upload
+dedup-h	3209	perms	per-tool permission settings page	COVERED(variant):commands-access pill+toolPolicy ops;desc BOUNDARY IM bridge echo
+dedup-h	3213	mcp	auto-OAuth on remote add	COVERED(variant):MCP_AUTH_REQUIRED+NEEDS AUTH badge+/mcp-auth;desc defect-class absent plan-ask not turn failure
+dedup-h	3215	browser	userDataDir attach Brave/Edge	COVERED(variant):CDP attach any running browser+dedicated profile dir;desc COVERED same as 3202

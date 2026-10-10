@@ -4148,3 +4148,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——同 #3204（`tool_timeout_ms` 已落地）。描述 **BOUNDARY**——无 Slack transport/action 面。
 - **核销**：candidates-open #3208 → `candidates-resolved.tsv` #296。
+
+#### 28.297 per-tool permission 页 + echo dedupe (#3209 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——settings 面板"命令准入"分组（denyPrefixes/allowPrefixes 编辑）+toolPolicy per-tool allow/deny/ask 受控 ops=per-tool 权限语义（独立权限页 vs 分组=variant）。描述 **BOUNDARY**——无 BlueBubbles/IM 桥 webhook 回显面。
+- **核销**：candidates-open #3209 → `candidates-resolved.tsv` #297。
+
+#### 28.298 remote MCP 加即触发 OAuth + plan-完成 turn (#3213 — title COVERED(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——401@connect→`MCP_AUTH_REQUIRED`+`onAuthRequired` 事件+`/mcp` NEEDS AUTH 徽标+`/mcp-auth` 直达（未自动开浏览器=operator 主导 variant）。描述 **缺陷类不存在**——plan 模式 ask 不记 turn 失败（ask 是正常裁决路径非错误；空 turn 检测仅计 stop+无内容）。
+- **核销**：candidates-open #3213 → `candidates-resolved.tsv` #298。
+
+#### 28.299 browser profiles attach + MCP 折叠（重） (#3215 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——attach 模式 CDP 挂任意运行中浏览器（Brave/Edge 同 Chromium 通用，非特定 profileDir 语义）+专属 `<instance>/browser-profile` 启动目录。描述 **COVERED**——同 #3202（tool-head 折叠全部工具含 MCP）。
+- **核销**：candidates-open #3215 → `candidates-resolved.tsv` #299。
