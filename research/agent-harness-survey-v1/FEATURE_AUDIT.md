@@ -4166,3 +4166,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——attach 模式 CDP 挂任意运行中浏览器（Brave/Edge 同 Chromium 通用，非特定 profileDir 语义）+专属 `<instance>/browser-profile` 启动目录。描述 **COVERED**——同 #3202（tool-head 折叠全部工具含 MCP）。
 - **核销**：candidates-open #3215 → `candidates-resolved.tsv` #299。
+
+#### 28.300 MCP Apps sandbox iframe（双向） (#3217 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——#1504/#1507 链：`details.ui` 声明→operator 按钮→`mcp_resource_read`→`sandbox="allow-scripts"` srcdoc iframe（opaque origin、无 top-navigation、无 postMessage 回桥=view-only）=interactive HTML tool interface 沙箱渲染。描述=同条双语。
+- **核销**：candidates-open #3217 → `candidates-resolved.tsv` #300。
+
+#### 28.301 tool desc slim flag + MCP list cache (#3228 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——无 description-slim flag（token 成本由 `resultCharCap` per-server 结果截尾+参数 schema 原样承担；描述裁剪 flag 无对位）。描述 **COVERED(variant)**——无独立 list-cache 层（`/mcp-add` 后 config 实时重读+connectOne 立即连接）=缓存失效缺陷类不存在。
+- **核销**：candidates-open #3228 → `candidates-resolved.tsv` #301。
+
+#### 28.302 env timeout vars + slim flag (#3233 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`PAI_MCP_CONNECT_TIMEOUT_MS`/`PAI_MCP_TOOL_TIMEOUT_MS` env 兜底（spec 字段>env>内置默认；非法 env 回落默认）。描述 **BOUNDARY**——同 #3228（无 slim flag）。
+- **位点**：`pi/extensions/mcp/index.js`（manifest 已重算）。
+- **证据**：mcp-ext 聚焦 **3/3**（#3196/#3204/#3233 env 优先级断言）。
+- **核销**：candidates-open #3233 → `candidates-resolved.tsv` #302。

@@ -2435,3 +2435,21 @@ test('#3204 tool_timeout_ms: per-server call budget clamped, default honored', a
   assert.equal(toolTimeoutFor({ tool_timeout_ms: 5 }), 1_000, 'floor 1s');
   assert.equal(toolTimeoutFor({ tool_timeout_ms: 9_999_999 }), 600_000, 'ceiling 600s');
 });
+
+test('#3233 timeout env fallbacks: spec wins over env; env over default', async () => {
+  const prevC = process.env.PAI_MCP_CONNECT_TIMEOUT_MS;
+  const prevT = process.env.PAI_MCP_TOOL_TIMEOUT_MS;
+  try {
+    process.env.PAI_MCP_CONNECT_TIMEOUT_MS = '30000';
+    process.env.PAI_MCP_TOOL_TIMEOUT_MS = '300000';
+    assert.equal(connectTimeoutFor({}), 30_000, 'env applies without spec');
+    assert.equal(toolTimeoutFor({}), 300_000, 'env applies without spec');
+    assert.equal(connectTimeoutFor({ startup_timeout_ms: 20_000 }), 20_000, 'spec wins');
+    assert.equal(toolTimeoutFor({ tool_timeout_ms: 60_000 }), 60_000, 'spec wins');
+    process.env.PAI_MCP_CONNECT_TIMEOUT_MS = 'garbage';
+    assert.equal(connectTimeoutFor({}), 10_000, 'bad env falls back');
+  } finally {
+    if (prevC === undefined) delete process.env.PAI_MCP_CONNECT_TIMEOUT_MS; else process.env.PAI_MCP_CONNECT_TIMEOUT_MS = prevC;
+    if (prevT === undefined) delete process.env.PAI_MCP_TOOL_TIMEOUT_MS; else process.env.PAI_MCP_TOOL_TIMEOUT_MS = prevT;
+  }
+});

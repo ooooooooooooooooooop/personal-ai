@@ -298,3 +298,6 @@ dedup-h	3208	mcp	dup of 3204	COVERED:tool_timeout_ms landed #3204;desc BOUNDARY 
 dedup-h	3209	perms	per-tool permission settings page	COVERED(variant):commands-access pill+toolPolicy ops;desc BOUNDARY IM bridge echo
 dedup-h	3213	mcp	auto-OAuth on remote add	COVERED(variant):MCP_AUTH_REQUIRED+NEEDS AUTH badge+/mcp-auth;desc defect-class absent plan-ask not turn failure
 dedup-h	3215	browser	userDataDir attach Brave/Edge	COVERED(variant):CDP attach any running browser+dedicated profile dir;desc COVERED same as 3202
+dedup-h	3217	mcp	MCP Apps sandbox iframes	COVERED:details.ui->resource_read->sandbox=allow-scripts srcdoc opaque origin view-only
+dedup-h	3228	tool	description slim flag	BOUNDARY(variant):no slim flag,resultCharCap+schema as-is;desc defect-class absent live config re-read
+dedup-h	3233	mcp	env timeout vars	IMPLEMENTED:PAI_MCP_CONNECT/TOOL_TIMEOUT_MS env fallbacks spec>env>default;desc BOUNDARY slim flag

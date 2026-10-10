@@ -54,14 +54,15 @@ const MAX_RESULT_CHARS = 24_000;
 // Docker images, remote SSE) can declare a longer connect budget; clamped
 // so a typo can't stall boot indefinitely.
 export function connectTimeoutFor(spec) {
-  const v = Number(spec?.startup_timeout_ms);
+  const v = Number(spec?.startup_timeout_ms ?? process.env.PAI_MCP_CONNECT_TIMEOUT_MS);
   if (!Number.isFinite(v)) return CONNECT_TIMEOUT_MS;
   return Math.min(Math.max(Math.trunc(v), 1000), 300_000);
 }
-// dedup-h #3204 — per-server `tool_timeout_ms`: long-running tools
-// (builds, remote renders) can declare a wider call budget; clamped.
+// dedup-h #3204 — per-server `tool_timeout_ms` (or PAI_MCP_TOOL_TIMEOUT_MS):
+// long-running tools (builds, remote renders) can declare a wider call
+// budget; clamped.
 export function toolTimeoutFor(spec) {
-  const v = Number(spec?.tool_timeout_ms);
+  const v = Number(spec?.tool_timeout_ms ?? process.env.PAI_MCP_TOOL_TIMEOUT_MS);
   if (!Number.isFinite(v)) return TOOL_TIMEOUT_MS;
   return Math.min(Math.max(Math.trunc(v), 1000), 600_000);
 }
