@@ -77,6 +77,13 @@ Prediction schema（门禁绑定用，缺一不可）：
   confidence_bucket / evidence_refs / created_at_event_id
 禁止万能预测——不绑定具体动作范围的预测不能解锁 mutation。
 
+time_horizon（时间失效，04[msg7]）：可解析形态 = ISO 日期/时间（"2026-10-15"
+含当天，"2026-10-15T12:00:00Z"）或相对时长 "+30m/+12h/+3d/+2w"。
+期限已过仍无观察 = 负面证据本身：过期预测进上下文投影(overdue)、
+SESSION_EVENT prediction_overdue（EXTERNAL_REALITY，每预测只记一次）、
+status.overdue_predictions。透出≠代判——refute 仍须 evaluate 显式给出。
+不可解析的 horizon 文本如实保留但不产生期限——不静默机械化。
+
 工具风险分级（机械分级，模型不自报）：
   read / reversible-low / consequential / high-risk / irreversible
 CORE 模式只拦 consequential 及以上：无绑定预测→guard 拒绝放行。

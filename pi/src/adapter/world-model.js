@@ -422,7 +422,29 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
   });
 
   ctx.on('session/event', (session, event) => {
-    emit(session?.id, 'SESSION_EVENT', { subject: String(event?.type ?? 'event'), payload: { type: event?.type } });
+    const sid = session?.id;
+    // 04[msg 7]「时间失效」: a prediction whose horizon passed without its
+    // expected observation is negative evidence — emit it once (durable
+    // stale_notified dedup across restarts), as SESSION_EVENT, which is
+    // stamped EXTERNAL_REALITY: the clock passing is a recorded world fact,
+    // not a model claim. Surfacing ≠ refuting — the verdict still belongs
+    // to evaluate.
+    const s = sess(sid);
+    if (!s.overdueChecked) {
+      s.overdueChecked = true;
+      try {
+        const fresh = (predictions?.stale?.() ?? []).filter((p) => !p.stale_notified);
+        for (const p of fresh) {
+          emit(sid, 'SESSION_EVENT', {
+            subject: 'prediction_overdue',
+            happened: `prediction ${p.id} passed its time horizon with no observation — that lapse is itself negative evidence`,
+            payload: { prediction_id: p.id, horizon: p.horizon ?? null, horizon_deadline: p.horizon_deadline ?? null },
+          });
+        }
+        if (fresh.length) predictions.markStaleNotified(fresh.map((p) => p.id));
+      } catch { /* a body without a store simply has nothing overdue */ }
+    }
+    emit(sid, 'SESSION_EVENT', { subject: String(event?.type ?? 'event'), payload: { type: event?.type } });
   });
 
   // ---- the world_model tool ------------------------------------------------
@@ -692,6 +714,10 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
             ok: true, mode: s.mode, body_id: bodyId, bcc: BCC_VERSION,
             session_predictions: [...openPreds.keys()],
             open_predictions: [...openPreds.values()].filter((p) => !p.evaluated).map((p) => p.id),
+            overdue_predictions: (() => {
+              try { return (predictions?.stale?.() ?? []).map((p) => ({ id: p.id, horizon: p.horizon ?? null, horizon_deadline: p.horizon_deadline ?? null })); }
+              catch { return []; }
+            })(),
             current,
           };
         default:

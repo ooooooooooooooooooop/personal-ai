@@ -23,6 +23,38 @@ import { redactSecrets, scrubSecretsDeep } from './secrets.js';
 const OPEN = 'open';
 const TERMINAL = new Set(['confirmed', 'refuted']);
 
+const REL_HORIZON = /^\+(\d+)\s*([smhdw])$/i;
+const REL_UNIT_MS = { s: 1e3, m: 60e3, h: 3600e3, d: 86400e3, w: 604800e3 };
+
+/**
+ * Parse a time horizon into an absolute deadline (ms epoch). Accepted forms:
+ *   ISO-8601 date/datetime  ("2026-10-15", "2026-10-15T12:00:00Z")
+ *   relative shorthand      ("+30m", "+12h", "+3d", "+2w")
+ * Anything else returns null — an unparseable horizon stays recorded as text
+ * but cannot produce a deadline, so nothing is silently mechanized.
+ */
+export function parseHorizonDeadline(horizon, baseMs = Date.now()) {
+  if (horizon == null) return null;
+  const raw = String(horizon).trim();
+  if (!raw) return null;
+  const rel = REL_HORIZON.exec(raw);
+  if (rel) return baseMs + Number(rel[1]) * REL_UNIT_MS[rel[2].toLowerCase()];
+  const ts = Date.parse(raw);
+  // Date-only ISO strings parse to UTC midnight — a same-day deadline expiring
+  // at 00:00 would mark predictions stale before the day ends. Treat a bare
+  // date as "end of that day UTC", matching the common reading of a date
+  // horizon ("by Oct 15" = through Oct 15).
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ts + 86400e3 - 1;
+  return Number.isNaN(ts) ? null : ts;
+}
+
+/** The effective deadline for a record — stored field first, lazy parse of
+ *  legacy records (horizon text written before this field existed) second. */
+function deadlineOf(p, baseMs) {
+  if (p.horizon_deadline != null) return p.horizon_deadline;
+  return p.horizon ? parseHorizonDeadline(p.horizon, baseMs ?? p.createdAt) : null;
+}
+
 export class PredictionStore {
   constructor(baseDir) {
     this.dir = join(baseDir, 'predictions');
@@ -52,6 +84,12 @@ export class PredictionStore {
       // M5 parity (goals.js): the claim is durable AND re-injected into every
       // context envelope as openPredictions — scrub credential shapes first.
       id, claim: redactSecrets(String(claim)), status: OPEN, horizon, confidence, actor, tags,
+      // 04[msg 7]「时间失效」: an observation that should have arrived by the
+      // horizon and did not IS negative evidence. horizon_deadline makes that
+      // checkable; stale_notified marks that the lapse has already been
+      // emitted as evidence once (dedup across restarts).
+      horizon_deadline: parseHorizonDeadline(horizon),
+      stale_notified: false,
       createdAt: Date.now(), closedAt: null, outcome: null,
       bindingCount: 0,
     };
@@ -101,7 +139,36 @@ export class PredictionStore {
   }
 
   openPredictions() {
-    return this.list(OPEN);
+    const now = Date.now();
+    // The overdue flag rides the context-envelope projection — a prediction
+    // past its horizon reaches the model as negative evidence every turn,
+    // not only at the one moment the stale event was emitted.
+    return this.list(OPEN).map((p) => {
+      const dl = deadlineOf(p);
+      return dl != null && dl <= now ? { ...p, overdue: true, horizon_deadline: dl } : p;
+    });
+  }
+
+  /**
+   * Open predictions whose horizon deadline has passed. "should have happened
+   * by now and didn't" is negative evidence — this surfaces it; it does not
+   * refute (that verdict still belongs to evaluate).
+   */
+  stale(now = Date.now()) {
+    return this.list(OPEN).filter((p) => {
+      const dl = deadlineOf(p);
+      return dl != null && dl <= now;
+    });
+  }
+
+  /** Mark predictions' lapse as already emitted — restart-safe dedup. */
+  markStaleNotified(ids) {
+    let changed = false;
+    for (const id of ids) {
+      const p = this.index[id];
+      if (p && !p.stale_notified) { p.stale_notified = true; changed = true; }
+    }
+    if (changed) this.#persist();
   }
 
   /** Bindings for handoff audit — read-only stream of the append log. */

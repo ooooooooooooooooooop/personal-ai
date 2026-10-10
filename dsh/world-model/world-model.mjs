@@ -126,6 +126,21 @@ function flattenVals(v, acc) {
   else if (t === 'object') for (const k of Object.keys(v)) flattenVals(v[k], acc);
   return acc;
 }
+// 04[msg 7]「时间失效」：horizon → 绝对期限。与 host/src/core/prediction.js
+// 的 parseHorizonDeadline 同一实现——dsh 插件自持不 import host，两侧逻辑
+// 须保持逐字一致（BCC schema_compat 依赖行为对称）。
+const REL_HORIZON = /^\+(\d+)\s*([smhdw])$/i;
+const REL_UNIT_MS = { s: 1e3, m: 60e3, h: 3600e3, d: 86400e3, w: 604800e3 };
+function parseHorizonDeadline(horizon, baseMs = Date.now()) {
+  if (horizon == null) return null;
+  const raw = String(horizon).trim();
+  if (!raw) return null;
+  const rel = REL_HORIZON.exec(raw);
+  if (rel) return baseMs + Number(rel[1]) * REL_UNIT_MS[rel[2].toLowerCase()];
+  const ts = Date.parse(raw);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ts + 86400e3 - 1;
+  return Number.isNaN(ts) ? null : ts;
+}
 const CMD_WRAPPERS = new Set(['sudo', 'doas', 'env', 'nohup', 'nice', 'ionice', 'time', 'timeout', 'watch', 'xargs', 'parallel', 'command', 'exec', 'start', 'runas', 'busybox', 'sshpass', 'stdbuf', 'strace', 'ltrace', 'unbuffer', 'expect', 'ssh', 'wsl']);
 // 内联代码解释器：-c/-e/-Command/-EncodedCommand/-m/-jar 等 → 载荷不可静态证安全 → 必标
 const INTERPRETERS = new Set(['python', 'python3', 'py', 'node', 'nodejs', 'deno', 'bun', 'perl', 'ruby', 'php', 'lua', 'osascript', 'mshta', 'rundll32', 'regsvr32', 'installutil', 'wscript', 'cscript', 'wmic', 'bash', 'sh', 'zsh', 'fish', 'dash', 'ksh', 'powershell', 'pwsh', 'cmd', 'eval', 'source', 'iex', 'invoke-expression', 'groovy', 'jjs', 'irb', 'java', 'rscript', 'msbuild', 'dotnet', 'forfiles', 'nc', 'ncat', 'netcat', 'go']);
@@ -896,6 +911,40 @@ export function apply(ctx, config = {}) {
             const prior = readJson(join(wmDir, 'current.json')) || {};
             for (const pid of (Array.isArray(prior.open_predictions) ? prior.open_predictions : [])) s.restored.add(pid);
           } catch { /* restore best-effort */ }
+          // 04[msg 7]「时间失效」：期限已过仍无观察=负面证据，须进入证据流——
+          // 透出但不代判（refute 仍属 evaluate）。去重启靠 prediction_meta 的
+          // stale_notified，跨会话持久（current.json 由本插件自管）。
+          try {
+            const prior = readJson(join(wmDir, 'current.json')) || {};
+            const meta = (prior.prediction_meta && typeof prior.prediction_meta === 'object') ? prior.prediction_meta : {};
+            const now = Date.now();
+            let touched = false;
+            for (const pid of (Array.isArray(prior.open_predictions) ? prior.open_predictions : [])) {
+              const m = meta[pid];
+              if (!m || m.stale_notified) continue;
+              const dl = m.horizon_deadline ?? parseHorizonDeadline(m.horizon, m.created_at);
+              if (dl == null || dl > now) continue;
+              emit(s.id, 'SESSION_EVENT', {
+                subject: 'prediction_overdue',
+                happened: `prediction ${pid} passed its time horizon with no observation — that lapse is itself negative evidence`,
+                payload: { prediction_id: pid, horizon: m.horizon ?? null, horizon_deadline: dl },
+              });
+              m.stale_notified = true;
+              touched = true;
+            }
+            for (const [pid, rec] of s.predictions) {
+              if (rec.stale_notified) continue;
+              const dl = rec.horizon_deadline ?? parseHorizonDeadline(rec.time_horizon);
+              if (dl == null || dl > now) continue;
+              emit(s.id, 'SESSION_EVENT', {
+                subject: 'prediction_overdue',
+                happened: `prediction ${pid} passed its time horizon with no observation — that lapse is itself negative evidence`,
+                payload: { prediction_id: pid, horizon: rec.time_horizon ?? null, horizon_deadline: dl },
+              });
+              rec.stale_notified = true;
+            }
+            if (touched) { prior.prediction_meta = meta; writeFileSync(join(wmDir, 'current.json'), JSON.stringify(prior, null, 2)); }
+          } catch { /* overdue detection best-effort — restore must not fail closed on it */ }
           const stale = canonicalStale();
           emit(s.id, 'STATE_RESTORE', {
             happened: 'world-model state restored into session',
@@ -1051,7 +1100,8 @@ export function apply(ctx, config = {}) {
             const rec = {
               prediction_id: pid, subject: input.subject, intended_action: input.intended_action,
               expected_observation: input.expected_observation, falsifier: input.falsifier,
-              time_horizon: input.time_horizon, confidence_bucket: input.confidence_bucket,
+              time_horizon: input.time_horizon, horizon_deadline: parseHorizonDeadline(input.time_horizon),
+              confidence_bucket: input.confidence_bucket,
               irreversible: input.irreversible === true, model_id: input.model_id,
               uncertainty_type: input.uncertainty_type
             };
@@ -1276,9 +1326,20 @@ export function apply(ctx, config = {}) {
             try { if (existsSync(cur)) prior = JSON.parse(readFileSync(cur, 'utf8')); } catch { /* ignore */ }
             const merged = new Set(Array.isArray(prior.open_predictions) ? prior.open_predictions : []);
             const owners = Object.assign(Object.create(null), (prior.prediction_owners && typeof prior.prediction_owners === 'object' ? prior.prediction_owners : {}));
-            for (const [pid] of s.predictions) { if (!s.evaluated.has(pid)) { merged.add(pid); owners[pid] = s.id; } }
-            for (const pid of s.evaluated) { merged.delete(pid); delete owners[pid]; }
-            const patch = { open_predictions: [...merged], prediction_owners: owners, last_summary: input.summary || prior.last_summary };
+            // prediction_meta 与 open_predictions 同生命周期：open 的期限数据
+            // 随合并走，evaluated/移除的同步清——否则时间失效检查跨会话丢数据。
+            const meta = Object.assign(Object.create(null), (prior.prediction_meta && typeof prior.prediction_meta === 'object' ? prior.prediction_meta : {}));
+            for (const [pid, rec] of s.predictions) {
+              if (!s.evaluated.has(pid)) {
+                merged.add(pid); owners[pid] = s.id;
+                const dl = rec.horizon_deadline ?? parseHorizonDeadline(rec.time_horizon);
+                if (rec.time_horizon != null || dl != null) {
+                  meta[pid] = { horizon: rec.time_horizon ?? null, horizon_deadline: dl, created_at: Date.now(), stale_notified: rec.stale_notified === true };
+                }
+              }
+            }
+            for (const pid of s.evaluated) { merged.delete(pid); delete owners[pid]; delete meta[pid]; }
+            const patch = { open_predictions: [...merged], prediction_owners: owners, prediction_meta: meta, last_summary: input.summary || prior.last_summary };
             if (Array.isArray(input.open_loops)) patch.open_loops = input.open_loops;
             const st = updateCurrentJson(patch);
             if (!st.ok) {
@@ -1295,7 +1356,19 @@ export function apply(ctx, config = {}) {
             // 自己的 open_predictions）。若未来会话分信任级，这里要加访问检查。
             const st = readJson(join(wmDir, 'current.json')) || {};
             const rs = runtimeState();
-            return { ok: true, mode: s.mode, session_predictions: [...s.predictions.keys()], current: st, identity: rs.identity || null, lineage_head: rs.lineage_head || null, epoch: rs.continuity_epoch || null, body_id: bodyId, bcc: BCC_VERSION };
+            const meta = (st.prediction_meta && typeof st.prediction_meta === 'object') ? st.prediction_meta : {};
+            const now = Date.now();
+            const overdue = [];
+            for (const pid of (Array.isArray(st.open_predictions) ? st.open_predictions : [])) {
+              const m = meta[pid];
+              const dl = m ? (m.horizon_deadline ?? parseHorizonDeadline(m.horizon, m.created_at)) : null;
+              if (dl != null && dl <= now) overdue.push({ id: pid, horizon: m.horizon ?? null, horizon_deadline: dl });
+            }
+            for (const [pid, rec] of s.predictions) {
+              const dl = rec.horizon_deadline ?? parseHorizonDeadline(rec.time_horizon);
+              if (dl != null && dl <= now) overdue.push({ id: pid, horizon: rec.time_horizon ?? null, horizon_deadline: dl });
+            }
+            return { ok: true, mode: s.mode, session_predictions: [...s.predictions.keys()], overdue_predictions: overdue, current: st, identity: rs.identity || null, lineage_head: rs.lineage_head || null, epoch: rs.continuity_epoch || null, body_id: bodyId, bcc: BCC_VERSION };
           }
           default:
             return { ok: false, code: 'UNKNOWN_OP', message: `unknown op ${op}` };
