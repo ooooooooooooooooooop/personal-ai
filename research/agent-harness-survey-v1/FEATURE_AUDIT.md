@@ -5288,3 +5288,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——hooks.json 刻意 operator-private 文件面（UI 编辑 enforcement 配置=错信任方向）；hook 决策经 audit/ask 卡可见。描述 **BOUNDARY**——中键开 tab 面。
 - **核销**：candidates-open #4230 → `candidates-resolved.tsv` #482。
+
+#### 28.481 配额耗尽即时通知 + MD 预览 (#4231 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——最终 429（重试后）发 UI 事件 `provider ${host} is rate-limiting`（#2449 `onRateLimited`→channel.emitEvent 即时通知）。描述 **BOUNDARY**——MD 预览上下文菜单面。
+- **核销**：candidates-open #4231 → `candidates-resolved.tsv` #483。
+
+#### 28.482 JSON-RPC 单 owner + vim 搜索 (#4235 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——BodySupervisor 单 body 模型+channel op 协议=单 runtime owner 对应物（非 JSON-RPC 形态）。描述 **BOUNDARY**——vim 搜索键面。
+- **核销**：candidates-open #4235 → `candidates-resolved.tsv` #484。
+
+#### 28.483 onboard 引导流 + 隐藏文件 (#4243 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——setup-card 引导（provider 选择+key+测试连接+模型列表=onboarding 对应物）；hatch choice/dashboard seed 无对位注边界。描述 **BOUNDARY**——hide_hidden 面板设置面。
+- **核销**：candidates-open #4243 → `candidates-resolved.tsv` #485。

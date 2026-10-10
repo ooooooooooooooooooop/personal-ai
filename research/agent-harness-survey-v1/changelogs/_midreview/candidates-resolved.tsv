@@ -481,3 +481,6 @@ dedup-h	4216	ui	per-msg token/model hover	COVERED:attachMeta chips;desc BOUNDARY
 dedup-h	4218	auth	LAN shared token auth	BOUNDARY:loopback-only,no LAN surface;desc BOUNDARY TUI cmd
 dedup-h	4228	model	per-purpose model split	COVERED(variant):featureOverride model routing;desc COVERED #4197
 dedup-h	4230	hook	hook config panel	BOUNDARY:operator-private file deliberate;desc BOUNDARY middle-click
+dedup-h	4231	notify	429 quota notification	COVERED:onRateLimited→UI event #2449;desc BOUNDARY md preview
+dedup-h	4235	rpc	JSON-RPC single owner	COVERED(variant):supervisor single-body+op channel;desc BOUNDARY vim search
+dedup-h	4243	onboard	hatch onboarding flow	COVERED(variant):setup-card provider+key+test;desc BOUNDARY hide_hidden
