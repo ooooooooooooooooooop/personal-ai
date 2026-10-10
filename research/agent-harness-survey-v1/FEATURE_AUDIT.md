@@ -4605,3 +4605,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——MCP Apps sandboxed iframe（opaque origin+ui:// 有界拉取+无 postMessage 桥）=ticketed host 变体（bound tools/resources 票证模型 vs 声明资源=variant）。描述 **COVERED(variant)**——同 #3739（sandbox 在 jobs；elevate 命令面无）。
 - **核销**：candidates-open #3755 → `candidates-resolved.tsv` #371。
+
+#### 28.370 非 git worktree + Codex 鲁棒性族 (#3762 — title BOUNDARY / desc NOISE)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——worktree 机制=git worktree 专属（create/in_worktree/remove 三件套）；SVN/Perforce 通用化=不同 VCS 面不存在。描述 **NOISE**——上游通用鲁棒性清单（auth/compaction/source replies/usage-limit 各面已分别在册）。
+- **核销**：candidates-open #3762 → `candidates-resolved.tsv` #372。
+
+#### 28.371 docker 危险配置封禁 + discord voice (#3768 — title DEFECT-ABSENT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **缺陷类不存在**——docker spawn 参数硬编码（`run --rm -v workdir:/work -w /work image`），无操作员可控 bind-mount/host-net/unconfined 旗面，危险配置无从表达（比"封禁清单"更强——攻击面不生成）。描述 **BOUNDARY**——无 voice/Discord 面。
+- **核销**：candidates-open #3768 → `candidates-resolved.tsv` #373。
+
+#### 28.372 USERPROFILE blocked root + exec.host=auto (#3772 — title DEFECT-ABSENT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **缺陷类不存在**——home 目录绑定面不存在（唯一挂载=workdir；`.credential` binds 无从表达）。描述 **BOUNDARY**——`tools.exec.host` 路由=gateway 面不存在。
+- **核销**：candidates-open #3772 → `candidates-resolved.tsv` #374。
