@@ -151,3 +151,21 @@ test('non-loopback Host header refused on every endpoint (DNS rebinding)', async
     assert.equal(await req('/api/state', `localhost:${port}`), 200);
   } finally { await bridge.close(); }
 });
+
+test('#3753 /healthz liveness + /readyz readiness truth', async () => {
+  const sup = stubSupervisor();
+  const bridge = createHttpBridge({ supervisor: sup });
+  const port = await bridge.listen(0);
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    assert.equal((await fetch(`${base}/healthz`)).status, 200);
+    // no active body → not ready (honest 503, not a green lie)
+    assert.equal((await fetch(`${base}/readyz`)).status, 503);
+    sup.active = { bodyId: 'pi', dead: false };
+    const r = await fetch(`${base}/readyz`);
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).body, 'pi');
+    sup.active = { bodyId: 'pi', dead: true };
+    assert.equal((await fetch(`${base}/readyz`)).status, 503);
+  } finally { await bridge.close(); }
+});

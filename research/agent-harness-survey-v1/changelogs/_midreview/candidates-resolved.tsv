@@ -367,3 +367,6 @@ dedup-h	3732	parallel	--parallel flag	COVERED(variant):delegate/jobs fan-out;des
 dedup-h	3734	mcp	OAuth 2.1 remote	COVERED:discovery+auth_code+device_code+refresh #740;desc BOUNDARY TUI esc
 dedup-h	3739	sandbox	elevated sandbox cmd	PARTIAL(variant):sandbox in jobs,no elevate cmd;desc BOUNDARY commit template
 dedup-h	3740	worktree	worktree+sandbox	COVERED:same job spec both fields;desc VARIANT Bedrock SDK
+dedup-h	3744	delegate	forked context spawn	PARTIAL(variant):fork mode+task/profile ctx,no full session inherit;desc BOUNDARY DevContainer
+dedup-h	3753	health	/healthz /readyz	IMPLEMENTED:liveness+honest readiness 503->200->dead->503;desc VARIANT no cli-cache pollution class
+dedup-h	3755	mcp	ticketed Apps host	COVERED(variant):sandbox iframe+ui:// bounded+no postMessage;desc VARIANT #3739

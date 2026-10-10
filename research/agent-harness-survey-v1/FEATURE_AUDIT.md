@@ -4585,3 +4585,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`worktree`/`sandbox` 同 job spec 共存（jobs.js:272 spec 同帧、executeAttempt 同时收 worktreePath+sandboxProvider）。描述 **COVERED(variant)**——Bedrock=SDK provider 面（bedrock-converse api-shape）；Mantle 端点目录项=variant。
 - **核销**：candidates-open #3740 → `candidates-resolved.tsv` #368。
+
+#### 28.367 forked context + DevContainer (#3744 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——fork 模式（delegate 省 target→本体 fork）在册；子体收 task+profile 上下文，全量会话上下文继承=variant 未落。描述 **BOUNDARY**——无 DevContainer 打开面。
+- **核销**：candidates-open #3744 → `candidates-resolved.tsv` #369。
+
+#### 28.368 health/ready 端点 + 配置缓存隔离 (#3753 — title IMPLEMENTED / desc VARIANT)
+
+- **status**: title implemented; desc variant.
+- **判定**：标题 **IMPLEMENTED**——`/healthz`+`/health`（存活恒 200）、`/readyz`+`/ready`（无活 body→503 诚实不绿，`supervisor.active&&!dead`→200 带 bodyId）。描述 **COVERED(variant)**——config_set 白名单键+无 CLI 参数缓存污染类（临时参数不落盘）=缺陷类不存在。
+- **位点**：`app/server/http-bridge.js`。
+- **证据**：bridge.test.js **5/5**（新增 #3753 存活/就绪 truth 测试：503→200→dead→503）。
+- **核销**：candidates-open #3753 → `candidates-resolved.tsv` #370。
+
+#### 28.369 ticketed MCP Apps host + elevate-sandbox（重复族） (#3755 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——MCP Apps sandboxed iframe（opaque origin+ui:// 有界拉取+无 postMessage 桥）=ticketed host 变体（bound tools/resources 票证模型 vs 声明资源=variant）。描述 **COVERED(variant)**——同 #3739（sandbox 在 jobs；elevate 命令面无）。
+- **核销**：candidates-open #3755 → `candidates-resolved.tsv` #371。

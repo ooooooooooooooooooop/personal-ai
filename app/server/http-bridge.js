@@ -175,6 +175,21 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         }));
         return;
       }
+      // dedup-h #3753 — liveness/readiness probes (k8s-style): /healthz
+      // answers while the bridge loop runs; /readyz is honest — 503 until a
+      // live body is attached, 200 once the active body reports !dead.
+      if (req.method === 'GET' && (url.pathname === '/healthz' || url.pathname === '/health')) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
+      if (req.method === 'GET' && (url.pathname === '/readyz' || url.pathname === '/ready')) {
+        const body = supervisor.active ?? null;
+        const ready = Boolean(body && !body.dead);
+        res.writeHead(ready ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ready, body: body?.bodyId ?? null }));
+        return;
+      }
       if (req.method === 'GET') {
         const rel = url.pathname === '/' ? 'index.html' : normalize(url.pathname).replace(/^([/\\])+/, '');
         const file = join(uiDir, rel);
