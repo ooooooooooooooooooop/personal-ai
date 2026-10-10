@@ -4453,3 +4453,25 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **#3520** 标题 **COVERED(variant)**——async 子 agent=durable detached job+task_events/webhook 通知+批量 fan-out（subprocess/hook 通知形态=variant）；描述 **COVERED(variant)**——子 agent 事件进 audit+事件账=遥信转发语义。
   - **#3521** 标题 **COVERED(variant)**——fork 模式=delegate 省 target 自动 fork 本体+profile gate（声明才启用=feature gate 语义）；描述 **BOUNDARY(variant)**——channel 绑定 agent 工作区文件=channel-scoped agent 绑定面无对应物（steering 按实例加载=相邻变体）。
 - **核销**：candidates-open #3519/#3520/#3521 → `candidates-resolved.tsv` #345/#346/#347。
+
+#### 28.346 WS_PROXY + `/web` 命令 (#3533 — title VARIANT / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——PAC 代理解析（PROXY/NO_PROXY 条目语法）罩 fetch 面；WS_PROXY 专属=无 websocket 传输面。描述 **PARTIAL(variant)**——`web_fetch` 工具在册（模型驱动取页），UI 专属 `/web` 斜杠命令面无对应物。
+- **核销**：candidates-open #3533 → `candidates-resolved.tsv` #348。
+
+#### 28.347 GFM alert callouts + detached review (#3557 — title IMPLEMENTED / desc VARIANT)
+
+- **status**: title implemented; desc variant.
+- **判定**：标题 **IMPLEMENTED**——md() 渲染 `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION]` 为类型化 callout（标题徽章+五色 CSS 变量，后续 `>` 行合入同一块直到非引用行）。描述 **COVERED(variant)**——`/review`+`/security-review` 模式+审计账=detached review/thread 语义变体。
+- **位点**：`app/ui/app.js` md() blockquote 分支、`app/ui/style.css` `.md-alert-*`。
+- **证据**：node --check + stylelint + html-validate 净。
+- **核销**：candidates-open #3557 → `candidates-resolved.tsv` #349。
+
+#### 28.348 `file.rs:1-20` 行范围打开 + 企业默认模型 (#3561 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`@path:L1-L2` 行范围后缀：mention 解析捕获 `:N`/`:N-M`，attach 块只带切片行、标签带范围；`@path:10` 单行也收。描述 **BOUNDARY**——无 enterprise admin 默认模型配置面。
+- **位点**：`app/ui/app.js` `expandAtMentions`。
+- **证据**：node --check 净（逻辑与既有 file_read/files_list fallback 同装置）。
+- **核销**：candidates-open #3561 → `candidates-resolved.tsv` #350。

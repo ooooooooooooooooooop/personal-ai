@@ -213,9 +213,11 @@ function md(text) {
     let html = '';
     let list = null;
     let table = null;
+    let alert = null; // dedup-h #3557 — GFM alert callout type (note/tip/…)
     const closeList = () => { if (list) { html += `</${list}>`; list = null; } };
     const closeTable = () => { if (table) { html += '</tbody></table>'; table = null; } };
-    const closeAll = () => { closeList(); closeTable(); };
+    const closeAlert = () => { if (alert) { html += '</blockquote>'; alert = null; } };
+    const closeAll = () => { closeList(); closeTable(); closeAlert(); };
     for (let li = 0; li < lines.length; li++) {
       const line = lines[li];
       let m;
@@ -252,7 +254,21 @@ function md(text) {
       } else if ((m = line.match(/^#{1,4}\s+(.+)/))) {
         closeAll(); html += `<div class="md-h">${inlineMd(m[1])}</div>`;
       } else if ((m = line.match(/^>\s?(.*)/))) {
-        closeAll(); html += `<blockquote>${inlineMd(m[1])}</blockquote>`;
+        closeTable(); closeList();
+        // dedup-h #3557 — GFM alert callouts: `> [!NOTE]` opens a typed
+        // callout; following `>` lines render inside it until a non-quote
+        // line closes the block.
+        const am = m[1].match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*(.*)/i);
+        if (am) {
+          closeAlert();
+          alert = am[1].toLowerCase();
+          html += `<blockquote class="md-alert md-alert-${alert}"><div class="md-alert-t">${am[1].toUpperCase()}</div>`;
+          if (am[2].trim()) html += `<div>${inlineMd(am[2])}</div>`;
+        } else if (alert) {
+          html += `<div>${inlineMd(m[1])}</div>`;
+        } else {
+          html += `<blockquote>${inlineMd(m[1])}</blockquote>`;
+        }
       } else if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) {
         closeAll(); html += '<hr>';
       } else {
@@ -5164,15 +5180,29 @@ async function flushQueue() {
 /* @path mentions resolve to real file content before the prompt leaves —
    the model receives the text, not just a path it must then go read. */
 async function expandAtMentions(text) {
-  const tokens = [...text.matchAll(/@([\w./\\-]+)/g)].map((m) => m[1]);
-  if (!tokens.length) return { text, attached: [], missed: [] };
+  // dedup-h #3561 — `@path:L1-L2` line-range suffix: the range pins which
+  // slice of the file attaches (file.rs:10-40 → lines 10..40 inclusive).
+  const toks = [...text.matchAll(/@([\w./\\-]+?)(?::(\d+)(?:-(\d+))?)?(?=[\s,;:!?()\[\]{}'"]|$)/g)]
+    .map((m) => ({ rel: m[1], from: m[2] ? Number(m[2]) : null, to: m[3] ? Number(m[3]) : (m[2] ? Number(m[2]) : null) }));
+  if (!toks.length) return { text, attached: [], missed: [] };
   const attached = [], missed = [];
   const blocks = [];
-  for (const rel of [...new Set(tokens)]) {
+  const seen = new Set();
+  for (const { rel, from, to } of toks) {
+    const key = `${rel}:${from ?? ''}-${to ?? ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const r = await cmd('file_read', { path: rel });
     if (r.success && r.data?.content != null) {
       attached.push(rel);
-      blocks.push(`\n\n<attached path="${rel}">\n${r.data.content}\n</attached>`);
+      let content = r.data.content;
+      let label = rel;
+      if (from != null) {
+        const lines = content.split('\n');
+        content = lines.slice(Math.max(0, from - 1), to ?? from).join('\n');
+        label = `${rel}:${from}${to && to !== from ? `-${to}` : ''}`;
+      }
+      blocks.push(`\n\n<attached path="${label}">\n${content}\n</attached>`);
       continue;
     }
     // @folder: directory mention expands to a bounded listing block — the

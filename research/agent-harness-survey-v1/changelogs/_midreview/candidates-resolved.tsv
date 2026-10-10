@@ -346,3 +346,6 @@ dedup-h	3517	subagent	Explore web search	COVERED(variant):web_fetch/web_search+p
 dedup-h	3519	delegate	per-type model	COVERED:model/effort override+profile pin #1169;desc COVERED fan-out depends_on
 dedup-h	3520	delegate	subagent async Phase1	COVERED(variant):durable job+events/webhook+batch;desc VARIANT audit+events telemetry
 dedup-h	3521	delegate	fork subagent gate	COVERED(variant):fork mode+profile opt-in;desc BOUNDARY(variant) channel-agent binding
+dedup-h	3533	proxy	WS_PROXY/WSS_PROXY	COVERED(variant):PAC PROXY/NO_PROXY fetch plane;desc PARTIAL(variant) web_fetch tool only
+dedup-h	3557	render	GFM alert callouts	IMPLEMENTED:md() > [!TYPE] typed callout+5-color css;desc VARIANT review modes
+dedup-h	3561	file-open	file.rs:1-20 line range	IMPLEMENTED:@path:L1-L2 mention slice attach;desc BOUNDARY enterprise default model
