@@ -454,3 +454,6 @@ dedup-h	4108	hook	sdk tool exec hooks	COVERED:pre/post_tool gate;desc BOUNDARY i
 dedup-h	4109	mcp	MCP OAuth+OSV scan	MIXED:PKCE covered #740,OSV boundary;desc COVERED #4089 panel
 dedup-h	4117	style	plugin output styles	BOUNDARY:no plugin style surface;desc NOISE perf
 dedup-h	4119	skill	shared gateway skill libs	BOUNDARY:no shared gateway surface;desc BOUNDARY gateway reliability
+dedup-h	4120	sdk	provider seams+result class	COVERED(variant):api/apiKeyEnv/headers+PROVIDER_RESPONSE;desc BOUNDARY deprecation
+dedup-h	4121	hook	channel reply send hook	COVERED(variant):transform_llm_output+message_sent;desc BOUNDARY modelCatalog
+dedup-h	4126	hook	hook ctx run/message/sender fields	IMPLEMENTED:runId in ambient hookContext;desc BOUNDARY seams

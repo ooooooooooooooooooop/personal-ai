@@ -880,6 +880,10 @@ export async function startHost({
       sessionId: s?.sessionId ?? null,
       model: s?.model?.id ?? s?.model?.model ?? null,
       agentId: process.env.PAI_AGENT_ID ?? null,
+      // dedup-h #4126 — run identity in the ambient context: hooks can
+      // correlate events to the body boot that produced them (run/message/
+      // sender/session analogue; message+sender ride the event payload).
+      runId,
     };
   };
 

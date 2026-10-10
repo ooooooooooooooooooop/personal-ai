@@ -5124,3 +5124,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无共享 Gateway/skill library 面（instance 级 microagent 唯一发现级）。描述 **BOUNDARY**——gateway 打包可靠性面。
 - **核销**：candidates-open #4119 → `candidates-resolved.tsv` #455。
+
+#### 28.454 provider seams+结果分类 + 别名废弃 (#4120 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——provider-owned 缝对应物：transport=`api` 字段、auth=`apiKeyEnv`+credential store、`headers` 定制头；结果分类=`PROVIDER_RESPONSE` status+rate-limit 事件。follow-up 缝无对位注边界。描述 **BOUNDARY**——SDK 别名废弃面。
+- **核销**：candidates-open #4120 → `candidates-resolved.tsv` #456。
+
+#### 28.455 channel 回复发送 hook + modelCatalog (#4121 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——出站消息面=transform_llm_output 门+message_sent 事件（回复在发送缝被观察/重塑）。描述 **BOUNDARY**——modelCatalog.aliases/suppressions 面。
+- **核销**：candidates-open #4121 → `candidates-resolved.tsv` #457。
+
+#### 28.456 hook 上下文字段 + provider seams (#4126 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——ambient hookContext 补 `runId`（run 字段对位；message/sender 随事件 payload 本体，session/model/agentId 既有；trace 面无对应物注边界）。描述 **BOUNDARY**——同 #4120 provider seam 面。
+- **位点**：`pi/src/bootstrap/host.js` `hookContext`。
+- **证据**：host hooks **30/30**。
+- **核销**：candidates-open #4126 → `candidates-resolved.tsv` #458。
