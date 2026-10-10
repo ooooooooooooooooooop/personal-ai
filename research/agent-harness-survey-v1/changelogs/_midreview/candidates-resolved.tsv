@@ -469,3 +469,6 @@ dedup-h	4169	mcp	selective MCP enable/disable	COVERED:enabled:false+/mcp-enable+
 dedup-h	4173	hook	task tool exec hooks	COVERED:pre/post_tool covers task tools+ctx;desc BOUNDARY emmet
 dedup-h	4179	ui	suggest-edit+live_diffs	PARTIAL(variant):diff panel+dryrun,suggest-edit none;desc BOUNDARY SC poll
 dedup-h	4180	hist	Ctrl+R reverse search	COVERED:openHistSearch+promptHist;desc BOUNDARY stream dedup
+dedup-h	4184	ui	palette session interrupt	COVERED(variant):Ctrl+K→/abort;desc BOUNDARY vim input
+dedup-h	4187	edit	background edits	COVERED(variant):direct edits+receipts,no diff-view path;desc NOISE shortcut
+dedup-h	4195	mention	@-mention notify	BOUNDARY:single-operator;desc COVERED draft undo/redo

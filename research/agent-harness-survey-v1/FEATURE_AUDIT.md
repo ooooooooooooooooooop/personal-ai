@@ -5216,3 +5216,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——Ctrl+R `openHistSearch`/`slashFilterHist` 增量反向搜索（200-cap 持久 promptHist，含 slash 命令）+`pickHist`/`cancelHistSearch` 在册。描述 **BOUNDARY**——web 流重连去重面。
 - **核销**：candidates-open #4180 → `candidates-resolved.tsv` #470。
+
+#### 28.469 面板中断会话 + vim 输入 (#4184 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——Ctrl+K 面板→`/abort` 命令中断运行会话（slash 命令即面板项）。描述 **BOUNDARY**——vim NORMAL 输入面。
+- **核销**：candidates-open #4184 → `candidates-resolved.tsv` #471。
+
+#### 28.470 Background Edits + 快捷键冲突 (#4187 — title COVERED / desc NOISE)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——编辑直接落盘+receipt（无强制 diff view 打开路径）=后台编辑对应物；`/diff` 面板=可选查看。描述 **NOISE**——菜单响应速度非特性。
+- **核销**：candidates-open #4187 → `candidates-resolved.tsv` #472。
+
+#### 28.471 chat @-mention 通知 + vim undo (#4195 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——单操作员无多用户 mention 面（`@file`=附件非用户提及；bell 通知=事件级）。描述 **COVERED**——draft undo/redo 栈（M126 在册，含 pasted/attachment 草稿态）。
+- **核销**：candidates-open #4195 → `candidates-resolved.tsv` #473。
