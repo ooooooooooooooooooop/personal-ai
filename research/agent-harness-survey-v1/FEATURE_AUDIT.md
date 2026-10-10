@@ -3714,3 +3714,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`host/src/core/channel.js`（op+构造参）、`pi/src/adapter/channel.js`（透传）、`pi/src/bootstrap/host.js`（facade+shutdown payload）、`app/ui/app.js`（命令）。
 - **证据**：channel-facade 58/58（dispatch+校验+absent closed）；host **421/421**；bootstrap 绿；app lint 净。
 - **核销**：candidates-open #2730 → `candidates-resolved.tsv` #225。
+
+#### 28.225 per-sender tool policy + marketplace toggle (#2733 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——单操作员栈，策略面是 session/global attested policy，无 channel-scoped sender 身份维度（无多发送者通道概念）。描述 **BOUNDARY**——无 plugin marketplace 面（无注册表/安装器/auto-update 端点）。
+- **核销**：candidates-open #2733 → `candidates-resolved.tsv` #226。
+
+#### 28.226 async tool_result middleware + Devin extension macros (#2741 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED(variant)**——tool_result seam 上 post_tool gate hook（append+args rewrite 契约 #1858）=middleware 语义；同步 in-path 执行而非独立 async 中间件框架=variant 注记。描述 **BOUNDARY**——Devin Extension/Playbooks/Slack macros 是外产品面，本栈无对位。
+- **核销**：candidates-open #2741 → `candidates-resolved.tsv` #227。
