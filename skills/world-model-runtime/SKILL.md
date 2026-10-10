@@ -131,6 +131,10 @@ Learning Progress（可记录，禁止当 reward 优化）：
   abstention / specificity。learnable/noise 标记只 provisional，
   不因单次失败定案。只预测容易的事是 Goodhart 自证。
 
+证据方向纪律（02[51]）：任何支持本机制的现象先问是否存在竞争解释；
+  任何**不支持**的现象不得自动归因为"使用方法不正确"——
+  否则这套机制永远不会失败，也就没有验证价值。
+
 ## 会话结束契约
 
 结束前确保：ledger 已 append、current.json 已更新、开放口已登记；下一次新会话 STATE_RESTORE 应能拿到本次全部持久结论——否则本协议未真实运行。
