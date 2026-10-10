@@ -3592,3 +3592,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（agent 建/管调度任务+持久 todo 议程+workspace 作用域）**：**已覆盖**——`schedule_task`（#2567 增 run/runs）agent 全权面、会话 todo 持久文件、ScheduleStore 驻 instance root=workspace 作用域、 survives restart。
 - **证据**：`pi/src/adapter/schedule.js`、`pi/src/adapter/jobs.js:716-718`。
 - **核销**：candidates-open #2570 → `candidates-resolved.tsv` #212。
+
+#### 28.212 dynamic cadence + gated payloads + in-flight doctor (#2578 — title covered / desc partial-IMPL)
+
+- **status**: desc gap closed; title classified.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED(增量)+已覆盖部分**。
+  - **标题语义（per-job dynamic cadence+gated script payloads+cron heartbeat）**：**已覆盖**——M135 adaptive（min/max quiet-stretch）=per-job 动态档率；fire 时刻 preflightCommand 重过当日 policy（M90-R2）=gated payload；pump tick+boot catch-up+`session_heartbeat` 事件=心跳。
+  - **描述语义**：exit-triggered+detached runs=#2570 已判；**in-flight job doctor 警告=IMPLEMENTED**——`doctor` 新 `in_flight_jobs` 检查：`jobStore.listUnfinished()` 非终态列 id+state+fix 指引（≤6 直接列、余聚合；无 jobStore 降级 pass）；usage footer=usage chip（ctx 填充+会话成本+点击分解）已覆盖(variant)。
+- **位点**：`pi/src/adapter/envtools.js`（doctor 检查）；`pi/src/bootstrap/host.js`（jobStore 接线）。
+- **证据**：envtools+schedule 30/30；startHost bootstrap 绿。
+- **核销**：candidates-open #2578 → `candidates-resolved.tsv` #213。

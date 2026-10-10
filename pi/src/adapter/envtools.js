@@ -178,6 +178,18 @@ export function doctorTool(deps) {
       // unconfigured, so the operator needs a discoverable pointer to the
       // env contract. Pi-side check (the env contract is pi-owned); never
       // echoes the key — only whether one is set.
+      // dedup-h #2578 — in-flight job warning: durable jobs still non-
+      // terminal at doctor time may be legitimately running OR orphaned
+      // mid-recovery; the operator should see them by id, not discover a
+      // stale lease later.
+      const inflight = deps.jobStore?.listUnfinished?.() ?? [];
+      r.checks.push(inflight.length
+        ? {
+            id: 'in_flight_jobs', status: 'warn',
+            detail: `${inflight.length} non-terminal job(s): ${inflight.slice(0, 6).map((j) => `${j.job_id}[${j.job_state}]`).join(', ')}${inflight.length > 6 ? ` +${inflight.length - 6} more` : ''}`,
+            fix: 'job_status for detail; stuck leases recover on next boot — cancel via task_interrupt if abandoned',
+          }
+        : { id: 'in_flight_jobs', status: 'pass', detail: 'no non-terminal jobs' });
       const url = process.env.PAI_WEB_SEARCH_URL;
       r.checks.push({
         id: 'web_search',

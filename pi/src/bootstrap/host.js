@@ -1156,7 +1156,7 @@ export async function startHost({
     doctorTool({
       paths: core.paths, workdir, policy: core.policy,
       extRoot: join(PI_ROOT(), 'extensions'),
-      ignored: repoMapIgnore, sessionEnv,
+      ignored: repoMapIgnore, sessionEnv, jobStore,
     }),
     // M83 — lazy tool surface: deferred tools are discovered via tool_search
     // and claimed via tool_activate (catalog late-bound — session built below)

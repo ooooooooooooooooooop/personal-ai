@@ -215,3 +215,25 @@ test('#2346 doctor web_search check: onboarding states, key never echoed', async
   delete process.env.PAI_WEB_SEARCH_URL;
   delete process.env.PAI_WEB_SEARCH_KEY;
 });
+
+test('#2578 doctor in_flight_jobs: non-terminal jobs warn with ids; clean roster passes', async () => {
+  const { doctorTool } = await import('../src/adapter/envtools.js');
+  const find = (r) => (r.details?.checks ?? []).find((c) => c.id === 'in_flight_jobs');
+
+  const clean = doctorTool({ paths: {}, workdir: mkdtempSync(join(tmpdir(), 'pai-doc-')), jobStore: { listUnfinished: () => [] } });
+  let r = await clean.execute();
+  assert.equal(find(r).status, 'pass');
+
+  const busy = doctorTool({
+    paths: {}, workdir: mkdtempSync(join(tmpdir(), 'pai-doc-')),
+    jobStore: { listUnfinished: () => [{ job_id: 'job-aa', job_state: 'RUNNING' }, { job_id: 'job-bb', job_state: 'LEASED' }] },
+  });
+  r = await busy.execute();
+  assert.equal(find(r).status, 'warn');
+  assert.match(find(r).detail, /job-aa\[RUNNING\]/);
+  assert.match(find(r).fix, /job_status/);
+
+  const noStore = doctorTool({ paths: {}, workdir: mkdtempSync(join(tmpdir(), 'pai-doc-')) });
+  r = await noStore.execute();
+  assert.equal(find(r).status, 'pass', 'absent jobStore degrades to pass, never throws');
+});
