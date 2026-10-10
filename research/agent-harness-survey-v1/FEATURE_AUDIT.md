@@ -4222,3 +4222,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`/mcp-add` OAuth flags 全组：`--oauth-client-id/--oauth-token-url/--oauth-authorize-url/--oauth-scope/--oauth-client-secret(-env)`+半成品 spec 拒。描述 **BOUNDARY**——Codex/OpenAI app-server 特定面。
 - **核销**：candidates-open #3252 → `candidates-resolved.tsv` #308。
+
+#### 28.309 slash 跑 MCP prompt + Copilot 图像 (#3253 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M82：MCP prompts 注册 slash 命令、`get` 展开为 user message 进会话。描述 **BOUNDARY**——Copilot API token 交换/Gemini 图像路由=外部 provider 面。
+- **核销**：candidates-open #3253 → `candidates-resolved.tsv` #309。
+
+#### 28.310 tool progress + UI 主题 (#3255 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——#2221 progressToken 进请求+progress frames 到 onProgress 处理器=tool progress 语义（bar/throttling UI 形态=variant；input validation=schema 校验在）。描述 **BOUNDARY**——按钮基元/主题调色=上游 UI 重构面。
+- **核销**：candidates-open #3255 → `candidates-resolved.tsv` #310。
+
+#### 28.311 oauth github spec + GET /mcp (#3258 — title COVERED / desc COVERED(variant))
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——RFC8707 `resource` 参数（显式 override+缺省 server URL+401 重认证一次）+github 类 provider spec 经 oauth spec 校验。描述 **COVERED(variant)**——同 #3205（`mcp_status` channel op）。
+- **核销**：candidates-open #3258 → `candidates-resolved.tsv` #311。

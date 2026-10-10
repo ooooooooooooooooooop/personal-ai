@@ -307,3 +307,6 @@ dedup-h	3248	mcp	MCP notification support	COVERED:list_changed hot-refresh+progr
 dedup-h	3250	mcp	HTTP MCP OAuth	COVERED:auth_code+device+client_credentials+discovery+stored tokens;desc BOUNDARY xAI sidecar
 dedup-h	3251	mcp	non-interactive MCP prompts	COVERED(variant):prompt->message expansion works in headless sessions;desc BOUNDARY gateway-run choice
 dedup-h	3252	mcp	mcp add OAuth flags	COVERED:--oauth-* flag family in /mcp-add;desc BOUNDARY Codex app-server
+dedup-h	3253	mcp	slash commands run MCP prompts	COVERED:M82 prompts as slash commands;desc BOUNDARY Copilot image routing
+dedup-h	3255	mcp	tool progress/throttling	COVERED(variant):progressToken+onProgress #2221;desc BOUNDARY UI primitives
+dedup-h	3258	mcp	oauth github spec+resource	COVERED:RFC8707 resource param+401 re-auth;desc mcp_status variant #3205
