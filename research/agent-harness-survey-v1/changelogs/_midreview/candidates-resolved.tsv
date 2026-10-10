@@ -433,3 +433,6 @@ dedup-h	4016	task	cross-session task list share	COVERED(variant):instance-root s
 dedup-h	4017	goal	three-state goal eval	IMPLEMENTED:done verdict achieved|unachievable persisted;desc BOUNDARY WebShell
 dedup-h	4024	tools	registry full under --tools	COVERED(defect-absent):full register+ToolSurface gate;desc BOUNDARY TUI img
 dedup-h	4033	attach	composer attach into active turn	COVERED(variant):@file inject at submit,queue carries next-turn;desc BOUNDARY splitview
+dedup-h	4037	git	new-session git mode selector	COVERED(variant):worktree menu=new-session git target;desc BOUNDARY daemon
+dedup-h	4041	ws	multi-workspace split view	BOUNDARY:single-ws instance model;desc BOUNDARY terminal focus
+dedup-h	4042	draft	new-topic draft hint	REJECTED:speculative topic heuristic;desc BOUNDARY terminal menu

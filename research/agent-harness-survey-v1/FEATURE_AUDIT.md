@@ -4993,3 +4993,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`@file` mention 在 prompt 提交即展开注入 turn；忙时消息入队=下一 turn 携带附件（上游"active turn 即时插入"的语义变体，无 mid-turn 附件注入口）。描述 **BOUNDARY**——多 workspace 分屏面。
 - **核销**：candidates-open #4033 → `candidates-resolved.tsv` #434。
+
+#### 28.433 新会话 git 模式选择 + daemon 指标 (#4037 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——侧栏 worktree 按钮=新会话 git 位置选择面（列出 worktrees+workspaces→set_workdir→session_new；上游"mode 选择器"对应物）。描述 **BOUNDARY**——daemon web-shell 指标面。
+- **核销**：candidates-open #4037 → `candidates-resolved.tsv` #435。
+
+#### 28.434 多 workspace 分屏 + 终端焦点 (#4041 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——单 workspace/instance 模型，无多 workspace 分屏面（跨 worktree 会话=列表导航而非同屏）。描述 **BOUNDARY**——终端 tab 焦点面。
+- **核销**：candidates-open #4041 → `candidates-resolved.tsv` #436。
+
+#### 28.435 新话题草稿提示 + 终端上下文菜单 (#4042 — title REJECTED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **REJECTED**——草稿话题启发式（猜测用户意图建议新会话）=推测分类器面，误报代价高；显式 `/new`/fork/新任务钮是刻意的显式面。描述 **BOUNDARY**——终端上下文菜单面。
+- **核销**：candidates-open #4042 → `candidates-resolved.tsv` #437。
