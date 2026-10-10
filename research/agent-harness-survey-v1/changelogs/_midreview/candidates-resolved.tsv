@@ -274,3 +274,6 @@ dedup-h	3099	turn	--max-turns	COVERED:PAI_MAX_TOOL_CALLS decide cap #3082;desc B
 dedup-h	3106	auth	models.json authHeader Bearer	COVERED:apiKey auto-synthesizes Authorization Bearer header channel.js:1066;desc BOUNDARY macOS CLI prompt
 dedup-h	3107	command	slash argument-hint	COVERED:same as 3094;desc profile_* CRUD ops variant same as 3061
 dedup-h	3110	mode	/plan reasoner+plan prompt	COVERED(variant):/plan cmd+presets preamble/thinking;desc BOUNDARY no trajectory replay web surface
+dedup-h	3124	mcp	OAuth all supported scopes	COVERED:scope unset->prm.scopes_supported join mcp/index.js:349;desc BOUNDARY map nudges
+dedup-h	3125	redact	secret redaction default-off	BOUNDARY(intentional):M5 always-on,no plaintext opt-out;desc N/A no window prompt surface
+dedup-h	3128	memory	memory write cross-runtime share	COVERED:instance SQLite scope user=all sessions/project=workdir-bound;desc BOUNDARY file-finder focus

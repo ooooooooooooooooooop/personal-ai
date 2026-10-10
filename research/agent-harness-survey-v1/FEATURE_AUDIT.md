@@ -4018,3 +4018,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`/plan` 命令在册（只读模式卡）+mode presets 可带 preamble/`thinking` 档（plan-mode reasoner 组合=profile/preset 语义变体，非独立 reasoner+prompt 件）。描述 **BOUNDARY**——无 trajectory replay web 面（session export format=debug 轨迹包是最近对偶）。
 - **核销**：candidates-open #3110 → `candidates-resolved.tsv` #275。
+
+#### 28.275 OAuth 全 supported scopes + map nudge (#3124 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`pi/extensions/mcp/index.js:349`：`scope: parsed.scope ?? prm.scopes_supported.join(' ')`——无配置 scope 时请求 PRM 声明的全部 supported scopes=字面该语义。描述 **BOUNDARY**——无 chat/edit map-nudge 面。
+- **核销**：candidates-open #3124 → `candidates-resolved.tsv` #276。
+
+#### 28.276 redact-toggle 默认关 + first-run 提示 (#3125 — title BOUNDARY / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(intentional)**——secret redaction（M5）恒开不可关：提供关向 toggle=允许明文凭据落盘=拒绝语义（patch-corruption 风险由测试回归兜而非开闸）。描述 **BOUNDARY(N/A)**——无 first-run window 选择面（web UI 无窗口概念）。
+- **核销**：candidates-open #3125 → `candidates-resolved.tsv` #277。
+
+#### 28.277 memory 跨 runtime 共享 + file-finder focus (#3128 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`MemoryStore` 存 instance 级 SQLite+FTS5：`scope:'user'` 行对实例内全部会话/runtime 可见、`scope:'project'` 绑 workdir——跨 runtime 共享+隔离双语义在列。描述 **BOUNDARY**——无 file-finder focus 行为面。
+- **核销**：candidates-open #3128 → `candidates-resolved.tsv` #278。
