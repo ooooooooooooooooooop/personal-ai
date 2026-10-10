@@ -4935,3 +4935,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——writeLease fg/bg 持有门+verifier 写工具 deny=write 契约+bypass 检测族（tripwire 命名=variant）。描述 **BOUNDARY**——ACP streamed 输出保留=外部协议面。
 - **核销**：candidates-open #3984 → `candidates-resolved.tsv` #425。
+
+#### 28.424 结构化 review 视图 + TUI 滚动 (#3998 — title PARTIAL / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`/review`+`/security-review` 提示模式在但输出=自由文本 transcript，无 severity/confidence finding schema 面。描述 **BOUNDARY**——TUI 滚动加速。
+- **核销**：candidates-open #3998 → `candidates-resolved.tsv` #426。
+
+#### 28.425 内嵌终端 + 信号退出序 (#4001 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无内嵌终端面。描述 **BOUNDARY**——SIGTERM/SIGHUP 交互式 shutdown 保序=嵌入进程无该面。
+- **核销**：candidates-open #4001 → `candidates-resolved.tsv` #427。
+
+#### 28.426 PS CLM 白名单+git 防护 + terminal_input 扩展 (#4005 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——PowerShell CLM 类型白名单与 bare/NTFS 8.3 防御=特定运行时硬化面无对位（我方 shell:true 平台默认）。描述 **BOUNDARY**——#3964 terminal_input 同面。
+- **核销**：candidates-open #4005 → `candidates-resolved.tsv` #428。

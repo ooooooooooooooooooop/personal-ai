@@ -424,3 +424,6 @@ dedup-h	3960	hook	bash spawn hook	PARTIAL(variant):pre_tool gate only,no arg rew
 dedup-h	3964	hook	terminal_input hook	BOUNDARY:no terminal input surface;desc VARIANT shell:true non-login
 dedup-h	3972	env	project-dir env stamp	IMPLEMENTED:PAI_WORKDIR in sessionStamps;desc NOISE formatting
 dedup-h	3984	write	review write contract+tripwire	COVERED(variant):writeLease+verifier deny;desc BOUNDARY ACP
+dedup-h	3998	review	finding-centric review UI	PARTIAL(variant):review modes exist,no finding schema;desc BOUNDARY TUI
+dedup-h	4001	tui	inline terminal input	BOUNDARY:no terminal;desc BOUNDARY signal shutdown
+dedup-h	4005	shell	PS CLM whitelist+git guards	BOUNDARY:runtime-specific hardening;desc BOUNDARY terminal_input
