@@ -3910,3 +3910,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY(variant)**——无 teams/MDM 下发面；CLI scopes exact-match=command allowlist per-unit 严格匹配（不宽松前缀）覆盖该语义。描述 **COVERED(variant)**——SecretRefs/typed approvals/bounded turn text 各项均在（parseSecretRef/ask kinds/输出截尾）；thread context+app-server 面=variant。
 - **核销**：candidates-open #2941 → `candidates-resolved.tsv` #257。
+
+#### 28.257 .clineignore + device-pair retry (#2957 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`.paiignore`（Roo .rooignore/Cline .clineignore 类比）：glob 模式排除+pins add 时拒+实时重读。描述 **BOUNDARY**——无 device-pairing/operator.admin 面。
+- **核销**：candidates-open #2957 → `candidates-resolved.tsv` #258。
+
+#### 28.258 plan 退出恢复前模式 + ALL_PROXY (#2958 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`mode_request` 任意目标 mode 经 operator 卡批准=可请求回 normal；专属"restore previous"快捷项缺但语义可达。描述 **ALREADY_COVERED**——`PAI_PROXY_URL`+undici env-proxy dispatcher 在册（egress 门照常）。
+- **核销**：candidates-open #2958 → `candidates-resolved.tsv` #259。
+
+#### 28.259 plan-MCP 支持 + 媒体流来源 IP (#2960 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant——更紧)**——同 #2914：plan 模式对全部 `mcp__*` 一律 ask（opaque 外部效应），不放行 readOnlyHint=刻意保守。描述 **BOUNDARY**——无 voice/media-stream webhook 面；trusted-forwarding-header 来源 IP=localhost 桥不需要。
+- **核销**：candidates-open #2960 → `candidates-resolved.tsv` #260。

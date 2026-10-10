@@ -256,3 +256,6 @@ dedup-h	2914	mode	plan readOnlyHint MCP pass	COVERED(variant-stricter):all mcp__
 dedup-h	2929	mcp	loopback attach grants	BOUNDARY:we are MCP client not server,no inbound attach surface;desc COVERED magic-byte MIME sniff
 dedup-h	2931	security	apiKeyHelper pre-trust RCE	COVERED(design):agent-reachable config non-executable,env trust-gated #1483,workdir hooks observational-only;desc plan mcp gating stricter variant
 dedup-h	2941	policy	teams MDM allow/deny lists	BOUNDARY(variant):no MDM surface,allowlist exact-match covered;desc SecretRefs/typed asks/bounded text all covered variant
+dedup-h	2957	ignore	.clineignore	COVERED:.paiignore glob+pin-refusal+live reload;desc BOUNDARY device pairing
+dedup-h	2958	mode	restore previous mode exit	COVERED(variant):mode_request arbitrary target via operator card;desc COVERED PAI_PROXY_URL+env-proxy dispatcher
+dedup-h	2960	mode	plan mode MCP support	COVERED(variant-stricter):all mcp__* gated same as 2914;desc BOUNDARY no media-stream webhook
