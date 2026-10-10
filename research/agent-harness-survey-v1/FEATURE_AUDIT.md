@@ -5363,3 +5363,60 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——verify/hooks 族=结构化安全裁决对应物（pre_tool 门+policy attested+externalVerify 卡）。描述 **BOUNDARY**——gh pr 绑定面。
 - **核销**：candidates-open dedup-l#4297 → `candidates-resolved.tsv` #494。
+
+#### 28.493 新用户 onboarding + ACP 参数继承 (#4367 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——无模型即 setup-card 引导=新用户检测+onboarding 对应物。描述 **BOUNDARY**——ACP --serve 参数继承面。
+- **核销**：candidates-open dedup-l#4367 → `candidates-resolved.tsv` #495。
+
+#### 28.494 Conseca 框架 + Devin 云交接 (#4384 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——同 #4297 safety-checker 族（verify/hooks 裁决面）。描述 **BOUNDARY**——云会话交接面。
+- **核销**：candidates-open dedup-l#4384 → `candidates-resolved.tsv` #496。
+
+#### 28.495 ModelPolicy/PolicyCatalog + mcp schema (#4386 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——单 canonical attested policy 无目录/目录化面（modelroutes 族已判）。描述 **COVERED**——`mcp_list_tools` 全 schema 透出=input_schema 对应物。
+- **核销**：candidates-open dedup-l#4386 → `candidates-resolved.tsv` #497。
+
+#### 28.496 skip-sanity-check-repo + slash 补全 (#4624 — title DEFECT-ABSENT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(defect-absent)**——无启动期 repo sanity-check pass（repo_map 惰性按需）→加速档无对位物。描述 **BOUNDARY**——slash 补全修复面。
+- **核销**：candidates-open dedup-l#4624 → `candidates-resolved.tsv` #498。
+
+#### 28.497 命令别名 + PDF 视觉 (#4775 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`/macro`+`/unmacro` 用户定义命令别名（名称→模板展开=command_aliases 对应物）+`model_alias_set`。描述 **BOUNDARY**——PDF 视觉附件面。
+- **核销**：candidates-open dedup-l#4775 → `candidates-resolved.tsv` #499。
+
+#### 28.498 粘贴突发开关 + /model 直输 (#5379 — title IMPLEMENTED / desc COVERED)
+
+- **status**: title implemented; desc covered.
+- **判定**：标题 **IMPLEMENTED**——`pai.paste_burst=off` localStorage opt-out（1500+字符粘贴不再转附件 chip，逐字进 composer；默认仍防突发）。描述 **COVERED**——model chip/`/config model=` 直输切换在册。
+- **位点**：`app/ui/app.js` paste 处理器。
+- **核销**：candidates-open dedup-l#5379 → `candidates-resolved.tsv` #500。
+
+#### 28.499 skipLoopDetection + 线程复用 (#5968 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`PAI_SKIP_LOOP_DETECTION=1`：LoopDetector 完全不进决定链（null-tolerant 下游）+每 session-build `LOOP_DETECTION_SKIPPED` 审计。描述 **BOUNDARY**——线程复用修复面。
+- **位点**：`pi/src/bootstrap/host.js` makeDecide。
+- **证据**：bootstrap+loop-governance **56/56**。
+- **核销**：candidates-open dedup-l#5968 → `candidates-resolved.tsv` #501。
+
+#### 28.500 已发消息编辑+重答 (#7351 — title COVERED / desc —)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——fork 到该 user 消息点+改发=重答对应物（原位编辑+重发链式面刻意不造：transcript 不可变账）。
+- **核销**：candidates-open dedup-l#7351 → `candidates-resolved.tsv` #502。
+
+#### 28.501 CODEX_SECURE_MODE + 消息编辑/删除 (#9262+#10524 — BOUNDARY / COVERED)
+
+- **status**: classification only.
+- **判定**：#9262 标题 **BOUNDARY**——进程可观测性限制档无对位物（spawn env 白名单+scrub=等价硬化）。#10524 标题 **COVERED(variant)**——同 #7351 fork-重答面。
+- **核销**：candidates-open dedup-l#9262 → `candidates-resolved.tsv` #503；dedup-l#10524 → `candidates-resolved.tsv` #504。

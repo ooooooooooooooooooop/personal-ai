@@ -1544,7 +1544,11 @@ export async function startHost({
       // revalidate defaults to the session's own tool registry via pi-ai
       // Pi ctx carries the name at ctx.toolCall.name; the kernel contract is
       // ctx.toolName — translate at the boundary, don't leak Pi shape inward.
-      decide: (currentDecide = btwReadonlyDecide(makeDecide({
+      // dedup-l #5968 — tripwire disabled by operator env: prove it in the
+      // audit trail on every session build (once per build, not per call).
+      decide: (currentDecide = (process.env.PAI_SKIP_LOOP_DETECTION === '1'
+        && core.audit.write({ kind: 'LOOP_DETECTION_SKIPPED', data: { via: 'PAI_SKIP_LOOP_DETECTION' } }),
+        btwReadonlyDecide(makeDecide({
         core, executor, fileOps,
         getSurface: () => toolSurface,
         // BCC-1 gate: a consequential mutation in core/full must bind to an open
@@ -1556,7 +1560,11 @@ export async function startHost({
         classifier: parseShellCommand,
         getSessionScope: () => currentSession?.sessionId ?? null,
         // stuck-loop scoring is session-scoped: a rebuilt session starts fresh
-        loopwatch: (currentLoopwatch = new LoopDetector()),
+        // dedup-l #5968 — PAI_SKIP_LOOP_DETECTION=1 (skipLoopDetection
+        // analogue): operator opt-out removes the loop detector from the
+        // decide chain entirely (loopwatch is null-tolerant downstream);
+        // audited because disabling a tripwire must be provable.
+        loopwatch: (currentLoopwatch = process.env.PAI_SKIP_LOOP_DETECTION === '1' ? null : new LoopDetector()),
         asks, // loop escalations reuse the operator-ask surface
         // G9: env-configured shadow LLM — telemetry only, never authoritative
         shadowJudge: shadowJudgeFromEnv({ audit: core.audit }),
@@ -1567,7 +1575,7 @@ export async function startHost({
         preToolGate,
         // #1112 delegate-child allowlist — same matcher the surface uses
         allowedTools,
-      }), posture)),
+      }), posture))),
       writeLease,
       // M100 provider fallback: the chain object is shared so the channel's
       // models_fallback_set mutates the SAME object the extension reads —

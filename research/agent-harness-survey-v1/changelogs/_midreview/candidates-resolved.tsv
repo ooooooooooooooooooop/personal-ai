@@ -493,3 +493,13 @@ dedup-l	4277	asks	always-allow admin off	IMPLEMENTED:PAI_ALWAYS_ALLOW_OFF killsw
 dedup-l	4279	compact	auto-compact threshold cfg	COVERED:PAI_AUTOCOMPACT_THRESHOLD #3344;desc BOUNDARY models
 dedup-l	4280	web	allowed_web_search_modes	BOUNDARY:single governed fetch mode;desc BOUNDARY autofix brake
 dedup-l	4297	safety	safety checker framework	COVERED(variant):verify/hooks verdict family;desc BOUNDARY gh pr bind
+dedup-l	4367	onboard	new-user detection	COVERED(variant):setup-card when no model;desc BOUNDARY acp inherit
+dedup-l	4384	safety	Conseca framework	COVERED(variant):verify/hooks family;desc BOUNDARY cloud handoff
+dedup-l	4386	policy	ModelPolicy catalog	BOUNDARY:single attested policy;desc COVERED mcp schema
+dedup-l	4624	boot	skip-sanity-check-repo	COVERED(defect-absent):no startup sanity pass;desc BOUNDARY slash fix
+dedup-l	4775	alias	command_aliases	COVERED(variant):/macro+model_alias_set;desc BOUNDARY pdf vision
+dedup-l	5379	paste	disable_paste_burst	IMPLEMENTED:pai.paste_burst=off opt-out;desc COVERED model quick-switch
+dedup-l	5968	loop	skipLoopDetection	IMPLEMENTED:PAI_SKIP_LOOP_DETECTION removes detector+audit;desc BOUNDARY thread reuse
+dedup-l	7351	edit	sent-msg edit+re-answer	COVERED(variant):fork at msg+resend
+dedup-l	9262	secure	CODEX_SECURE_MODE	BOUNDARY:no observability-limit surface
+dedup-l	10524	edit	user msg edit/delete	COVERED(variant):same fork-resend family

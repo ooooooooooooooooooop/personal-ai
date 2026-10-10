@@ -5467,7 +5467,12 @@ input.addEventListener('paste', (e) => {
   // chip instead of flooding the composer — same 'text' kind as file drops,
   // sent as an inline labeled block.
   const t = e.clipboardData?.getData?.('text/plain') ?? '';
-  if (t.length > 1500) {
+  // dedup-l #5379 — disable_paste_burst analogue: operators who paste large
+  // files deliberately can keep the verbatim behavior via localStorage
+  // pai.paste_burst=off (opt-out, not default — the chip saves the composer
+  // from wall-of-text floods).
+  const burstOff = localStorage.getItem('pai.paste_burst') === 'off';
+  if (t.length > 1500 && !burstOff) {
     e.preventDefault();
     // M129: recognise `path:line(:col)` references inside the paste so the
     // chip can badge what it points at (stack traces, grep output, editor
