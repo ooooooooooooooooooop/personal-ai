@@ -5106,3 +5106,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——pre_tool/post_tool gate hooks=SDK 注册式执行拦截对应物（deny/args 重写/append/ask）。描述 **BOUNDARY**——iMessage link-preview 面。
 - **核销**：candidates-open #4108 → `candidates-resolved.tsv` #452。
+
+#### 28.451 MCP OAuth+OSV + 恢复面板 (#4109 — title MIXED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **MIXED**——OAuth 2.1 PKCE/device_code 流 **COVERED**（#740 授权码+刷新+loopback/device-code）；OSV 恶意扫描 **BOUNDARY**（无包注册表/vuln 扫描面）。描述 **COVERED**——#4089 splash 恢复看门狗同面。
+- **核销**：candidates-open #4109 → `candidates-resolved.tsv` #453。
+
+#### 28.452 插件 output styles + 热路径瘦身 (#4117 — title BOUNDARY / desc NOISE)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——插件提供 output style 面无对位物。描述 **NOISE**——性能瘦身非特性。
+- **核销**：candidates-open #4117 → `candidates-resolved.tsv` #454。
+
+#### 28.453 共享 gateway skill 库 + 可靠性 (#4119 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无共享 Gateway/skill library 面（instance 级 microagent 唯一发现级）。描述 **BOUNDARY**——gateway 打包可靠性面。
+- **核销**：candidates-open #4119 → `candidates-resolved.tsv` #455。

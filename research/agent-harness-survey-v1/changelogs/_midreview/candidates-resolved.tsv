@@ -451,3 +451,6 @@ dedup-h	4093	diag	skill metrics+tool source labels	COVERED(variant):skill stats+
 dedup-h	4095	ext	async extension factories	COVERED(defect-absent):SDK await-import;desc BOUNDARY Pixverse
 dedup-h	4107	install	governed install gate	COVERED(variant):skill-install opt-in+manifest sha256;desc COVERED(variant) schema
 dedup-h	4108	hook	sdk tool exec hooks	COVERED:pre/post_tool gate;desc BOUNDARY iMessage
+dedup-h	4109	mcp	MCP OAuth+OSV scan	MIXED:PKCE covered #740,OSV boundary;desc COVERED #4089 panel
+dedup-h	4117	style	plugin output styles	BOUNDARY:no plugin style surface;desc NOISE perf
+dedup-h	4119	skill	shared gateway skill libs	BOUNDARY:no shared gateway surface;desc BOUNDARY gateway reliability
