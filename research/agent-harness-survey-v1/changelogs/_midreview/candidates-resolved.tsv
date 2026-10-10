@@ -340,3 +340,6 @@ dedup-h	3442	model	model-selection scopes	BOUNDARY(variant):session-level+featur
 dedup-h	3462	context	no-limit no stepdown probe	BOUNDARY:SDK-side retry behavior;desc VARIANT models.json operator-editable
 dedup-h	3490	delegate	maxSpawnDepth=2	COVERED(variant):PAI_MAX_SPAWN_DEPTH default 3 env-tunable+refusal reason;desc COVERED #3379
 dedup-h	3495	hook	frontmatter hooks default-off	BOUNDARY:no frontmatter hook declaration surface;desc VARIANT #3379 headers
+dedup-h	3506	approval	guardian smart approvals	BOUNDARY(variant):operator asks direct,no guardian subagent surface;desc VARIANT single-delivery envelope
+dedup-h	3514	task	managed child+sticky cancel	COVERED(variant):delegate durable+task_interrupt;desc VARIANT task_events render
+dedup-h	3517	subagent	Explore web search	COVERED(variant):web_fetch/web_search+profile tools allowlist

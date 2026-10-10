@@ -4426,3 +4426,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无 frontmatter 声明 hook 面（hook 来自实例配置文件+门控文件，frontmatter 声明形态不存在）。描述 **COVERED(variant)**——Bedrock 1M 扩展=provider `headers` 显式声明路径（#3379 面；Bedrock 专用 settings 键=variant）。
 - **核销**：candidates-open #3495 → `candidates-resolved.tsv` #341。
+
+#### 28.342 guardian 路由审批 + sub-agent 事件去重 (#3506 — title BOUNDARY(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——审批走操作员 asks 通道（model→operator 直接）；guardian subagent 中介路由面无对应物（审批=操作员主权，刻意不经子 agent）。描述 **COVERED(variant)**——子任务结果经 depends_on/result envelope 单次交付，无重复传播路径=缺陷类不存在。
+- **核销**：candidates-open #3506 → `candidates-resolved.tsv` #342。
+
+#### 28.343 managed child + sticky cancel + IDE 子 agent 工具显示 (#3514 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——delegate_task 托管子任务（durable job）+`task_interrupt`（取消意图持久——closed task 拒 send）。描述 **COVERED(variant)**——子 agent 工具调用经 `task_events`/`job_detail` 事件账渲染（IDE 集成形态=variant，面是 task-center 面板）。
+- **核销**：candidates-open #3514 → `candidates-resolved.tsv` #343。
+
+#### 28.344 Explore 子 agent web 能力 (#3517 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：两面 **COVERED(variant)**——`web_fetch`/`web_search` 工具族在册+agent profile `tools:` 白名单可声明 web 能力探索人格（内置 Explore 人格名=variant；能力等价面在）。
+- **核销**：candidates-open #3517 → `candidates-resolved.tsv` #344。
