@@ -507,3 +507,7 @@ findings-cand	1513	hooks	hooks.enabled master switch	IMPLEMENTED:enabled:false s
 findings-cand	1090	hooks	attribution manifest-dir	COVERED(variant):configPath+HOOK_* audit attribution
 findings-cand	1292	config	value source provenance	BOUNDARY:config=file/env no provenance panel
 findings-cand	1562	subagent	--subagent-permission-mode	COVERED(variant):profile toolsAllow/Deny
+findings-cand	1779	delegate	per-spawn model override	COVERED:#1169 model+effort override
+findings-cand	1701	policy	continue_loop_on_deny	BOUNDARY:deny=stop deliberate fail-closed
+findings-cand	1610	jsrepl	promote /experimental	COVERED(variant):jsrepl first-class+doctor compat
+findings-cand	2111	read	token-budget file read	COVERED(variant):SDK read MAX_LINES/BYTES+offset paging

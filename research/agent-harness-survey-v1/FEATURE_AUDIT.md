@@ -5434,3 +5434,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：#1292 标题 **BOUNDARY**——constrained requirement values 带 source provenance 面板无对位物（配置即文件/env，来源=文件本体）。#1562 标题 **COVERED(variant)**——delegate profile `toolsAllow`/`toolsDeny`+写工具 deny=per-subagent 权限档对应物（CLI flag 形态差异）。
 - **核销**：candidates-open findings-cand#1292 → `candidates-resolved.tsv` #507；findings-cand#1562 → `candidates-resolved.tsv` #508。
+
+#### 28.504 spawn model 覆盖 + continue_loop_on_deny + js_repl + 读预算 (#1779/#1701/#1610/#2111)
+
+- **status**: classification only.
+- **判定**：#1779 标题 **COVERED**——delegate per-spawn `model`/`effort` 覆盖（#1169 严格 charset+modelroutes 解析）。#1701 标题 **BOUNDARY**——deny 即停+ask 前向解=刻意设计；"拒绝后继续循环" opt-in 无对位物且与 fail-closed 相悖。#1610 标题 **COVERED(variant)**——`jsrepl`/`jsrepl-worker` 一等工具在册；启动兼容检查+warning=doctor 电池对应物。#2111 标题 **COVERED(variant)**——pin SDK read 工具原生 DEFAULT_MAX_LINES/MAX_BYTES 截断+offset/limit 分页；我方全部自研工具输出有界（output_tail/预览）。
+- **核销**：findings-cand#1779 → `candidates-resolved.tsv` #509；#1701 → #510；#1610 → #511；#2111 → #512。
