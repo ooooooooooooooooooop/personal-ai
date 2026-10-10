@@ -2020,3 +2020,36 @@ test('#2177 worktree_create newBranch: mints branch from default base; duplicate
     spawnSync('git', ['worktree', 'remove', '--force', join(repo, 'wt-nb')], { cwd: repo });
   }
 });
+
+test('#2691: spawned jobs see PAI_SESSION_ID/PROVIDER/MODEL stamps', { timeout: 40_000 }, async () => {
+  const inst = mkdtempSync(join(tmpdir(), 'pai-stamp-inst-'));
+  const dir = mkdtempSync(join(tmpdir(), 'pai-stamp-wd-'));
+  mkdirSync(join(inst, 'canonical'), { recursive: true });
+  writeFileSync(join(inst, 'canonical', 'policy.json'), JSON.stringify({
+    version: 1, deny: [], tools: {}, riskActions: {},
+  }));
+  const host = await startHost({
+    instanceRoot: inst, workdir: dir, sessionOptions: { model: stubModel },
+  });
+  try {
+    const cmd_ = `node -e "require('fs').writeFileSync('env-dump.json',JSON.stringify({sid:process.env.PAI_SESSION_ID,sf:process.env.PAI_SESSION_FILE,p:process.env.PAI_PROVIDER,m:process.env.PAI_MODEL,r:process.env.PAI_REASONING_LEVEL}))"`;
+    const r = await host.channel.handle({ type: 'job_spawn', command: cmd_ });
+    assert.equal(r.success, true, `spawn refused: ${r.error ?? JSON.stringify(r)}`);
+    const jobId = r.data?.jobId ?? r.data?.job_id;
+    let job = null;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((res) => setTimeout(res, 1000));
+      const st = await host.channel.handle({ type: 'job_status', job_id: jobId });
+      job = st.data?.job;
+      if (/COMPLETED|FAILED|CANCELLED/.test(String(job?.job_state ?? ''))) break;
+    }
+    assert.equal(String(job?.job_state), 'COMPLETED', JSON.stringify(job));
+    const env = JSON.parse(readFileSync(join(dir, 'env-dump.json'), 'utf-8'));
+    assert.ok(env.sid && env.sid.length > 4, 'PAI_SESSION_ID reaches the spawned command');
+    assert.ok(env.sf.endsWith('.jsonl'), 'PAI_SESSION_FILE names the live transcript');
+    assert.equal(env.p, stubModel.provider ?? env.p, 'provider stamped');
+    assert.ok(env.m, 'model stamped');
+  } finally {
+    host.dispose();
+  }
+});

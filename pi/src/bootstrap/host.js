@@ -840,7 +840,23 @@ export async function startHost({
   // (jobs, hooks, verifier, delegate bridge); engine-internal tool spawns
   // are outside its reach by design.
   const sessionEnv = new SessionEnv({ audit: core.audit });
-  const envOverlay = () => sessionEnv.view();
+  // dedup-h #2691 — session identity stamps ride the spawn env so commands
+  // a job/hook/verifier runs can name their enclosing session (PI_SESSION_ID
+  // /_FILE/PROVIDER/MODEL/REASONING_LEVEL). Stamps are authoritative: the
+  // operator overlay cannot shadow enforcement truth (same contract as
+  // PAI_AGENT_ID). currentSession is TDZ until the first session — guarded.
+  const sessionStamps = () => {
+    let s = null;
+    try { s = currentSession; } catch { /* TDZ */ }
+    return {
+      PAI_SESSION_ID: s?.sessionId ?? '',
+      PAI_SESSION_FILE: s?.sessionFile ?? '',
+      PAI_PROVIDER: s?.model?.provider ?? '',
+      PAI_MODEL: s?.model?.id ?? s?.model?.model ?? '',
+      PAI_REASONING_LEVEL: s?.thinkingLevel ?? '',
+    };
+  };
+  const envOverlay = () => ({ ...sessionEnv.view(), ...sessionStamps() });
 
   // dedup-h #1870 — ambient hook context (chat.params/chat.message analogue):
   // sessionId/model/agentId ride every event payload so hooks can correlate

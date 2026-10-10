@@ -3666,3 +3666,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（模型 inspect 后台 job 输出撑爆上下文→同 bash 输出截尾）**：**已覆盖**——stdout/stderr 8192 环形截尾、`output_tail` 持久有界、`describe`/`job_status` 只回尾部+events 截 10——model 侧拿到的本就是有界尾。
 - **证据**：`pi/src/adapter/jobs.js:595-596,129-142`。
 - **核销**：candidates-open #2689 → `candidates-resolved.tsv` #220。
+
+#### 28.220 session env stamps + message queue (#2691 — title IMPLEMENTED / desc covered)
+
+- **status**: title mechanism landed; desc classified.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（PI_SESSION_ID/FILE/PROVIDER/MODEL/REASONING_LEVEL 暴露给 commands）**：**IMPLEMENTED**——`envOverlay` 合成=sessionEnv.view()+sessionStamps()：`PAI_SESSION_ID|PAI_SESSION_FILE|PAI_PROVIDER|PAI_MODEL|PAI_REASONING_LEVEL`(thinkingLevel) 随每个 job/hook/verifier 子进程环境；stamp **authoritative 居后**——operator overlay 不可遮蔽（同 PAI_AGENT_ID 契约）；currentSession TDZ 守护与 hookContext 同款。
+  - **描述语义（忙碌时输入排队+输入框上方显示+Esc 暂停+Ctrl+C 弃队）**：**已覆盖(variant)**——busy→queue.push+chip 渲染于输入框上方、Esc=abort、Esc×2(1.5s 内)=弃队尾（刻意两键分离防 abort 吞消息=更强语义）、ArrowUp 取回编辑、per-chip 删除。
+- **位点**：`pi/src/bootstrap/host.js`（stamp 合成）。
+- **证据**：bootstrap 端到端测试——真 job_spawn 子进程读出全部 5 个 stamp；envtools+m8 51/51。
+- **核销**：candidates-open #2691 → `candidates-resolved.tsv` #221。
