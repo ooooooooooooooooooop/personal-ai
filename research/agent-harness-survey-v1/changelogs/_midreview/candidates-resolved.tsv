@@ -457,3 +457,6 @@ dedup-h	4119	skill	shared gateway skill libs	BOUNDARY:no shared gateway surface;
 dedup-h	4120	sdk	provider seams+result class	COVERED(variant):api/apiKeyEnv/headers+PROVIDER_RESPONSE;desc BOUNDARY deprecation
 dedup-h	4121	hook	channel reply send hook	COVERED(variant):transform_llm_output+message_sent;desc BOUNDARY modelCatalog
 dedup-h	4126	hook	hook ctx run/message/sender fields	IMPLEMENTED:runId in ambient hookContext;desc BOUNDARY seams
+dedup-h	4127	install	plugin install scope	BOUNDARY:no plugin surface;desc BOUNDARY modelCatalog
+dedup-h	4136	model	manifest modelCatalog	BOUNDARY:direct models.json registration;desc BOUNDARY compat
+dedup-h	4140	tools	optional agent tools+allowlists	COVERED:tools/tools_allow+PAI_TOOLS_ALLOW+hideTools;desc BOUNDARY guide

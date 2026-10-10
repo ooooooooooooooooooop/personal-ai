@@ -5144,3 +5144,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/src/bootstrap/host.js` `hookContext`。
 - **证据**：host hooks **30/30**。
 - **核销**：candidates-open #4126 → `candidates-resolved.tsv` #458。
+
+#### 28.457 插件安装 scope + modelCatalog (#4127 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无插件安装面；技能安装唯一级=instance opt-in。描述 **BOUNDARY**——manifest modelCatalog 面。
+- **核销**：candidates-open #4127 → `candidates-resolved.tsv` #459。
+
+#### 28.458 modelCatalog 契约 + 兼容解析 (#4136 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——provider/model 注册=直接 `provider_add`/`models.json`，无 manifest catalog 契约面。描述 **BOUNDARY**——插件兼容解析面。
+- **核销**：candidates-open #4136 → `candidates-resolved.tsv` #460。
+
+#### 28.459 可选 agent 工具+显式 allowlist + 指南 (#4140 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——profile `tools:`/`tools_allow` 显式 allowlist（前缀通配）+`PAI_TOOLS_ALLOW` env+mode `hideTools` 三层显式面；文档化于 agentprofiles 头注。描述 **BOUNDARY**——插件 authoring guide 面。
+- **核销**：candidates-open #4140 → `candidates-resolved.tsv` #461。
