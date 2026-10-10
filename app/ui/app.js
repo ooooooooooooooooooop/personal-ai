@@ -5583,6 +5583,7 @@ es.onerror = () => {
 };
 es.onopen = () => {
   setStatus('就绪');
+  window.__paiReady = true; // dedup-h #4089 — clears the splash recovery watchdog
   refreshPending(); // asks raised while disconnected are still live
   // splash is honest: it covers only the real connect wait, no fake progress
   const sp = $('splash');

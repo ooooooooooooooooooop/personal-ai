@@ -442,3 +442,6 @@ dedup-h	4060	market	codex marketplace add	BOUNDARY:no marketplace surface;desc B
 dedup-h	4064	cost	input-token pricing tiers	IMPLEMENTED:cost.tiers passthrough (SDK-native);desc BOUNDARY skills panel
 dedup-h	4068	skill	skills.disabledLevels	BOUNDARY:single-level discovery;desc COVERED atomic+lock native
 dedup-h	4070	agent	per-agent default_model	COVERED:profile model override;desc BOUNDARY per-thread mcp
+dedup-h	4082	sdk	sdk turn facts+plugin helpers	BOUNDARY:no plugin SDK surface;desc COVERED(variant) agent names
+dedup-h	4088	plugin	/plugins owner commands	BOUNDARY(variant):mcp+skill allow surfaces;desc BOUNDARY ClawRouter
+dedup-h	4089	ui	plain-HTML recovery panel	IMPLEMENTED:splash watchdog+__paiReady flag;desc BOUNDARY onboarding

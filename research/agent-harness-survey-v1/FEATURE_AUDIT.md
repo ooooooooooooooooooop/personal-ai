@@ -5051,3 +5051,22 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——agent profile `model`/`effort` override（#1169）=per-agent 默认模型面。描述 **BOUNDARY**——线程级 stdio MCP 激活=无插件线程面。
 - **核销**：candidates-open #4070 → `candidates-resolved.tsv` #443。
+
+#### 28.442 SDK turn facts + 定制 agent 名 (#4082 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 SDK/plugin helper 面。描述 **COVERED(variant)**——profile/agent 命名在册（PAI_AGENT_ID/人格名）。
+- **核销**：candidates-open #4082 → `candidates-resolved.tsv` #444。
+
+#### 28.443 /plugins 命令面 + ClawRouter (#4088 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——无 plugin 管理命令面；对位物=MCP `/mcp-add`/`/mcp-del`+skill_allow_set。描述 **BOUNDARY**——ClawRouter provider 插件面。
+- **核销**：candidates-open #4088 → `candidates-resolved.tsv` #445。
+
+#### 28.444 app 未就绪 plain-HTML 恢复 + 首跑凭据 (#4089 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——splash 加 12s 看门狗：`__paiReady` 未置位（module 加载失败/未注册）时 splash-sub 换成恢复指引（纯 HTML 路径，无需 app.js）；app.js `es.onopen` 置旗解除。描述 **BOUNDARY**——首跑 provider 凭据流程面。
+- **位点**：`app/ui/index.html` splash 内联看门狗、`app/ui/app.js` `es.onopen`。
+- **核销**：candidates-open #4089 → `candidates-resolved.tsv` #446。
