@@ -5446,3 +5446,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：#2290 标题 **BOUNDARY**——同 #2733 判词（无 channel/sender 维度策略面）。#2380 标题 **COVERED**——`compaction_start/end` 事件流即渲染 `compact-row` 分界行（pending→终态），会话历史内嵌压缩边界。#2210 标题 **COVERED(variant)**——modes+ToolSurface=工具 profile 档对应物（messaging 命名档无对位物）。#2856 标题 **BOUNDARY**——成本上限自动批准梯度不存在（turn tool-call budget cap 在但按成本面额的自动批准档无对位物）。
 - **核销**：findings-cand#2290 → `candidates-resolved.tsv` #513；#2380 → #514；#2210 → #515；#2856 → #516。
+
+#### 28.506 图片规范化 + shellCommandPrefix + frecency + symlink skills (#3136/#3134/#3399/#3395)
+
+- **status**: classification only.
+- **判定**：#3136 标题 **COVERED(variant)**——pin SDK `processImage`/`resizeImage` 管线：归一化 mime+限尺寸 resize+original→displayed scale 维度注（auto-orient 属解码层语义）。#3134 标题 **BOUNDARY**——`BASH_ENV`/`ENV`/`SHELLOPTS` 全在 `ENV_INJECT_RE` 黑名单（agent 侧 shell 前缀注入刻意阻断=fail-closed 优先）；operator 可在进程 env 直接设 BASH_ENV。#3399 标题 **BOUNDARY**——frecency/使用频率排序面无对位物（promptHist 线性历史在）。#3395 标题 **COVERED(defect-absent)**——skill 加载走 `existsSync`/`readFileSync`/`readdirSync` 原生跟随 symlink，无 lstat 拒绝路径。
+- **核销**：findings-cand#3136 → `candidates-resolved.tsv` #517；#3134 → #518；#3399 → #519；#3395 → #520。

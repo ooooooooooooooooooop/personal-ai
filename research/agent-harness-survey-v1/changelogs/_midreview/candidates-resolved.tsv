@@ -515,3 +515,7 @@ findings-cand	2290	policy	per-sender tool policies	BOUNDARY:same as #2733 no sen
 findings-cand	2380	compaction	divider in history	COVERED:compact-row rendered from events
 findings-cand	2210	tools	tools.profile=messaging	COVERED(variant):modes+ToolSurface profiles
 findings-cand	2856	budget	auto-approved cost limits	BOUNDARY:no cost-denominated auto-approve tier
+findings-cand	3136	image	auto-orient canonical jpeg	COVERED(variant):SDK processImage resize+dims note
+findings-cand	3134	shell	shellCommandPrefix	BOUNDARY:BASH_ENV blacklisted agent-side; operator env ok
+findings-cand	3399	palette	frecency ordering	BOUNDARY:no frecency surface
+findings-cand	3395	skill	symlinked skill dirs	COVERED(defect-absent):fs follows links no lstat refuse
