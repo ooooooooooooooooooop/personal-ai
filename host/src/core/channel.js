@@ -97,7 +97,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, steering = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, steering = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null, web = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -137,6 +137,7 @@ export class HostChannel {
     this.proxy = proxy;
     this.mcp = mcp;
     this.assist = assist;
+    this.web = web;
     this.listeners = new Set();
     // M144 unicode_mode: 'auto' resolves once from env; 'ascii' degrades the
     // symbol layer of operator-visible event text (chrome, never content)
@@ -714,6 +715,16 @@ export class HostChannel {
         // dedup-h #391 — operator-side MCP surface: status + the OAuth
         // authorize affordance (the UI "授权按钮" plane). Tokens are never
         // returned — only authorization booleans.
+        case 'web_fetch': {
+          // dedup-h #3621 — `/web <url>` operator surface: same tool machinery
+          // the model uses (egress gates, redirect hop checks, size caps,
+          // markup stripping) — never a parallel unguarded fetcher.
+          if (!this.web?.fetch) return reply(false, undefined, 'web fetch facade unavailable');
+          const url = String(cmd.url ?? '').trim();
+          if (!url || url.length > 4096) return reply(false, undefined, 'web_fetch requires {url}');
+          const r = await this.web.fetch(url, cmd.max_chars != null ? Number(cmd.max_chars) : undefined);
+          return r?.ok === false ? reply(false, r, r.error) : reply(true, r);
+        }
         case 'mcp_status': {
           if (!this.mcp?.status) return reply(false, undefined, 'mcp facade unavailable');
           return reply(true, await this.mcp.status());

@@ -4493,3 +4493,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——job `spec.workdir`/`authorized_root`/worktree 三件套 pin 执行目录（jobs.js:206/208）。描述 **COVERED(variant)**——`auth_set_key`/`auth` 状态面+auth 错误诚实上报=认证档案语义（交互式 copy-prompt 形态=variant）。
 - **核销**：candidates-open #3599 → `candidates-resolved.tsv` #353。
+
+#### 28.352 SecretRef + agent color (#3605 — title BOUNDARY / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 gateway/auth.token SecretRef 面。描述 **PARTIAL(variant)**——delegate 事件/agent id 已在 task 面板显示；per-agent 颜色标记=variant 未落。
+- **核销**：candidates-open #3605 → `candidates-resolved.tsv` #354。
+
+#### 28.353 daemon 自动更新 + `/new` (#3610 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——源码 checkout 无 daemon self-update 面（同 #2450 描述判例）。描述 **ALREADY_COVERED**——`/new` 新建对话命令在册。
+- **核销**：candidates-open #3610 → `candidates-resolved.tsv` #355。
+
+#### 28.354 `/web <url>` 命令 + review ledger 内嵌 (#3621 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——三层接线：host channel `web_fetch` op → pi facade 复用**同一个已配置 webFetchTool 实例**（egress 门/redirect hop 检查/尺寸封顶/markup 剥离）→ `/web` 命令抓页转文本暂存输入框 `<attached src>` 块。零旁路抓取器。描述 **BOUNDARY**——无 PR review-posting ledger 嵌入面。
+- **位点**：`host/src/core/channel.js`、`pi/src/adapter/channel.js`、`pi/src/bootstrap/host.js`、`app/ui/app.js`。
+- **证据**：host channel **35/35**（新增 #3621 dispatch+fail-closed 测试）、node --check 净、html-validate 净。
+- **核销**：candidates-open #3621 → `candidates-resolved.tsv` #356。

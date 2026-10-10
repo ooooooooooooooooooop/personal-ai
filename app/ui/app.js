@@ -3980,6 +3980,25 @@ const SLASH = [
     },
   },
   {
+    // dedup-h #3621 — `/web <url>` scrapes a page to text and stages it as an
+    // attachment in the input box (untrusted-envelope convention); the
+    // operator adds the question and sends.
+    cmd: '/web', label: '抓取网页', hint: '/web <url>——抓取页面转文本附入输入框',
+    run: async (arg) => {
+      const url = String(arg ?? '').trim();
+      if (!/^https?:\/\//i.test(url)) { addSys('用法：/web <http(s)://…>', true); return; }
+      addSys(`抓取 ${url} …`);
+      const r = await cmd('web_fetch', { url });
+      if (!r.success || r.data?.ok === false) { addSys(`抓取失败：${r.error ?? r.data?.error ?? '未知'}`, true); return; }
+      const text = String(r.data?.text ?? '').slice(0, 24000);
+      if (!text) { addSys('抓取失败：空响应', true); return; }
+      input.value = `<attached src="${url.replace(/"/g, '')}">\n${text}\n</attached>\n\n`;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.focus();
+      addSys(`已抓取 ${url}（${text.length} 字符）——补问题后发送`);
+    },
+  },
+  {
     cmd: '/newrule', label: '新建规则', hint: '/newrule <名称>——在 .pai/steering/ 下新建规则文件（manual 默认，@ 引用注入）',
     run: async (arg) => {
       const name = String(arg ?? '').trim();

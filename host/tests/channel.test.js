@@ -765,3 +765,16 @@ test('#2263 usage_traces: session-scope default, explicit scope, facade passthro
   const r2 = await bare.handle({ type: 'usage_traces' });
   assert.equal(r2.success, false, 'absent budget facade fails closed');
 });
+
+test('#3621 web_fetch op: dispatch+fail-closed facade', async () => {
+  const ch = new HostChannel({ session: fakeSession(), web: { fetch: async (url) => ({ ok: true, text: `PAGE ${url}` }) } });
+  const r = await ch.handle({ type: 'web_fetch', url: 'https://example.com' });
+  assert.equal(r.success, true);
+  assert.equal(r.data.text, 'PAGE https://example.com');
+  const bad = await ch.handle({ type: 'web_fetch' });
+  assert.equal(bad.success, false);
+  const noFace = new HostChannel({ session: fakeSession() });
+  assert.equal((await noFace.handle({ type: 'web_fetch', url: 'https://x' })).success, false);
+  const refused = new HostChannel({ session: fakeSession(), web: { fetch: async () => ({ ok: false, error: 'egress refused' }) } });
+  assert.equal((await refused.handle({ type: 'web_fetch', url: 'https://x' })).success, false);
+});

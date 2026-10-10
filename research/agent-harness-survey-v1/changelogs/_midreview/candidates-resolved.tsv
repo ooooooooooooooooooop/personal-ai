@@ -352,3 +352,6 @@ dedup-h	3561	file-open	file.rs:1-20 line range	IMPLEMENTED:@path:L1-L2 mention s
 dedup-h	3572	ui	thread diff preview cards	PARTIAL(variant):/diff+diffStats panel,inline cards absent;desc COVERED starter prompts
 dedup-h	3592	budget	cross-thread token budgets	COVERED(variant):session caps+budget_status+abort;desc BOUNDARY android gateway
 dedup-h	3599	task	workflow workingDir pin	COVERED:spec.workdir/authorized_root/worktree;desc VARIANT auth surfaces
+dedup-h	3605	secret	gateway SecretRef	BOUNDARY:no gateway surface;desc PARTIAL(variant) agent-name display,color absent
+dedup-h	3610	update	daemon idle auto-update	BOUNDARY:source checkout no self-update;desc COVERED /new exists
+dedup-h	3621	web	/web url scrape cmd	IMPLEMENTED:channel op->same webFetchTool->/web staged attach;desc BOUNDARY review ledger post
