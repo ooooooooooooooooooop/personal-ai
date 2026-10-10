@@ -4054,3 +4054,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——`file_read` 是行区间/全文读；indentation-aware 语义块提取未实现（相邻面=`fast_context` search+rank+excerpt 检索式变体）。描述 **COVERED(variant)**——编辑早轮/重试生成分支=`session_fork`（fork-at-point 保原会话+副本续跑）+`session_rewind`=contextual branch 语义。
 - **核销**：candidates-open #3158 → `candidates-resolved.tsv` #281。
+
+#### 28.281 --exit-on-error + qa-profile (#3162 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——job 契约 `exit_code`/refused 传播+终态 FAILED/COMPLETED 记 store=CI 可消费的非零判定；`--exit-on-error` flag 形态=变体（结果对象承载同语义）。描述 **BOUNDARY**——无 qa-profile 面。
+- **核销**：candidates-open #3162 → `candidates-resolved.tsv` #282。
+
+#### 28.282 session_tree hooks + GitLab tasks (#3171 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`before_branch` gate（#1807 operator-private，fork 前可拒）+session_fork+session_start/end/shutdown 事件族=branch/tree 生命周期 hook 语义（custom summary 载荷=variant）。描述 **BOUNDARY**——无 GitLab homepage 集成面。
+- **核销**：candidates-open #3171 → `candidates-resolved.tsv` #283。
+
+#### 28.283 --worktree-branch base + XML tool 弃用 (#3179 — title COVERED / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`worktree_create {ref, newBranch}`：ref 显式 base；newBranch 未给 base 时按 origin/HEAD→main/master→HEAD 解析（#2177）。描述 **N/A**——无 XML tool protocol 面（SDK 原生 tool 格式唯一）。
+- **核销**：candidates-open #3179 → `candidates-resolved.tsv` #284。

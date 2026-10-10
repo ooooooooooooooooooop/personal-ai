@@ -280,3 +280,6 @@ dedup-h	3128	memory	memory write cross-runtime share	COVERED:instance SQLite sco
 dedup-h	3135	commit	--commit-prompt custom message	BOUNDARY:commits via canonical_writer governed not LLM prompt;desc BOUNDARY cargo CI
 dedup-h	3147	commit	commit scope exclude rules	BOUNDARY:writer-declared scope not LLM context;desc BOUNDARY same as 3135
 dedup-h	3158	read	indentation semantic blocks	PARTIAL(variant):line-range reads+fast_context excerpt;desc COVERED(variant) session_fork contextual branch
+dedup-h	3162	ci	--exit-on-error	COVERED(variant):job exit_code/terminal propagation;desc BOUNDARY qa-profile
+dedup-h	3171	hook	session_tree branch hooks	COVERED(variant):before_branch gate #1807+session lifecycle family;desc BOUNDARY GitLab homepage
+dedup-h	3179	worktree	--worktree-branch base	COVERED:worktree_create ref+newBranch default-branch resolve #2177;desc N/A no XML tool protocol
