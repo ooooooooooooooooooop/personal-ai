@@ -73,6 +73,36 @@ function parseCostDecl(raw, cmdName) {
     }
     out[k] = v;
   }
+  // dedup-h #4064 — input-token pricing tiers (the SDK's calculateCost picks
+  // the highest tier whose inputTokensAbove the request's total input
+  // exceeds). Each tier re-declares the full rate set; the base {input,…}
+  // stays the below-threshold price.
+  if (raw.tiers != null) {
+    if (!Array.isArray(raw.tiers) || raw.tiers.length > 8) {
+      return { error: `${cmdName}: cost.tiers must be an array of ≤8 tier objects` };
+    }
+    const tiers = [];
+    for (const [i, t] of raw.tiers.entries()) {
+      if (!t || typeof t !== 'object' || Array.isArray(t)) {
+        return { error: `${cmdName}: cost.tiers[${i}] must be an object` };
+      }
+      const above = Number(t.inputTokensAbove);
+      if (!Number.isInteger(above) || above < 0) {
+        return { error: `${cmdName}: cost.tiers[${i}].inputTokensAbove must be a non-negative integer` };
+      }
+      const rates = {};
+      for (const k of ['input', 'output', 'cacheRead', 'cacheWrite']) {
+        if (t[k] == null) continue;
+        const v = Number(t[k]);
+        if (!Number.isFinite(v) || v < 0) {
+          return { error: `${cmdName}: cost.tiers[${i}].${k} must be a non-negative number` };
+        }
+        rates[k] = v;
+      }
+      tiers.push({ inputTokensAbove: above, ...rates });
+    }
+    out.tiers = tiers;
+  }
   return out;
 }
 

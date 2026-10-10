@@ -5031,3 +5031,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无插件市场/app-server 面。描述 **BOUNDARY**——插件 ZIP 流解压性能面。
 - **核销**：candidates-open #4060 → `candidates-resolved.tsv` #440。
+
+#### 28.439 输入 token 价格分层 + skills 面板 (#4064 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`parseCostDecl` 补 `tiers` 支持：`[{inputTokensAbove, input, output, cacheRead, cacheWrite}]` ≤8 档、threshold 须非负整数、费率非负；SDK `calculateCost` 原生按总 input 命中最高档。描述 **BOUNDARY**——skills 面板展示定制。
+- **位点**：`host/src/core/channel.js` `parseCostDecl`。
+- **证据**：channel **35/35**；e2e（tiers 透传入 spec/非法 threshold 拒）通过。
+- **核销**：candidates-open #4064 → `candidates-resolved.tsv` #441。
+
+#### 28.440 skills.disabledLevels + marketplace 锁 (#4068 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——microagent 单级发现（workdir `.pai/`）+`skill_allow_set` 名称粒度禁用=单级语义；bundled/project/user/extension 分层不存在，disabledLevels 无对位面。描述 **COVERED**——原子写+跨进程锁=我方 stores 原生纪律。
+- **核销**：candidates-open #4068 → `candidates-resolved.tsv` #442。
+
+#### 28.441 per-agent default_model + 线程级 MCP (#4070 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——agent profile `model`/`effort` override（#1169）=per-agent 默认模型面。描述 **BOUNDARY**——线程级 stdio MCP 激活=无插件线程面。
+- **核销**：candidates-open #4070 → `candidates-resolved.tsv` #443。
