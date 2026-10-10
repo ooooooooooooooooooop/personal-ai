@@ -4787,3 +4787,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——每条用户消息带"编辑"钮→`session_rewind{entryId}` 回退到该点前状态+原文进输入框重发（app.js:337-344）。描述 **COVERED(variant)**——server-tools 全放策略=toolsAllow `mcp__*` 宽放（比布尔更细）。
 - **核销**：candidates-open #3886 → `candidates-resolved.tsv` #401。
+
+#### 28.400 task 协议 resume 一致性 + 滚动态 (#3888 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——task 协议（task_send→inbox seq/resume_task rebind/closed 拒）=协议一致性由 store 状态机保证。描述 **COVERED(variant)**——会话列表滚动=三模式持久滚动（M128）+日期桶定位。
+- **核销**：candidates-open #3888 → `candidates-resolved.tsv` #402。
+
+#### 28.401 session-only 模型键 + aiohttp 复用 (#3890 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`/config model` 已是 session 级（不写全局 config=更强默认）。描述 **BOUNDARY**——aiohttp session 复用=上游 python 实现细节。
+- **核销**：candidates-open #3890 → `candidates-resolved.tsv` #403。
+
+#### 28.402 subagents_enabled 开关（重复） + 云会话 (#3894 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——同 #3883 desc（policy deny/profile gate=开关语义）。描述 **BOUNDARY**——无 cloud session 浏览/配置面。
+- **核销**：candidates-open #3894 → `candidates-resolved.tsv` #404。
