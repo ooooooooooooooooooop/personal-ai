@@ -218,3 +218,4 @@ dedup-h	2595	sessions-history	persisted /goal workflows+APIs+tools	ALREADY_COVER
 dedup-h	2596	sessions-history	session.started hook event	ALREADY_COVERED:session_start/session_end registered+fired(#1907);desc defect-absent anchors via SDK getUserMessagesForForking engine-typed,no counting logic
 dedup-h	2628	sessions-history	hook-visibility missing/nonzero-exit	COVERED(variant):gate hook failure→visible deny reason to operator;observational errors audit-only by contract;absent file=deliberate allow;desc BOUNDARY no voice surface
 dedup-h	2682	shell-tools	sandbox-scope: per-host network access	BOUNDARY:egress gates cover provider/fetch/hooks only;shell command network not host-granular;desc BOUNDARY no embedded PTY surface
+dedup-h	2689	shell-tools	dynamic tool policies	COVERED(variant):attested policy static by design;modes+toolsAllow/Deny+allowlist=dynamic tier;desc COVERED job output 8192 ring-bounded+output_tail+events capped

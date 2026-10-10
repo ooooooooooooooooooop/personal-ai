@@ -3657,3 +3657,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（PTy split-screen 稳定性——分屏不再重置终端）**：**BOUNDARY**——无内嵌 PTY/分屏终端面（web UI 无终端模拟器）。
 - **证据**：`host/src/core/sandbox.js:14`。
 - **核销**：candidates-open #2682 → `candidates-resolved.tsv` #219。
+
+#### 28.219 dynamic tool policies + bounded job output (#2689 — title variant / desc covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **COVERED(variant)**；描述 **ALREADY_COVERED**。
+  - **标题语义（dynamic tool policies——terminal tool 先行）**：**已覆盖(variant)**——canonical policy attested+drift-refuse（刻意不可热改=防 drift）；动态挡位由 risk modes（plan/normal/review）+toolsAllow/Deny+command allowlist+profile deny 承担——同语义不同机制。
+  - **描述语义（模型 inspect 后台 job 输出撑爆上下文→同 bash 输出截尾）**：**已覆盖**——stdout/stderr 8192 环形截尾、`output_tail` 持久有界、`describe`/`job_status` 只回尾部+events 截 10——model 侧拿到的本就是有界尾。
+- **证据**：`pi/src/adapter/jobs.js:595-596,129-142`。
+- **核销**：candidates-open #2689 → `candidates-resolved.tsv` #220。
