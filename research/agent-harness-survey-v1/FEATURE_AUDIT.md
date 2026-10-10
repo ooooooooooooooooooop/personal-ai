@@ -3424,3 +3424,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（自动更新：启动+每 2h 检查/后台下载/一键重启/忽略版本）**：**BOUNDARY**——仓为源码 checkout 非发布二进制，无 self-updater 面。
 - **证据**：`pi/src/bootstrap/host.js:1453`；`host/src/core/memory.js` injection 边界。
 - **核销**：candidates-open #2450 → `candidates-resolved.tsv` #193。
+
+#### 28.194 action-level tool permissions + file checkpoints (#2456 — title BOUNDARY / desc covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY(variant)**；描述 **ALREADY_COVERED**。
+  - **标题语义（per-agent `tools.message.actions.allow` action 级权限，send-only）**：**BOUNDARY(variant)**——我方权限粒度=工具名级（profile toolsAllow/toolsDeny+per-call flags+asks allow/deny/session 级联）；工具无 `action` 子命名空间面对应物（send-only 子动词权限不适用于平铺工具名模型）。
+  - **描述语义（file checkpoints：会话中自动建检查点+rewind 恢复）**：**已覆盖**——每次 mutation 落 receipt+pre-image、`file_checkpoint` hook 事件、restore 带 displace 保护（当前字节先入 recycle）、`undoCall` 工具调用级 rewind、`/diff`+changes 面板可触达。
+- **证据**：`pi/src/adapter/fileops.js` receipt/restore/undoCall 链。
+- **核销**：candidates-open #2456 → `candidates-resolved.tsv` #194。
