@@ -4715,3 +4715,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——`notify_user` 工具+UI 通知事件在册；原生 OS toast 面=variant 未落。描述 **缺陷类不存在**——`/resume` 是 UI 命令→session_resume op，命令文本永不写 transcript。
 - **核销**：candidates-open #3845 → `candidates-resolved.tsv` #389。
+
+#### 28.388 per-agent exec defaults + session 工具禁用 (#3853 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——profile `tools:`/`tools_deny` per-agent 声明（含 mcp__ 前缀匹配）=exec 默认值面。描述 **COVERED(variant)**——session 级工具禁用=policy deny+mode 工具集+toolsAllow/Deny。
+- **核销**：candidates-open #3853 → `candidates-resolved.tsv` #390。
+
+#### 28.389 attached worktree 保活 + history cache (#3855 — title DEFECT-ABSENT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **缺陷类不存在**——teardown 只移除本 job 自建的 wt-* 干净树；`in_worktree` 指认的既有 workspace 从不进 removal 路径（worktreePath 只在 worktree:true 分支赋值）。描述 **COVERED(variant)**——历史加载=session_entries 直读 transcript（无独立 cache 层=变体，但语义覆盖）。
+- **核销**：candidates-open #3855 → `candidates-resolved.tsv` #391。
+
+#### 28.390 CLI 会话绑定 + restore 顺序 (#3863 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无外部 Codex CLI 会话绑定面（本栈会话=sessions facade 自管）。描述 **COVERED(variant)**——restore 顺序=session entries/state 重建（上游 response-then-restore 次序=变体细节）。
+- **核销**：candidates-open #3863 → `candidates-resolved.tsv` #392。

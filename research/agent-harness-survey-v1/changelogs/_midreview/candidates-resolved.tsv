@@ -388,3 +388,6 @@ dedup-h	3819	search	RAG session search	COVERED(variant):session_search FTS+sessi
 dedup-h	3831	session	/clone branch	COVERED(variant):session_fork entryId+skipRestore;desc VARIANT usage footer
 dedup-h	3841	resume	include_turns+service_tier	PARTIAL(variant):entryId anchor,tier provider-level;desc VARIANT completion telemetry
 dedup-h	3845	notify	native OS notify	PARTIAL(variant):notify_user in-app only;desc DEFECT-ABSENT resume cmd not in transcript
+dedup-h	3853	exec	per-agent exec defaults	COVERED(variant):profile tools/deny decl;desc VARIANT session disable
+dedup-h	3855	worktree	attached worktree preserve	DEFECT-ABSENT:only self-made wt-* removed,user dirs never;desc VARIANT no cache layer
+dedup-h	3863	cli	Codex CLI session bind	BOUNDARY:no external CLI surface;desc VARIANT restore ordering
