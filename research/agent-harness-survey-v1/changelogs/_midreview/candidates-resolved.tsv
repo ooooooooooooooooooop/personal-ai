@@ -489,3 +489,7 @@ dedup-h	4252	render	TUI syntax highlight	BOUNDARY(variant):no TUI;theme live pre
 dedup-h	4255	vim	vim undo drafts	COVERED:M126 draft undo/redo;desc PARTIAL(variant) #4179
 dedup-h	4261	nav	messages_last_user scroll	BOUNDARY:no TUI nav;desc NOISE release notes
 dedup-h	4262	sanitize	ios untrusted-meta strip	BOUNDARY(variant):untrusted-wrap discipline;desc BOUNDARY #4195
+dedup-l	4277	asks	always-allow admin off	IMPLEMENTED:PAI_ALWAYS_ALLOW_OFF killswitch;desc BOUNDARY model list
+dedup-l	4279	compact	auto-compact threshold cfg	COVERED:PAI_AUTOCOMPACT_THRESHOLD #3344;desc BOUNDARY models
+dedup-l	4280	web	allowed_web_search_modes	BOUNDARY:single governed fetch mode;desc BOUNDARY autofix brake
+dedup-l	4297	safety	safety checker framework	COVERED(variant):verify/hooks verdict family;desc BOUNDARY gh pr bind

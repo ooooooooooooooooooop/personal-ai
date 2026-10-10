@@ -5337,3 +5337,29 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY(variant)**——入站不可信元数据剥离=`<untrusted>` 包裹规约（模型侧而非 UI 剥离）；工具输出格式化=工具行折叠+meta chips 变体。描述 **BOUNDARY**——#4195 @-mention 同判。
 - **核销**：candidates-open #4262 → `candidates-resolved.tsv` #490。
+
+#### 28.489 always-授权管理员开关 + 模型目录 (#4277 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`PAI_ALWAYS_ALLOW_OFF=1` 管理员开关：alwaysPath 完全不进 PendingAsks（不加载、'always' 应答不再持久化=退化为一次性 allow）+`ALWAYS_ALLOW_DISABLED` 审计。描述 **BOUNDARY**——后端模型目录面。
+- **位点**：`pi/src/bootstrap/host.js` asks 构造。
+- **证据**：asks **26/26**。
+- **核销**：candidates-open dedup-l#4277 → `candidates-resolved.tsv` #491。
+
+#### 28.490 compact 阈值可配 + o3-mini (#4279 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——`PAI_AUTOCOMPACT_THRESHOLD`（#3344 在册，0.5–0.99 clamp）。描述 **BOUNDARY**——模型增删面。
+- **核销**：candidates-open dedup-l#4279 → `candidates-resolved.tsv` #492。
+
+#### 28.491 allowed_web_search_modes + autofix brake (#4280 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——web_fetch 单一受管取回模式，无多模式声明面（egress allowlist+逐跳校验=治理等价）。描述 **BOUNDARY**——autofix 预算刹车面。
+- **核销**：candidates-open dedup-l#4280 → `candidates-resolved.tsv` #493。
+
+#### 28.492 safety checker 框架 + PR 绑定 (#4297 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——verify/hooks 族=结构化安全裁决对应物（pre_tool 门+policy attested+externalVerify 卡）。描述 **BOUNDARY**——gh pr 绑定面。
+- **核销**：candidates-open dedup-l#4297 → `candidates-resolved.tsv` #494。

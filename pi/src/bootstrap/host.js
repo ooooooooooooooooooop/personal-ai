@@ -758,11 +758,17 @@ export async function startHost({
   // budget/governance levers live at. policy.json is NOT used: the attested
   // checksum would drift on every tweak.
   const askTimeoutMs = numEnv('PAI_ASK_TIMEOUT_MS');
+  // dedup-l #4277 — admin kill-switch for persisted always-grants: with
+  // PAI_ALWAYS_ALLOW_OFF=1 the always-allow file is never loaded and 'always'
+  // answers stop persisting (path withheld from PendingAsks entirely — a
+  // half-live path could still record grants it pretends not to honor).
+  const alwaysOff = process.env.PAI_ALWAYS_ALLOW_OFF === '1';
   asks = new PendingAsks(
     { audit: core.audit, ...(askTimeoutMs ? { timeoutMs: askTimeoutMs } : {}) },
-    join(core.paths.root, 'always-allow.json'),
+    alwaysOff ? null : join(core.paths.root, 'always-allow.json'),
   );
   if (askTimeoutMs) core.audit.write({ kind: 'ASK_TIMEOUT_CONFIGURED', data: { timeoutMs: askTimeoutMs } });
+  if (alwaysOff) core.audit.write({ kind: 'ALWAYS_ALLOW_DISABLED', data: { via: 'PAI_ALWAYS_ALLOW_OFF' } });
   // #1483 — which env keys came from .env files (names only, never values).
   if (dotenvLoaded.instance.length || dotenvLoaded.workdir.length) {
     core.audit.write({ kind: 'ENV_FILE_LOADED', data: { instance: dotenvLoaded.instance, workdir: dotenvLoaded.workdir } });
