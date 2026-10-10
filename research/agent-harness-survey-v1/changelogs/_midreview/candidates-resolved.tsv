@@ -412,3 +412,6 @@ dedup-h	3921	archive	/archive un/archive	COVERED:archived flag+toggle+batch purg
 dedup-h	3923	session	rollover on idle/daily	PARTIAL(variant):manual new/archive,no timed rollover;desc VARIANT #3873
 dedup-h	3924	session	daily reset policy	PARTIAL(variant):schedule explicit,durable sessions by design
 dedup-h	3928	session	background new session	COVERED:session_new same-view SPA;desc NOISE tooltip removal
+dedup-h	3934	api	/api/v1/sessions	IMPLEMENTED:bridge endpoint proxies session_list,502 honest;desc BOUNDARY SDK path
+dedup-h	3944	resume	exec resume --output-schema	PARTIAL(variant):schema per-prompt armed not session-persistent;desc BOUNDARY ACP
+dedup-h	3945	rewind	/rewind file restore	COVERED(variant):session_rewind+file_checkpoint preimage;desc VARIANT #3888

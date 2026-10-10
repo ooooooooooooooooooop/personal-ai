@@ -142,6 +142,15 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         res.end(JSON.stringify({ artifacts: rows }));
         return;
       }
+      // dedup-h #3934 — unified sessions listing endpoint (/api/v1/sessions
+      // analogue): same governed op the UI uses, one REST shape for local
+      // tooling. Session rows only — never transcript bodies.
+      if (req.method === 'GET' && (url.pathname === '/api/v1/sessions' || url.pathname === '/api/sessions')) {
+        const r = await supervisor.handle({ type: 'session_list' }).catch((e) => ({ success: false, error: e?.message ?? String(e) }));
+        res.writeHead(r.success ? 200 : 502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(r.success ? { sessions: r.data ?? [] } : { error: r.error ?? 'session_list failed' }));
+        return;
+      }
       if (req.method === 'GET' && url.pathname === '/api/state') {
         const [current, bodies] = await Promise.all([
           supervisor.handle({ type: 'body_current' }),

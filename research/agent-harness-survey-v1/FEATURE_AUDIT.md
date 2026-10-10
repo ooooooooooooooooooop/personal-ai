@@ -4859,3 +4859,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`session_new` 同 SPA 页内建会话（无跳页）。描述 **NOISE**——移除快捷键 tooltip=上游装饰级变更，无功能语义。
 - **核销**：candidates-open #3928 → `candidates-resolved.tsv` #413。
+
+#### 28.412 /api/v1/sessions 统一端点 + agentDir 路径 (#3934 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`/api/v1/sessions`+`/api/sessions`：代理 governed `session_list` op（同 UI 路径，只放行 session 行不载 transcript；失败 502 诚实不绿）。描述 **BOUNDARY**——`createAgentSession` 默认路径派生=SDK 侧。
+- **位点**：`app/server/http-bridge.js`。
+- **证据**：bridge.test.js **6/6**（新增 #3934 op 透传+别名断言）。
+- **核销**：candidates-open #3934 → `candidates-resolved.tsv` #414。
+
+#### 28.413 resume --output-schema + ACP 方法 (#3944 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`outputSchema` prompt 选项在册（#238 structured gate 续跑校验）；resume 携带 schema=variant 未落（schema 按 prompt 装填非 session 持久）。描述 **BOUNDARY**——ACP `session/set_config_option`=外部协议面。
+- **核销**：candidates-open #3944 → `candidates-resolved.tsv` #415。
+
+#### 28.414 /rewind 文件恢复 + task 协议锁（重复） (#3945 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`session_rewind`+`file_checkpoint` pre-image restore=文件恢复语义。描述 **COVERED(variant)**——#3888（task 协议一致性=store 状态机）。
+- **核销**：candidates-open #3945 → `candidates-resolved.tsv` #416。

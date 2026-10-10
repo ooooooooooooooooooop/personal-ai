@@ -169,3 +169,19 @@ test('#3753 /healthz liveness + /readyz readiness truth', async () => {
     assert.equal((await fetch(`${base}/readyz`)).status, 503);
   } finally { await bridge.close(); }
 });
+
+test('#3934 /api/v1/sessions proxies the governed session_list op', async () => {
+  const sup = stubSupervisor();
+  const bridge = createHttpBridge({ supervisor: sup });
+  const port = await bridge.listen(0);
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    const r = await fetch(`${base}/api/v1/sessions`);
+    assert.equal(r.status, 200);
+    const j = await r.json();
+    assert.ok('sessions' in j, 'sessions key present (stub echoes op type)');
+    assert.equal(j.sessions.echo, 'session_list');
+    const alt = await fetch(`${base}/api/sessions`);
+    assert.equal(alt.status, 200);
+  } finally { await bridge.close(); }
+});
