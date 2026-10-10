@@ -3583,3 +3583,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **修复随批**：`pi/extensions/managed-manifest.json` mcp-client sha256 重算（#2547 ENV_INJECT_RE 改动漏算，bootstrap integrity 红→绿）。
 - **证据**：schedule.test 19/19（run/run-wait/runs/job_id 过滤/disabled/missing 全链）；host **421/421**；pi 全套 **557/549/8跳/0败**。
 - **核销**：candidates-open #2567 → `candidates-resolved.tsv` #211。
+
+#### 28.211 exit-triggered schedules + durable agenda (#2570 — split title / desc covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **COVERED(variant)+BOUNDARY 混合**；描述 **ALREADY_COVERED**。
+  - **标题语义（exit-triggered schedules+detached session-targeted runs）**：detached 会话定向=**已覆盖(variant)**（prompt-target 经 governed promptSink 注入会话轮，budget/audit/governance 全走）；exit-triggered=**BOUNDARY**——触发形式仅时间制（run_at/every_seconds/adaptive）；`scheduled_job_done` 事件+终态 webhook+depends_on 队列已覆盖"完成即通知/串接"语义，但无 exit 触发器形式面。
+  - **描述语义（agent 建/管调度任务+持久 todo 议程+workspace 作用域）**：**已覆盖**——`schedule_task`（#2567 增 run/runs）agent 全权面、会话 todo 持久文件、ScheduleStore 驻 instance root=workspace 作用域、 survives restart。
+- **证据**：`pi/src/adapter/schedule.js`、`pi/src/adapter/jobs.js:716-718`。
+- **核销**：candidates-open #2570 → `candidates-resolved.tsv` #212。
