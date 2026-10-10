@@ -229,3 +229,6 @@ dedup-h	2741	skills-plugins	hook-forms async tool_result middleware	COVERED(vari
 dedup-h	2746	skills-plugins	hook-forms HookInputProcessor context	COVERED:ambient context merges into every hook event payload(#1870);desc BOUNDARY Slack/Telegram/Matrix channel features
 dedup-h	2749	skills-plugins	tools/call AbortSignal forward	COVERED:execute signal->callTool({signal})->request full chain;desc BOUNDARY gateway reply-path perf surface
 dedup-h	2754	skills-plugins	after_provider_response hook	COVERED:llm_output hook(#1867/1922);desc COVERED same signal chain as 2749
+dedup-h	2755	skills-plugins	built-in worktree plugin	COVERED:create/in_worktree reuse/auto-remove clean+JOB_WORKTREE_KEPT dirty reporting;desc BOUNDARY include-config write path not in stack
+dedup-h	2766	skills-plugins	before_prompt_build prepend/append context	COVERED(variant):prompt_submit {context:prepended} gate hook(operator-private)+CLI appendSystemPrompt;workdir-hook system-context injection refused by design;desc static catalog+lazy providers variant
+dedup-h	2768	skills-plugins	llm_output contextTokenBudget+metadata	PARTIAL(variant):payload carries seq/status/headers+llm_input model/hash/bytes;budget lives in usage_traces+PROVIDER_RESPONSE audit not at seam;desc SecretRef mechanism covered

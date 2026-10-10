@@ -3745,3 +3745,22 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`llm_output` hook=after_provider_response 同族（#1867/#1922 transform_llm_output 契约）。描述 **ALREADY_COVERED**——同 #2749：tools/call AbortSignal 经 plugin-registered tool execute→callTool→request 全链转发，host 取消实达远端。
 - **核销**：candidates-open #2754 → `candidates-resolved.tsv` #230。
+
+#### 28.230 built-in worktree plugin + include-config repair (#2755 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——worktree 生命周期三件套：create（delegate `worktree:true` 每 job detached worktree）/reuse（`in_worktree` 开既有+`worktree_list` 枚举）/cleanup（job 终态干净自动 `git worktree remove`，脏保留+`JOB_WORKTREE_KEPT` 审计上报）——比 plugin 形态更强的内建集成。描述 **BOUNDARY**——`$include` config write path/plugin-validation bypass 是上游嵌套配置包修复面，本栈无 include 语法。
+- **位点**：`pi/src/adapter/jobs.js` worktree kept/remove；`pi/src/bootstrap/host.js` in_worktree。
+- **核销**：candidates-open #2755 → `candidates-resolved.tsv` #231。
+
+#### 28.231 before_prompt_build context hooks + startup perf (#2766 — title COVERED(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`prompt_submit` gate hook（operator-private file）`{"context":"prepended"}`=prependSystemContext 语义；appendSystemPrompt 经 operator CLI flag（#2091）非 hook；**workdir-hook 注入 system context 被刻意拒绝**——agent-reachable 文件可写送给模型的系统上下文=注入通道，fail-closed 设计（#1698 llm 事件纯观察化同理）。描述 **COVERED(variant)**——builtin models.json 静态目录已在；provider 按会话惰性构造=lazy deps 变体。
+- **核销**：candidates-open #2766 → `candidates-resolved.tsv` #232。
+
+#### 28.232 llm_output token budget + plugin-scoped SecretRef (#2768 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`llm_output` payload 带 `{seq,status,headers}`+`llm_input` 带 model/messages/hash/bytes：source metadata 覆盖；`contextTokenBudget` 字段不存于该 seam——响应到达时 usage 尚未消费（流在事件后），token 核算由 `usage_traces`+PROVIDER_RESPONSE 审计承载=相邻面 variant 而非 seam 字段。描述 **COVERED(variant)**——SecretRef 机制在（`parseSecretRef` op/bw 语法+items allowlist+env key discovery）；plugin-bundled provider 专属 scoping 无对应物。
+- **核销**：candidates-open #2768 → `candidates-resolved.tsv` #233。
