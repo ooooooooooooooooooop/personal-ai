@@ -3487,3 +3487,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（Bedrock provider custom model ID——Application Inference Profile）**：**已覆盖**——pin SDK `bedrock-converse-stream` 把 `model.id` 逐字传 `modelId` 字段（ARN/profile ARN 可用）；`getModelMatchCandidates` 按 id+name 双源匹配 adaptive thinking、gov-cloud ARN 检测在位；models.json 自定义条目即注册面。
 - **证据**：`pi/extensions/mcp/index.js:332-350`；`pi-ai` bedrock-converse-stream.js:140/565-600。
 - **核销**：candidates-open #2521 → `candidates-resolved.tsv` #201。
+
+#### 28.201 OSC 52 clipboard + headless .mcp.json (#2522 — title BOUNDARY / desc covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY**；描述 **ALREADY_COVERED(defect-absent)**。
+  - **标题语义（OSC 52 SSH/mosh 远程剪贴板）**：**BOUNDARY**——栈内无 TUI/终端面；web UI 复制全走 `navigator.clipboard`（浏览器 API），SSH/mosh 终端逃逸序列无对位载体。
+  - **描述语义（headless 模式 local .mcp.json 被忽略）**：**已覆盖**——`loadConfig` candidates 无条件含 `<cwd>/.mcp.json`（第三位），无 headless/--strict-mcp-config 分支会跳过本地配置；该缺陷类不存在。
+- **证据**：`pi/extensions/mcp/index.js:1359` loadConfig；app.js navigator.clipboard 全部用法。
+- **核销**：candidates-open #2522 → `candidates-resolved.tsv` #202。
