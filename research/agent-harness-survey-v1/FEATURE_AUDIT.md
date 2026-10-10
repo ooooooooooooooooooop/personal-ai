@@ -3630,3 +3630,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（legacy-task 迁移遥信降噪+seeded session 持久化后才记 outcome）**：**BOUNDARY**——无 legacy-task 迁移面对应物；等价纪律已在：stores 原子持久化先于状态记账。
 - **证据**：`host/src/core/goals.js`、`pi/src/adapter/goals.js`、`app/ui/app.js:3003`。
 - **核销**：candidates-open #2595 → `candidates-resolved.tsv` #216。
+
+#### 28.216 session.started event + /undo picker (#2596 — title covered / desc defect-absent)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED(defect-absent)**。
+  - **标题语义（session.started hook 事件）**：**已覆盖**——`session_start`/`session_end` 事件在册并实发（#1907 session_new 双发验证）。
+  - **描述语义（/undo 修复——checkpoint picker 误把 tool results 数成 user turns）**：**缺陷类不存在**——锚点枚举走 SDK `getUserMessagesForForking`（引擎侧按条目类型分类，tool result 永不进 user 列表），`session_rewind` 按 entryId navigateTree，无计数逻辑可错。
+- **证据**：`pi/src/adapter/channel.js:779-792`。
+- **核销**：candidates-open #2596 → `candidates-resolved.tsv` #217。
