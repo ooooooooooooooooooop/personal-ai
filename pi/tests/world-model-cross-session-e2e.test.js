@@ -68,7 +68,7 @@ function makeInstance(prefix) {
   const agentDir = join(dir, 'pi-agent');
   mkdirSync(agentDir, { recursive: true });
   writeFileSync(join(agentDir, 'models.json'), JSON.stringify({ providers: { cpa: {
-    baseUrl: 'http://127.0.0.1:8317/v1', api: 'openai-completions', apiKey: '$CPA_API_KEY',
+    baseUrl: 'http://127.0.0.1:8317/v1', api: 'openai-completions', apiKey: '$CPA_API_KEY', allowPrivateNetwork: true,
     models: [{ id: MODEL, name: MODEL, reasoning: false, input: ['text'],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 1050000, maxTokens: 8192 }] } } }));
   process.env.PI_CODING_AGENT_DIR = agentDir;

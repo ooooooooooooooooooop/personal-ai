@@ -42,7 +42,7 @@ test('world-model e2e: a real turn lands RAW_EVIDENCE in the ledger', { skip: SK
       cpa: {
         baseUrl: 'http://127.0.0.1:8317/v1',
         api: 'openai-completions',
-        apiKey: '$CPA_API_KEY',
+        apiKey: '$CPA_API_KEY', allowPrivateNetwork: true,
         models: [{
           id: MODEL, name: MODEL, reasoning: false, input: ['text'],
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
