@@ -310,3 +310,6 @@ dedup-h	3252	mcp	mcp add OAuth flags	COVERED:--oauth-* flag family in /mcp-add;d
 dedup-h	3253	mcp	slash commands run MCP prompts	COVERED:M82 prompts as slash commands;desc BOUNDARY Copilot image routing
 dedup-h	3255	mcp	tool progress/throttling	COVERED(variant):progressToken+onProgress #2221;desc BOUNDARY UI primitives
 dedup-h	3258	mcp	oauth github spec+resource	COVERED:RFC8707 resource param+401 re-auth;desc mcp_status variant #3205
+dedup-h	3260	tree	/tree branch summarization	PARTIAL(variant):fork+before_branch exist,no summary options;desc stream assembly upstream pin
+dedup-h	3261	memory	X-Hermes-Session-Key	BOUNDARY:no external memory provider;desc COVERED oauth self-refresh per call
+dedup-h	3262	memory	per-conversation chatIds scope	COVERED(variant):user/project scopes;desc tool guard variant #3206

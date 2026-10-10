@@ -4240,3 +4240,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——RFC8707 `resource` 参数（显式 override+缺省 server URL+401 重认证一次）+github 类 provider spec 经 oauth spec 校验。描述 **COVERED(variant)**——同 #3205（`mcp_status` channel op）。
 - **核销**：candidates-open #3258 → `candidates-resolved.tsv` #311。
+
+#### 28.312 /tree 摘要三选 + 流式 tool-call 拼帧 (#3260 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——分支操作族在（`session_fork`+`before_branch` gate+rewind）；`/tree` 专用摘要三选（无/摘要/自定义 prompt）未实现。描述 **COVERED(variant)**——流式 tool-call delta 按 index 拼帧=pin SDK 职责面（`@earendil-works` 上游修复随锁版本走）。
+- **核销**：candidates-open #3260 → `candidates-resolved.tsv` #312。
+
+#### 28.313 memory session-key header + OAuth 刷新 (#3261 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无外部 memory provider（Hermes 式）需要 session-key header；我方 MemoryStore=instance SQLite 无 header 概念。描述 **ALREADY_COVERED**——provider OAuth 自刷新（auth.json self-refreshing，每次调用前 token 有效化）——失效前刷新失败类不存。
+- **核销**：candidates-open #3261 → `candidates-resolved.tsv` #313。
+
+#### 28.314 memory per-conversation scope + tool guard (#3262 — title VARIANT / desc COVERED(variant))
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——memory scope=user(全实例)/project(workdir 绑定)=会话级隔离语义（allowedChatIds 名单形态=variant）。描述 **COVERED(variant)**——同 #3206（shadowJudge+pre_tool gates+decide 链）。
+- **核销**：candidates-open #3262 → `candidates-resolved.tsv` #314。
