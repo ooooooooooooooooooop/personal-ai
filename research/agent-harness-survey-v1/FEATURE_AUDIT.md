@@ -3621,3 +3621,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（gateway typed auth contexts+auth.deviceToken）**：**BOUNDARY**——无 gateway/websocket auth 握手面对应物。
 - **证据**：`pi/src/adapter/jobs.js`（worktree spec）、`grep fetch.pr` 空集。
 - **核销**：candidates-open #2590 → `candidates-resolved.tsv` #215。
+
+#### 28.215 persisted /goal workflows + migration telemetry (#2595 — title covered / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED**；描述 **BOUNDARY**。
+  - **标题语义（persisted /goal workflows+APIs+model tools+continuation）**：**已覆盖**——GoalStore（持久原子写、scratchpad、secret-scrubbed、bind_task/bind_schedule/touchTick）+`goal_coordinator` 模型工具+`goal_list/goal_set` 操作面+UI 面板+prompt-target 调度 tick 续跑（fingerprint+adaptive）。
+  - **描述语义（legacy-task 迁移遥信降噪+seeded session 持久化后才记 outcome）**：**BOUNDARY**——无 legacy-task 迁移面对应物；等价纪律已在：stores 原子持久化先于状态记账。
+- **证据**：`host/src/core/goals.js`、`pi/src/adapter/goals.js`、`app/ui/app.js:3003`。
+- **核销**：candidates-open #2595 → `candidates-resolved.tsv` #216。
