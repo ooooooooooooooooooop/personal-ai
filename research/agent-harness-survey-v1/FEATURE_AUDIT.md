@@ -3726,3 +3726,22 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED(variant)**——tool_result seam 上 post_tool gate hook（append+args rewrite 契约 #1858）=middleware 语义；同步 in-path 执行而非独立 async 中间件框架=variant 注记。描述 **BOUNDARY**——Devin Extension/Playbooks/Slack macros 是外产品面，本栈无对位。
 - **核销**：candidates-open #2741 → `candidates-resolved.tsv` #227。
+
+#### 28.227 hook context injection + channels (#2746 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`HookRunner` ambient context 合入每个 event payload（`{event,...ambient,...payload}`，chat.params/chat.message 上下文字段，#1870）=HookInputProcessor context 注入。描述 **BOUNDARY**——Buzz plugin/Slack user-identity/Agent View/Telegram rich blocks/Matrix 格式全是外部产品通道面，本栈无对位。
+- **核销**：candidates-open #2746 → `candidates-resolved.tsv` #228。
+
+#### 28.228 MCP tools/call AbortSignal 转发 (#2749 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——注册工具 `execute(toolCallId, params, signal)` 把 abort signal 透传 `client.callTool({signal,timeoutMs})`→`request('tools/call',…,{signal})`；取消链（Esc/abort/turn 终）经 signal 直达远端 call。描述 **BOUNDARY**——gateway reply-path 性能优化（session reads/metadata fingerprints/auth env snapshots）是上游 gateway 面。
+- **位点**：`pi/extensions/mcp/index.js` execute→callTool→request。
+- **核销**：candidates-open #2749 → `candidates-resolved.tsv` #229。
+
+#### 28.229 after_provider_response + plugin tools signal (#2754 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`llm_output` hook=after_provider_response 同族（#1867/#1922 transform_llm_output 契约）。描述 **ALREADY_COVERED**——同 #2749：tools/call AbortSignal 经 plugin-registered tool execute→callTool→request 全链转发，host 取消实达远端。
+- **核销**：candidates-open #2754 → `candidates-resolved.tsv` #230。
