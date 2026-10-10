@@ -5180,3 +5180,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`recipe_run`（按名+args 直调持久化包）+`skill_read`（显式取回）=slash-调用对应物；microagent 触发注入=自动路。描述 **COVERED(variant)**——`.pai/` workdir 优先于 bundled preset（resolveRecipe own→builtin 顺序即 project-first）。
 - **核销**：candidates-open #4157 → `candidates-resolved.tsv` #464。
+
+#### 28.463 Skill Workshop + 渲染覆盖 (#4158 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`curator_scan` 提案制评审（merge/prune 建议不自动应用=pending proposals）+`skill_delete`/`skill_save` 治理化执行（=review+rollback 对应物）。描述 **BOUNDARY**——扩展渲染覆盖面。
+- **核销**：candidates-open #4158 → `candidates-resolved.tsv` #465。
+
+#### 28.464 每工具 workspace 快照 + 定制面板 (#4167 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——per-mutation `file_checkpoint` pre-image 快照+`undoCall` 工具级回滚+`/diff` 面板=逐工具快照回滚对应物。描述 **BOUNDARY**——Customizations 面板面。
+- **核销**：candidates-open #4167 → `candidates-resolved.tsv` #466。
+
+#### 28.465 选择性 MCP enable/disable + default_model (#4169 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——spec `enabled:false`/`disabled` 保留配置不连接+`/mcp-enable` 恢复+`context`/`PAI_MCP_DENY` 维度抑制。描述 **COVERED**——profile `model` 字段即 per-agent default_model（#1169 在册）。
+- **核销**：candidates-open #4169 → `candidates-resolved.tsv` #467。

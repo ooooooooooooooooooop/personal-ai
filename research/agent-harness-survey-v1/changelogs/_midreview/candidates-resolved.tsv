@@ -463,3 +463,6 @@ dedup-h	4140	tools	optional agent tools+allowlists	COVERED:tools/tools_allow+PAI
 dedup-h	4154	secrets	config redact+scanner	COVERED(defect-absent):config_get no-credential by design;desc BOUNDARY precedence
 dedup-h	4155	mcp	per-thread stdio MCP	BOUNDARY:no thread-dim plugin surface;desc BOUNDARY CLI diag
 dedup-h	4157	skill	skills as slash commands	COVERED(variant):recipe_run+skill_read invoke;desc COVERED(variant) project-first
+dedup-h	4158	skill	skill workshop review+rollback	COVERED(variant):curator proposals+governed apply;desc BOUNDARY render override
+dedup-h	4167	snapshot	per-tool workspace snapshot	COVERED(variant):file_checkpoint pre-image+undo;desc BOUNDARY panel
+dedup-h	4169	mcp	selective MCP enable/disable	COVERED:enabled:false+/mcp-enable+context deny;desc COVERED default_model
