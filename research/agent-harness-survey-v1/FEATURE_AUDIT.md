@@ -4258,3 +4258,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——memory scope=user(全实例)/project(workdir 绑定)=会话级隔离语义（allowedChatIds 名单形态=variant）。描述 **COVERED(variant)**——同 #3206（shadowJudge+pre_tool gates+decide 链）。
 - **核销**：candidates-open #3262 → `candidates-resolved.tsv` #314。
+
+#### 28.315 --map-tokens repo map + SSE start 修正 (#3266 — title COVERED / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——repo map：token 预算截断（`budget truncation marks truncated`）+PageRank 优先级（hub 存活/叶子裁掉/无图退化均匀分）。描述 **缺陷类不存在**——我方 stdio/SSE/HTTP transport 各自独立构造（stdio spawn vs SSE pump），无"start override 误用于 SSE"的对偶位点。
+- **核销**：candidates-open #3266 → `candidates-resolved.tsv` #315。
+
+#### 28.316 --thinking-tokens + MCP env 注入 (#3267 — title VARIANT / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——thinking 预算=档位制（off/low/medium/high/xhigh/max 映射）非裸 token 数——预算控制语义在，形态=variant。描述 **ALREADY_COVERED**——MCP config `${VAR}` env 展开（stdio+http 字段，缺变量诚诊断）。
+- **核销**：candidates-open #3267 → `candidates-resolved.tsv` #316。
+
+#### 28.317 session_compact_failed + tool timeout (#3272 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——compaction 失败经 `compact_end {reason, runId, status, error}` 载出（status/error 字段即 failed 信号）——独立事件名 vs 字段载=variant。描述 **ALREADY_COVERED**——同 #3204/#3233（`tool_timeout_ms`+env 兜底已落地）。
+- **核销**：candidates-open #3272 → `candidates-resolved.tsv` #317。
