@@ -3469,3 +3469,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（空 turn 全 provider 重试而非仅本地后端）**：**IMPLEMENTED**——agent_end 新增空转检测：本轮无 assistant 文本且无工具调用且干净 stop（`stop|end_turn|length|null`）→一次有界 `_continuation` steer 重试（`EMPTY_TURN_RETRY` 审计）；error 仍走 fallback 链、aborted 绝不重 steer、第二次空转如实交付不循环。
 - **证据**：m8-wiring 40/40（新用例覆盖 retry/exhaust/re-arm/new-task/error-豁免）；pi 全套见台账。
 - **核销**：candidates-open #2512 → `candidates-resolved.tsv` #198。
+
+#### 28.199 Chrome DevTools attach + @mention fallback (#2514 — title IMPLEMENTED / desc covered)
+
+- **status**: title implemented — `PAI_BROWSER_ATTACH`; desc covered.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED**。
+  - **标题语义（Chrome DevTools MCP attach mode）**：**IMPLEMENTED**——`PAI_BROWSER_ATTACH=http://127.0.0.1:<port>` 接线已运行浏览器的 DevTools 端点：`#attach` 走 `/json/version`→ws→Target.createTarget/attachToTarget；**不 spawn、不持 profileDir、dispose 只 detach 不 kill**（operator 浏览器归 operator）；loopback-only（非回环端点 `BROWSER_ATTACH_REFUSED`+0 工具）；无本地二进制也可注册全套工具。
+  - **描述语义（@ file mention 文件搜索 fallback）**：**已覆盖**——`expandAtMentions` file_read→`files_list` 前缀目录列举 fallback→`missed` 诚实上报；defect 类不存在。
+- **证据**：browser.test.js 12/12（refused/registered/endpoint-consumed/detach-no-kill）；pi 全套见台账。
+- **核销**：candidates-open #2514 → `candidates-resolved.tsv` #200。

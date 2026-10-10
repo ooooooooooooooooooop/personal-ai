@@ -242,3 +242,50 @@ test('browser_type secretRef types the resolved secret; result/audit never carry
     tools.dispose();
   }
 });
+
+test('#2514: PAI_BROWSER_ATTACH — non-loopback refused, loopback registers without a binary', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-br-att-'));
+  const audits = [];
+  const baseEnv = { PROGRAMFILES: '/nonexistent', 'PROGRAMFILES(X86)': '/nonexistent', LOCALAPPDATA: '/nonexistent', PAI_BROWSER_EXE: '' };
+
+  // remote endpoint refused — audit row, zero tools
+  const refused = browserTools({
+    instanceRoot: dir, audit: { write: (e) => audits.push(e) },
+    env: { ...baseEnv, PAI_BROWSER_ATTACH: 'http://10.0.0.9:9222' },
+  });
+  assert.equal(refused.length, 0);
+  assert.ok(audits.some((e) => e.kind === 'BROWSER_ATTACH_REFUSED'));
+
+  // loopback endpoint + NO local binary → tools still register (attach path)
+  const tools = browserTools({
+    instanceRoot: dir,
+    env: { ...baseEnv, PAI_BROWSER_ATTACH: 'http://127.0.0.1:9222' },
+  });
+  assert.deepEqual(tools.map((t) => t.name).sort(), NAMES.slice().sort());
+  tools.dispose();
+});
+
+test('#2514: attach consumes the devtools endpoint (no spawn); dispose detaches without killing', async () => {
+  const { createServer } = await import('node:http');
+  const hits = [];
+  const srv = createServer((req, res) => {
+    hits.push(req.url);
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({ webSocketDebuggerUrl: 'ws://127.0.0.1:1/devtools/browser/x' }));
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const port = srv.address().port;
+  const audits = [];
+  const s = new BrowserSession({
+    exe: null, profileDir: join(mkdtempSync(join(tmpdir(), 'pai-br-att2-')), 'prof'),
+    audit: { write: (e) => audits.push(e) }, attachUrl: `http://127.0.0.1:${port}`,
+  });
+  try {
+    // navigate triggers #ensure → #attach — reaches the ws connect stage,
+    // which fails honestly on the dead port (endpoint WAS consumed first)
+    const r = await s.navigate('http://127.0.0.1/').catch((e) => e);
+    assert.ok(hits.includes('/json/version'), 'endpoint consulted before ws');
+    assert.ok(r instanceof Error && /cdp websocket failed/i.test(r.message), 'ws stage reached');
+    assert.equal(s.proc, null, 'attach never spawns a process');
+  } finally { srv.close(); await s.dispose(); }
+});

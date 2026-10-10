@@ -101,16 +101,20 @@ class Cdp {
 }
 
 export class BrowserSession {
-  /** @param {object} o {exe, profileDir, audit, blockedHosts[], resolveHost?}
+  /** @param {object} o {exe, profileDir, audit, blockedHosts[], resolveHost?, attachUrl?}
    *  resolveHost(host, allowlist) → Promise<{ok, reason?}> — the M63/M66 DNS
    *  boundary, same as web_fetch (injectable for tests; default is the real
-   *  resolver). */
-  constructor({ exe, profileDir, audit = null, blockedHosts = [], resolveHost = resolveChecked }) {
+   *  resolver). attachUrl (dedup-h #2514): loopback DevTools endpoint of an
+   *  ALREADY-RUNNING browser (Chrome DevTools MCP attach analogue) — no
+   *  binary is spawned, the operator keeps their own profile; dispose
+   *  detaches instead of killing. */
+  constructor({ exe, profileDir, audit = null, blockedHosts = [], resolveHost = resolveChecked, attachUrl = null }) {
     this.exe = exe;
     this.profileDir = profileDir;
     this.audit = audit;
     this.blocked = blockedHosts;
     this.resolveHost = resolveHost;
+    this.attachUrl = attachUrl;
     this.proc = null;
     this.cdp = null;
     this.sessionId = null;
@@ -122,10 +126,32 @@ export class BrowserSession {
 
   /** Lazily launch browser + attach a page target. Idempotent. */
   async #ensure() {
-    if (this.sessionId && this.proc && !this.proc.killed) return this.sessionId;
+    const live = this.attachUrl ? (this.sessionId && this.cdp) : (this.sessionId && this.proc && !this.proc.killed);
+    if (live) return this.sessionId;
     if (this.#starting) return this.#starting;
-    this.#starting = this.#launch();
+    this.#starting = this.attachUrl ? this.#attach() : this.#launch();
     try { return await this.#starting; } finally { this.#starting = null; }
+  }
+
+  // dedup-h #2514 — attach mode: connect to a running browser's DevTools
+  // endpoint instead of launching our own. The operator's browser (and its
+  // profile) stays theirs — we never spawn, never kill it, only detach on
+  // dispose. Loopback-only is enforced by the caller (browserTools).
+  async #attach() {
+    const base = this.attachUrl.replace(/\/+$/, '');
+    const r = await fetch(`${base}/json/version`, { signal: AbortSignal.timeout(5_000) });
+    if (!r.ok) throw new Error(`browser attach failed: ${base}/json/version → HTTP ${r.status}`);
+    const { webSocketDebuggerUrl: wsUrl } = await r.json();
+    if (!wsUrl) throw new Error(`browser attach failed: ${base} reported no webSocketDebuggerUrl`);
+    this.cdp = await Cdp.connect(wsUrl);
+    const { targetId } = await this.cdp.call('Target.createTarget', { url: 'about:blank' });
+    this.targetId = targetId;
+    const { sessionId } = await this.cdp.call('Target.attachToTarget', { targetId, flatten: true });
+    this.sessionId = sessionId;
+    await this.cdp.call('Page.enable', {}, sessionId);
+    await this.cdp.call('Runtime.enable', {}, sessionId);
+    this.audit?.write({ kind: 'BROWSER_ATTACH', data: { endpoint: base } });
+    return sessionId;
   }
 
   async #launch() {
@@ -332,6 +358,11 @@ export class BrowserSession {
   }
 
   async dispose() {
+    // attach mode: the browser is the operator's — detach the target and
+    // drop the socket, never kill their process.
+    if (this.attachUrl && this.targetId && this.cdp) {
+      try { await this.cdp.call('Target.detachFromTarget', { sessionId: this.sessionId }); } catch { /* */ }
+    }
     try { this.cdp?.close(); } catch { /* */ }
     try { this.proc?.kill(); } catch { /* */ }
     this.sessionId = null; this.targetId = null;
@@ -347,13 +378,26 @@ const ok = (t, details) => ({ content: [{ type: 'text', text: t }], ...(details 
  * @param {object} o {instanceRoot, audit, env, secretResolver}
  */
 export function browserTools({ instanceRoot, audit = null, env = process.env, secretResolver = null } = {}) {
+  // dedup-h #2514 — PAI_BROWSER_ATTACH: DevTools endpoint of an already-
+  // running browser (e.g. chrome --remote-debugging-port=9222). Loopback
+  // only — an attached remote endpoint would hand an arbitrary machine
+  // full browser control. Works even with no local binary installed.
+  const attachRaw = String(env.PAI_BROWSER_ATTACH ?? '').trim();
+  let attachUrl = null;
+  if (attachRaw) {
+    if (!/^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|\[?::1\]?)(:\d+)?(\/.*)?$/i.test(attachRaw)) {
+      audit?.write({ kind: 'BROWSER_ATTACH_REFUSED', data: { reason: 'non-loopback endpoint refused', endpoint: attachRaw.slice(0, 80) } });
+      return [];
+    }
+    attachUrl = attachRaw.startsWith('http') ? attachRaw : `http://${attachRaw}`;
+  }
   const exe = findBrowserExe(env);
-  if (!exe) return [];
+  if (!exe && !attachUrl) return [];
   const blockedHosts = String(env.PAI_BROWSER_BLOCKED ?? '')
     .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
   const shotDir = join(instanceRoot, 'exports', 'browser');
   const session = new BrowserSession({
-    exe, profileDir: join(instanceRoot, 'browser-profile'), audit, blockedHosts,
+    exe, profileDir: join(instanceRoot, 'browser-profile'), audit, blockedHosts, attachUrl,
   });
   const run = (fn) => async (_id, p) => {
     try { return await fn(p ?? {}); } catch (e) { return err(`browser: ${e.message}`); }
