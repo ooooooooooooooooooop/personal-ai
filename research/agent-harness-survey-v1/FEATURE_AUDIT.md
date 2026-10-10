@@ -3561,3 +3561,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（local+sandbox 命令统一非交互分页器、less 不写历史）**：**缺陷类不存在**——job/工具输出捕获进 buffer/文件，从不进 pager；无 `less` 阻塞/历史污染类。
 - **证据**：`pi/extensions/mcp/index.js`（注册名）；`pi/src/adapter/jobs.js`（stdout 捕获）。
 - **核销**：candidates-open #2548 → `candidates-resolved.tsv` #209。
+
+#### 28.209 sandbox-backup pipeline + browser.binds (#2562 — title covered / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（redirection/write 前备份 pipeline）**：**已覆盖(variant)**——同 #2547 desc：per-mutation checkpoint+pre-image。
+  - **描述语义（sandbox.browser.binds——浏览器容器 bind 独立配置）**：**BOUNDARY**——browser 跑宿主进程或 CDP attach，无容器化面对应物。
+- **证据**：`pi/src/adapter/browser.js`（无 container 概念）。
+- **核销**：candidates-open #2562 → `candidates-resolved.tsv` #210。
