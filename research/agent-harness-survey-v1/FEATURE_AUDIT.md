@@ -4390,3 +4390,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——#3379 落地后操作员可声明 `headers:{'anthropic-beta':'context-1m-…'}`——语义等效 `params.context1m:true`（显式头声明 vs 布尔开关=variant）。描述 **COVERED(variant)**——provider_add 动态注册+内置目录=provider 包按需启用语义（官方包市场安装面=variant）。
 - **核销**：candidates-open #3394 → `candidates-resolved.tsv` #335。
+
+#### 28.336 扩展注册 provider + replay-invalid 分类 (#3424 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 extension→provider 注册面（provider_add=操作员通道；extension 是托管代码路径）。描述 **BOUNDARY**——OpenAI WS replay "401 input item ID" wording 分类=上游 wire-protocol 细节，非本栈面。
+- **核销**：candidates-open #3424 → `candidates-resolved.tsv` #336。
+
+#### 28.337 /v1/chat/completions 默认禁 + WS 相位缓冲 (#3429 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 OpenAI 兼容 HTTP 服务端点面（channel 是内部 op 协议）。描述 **BOUNDARY**——phaseless WS text 相位缓冲=上游 wire 细节。
+- **核销**：candidates-open #3429 → `candidates-resolved.tsv` #337。
+
+#### 28.338 model-selection scopes + context1m（重复族） (#3442 — title BOUNDARY(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——模型选择=session 级 `/config model`+`feature-models.json` 分用途路由（不同轴；configurable scope 层级面无对应物）。描述 **COVERED(variant)**——同 #3394（provider_add `headers` 显式声明 anthropic-beta）。
+- **核销**：candidates-open #3442 → `candidates-resolved.tsv` #338。
