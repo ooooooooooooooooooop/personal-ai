@@ -373,3 +373,6 @@ dedup-h	3755	mcp	ticketed Apps host	COVERED(variant):sandbox iframe+ui:// bounde
 dedup-h	3762	worktree	SVN/P4 workspace	BOUNDARY:git worktree only;desc NOISE generic robustness list
 dedup-h	3768	sandbox	block dangerous docker cfg	DEFECT-ABSENT:docker args hardcoded,no mount/net flags exist;desc BOUNDARY voice
 dedup-h	3772	sandbox	USERPROFILE blocked roots	DEFECT-ABSENT:no home bind surface,workdir-only mount;desc BOUNDARY exec.host
+dedup-h	3783	sched	REST usage/traces/sched	PARTIAL(variant):channel ops not REST,/api/state+metrics only;desc COVERED #3740
+dedup-h	3786	sched	per-run scheduled sessions	COVERED(variant):fresh prompt turn+unique attempt;desc VARIANT timeoutMs+--rm reap
+dedup-h	3788	commit	inferred commitments	BOUNDARY:no silent commitment inference,explicit goals/todos;desc COVERED worktree tools

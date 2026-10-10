@@ -4623,3 +4623,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **缺陷类不存在**——home 目录绑定面不存在（唯一挂载=workdir；`.credential` binds 无从表达）。描述 **BOUNDARY**——`tools.exec.host` 路由=gateway 面不存在。
 - **核销**：candidates-open #3772 → `candidates-resolved.tsv` #374。
+
+#### 28.373 sched REST API + worktree sandbox（重复） (#3783 — title PARTIAL(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——桥 `/api/state`+`/api/metrics` 在册；usage/traces/schedules 走 channel op 非 REST 端点=variant。描述 **ALREADY_COVERED**——#3740（同 spec 共存）。
+- **核销**：candidates-open #3783 → `candidates-resolved.tsv` #375。
+
+#### 28.374 per-run 调度会话 + 容器收割 (#3786 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——每次 fire=独立 prompt-target turn+唯一 attempt/timestamps（fresh child per run）。描述 **COVERED(variant)**——job `timeoutMs` 超时杀+`docker run --rm` 自收割=静默挂死/容器泄漏防线变体。
+- **核销**：candidates-open #3786 → `candidates-resolved.tsv` #376。
+
+#### 28.375 inferred commitments + 通用 worktree (#3788 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无隐式 follow-up commitment 提取面（刻意不静默推断承诺；goal/todo 是显式声明）。描述 **ALREADY_COVERED**——通用 worktree Enter/Exit+隔离=`worktree_create`/`in_worktree`/移除审计。
+- **核销**：candidates-open #3788 → `candidates-resolved.tsv` #377。
