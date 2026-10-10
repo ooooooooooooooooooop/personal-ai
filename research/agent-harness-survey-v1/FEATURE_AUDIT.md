@@ -3496,3 +3496,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（headless 模式 local .mcp.json 被忽略）**：**已覆盖**——`loadConfig` candidates 无条件含 `<cwd>/.mcp.json`（第三位），无 headless/--strict-mcp-config 分支会跳过本地配置；该缺陷类不存在。
 - **证据**：`pi/extensions/mcp/index.js:1359` loadConfig；app.js navigator.clipboard 全部用法。
 - **核销**：candidates-open #2522 → `candidates-resolved.tsv` #202。
+
+#### 28.202 device-code OAuth + resource array (#2527 — both covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED(defect-absent)**。
+  - **标题语义（device-code OAuth login——headless 远程授权）**：**已覆盖**——#740 RFC 8628 `device_code` flow：`oauth.deviceAuthUrl` spec 字段+discovery `device_authorization_endpoint` 捕获+`/mcp-auth` headless 路径显示验证码；flow 自动推断（deviceAuthUrl 存在即 device_code）。
+  - **描述语义（protected-resource metadata resource 数组）**：**已覆盖**——同 #2521：`prm.resource` 从不被消费，数组形态不炸。
+- **证据**：`pi/extensions/mcp/index.js:196-215/347`。
+- **核销**：candidates-open #2527 → `candidates-resolved.tsv` #203。
