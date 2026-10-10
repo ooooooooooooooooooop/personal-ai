@@ -3856,3 +3856,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——单 channel（UI+webhook+delegate mailbox），无 per-channel contextVisibility 配置维度。描述 **BOUNDARY**——无 Plugin SDK 宿主面（无 plugin-owned reply 通道概念）。
 - **核销**：candidates-open #2878 → `candidates-resolved.tsv` #248。
+
+#### 28.248 Session API permission mode + --add-dir (#2883 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`risk_mode`/`risk_mode_set` channel ops（normal/plan 动态切换，session 生效）=setPermissionMode/getPermissionMode 语义。描述 **BOUNDARY(variant)**——#2862 同：无 --add-dir 多目录授予。
+- **核销**：candidates-open #2883 → `candidates-resolved.tsv` #249。
+
+#### 28.249 --approve-for-me + extension settings schema (#2884 — title BOUNDARY(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(intentional variant)**——blanket auto-approve flag 刻意不存：预授权语义由 `always` 持久 allowlist（path/command 粒度）+session allow+command allowlist 承载，无一刀切放行键。描述 **BOUNDARY**——无 extension→settings schema 注册面。
+- **核销**：candidates-open #2884 → `candidates-resolved.tsv` #250。
+
+#### 28.250 approvalId resume + MCP wildcard approve (#2906 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`pending_list`+`decision_resolve(id)` 按 approvalId 恢复审批=免 resume-token 变体。描述 **ALREADY_COVERED**——`allow_server` 一次授予整个 `mcp__<srv>__*` namespace（#2027）=server 级通配批准。
+- **核销**：candidates-open #2906 → `candidates-resolved.tsv` #251。
