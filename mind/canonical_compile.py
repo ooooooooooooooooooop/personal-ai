@@ -138,9 +138,16 @@ def compile_briefing(canon: Path) -> str:
     cv = (v.get("current_values") or {})
     for k, val in list(cv.items())[:5]:
         s5.append(f"- {k}: {str(val)[:140]}")
-    na = (gov.get("normative_authorities") or {}).get("user", {}).get("scopes") or {}
+    # Look the authority up BY NAME from the constitutional root, rather than
+    # hardcoding one: this read `.user.` while governance.yaml declares `.owner.`
+    # (root_authorities.normative_authority_root: owner), so the line silently
+    # produced nothing. A key that no source carries is a dead branch, not a
+    # missing value.
+    root_name = ((gov.get("u0_constitutional") or {}).get("root_authorities") or {}).get("normative_authority_root")
+    na = ((gov.get("normative_authorities") or {}).get(root_name) or {}).get("scopes") or {}
     if na:
-        s5.append("- user normative scopes: " + ", ".join(f"{k}={v2}" for k, v2 in na.items()))
+        scopes = na if isinstance(na, list) else [f"{k}={v2}" for k, v2 in na.items()]
+        s5.append(f"- {root_name} normative scopes: " + ", ".join(str(x) for x in scopes))
 
     s6 = ["## 6. Retrieval Pointers",
           "- full state: world_model(op:\"status\"); canonical: current.yaml/governance.yaml/lineage.yaml/sources.yaml",

@@ -60,7 +60,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install-agent-broker.ps1
 | [research-lab](./skills/research-lab) | 把模型比较等可证伪问题转化为可恢复、可复现且证据可追溯的研究 | 可选 |
 | [personal-ai-operations-review](./skills/personal-ai-operations-review) | 对进入运维态的 Personal AI 基础设施做只读复查，区分 NO ACTION/REVIEW/ACTION REQUIRED/EXTERNAL BLOCKER，不为变绿静默改 canonical | 可选 |
 | [chatgpt-web-bridge](./skills/chatgpt-web-bridge) | 经 chatgpt-web 桥把本地 agent 接入 ChatGPT 网页版：网页端当大脑，本地只做传输与执行；conversation_id 专线，推进/指挥循环/对等协作/只读拉取四种模式 | 可选 |
-| [world-model-runtime](./skills/world-model-runtime) | 在重要任务上运行持久世界模型闭环，并按 Gate 判定执行模式 | 条件启用 |
+| [world-model-runtime](./skills/world-model-runtime) | 在重要任务上运行持久世界模型闭环，自判 OFF/CORE/FULL 形式化深度 | 条件启用 |
 
 Skill 安装 profile 定义在 [skills.json](./skills.json)。
 
@@ -85,7 +85,7 @@ DSH 插件不设注册表；包内 `README.md` 提供跨设备安装步骤，发
 
 ## 仓库结构
 
-根目录按六类组织。前五类随仓库发布；第六类**永远仅存在于本地，不进入发布**。
+根目录按下列分类组织。第 ①–⑩ 类随仓库发布；设备运行层**永远仅存在于本地，不进入发布**。
 
 ```text
 # ① Skill 包（统一收在 skills/ 下，受 skills.json + validate_repo.py 契约约束）
@@ -109,15 +109,53 @@ _template/               # 新建包的模板种子（validate_repo 显式排除
 
 # ⑤ soul/ — Personal AI 可携带认知状态
 soul/manifest.json       # 发布锚：soul_version/schema_version/模型清单/release{tag,content_commit,payload_digest}
-soul/schema/             # canonical 结构契约（对应 migrate_v031 强制字段集）
-soul/briefing/           # briefing 编译输出契约（7 段 + 容量/裁剪规则；canonical_compile.py 是唯一生成者）
+soul/schema/             # canonical 结构契约（对应 mind/migrate_v031.py 强制字段集）
+soul/briefing/           # briefing 编译输出契约（7 段 + 容量/裁剪规则；mind/canonical_compile.py 是唯一生成者）
 soul/models/{l2,l3}/     # 通用脱敏认知模型（declassification 链产物）
 soul/bootstrap/          # adopter 起点包：canonical 骨架 + 仅初始化用种子
                          # 边界：内容只能来自 declassification 链或公开模板；私有 canonical/L0-L1 禁入
+                         # 边界：只放状态，不放运作机制（机制在 mind/）
 
-# ⑥ 设备运行层（本地，永不发布）
+# ⑥ mind/ — 认知状态的维护工具链（harness 无关；在 agent 权限之外）
+mind/distiller.py        # closed episodes → evidence packet → MODEL_PROPOSAL
+mind/hypothesis_search.py# problem object → H4 算子库 → 判别 probe
+mind/u1_accept.py        # U1 governed apply：唯一 canonical 写者（proposal → canonical）
+mind/canonical_compile.py# 编译 briefing.md（GENERATED，不可手写）+ runtime-state.json 投影
+mind/lp_evaluator.py     # Learning Progress 只读评估（无 canonical 写权）
+mind/migrate_v031.py     # canonical schema 1.0→1.1 迁移/回滚/verify
+mind/bcc_check.py        # BCC-1 身体兼容契约测试台（+ simulate_body.mjs 模拟体）
+                         # 边界：不属于任何身体；状态在 soul/，本目录只放"它怎么变"
+
+# ⑦ host/ — 中立控制宿主
+host/src/core/           # 契约与机制：contracts/instance/audit/manifest/loaders/governance kernel
+host/src/app/            # createHostCore() 组装
+                         # 边界：零外部依赖；全目录禁止 import 任何身体（firewall.test.js 机械执行）
+
+# ⑧ pi/ — Pi 身体实现
+pi/src/adapter/          # Pi API ↔ host 契约
+pi/src/bootstrap/        # 唯一 composition root（host.js）
+pi/bin/                  # pai-channel.js（app 生成的身体入口）
+                         # 边界：依赖方向恒为 pi → host
+
+# ⑨ app/ — 自有用户界面层
+app/server/              # BodySupervisor 多身体组装根 + 零依赖 HTTP/SSE 桥
+app/ui/                  # 零构建网页（对话 + 身体面板）
+app/desktop/             # Electron 壳
+                         # 边界：产品级组装根，可同时知道 pi/dsh 入口
+
+# ⑩ 其他被跟踪的顶层目录（不在 AGENTS.md 的分层表中，性质待归位）
+dsh-config/              # DSH 配置骨架（跨设备同步用；profiles/patches 的仓库侧副本）
+registry/                # 架构契约与登记（governance-policy / capabilities / execution-profiles 等 yaml）
+research/                # 研究产出（agent-harness-survey-v1 / cognitive-leverage-pilot-v0）
+
+# ⑪ 设备运行层（本地，永不发布；见 .gitignore）
 .taskflow/  .grepai/  .claude/  node_modules/  state.sqlite  会话 JSONL  日志  用户配置  生成报告
+artifacts/  output/  Users/  __pycache__/   # 生成物/运行态，已 gitignore
 ```
+
+> ⚠️ **本节与 `AGENTS.md` 的分层表不完全一致**：AGENTS.md 有 10 层（含设备运行层），
+> 且未收录上面第 ⑩ 类的三个目录。**权威定义见 [`AGENTS.md`](./AGENTS.md)**；
+> 本节待与之一并对齐。
 
 - **Skill 统一收在 `skills/` 下**：`scripts/validate_repo.py` 的 `discover_skill_dirs()` 识别 `skills/` 子目录里含 `SKILL.md` 的目录（为兼容也认可根目录平铺的旧包）。新增 Skill 放进 `skills/` 并登记到 `skills.json`，两处须同步。
 - `skill-quality-gate` 同时是质量门禁脚本，但它本身是 ① 中的一个 Skill 包，位于 `skills/skill-quality-gate/`。

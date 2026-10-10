@@ -1894,7 +1894,11 @@ def controlled_write_file(
     if not lock._held:
         raise MutationOwnershipError("MUTATION_LOCK_NOT_HELD", "cannot execute controlled write without active lease")
 
-    norm_rel = Path(file_rel_path).as_posix().lstrip("./")
+    # removeprefix, NOT lstrip: lstrip("./") strips any run of "." and "/"
+    # characters, so ".github/workflows/ci.yml" became "github/workflows/ci.yml"
+    # and the commit gate then could not find the staged bytes. Any dotfile or
+    # dot-directory was uncommittable.
+    norm_rel = Path(file_rel_path).as_posix().removeprefix("./")
     if not _path_in_scope(norm_rel, lock.scope):
         raise MutationOwnershipError(
             "SCOPE_VIOLATION",
@@ -1977,7 +1981,7 @@ def verify_staged_commit_gate(
     verified_matches: list[tuple[str, Path, dict]] = []
 
     for rel_path in staged_files:
-        norm_path = Path(rel_path).as_posix().lstrip("./")
+        norm_path = Path(rel_path).as_posix().removeprefix("./")  # see note above: not lstrip
 
         # If enforce_scope_prefix is provided, only files matching the prefix are enforced
         if enforce_scope_prefix and not any(norm_path.startswith(pfx) for pfx in enforce_scope_prefix):

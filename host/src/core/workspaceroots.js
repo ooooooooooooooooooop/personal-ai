@@ -4,7 +4,7 @@
  * asks) is adjudicated against that single root. An operator may opt into
  * declaring ADDITIONAL roots in <instance>/workspace.json:
  *
- *   { "multiRoot": true, "roots": ["D:/shared-lib", "C:/refs/specs"] }
+ *   { "multiRoot": true, "roots": ["D:/shared-lib", "C:/refs/specs"] }  // boundary-scan-allow: illustrative example of an operator-declared extra root
  *
  * Semantics:
  * - `multiRoot` is THE FLAG: absent/false/non-object doc → single-root

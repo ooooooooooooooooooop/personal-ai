@@ -4,27 +4,34 @@
 
 ## 一句话
 
-这是 **Personal AI 公开发布仓**（机制层：Skill 包 + MCP 发行包 + DSH 插件包 + 质量脚手架；认知层：`soul/` 可携带认知状态 + `host/` 可执行控制宿主），**不是运行时工作区**。根目录 top-level 目录属于七层之一。
+这是 **Personal AI 公开发布仓**（机制层：Skill 包 + MCP 发行包 + DSH 插件包 + 质量脚手架；认知层：`soul/` 可携带认知状态 + `mind/` 认知维护工具链 + `host/` 可执行控制宿主），**不是运行时工作区**。根目录 top-level 目录属于下列分层之一。
 
 ## 分层目录（改动前先认层）
 
 | 层 | 目录 | 可否改动 | 改动要点 |
 |---|---|---|---|
-| ① Skill 包 | `skills/<name>/`（20 个） | ✅ | 必须登记在 `skills.json`；布局统一 `SKILL.md + agents/openai.yaml + examples/*.md` |
+| ① Skill 包 | `skills/<name>/` | ✅ | 必须登记在 `skills.json`（**条数以 `skills.json` 为准，不在此写死** —— 写死的数字会随包增减静默过期，而"个数"这类断言没人会去核）；布局统一 `SKILL.md + agents/openai.yaml + examples/*.md` |
 | ② MCP 包 | `mcp/<name>/` | ✅ | 登记在 `mcp.json`；自持子目录许可证；`agent-switchboard` 是修改版，非 MIT |
-| ③ DSH 插件包 | `dsh/<name>/` | ✅ | 本地 DSH 用户级插件：源码 + 可移植 `cordis.patch.yml` 片段 + README 一起发布；不设注册表，校验器不核对 manifest，靠链接/markdown 检查兜底；发布内容禁止含本机路径；`dsh/adapter/` 是 PAI 侧 DSH 身体适配器（依赖方向 dsh → host），`dsh/tests/` 为 L4 契约 + L5/L6 切换演练 |
+| ③ DSH 插件包 | `dsh/<name>/` | ✅ | 本地 DSH 用户级插件：源码 + 可移植 `cordis.patch.yml` 片段 + README 一起发布；不设注册表，校验器不核对 manifest，靠链接/markdown 检查兜底；发布内容禁止含本机路径；`dsh/adapter/` 是 PAI 侧 DSH 身体适配器（依赖方向 dsh → host），`dsh/tests/` 为 L4 契约 + L5/L6 切换演练。**包内只放适配器（`mjs`/`js` + `json` + `md` + `yml`）；harness 无关的工具链不放这里** |
 | ④ 质量脚手架 | `scripts/` `tests/` `docs/` `_template/` `.github/workflows/`（`skill-quality-gate` 是 ① 中的 Skill 包，位于 `skills/skill-quality-gate/`） | ✅ | 改 `validate_repo.py` 会影响全部上层契约，谨慎 |
 | ⑤ 设备运行层 | `.taskflow/` `.grepai/` `.claude/` `node_modules/` 等 | ❌ 禁改/禁提交 | 本地运行态，发布门禁拒绝 |
-| ⑥ soul/ | `soul/`（`manifest.json` `schema/` `briefing/` `models/` `bootstrap/`） | ✅ | Personal AI 可携带认知状态：通用 L2/L3 脱敏模型 + schema 契约 + briefing 模板 + adopter 骨架；内容只能来自 declassification 链产物或为公开编写的模板，私有 canonical/L0-L1/未脱敏模型禁入；`manifest.json` 是发布锚 |
-| ⑦ host/ | `host/` | ✅ | Personal AI 中立控制宿主（`docs/pi-migration-design.md`）：**零外部依赖**，全目录禁止 import 任何身体/harness（`host/tests/firewall.test.js` 机械执行）；运行态写 instance root 禁入仓 |
-| ⑧ pi/ | `pi/` | ✅ | Pi 身体实现：adapter（Pi API ↔ host 契约）+ bootstrap（唯一 composition root）+ managed extensions；依赖方向恒为 `pi → host`；pin `@earendil-works/*@0.85.1`，lockfile 属 runtime identity |
-| ⑨ app/ | `app/` | ✅ | Personal AI 自有用户界面层：server（BodySupervisor 多身体组装根 + 零依赖 HTTP/SSE 桥）+ ui（零构建网页：对话 + 身体面板）+ desktop（Electron 壳）；**产品级组装根，可同时知道 pi/dsh 入口**；用户经 `body_select` 显式选身体，有会话时走真七态 handoff；`host/` 依然不 import 任何身体 |
+| ⑥ soul/ | `soul/`（`manifest.json` `schema/` `briefing/` `models/` `bootstrap/`） | ✅ | Personal AI 可携带认知状态：通用 L2/L3 脱敏模型 + schema 契约 + briefing 模板 + adopter 骨架；内容只能来自 declassification 链产物或为公开编写的模板，私有 canonical/L0-L1/未脱敏模型禁入；`manifest.json` 是发布锚。**只放状态，不放运作机制**（机制在 `mind/`） |
+| ⑦ mind/ | `mind/` | ✅ | **认知状态的维护工具链**（**完整清单以 `mind/README.md` 为准，不在此写死条数**）：A `distiller` · B `hypothesis_search` · C `lp_evaluator` · D `u1_accept`（唯一 canonical 写者）· 编译 `canonical_compile` / `instruction_compile` · 学到的先验 `reversibility_compile` · 周期入口 `wm_cycle` / `distill` · 迁移 `migrate_v031` · 契约测试台 `bcc_check` + `simulate_body.mjs`。**harness 无关**（入参全是目录路径）；**在 agent 权限之外**（宪法：agent 不得写 canonical）。与 `soul/` 配对但不同类：soul 回答"它信什么"，mind 回答"它怎么变"。运行时协议不在这里，在 `skills/world-model-runtime/` |
+| ⑧ host/ | `host/` | ✅ | Personal AI 中立控制宿主（`docs/pi-migration-design.md`）：**零外部依赖**，全目录禁止 import 任何身体/harness（`host/tests/firewall.test.js` 机械执行）；运行态写 instance root 禁入仓 |
+| ⑨ pi/ | `pi/` | ✅ | Pi 身体实现：adapter（Pi API ↔ host 契约）+ bootstrap（唯一 composition root）+ managed extensions；依赖方向恒为 `pi → host`；pin `@earendil-works/*@0.85.1`，lockfile 属 runtime identity |
+| ⑩ app/ | `app/` | ✅ | Personal AI 自有用户界面层：server（BodySupervisor 多身体组装根 + 零依赖 HTTP/SSE 桥）+ ui（零构建网页：对话 + 身体面板）+ desktop（Electron 壳）；**产品级组装根，可同时知道 pi/dsh 入口**；用户经 `body_select` 显式选身体，有会话时走真七态 handoff；`host/` 依然不 import 任何身体 |
 
 ## 硬约束（改目录结构的红线）
 
 1. **Skill 统一收在 `skills/<name>/` 下**。`scripts/validate_repo.py::discover_skill_dirs()` 识别 `skills/` 子目录里含 `SKILL.md` 的目录（为兼容也认可根目录平铺的旧包）。新增 Skill 放进 `skills/` 并登记到 `skills.json` 的 `path`（`./skills/<name>`）；两处不同步会让 `--strict` 判 FAIL。
 2. **两个注册表必须与目录一致**：`skills.json` ↔ `skills/*`；`mcp.json` ↔ `mcp/*`。校验器逐一核对。
 3. **发布门禁**：`git diff --check`、`python scripts/validate_repo.py --strict`、`python skills/skill-quality-gate/scripts/quality_report.py --root . --strict`、仓库回归、MCP 回归全绿才可合并。
+4. **测试不得继承部署挂载**：`host` / `pi` / `dsh` 三个套件的 `test` 脚本都带
+   `--import ./tests/scrub-env.mjs`（`pi` / `dsh` 复用 `host` 那一份，不复制）。**这不是"让测试变绿"**：
+   本机若有 `WORLD_MODEL_HOME`（这正是挂载 canonical 的**文档写法**），未隔离的测试会把
+   `canonicalDir` 解析到**真实 canonical**，任何启动时的编译/写入都会落到受治理状态里。
+   新增测试套件照此办理。删掉它 → 会出现一整片红（`WORLD_MODEL_HOME is set…` 或 attestation 失败），
+   而那只是征兆，**根因是测试在动真数据**。
 
 ## 改动后必须跑的检查
 
@@ -37,7 +44,8 @@ python -m pytest -c mcp/chatgpt-web-bridge/pyproject.toml mcp/chatgpt-web-bridge
 npm --prefix host test                            # host 契约测试（零依赖防火墙）
 npm --prefix pi test                              # pi 侧边界测试
 npm --prefix dsh test                             # dsh 身体适配器 L4 契约 + L5/L6 切换演练
-npm --prefix app test                             # app 层：supervisor/bridge 测试（fixture 身体真切换）
+npm --prefix app test                             # app 层：supervisor/bridge 测试（fixture 身体真切换）+ 离屏 Electron DOM gate（含 axe 可访问性）
+npm --prefix app run lint                         # app UI：stylelint（CSS）+ html-validate（HTML）
 git diff --check                                  # 空白错误
 ```
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Personal AI canonical current.yaml — schema 1.1",
-  "description": "Structural contract for a Personal AI canonical current.yaml. Mirrors dsh/world-model/migrate_v031.py build_current() output exactly: world_model.uncertainty/current_state are objects, value_model.current_values/uncertainty are objects, known_residuals is an array. Sidecar files: governance.yaml, lineage.yaml, sources.yaml, interfaces.yaml, operators.yaml, open-loops.yaml, proposals/, history/ (append-only).",
+  "description": "Structural contract for a Personal AI canonical current.yaml. Mirrors mind/migrate_v031.py build_current() output exactly: world_model.uncertainty/current_state are objects, value_model.current_values/uncertainty are objects, known_residuals is an array. Sidecar files: governance.yaml, lineage.yaml, sources.yaml, interfaces.yaml, operators.yaml, open-loops.yaml, proposals/, history/ (append-only).",
   "type": "object",
   "required": ["schema_version", "identity", "world_model", "value_model", "refs"],
   "properties": {

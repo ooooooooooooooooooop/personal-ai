@@ -1,6 +1,6 @@
 ---
 name: world-model-runtime
-description: 在重要任务上运行完整世界模型闭环的执行协议——恢复持久状态→建立竞争模型→显式预测→真实观察→修订模型→主动取证→决策→持久化。由 AGENTS.md World Model Gate 判 OFF/CORE/FULL 后加载；用于多步、高风险、跨会话、存在竞争解释或需要持久世界模型的真实任务，不用于简单一次性任务。
+description: 在重要任务上运行完整世界模型闭环的执行协议——恢复持久状态→建立竞争模型→显式预测→真实观察→修订模型→主动取证→决策→持久化。用于多步、高风险、跨会话、存在竞争解释或需要持久世界模型的真实任务，不用于简单一次性任务；加载后由本协议的模式判据自判 OFF/CORE/FULL 形式化深度。
 ---
 
 # 世界模型运行时
@@ -9,7 +9,14 @@ description: 在重要任务上运行完整世界模型闭环的执行协议—�
 
 ## 模式
 
-由 AGENTS Gate 判定，写入本会话 working state：
+**加载条件**（本 skill 何时该被用）与**形式化深度**（OFF/CORE/FULL）是两件事，不要混：
+
+- **加载条件**由本 skill 的 description 表述——"用于多步、高风险、跨会话、存在竞争解释
+  或需要持久世界模型的真实任务，不用于简单一次性任务"。
+  （`tier: conditional` 的判据就在 description 里，与其余 conditional skill 同一机制。）
+- **形式化深度**由本协议**自判**（见下），在本会话开始时声明并写入 working state。
+
+形式化深度：
 
 - **OFF**：简单一次性任务，不启用本协议。
 - **CORE**：重要任务基本闭环。必须实质运行：Observation / State / World Model / Prediction / Uncertainty / Action / Model Revision / Persist。
@@ -17,19 +24,26 @@ description: 在重要任务上运行完整世界模型闭环的执行协议—�
 
 FULL 中每一环标 `USED / NOT_NEEDED(reason) / UNKNOWN`，允许空环但不允许跳过评估。
 
-## 不变量（违反即协议失效）
+> 注：形式化深度**不是开关**——世界模型永远在场，OFF/CORE/FULL 只是仪式深度。
+> 另有插件侧的静态 `config.mode`（`dsh/world-model/cordis.patch.yml`），
+> 那是**守卫严格度**的部署配置，与本协议的会话内自判不是同一件事。
 
-1. **Prediction 必须先于对应 Observation**——先写下「如果模型为真应看到什么」，再行动取证。
-2. **RAW_EVIDENCE ≠ OBSERVATION ≠ Interpretation**——工具返回是 RAW_EVIDENCE（插件机械捕获）；你选择、标注、关联到某个 Prediction 后才升 OBSERVATION；推断另行标记。日志存在 ≠ 支持你。
-3. **未知不补全**——不知道就写 UNKNOWN，不编造。
-4. **World / Value / Decision 分离**——世界如何运作 ≠ 什么结果值得 ≠ 选什么动作。
-5. **重大 Update 必须留可恢复 artifact**——写进 state，不只留在对话里。
-6. **状态文件是审计对象**——持久化事实/模型/预测/观察/决策依据/证据引用，不持久化私有思维全文。
+## 不变量
+
+不变量是**常驻规则**，在 `instruction/generated.md` §3 随指令信封每轮注入 —— 此处不再重复。
+（不写条数：条数会随规范件演进而漂，而这里写死的数字会静默过期 —— 以 `instruction/generated.md` §3 为准。）
+补充两点它不展开的：
+
+- 不变量 1 的权威依据是 `governance.yaml` 的 `revision_rules[0] = predict-before-change`，
+  由门禁**强制执行**。
+- 不变量 6 的边界：持久化可审计的事实与引用，**不含私有思维全文** ——
+  写 state 时问"这条以后能用来判定我错了没有"。
 
 ## 状态层（读写契约）
 
 ```text
-Canonical SSOT:  <canonicalDir>（config.canonicalDir 或 WORLD_MODEL_HOME 指向的目录）
+Canonical SSOT:  <canonicalDir>（config.canonicalDir 或 WORLD_MODEL_HOME 指向的目录；
+                 也支持 WORLD_MODEL_REPO + PAI_PILOT 的仓布局 <REPO>/pilot/<PILOT>/canonical）
   current.yaml      当前最佳压缩模型。每条模型条目字段：
                     命题 / 状态(当前最佳|竞争) / 定性置信 / 支持证据ref /
                     反例 / 竞争解释 / 适用范围(Model Coverage) /
@@ -42,11 +56,11 @@ Canonical SSOT:  <canonicalDir>（config.canonicalDir 或 WORLD_MODEL_HOME 指�
   open-loops.yaml   未闭合观察口
   history/          重大修订快照
 
-Runtime:  ~/.dsh/world-model/
-  current.json      materialized 工作状态
-  ledger/YYYY-MM-DD.jsonl   append-only 事件流
-  runs/<session-id>.jsonl   单会话轨迹
-  manifest.json     版本与指针
+Runtime:  <stateDir>（**身体自己的适配器决定**：DSH 用 ~/.dsh/world-model/，
+  pi 用 <instance>/world-model/）
+  ledger/YYYY-MM-DD.jsonl   append-only 事件流   ← 契约（mind/distill.py 读）
+  runs/<session-id>.jsonl   单会话轨迹           ← 契约（mind/lp_evaluator.py 读）
+  current.json      materialized 工作状态        ← 适配器内部，工具链不读
 
 Episode schema（L1 情境记忆，ledger/runs 事件）：
   event_id / schema_version / session_id / task_id / event_type /
@@ -71,9 +85,15 @@ CORE 模式只拦 consequential 及以上：无绑定预测→guard 拒绝放行
 
 ## 执行时序（CORE 必须出现，顺序即验收）
 
+> 常驻形态见 `instruction/generated.md` §6。下面是展开版，多出 STATE_RESTORE / CURRENT_MODEL
+> 两环 —— 那是"这轮开始时怎么接上状态"，不是"每次变更怎么做"。
+
 ```text
 WM_ACTIVATE        声明进入 CORE/FULL 及理由
-STATE_RESTORE      读 canonical current.yaml + watermark 后的 ledger → 构造 working state
+STATE_RESTORE      先对**自己的输入**持有预期：该收到什么（先验状态、运行规则、行动记录），
+                   缺了就显式报"未收到、原因未知"——**不得从记忆里枚举渠道**
+                   （清单只能覆盖你想得到的；漏掉的那个才可能是坏的）
+                   再读 canonical current.yaml + watermark 后的 ledger → 构造 working state
 CURRENT_MODEL      写出当前模型与 Model Coverage（哪些算数、哪些不算）
 PREDICTION_CREATED 每条预测：可证伪、绑定将做的 Action、标置信（定性，不伪精确）
 ACTION / QUERY     真实工具调用/检查/改动
@@ -98,6 +118,8 @@ STATE_PERSISTED    append ledger + 更新 runtime current.json；
 - **Meta**：评估继续思考/取证的价值；收益低则停止并记理由。记录 bottleneck 诊断（information/computation/model/value）。
 
 ## Canonical 写入门槛
+
+> 权威依据：`instruction/generated.md` §1（`canonical_write: u1_governed`）与 §5（各类变更流程）。
 
 runtime ledger 随时可写；canonical **只允许 proposal→治理路径写入**，runtime 不得自动改写：失效模式新增/算子升降级、Current Model 实质修订、Open Loop 开关、跨会话需要继承的持久结论，均先落 `proposals/` 待审。普通任务流水不进 canonical。
 

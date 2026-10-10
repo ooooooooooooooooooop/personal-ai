@@ -6,6 +6,10 @@ W/V/U/L 认知状态。**每次发布 = 一次认知模型更新**，由 `manife
 锚定（soul_version / schema_version / 模型清单 / briefing 版本 /
 release commit）。
 
+> **边界（重要）**：本目录**只放状态**，不放运作机制。
+> 维护这份状态的工具链在 **`mind/`**（harness 无关、且在 agent 权限之外）。
+> 二者是配对但**不同类**：`soul/` 回答"它信什么"，`mind/` 回答"它怎么变"。
+
 与 PRIVATE pilot canonical 的关系：本目录每个文件都是经 declassification
 链（proposal → sanitizer → leakage check → authority review）产出的
 衍生物，原件保持原等级；或本来就是为公开编写的模板。私有 L0/L1 记忆
@@ -36,6 +40,6 @@ soul/
    append-only lineage 目录）。
 2. （可选）把 `models/` 下模型并入 `world_model.models`——私有派生
    继承 SANITIZED 等级，可按本地策略再升严。
-3. 跑 `dsh/world-model/canonical_compile.py --canonical <dir>` 生成
+3. 跑 `mind/canonical_compile.py --canonical <dir>` 生成
    首个 briefing（契约见 `briefing/template.md`）。
 4. 私有 L0/L1 记忆由采用者本地积累，永不回流到本目录。

@@ -1,9 +1,24 @@
-// simulate_body.mjs — BCC body simulator: load world-model.mjs with a mock ctx,
+// simulate_body.mjs — BCC body simulator: load a body adapter with a mock ctx,
 // feed a JSON scenario (tool results / session events / executions), emit the
 // guard decisions + captured ledger events as JSON to stdout.
 // Usage: node simulate_body.mjs <scenario.json> <stateDir> <canonicalDir> [mode]
+//        BCC_PLUGIN=<path to adapter .mjs>  — REQUIRED: the adapter under test
+//
+// This fixture is deliberately body-agnostic: it bakes in NO adapter path.
+// It belongs to the BCC-1 contract harness (bcc_check.py), and the contract is
+// body-independent — so the HARNESS names the adapter under test and passes it
+// here via BCC_PLUGIN. Adding a body never requires editing this file.
 import { readFileSync } from 'node:fs';
-import { apply } from './world-model.mjs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const adapterPath = process.env.BCC_PLUGIN;
+if (!adapterPath) {
+  process.stderr.write('simulate_body: BCC_PLUGIN=<path to adapter .mjs> is required ' +
+    '(the harness names the adapter under test; this fixture bakes in no body path)\n');
+  process.exit(2);
+}
+const { apply } = await import(pathToFileURL(resolve(adapterPath)).href);
 
 const [scenarioPath, stateDir, canonicalDir, mode] = process.argv.slice(2);
 const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'));
@@ -34,7 +49,12 @@ for (const step of scenario.steps || []) {
   } else if (step.type === 'tool_call') {
     const inp = { ...(step.input || {}) };
     if (inp.prediction_id === '__last__' && lastPid) inp.prediction_id = lastPid;
-    const out = registeredTool?.execute(inp, execFor(step.tool || 'world_model', step.session));
+    // AWAIT: a body's tool execute may be async (cordis/pi both await it), and
+    // calling it without awaiting yields a Promise whose `.prediction_id` is
+    // undefined — so `__last__` never resolves and any later op that needs the
+    // id silently operates on a placeholder. That made the harness unable to
+    // drive an async adapter at all, while looking like an adapter failure.
+    const out = await registeredTool?.execute(inp, execFor(step.tool || 'world_model', step.session));
     if (out?.prediction_id) lastPid = out.prediction_id;
     events.push({ step: 'tool_call', op: inp?.op, out });
   } else if (step.type === 'guard') {

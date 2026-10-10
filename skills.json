@@ -359,7 +359,7 @@
       "name": "world-model-runtime",
       "path": "./skills/world-model-runtime",
       "version": "1.0.0",
-      "description": "在重要任务上运行持久世界模型闭环：恢复状态→竞争模型→显式预测→真实观察→修订→主动取证→决策→持久化；由 AGENTS World Model Gate 判 OFF/CORE/FULL 加载",
+      "description": "在重要任务上运行完整世界模型闭环：恢复状态→竞争模型→显式预测→真实观察→修订→主动取证→决策→持久化；用于多步、高风险、跨会话、存在竞争解释或需要持久世界模型的真实任务，不用于简单一次性任务",
       "lang": [
         "zh"
       ],

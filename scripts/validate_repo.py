@@ -31,6 +31,7 @@ EXCLUDED_DIRS = {
     ".grepai",
     ".taskflow",
     ".venv",
+    ".workbuddy-ai",  # agent working memory — local, untracked; not published
     "node_modules",
     "Users",
     "__pycache__",
@@ -94,9 +95,21 @@ def discover_skill_dirs() -> List[Path]:
     result: List[Path] = []
 
     def consider(dir_candidate: Path) -> bool:
-        if not dir_candidate.is_dir() or dir_candidate.name in EXCLUDED_DIRS:
+        # Name first, filesystem second. `node_modules` here is a symlink, and on
+        # Windows stat'ing a reparse point the OS considers untrusted raises
+        # OSError (WinError 448) — so checking `is_dir()` before the name made the
+        # whole gate unrunnable on a machine whose node_modules is linked, even
+        # though node_modules is excluded anyway. Excluded means "never stat it".
+        if dir_candidate.name in EXCLUDED_DIRS:
             return False
         if dir_candidate.name.startswith("."):
+            return False
+        try:
+            if not dir_candidate.is_dir():
+                return False
+        except OSError:
+            # Same family: a reparse point we are not allowed to traverse is not a
+            # Skill package. Skipping it is the honest reading of "cannot inspect".
             return False
         return (dir_candidate / "SKILL.md").is_file()
 

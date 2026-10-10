@@ -2,7 +2,8 @@
 """bcc_check.py — BCC-1 Body Compatibility Contract test harness (V0.3.1 §10).
 
 Six contract areas, each with executable checks. Bodies under test:
-  - body A: the real dsh-world-model plugin driven through simulate_body.mjs (node)
+  - body A: the real adapter under test, driven through simulate_body.mjs (node).
+            Named by the caller via BCC_PLUGIN — this file bakes in NO body.
   - body B: a python reference implementation of the same contract (this file)
 
 A contract PASS means both bodies produce equal observable semantics on the
@@ -17,10 +18,28 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+
+
+def adapter_under_test() -> Path | None:
+    """The adapter to test, as named by the caller.
+
+    Resolved at CALL time, not import time: this harness bakes in no body, and a
+    module-level constant would freeze whatever the environment happened to say
+    when the module was first imported. BCC-1 is body-independent, so the
+    generic side must not default to any one body's adapter — a default here
+    would (a) make the harness silently test one body, and (b) put a body's name
+    inside the body-independent layer. Callers: repo-level test
+    (tests/test_wm_v031.py sets BCC_PLUGIN); standalone runs set it themselves.
+    """
+    raw = os.environ.get("BCC_PLUGIN")
+    return Path(raw) if raw else None
+
+
 sys.path.insert(0, str(HERE))
 import canonical_compile  # noqa: E402
 import migrate_v031  # noqa: E402
@@ -35,12 +54,20 @@ IGNORED_PROJ_KEYS = {"pid", "runtime_path", "cache", "timestamps", "body_id",
 
 
 def find_node() -> str | None:
-    n = shutil.which("node")
+    """Locate a node binary to drive the adapter under test.
+
+    No body's install layout is hardcoded here — a body-independent harness must
+    not know where any particular body keeps its runtime. Callers whose node is
+    not on PATH point BCC_NODE at it (or BCC_RUNTIME_ROOT at a runtime root that
+    holds node-v*/node.exe).
+    """
+    n = os.environ.get("BCC_NODE") or shutil.which("node")
     if n:
         return n
-    cand = Path.home() / ".dsh" / "runtime"
-    for p in cand.glob("node-v*/node.exe"):
-        return str(p)
+    root = os.environ.get("BCC_RUNTIME_ROOT")
+    if root:
+        for p in Path(root).expanduser().glob("node-v*/node.exe"):
+            return str(p)
     return None
 
 
@@ -124,13 +151,24 @@ def eval_set(events):
 
 # ---------- 6.3 Guard Semantics (python reference body) ----------
 
-def guard_reference(tool: str, args: dict, mode: str, predictions: list[dict]) -> str:
-    """Reference implementation of the guard contract. Returns permit|deny."""
+def guard_reference(tool: str, args: dict, mode: str, predictions: list[dict],
+                    exec_extra: dict | None = None) -> str:
+    """Reference implementation of the guard contract. Returns permit|deny.
+
+    `exec_extra` mirrors the alias / unknown parameter keys a harness may place
+    on the execution (`parameters`, `tool_input`, or a body's own key). The whole
+    payload pool is scanned: a payload hidden under an alias key is still a
+    payload — **hiding it must not turn a deny into a permit**. Reading only
+    `arguments` makes every alias key a binding-bypass surface.
+    """
     if tool not in CONSEQUENT:
         return "permit"
     if mode not in ("core", "full"):
         return "permit"
-    args_text = json.dumps(args, ensure_ascii=False)
+    pool = [args]
+    if exec_extra:
+        pool.extend(v for v in exec_extra.values() if v is not None)
+    args_text = json.dumps(pool, ensure_ascii=False)
     irreversible = bool(IRREVERSIBLE_RE.search(args_text))
     for p in predictions:
         if p.get("evaluated"):
@@ -159,6 +197,20 @@ GUARD_FIXTURES = [
      "preds": [{"intended_action": "exec cleanup"}], "expect": "deny"},
     {"name": "irreversible flagged permit", "tool": "exec", "args": {"command": "rm -rf /tmp/x"}, "mode": "core",
      "preds": [{"intended_action": "exec rm -rf /tmp/x", "irreversible": True}], "expect": "permit"},
+    # Alias-key resistance (principle: an invisible payload is a binding bypass
+    # surface — hiding ≠ not existing). A guard that reads only `arguments` sees
+    # an empty payload here and PERMITS a bound-but-unflagged irreversible call.
+    # simulate_body.mjs supports injecting these via the scenario step's
+    # `exec_extra` (spread onto the execution as alias / body-own keys).
+    {"name": "alias key: irreversible payload hidden in parameters still denies", "tool": "exec",
+     "args": {}, "exec_extra": {"parameters": {"command": "rm -rf /tmp/x"}}, "mode": "core",
+     "preds": [{"intended_action": "exec cleanup"}], "expect": "deny"},
+    {"name": "alias key: hidden payload + irreversible-flagged prediction permits", "tool": "exec",
+     "args": {}, "exec_extra": {"tool_input": {"command": "rm -rf /tmp/x"}}, "mode": "core",
+     "preds": [{"intended_action": "exec rm -rf /tmp/x", "irreversible": True}], "expect": "permit"},
+    {"name": "alias key: body-own non-structural key is scanned too", "tool": "exec",
+     "args": {}, "exec_extra": {"custom_field": {"cmd": "rm -rf /tmp/x"}}, "mode": "core",
+     "preds": [{"intended_action": "exec cleanup"}], "expect": "deny"},
 ]
 
 
@@ -168,6 +220,11 @@ def run_plugin_body(scenario: dict, tmp: Path, mode: str) -> dict:
     node = find_node()
     if not node:
         return {"skipped": "node not found"}
+    adapter = adapter_under_test()
+    if adapter is None:
+        return {"skipped": "BCC_PLUGIN not set — the harness must be told which adapter to test"}
+    if not adapter.exists():
+        return {"skipped": f"BCC_PLUGIN does not exist: {adapter}"}
     scen = dict(scenario)
     scen["mode"] = mode
     sp = tmp / "scenario.json"
@@ -175,7 +232,8 @@ def run_plugin_body(scenario: dict, tmp: Path, mode: str) -> dict:
     state = tmp / "state"; canon = tmp / "canon"
     state.mkdir(exist_ok=True); canon.mkdir(exist_ok=True)
     r = subprocess.run([node, str(HERE / "simulate_body.mjs"), str(sp), str(state), str(canon), mode],
-                       capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
+                       capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace",
+                       env={**os.environ, "BCC_PLUGIN": str(adapter)})
     if r.returncode != 0:
         return {"error": r.stderr[-500:]}
     out = json.loads(r.stdout.strip().splitlines()[-1])
@@ -189,6 +247,46 @@ def run_plugin_body(scenario: dict, tmp: Path, mode: str) -> dict:
             ledger.setdefault(f.name, []).append(ev)
     out["ledger"] = ledger
     return out
+
+
+def _finish(results: dict) -> dict:
+    """Aggregate the verdict and return the result set.
+
+    `pass: None` means "not tested" (skipped) and is excluded from the verdict —
+    but a run where NOTHING was tested must not report PASS: an all-skipped run
+    would otherwise satisfy `all([])` vacuously and read as a green contract that
+    was never exercised.
+    """
+    applicable = [v.get("pass") for v in results.values()
+                  if isinstance(v, dict) and v.get("pass") is not None]
+    results["PASS"] = all(applicable) if applicable else None
+    # Make "what was NOT exercised" visible: PASS:true next to four silent skips
+    # reads as a fully-verified contract.
+    skipped = sorted(k for k, v in results.items()
+                     if isinstance(v, dict) and v.get("pass") is None)
+    if skipped:
+        results["skipped"] = skipped
+    if not applicable:
+        results["note"] = "nothing was tested — set BCC_PLUGIN to name the adapter under test"
+
+    # A BARE PASS IS NOT A VERDICT (conformance-rubric §〇 A-P2): every verdict
+    # record must bind subject / version / scope / evidence window, and the three
+    # verdict objects — theory coverage, implementation conformance, governance
+    # integrity — must not be fused into one score. This checker answers exactly
+    # ONE of them: does this adapter faithfully implement the mechanisms its
+    # contract claims. It says nothing about whether the theory covers the domain,
+    # and nothing about governance. Naming that here is what stops a green run
+    # from being read as a release decision.
+    results["verdict_layer"] = "implementation_conformance"
+    results["verdict_binding"] = {
+        "subject": os.environ.get("BCC_PLUGIN") or results.get("plugin") or "unspecified adapter",
+        "version": "BCC-1",
+        "scope": "the six BCC-1 protocols, as exercised above",
+        "evidence_window": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    results["not_this"] = ("theory coverage and governance integrity are separate verdicts; "
+                           "a release decision is policy(all layers), not this boolean")
+    return results
 
 
 def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict:
@@ -221,25 +319,31 @@ def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict
     if with_node:
         with tempfile.TemporaryDirectory() as td:
             out = run_plugin_body(scen, Path(td), "core")
-            seqs = []
-            if "ledger" in out:
-                for evs in out["ledger"].values():
+            if "skipped" in out or "error" in out:
+                # A body run that never happened must not read as a PASS: an empty
+                # ledger satisfies every ordering predicate vacuously, so a skip
+                # would otherwise masquerade as "ordering verified".
+                results["event_ordering"] = {"pass": None, "note": "body run skipped",
+                                             "reason": out.get("skipped") or out.get("error")}
+            else:
+                seqs = []
+                for evs in out.get("ledger", {}).values():
                     seqs.extend(evs)
-            seqs.sort(key=lambda e: e.get("seq", 0))
-            errs = validate_event_order(seqs)
-            mono = all(seqs[i].get("seq", 0) <= seqs[i + 1].get("seq", 0) for i in range(len(seqs) - 1))
-            linked = all(seqs[i].get("prev_event") == seqs[i - 1].get("event_id")
-                         for i in range(1, len(seqs)))
-            results["event_ordering"] = {"pass": not errs and mono and linked,
-                                         "violations": errs, "monotonic_seq": mono,
-                                         "causal_chain": linked, "events": len(seqs)}
+                seqs.sort(key=lambda e: e.get("seq", 0))
+                errs = validate_event_order(seqs)
+                mono = all(seqs[i].get("seq", 0) <= seqs[i + 1].get("seq", 0) for i in range(len(seqs) - 1))
+                linked = all(seqs[i].get("prev_event") == seqs[i - 1].get("event_id")
+                             for i in range(1, len(seqs)))
+                results["event_ordering"] = {"pass": bool(seqs) and not errs and mono and linked,
+                                             "violations": errs, "monotonic_seq": mono,
+                                             "causal_chain": linked, "events": len(seqs)}
     else:
         results["event_ordering"] = {"pass": None, "note": "node skipped"}
 
     # 6.3 guard semantics — real plugin vs python reference on same fixtures
     gres = []
     for fx in GUARD_FIXTURES:
-        ref = guard_reference(fx["tool"], fx["args"], fx["mode"], fx["preds"])
+        ref = guard_reference(fx["tool"], fx["args"], fx["mode"], fx["preds"], fx.get("exec_extra"))
         row = {"fixture": fx["name"], "expect": fx["expect"], "reference": ref}
         if with_node:
             scen = {"mode": fx["mode"], "steps": [
@@ -251,7 +355,8 @@ def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict
                 [{"type": "tool_call", "input": {"op": "evaluate", "prediction_id": "__last__",
                                                "verdict": "unknown"}, "_eval_last": True}
                  if any(p.get("evaluated") for p in fx["preds"]) else []] +
-                [{"type": "guard", "tool": fx["tool"], "arguments": fx["args"]}],
+                [{"type": "guard", "tool": fx["tool"], "arguments": fx["args"],
+                  **({"exec_extra": fx["exec_extra"]} if fx.get("exec_extra") else {})}],
             }
             # evaluate step needs real prediction id; mark evaluated predictions by
             # issuing evaluate on last created — simulate_body handles op calls;
@@ -262,14 +367,38 @@ def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict
                 row["plugin"] = dec
         row["pass"] = ref == fx["expect"] and (not with_node or row.get("plugin") == fx["expect"])
         gres.append(row)
-    results["guard_semantics"] = {"pass": all(r["pass"] for r in gres), "fixtures": gres}
+    # A fixture whose body run never happened reports pass=None (not False, and
+    # certainly not True) — "not tested" must be distinguishable from both.
+    ran = [r for r in gres if r.get("plugin") is not None]
+    results["guard_semantics"] = {
+        "pass": (all(r["pass"] for r in ran) if ran else None),
+        "fixtures_ran": len(ran), "fixtures_total": len(gres),
+        "fixtures": gres,
+    }
 
-    # 6.4 tool identity — body rename keeps canonical identity
+    # 6.4 tool identity — body rename keeps canonical identity.
+    # NOT TESTED. This used to report `pass: True` unconditionally, which made a
+    # contract that never exercised tool identity read as a green protocol — the
+    # same defect class as an all-skipped run reporting PASS. `pass: None` is the
+    # honest value ("not tested"), and it is excluded from the aggregate.
+    #
+    # Why it cannot be tested yet: the mechanism does not exist end to end.
+    #   - contract side: needs a fixture that drives a tool result under a
+    #     body-specific name and reads back the event's canonical_tool_id;
+    #   - body side: the adapter currently emits
+    #     `{canonical_tool_id: exec.name, body_tool_id: exec.name}` — both the
+    #     SAME value, i.e. no mapping at all;
+    #   - the mapping needs a declared body→canonical table (see
+    #     host/src/core/irreversible.js::resolveToolId, added for this).
+    # Until the adapter declares and applies identities, any fixture would only
+    # assert the placeholder.
     results["tool_identity"] = {
-        "pass": True,
-        "check": "RAW_EVIDENCE carries canonical_tool_id == body_tool_id for direct tools; "
+        "pass": None,
+        "note": "not tested — no adapter emits a distinct canonical_tool_id yet",
+        "check": "RAW_EVIDENCE carries canonical_tool_id stable across a body rename; "
                  "rename affects body_tool_id only",
-        "fixture": "tool 'edit' as body_tool 'apply_patch' → canonical_tool_id stays 'edit'"}
+        "needs": "body declares {body tool name: canonical name}; adapter emits both fields; "
+                 "fixture drives a renamed tool and reads the ledger"}
 
     # 6.5 persistence — kill points
     with tempfile.TemporaryDirectory() as td:
@@ -279,26 +408,58 @@ def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict
             {"type": "tool_call", "input": {"op": "activate", "mode": "core"}},
             {"type": "tool_call", "input": {"op": "predict", "subject": "s", "intended_action": "edit x"}},
             {"type": "tool_call", "input": {"op": "persist", "summary": "mid"}},
+            {"type": "tool_call", "input": {"op": "status"}},
         ]}
         kp = {}
-        if with_node:
+        body_out = run_plugin_body(scen, Path(td), "core") if with_node else {"skipped": "node skipped"}
+        if "skipped" in body_out or "error" in body_out:
+            # Nothing ran, so the kill-point files cannot exist — reporting False
+            # would read as "persistence broken" instead of "untested".
+            results["persistence"] = {"pass": None, "note": "body run skipped",
+                                      "reason": body_out.get("skipped") or body_out.get("error")}
+        else:
+            # SEMANTIC checks — asked through the adapter's own interface and by
+            # content relationship, never by file name or id prefix. An earlier
+            # form asserted `current.json` exists and contains "P-", which froze
+            # one body's storage layout into a body-independent contract: an
+            # adapter storing predictions elsewhere (e.g. host/core/prediction.js)
+            # would be semantically correct and still fail.
+            calls = body_out.get("toolCalls") or []
+            pid = next((c.get("out", {}).get("prediction_id") for c in calls
+                        if c.get("op") == "predict" and isinstance(c.get("out"), dict)), None)
+            status = next((c.get("out") for c in calls
+                           if c.get("op") == "status" and isinstance(c.get("out"), dict)), None)
+            kp["open_prediction_survives_persist"] = bool(
+                pid and status and pid in json.dumps(status, ensure_ascii=False))
+            # append-only == "the earlier content is a prefix of the later one":
+            # true of an append log, false of a rewritten file. Asked of the
+            # state dir as a whole, so no path is hardcoded.
+            before = {str(p.relative_to(state)): p.read_bytes()
+                      for p in state.rglob("*") if p.is_file()}
             run_plugin_body(scen, Path(td), "core")
-            cur = state / "current.json"
-            kp["open_prediction_survives_persist"] = cur.exists() and "P-" in cur.read_text()
-            kp["ledger_append_only"] = any(state.glob("ledger/*.jsonl"))
-            corrupt = state / "runs" / "s1.jsonl"
-            if corrupt.exists():
-                with open(corrupt, "a", encoding="utf-8") as f:
+            after = {str(p.relative_to(state)): p.read_bytes()
+                     for p in state.rglob("*") if p.is_file()}
+            appended = [k for k, v in before.items()
+                        if k in after and after[k].startswith(v) and len(after[k]) > len(v)]
+            kp["append_only_log_exists"] = bool(appended)
+            # Torn-tail tolerance, tested SEMANTICALLY: corrupt the tail of the
+            # append log we just identified, then ask the adapter for its state
+            # again. The property is "a torn tail row must not make the store
+            # unreadable" — so the assertion is that `status` still succeeds and
+            # still reports the prediction. (An earlier form appended invalid
+            # JSON and then asserted that invalid JSON fails to parse: a
+            # tautology, always true, testing the adapter not at all.)
+            if appended:
+                log = state / appended[0]
+                with open(log, "a", encoding="utf-8") as f:
                     f.write("{corrupt tail\n")
-                ok_tail = True
-                for line in corrupt.read_text(encoding="utf-8", errors="replace").splitlines():
-                    try:
-                        json.loads(line)
-                    except json.JSONDecodeError:
-                        ok_tail = True  # identified, not silent
-                        break
-                kp["corrupt_tail_identified"] = ok_tail
-        results["persistence"] = {"pass": bool(kp) and all(kp.values()), "checks": kp}
+                again = run_plugin_body(scen, Path(td), "core")
+                st2 = next((c.get("out") for c in (again.get("toolCalls") or [])
+                            if c.get("op") == "status" and isinstance(c.get("out"), dict)), None)
+                kp["torn_tail_tolerated"] = bool(
+                    st2 and st2.get("ok") is not False
+                    and pid and pid in json.dumps(st2, ensure_ascii=False))
+            results["persistence"] = {"pass": bool(kp) and all(kp.values()), "checks": kp}
 
     # 6.6 schema compatibility — migrate a 1.0 fixture → verify → rollback → identical
     with tempfile.TemporaryDirectory() as td:
@@ -326,8 +487,7 @@ def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict
             "unknown_field_preserved": preserved, "rollback_byte_identical": restored == orig,
         }
 
-    results["PASS"] = all(v.get("pass") for v in results.values() if v.get("pass") is not None)
-    return results
+    return _finish(results)
 
 
 def main() -> int:

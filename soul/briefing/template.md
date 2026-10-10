@@ -1,6 +1,6 @@
 # briefing 模板契约（V0.3.1 §7）
 
-`briefing.md` 是由 `dsh/world-model/canonical_compile.py` 从 canonical
+`briefing.md` 是由 `mind/canonical_compile.py` 从 canonical
 目录编译生成的 7 段 onboarding 简报，挂载到 harness systemPrompt。
 本文件记录其结构契约——编译器是唯一生成者，此模板只描述输出形态。
 
@@ -26,6 +26,6 @@
 ## 编译
 
 ```bash
-python canonical_compile.py --canonical <canonicalDir>
+python mind/canonical_compile.py --canonical <canonicalDir>
 # 产出 briefing.md + runtime state（current.json）
 ```

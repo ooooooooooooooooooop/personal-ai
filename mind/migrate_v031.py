@@ -271,7 +271,8 @@ def build_governance(old: dict) -> dict:
     }
 
 
-def build_lineage(entity_id: str, genesis: dict, bound: dict) -> dict:
+def build_lineage(entity_id: str, genesis: dict, bound: dict,
+                  body_id: str = "unset", harness_type: str = "unset") -> dict:
     return {
         "schema_version": SCHEMA_110,
         "entity_id": entity_id,
@@ -280,8 +281,8 @@ def build_lineage(entity_id: str, genesis: dict, bound: dict) -> dict:
         "canonical_revision": f"schema-{SCHEMA_110}",
         "continuity_epoch": 1,
         "active_body": {
-            "body_id": "dsh-local",
-            "harness_type": "dsh",
+            "body_id": body_id,
+            "harness_type": harness_type,
             "bcc_version": "BCC-1",
             "bound_at": bound["ts"],
             "lease": "exclusive-canonical-writer",
@@ -365,7 +366,8 @@ def build_current(old: dict, lineage_head: str, entity_id: str) -> dict:
     return cur
 
 
-def migrate(canon: Path, apply: bool, entity_id: str | None = None) -> dict:
+def migrate(canon: Path, apply: bool, entity_id: str | None = None,
+            body_id: str | None = None, harness_type: str | None = None) -> dict:
     old = load_yaml(canon / "current.yaml")
     if not old:
         raise SystemExit(f"no current.yaml at {canon}")
@@ -378,17 +380,24 @@ def migrate(canon: Path, apply: bool, entity_id: str | None = None) -> dict:
         or (old.get("identity_model") or {}).get("entity_id")
         or "REPLACE_ME"
     )
+    # Body identity is the CALLER's to state: this migration is body-independent,
+    # and BCC-1 6.1 requires the projection to strip body_id anyway — baking one
+    # body's name into a generic tool's output would be a body leaking into the
+    # body-independent layer. Default is an honest "unset" (no body bound yet).
+    body_id = body_id or "unset"
+    harness_type = harness_type or "unset"
     genesis = lineage_event("ENTITY_GENESIS", entity_id=entity_id,
                             note="V0.3.1 分层初始化；prior history in pre-v031 backups")
-    bound = lineage_event("BODY_BOUND", entity_id=entity_id, body_id="dsh-local",
-                          harness_type="dsh", bcc_version="BCC-1")
+    bound = lineage_event("BODY_BOUND", entity_id=entity_id, body_id=body_id,
+                          harness_type=harness_type, bcc_version="BCC-1")
     migrated = lineage_event("SCHEMA_MIGRATED", entity_id=entity_id,
                              from_schema=str(old.get("schema_version", "1.0")),
                              to_schema=SCHEMA_110, theory_version=THEORY)
 
     out = {
         "governance.yaml": build_governance(old),
-        "lineage.yaml": build_lineage(entity_id, genesis, migrated),
+        "lineage.yaml": build_lineage(entity_id, genesis, migrated,
+                                      body_id=body_id, harness_type=harness_type),
         "sources.yaml": build_sources(old),
         "interfaces.yaml": build_interfaces(),
         "current.yaml": build_current(old, migrated["event_id"], entity_id),
@@ -483,6 +492,10 @@ def main() -> int:
     ap.add_argument("--verify", action="store_true")
     ap.add_argument("--entity-id", default=None,
                     help="entity id (default: read from existing canonical; REPLACE_ME if absent)")
+    ap.add_argument("--body-id", default=None,
+                    help="bound body id (default: unset — the caller states its own body)")
+    ap.add_argument("--harness-type", default=None,
+                    help="harness type (default: unset — the caller states its own body)")
     args = ap.parse_args()
     canon = Path(args.canonical)
     if args.rollback:
@@ -492,7 +505,8 @@ def main() -> int:
     if args.verify:
         print(json.dumps(verify(canon), ensure_ascii=False, indent=2))
         return 0
-    print(json.dumps(migrate(canon, args.apply, entity_id=args.entity_id),
+    print(json.dumps(migrate(canon, args.apply, entity_id=args.entity_id,
+                             body_id=args.body_id, harness_type=args.harness_type),
                      ensure_ascii=False, indent=2))
     return 0
 

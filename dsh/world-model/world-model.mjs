@@ -757,7 +757,7 @@ export function apply(ctx, config = {}) {
         const m = statSync(join(canonicalDir, f)).mtimeMs;
         if (m > newest) newest = m;
       }
-      return (bm < newest || rm < newest) ? 'canonical newer than compiled artifacts — re-run canonical_compile.py' : null;
+      return (bm < newest || rm < newest) ? 'canonical newer than compiled artifacts — re-run mind/canonical_compile.py' : null;
     } catch { return null; }
   }
 

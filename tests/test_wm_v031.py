@@ -16,11 +16,19 @@ import unittest
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-PKG = REPO / "dsh" / "world-model"
+PKG = REPO / "mind"
 sys.path.insert(0, str(PKG))
+
+# The adapter under test — the harness names its target. simulate_body.mjs bakes
+# in no body path, and bcc_check.py defaults to none, so this repo-level test is
+# the caller that states which body it is testing.
+ADAPTER_UNDER_TEST = REPO / "dsh" / "world-model" / "world-model.mjs"
+os.environ["BCC_PLUGIN"] = str(ADAPTER_UNDER_TEST)  # for in-process bcc_check calls
+BODY_ENV = {**os.environ, "BCC_PLUGIN": str(ADAPTER_UNDER_TEST)}
 
 import bcc_check  # noqa: E402
 import canonical_compile  # noqa: E402
+import instruction_compile  # noqa: E402
 import lp_evaluator  # noqa: E402
 import migrate_v031  # noqa: E402
 import yaml  # noqa: E402
@@ -85,7 +93,7 @@ def run_body(tmp: Path, canon: Path, steps, mode="core", body_id="body-A"):
     r = subprocess.run([NODE, str(PKG / "simulate_body.mjs"), str(scen),
                         str(state), str(canon), mode],
                        capture_output=True, text=True, timeout=60,
-                       encoding="utf-8", errors="replace")
+                       encoding="utf-8", errors="replace", env=BODY_ENV)
     assert r.returncode == 0, r.stderr[-800:]
     out = json.loads(r.stdout.strip().splitlines()[-1])
     evs = []
@@ -370,7 +378,7 @@ class TestGovernanceLease(unittest.TestCase):
             r = subprocess.run([NODE, str(PKG / "simulate_body.mjs"), str(scen),
                                 str(state), str(canon), "core"],
                                capture_output=True, text=True, timeout=60,
-                               encoding="utf-8", errors="replace")
+                               encoding="utf-8", errors="replace", env=BODY_ENV)
             self.assertEqual(r.returncode, 0, r.stderr)
             evs = [json.loads(l) for f in state.glob("runs/*.jsonl")
                    for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -866,10 +874,280 @@ class TestLearningProgressIsolation(unittest.TestCase):
 
 
 @NEED_NODE
+class TestInstructionCompile(unittest.TestCase):
+    """The instruction slot has a per-turn budget, and hitting it must not be silent.
+
+    A cap that quietly eats the tail is the same failure this section keeps
+    running into: the loss leaves no signal, so nobody notices that the
+    instruction the agent receives is not the one that was written. The compiler
+    therefore reports headroom on every run and fails loudly when it truncates.
+    """
+
+    def _canonical(self, td):
+        root = Path(td)
+        shutil.copytree(REPO / "soul" / "bootstrap" / "canonical", root, dirs_exist_ok=True)
+        return root
+
+    def test_normal_compile_reports_headroom_and_does_not_truncate(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = self._canonical(td)
+            p = subprocess.run([sys.executable, str(PKG / "instruction_compile.py"),
+                                "--canonical", str(root)], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            self.assertNotIn("TRUNCATED", rep)
+            self.assertEqual(rep["bytes"] + rep["headroom_bytes"], rep["cap"])
+            self.assertGreater(rep["headroom_bytes"], 0, "the slot is at capacity")
+            # and the artifact is not a clipped one
+            body = (root / "instruction" / "generated.md").read_text(encoding="utf-8")
+            self.assertTrue(body.rstrip().endswith("legible."),
+                            "the tail of the instruction must survive the cap")
+
+    def test_truncation_is_loud_and_exits_nonzero(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = self._canonical(td)
+            # shrink the cap rather than pad the source: the point is the report
+            driver = (
+                "import sys; sys.path.insert(0, r'%s');"
+                "import instruction_compile as ic; ic.HARD_CAP = 2000;"
+                "sys.argv = ['x', '--canonical', r'%s'];"
+                "raise SystemExit(ic.main())" % (str(PKG), str(root))
+            )
+            p = subprocess.run([sys.executable, "-c", driver], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 2, f"truncation must not exit 0: {p.stdout}")
+            rep = json.loads(p.stdout)
+            self.assertIn("TRUNCATED", rep)
+            self.assertGreater(rep["TRUNCATED"]["would_have_been_bytes"], rep["cap"])
+
+    def test_over_target_warns_but_ships_whole(self):
+        """The target is a budget, not a cliff (the briefing has worked this way).
+
+        Using the target AS the cap cut the real pilot canonical mid-sentence and
+        dropped §6's operational steps. Over target must therefore be visible and
+        survivable; only over the hard cap is a truncation.
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = self._canonical(td)
+            # A tiny target with the real hard cap: content fits, aiming does not.
+            driver = (
+                "import sys; sys.path.insert(0, r'%s');"
+                "import instruction_compile as ic; ic.TARGET_MAX = 500;"
+                "sys.argv = ['x', '--canonical', r'%s'];"
+                "raise SystemExit(ic.main())" % (str(PKG), str(root))
+            )
+            p = subprocess.run([sys.executable, "-c", driver], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, f"over-target must not fail: {p.stdout}")
+            rep = json.loads(p.stdout)
+            self.assertNotIn("TRUNCATED", rep)
+            self.assertTrue(rep["over_target"])
+            self.assertIn("OVER_TARGET", rep)
+            body = (root / "instruction" / "generated.md").read_text(encoding="utf-8")
+            self.assertTrue(body.rstrip().endswith("legible."), "the tail must survive")
+            self.assertEqual(rep["bytes"] + rep["headroom_bytes"], rep["cap"])
+
+    def test_a_declared_section_must_not_vanish_silently(self):
+        """§2/§4/§5 render from canonical. A missing source says NOT DECLARED.
+
+        The pilot canonical has no `u0_constitutional.revision_rules`, and the
+        section was simply omitted — which reads as "there are no standing rules"
+        rather than "they were not declared here". The reader cannot tell those
+        apart, so the artifact has to say which.
+        """
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "governance.yaml").write_text(
+                "u0_constitutional:\n  root_authorities:\n    entity_root: x\n",
+                encoding="utf-8")
+            p = subprocess.run([sys.executable, str(PKG / "instruction_compile.py"),
+                                "--canonical", str(root)], capture_output=True, text=True)
+            body = (root / "instruction" / "generated.md").read_text(encoding="utf-8")
+            for header in ("## 2. Revision rules", "## 4. Normative scopes",
+                           "## 5. How each class of change is made"):
+                self.assertIn(header, body, f"{header} must appear even when undeclared")
+            self.assertIn("NOT DECLARED", body)
+
+
+class TestDeclaredCapsAndEnforcedCapsAgree(unittest.TestCase):
+    """The declared budget and the enforced budget must be the same number.
+
+    N2 came from exactly this drift: `soul/manifest.json` declared a *target* for
+    the instruction slot and the compiler used that target as its hard cap — two
+    sources of truth for one budget, invisible until the REAL pilot canonical
+    overflowed and §6's operational steps were silently dropped. Pin them together
+    so the next edit to either side fails here instead of in production.
+    """
+
+    @staticmethod
+    def _block(name):
+        manifest = json.loads((REPO / "soul" / "manifest.json").read_text(encoding="utf-8"))
+        return manifest[name]
+
+    def test_instruction_caps_match_the_compiler(self):
+        block = self._block("instruction")
+        self.assertEqual(block["target_max_bytes"], instruction_compile.TARGET_MAX)
+        self.assertEqual(block["hard_cap_bytes"], instruction_compile.HARD_CAP)
+        self.assertGreater(block["hard_cap_bytes"], block["target_max_bytes"],
+                           "the two tiers must stay distinct — a target used as a cap is N2")
+
+    def test_briefing_caps_match_the_compiler(self):
+        block = self._block("briefing")
+        self.assertEqual(block["target_max_bytes"], canonical_compile.TARGET_MAX)
+        self.assertEqual(block["hard_cap_bytes"], canonical_compile.HARD_CAP)
+
+
+class TestReversibilityCompile(unittest.TestCase):
+    """The learned overlay (finding G11).
+
+    The gate's danger classification was a hardcoded dictionary; models learned
+    in the canonical reached the agent (via the briefing) but never the gate, so
+    a refutation could never relax the prior. This compiler closes that gap —
+    and its REJECTION rules are the load-bearing part: without them the overlay
+    would be a backdoor around the gate rather than the benefit of learning.
+    """
+
+    def _canonical(self, td):
+        root = Path(td)
+        shutil.copytree(REPO / "soul" / "bootstrap" / "canonical", root, dirs_exist_ok=True)
+        # a model must exist for a relaxation to cite it
+        (root / "current.yaml").write_text(
+            "\n".join([
+                "watermark: w1",
+                "world_model:",
+                "  models:",
+                "    M-x:",
+                "      proposition: cmd x is safe",
+                "",
+            ]),
+            encoding="utf-8")
+        return root
+
+    def _compile(self, root, relaxations):
+        prop = Path(root) / "proposals.json"
+        prop.write_text(json.dumps({"relaxations": relaxations}), encoding="utf-8")
+        return subprocess.run(
+            [sys.executable, str(PKG / "reversibility_compile.py"),
+             "--canonical", str(root), "--abstractor", "file", "--proposals", str(prop)],
+            capture_output=True, text=True)
+
+    def _relax(self, **over):
+        r = {"model_id": "M-x", "match": {"tool": "bash", "command_head": "ls"},
+             "class": "reversible", "scope_conditions": ["headless"], "evidence_refs": ["e2"]}
+        r.update(over)
+        return r
+
+    def test_abstain_by_default_emits_no_relaxations(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = self._canonical(td)
+            p = subprocess.run([sys.executable, str(PKG / "reversibility_compile.py"),
+                                "--canonical", str(root)], capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            doc = json.loads((root / "reversibility.json").read_text(encoding="utf-8"))
+            self.assertEqual(doc["relaxations"], [])
+            self.assertEqual(doc["abstractor"], "none")
+            self.assertEqual(doc["canonical_watermark"], "w1")
+
+    def test_a_well_formed_relaxation_is_emitted(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = self._canonical(td)
+            p = self._compile(root, [self._relax()])
+            self.assertEqual(p.returncode, 0, p.stderr)
+            doc = json.loads((root / "reversibility.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(doc["relaxations"]), 1)
+            self.assertEqual(doc["relaxations"][0]["match"]["command_head"], "ls")
+
+    def test_rejections(self):
+        cases = {
+            "unevidenced": self._relax(evidence_refs=[]),
+            "unscoped": self._relax(scope_conditions=[]),
+            "tightening": self._relax(**{"class": "consequential"}),
+            "unknown_model": self._relax(model_id="M-does-not-exist"),
+            "no_tool": self._relax(match={"command_head": "ls"}),
+        }
+        for label, bad in cases.items():
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as td:
+                root = self._canonical(td)
+                p = self._compile(root, [bad])
+                self.assertEqual(p.returncode, 2, f"{label} must be rejected: {p.stdout}")
+                self.assertIn("REJECTED", p.stderr)
+                # and nothing is emitted — a dropped relaxation must never look
+                # like "the model didn't support it"
+                self.assertFalse((root / "reversibility.json").exists())
+
+
+class TestWmCycle(unittest.TestCase):
+    """The cycle entry point: the non-governed half of the chain, one command.
+
+    Running distiller → … → u1_accept by hand step by step was never a design —
+    it was the absence of this entry point. The boundary it stops at is the
+    point of the test: a cycle that accepted its own proposals would be a
+    self-granting authority, which revision_rules forbids.
+    """
+
+    def _instance(self, td):
+        root = Path(td)
+        (root / "canonical").mkdir(parents=True, exist_ok=True)
+        shutil.copytree(REPO / "soul" / "bootstrap" / "canonical", root / "canonical",
+                        dirs_exist_ok=True)
+        return root
+
+    def test_dry_run_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = self._instance(td)
+            p = subprocess.run([sys.executable, str(PKG / "wm_cycle.py"),
+                                "--instance", str(root), "--dry-run"],
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertFalse((root / "canonical" / "briefing.md").exists())
+            self.assertFalse((root / "canonical" / "instruction" / "generated.md").exists())
+
+    def test_cycle_compiles_and_stops_before_governance(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = self._instance(td)
+            p = subprocess.run([sys.executable, str(PKG / "wm_cycle.py"),
+                                "--instance", str(root)],
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            # both artifacts the model reads are produced
+            self.assertTrue((root / "canonical" / "briefing.md").exists())
+            self.assertTrue((root / "canonical" / "instruction" / "generated.md").exists())
+            # and the cycle says where it stopped, and why
+            self.assertEqual(rep["stopped_before"]["step"], "u1_accept")
+            self.assertIn("u1_governed", rep["stopped_before"]["why"])
+            # the canonical itself is untouched by the cycle
+            self.assertFalse((root / "canonical" / "current.yaml.new").exists())
+            # every step that ran succeeded
+            for step in rep["steps"]:
+                self.assertTrue(step.get("ok", True), step)
+
+
 class TestBCC(unittest.TestCase):
+    def test_second_body_passes_the_same_contract(self):
+        """BCC-1 exists so a SECOND body can be verified without touching the
+        generic side. The pi adapter is that second body — this test is the
+        point of the whole contract, not a duplicate of the DSH one.
+
+        It must be run with BCC_PLUGIN pointed at the pi adapter; bcc_check
+        resolves the adapter at call time, so the env is swapped here and
+        restored afterwards."""
+        adapter = REPO / "pi" / "src" / "adapter" / "world-model.js"
+        if not adapter.exists():
+            self.skipTest("pi world-model adapter not present")
+        saved = os.environ.get("BCC_PLUGIN")
+        try:
+            os.environ["BCC_PLUGIN"] = str(adapter)
+            res = bcc_check.check_all(None, with_node=True)
+        finally:
+            if saved is None:
+                os.environ.pop("BCC_PLUGIN", None)
+            else:
+                os.environ["BCC_PLUGIN"] = saved
+        for area in ("event_ordering", "guard_semantics", "persistence", "schema_compat"):
+            self.assertTrue(res[area]["pass"], f"{area} failed for the pi adapter: {res[area]}")
+
     def test_guard_fixtures_reference_and_plugin(self):
         for fx in bcc_check.GUARD_FIXTURES:
-            ref = bcc_check.guard_reference(fx["tool"], fx["args"], fx["mode"], fx["preds"])
+            ref = bcc_check.guard_reference(fx["tool"], fx["args"], fx["mode"], fx["preds"], fx.get("exec_extra"))
             self.assertEqual(ref, fx["expect"], f"reference diverges on {fx['name']}")
         with tempfile.TemporaryDirectory() as td:
             res = bcc_check.check_all(None, with_node=True)
@@ -924,7 +1202,7 @@ class TestRegression(unittest.TestCase):
             subprocess.run([NODE, str(PKG / "simulate_body.mjs"), str(scen),
                             str(state), str(canon), "core"],
                            capture_output=True, text=True, timeout=60,
-                           encoding="utf-8", errors="replace", check=True)
+                           encoding="utf-8", errors="replace", env=BODY_ENV, check=True)
             cur = json.loads((state / "current.json").read_text())
             self.assertIn("P-foreign", cur["open_predictions"])
             self.assertTrue(any(p.startswith("P-") for p in cur["open_predictions"]))

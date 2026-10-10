@@ -7,11 +7,11 @@ import unittest
 from pathlib import Path
 
 import sys
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "dsh" / "world-model"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "mind"))
 import distill  # noqa: E402
 import yaml  # noqa: E402
 
-U1_ACCEPT = Path(__file__).resolve().parents[1] / "dsh" / "world-model" / "u1_accept.py"
+U1_ACCEPT = Path(__file__).resolve().parents[1] / "mind" / "u1_accept.py"
 
 
 def _ev(seq, et, pid=None, payload=None, ts="2026-09-16T00:00:00Z"):

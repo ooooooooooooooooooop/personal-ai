@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-U1 = Path(__file__).resolve().parents[1] / "dsh" / "world-model" / "u1_accept.py"
+U1 = Path(__file__).resolve().parents[1] / "mind" / "u1_accept.py"
 
 LOOPS = """schema_version: "1.0"
 open_loops:

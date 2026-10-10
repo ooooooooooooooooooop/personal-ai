@@ -6,7 +6,7 @@
     "sections": 7,
     "target_max_bytes": 6144,
     "hard_cap_bytes": 8192,
-    "compiler": "dsh/world-model/canonical_compile.py",
+    "compiler": "mind/canonical_compile.py",
     "template": "briefing/template.md"
   },
   "models": {
@@ -27,8 +27,17 @@
   "release": {
     "tag": "soul-0.1.2",
     "content_commit": "62983bed33fc5569b39ab049f93d5c09668e979c",
-    "payload_digest": "sha256:495a6083548bc49ba2a687ed80592e6cf4c70454cc653f1f492adf716ff6119a",
+    "payload_digest": "sha256:d65347eb7695bac46e037b700d498fff5e03ac411986938b8d8d3cd7d57769e1",
     "digest_rule": "sha256 over sorted relpath+content of all soul/ files except manifest.json (content newline-normalized CRLF/CR->LF)",
     "verifier": "scripts/soul_release_check.py"
+  },
+  "instruction": {
+    "sections": 7,
+    "target_max_bytes": 6144,
+    "hard_cap_bytes": 8192,
+    "compiler": "mind/instruction_compile.py",
+    "template": "instruction/template.md",
+    "mounts_as": "InstructionEnvelope.instructions",
+    "source": "canonical/governance.yaml (+ policy.json for the enforcement posture)"
   }
 }

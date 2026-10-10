@@ -15,9 +15,10 @@
 #     interfaces,operators,open-loops}.yaml + briefing.md(编译产物)
 #     + runtime-state.json(编译投影) + history/ + proposals/
 #   canonical 只接受 proposals 路径写入，runtime 不自动改写。
-#   V0.3.1：canonical 编译由 canonical_compile.py 完成（briefing.md 生成物，
-#   不可手写）；迁移/回滚 migrate_v031.py；LP lp_evaluator.py（只读隔离）；
-#   BCC-1 兼容协议 bcc_check.py + simulate_body.mjs。
+#   V0.3.1：canonical 编译由 mind/canonical_compile.py 完成（briefing.md 生成物，
+#   不可手写）；迁移/回滚 mind/migrate_v031.py；LP mind/lp_evaluator.py（只读隔离）；
+#   BCC-1 兼容协议 mind/bcc_check.py + mind/simulate_body.mjs。
+#   注：这些工具已按分层迁至 mind/（harness 无关），本目录只放 DSH 适配器。
 # ============================================================================
 
 - insert:
