@@ -4444,3 +4444,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：两面 **COVERED(variant)**——`web_fetch`/`web_search` 工具族在册+agent profile `tools:` 白名单可声明 web 能力探索人格（内置 Explore 人格名=variant；能力等价面在）。
 - **核销**：candidates-open #3517 → `candidates-resolved.tsv` #344。
+
+#### 28.345 per-type model + fan-out + async 相位 + fork gate 族 (#3519–#3521 — 全 VARIANT/COVERED)
+
+- **status**: classification only.
+- **判定**：
+  - **#3519** 标题 **COVERED**——delegate `model`/`effort` 覆盖+profile 可钉模型（#1169）；描述 **COVERED**——fan-out=多 delegate_task+`depends_on` 链。
+  - **#3520** 标题 **COVERED(variant)**——async 子 agent=durable detached job+task_events/webhook 通知+批量 fan-out（subprocess/hook 通知形态=variant）；描述 **COVERED(variant)**——子 agent 事件进 audit+事件账=遥信转发语义。
+  - **#3521** 标题 **COVERED(variant)**——fork 模式=delegate 省 target 自动 fork 本体+profile gate（声明才启用=feature gate 语义）；描述 **BOUNDARY(variant)**——channel 绑定 agent 工作区文件=channel-scoped agent 绑定面无对应物（steering 按实例加载=相邻变体）。
+- **核销**：candidates-open #3519/#3520/#3521 → `candidates-resolved.tsv` #345/#346/#347。

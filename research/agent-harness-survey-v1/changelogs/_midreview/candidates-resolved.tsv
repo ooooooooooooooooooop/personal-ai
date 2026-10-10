@@ -343,3 +343,6 @@ dedup-h	3495	hook	frontmatter hooks default-off	BOUNDARY:no frontmatter hook dec
 dedup-h	3506	approval	guardian smart approvals	BOUNDARY(variant):operator asks direct,no guardian subagent surface;desc VARIANT single-delivery envelope
 dedup-h	3514	task	managed child+sticky cancel	COVERED(variant):delegate durable+task_interrupt;desc VARIANT task_events render
 dedup-h	3517	subagent	Explore web search	COVERED(variant):web_fetch/web_search+profile tools allowlist
+dedup-h	3519	delegate	per-type model	COVERED:model/effort override+profile pin #1169;desc COVERED fan-out depends_on
+dedup-h	3520	delegate	subagent async Phase1	COVERED(variant):durable job+events/webhook+batch;desc VARIANT audit+events telemetry
+dedup-h	3521	delegate	fork subagent gate	COVERED(variant):fork mode+profile opt-in;desc BOUNDARY(variant) channel-agent binding
