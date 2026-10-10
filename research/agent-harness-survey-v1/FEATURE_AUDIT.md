@@ -4332,3 +4332,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: title implemented; desc noise.
 - **判定**：标题 **IMPLEMENTED**——同 #3337（`PAI_AUTOCOMPACT_THRESHOLD`）。描述段=截断的请求文本非功能条目=**NOISE**。
 - **核销**：candidates-open #3344 → `candidates-resolved.tsv` #326。
+
+#### 28.327 memory CLI + /compact (#3346 — title VARIANT / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`memory_recall`（FTS 查询）+`memory_store`/`memory_forget` 工具族+memory.db 随 backup 导出=search/export 语义（独立 memory CLI 子命令=variant）。描述 **ALREADY_COVERED**——`/compact` 命令在册（manual compaction+`compaction_start/end` 事件链）。
+- **核销**：candidates-open #3346 → `candidates-resolved.tsv` #327。
+
+#### 28.328 session.compacting hook + auto-compact 禁用 (#3347 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`compact_start`（pre-compaction 事件含 reason/runId）=session.compacting 注入点语义。描述 **COVERED(variant)**——#3337 落地 `PAI_AUTOCOMPACT_THRESHOLD`（0.5–0.99 可调；近禁用=0.99）——独立 disable flag vs 阈值上限=variant。
+- **核销**：candidates-open #3347 → `candidates-resolved.tsv` #328。
+
+#### 28.329 --model 语法族 + compact_failed 事件 (#3351 — title VARIANT / desc COVERED(variant))
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`/config model=<provider/id|别名>`+模型菜单 fuzzy 过滤+`thinking=<档>` 独立键——`--model` 免 `--provider`+fuzzy+档位语义俱在（`:<thinking>` 内联后缀 vs 独立键=variant）。描述 **COVERED(variant)**——同 #3272（`compact_end{status,error}` 载失败原因）。
+- **核销**：candidates-open #3351 → `candidates-resolved.tsv` #329。

@@ -325,3 +325,6 @@ dedup-h	3320	memory	daily notes recall	BOUNDARY(variant):SQLite FTS not markdown
 dedup-h	3323	memory	active-memory default+guided imports	COVERED(variant):pinned+FTS inject every turn,user scope cross-dialog;desc BOUNDARY no wiki gateway
 dedup-h	3337	compact	compaction_threshold_tokens	IMPLEMENTED:PAI_AUTOCOMPACT_THRESHOLD env 0.5-0.99 clamp;desc COVERED #3315
 dedup-h	3344	compact	configurable auto-compact threshold	IMPLEMENTED:same env as 3337;desc NOISE truncated request text
+dedup-h	3346	memory	memory search/export CLI	COVERED(variant):memory_recall/store tools+backup export;desc COVERED /compact cmd
+dedup-h	3347	hook	session.compacting pre-hook	COVERED(variant):compact_start event;desc threshold 0.99 near-disable variant #3337
+dedup-h	3351	model	--model syntax family	COVERED(variant):provider/id+alias+fuzzy menu+thinking key;desc compact_end status/error variant #3272
