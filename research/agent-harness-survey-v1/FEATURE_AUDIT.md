@@ -3433,3 +3433,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（file checkpoints：会话中自动建检查点+rewind 恢复）**：**已覆盖**——每次 mutation 落 receipt+pre-image、`file_checkpoint` hook 事件、restore 带 displace 保护（当前字节先入 recycle）、`undoCall` 工具调用级 rewind、`/diff`+changes 面板可触达。
 - **证据**：`pi/src/adapter/fileops.js` receipt/restore/undoCall 链。
 - **核销**：candidates-open #2456 → `candidates-resolved.tsv` #194。
+
+#### 28.195 spawn role preset + interrupt + file-input clear (#2462 — both covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED**；描述 **ALREADY_COVERED(defect-absent)**。
+  - **标题语义（spawn_agent role preset + send_input 可 interrupt）**：**已覆盖**——`delegate_task(profile=…)`=role preset 对位；`task_interrupt` 工具=send_input/interrupt 面；resume_task（#2431）延续会话。
+  - **描述语义（edit mode 加文件后清 add-file 输入）**：**已覆盖**——file-ref 选中即把 `@token` 原位替换为文件引用（app.js:4819），输入态自清，不存在残留输入的缺陷类。
+- **证据**：`tasktools.js` task_interrupt；`app/ui/app.js` file-ref 替换链。
+- **核销**：candidates-open #2462 → `candidates-resolved.tsv` #195。
