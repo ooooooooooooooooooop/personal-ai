@@ -4276,3 +4276,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——compaction 失败经 `compact_end {reason, runId, status, error}` 载出（status/error 字段即 failed 信号）——独立事件名 vs 字段载=variant。描述 **ALREADY_COVERED**——同 #3204/#3233（`tool_timeout_ms`+env 兜底已落地）。
 - **核销**：candidates-open #3272 → `candidates-resolved.tsv` #317。
+
+#### 28.318 pre-compaction memory flush + /context MCP tokens (#3282 — title VARIANT / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——内建自动 flush 缺；`compact_start` 事件（含 reason）已到 hook——operator 可挂 flush 动作=可组合变体。描述 **PARTIAL(variant)**——无 `/context` 窗口组成视图；`usage_traces`（模型/token 拆分/缓存命中）+`/stats` 聚合覆盖用量核算，MCP-工具维度无单列。
+- **核销**：candidates-open #3282 → `candidates-resolved.tsv` #318。
+
+#### 28.319 incognito transcripts（双向同条） (#3305 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M71 ephemeral session：`sessionManagers.inMemory` 同一治理身体+零文件持久（transcripts/compaction 全内存）+`isEphemeral` 权威标记。描述=同条双语。
+- **核销**：candidates-open #3305 → `candidates-resolved.tsv` #319。
+
+#### 28.320 memory 日文 FTS + OAuth 失败 redact (#3313 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——memory_fts 自定义 CJK 分词（unicode61 无 CJK 断词→JS 段化索引+`ftsAndQuery` 查询侧同段化）=日文/中日韩查询展开语义（stop-words 表=variant）。描述 **ALREADY_COVERED**——audit redact：key-name+value-level 深度脱敏（credential 任何深度不落账）——refresh 失败原因文本过同一 redact 管。
+- **核销**：candidates-open #3313 → `candidates-resolved.tsv` #320。
