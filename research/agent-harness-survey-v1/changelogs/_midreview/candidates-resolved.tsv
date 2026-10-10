@@ -394,3 +394,6 @@ dedup-h	3863	cli	Codex CLI session bind	BOUNDARY:no external CLI surface;desc VA
 dedup-h	3864	queue	queue modes+overrides	PARTIAL(variant):followUp queue only,no mode knob;desc BOUNDARY ACP
 dedup-h	3866	context	/context treemap	PARTIAL(variant):/stats+traces detail;desc BOUNDARY team nav
 dedup-h	3870	share	sanitized share upload	BOUNDARY:no cloud share,local export variant;desc VARIANT fork/delete/resume
+dedup-h	3873	exec	/exec session defaults	PARTIAL(variant):env/policy/ask session dims,no /exec cmd;desc VARIANT TUI seed
+dedup-h	3878	fork	--fork path|id	COVERED(variant):session_fork op;desc VARIANT date-sort+pinned+threaded list
+dedup-h	3881	hook	BOOT.md per-agent scope	PARTIAL(variant):steering session-level;desc BOUNDARY(variant) cli flags

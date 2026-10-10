@@ -4751,3 +4751,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无云上传 share 面（`session_export`/`handoff_export` 本地导出=相邻变体，secret 剥离在 backup/export 链）。描述 **COVERED(variant)**——`session_fork`+`session_delete`/`session_list`+resume 流=fork/archive/restore 语义。
 - **核销**：candidates-open #3870 → `candidates-resolved.tsv` #395。
+
+#### 28.394 /exec 会话默认 + TUI resume 种子 (#3873 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——exec 默认值=env overlay+policy/ask 层（session 维度可调）；`/exec` 专属配置命令=variant 未落。描述 **COVERED(variant)**——resume 历史种子=session transcript 直读。
+- **核销**：candidates-open #3873 → `candidates-resolved.tsv` #396。
+
+#### 28.395 --fork + sortable resume picker (#3878 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`session_fork{path|entryId}`（CLI flag 形态=variant）。描述 **COVERED(variant)**——会话列表=日期桶排序+pin 置顶+fork 线程缩进（created/updated toggle 旋钮=variant）。
+- **核销**：candidates-open #3878 → `candidates-resolved.tsv` #397。
+
+#### 28.396 BOOT.md per-agent + --session/--continue (#3881 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——steering/rules=session 级注入；per-agent BOOT.md 作用域=variant 未落。描述 **BOUNDARY(variant)**——无 crush-CLI flag 面。
+- **核销**：candidates-open #3881 → `candidates-resolved.tsv` #398。
