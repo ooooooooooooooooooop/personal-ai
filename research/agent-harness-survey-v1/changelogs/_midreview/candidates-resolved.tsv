@@ -397,3 +397,6 @@ dedup-h	3870	share	sanitized share upload	BOUNDARY:no cloud share,local export v
 dedup-h	3873	exec	/exec session defaults	PARTIAL(variant):env/policy/ask session dims,no /exec cmd;desc VARIANT TUI seed
 dedup-h	3878	fork	--fork path|id	COVERED(variant):session_fork op;desc VARIANT date-sort+pinned+threaded list
 dedup-h	3881	hook	BOOT.md per-agent scope	PARTIAL(variant):steering session-level;desc BOUNDARY(variant) cli flags
+dedup-h	3883	health	per-agent summaries	PARTIAL(variant):readyz+job status,no roster summary;desc VARIANT policy deny toggle
+dedup-h	3885	hook	message:received/sent	COVERED(variant):prompt_submit+turn_started+message_end;desc VARIANT compress chain
+dedup-h	3886	rewind	Rewind to here	COVERED:per-msg edit btn->session_rewind entryId;desc VARIANT toolsAllow mcp__*

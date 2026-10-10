@@ -4769,3 +4769,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——steering/rules=session 级注入；per-agent BOOT.md 作用域=variant 未落。描述 **BOUNDARY(variant)**——无 crush-CLI flag 面。
 - **核销**：candidates-open #3881 → `candidates-resolved.tsv` #398。
+
+#### 28.397 per-agent 健康摘要 + subagents_enabled (#3883 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`/readyz`/`/healthz`（#3753）+job/agent status 面在册；per-agent 汇总摘要+selective probes=variant 未落。描述 **COVERED(variant)**——subagent 开关=policy deny `delegate_task`+profile gate（live config.json toggle=variant）。
+- **核销**：candidates-open #3883 → `candidates-resolved.tsv` #399。
+
+#### 28.398 message:received/sent hooks + compress reload (#3885 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`prompt_submit`（received 门控）+`turn_started`/`message_end`/`notification`=message 生命周期事件族（received/sent 命名=variant）。描述 **COVERED(variant)**——/compress 重载=compact_end+context 重注入链（quota-fallback 工具响应丢失=上游缺陷类，我栈无对应路径）。
+- **核销**：candidates-open #3885 → `candidates-resolved.tsv` #400。
+
+#### 28.399 Rewind to here + browser-agent 策略 (#3886 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——每条用户消息带"编辑"钮→`session_rewind{entryId}` 回退到该点前状态+原文进输入框重发（app.js:337-344）。描述 **COVERED(variant)**——server-tools 全放策略=toolsAllow `mcp__*` 宽放（比布尔更细）。
+- **核销**：candidates-open #3886 → `candidates-resolved.tsv` #401。
