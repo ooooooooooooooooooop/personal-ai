@@ -3514,3 +3514,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（Canvas 懒加载——Gateway 启动只付首次实现成本）**：**BOUNDARY**——栈内无 canvas 模块/网关组装面对应物。
 - **证据**：`pi/extensions/mcp/index.js` oauthExchangedTokens。
 - **核销**：candidates-open #2536 → `candidates-resolved.tsv` #204。
+
+#### 28.204 remote MCP OAuth + remote CDP host gate (#2537 — title covered / desc IMPLEMENTED)
+
+- **status**: desc mechanism landed; title classified.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED**。
+  - **标题语义（OAuth authentication remote servers）**：**已覆盖**——authorization_code+device_code(#740)+client_credentials+RFC 8693 token-exchange+static bearer+RFC 8414 discovery，多流全齐。
+  - **描述语义（允许选定的远程 CDP profile host 做 health/control 检查、不放宽导航 SSRF）**：**IMPLEMENTED**——`PAI_BROWSER_ATTACH_ALLOW_REMOTE=1` 显式 opt-in 放开非 loopback attach 端点（控制通道）；未设旗保持 refuse+audit；非 http(s) 端点 loopback 也拒；`BROWSER_ATTACH {remote:true}` 审计行；**导航 DNS/SSRF 边界原样**（只动 attach 端点面）。
+- **位点**：`pi/src/adapter/browser.js`（attach 端点准入）；生成器源码位点。
+- **证据**：`pi/tests/browser.test.js` 12/12（无旗拒绝→有旗注册+remote 审计+非 http 拒绝）；#2514 基线不破。
+- **核销**：candidates-open #2537 → `candidates-resolved.tsv` #205。

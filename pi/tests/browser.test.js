@@ -263,6 +263,25 @@ test('#2514: PAI_BROWSER_ATTACH — non-loopback refused, loopback registers wit
   });
   assert.deepEqual(tools.map((t) => t.name).sort(), NAMES.slice().sort());
   tools.dispose();
+
+  // #2537 — declared remote host allowed only with explicit opt-in flag
+  const audits2 = [];
+  const remote = browserTools({
+    instanceRoot: dir, audit: { write: (e) => audits2.push(e) },
+    env: { ...baseEnv, PAI_BROWSER_ATTACH: 'http://10.0.0.9:9222', PAI_BROWSER_ATTACH_ALLOW_REMOTE: '1' },
+  });
+  assert.deepEqual(remote.map((t) => t.name).sort(), NAMES.slice().sort());
+  assert.ok(audits2.some((e) => e.kind === 'BROWSER_ATTACH' && e.data?.remote === true));
+  remote.dispose();
+
+  // non-http(s) endpoint refused even on loopback-shaped hostnames
+  const audits3 = [];
+  const bad = browserTools({
+    instanceRoot: dir, audit: { write: (e) => audits3.push(e) },
+    env: { ...baseEnv, PAI_BROWSER_ATTACH: 'ftp://127.0.0.1:9222' },
+  });
+  assert.equal(bad.length, 0);
+  assert.ok(audits3.some((e) => e.kind === 'BROWSER_ATTACH_REFUSED'));
 });
 
 test('#2514: attach consumes the devtools endpoint (no spawn); dispose detaches without killing', async () => {

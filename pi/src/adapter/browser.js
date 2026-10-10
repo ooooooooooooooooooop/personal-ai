@@ -385,11 +385,24 @@ export function browserTools({ instanceRoot, audit = null, env = process.env, se
   const attachRaw = String(env.PAI_BROWSER_ATTACH ?? '').trim();
   let attachUrl = null;
   if (attachRaw) {
-    if (!/^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|\[?::1\]?)(:\d+)?(\/.*)?$/i.test(attachRaw)) {
-      audit?.write({ kind: 'BROWSER_ATTACH_REFUSED', data: { reason: 'non-loopback endpoint refused', endpoint: attachRaw.slice(0, 80) } });
+    // dedup-h #2537 — the DECLARED remote host is allowed for the CDP
+    // control channel (WSL→Windows Chrome analogue) when the operator sets
+    // the remote flag explicitly; this widens the attach endpoint only —
+    // page navigation stays behind the same DNS/SSRF boundary as always.
+    const remoteOk = ['1', 'true', 'yes'].includes(String(env.PAI_BROWSER_ATTACH_ALLOW_REMOTE ?? '').toLowerCase());
+    const loopback = /^https?:\/\/(localhost|127\.\d+\.\d+\.\d+|\[?::1\]?)(:\d+)?(\/.*)?$/i.test(attachRaw);
+    if (!loopback && !remoteOk) {
+      audit?.write({ kind: 'BROWSER_ATTACH_REFUSED', data: { reason: 'non-loopback endpoint refused (set PAI_BROWSER_ATTACH_ALLOW_REMOTE=1 to opt in)', endpoint: attachRaw.slice(0, 80) } });
       return [];
     }
-    attachUrl = attachRaw.startsWith('http') ? attachRaw : `http://${attachRaw}`;
+    if (!/^https?:\/\//i.test(attachRaw)) {
+      audit?.write({ kind: 'BROWSER_ATTACH_REFUSED', data: { reason: 'endpoint must be http(s)', endpoint: attachRaw.slice(0, 80) } });
+      return [];
+    }
+    if (!loopback) {
+      audit?.write({ kind: 'BROWSER_ATTACH', data: { remote: true, endpoint: attachRaw.slice(0, 80), note: 'operator-declared remote devtools endpoint — control channel only; navigation SSRF unchanged' } });
+    }
+    attachUrl = attachRaw;
   }
   const exe = findBrowserExe(env);
   if (!exe && !attachUrl) return [];
