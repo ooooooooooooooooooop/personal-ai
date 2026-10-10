@@ -448,3 +448,6 @@ dedup-h	4089	ui	plain-HTML recovery panel	IMPLEMENTED:splash watchdog+__paiReady
 dedup-h	4091	hook	agent frontmatter hooks	BOUNDARY:hooks operator-private only;desc BOUNDARY plugin cache
 dedup-h	4092	agent	settings.agent default	BOUNDARY(variant):no-profile=operator default;desc BOUNDARY workshop
 dedup-h	4093	diag	skill metrics+tool source labels	COVERED(variant):skill stats+name-prefix/label source;desc BOUNDARY plugin repair
+dedup-h	4095	ext	async extension factories	COVERED(defect-absent):SDK await-import;desc BOUNDARY Pixverse
+dedup-h	4107	install	governed install gate	COVERED(variant):skill-install opt-in+manifest sha256;desc COVERED(variant) schema
+dedup-h	4108	hook	sdk tool exec hooks	COVERED:pre/post_tool gate;desc BOUNDARY iMessage

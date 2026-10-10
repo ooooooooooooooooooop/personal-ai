@@ -5088,3 +5088,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——skill stats（bytes/hits/allowed 有界指标）在册；工具源经名前缀+label 编码（`mcp__srv__tool`/builtin/profile），label 面已通。描述 **BOUNDARY**——插件修复下载面。
 - **核销**：candidates-open #4093 → `candidates-resolved.tsv` #449。
+
+#### 28.448 异步扩展工厂 + Pixverse (#4095 — title DEFECT-ABSENT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(defect-absent)**——SDK loader `await import()` 加载 managed 路径，扩展模块内动态 import/惰性依赖天然可用（mcp 扩展已用惰性连接）。描述 **BOUNDARY**——Pixverse 视频 provider 面。
+- **核销**：candidates-open #4095 → `candidates-resolved.tsv` #450。
+
+#### 28.449 治理化安装门 + 数组 schema (#4107 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——治理化安装面双件：`skill-install.json {allowInstall:true}` 操作员开关（默认关，#1985）+ managed-manifest sha256 准入（hash 不符拒载）。描述 **COVERED(variant)**——工具 schema 直出 SDK 参数对象（permissive items 由 SDK 规范化链处理）。
+- **核销**：candidates-open #4107 → `candidates-resolved.tsv` #451。
+
+#### 28.450 SDK tool 执行 hooks + iMessage 附件 (#4108 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——pre_tool/post_tool gate hooks=SDK 注册式执行拦截对应物（deny/args 重写/append/ask）。描述 **BOUNDARY**——iMessage link-preview 面。
+- **核销**：candidates-open #4108 → `candidates-resolved.tsv` #452。
