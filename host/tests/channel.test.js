@@ -610,6 +610,19 @@ test('provider_add/provider_models_add: cost declaration validated and passed th
   assert.equal(pub.success, true);
   assert.equal(added.at(-1).allowPrivateNetwork, undefined);
 
+  // dedup-h #3379 — custom headers pass through; credential-shaped and
+  // malformed keys are stripped (secrets go through auth_set_key only)
+  const hd = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://x', api: 'a', model: 'm',
+    headers: { 'anthropic-beta': 'context-1m-2025-08-07', 'authorization': 'Bearer x', 'x-api-key': 'k', 'bad key': 'v', 'x-ok': 'y' } });
+  assert.equal(hd.success, true);
+  assert.deepEqual(added.at(-1).headers, { 'anthropic-beta': 'context-1m-2025-08-07', 'x-ok': 'y' });
+  const noHd = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://x', api: 'a', model: 'm' });
+  assert.equal(noHd.success, true);
+  assert.equal(added.at(-1).headers, undefined);
+  const rs = await ch.handle({ type: 'provider_add', provider: 'cpa', baseUrl: 'http://x', api: 'a', model: 'm', reasoning: true });
+  assert.equal(rs.success, true);
+  assert.equal(added.at(-1).reasoning, true);
+
   const ml = await ch.handle({ type: 'provider_models_add', provider: 'cpa', models: ['a', 'b'], cost: { input: 1 } });
   assert.equal(ml.success, true);
   assert.deepEqual(added.at(-1).cost, { input: 1 });

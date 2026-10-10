@@ -4370,3 +4370,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY(variant)**——无 fetch-pr 工具面；增量评审锚点语义=git diff/`/diff` 面板。描述 **COVERED(variant)**——`models.json` 静态目录+`provider_add`/`model_routes` 动态扩展=目录刷新语义（捆绑目录更新=上游发布面）。
 - **核销**：candidates-open #3366 → `candidates-resolved.tsv` #332。
+
+#### 28.333 provider custom_headers + thinking 兼容 (#3379 — title IMPLEMENTED / desc IMPLEMENTED)
+
+- **status**: both implemented.
+- **判定**：标题 **IMPLEMENTED**——`provider_add` 新增 `headers` 透传（header-name charset/≤512 值校验，`authorization`/`x-api-key` 字面量拒绝——凭证走 auth_set_key），写入 models.json provider entry，SDK 请求时合并（pi-ai models.d.ts `headers?: ProviderHeaders` 原生面）。描述 **IMPLEMENTED**——`reasoning:true` 注册声明（原硬钉 false），DeepSeek-V4-thinking 类自定义模型可声明推理能力。
+- **位点**：`host/src/core/channel.js` provider_add spec、`pi/src/adapter/channel.js` models.json 写入。
+- **证据**：host provider_add 测试扩展（headers 过滤/拒绝/reasoning 断言）绿；pi channel-facade **60/60**。
+- **核销**：candidates-open #3379 → `candidates-resolved.tsv` #333。
+
+#### 28.334 per-provider transport + logout 语义 (#3382 — title VARIANT / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`api` 字段即 transport/api-shape 选择（openai-completions/anthropic-messages/bedrock-converse 等 SDK 注册面）；SSE/websocket 命名 vs api-shape 命名=variant。描述 **ALREADY_COVERED**——logout 移除持久凭证=auth 移除面既有（auth.json/凭证库删除+残留探测报告）。
+- **核销**：candidates-open #3382 → `candidates-resolved.tsv` #334。
+
+#### 28.335 context-1m beta header + provider 包安装 (#3394 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——#3379 落地后操作员可声明 `headers:{'anthropic-beta':'context-1m-…'}`——语义等效 `params.context1m:true`（显式头声明 vs 布尔开关=variant）。描述 **COVERED(variant)**——provider_add 动态注册+内置目录=provider 包按需启用语义（官方包市场安装面=variant）。
+- **核销**：candidates-open #3394 → `candidates-resolved.tsv` #335。

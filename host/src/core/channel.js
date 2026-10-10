@@ -435,6 +435,20 @@ export class HostChannel {
             // are refused at registration and at egress unless this flag is set
             ...(cmd.allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
             ...(cost ? { cost } : {}),
+            // dedup-h #3379-desc — thinking-capable custom models declare
+            // reasoning at registration instead of being pinned false
+            // (DeepSeek-V4-thinking-style compat).
+            ...(cmd.reasoning === true ? { reasoning: true } : {}),
+            // dedup-h #3379 — per-provider custom headers (custom_headers
+            // analogue). Credential-shaped headers (authorization/x-api-key)
+            // are refused here: secrets belong in the credential store via
+            // auth_set_key, never literal in models.json.
+            ...(cmd.headers && typeof cmd.headers === 'object' && !Array.isArray(cmd.headers)
+              ? { headers: Object.fromEntries(Object.entries(cmd.headers)
+                  .filter(([k, v]) => /^[!#$%&'*+\-.^_`|~0-9a-zA-Z]+$/.test(String(k))
+                      && typeof v === 'string' && v.length <= 512
+                      && !/^authorization$/i.test(k) && !/^x-api-key$/i.test(k))) }
+              : {}),
           };
           if (!spec.provider || !spec.baseUrl || !spec.api || !spec.model) {
             return reply(false, undefined, 'provider_add requires {provider, baseUrl, api, model}');

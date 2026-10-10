@@ -331,3 +331,6 @@ dedup-h	3351	model	--model syntax family	COVERED(variant):provider/id+alias+fuzz
 dedup-h	3355	thinking	Plan/Act thinking budgets	PARTIAL(boundary):thinking key global only;desc VARIANT session_branch 3-option summarize #2915
 dedup-h	3356	compact	Anthropic auth+pre-submit compact	VARIANT:SDK native x-api-key;desc IMPLEMENTED prompt-submit compact check trigger=prompt_submit
 dedup-h	3366	review	fetch-pr --since anchor	BOUNDARY(variant):no fetch-pr tool,git diff anchor;desc VARIANT models.json+provider_add dynamic catalog
+dedup-h	3379	provider	custom_headers per provider	IMPLEMENTED:provider_add headers pass->models.json,auth/x-api-key refused;desc IMPLEMENTED reasoning:true decl
+dedup-h	3382	transport	per-provider transport	COVERED(variant):api field=api-shape selection;desc COVERED logout credential removal
+dedup-h	3394	model-param	context1m beta header	COVERED(variant):explicit headers decl post-3379;desc VARIANT provider_add dynamic

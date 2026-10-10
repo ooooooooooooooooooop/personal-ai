@@ -1452,6 +1452,9 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       cfg.providers[spec.provider] = {
         baseUrl: spec.baseUrl,
         api: spec.api,
+        // dedup-h #3379 — per-provider custom headers; SDK merges
+        // provider.headers over auth headers at request time.
+        ...(spec.headers && Object.keys(spec.headers).length ? { headers: spec.headers } : {}),
         ...(spec.allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
         // env-ref only ($NAME) — literal keys belong in the credential store
         // via auth_set_key, never in a committed-able JSON file.
@@ -1459,7 +1462,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         models: [{
           id: spec.model,
           name: spec.modelName ?? spec.model,
-          reasoning: false,
+          reasoning: spec.reasoning === true,
           input: ['text'],
           // zero pricing = dollar budget caps cannot see this traffic; the
           // operator may declare per-1M-token rates at registration time
