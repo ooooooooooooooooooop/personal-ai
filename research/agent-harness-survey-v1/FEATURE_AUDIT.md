@@ -5234,3 +5234,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——单操作员无多用户 mention 面（`@file`=附件非用户提及；bell 通知=事件级）。描述 **COVERED**——draft undo/redo 栈（M126 在册，含 pasted/attachment 草稿态）。
 - **核销**：candidates-open #4195 → `candidates-resolved.tsv` #473。
+
+#### 28.472 重载断连 agent 连接 + TUI 历史 (#4197 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——supervisor crash respawn（`body_respawn_wait` 有界退避+30s 生存重置预算+刻意不 respawn 干净退出）=broken 连接重载对应物。描述 **COVERED**——#4180 Ctrl+R 同面。
+- **核销**：candidates-open #4197 → `candidates-resolved.tsv` #474。
+
+#### 28.473 next-action 灰字 + AI Gateway (#4200 — title REJECTED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **REJECTED**——完成后预测下一动作灰字=推测性 UI（无建议模型面，误导性提示风险）。描述 **BOUNDARY**——Vercel AI Gateway 面。
+- **核销**：candidates-open #4200 → `candidates-resolved.tsv` #475。
+
+#### 28.474 选区入 agent 上下文 + Playbooks (#4201 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——transcript 选区→"＋引用到对话"入 composer（#3912 在册）。描述 **BOUNDARY**——Playbooks 库面。
+- **核销**：candidates-open #4201 → `candidates-resolved.tsv` #476。

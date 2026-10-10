@@ -472,3 +472,6 @@ dedup-h	4180	hist	Ctrl+R reverse search	COVERED:openHistSearch+promptHist;desc B
 dedup-h	4184	ui	palette session interrupt	COVERED(variant):Ctrl+K→/abort;desc BOUNDARY vim input
 dedup-h	4187	edit	background edits	COVERED(variant):direct edits+receipts,no diff-view path;desc NOISE shortcut
 dedup-h	4195	mention	@-mention notify	BOUNDARY:single-operator;desc COVERED draft undo/redo
+dedup-h	4197	conn	reload broken agent conn	COVERED(variant):supervisor crash respawn;desc COVERED #4180
+dedup-h	4200	ui	next-action ghost hint	REJECTED:speculative suggestion;desc BOUNDARY AI gateway
+dedup-h	4201	quote	quote selection into ctx	COVERED:#3912 quote-to-chat;desc BOUNDARY playbooks
