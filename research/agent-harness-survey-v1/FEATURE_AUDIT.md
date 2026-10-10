@@ -3838,3 +3838,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`get_state` 经 localhost-only supervisor 桥=trusted-only live-state 语义（无 `/workspaces/:ws/` 多租户路由=variant）。描述 **ALREADY_COVERED**——Ollama provider 走 `/api/tags` 动态目录=mistral-nemo 等任意本地模型天然可选（非硬编码名单）。
 - **核销**：candidates-open #2866 → `candidates-resolved.tsv` #245。
+
+#### 28.245 edit outside project + desktop bundle (#2869 — title BOUNDARY / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(intentional)**——编辑类工具硬 confined workdir（`inside()` 拒越界），无"授权后写项目外"逃生口——信任扩展走 worktree trust 授权面非 per-file 例外。描述 **PARTIAL(variant)**——session 列表/export/diff 在；跨会话全历史搜索未实现（无 indexed transcript search 面）。
+- **核销**：candidates-open #2869 → `candidates-resolved.tsv` #246。
+
+#### 28.246 ask extra sandbox perms + ops hardening (#2870 — title BOUNDARY(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——ask 通道覆盖工具级准入；sandbox backend 是 env 级部署选择（none/wsl/ssh/docker）非 per-call 可申请面——auto 规则=command allowlist/session allow 覆盖该语义。描述 **BOUNDARY**——plugin recovery/managed Gateway restart/cron delivery 是上游 ops 面；等价语义=scheduler durable+recovery 已覆盖。
+- **核销**：candidates-open #2870 → `candidates-resolved.tsv` #247。
+
+#### 28.247 per-channel contextVisibility + SDK reply hook (#2878 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——单 channel（UI+webhook+delegate mailbox），无 per-channel contextVisibility 配置维度。描述 **BOUNDARY**——无 Plugin SDK 宿主面（无 plugin-owned reply 通道概念）。
+- **核销**：candidates-open #2878 → `candidates-resolved.tsv` #248。

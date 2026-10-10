@@ -244,3 +244,6 @@ dedup-h	2861	api	v2 filesystem RPCs	PARTIAL(variant):files_list+file_read confin
 dedup-h	2862	api	--add-dir exec+TS SDK	BOUNDARY(variant):single workdir+in_worktree;desc PARTIAL delegate approvals pre-authorized via profile policy+audit not runtime bubbling
 dedup-h	2863	mcp	ACPX plugin-tools MCP bridge	BOUNDARY:no ACPX bridge surface;desc PARTIAL inline img deliberately escaped(XSS)!
 dedup-h	2866	api	workspaces live-state endpoint	COVERED(variant):get_state via localhost supervisor bridge;desc COVERED ollama dynamic /api/tags catalog
+dedup-h	2869	fs	edit outside project authorized	BOUNDARY:hard workdir confinement intentional,trust via worktree grants;desc PARTIAL no cross-session full-history search
+dedup-h	2870	sandbox	ask extra sandbox permissions	BOUNDARY(variant):sandbox is env deployment choice,allowlist/session-allow cover auto-rules;desc BOUNDARY upstream ops
+dedup-h	2878	channel	per-channel contextVisibility	BOUNDARY:single channel no visibility dimension;desc BOUNDARY no Plugin SDK host
