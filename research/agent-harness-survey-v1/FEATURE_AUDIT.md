@@ -4036,3 +4036,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`MemoryStore` 存 instance 级 SQLite+FTS5：`scope:'user'` 行对实例内全部会话/runtime 可见、`scope:'project'` 绑 workdir——跨 runtime 共享+隔离双语义在列。描述 **BOUNDARY**——无 file-finder focus 行为面。
 - **核销**：candidates-open #3128 → `candidates-resolved.tsv` #278。
+
+#### 28.278 --commit-prompt + cargo-audit CI (#3135 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——提交不经过模型生成 prompt：canonical_writer 治理提交（lease+scope+receipt），message 是 writer 入参非 LLM 定制面。描述 **BOUNDARY**——cargo-audit/deny CI 是本仓工具链外的 Rust 管线面。
+- **核销**：candidates-open #3135 → `candidates-resolved.tsv` #279。
+
+#### 28.279 commit-scope 排除 rules + --commit-prompt (#3147 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——commit 由 canonical_writer 治理（scope 显式声明非 LLM 决定），"commit_message_include_project_rules"类上下文排除键无对应面。描述 **BOUNDARY**——同 #3135。
+- **核销**：candidates-open #3147 → `candidates-resolved.tsv` #280。
+
+#### 28.280 read-file indentation blocks + contextual branch (#3158 — title PARTIAL(variant) / desc COVERED(variant))
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`file_read` 是行区间/全文读；indentation-aware 语义块提取未实现（相邻面=`fast_context` search+rank+excerpt 检索式变体）。描述 **COVERED(variant)**——编辑早轮/重试生成分支=`session_fork`（fork-at-point 保原会话+副本续跑）+`session_rewind`=contextual branch 语义。
+- **核销**：candidates-open #3158 → `candidates-resolved.tsv` #281。

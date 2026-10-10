@@ -277,3 +277,6 @@ dedup-h	3110	mode	/plan reasoner+plan prompt	COVERED(variant):/plan cmd+presets 
 dedup-h	3124	mcp	OAuth all supported scopes	COVERED:scope unset->prm.scopes_supported join mcp/index.js:349;desc BOUNDARY map nudges
 dedup-h	3125	redact	secret redaction default-off	BOUNDARY(intentional):M5 always-on,no plaintext opt-out;desc N/A no window prompt surface
 dedup-h	3128	memory	memory write cross-runtime share	COVERED:instance SQLite scope user=all sessions/project=workdir-bound;desc BOUNDARY file-finder focus
+dedup-h	3135	commit	--commit-prompt custom message	BOUNDARY:commits via canonical_writer governed not LLM prompt;desc BOUNDARY cargo CI
+dedup-h	3147	commit	commit scope exclude rules	BOUNDARY:writer-declared scope not LLM context;desc BOUNDARY same as 3135
+dedup-h	3158	read	indentation semantic blocks	PARTIAL(variant):line-range reads+fast_context excerpt;desc COVERED(variant) session_fork contextual branch
