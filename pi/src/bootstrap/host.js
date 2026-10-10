@@ -1779,7 +1779,7 @@ export async function startHost({
     // channel creation (channel.js) but never on rebuild. The new session
     // owns the surface now — fire its start so session_end/session_start
     // bracket every conversation the hooks plane sees.
-    hooks?.fire('session_start', { sessionId: built.session.sessionId ?? null, reason });
+    hooks?.fire('session_start', { sessionId: built.session.sessionId ?? null, reason, sessionFile: built.session.sessionManager?.getSessionFile?.() ?? null });
     channelHandle.channel.emitEvent({
       type: 'session_changed',
       session: {
@@ -1792,7 +1792,10 @@ export async function startHost({
     // The rebuild path bypasses the engine runtime — emit session_shutdown
     // on the outgoing runner so extension children (mcp stdio servers, etc.)
     // close instead of leaking one process per rebuild.
-    try { old.extensionRunner?.emit?.({ type: 'session_shutdown', reason: 'switch' }); } catch { /* best-effort */ }
+    // dedup-h #2730 — shutdown carries where the conversation went:
+    // extension children can correlate the old runner's teardown with the
+    // new session's transcript file (null on plain teardown).
+    try { old.extensionRunner?.emit?.({ type: 'session_shutdown', reason: 'switch', targetSessionFile: built.session.sessionManager?.getSessionFile?.() ?? null }); } catch { /* best-effort */ }
     old.dispose?.();
     core.audit.write({
       kind: 'SESSION_SWITCHED', runId,
@@ -2839,6 +2842,29 @@ export async function startHost({
         const r = setTrustAllWorktrees(core.paths.root, v === true);
         core.audit.write({ kind: 'PROJECT_TRUST', data: { trustAllWorktrees: r.trustAllWorktrees } });
         return r;
+      },
+    },
+    // dedup-h #2730 — /newrule analogue: scaffold a steering file. Name is
+    // validated to a bare basename, the file lands atomically under
+    // .pai/steering/, existing files are never clobbered.
+    steering: {
+      create: ({ name, content = null }) => {
+        const n = String(name ?? '').trim();
+        if (!/^[a-z0-9][a-z0-9._-]{0,60}$/i.test(n)) return { error: `invalid rule name '${n.slice(0, 60)}' — letters/digits start, may contain . _ -` };
+        const dir = join(workdir, '.pai', 'steering');
+        const file = join(dir, `${n}.md`);
+        if (existsSync(file)) return { error: `steering file '${n}.md' already exists` };
+        const body = content ?? `---\nname: ${n}\napply: manual\n---\n\n# ${n}\n\n<!-- rule body — apply: manual|always|glob:<pattern> controls when this injects -->\n`;
+        try {
+          mkdirSync(dir, { recursive: true });
+          const tmp = `${file}.tmp-${process.pid}`;
+          writeFileSync(tmp, body);
+          renameSync(tmp, file);
+        } catch (e) {
+          return { error: `write failed: ${e.message}` };
+        }
+        core.audit.write({ kind: 'STEERING_CREATED', data: { name: n, file: `.pai/steering/${n}.md`, bytes: body.length, custom: content != null } });
+        return { file: `.pai/steering/${n}.md`, name: n };
       },
     },
     pins: {

@@ -3704,3 +3704,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（plugin MCP servers+install OAuth）**：同 #2726 判定（BOUNDARY）。
 - **证据**：`host/src/core/hooks.js` transform_llm_output 契约测试在册。
 - **核销**：candidates-open #2729 → `candidates-resolved.tsv` #224。
+
+#### 28.224 session_shutdown payload + /newrule (#2730 — title IMPLEMENTED / desc IMPLEMENTED)
+
+- **status**: both sides landed.
+- **判定**：标题 **IMPLEMENTED**；描述 **IMPLEMENTED**。
+  - **标题语义（session_shutdown 带 reason+targetSessionFile）**：**IMPLEMENTED**——session_end/start 本就带 reason；`session_shutdown` 扩展 emit 补 `targetSessionFile`（切换时指向新会话 transcript 文件）；`session_start` 补 `sessionFile`。
+  - **描述语义（/newrule slash 命令新建 rules 文件）**：**IMPLEMENTED**——`steering_create` op→facade（名校验 bare basename、`.pai/steering/<name>.md` confined 原子写、已存在拒、`STEERING_CREATED` audit）+ `/newrule <名称>` UI 命令（默认 frontmatter `apply: manual` 模板）。
+- **位点**：`host/src/core/channel.js`（op+构造参）、`pi/src/adapter/channel.js`（透传）、`pi/src/bootstrap/host.js`（facade+shutdown payload）、`app/ui/app.js`（命令）。
+- **证据**：channel-facade 58/58（dispatch+校验+absent closed）；host **421/421**；bootstrap 绿；app lint 净。
+- **核销**：candidates-open #2730 → `candidates-resolved.tsv` #225。

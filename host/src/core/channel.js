@@ -97,7 +97,7 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, steering = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
     this.exec = exec;
@@ -119,6 +119,7 @@ export class HostChannel {
     this.memory = memory;
     this.commands = commands;
     this.pins = pins;
+    this.steering = steering;
     this.verify = verify;
     this.projectTrust = projectTrust;
     this.schedules = schedules;
@@ -1144,6 +1145,14 @@ export class HostChannel {
         case 'pins_add': {
           if (!this.pins?.add) return reply(false, undefined, 'pins facade unavailable');
           const out = this.pins.add(String(cmd.path ?? ''));
+          if (out?.error) return reply(false, undefined, out.error);
+          return reply(true, out);
+        }
+        case 'steering_create': {
+          // dedup-h #2730 — /newrule analogue: scaffold a steering file into
+          // .pai/steering/. The facade owns name validation + confinement.
+          if (!this.steering?.create) return reply(false, undefined, 'steering facade unavailable');
+          const out = this.steering.create({ name: String(cmd.name ?? ''), content: cmd.content != null ? String(cmd.content) : null });
           if (out?.error) return reply(false, undefined, out.error);
           return reply(true, out);
         }

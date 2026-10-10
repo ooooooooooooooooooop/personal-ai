@@ -2031,3 +2031,31 @@ test('#2263 bill stamps model onto ledger rows for the traces surface', async ()
   assert.equal(t.byModel['gpt-5.6-luna-max'].tokens, 80);
   dispose();
 });
+
+test('#2730 steering_create dispatch: facade routes create, name validated, absent facade closed', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-steer-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const core = { paths: { auditDir } };
+  const calls = [];
+  const steering = {
+    create: ({ name, content }) => {
+      calls.push({ name, content });
+      if (!/^[a-z0-9][a-z0-9._-]{0,60}$/i.test(name)) return { error: 'invalid name' };
+      return { file: `.pai/steering/${name}.md`, name };
+    },
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core, steering });
+  const ok = await ch.handle({ type: 'steering_create', name: 'code-review' });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.file, '.pai/steering/code-review.md');
+  assert.deepEqual(calls[0], { name: 'code-review', content: null });
+  const bad = await ch.handle({ type: 'steering_create', name: '../escape' });
+  assert.equal(bad.success, false);
+  const bare = createChannelHost({ session: fakeSessionRef, core });
+  const nr = await bare.channel.handle({ type: 'steering_create', name: 'x' });
+  assert.equal(nr.success, false);
+  assert.match(nr.error, /steering facade unavailable/);
+  bare.dispose();
+  dispose();
+});

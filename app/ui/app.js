@@ -3964,6 +3964,16 @@ const SLASH = [
     },
   },
   {
+    cmd: '/newrule', label: '新建规则', hint: '/newrule <名称>——在 .pai/steering/ 下新建规则文件（manual 默认，@ 引用注入）',
+    run: async (arg) => {
+      const name = String(arg ?? '').trim();
+      if (!name) { addSys('用法：/newrule <名称>——例如 /newrule code-review', true); return; }
+      const r = await cmd('steering_create', { name });
+      if (!r.success) { addSys(`创建失败：${r.error ?? '未知'}`, true); return; }
+      addSys(`已创建 ${r.data?.file}——编辑后按 frontmatter apply 模式注入（manual 时 @ 引用）`);
+    },
+  },
+  {
     cmd: '/config', label: '会话设置', hint: '/config 查看；/config key=value 设置（model/thinking/mode）',
     run: async (arg) => {
       const text = String(arg ?? '').trim();
