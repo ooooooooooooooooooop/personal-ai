@@ -460,3 +460,6 @@ dedup-h	4126	hook	hook ctx run/message/sender fields	IMPLEMENTED:runId in ambien
 dedup-h	4127	install	plugin install scope	BOUNDARY:no plugin surface;desc BOUNDARY modelCatalog
 dedup-h	4136	model	manifest modelCatalog	BOUNDARY:direct models.json registration;desc BOUNDARY compat
 dedup-h	4140	tools	optional agent tools+allowlists	COVERED:tools/tools_allow+PAI_TOOLS_ALLOW+hideTools;desc BOUNDARY guide
+dedup-h	4154	secrets	config redact+scanner	COVERED(defect-absent):config_get no-credential by design;desc BOUNDARY precedence
+dedup-h	4155	mcp	per-thread stdio MCP	BOUNDARY:no thread-dim plugin surface;desc BOUNDARY CLI diag
+dedup-h	4157	skill	skills as slash commands	COVERED(variant):recipe_run+skill_read invoke;desc COVERED(variant) project-first

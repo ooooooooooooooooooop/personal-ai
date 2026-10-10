@@ -5162,3 +5162,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——profile `tools:`/`tools_allow` 显式 allowlist（前缀通配）+`PAI_TOOLS_ALLOW` env+mode `hideTools` 三层显式面；文档化于 agentprofiles 头注。描述 **BOUNDARY**——插件 authoring guide 面。
 - **核销**：candidates-open #4140 → `candidates-resolved.tsv` #461。
+
+#### 28.460 config redact+scanner + 资源优先级 (#4154 — title DEFECT-ABSENT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(defect-absent)**——`config_get` 只出非凭据字段（model/thinking/mode/charset/proxy），凭据结构上不存在于响应（credential store 单向）；安全 scanner 面注边界。描述 **BOUNDARY**——多源资源优先级面。
+- **核销**：candidates-open #4154 → `candidates-resolved.tsv` #462。
+
+#### 28.461 per-thread stdio MCP + CLI 资源诊断 (#4155 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 executor-plugin 线程面（MCP context 按 agent 维度非 thread）。描述 **BOUNDARY**——CLI 资源路径诊断面。
+- **核销**：candidates-open #4155 → `candidates-resolved.tsv` #463。
+
+#### 28.462 skills 作 slash 命令 + 项目优先 (#4157 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`recipe_run`（按名+args 直调持久化包）+`skill_read`（显式取回）=slash-调用对应物；microagent 触发注入=自动路。描述 **COVERED(variant)**——`.pai/` workdir 优先于 bundled preset（resolveRecipe own→builtin 顺序即 project-first）。
+- **核销**：candidates-open #4157 → `candidates-resolved.tsv` #464。
