@@ -4130,3 +4130,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/extensions/mcp/index.js`（manifest 已重算）。
 - **证据**：mcp-ext 聚焦 **2/2**（#3196+#3204 clamp/default 断言）。
 - **核销**：candidates-open #3204 → `candidates-resolved.tsv` #293。
+
+#### 28.294 /mcp 状态端点 + rules context (#3205 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`mcp_status` channel op（per-server 连接态/工具数/auth 态）=连接状态监控端点语义（channel op 非 HTTP GET=variant）。描述 **ALREADY_COVERED**——同 #3187（steering envelope+pins）。
+- **核销**：candidates-open #3205 → `candidates-resolved.tsv` #294。
+
+#### 28.295 external tool guard + 子目录 repo (#3206 — title COVERED(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——G9 `shadowJudge`（env 配置的 shadow LLM 预执行裁决遥测）+`pre_tool` gate hooks（operator-private allow/deny）+kernel decide 链=外部 guard provider 语义（managed-serve 形态=variant）。描述 **COVERED(variant)**——workdir 可为任意目录（repo 子目录照常）；git status 在 project panel=/diff+状态行变体。
+- **核销**：candidates-open #3206 → `candidates-resolved.tsv` #295。
+
+#### 28.296 tool_timeout_ms（重复）+ Slack upload (#3208 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——同 #3204（`tool_timeout_ms` 已落地）。描述 **BOUNDARY**——无 Slack transport/action 面。
+- **核销**：candidates-open #3208 → `candidates-resolved.tsv` #296。

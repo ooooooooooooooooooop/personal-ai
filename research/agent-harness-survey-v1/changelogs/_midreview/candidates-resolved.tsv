@@ -292,3 +292,6 @@ dedup-h	3196	mcp	startup_timeout_ms per-server	IMPLEMENTED:connectTimeoutFor cla
 dedup-h	3198	mcp	/mcp login/logout/status cmds	COVERED(variant):/mcp+/mcp-auth+/mcp-add+/mcp-del family;desc PARTIAL no git tree view
 dedup-h	3202	ui	collapsible MCP panels	COVERED:tool-head collapse all tools incl mcp__*;desc edit-restart notice via fork/rewind variant
 dedup-h	3204	mcp	tool_timeout_ms per-server	IMPLEMENTED:toolTimeoutFor clamped 1s-600s wired callTool;desc BOUNDARY panel zoom
+dedup-h	3205	mcp	GET /mcp status endpoint	COVERED(variant):mcp_status channel op;desc COVERED rules context #3187
+dedup-h	3206	guard	external tool guard provider	COVERED(variant):shadowJudge+pre_tool gates+decide chain;desc subfolder repo workdir-any-dir variant
+dedup-h	3208	mcp	dup of 3204	COVERED:tool_timeout_ms landed #3204;desc BOUNDARY Slack upload
