@@ -328,6 +328,7 @@
           <button type="button" class="set-pill" onclick="document.getElementById('card-commands')?.scrollIntoView({behavior:'smooth',block:'start'})">命令准入</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-governance')?.scrollIntoView({behavior:'smooth',block:'start'})">策略治理</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-budget')?.scrollIntoView({behavior:'smooth',block:'start'})">预算上限</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-worldmodel')?.scrollIntoView({behavior:'smooth',block:'start'})">世界模型</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-modes')?.scrollIntoView({behavior:'smooth',block:'start'})">运行模式</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-workdir')?.scrollIntoView({behavior:'smooth',block:'start'})">工作目录</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-memory')?.scrollIntoView({behavior:'smooth',block:'start'})">长期记忆</button>
@@ -512,6 +513,18 @@
           <button id="dryrun-run" type="button" class="btn">预演</button>
         </div>
         <div id="dryrun-result" class="setup-msg"></div>
+      </div>
+
+      <div class="set-card" id="card-worldmodel">
+        <div class="set-card-title">世界模型 <span id="wm-open-count" class="pill"></span></div>
+        <div class="set-sub">未决预测（AI 对世界将如何变化的未验证断言）</div>
+        <div id="wm-preds" class="mem-list"></div>
+        <div class="set-sub my-12-4">近期观察</div>
+        <div id="wm-obs" class="mem-list"></div>
+        <div class="set-row mt-6">
+          <button id="wm-refresh" type="button" class="btn ghost sm">刷新</button>
+          <span id="wm-msg" class="setup-msg"></span>
+        </div>
       </div>
 
       <div class="set-card" id="card-budget">

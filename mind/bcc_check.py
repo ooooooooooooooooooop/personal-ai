@@ -377,28 +377,51 @@ def check_all(canonical_dir: Path | None = None, with_node: bool = True) -> dict
     }
 
     # 6.4 tool identity — body rename keeps canonical identity.
-    # NOT TESTED. This used to report `pass: True` unconditionally, which made a
-    # contract that never exercised tool identity read as a green protocol — the
-    # same defect class as an all-skipped run reporting PASS. `pass: None` is the
-    # honest value ("not tested"), and it is excluded from the aggregate.
-    #
-    # Why it cannot be tested yet: the mechanism does not exist end to end.
-    #   - contract side: needs a fixture that drives a tool result under a
-    #     body-specific name and reads back the event's canonical_tool_id;
-    #   - body side: the adapter currently emits
-    #     `{canonical_tool_id: exec.name, body_tool_id: exec.name}` — both the
-    #     SAME value, i.e. no mapping at all;
-    #   - the mapping needs a declared body→canonical table (see
-    #     host/src/core/irreversible.js::resolveToolId, added for this).
-    # Until the adapter declares and applies identities, any fixture would only
-    # assert the placeholder.
-    results["tool_identity"] = {
-        "pass": None,
-        "note": "not tested — no adapter emits a distinct canonical_tool_id yet",
-        "check": "RAW_EVIDENCE carries canonical_tool_id stable across a body rename; "
-                 "rename affects body_tool_id only",
-        "needs": "body declares {body tool name: canonical name}; adapter emits both fields; "
-                 "fixture drives a renamed tool and reads the ledger"}
+    # The mechanism now exists end to end:
+    #   - harness side: `scenario.aliases` declares {body name: canonical name};
+    #     simulate_body.mjs forwards it verbatim to apply() (body-agnostic —
+    #     the fixture bakes in no body's name table);
+    #   - adapter side: RAW_EVIDENCE emits BOTH fields —
+    #     `canonical_tool_id = aliases[rawName] ?? rawName` (the declaration's
+    #     mapping) and `body_tool_id = rawName` (what the body actually called it).
+    # The fixture drives the SAME logical tool under two body names — one
+    # renamed (`renamed_exec`, mapped by the declaration) and one already
+    # canonical (`exec`) — and requires canonical_tool_id stay `exec` for both
+    # while body_tool_id preserves the rename. A body that emits only one
+    # field, or resolves identity by name alone, fails here.
+    ti_scen = {"mode": "core",
+               "aliases": {"renamed_exec": "exec"},
+               "steps": [
+                   {"type": "tool_result", "tool": "renamed_exec", "session": "s1", "result": "ok"},
+                   {"type": "tool_result", "tool": "exec", "session": "s1", "result": "ok"},
+               ]}
+    with tempfile.TemporaryDirectory() as td:
+        tout = run_plugin_body(ti_scen, Path(td), "core")
+    if tout.get("skipped") or tout.get("error"):
+        results["tool_identity"] = {
+            "pass": None,
+            "note": tout.get("skipped") or tout.get("error"),
+            "check": "RAW_EVIDENCE carries canonical_tool_id stable across a body rename; "
+                     "rename affects body_tool_id only"}
+    else:
+        raw_evs = [ev for evs in tout.get("ledger", {}).values() for ev in evs
+                   if ev.get("event_type") == "RAW_EVIDENCE"]
+        idents = [ev.get("tool") or {} for ev in raw_evs]
+        by_body = {t.get("body_tool_id"): t.get("canonical_tool_id") for t in idents}
+        both_fields = all(t.get("canonical_tool_id") is not None
+                          and t.get("body_tool_id") is not None for t in idents)
+        ti_pass = (len(raw_evs) >= 2 and both_fields
+                   and by_body.get("renamed_exec") == "exec"
+                   and by_body.get("exec") == "exec")
+        results["tool_identity"] = {
+            "pass": ti_pass,
+            "raw_evidence_events": len(raw_evs),
+            "body_to_canonical": by_body,
+            "check": "RAW_EVIDENCE carries canonical_tool_id stable across a body rename; "
+                     "rename affects body_tool_id only",
+            "detail": ("rename preserved in body_tool_id, canonical_tool_id resolved "
+                       "through the declared alias map" if ti_pass else
+                       "missing dual fields or canonical identity did not survive the rename")}
 
     # 6.5 persistence — kill points
     with tempfile.TemporaryDirectory() as td:

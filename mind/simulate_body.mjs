@@ -37,7 +37,10 @@ const ctx = {
   },
 };
 
-apply(ctx, { stateDir, canonicalDir, mode: mode || scenario.mode || 'off', bodyId: scenario.bodyId || 'body-A' });
+// scenario.aliases, when present, is forwarded verbatim — the HARNESS may name
+// a body→canonical rename to exercise 6.4 without this fixture baking in any
+// body's name table.
+apply(ctx, { stateDir, canonicalDir, mode: mode || scenario.mode || 'off', bodyId: scenario.bodyId || 'body-A', ...(scenario.aliases ? { aliases: scenario.aliases } : {}) });
 
 const execFor = (name, sid) => ({ name, agent: { session: { id: sid || 's1' } }, arguments: scenario.args || {} });
 

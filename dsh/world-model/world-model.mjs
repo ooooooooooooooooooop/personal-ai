@@ -366,6 +366,11 @@ export function apply(ctx, config = {}) {
   const canonicalDir = config.canonicalDir || process.env.WORLD_MODEL_HOME
     || (existsSync(wmDefault) || !existsSync(wmLegacy) ? wmDefault : wmLegacy);
   const bodyId = config.bodyId || `dsh-${hostname()}`;
+  // BCC 6.4: body→canonical tool identity declaration. Canonical identity rides
+  // alongside the body's own name so a rename is visible, not lossy — the
+  // declaration comes from config (cordis.patch.yml / harness), this adapter
+  // bakes in no body-specific table.
+  const aliases = config.aliases || {};
   // fail-closed: 未知模式回退 core（守卫在场），不能因笔误静默变 off
   const rawMode = String(config.mode || process.env.DSH_WM_MODE || 'off').toLowerCase().trim();
   // strict-off 语义 = 硬关闭：工具不注册、守卫全放行——是给"确认不要世界模型"
@@ -791,7 +796,7 @@ export function apply(ctx, config = {}) {
           payload: String(text).slice(0, 500), evidence_refs: [],
           source: 'tools/result', channel_id: 'tool_result',
           sensor_id: exec?.name || 'unknown',
-          tool: { canonical_tool_id: exec?.name || 'unknown', body_tool_id: exec?.name || 'unknown' }
+          tool: { canonical_tool_id: aliases[exec?.name] ?? exec?.name ?? 'unknown', body_tool_id: exec?.name || 'unknown' }
         });
       } catch { /* never crash */ }
     });

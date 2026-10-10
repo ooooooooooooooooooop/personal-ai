@@ -48,8 +48,9 @@ export class PendingAsks {
    * @param {string} [deps.alwaysPath]     <instance>/always-allow.json — durable
    *        'always' grants: {tool} or {tool, command} exact-match entries.
    */
-  constructor({ audit = null, timeoutMs = 120_000, now = () => Date.now() } = {}, alwaysPath = null) {
+  constructor({ audit = null, observations = null, timeoutMs = 120_000, now = () => Date.now() } = {}, alwaysPath = null) {
     this.audit = audit;
+    this.observations = observations;
     this.timeoutMs = timeoutMs;
     this.now = now;
     this.alwaysPath = alwaysPath;
@@ -248,6 +249,20 @@ export class PendingAsks {
         // outcome ledger — AgentStats outcome-bucketed counts (agreed/
         // rejected/timed-out) read this trail, not the transient event
         this.audit?.write?.({ kind: 'ASK_RESOLVED', toolName, data: { rule: rec.rule ?? 'ask', kind: rec.kind, answer: ans, server: srvGrant ?? undefined, edited: edited ? Object.keys(edited) : null } });
+        // World-model operator evidence (app-world-model-loop §4.4 #1): every
+        // human ask resolution — rule × answer, all kinds — is the signal the
+        // world model consumes ("these operations should precipitate into
+        // rules"). Recorded at THE resolution point so a governed decision can
+        // never reach the ledger without an observation; the record() call
+        // itself scrubs secrets before bytes land.
+        try {
+          this.observations?.record?.({
+            kind: 'operator_decision',
+            subject: `${rec.rule ?? 'ask'}: ${ans}${rec.summary ? ` — ${String(rec.summary).slice(0, 200)}` : ''}`,
+            detail: { toolName, toolCallId: rec.toolCallId ?? null, rule: rec.rule ?? 'ask', askKind: rec.kind, answer: ans, server: srvGrant ?? null, edited: edited ? Object.keys(edited) : null },
+            actor: 'operator',
+          });
+        } catch { /* evidence capture is best-effort — never block a resolution */ }
         this.#emit({ type: 'governance_resolved', askId: id, toolName, answer: ans });
         resolve(srvGrant ? 'allow' : answer);
       };

@@ -97,7 +97,7 @@ runtime（L1，随时可写）        <stateDir>（调用方指定；本目录�
 | 6.1 | State Semantics | **同一份 canonical 放在两个 body 目录下 → 投影必须相等** |
 | 6.2 | Event Ordering | 真实 ledger 的事件序（`seq` 单调 + `prev_event` 因果链 + 预测先于评估先于更新） |
 | 6.3 | Guard Semantics | 真实适配器 vs python 参照体，同一批 fixture。**含别名键抗性**：载荷藏在 `parameters`/`tool_input`/自有键下时仍须被扫描 —— *看不见的载荷 = 绑定绕过面（藏起来 ≠ 不存在）* |
-| 6.4 | Tool Identity | body 改名不改变 canonical 身份。**⚠️ 尚未测试** —— 契约侧缺夹具、身体侧缺映射（适配器现在把 `canonical_tool_id` 与 `body_tool_id` **都赋成同一个值**）。报告为 `pass: null`（未测），不计入总判定。所需机制：身体声明 `{身体工具名 → canonical 名}`，适配器两个字段都发，夹具驱动改名后的工具并读 ledger。分类器侧已备好 `resolveToolId(name, aliases)` |
+| 6.4 | Tool Identity | body 改名不改变 canonical 身份。**已测试**：夹具经 `scenario.aliases` 声明 `{身体工具名 → canonical 名}`（simulate_body 原样转发给 `apply()`），驱动同一逻辑工具走两个 body 名（`renamed_exec` 与 `exec`），断言 `canonical_tool_id` 恒为 `exec` 而 `body_tool_id` 保留改名。适配器 RAW_EVIDENCE 发双字段：`canonical_tool_id = aliases[名] ?? 名`、`body_tool_id = 名`（pi 适配器经 `TOOL_IDENTITIES`/`aliases` 入参，dsh 适配器经 `config.aliases`） |
 | 6.5 | Persistence | 杀死点下的持久性。**语义判据**（2026-09-23 改）：① 未决预测经 persist 后仍能被适配器自己的 `status` 报告；② 存在只追加的日志（判据 = 前次内容是后次内容的**前缀**，不写死文件名）；③ 日志尾部被写坏后 `status` 仍可用 |
 | 6.6 | Schema Compatibility | 1.0 fixture → migrate → verify → rollback 必须字节一致 |
 

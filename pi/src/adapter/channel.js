@@ -750,6 +750,10 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         core.audit?.write({ kind: 'PROMPT_PROJECT_DISABLED', data: { workdir, steer: true } });
         throw new Error('AI turns are disabled for this project (.pai/settings.json disable_ai)');
       }
+      // Operator mid-run redirect = world-model evidence (§4.4): a human
+      // steering is a mismatch signal — the run was headed somewhere the
+      // operator did not want.
+      try { core?.observations?.record?.({ kind: 'operator_steer', subject: `operator steered: ${String(message ?? '').slice(0, 200)}`, actor: 'operator' }); } catch { /* best-effort */ }
       admitSpend(); return box.s.steer(message);
     },
     abort: async () => {
@@ -769,6 +773,11 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
           display: false,
         }, { triggerTurn: false, deliverAs: 'nextTurn' });
       } catch { /* annotation is best-effort; abort already landed */ }
+      // World-model evidence (app-world-model-loop §4.4 #2): THIS facade is the
+      // operator's interrupt path — budget breach/session switch/handoff abort
+      // elsewhere and stay unobserved, so the signal stays semantically clean:
+      // "a human stopped this run", nothing else.
+      try { core?.observations?.record?.({ kind: 'operator_interrupt', subject: 'operator interrupted the run', actor: 'operator' }); } catch { /* best-effort */ }
     },
     getState: async () => {
       const s = box.s;
@@ -1505,6 +1514,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     jobs,
     jobDetail,
     audit: auditFacade,
+    observations: core?.observations,
     bodies,
     handoff,
     models: modelsFacade,

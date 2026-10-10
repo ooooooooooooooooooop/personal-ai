@@ -26,6 +26,7 @@ import { BodyRegistry } from '../../host/src/core/registry.js';
 import { DomainLeaseStore } from '../../host/src/core/lease.js';
 import { HandoffStore } from '../../host/src/core/handoff.js';
 import { PredictionStore } from '../../host/src/core/prediction.js';
+import { ObservationStore } from '../../host/src/core/observation.js';
 import { loadPolicy } from '../../host/src/core/policy.js';
 import { eligible } from '../../host/src/core/eligibility.js';
 import { AuditWriter } from '../../host/src/core/audit.js';
@@ -508,7 +509,7 @@ export class BodySupervisor {
 
     // verify — all five gates recomputed against real stores
     const policy = loadPolicy(this.paths.canonicalDir);
-    const predictions = new PredictionStore(this.paths.canonicalDir);
+    const predictions = new PredictionStore(this.paths.worldModelDir);
     const cursor = `sha256:${sha256(JSON.stringify(predictions.openPredictions()))}`;
     const checks = {
       policyIdentity: `sha256:${policy.checksum}` === envelope.policyIdentity,
@@ -576,6 +577,29 @@ export class BodySupervisor {
               // repo moved after this process booted → running stale code
               stale: Boolean(this.bootCommit && repoCommit && repoCommit !== this.bootCommit),
             },
+          });
+        }
+        // World-model surface (spec docs/app-world-model-loop.md §4.3 #1):
+        // open predictions + recent observations are ALREADY in the instance —
+        // this case is the projection, not the ledger. Read locally (Option A):
+        // the data survives a dead body, and this layer is where host + body
+        // may both be known. Reads go through the stores' recent()/list() —
+        // never readFileSync — because their (size,mtime) fingerprint cache is
+        // the budget.js-tested guard against per-poll full scans.
+        case 'world_model_status': {
+          const n = Math.min(Math.max(Number(cmd.limit) || 20, 1), 200);
+          const preds = new PredictionStore(this.paths.worldModelDir);
+          const obs = new ObservationStore(this.paths.worldModelDir);
+          const open = preds.openPredictions();
+          const recent = obs.recent(n);
+          return reply(true, {
+            openPredictions: open.map((p) => ({
+              id: p.id, claim: p.claim ?? null, irreversible: Boolean(p.irreversible), at: p.at ?? null,
+            })),
+            observations: recent.map((o) => ({
+              id: o.id, kind: o.kind, subject: o.subject, actor: o.actor ?? null, at: o.at ?? null,
+            })),
+            counts: { openPredictions: open.length, observationsReturned: recent.length },
           });
         }
         case 'set_workdir': {

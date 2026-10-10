@@ -127,9 +127,10 @@ export class HostChannel {
    * @param {object} [facades.governance] {dryRun(tool,args)} — side-effect-free
    *        kernel verdict probe (governance_dryrun)
    */
-  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, steering = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null, web = null }) {
+  constructor({ session, jobs = null, jobDetail = null, audit = null, bodies = null, handoff = null, models = null, sessions = null, asks = null, fileops = null, policy = null, budget = null, modes = null, todos = null, turns = null, tasks = null, memory = null, exec = null, commands = null, pins = null, steering = null, verify = null, projectTrust = null, schedules = null, repoMap = null, skills = null, goalStore = null, monitors = null, webhooks = null, scan = null, imageDetail = null, instance = null, profiles = null, leases = null, governance = null, proxy = null, mcp = null, assist = null, web = null, observations = null }) {
     if (!session) throw new Error('HostChannel requires a session facade');
     this.session = session;
+    this.observations = observations;
     this.exec = exec;
     this.jobs = jobs;
     this.jobDetail = jobDetail;
@@ -245,6 +246,7 @@ export class HostChannel {
             }
           }
           this.audit?.write?.({ kind: 'STOP_ALL', data: { aborted: out.aborted, cancelled: out.cancelled.length } });
+          this.observations?.record?.({ kind: 'operator_stop_all', subject: 'operator stopped all activity', detail: { aborted: out.aborted, cancelled: out.cancelled.length }, actor: 'operator' });
           return reply(true, out);
         }
         case 'bash_run': {
@@ -252,7 +254,9 @@ export class HostChannel {
           // command still runs through the full decide chain — nothing the
           // operator types bypasses policy.
           if (!this.exec?.run) return reply(false, undefined, 'exec facade unavailable');
-          return reply(true, await this.exec.run(String(cmd.command ?? '')));
+          const ran = await this.exec.run(String(cmd.command ?? ''));
+          this.observations?.record?.({ kind: 'operator_exec', subject: `operator ran: ${String(cmd.command ?? '').slice(0, 200)}`, detail: { command: String(cmd.command ?? '') }, actor: 'operator' });
+          return reply(true, ran);
         }
         case 'get_state': {
           const st = await this.session.getState();
@@ -683,6 +687,7 @@ export class HostChannel {
             }
             // Honest partial semantics: failures are reported, not swallowed —
             // a rewind that left worktree state divergent must not claim success.
+            this.observations?.record?.({ kind: 'operator_rewind', subject: `operator rewound to ${String(cmd.entryId)}`, detail: { entryId: String(cmd.entryId), restored: restored.length, failed: failed.length, scope }, actor: 'operator' });
             return reply(true, { ...r, restoredFiles: restored, failedFiles: failed, partial: failed.length > 0 });
           }
           return reply(true, r);
@@ -868,7 +873,9 @@ export class HostChannel {
         case 'fileops_restore': {
           if (!this.fileops?.restore) return reply(false, undefined, 'fileops facade unavailable');
           if (!cmd.receiptId) return reply(false, undefined, 'fileops_restore requires {receiptId}');
-          return reply(true, await this.fileops.restore(String(cmd.receiptId)));
+          const res = await this.fileops.restore(String(cmd.receiptId));
+          this.observations?.record?.({ kind: 'operator_undo', subject: `operator restored ${String(cmd.receiptId)}`, detail: { receiptId: String(cmd.receiptId) }, actor: 'operator' });
+          return reply(true, res);
         }
         case 'fileops_diff': {
           if (!this.fileops?.diff) return reply(false, undefined, 'fileops diff unavailable');
@@ -877,12 +884,16 @@ export class HostChannel {
         case 'fileops_undo_call': {
           if (!this.fileops?.undoCall) return reply(false, undefined, 'fileops undo-call unavailable');
           if (!cmd.toolCallId) return reply(false, undefined, 'fileops_undo_call requires {toolCallId}');
-          return reply(true, await this.fileops.undoCall(String(cmd.toolCallId)));
+          const res = await this.fileops.undoCall(String(cmd.toolCallId));
+          this.observations?.record?.({ kind: 'operator_undo', subject: `operator undid tool call ${String(cmd.toolCallId)}`, detail: { toolCallId: String(cmd.toolCallId), restored: res?.restored?.length ?? 0 }, actor: 'operator' });
+          return reply(true, res);
         }
         case 'fileops_rewind': {
           if (!this.fileops?.undoFrom) return reply(false, undefined, 'fileops rewind unavailable');
           if (!cmd.receiptId) return reply(false, undefined, 'fileops_rewind requires {receiptId}');
-          return reply(true, await this.fileops.undoFrom(String(cmd.receiptId)));
+          const res = await this.fileops.undoFrom(String(cmd.receiptId));
+          this.observations?.record?.({ kind: 'operator_undo', subject: `operator rewound files to ${String(cmd.receiptId)}`, detail: { receiptId: String(cmd.receiptId) }, actor: 'operator' });
+          return reply(true, res);
         }
         case 'session_btw': {
           if (!this.sessions?.btw) return reply(false, undefined, 'btw unavailable');

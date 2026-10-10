@@ -2568,8 +2568,60 @@ async function refreshSettings() {
   const pol = await cmd('policy_status');
   if (pol.success) renderGovCard(pol.data);
   refreshBudgetCard();
+  refreshWorldModelCard();
   refreshWorkspaces();
 }
+
+/* World-model surface (docs/app-world-model-loop.md §4.3 #1 — the cheapest
+ * data: openPredictions are already in the instance, this is the projection
+ * not the ledger). Read-only by design: owner intervention flows through the
+ * governed paths (asks/proposals), never through a UI write into the stores. */
+async function refreshWorldModelCard() {
+  const predsBox = $('wm-preds');
+  const obsBox = $('wm-obs');
+  const pill = $('wm-open-count');
+  const msg = $('wm-msg');
+  if (!predsBox || !obsBox) return;
+  const r = await cmd('world_model_status', { limit: 20 });
+  if (!r.success || !r.data) {
+    predsBox.innerHTML = `<div class="dim" style="padding:8px">${escHtml(r.error ?? '世界模型面不可用')}</div>`;
+    obsBox.innerHTML = '';
+    if (pill) pill.textContent = '';
+    return;
+  }
+  const d = r.data;
+  if (pill) pill.textContent = `${d.counts?.openPredictions ?? 0} 未决`;
+  predsBox.innerHTML = '';
+  if (!d.openPredictions?.length) {
+    predsBox.innerHTML = '<div class="dim" style="padding:8px">无未决预测——回路未激活或所有预测已结算</div>';
+  } else {
+    for (const p of d.openPredictions) {
+      const div = document.createElement('div');
+      div.className = 'mem-row';
+      div.innerHTML = `<span class="mem-kind dim"></span><span class="mem-text selectable"></span>`;
+      div.querySelector('.mem-kind').textContent = p.irreversible ? '不可逆' : '可逆';
+      div.querySelector('.mem-text').textContent = p.claim ?? '';
+      div.title = p.id ?? '';
+      predsBox.appendChild(div);
+    }
+  }
+  obsBox.innerHTML = '';
+  if (!d.observations?.length) {
+    obsBox.innerHTML = '<div class="dim" style="padding:8px">无观察记录</div>';
+  } else {
+    for (const o of d.observations) {
+      const div = document.createElement('div');
+      div.className = 'mem-row';
+      div.innerHTML = `<span class="mem-kind dim"></span><span class="mem-text selectable"></span>`;
+      div.querySelector('.mem-kind').textContent = `${o.kind ?? '?'}${o.actor ? ` · ${o.actor}` : ''}`;
+      div.querySelector('.mem-text').textContent = o.subject ?? '';
+      div.title = o.at ? new Date(o.at).toLocaleString() : (o.id ?? '');
+      obsBox.appendChild(div);
+    }
+  }
+  if (msg) { msg.textContent = ''; }
+}
+$('wm-refresh') && ($('wm-refresh').onclick = () => refreshWorldModelCard());
 
 /* Budget control surface: operator-tier limits, hot-applied via budget_set.
  * Dirty-guarded like the JSON editors — a refresh never clobbers typing. */

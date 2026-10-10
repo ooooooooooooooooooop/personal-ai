@@ -764,7 +764,7 @@ export async function startHost({
   // half-live path could still record grants it pretends not to honor).
   const alwaysOff = process.env.PAI_ALWAYS_ALLOW_OFF === '1';
   asks = new PendingAsks(
-    { audit: core.audit, ...(askTimeoutMs ? { timeoutMs: askTimeoutMs } : {}) },
+    { audit: core.audit, observations: core.observations, ...(askTimeoutMs ? { timeoutMs: askTimeoutMs } : {}) },
     alwaysOff ? null : join(core.paths.root, 'always-allow.json'),
   );
   if (askTimeoutMs) core.audit.write({ kind: 'ASK_TIMEOUT_CONFIGURED', data: { timeoutMs: askTimeoutMs } });
