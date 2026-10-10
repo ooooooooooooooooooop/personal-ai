@@ -421,3 +421,6 @@ dedup-h	3956	tui	display_image tool	COVERED(variant):UI image preview/screenshot
 dedup-h	3958	toolset	codex_tools alt set	COVERED(variant):profile tools allowlist;desc BOUNDARY completions
 dedup-h	3959	tui	interactive PTY terminal	BOUNDARY:no PTY surface;desc BOUNDARY terminal timeout
 dedup-h	3960	hook	bash spawn hook	PARTIAL(variant):pre_tool gate only,no arg rewrite;desc BOUNDARY inline terminal
+dedup-h	3964	hook	terminal_input hook	BOUNDARY:no terminal input surface;desc VARIANT shell:true non-login
+dedup-h	3972	env	project-dir env stamp	IMPLEMENTED:PAI_WORKDIR in sessionStamps;desc NOISE formatting
+dedup-h	3984	write	review write contract+tripwire	COVERED(variant):writeLease+verifier deny;desc BOUNDARY ACP

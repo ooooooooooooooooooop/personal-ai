@@ -4915,3 +4915,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——`pre_tool` gate 可拒 bash；spawn 时改 command/cwd/env 的 hook=variant 未落（观测面刻意不改写）。描述 **BOUNDARY**——in-line terminal 直输=无终端面。
 - **核销**：candidates-open #3960 → `candidates-resolved.tsv` #422。
+
+#### 28.421 terminal_input hook + fish 兼容 (#3964 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无终端输入面（terminal_input 事件无从产生）。描述 **COVERED(variant)**——job spawn `shell:true` 非 login shell=POSIX 一致性天然（fish login-shell 兼容缺陷类不存在）。
+- **核销**：candidates-open #3964 → `candidates-resolved.tsv` #423。
+
+#### 28.422 Bash 子进程 env 注入 + 结果格式 (#3972 — title IMPLEMENTED / desc NOISE)
+
+- **status**: title implemented; desc noise.
+- **判定**：标题 **IMPLEMENTED**——`PAI_WORKDIR` 加入 sessionStamps（`$CODEBUDDY_PROJECT_DIR` 类比；沙箱重根 cwd 时仍可定位项目根；既有 SESSION_ID/FILE/PROVIDER/MODEL/REASONING_LEVEL 族）。描述 **NOISE**——slash 结果格式优化=装饰级。
+- **位点**：`pi/src/bootstrap/host.js` `sessionStamps`。
+- **证据**：envtools **11/11**（stamps 经 envOverlay 合成面未破）。
+- **核销**：candidates-open #3972 → `candidates-resolved.tsv` #424。
+
+#### 28.423 review write 契约+tripwire + ACP 输出 (#3984 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——writeLease fg/bg 持有门+verifier 写工具 deny=write 契约+bypass 检测族（tripwire 命名=variant）。描述 **BOUNDARY**——ACP streamed 输出保留=外部协议面。
+- **核销**：candidates-open #3984 → `candidates-resolved.tsv` #425。

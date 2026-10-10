@@ -854,6 +854,10 @@ export async function startHost({
       PAI_PROVIDER: s?.model?.provider ?? '',
       PAI_MODEL: s?.model?.id ?? s?.model?.model ?? '',
       PAI_REASONING_LEVEL: s?.thinkingLevel ?? '',
+      // dedup-h #3972 — project-dir env stamp ($CODEBUDDY_PROJECT_DIR
+      // analogue): spawned commands can locate the project root without
+      // trusting cwd alone (sandbox backends re-root it).
+      PAI_WORKDIR: workdir ?? '',
     };
   };
   const envOverlay = () => ({ ...sessionEnv.view(), ...sessionStamps() });
