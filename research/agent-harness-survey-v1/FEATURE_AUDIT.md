@@ -5198,3 +5198,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——spec `enabled:false`/`disabled` 保留配置不连接+`/mcp-enable` 恢复+`context`/`PAI_MCP_DENY` 维度抑制。描述 **COVERED**——profile `model` 字段即 per-agent default_model（#1169 在册）。
 - **核销**：candidates-open #4169 → `candidates-resolved.tsv` #467。
+
+#### 28.466 task 工具执行 hooks+命令上下文 + emmet (#4173 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——pre_tool/post_tool 门罩全部工具含 task 工具（job/task 系列经决定链）；命令上下文=ambient hookContext（run/session/agent 字段）。描述 **BOUNDARY**——emmet 扩展面。
+- **核销**：candidates-open #4173 → `candidates-resolved.tsv` #468。
+
+#### 28.467 Suggest Edit+live_diffs + SC 刷新 (#4179 — title PARTIAL / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`/diff` 面板+governance_dryrun 探测在册（实际变更 diff 可见）；agent 提议级 pre-apply 预览（suggest-edit/live_diffs 流）无对位面。描述 **BOUNDARY**——source control 轮询面。
+- **核销**：candidates-open #4179 → `candidates-resolved.tsv` #469。
+
+#### 28.468 Ctrl+R 反向搜索 + 重连去重 (#4180 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——Ctrl+R `openHistSearch`/`slashFilterHist` 增量反向搜索（200-cap 持久 promptHist，含 slash 命令）+`pickHist`/`cancelHistSearch` 在册。描述 **BOUNDARY**——web 流重连去重面。
+- **核销**：candidates-open #4180 → `candidates-resolved.tsv` #470。

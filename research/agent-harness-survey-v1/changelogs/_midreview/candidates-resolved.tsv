@@ -466,3 +466,6 @@ dedup-h	4157	skill	skills as slash commands	COVERED(variant):recipe_run+skill_re
 dedup-h	4158	skill	skill workshop review+rollback	COVERED(variant):curator proposals+governed apply;desc BOUNDARY render override
 dedup-h	4167	snapshot	per-tool workspace snapshot	COVERED(variant):file_checkpoint pre-image+undo;desc BOUNDARY panel
 dedup-h	4169	mcp	selective MCP enable/disable	COVERED:enabled:false+/mcp-enable+context deny;desc COVERED default_model
+dedup-h	4173	hook	task tool exec hooks	COVERED:pre/post_tool covers task tools+ctx;desc BOUNDARY emmet
+dedup-h	4179	ui	suggest-edit+live_diffs	PARTIAL(variant):diff panel+dryrun,suggest-edit none;desc BOUNDARY SC poll
+dedup-h	4180	hist	Ctrl+R reverse search	COVERED:openHistSearch+promptHist;desc BOUNDARY stream dedup
