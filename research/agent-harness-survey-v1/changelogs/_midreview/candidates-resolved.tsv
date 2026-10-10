@@ -271,3 +271,6 @@ dedup-h	3082	plugin	defineToolPlugin+plugins CLI	BOUNDARY:no plugin SDK surface;
 dedup-h	3086	egress	outbound call inspector	COVERED:egress-allow.json+per-domain ask+EGRESS_POLICY_ASK/HOOK_EGRESS_REFUSED audit;desc N/A no auto-update mechanism
 dedup-h	3094	command	argument-hint frontmatter	COVERED:implemented app.js:5205 #3094;desc task env vars via session overlay+delegate envOverlay variant
 dedup-h	3099	turn	--max-turns	COVERED:PAI_MAX_TOOL_CALLS decide cap #3082;desc BOUNDARY plugin SDK
+dedup-h	3106	auth	models.json authHeader Bearer	COVERED:apiKey auto-synthesizes Authorization Bearer header channel.js:1066;desc BOUNDARY macOS CLI prompt
+dedup-h	3107	command	slash argument-hint	COVERED:same as 3094;desc profile_* CRUD ops variant same as 3061
+dedup-h	3110	mode	/plan reasoner+plan prompt	COVERED(variant):/plan cmd+presets preamble/thinking;desc BOUNDARY no trajectory replay web surface

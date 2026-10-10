@@ -4000,3 +4000,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——`--max-turns`→`PAI_MAX_TOOL_CALLS`→decide cap（#3082 已核销）。描述 **BOUNDARY**——defineToolPlugin/plugins build/validate/init=上游 plugin SDK 面无对位（#3082 同判）。
 - **核销**：candidates-open #3099 → `candidates-resolved.tsv` #272。
+
+#### 28.272 models.json authHeader + macOS CLI 提示 (#3106 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——models.json provider `apiKey` 声明即自动合成 `Authorization: Bearer`（`pi/src/adapter/channel.js:1066`：`headers.Authorization = Bearer ${apiKey}`，provider 自定义 headers 先铺 auth 后盖）=authHeader 语义默认开。描述 **BOUNDARY**——无 macOS CLI install 提示面。
+- **核销**：candidates-open #3106 → `candidates-resolved.tsv` #273。
+
+#### 28.273 slash argument-hint + agent create args (#3107 — title COVERED / desc COVERED(variant))
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——同 #3094（`argument-hint:` frontmatter 已在册）。描述 **COVERED(variant)**——同 #3061（`profile_*` 受控 ops 参数化 CRUD=scriptable 创建语义）。
+- **核销**：candidates-open #3107 → `candidates-resolved.tsv` #274。
+
+#### 28.274 /plan reasoner prompt + trajectory replay (#3110 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`/plan` 命令在册（只读模式卡）+mode presets 可带 preamble/`thinking` 档（plan-mode reasoner 组合=profile/preset 语义变体，非独立 reasoner+prompt 件）。描述 **BOUNDARY**——无 trajectory replay web 面（session export format=debug 轨迹包是最近对偶）。
+- **核销**：candidates-open #3110 → `candidates-resolved.tsv` #275。
