@@ -125,6 +125,12 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
       // must not double-trigger continuation or fallback. Every legitimate
       // run passes agent_start first, which re-arms this flag.
       let agentEnded = false;
+      // dedup-h #2512 — empty-turn retry: a run that produced no text and no
+      // tool calls is a provider glitch on ANY backend (the upstream fix
+      // extended the same retry from local models to every provider). One
+      // bounded re-steer per task — a second empty answer delivers as-is
+      // rather than looping forever.
+      let emptyRetried = false;
       // U15: directories already hinted this session — hint once, not per touch
       const hintedDirs = new Set();
       const wd = workdir ? resolve(workdir) : null;
@@ -164,6 +170,7 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
         } else {
           transcript = freshTranscript();
           fallbackHops = 0; // a genuinely new task gets a fresh fallback budget
+          emptyRetried = false; // and a fresh empty-turn retry budget
         }
       });
 
@@ -243,6 +250,34 @@ export function loopGovernanceExtension({ continuation = null, contextEnvelope =
             ctx.sendUserMessage(decision.steerText);
             return; // governed continuation owns the next run — no fallback
           }
+        }
+        // dedup-h #2512 — completely empty run: no assistant text, no tool
+        // calls, no provider error. Runs AFTER the continuation gate: an
+        // armed governor's own steer already covers recovery, so this fires
+        // only when nothing else claims the turn. stopReason 'error' stays
+        // on the fallback path; 'aborted' runs are never re-steered.
+        const producedContent = (event?.messages ?? []).some((m) =>
+          m?.role === 'assistant'
+          && (extractText(m)
+            || (m.content ?? []).some((b) => b?.type === 'toolCall' || b?.type === 'tool_use')));
+        if (!producedContent && transcript.toolCalls.length === 0) {
+          const lastErr = [...(event?.messages ?? [])].reverse().find((m) => m?.role === 'assistant')?.stopReason;
+          const cleanStop = lastErr == null || ['stop', 'end_turn', 'length'].includes(lastErr);
+          if (cleanStop && !emptyRetried) {
+            emptyRetried = true;
+            pendingSteer = true;
+            audit.write({ kind: 'EMPTY_TURN_RETRY', data: { retry: 1 } });
+            ctx.sendUserMessage(
+              '[empty-turn] 提供商返回了完全为空的响应（无文本、无工具调用）。' +
+              '请重新生成对最近请求的完整回答。',
+            );
+            return; // empty-turn retry owns the next run
+          }
+          if (cleanStop && emptyRetried) {
+            audit.write({ kind: 'EMPTY_TURN_RETRY', data: { exhausted: true } });
+          }
+        } else {
+          emptyRetried = false;
         }
         // M100 provider fallback chain: a run that ended on a terminal
         // provider error walks <instance>/model-fallbacks.json — session model

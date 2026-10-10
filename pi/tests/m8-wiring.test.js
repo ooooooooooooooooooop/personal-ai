@@ -912,3 +912,47 @@ test('#1475 hot-reload: operator edits workspace.json mid-session — next decis
   assert.equal(await decide({ toolCall: { name: 'read' }, args: { path: join(extra, 'f.txt') } }), undefined,
     'root added at runtime applies to the next decision — no respawn');
 });
+
+test('#2512: empty run retries once with a steer; second empty delivers as-is', async () => {
+  const { loopGovernanceExtension } = await import('../src/adapter/loop.js');
+  const events = {};
+  const sent = [];
+  const auditEvents = [];
+  const pi = {
+    on: (n, fn) => { events[n] = fn; },
+    sendUserMessage: (t) => sent.push(t),
+  };
+  const ext = loopGovernanceExtension({ audit: { write: (e) => auditEvents.push(e) } });
+  ext.factory(pi);
+  const ctx = { model: { provider: 'openai', id: 'gpt-5' }, modelRegistry: { find: () => null }, sendUserMessage: (t) => sent.push(t) };
+
+  // empty run — assistant message exists but no text, no tool calls
+  events.agent_start();
+  await events.agent_end({ messages: [{ role: 'assistant', content: [], stopReason: 'stop' }] }, ctx);
+  assert.equal(sent.length, 1, 'empty run triggers one retry steer');
+  assert.match(sent[0], /empty-turn/);
+  assert.ok(auditEvents.some((e) => e.kind === 'EMPTY_TURN_RETRY' && e.data.retry === 1));
+
+  // second consecutive empty run — delivered as-is, no loop
+  sent.length = 0;
+  events.agent_start(); // the retry steer fired a real run
+  await events.agent_end({ messages: [{ role: 'assistant', content: [], stopReason: 'stop' }] }, ctx);
+  assert.equal(sent.length, 0, 'retry budget spent — no second steer');
+  assert.ok(auditEvents.some((e) => e.kind === 'EMPTY_TURN_RETRY' && e.data.exhausted));
+
+  // run that produced text does NOT retry and re-arms the budget
+  sent.length = 0;
+  events.agent_start();
+  await events.agent_end({ messages: [{ role: 'assistant', content: [{ type: 'text', text: 'answer' }], stopReason: 'stop' }] }, ctx);
+  assert.equal(sent.length, 0, 'non-empty run untouched');
+
+  events.agent_start(); // new task
+  await events.agent_end({ messages: [{ role: 'assistant', content: [], stopReason: 'stop' }] }, ctx);
+  assert.equal(sent.length, 1, 'new task gets a fresh retry budget');
+
+  // error stopReason stays on the fallback path, not the empty-retry path
+  sent.length = 0;
+  events.agent_start();
+  await events.agent_end({ messages: [{ role: 'assistant', content: [], stopReason: 'error', errorMessage: 'boom' }] }, ctx);
+  assert.equal(sent.length, 0, 'error runs do not empty-retry');
+});

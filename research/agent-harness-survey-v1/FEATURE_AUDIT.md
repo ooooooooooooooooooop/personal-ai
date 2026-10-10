@@ -3460,3 +3460,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（opt-in Auto Recall 搜外部 context+内置安全限）**：**已覆盖(variant)**——同 #2450：per-turn memory injection 覆盖 recall 语义；外抓自动注入=egress+注入边界刻意不设。
 - **证据**：`host/src/core/hooks.js` #entryKind/fire/fireGate。
 - **核销**：candidates-open #2483 → `candidates-resolved.tsv` #197。
+
+#### 28.198 unreachable remote MCP + empty-turn retry (#2512 — title covered / desc IMPLEMENTED)
+
+- **status**: desc implemented — `EMPTY_TURN_RETRY`; title covered.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED**。
+  - **标题语义（unreachable remote MCP 不再卡 session 启动）**：**已覆盖**——#394 `CONNECT_TIMEOUT_MS=10s` per-server 预算+`Promise.all` 并发连接+`connectOne` fail-isolate（failed:true）；`await boot` 仅在命令/工具调用点，启动路径不阻塞。
+  - **描述语义（空 turn 全 provider 重试而非仅本地后端）**：**IMPLEMENTED**——agent_end 新增空转检测：本轮无 assistant 文本且无工具调用且干净 stop（`stop|end_turn|length|null`）→一次有界 `_continuation` steer 重试（`EMPTY_TURN_RETRY` 审计）；error 仍走 fallback 链、aborted 绝不重 steer、第二次空转如实交付不循环。
+- **证据**：m8-wiring 40/40（新用例覆盖 retry/exhaust/re-arm/new-task/error-豁免）；pi 全套见台账。
+- **核销**：candidates-open #2512 → `candidates-resolved.tsv` #198。
