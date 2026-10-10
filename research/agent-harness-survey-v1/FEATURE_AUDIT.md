@@ -4973,3 +4973,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——task 存储按 instance root（非 session 级）→同 instance 内跨 session 天然共享，无需 env 传 id（`CODEBUDDY_TASK_LIST_ID` 等价面）。描述 **BOUNDARY**——Web Shell 侧栏状态面。
 - **核销**：candidates-open #4016 → `candidates-resolved.tsv` #431。
+
+#### 28.430 goal 三态评估 + Web Shell 渠道 (#4017 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`goal_coordinator done` 加 `verdict`（achieved|unachievable）持久化入 goal.json；三态语义=achieved→done(achieved) / not-achieved→留 open / unachievable→done(unachievable)；非法 verdict 拒、回 open 清 verdict。描述 **BOUNDARY**——Web Shell 渠道策略面。
+- **位点**：`host/src/core/goals.js` `setState` + `pi/src/adapter/goals.js` done 分支。
+- **证据**：host goals **6/6** 绿；端到端 smoke（achieved 持久/bogus 拒/open 清）通过。
+- **核销**：candidates-open #4017 → `candidates-resolved.tsv` #432。
+
+#### 28.431 --tools 限量下 registry 全量 + TUI 图像 (#4024 — title DEFECT-ABSENT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(defect-absent)**——工具全量注册于 customTools，`PAI_TOOLS_ALLOW` 只收窄 ToolSurface 可见面+决定墙执行（上游"限量把工具从 registry 移除"缺陷类不存在）。描述 **BOUNDARY**——TUI chafa 图像面。
+- **核销**：candidates-open #4024 → `candidates-resolved.tsv` #433。
+
+#### 28.432 composer 附件入活 turn + 多 workspace 分屏 (#4033 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`@file` mention 在 prompt 提交即展开注入 turn；忙时消息入队=下一 turn 携带附件（上游"active turn 即时插入"的语义变体，无 mid-turn 附件注入口）。描述 **BOUNDARY**——多 workspace 分屏面。
+- **核销**：candidates-open #4033 → `candidates-resolved.tsv` #434。

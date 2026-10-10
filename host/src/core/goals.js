@@ -81,11 +81,20 @@ export class GoalStore {
       .sort((a, b) => b.created.localeCompare(a.created));
   }
 
-  setState(goalId, state) {
+  // dedup-h #4017 — done carries an eval verdict (achieved | unachievable):
+  // the three-state eval is achieved→done / not-achieved→stay-open /
+  // unachievable→done-with-verdict. The verdict is durable provenance so a
+  // later reader can tell "finished" from "gave up".
+  setState(goalId, state, { verdict = null } = {}) {
     const meta = this.#readMeta(goalId);
     if (!meta) return null;
     if (!['open', 'paused', 'done'].includes(state)) return { error: `bad state '${state}'` };
+    if (verdict != null && !['achieved', 'unachievable'].includes(verdict)) {
+      return { error: `bad verdict '${verdict}' (achieved|unachievable)` };
+    }
     meta.state = state;
+    if (state === 'done' && verdict != null) meta.verdict = verdict;
+    if (state === 'open') delete meta.verdict;
     this.#writeMeta(goalId, meta);
     return meta;
   }

@@ -33,6 +33,7 @@ export function goalCoordinatorTool(goals, schedules) {
         id: { type: 'string', description: 'goal id (all actions except create/list)' },
         text: { type: 'string', description: 'scratchpad note line (note)' },
         task_id: { type: 'string', description: 'task to bind (bind_task)' },
+        verdict: { type: 'string', enum: ['achieved', 'unachievable'], description: 'eval verdict (done): achieved | unachievable; not-achieved = leave open' },
       },
       required: ['action'],
     },
@@ -76,10 +77,12 @@ export function goalCoordinatorTool(goals, schedules) {
           case 'resume':
           case 'done': {
             const state = params.action === 'resume' ? 'open' : params.action;
-            const g = goals.setState(String(params.id ?? ''), state);
+            const g = goals.setState(String(params.id ?? ''), state, {
+              verdict: state === 'done' ? (params.verdict ?? null) : null,
+            });
             if (!g) return { ...text(`no goal '${params.id}'`), isError: true };
             if (g.error) return { ...text(g.error), isError: true };
-            return text(`goal ${params.id} → ${g.state}`);
+            return text(`goal ${params.id} → ${g.state}${g.verdict ? ` (${g.verdict})` : ''}`);
           }
           default:
             return { ...text(`unknown action '${params.action}' (create|list|note|bind_task|pause|resume|done)`), isError: true };
