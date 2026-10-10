@@ -468,6 +468,13 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
           const pid = input.prediction_id ?? null;
           const p = pid ? openPreds.get(pid) : null;
           if (!pid || !p) return { ok: false, code: 'PREDICTION_UNKNOWN', message: `unknown prediction ${pid}` };
+          // Terminal verdicts are immutable (PredictionStore.close returns
+          // early on a terminal record). The store already refuses, but the
+          // flag must also stop the EVENT: a second PREDICTION_EVALUATED would
+          // put a contradictory verdict in the append-only ledger the
+          // distiller reads — the trail would claim refuted what the store
+          // still holds confirmed.
+          if (p.evaluated) return { ok: false, code: 'PREDICTION_ALREADY_EVALUATED', message: `prediction ${pid} already evaluated — verdict is terminal` };
           p.evaluated = true;
           const verdict = input.verdict ?? null;
           if (predictions) { try { predictions.close(pid, { verdict }, verdict === 'refuted' ? 'refuted' : 'confirmed'); } catch { /* store may already hold it closed */ } }

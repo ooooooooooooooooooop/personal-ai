@@ -1039,6 +1039,13 @@ export function apply(ctx, config = {}) {
             if (input.evaluation_source !== undefined && !['mechanical', 'later_reality', 'independent_model', 'human', 'self'].includes(input.evaluation_source)) {
               return { ok: false, code: 'BAD_EVALUATION_SOURCE' };
             }
+            // Same rule the pi adapter enforces: an evaluated prediction is
+            // terminal. s.evaluated marks it closed everywhere else (cap,
+            // authorize, persist) — letting evaluate re-fire here would append
+            // a second, possibly contradictory, verdict event for the same pid.
+            if (input.prediction_id && s.evaluated.has(input.prediction_id)) {
+              return { ok: false, code: 'PREDICTION_ALREADY_EVALUATED', prediction_id: input.prediction_id };
+            }
             if (input.prediction_id) s.evaluated.add(input.prediction_id);
             emit(s.id, 'PREDICTION_EVALUATED', { ...base, prediction_id: input.prediction_id, happened: `verdict=${input.verdict}`, payload: { verdict: input.verdict, observation_refs: input.observation_refs, residual: input.reason, evaluation_source: input.evaluation_source || 'self' } });
             return { ok: true, prior: pred ? 'bound' : (s.restored.has(input.prediction_id) ? 'restored' : 'unbound'), verdict: input.verdict };
