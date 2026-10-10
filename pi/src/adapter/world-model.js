@@ -17,7 +17,7 @@
  * authority). It produces evidence and enforces the binding gate; distillation
  * is downstream.
  */
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
@@ -329,6 +329,33 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
   const EXTERNAL_NS_EVENTS = new Set(['RAW_EVIDENCE', 'SESSION_EVENT', 'WM_ACTIVATE', 'STATE_PERSISTED']);
   const eventNamespaces = new Map(); // event_id -> namespace (this adapter instance's emissions)
 
+  /**
+   * Resolve an event id's namespace — this shim's emissions first, then the
+   * durable ledger. Without the ledger fallback a MODEL_INTERNAL event from
+   * an earlier session would resolve as "unknown" and pass the §9 check:
+   * a self-citation from last week is still self-citation. Results (including
+   * misses) are cached so each ref costs at most one sweep per shim lifetime.
+   */
+  function resolveNamespace(ref) {
+    const cached = eventNamespaces.get(ref);
+    if (cached === NS_EXTERNAL_REALITY || cached === NS_MODEL_INTERNAL) return cached;
+    let found = null;
+    try {
+      const files = readdirSync(ledgerDir).filter((f) => f.endsWith('.jsonl')).sort().reverse();
+      outer: for (const f of files) {
+        for (const line of readFileSync(join(ledgerDir, f), 'utf8').split('\n')) {
+          if (!line || !line.includes(ref)) continue; // cheap pre-filter before parsing
+          try {
+            const ev = JSON.parse(line);
+            if (ev.event_id === ref) { found = ev.namespace ?? null; break outer; }
+          } catch { /* torn tail row */ }
+        }
+      }
+    } catch { /* ledger unreadable — treat as unresolvable, not as evidence */ }
+    eventNamespaces.set(ref, found ?? 'UNRESOLVED');
+    return found;
+  }
+
   /** Append one event to both streams the toolchain reads, with a causal chain. */
   function emit(sessionId, eventType, data = {}) {
     const s = sess(sessionId);
@@ -468,9 +495,10 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
           if (!pid) return { ok: false, code: 'OBSERVATION_UNLINKED', message: 'observe requires prediction_id' };
           // adapter §9: a MODEL_INTERNAL event is the model's own account —
           // citing it as world evidence would let inference re-enter as fact.
-          // Only this adapter's own emissions are resolvable; refs to external
-          // artifacts (paths, commits, session ids) pass through unverifiable.
-          const badRef = (Array.isArray(input.evidence_refs) ? input.evidence_refs : []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+          // Resolution covers the durable ledger (prior sessions included);
+          // refs to external artifacts (paths, commits, session ids) stay
+          // unverifiable and pass through honestly.
+          const badRef = (Array.isArray(input.evidence_refs) ? input.evidence_refs : []).find((r) => resolveNamespace(r) === NS_MODEL_INTERNAL);
           if (badRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badRef, message: 'MODEL_INTERNAL events cannot be cited as world evidence (adapter §9)' };
           // Mark EVIDENCE ARRIVED on the prediction. This is what makes Update
           // reachable: D1's chain is Prediction → Action → Observation → Update, and

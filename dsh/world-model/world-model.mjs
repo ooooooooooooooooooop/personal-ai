@@ -566,6 +566,33 @@ export function apply(ctx, config = {}) {
     'INPUT_ROUTED', 'MODEL_WRITE_FAILED',
   ]);
   const eventNamespaces = new Map(); // event_id -> namespace（本适配器实例已发事件）
+
+  /**
+   * 事件 id 的 namespace 解析——先查本 shim 已发事件，miss 再扫持久化账本。
+   * 没有账本兜底的话，上会话的 MODEL_INTERNAL 事件会解析成"未知"而绕过 §9
+   * 检查：上周的自我引用仍是自我引用。结果（含 miss）缓存，每个 ref 最多
+   * 一次全盘扫描。
+   */
+  function resolveNamespace(ref) {
+    const cached = eventNamespaces.get(ref);
+    if (cached === NS_EXTERNAL_REALITY || cached === NS_MODEL_INTERNAL) return cached;
+    let found = null;
+    try {
+      const dir = join(wmDir, 'ledger');
+      const files = readdirSync(dir).filter((f) => f.endsWith('.jsonl')).sort().reverse();
+      outer: for (const f of files) {
+        for (const line of readFileSync(join(dir, f), 'utf8').split('\n')) {
+          if (!line || !line.includes(ref)) continue; // 便宜预筛，命中才解析
+          try {
+            const ev = JSON.parse(line);
+            if (ev.event_id === ref) { found = ev.namespace ?? null; break outer; }
+          } catch { /* 尾行撕裂 */ }
+        }
+      }
+    } catch { /* 账本不可读——按不可解析处理，不当作证据 */ }
+    eventNamespaces.set(ref, found ?? 'UNRESOLVED');
+    return found;
+  }
   function emit(sessionId, eventType, data = {}) {
     const s = sessions.get(sessionId);
     const seq = ++globalSeq;
@@ -983,7 +1010,7 @@ export function apply(ctx, config = {}) {
               // adapter §9：MODEL_INTERNAL 事件是模型自述——引作世界证据 = 推断
             // 当事实回流。本适配器已发事件可解析；外部工件引用（路径/commit/
             // session id）不在此表，按不可验证放行。
-            const badRef = (input.evidence_refs || []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+            const badRef = (input.evidence_refs || []).find((r) => resolveNamespace(r) === NS_MODEL_INTERNAL);
             if (badRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badRef };
             // §七 条件门：经验性可检验主张无区分预测不得挂高置信——无 falsifier
             // 的 'high' 正是被点名的 blocker 形态。
@@ -1043,7 +1070,7 @@ export function apply(ctx, config = {}) {
                 if (owner !== s.id) return { ok: false, code: 'FOREIGN_PREDICTION', prediction_id: pid, owner: owner || 'unowned' };
               }
             }
-            const badRef = (input.evidence_refs || []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+            const badRef = (input.evidence_refs || []).find((r) => resolveNamespace(r) === NS_MODEL_INTERNAL);
             if (badRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badRef };
             emit(s.id, 'OBSERVATION_RECORDED', { ...base, namespace: input.namespace === NS_EXTERNAL_REALITY ? NS_EXTERNAL_REALITY : NS_MODEL_INTERNAL, prediction_id: input.prediction_id, happened: 'observation linked', payload: { observation: input.observation, source: input.source }, source_id: input.source_id, channel_id: input.channel_id, sensor_id: input.sensor_id });
             return { ok: true };
@@ -1079,7 +1106,7 @@ export function apply(ctx, config = {}) {
             if (input.prediction_id && s.evaluated.has(input.prediction_id)) {
               return { ok: false, code: 'PREDICTION_ALREADY_EVALUATED', prediction_id: input.prediction_id };
             }
-            const badObsRef = (input.observation_refs || []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+            const badObsRef = (input.observation_refs || []).find((r) => resolveNamespace(r) === NS_MODEL_INTERNAL);
             if (badObsRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badObsRef };
             if (input.prediction_id) s.evaluated.add(input.prediction_id);
             emit(s.id, 'PREDICTION_EVALUATED', { ...base, prediction_id: input.prediction_id, happened: `verdict=${input.verdict}`, payload: { verdict: input.verdict, observation_refs: input.observation_refs, residual: input.reason, evaluation_source: input.evaluation_source || 'self' } });

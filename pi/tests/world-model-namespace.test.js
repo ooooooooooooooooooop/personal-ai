@@ -9,19 +9,19 @@
  * Found by the original-theory acceptance: declared in adapter.md §9 but
  * unmechanised anywhere on the implementation surface.
  */
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { apply } from '../src/adapter/world-model.js';
 
-function rig() {
+function rig(stateDir = null, canonicalDir = null) {
   const dir = mkdtempSync(join(tmpdir(), 'pai-wm-ns-'));
-  const canonicalDir = join(dir, 'canonical');
-  const stateDir = join(dir, 'state');
+  canonicalDir = canonicalDir ?? join(dir, 'canonical');
+  stateDir = stateDir ?? join(dir, 'state');
   mkdirSync(canonicalDir, { recursive: true });
-  writeFileSync(join(canonicalDir, 'current.yaml'), 'world_model:\n  models: {}\n');
+  if (!existsSync(join(canonicalDir, 'current.yaml'))) writeFileSync(join(canonicalDir, 'current.yaml'), 'world_model:\n  models: {}\n');
   let tool = null;
   const handlers = {};
   apply({
@@ -39,7 +39,7 @@ function rig() {
     }
     return out;
   };
-  return { tool, exec, handlers, ledger };
+  return { tool, exec, handlers, ledger, stateDir, canonicalDir };
 }
 
 test('channel-stamped namespace: harness events EXTERNAL_REALITY, model-authored MODEL_INTERNAL', async () => {
@@ -91,6 +91,31 @@ test('EXTERNAL_REALITY events remain citeable; foreign/unresolvable refs pass th
     namespace: 'EXTERNAL_REALITY', evidence_refs: [rawEv.event_id, 'commit:abc123'],
   }, exec);
   assert.equal(good.ok, true, 'real evidence refs and external pointers are citeable');
+});
+
+test('cross-session: a MODEL_INTERNAL event from an older ledger is still refused', async () => {
+  // Session 1: an old shim emits a prediction AND a real tool result, then dies.
+  const first = rig();
+  const p = await first.tool.execute({ op: 'predict', subject: 'x', intended_action: 'write', falsifier: 'z' }, first.exec);
+  first.handlers['tools/result']({ name: 'bash', agent: { session: { id: 's1' } } }, 'exit 0');
+  const predEv = first.ledger().find(e => e.event_type === 'PREDICTION_CREATED');
+  const rawEv = first.ledger().find(e => e.event_type === 'RAW_EVIDENCE');
+
+  // Session 2: a brand-new shim over the same state dir — its in-memory map
+  // knows nothing; the durable ledger must supply the namespace.
+  const second = rig(first.stateDir, first.canonicalDir);
+  const bad = await second.tool.execute({
+    op: 'observe', prediction_id: p.prediction_id, observation: 'citing last week\u2019s claim',
+    evidence_refs: [predEv.event_id],
+  }, second.exec);
+  assert.equal(bad.ok, false, 'a MODEL_INTERNAL event stays unfit as world evidence across sessions');
+  assert.equal(bad.code, 'EVIDENCE_MODEL_INTERNAL');
+
+  const good = await second.tool.execute({
+    op: 'observe', prediction_id: p.prediction_id, observation: 'citing last week\u2019s real artifact',
+    namespace: 'EXTERNAL_REALITY', evidence_refs: [rawEv.event_id],
+  }, second.exec);
+  assert.equal(good.ok, true, 'an EXTERNAL_REALITY event remains citeable across sessions');
 });
 
 test('confidence ceiling: high confidence without a falsifier is refused (§七 conditional gate)', async () => {
