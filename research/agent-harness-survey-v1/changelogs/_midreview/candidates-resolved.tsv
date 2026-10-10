@@ -232,3 +232,6 @@ dedup-h	2754	skills-plugins	after_provider_response hook	COVERED:llm_output hook
 dedup-h	2755	skills-plugins	built-in worktree plugin	COVERED:create/in_worktree reuse/auto-remove clean+JOB_WORKTREE_KEPT dirty reporting;desc BOUNDARY include-config write path not in stack
 dedup-h	2766	skills-plugins	before_prompt_build prepend/append context	COVERED(variant):prompt_submit {context:prepended} gate hook(operator-private)+CLI appendSystemPrompt;workdir-hook system-context injection refused by design;desc static catalog+lazy providers variant
 dedup-h	2768	skills-plugins	llm_output contextTokenBudget+metadata	PARTIAL(variant):payload carries seq/status/headers+llm_input model/hash/bytes;budget lives in usage_traces+PROVIDER_RESPONSE audit not at seam;desc SecretRef mechanism covered
+dedup-h	2774	skills-plugins	bundled webhook ingress plugin	COVERED:M112 webhooks.json endpoints->promptSink wake+provenance+decide chain;desc BOUNDARY Matrix plugin
+dedup-h	2787	skills-plugins	tool Defer/NoDefer modifiers	COVERED(variant):spec.defer_loading #1059 deferred registration;desc COVERED modelRuntime.refresh async catalog
+dedup-h	2818	skills-plugins	paste file-context detect+collapse	COVERED:M129 path:line chip+long-paste attachment fold;desc BOUNDARY sender avatar multi-user UI

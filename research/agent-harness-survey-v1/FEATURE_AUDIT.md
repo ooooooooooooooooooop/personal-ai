@@ -3764,3 +3764,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——`llm_output` payload 带 `{seq,status,headers}`+`llm_input` 带 model/messages/hash/bytes：source metadata 覆盖；`contextTokenBudget` 字段不存于该 seam——响应到达时 usage 尚未消费（流在事件后），token 核算由 `usage_traces`+PROVIDER_RESPONSE 审计承载=相邻面 variant 而非 seam 字段。描述 **COVERED(variant)**——SecretRef 机制在（`parseSecretRef` op/bw 语法+items allowlist+env key discovery）；plugin-bundled provider 专属 scoping 无对应物。
 - **核销**：candidates-open #2768 → `candidates-resolved.tsv` #233。
+
+#### 28.233 bundled webhook ingress + Matrix plugin (#2774 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M112 inbound webhooks（`<instance>/webhooks.json` 声明端点→认证+`promptSink` 驱动 session/taskflow 唤醒+`meta.webhook` provenance+decide 链不豁免=外部自动化驱动语义）。描述 **BOUNDARY**——matrix-js-sdk 通道插件无对位面。
+- **位点**：`pi/src/adapter/webhook.js`。
+- **核销**：candidates-open #2774 → `candidates-resolved.tsv` #234。
+
+#### 28.234 tool Defer modifiers + async catalog refresh (#2787 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`spec.defer_loading`（#1059）：工具注册但延迟到 post-build prefix pass，MCP spec 级声明=Defer 修饰语义（frontmatter `--tools` 语法无对位=形式 variant）。描述 **ALREADY_COVERED**——`modelRuntime.refresh()` 异步动态目录刷新已接线（auth/key/models 变更后 channel 三处调用）。
+- **核销**：candidates-open #2787 → `candidates-resolved.tsv` #235。
+
+#### 28.235 paste file-context detect + sender avatar (#2818 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M129 粘贴智能：`path:line(:col)` 引用检测上 chip + 长文本粘贴折叠为 attachment（Codex long-paste analogue）+ 文件/图片 drop。描述 **BOUNDARY**——发送者 avatar gutter 是多用户 channel UI 面；本栈单操作员无 sender 归属概念。
+- **位点**：`app/ui/app.js` 5350+。
+- **核销**：candidates-open #2818 → `candidates-resolved.tsv` #236。
