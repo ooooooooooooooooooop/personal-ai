@@ -3820,3 +3820,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——`files_list`+`file_read` RPC 在 supervisor（confined）；write/copy 不暴露裸 RPC=**刻意**走 governed fileops+receipt 写面；watch=`file_checkpoint` hook 事件非 RPC——五件套语义各有对位但分布不同。描述 **BOUNDARY**——无 plugin install pipeline+entrypoint 扫描面。
 - **核销**：candidates-open #2861 → `candidates-resolved.tsv` #242。
+
+#### 28.242 --add-dir + workflow approvals-to-parent (#2862 — title BOUNDARY(variant) / desc PARTIAL(variant))
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——无 `--add-dir` 多工作目录授予面（jobs=单 workdir+`in_worktree` 具名开既有=受限对偶；TS SDK 面不存在）。描述 **PARTIAL(variant)**——delegate/subagent 审批直达父界面未接线：delegate jobs 是 headless durable 进程，写面由各自 profile policy 预先 deny（verifier 人格）+全量 audit=预授权式边界而非运行时审批冒泡。
+- **核销**：candidates-open #2862 → `candidates-resolved.tsv` #243。
+
+#### 28.243 ACPX plugin-MCP bridge + inline img (#2863 — title BOUNDARY / desc PARTIAL)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 ACPX plugin-tools→MCP bridge 面（MCP servers 一律 instance 声明+default-off 同理但非 plugin 携带）。描述 **PARTIAL(intentional variant)**——`md()` 刻意全量 escapeHtml（agent 内容含 HTML=XSS 通道）；`<img>` 标签渲染缺失属该安全立场的结果而非疏漏；`![]()` 语法亦未实现。
+- **核销**：candidates-open #2863 → `candidates-resolved.tsv` #244。
+
+#### 28.244 workspaces live-state + ollama model (#2866 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`get_state` 经 localhost-only supervisor 桥=trusted-only live-state 语义（无 `/workspaces/:ws/` 多租户路由=variant）。描述 **ALREADY_COVERED**——Ollama provider 走 `/api/tags` 动态目录=mistral-nemo 等任意本地模型天然可选（非硬编码名单）。
+- **核销**：candidates-open #2866 → `candidates-resolved.tsv` #245。

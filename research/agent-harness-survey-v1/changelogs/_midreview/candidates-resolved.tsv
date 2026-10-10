@@ -241,3 +241,6 @@ dedup-h	2832	ui	pending-changes diff panel	PARTIAL(variant):no staged pending-ch
 dedup-h	2839	ui	Ctrl+Z input undo	COVERED:M126 draft undo/redo snapshot stack;desc PARTIAL no frontmatter metadata render surface
 dedup-h	2854	webhook	webhook direct platform chat	BOUNDARY:webhooks ride session promptSink by design;desc N/A no keymap file surface
 dedup-h	2861	api	v2 filesystem RPCs	PARTIAL(variant):files_list+file_read confined RPCs;write/copy via governed fileops+receipts;watch via file_checkpoint events;desc BOUNDARY no plugin install pipeline
+dedup-h	2862	api	--add-dir exec+TS SDK	BOUNDARY(variant):single workdir+in_worktree;desc PARTIAL delegate approvals pre-authorized via profile policy+audit not runtime bubbling
+dedup-h	2863	mcp	ACPX plugin-tools MCP bridge	BOUNDARY:no ACPX bridge surface;desc PARTIAL inline img deliberately escaped(XSS)!
+dedup-h	2866	api	workspaces live-state endpoint	COVERED(variant):get_state via localhost supervisor bridge;desc COVERED ollama dynamic /api/tags catalog
