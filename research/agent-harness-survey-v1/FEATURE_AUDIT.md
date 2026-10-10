@@ -3695,3 +3695,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（task context providers 访问本地 shell env——本地 Rust 工具可用）**：**已覆盖(variant)**——spawned 子进程继承 process.env+sessionEnv overlay+#2691 stamps=本地 shell env 原生可达。
 - **证据**：`pi/extensions/mcp/index.js:1355-1360`。
 - **核销**：candidates-open #2726 → `candidates-resolved.tsv` #223。
+
+#### 28.223 message_end rewrite + plugin MCP (#2729 — title covered / desc resolved #2726)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **见 #2726**。
+  - **标题语义（message_end hook 可替换 finalized messages）**：**已覆盖(variant)**——`transform_llm_output`（#1922）：hook 重写投递文本、deny/error withhold fail-closed——同"终态消息可换"语义。
+  - **描述语义（plugin MCP servers+install OAuth）**：同 #2726 判定（BOUNDARY）。
+- **证据**：`host/src/core/hooks.js` transform_llm_output 契约测试在册。
+- **核销**：candidates-open #2729 → `candidates-resolved.tsv` #224。
