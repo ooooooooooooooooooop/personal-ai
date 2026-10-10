@@ -3639,3 +3639,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（/undo 修复——checkpoint picker 误把 tool results 数成 user turns）**：**缺陷类不存在**——锚点枚举走 SDK `getUserMessagesForForking`（引擎侧按条目类型分类，tool result 永不进 user 列表），`session_rewind` 按 entryId navigateTree，无计数逻辑可错。
 - **证据**：`pi/src/adapter/channel.js:779-792`。
 - **核销**：candidates-open #2596 → `candidates-resolved.tsv` #217。
+
+#### 28.217 hook failure visibility + voice profile ctx (#2628 — title covered variant / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（workspace hook 缺失/非零退出阻塞时可见提示）**：**已覆盖(variant)**——gate hook 非零退出/异常→`{deny: 'pre_tool hook failed closed: …'}` 阻塞理由直达操作员（可见）；observational hook 错误 audit（观测面刻意不阻塞）；缺文件=刻意 allow（契约注释明示）。
+  - **描述语义（voice realtime 默认注入 IDENTITY/USER/SOUL profile 上下文）**：**BOUNDARY**——无 voice/realtime 会话面对应物。
+- **证据**：`host/src/core/hooks.js:380`。
+- **核销**：candidates-open #2628 → `candidates-resolved.tsv` #218。
