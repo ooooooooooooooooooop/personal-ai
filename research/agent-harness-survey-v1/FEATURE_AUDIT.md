@@ -3686,3 +3686,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`app/ui/app.js`（msgHtml ul 分支）；`app/ui/style.css`。
 - **证据**：regex 单测验证 checked/unchecked 两态；app lint 净、`node --check` 过。
 - **核销**：candidates-open #2699 → `candidates-resolved.tsv` #222。
+
+#### 28.222 plugin MCP servers + task-provider shell env (#2726 — title BOUNDARY / desc variant)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY(variant)**；描述 **COVERED(variant)**。
+  - **标题语义（plugin 携带 MCP servers+install 时 OAuth 授权）**：**BOUNDARY**——无 plugin/skill 打包 MCP 注册面；声明面=instance/env/workdir 三候选（`.pai/mcp.json`/`.mcp.json`/`PAI_MCP_CONFIG`）；install-时自动 OAuth 触发不存在（`/mcp-auth` 手动流）。
+  - **描述语义（task context providers 访问本地 shell env——本地 Rust 工具可用）**：**已覆盖(variant)**——spawned 子进程继承 process.env+sessionEnv overlay+#2691 stamps=本地 shell env 原生可达。
+- **证据**：`pi/extensions/mcp/index.js:1355-1360`。
+- **核销**：candidates-open #2726 → `candidates-resolved.tsv` #223。
