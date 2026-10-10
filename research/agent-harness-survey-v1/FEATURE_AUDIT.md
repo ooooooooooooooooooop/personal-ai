@@ -4823,3 +4823,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：两面 **BOUNDARY**——无 repoless REST 服务面；Slack 线程路由=外部通道。
 - **核销**：candidates-open #3906 → `candidates-resolved.tsv` #407。
+
+#### 28.406 选区 Add to chat + 聚合 overflow 恢复 (#3912 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M109 `#sel-quote` 浮动钮：transcript 选文本→"引用到对话"进输入框（mouseup/keyup/scroll 生命周期全）。描述 **COVERED(variant)**——injection hygiene envelope+context 有界=overflow 恢复防线变体。
+- **核销**：candidates-open #3912 → `candidates-resolved.tsv` #408。
+
+#### 28.407 server 端会话索引 + message hooks（重复） (#3918 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`session_search`（sessionsFacade.search 直读 transcript 全文；独立 server 索引/hub 命令=variant）。描述 **COVERED(variant)**——#3885（message 生命周期事件族）。
+- **核销**：candidates-open #3918 → `candidates-resolved.tsv` #409。
+
+#### 28.408 /archive 命令 + outbound 镜像 (#3921 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——archived 标记+归档切换+批量归档/清档钮（sess-arch-toggle 族）。描述 **BOUNDARY**——多通道 outbound 镜像/dmScope 面不存在。
+- **核销**：candidates-open #3921 → `candidates-resolved.tsv` #410。
