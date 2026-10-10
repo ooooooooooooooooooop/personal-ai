@@ -3964,3 +3964,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——profile 全 CRUD 经 `profile_save/apply/list/delete/export/import` 受控 ops（参数化 schema 同 CLI args 语义）。描述 **ALREADY_COVERED**——M100 fallback 错误分类：`isRequestInvariantError`/`isUsagePolicyError`（#2384）区分 envelope-特异与 provider-特异，transient 信号才判可重试=该语义已在。
 - **核销**：candidates-open #3061 → `candidates-resolved.tsv` #266。
+
+#### 28.266 ShareLinkUnpublish + convergence codes (#3070 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 share-link 公开发布面。描述 **COVERED(variant)**——audit `kind` 码（JOB_FINISHED/STEERING_CREATED/MODEL_SERVICE_TIER…）是机器可读 observation codes=自动化评审可对账的收敛信号面。
+- **核销**：candidates-open #3070 → `candidates-resolved.tsv` #267。
+
+#### 28.267 defaultTools 初始选择 + 搜索缓冲 (#3072 — title COVERED(variant) / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——初始工具选择=attested toolPolicy→`initialDeny`（deny 即隐藏+强制，session 继承）+mode presets 命名档位=global/project 双层默认集语义。描述 **BOUNDARY(N/A)**——无 project-search buffer 编辑器面。
+- **核销**：candidates-open #3072 → `candidates-resolved.tsv` #268。
+
+#### 28.268 defineToolPlugin + --max-turns (#3082 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 plugin SDK（defineToolPlugin/build/validate/init 脚手架面无对位）。描述 **ALREADY_COVERED**——`PAI_MAX_TOOL_CALLS` 经 `--max-turns` 桥旗下传并进入 decide cap=可强制 turn 上限。
+- **核销**：candidates-open #3082 → `candidates-resolved.tsv` #269。

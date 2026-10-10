@@ -265,3 +265,6 @@ dedup-h	2966	tls	wss cert pinning pre-trust	BOUNDARY(N/A):CDP is ws:// loopback,
 dedup-h	2968	tool	web_search permission tool name	COVERED:registered tool nameable in allow/deny/ask;desc pnpm unwrap fail-closed to ask variant
 dedup-h	3059	logging	LOG_JSON structured logging	COVERED:logline.js LOG_JSON/PAI_LOG_JSON JSON diag lines;desc BOUNDARY auto-reply channels
 dedup-h	3061	agent	agent create CLI args	COVERED(variant):profile_* governed CRUD ops;desc COVERED transient-signal retry classification M100+#2384
+dedup-h	3070	share	ShareLinkUnpublish	BOUNDARY:no share-link surface;desc COVERED(variant) audit kind codes machine-readable
+dedup-h	3072	tool	defaultTools built-in selection	COVERED(variant):toolPolicy initialDeny+mode presets;desc N/A no search buffer editor
+dedup-h	3082	plugin	defineToolPlugin+plugins CLI	BOUNDARY:no plugin SDK surface;desc COVERED --max-turns PAI_MAX_TOOL_CALLS decide cap
