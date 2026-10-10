@@ -391,3 +391,6 @@ dedup-h	3845	notify	native OS notify	PARTIAL(variant):notify_user in-app only;de
 dedup-h	3853	exec	per-agent exec defaults	COVERED(variant):profile tools/deny decl;desc VARIANT session disable
 dedup-h	3855	worktree	attached worktree preserve	DEFECT-ABSENT:only self-made wt-* removed,user dirs never;desc VARIANT no cache layer
 dedup-h	3863	cli	Codex CLI session bind	BOUNDARY:no external CLI surface;desc VARIANT restore ordering
+dedup-h	3864	queue	queue modes+overrides	PARTIAL(variant):followUp queue only,no mode knob;desc BOUNDARY ACP
+dedup-h	3866	context	/context treemap	PARTIAL(variant):/stats+traces detail;desc BOUNDARY team nav
+dedup-h	3870	share	sanitized share upload	BOUNDARY:no cloud share,local export variant;desc VARIANT fork/delete/resume

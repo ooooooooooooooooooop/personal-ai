@@ -4733,3 +4733,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无外部 Codex CLI 会话绑定面（本栈会话=sessions facade 自管）。描述 **COVERED(variant)**——restore 顺序=session entries/state 重建（上游 response-then-restore 次序=变体细节）。
 - **核销**：candidates-open #3863 → `candidates-resolved.tsv` #392。
+
+#### 28.391 queue 模式+ACP topic sync (#3864 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——busy→queue（streamingBehavior=followUp）在册；多 queue 模式/per-session 覆盖/maxConcurrent 旋钮=variant 未落。描述 **BOUNDARY**——无 ACP/IDE tab 同步面。
+- **核销**：candidates-open #3864 → `candidates-resolved.tsv` #393。
+
+#### 28.392 /context treemap + team 导航 (#3866 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`/stats`+traces 用量明细在册；context contributors treemap 可视化=variant 未落。描述 **BOUNDARY**——无 team 成员导航面。
+- **核销**：candidates-open #3866 → `candidates-resolved.tsv` #394。
+
+#### 28.393 share sanitize 上传 + fork/archive (#3870 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无云上传 share 面（`session_export`/`handoff_export` 本地导出=相邻变体，secret 剥离在 backup/export 链）。描述 **COVERED(variant)**——`session_fork`+`session_delete`/`session_list`+resume 流=fork/archive/restore 语义。
+- **核销**：candidates-open #3870 → `candidates-resolved.tsv` #395。
