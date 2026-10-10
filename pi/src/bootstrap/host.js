@@ -858,6 +858,10 @@ export async function startHost({
       // analogue): spawned commands can locate the project root without
       // trusting cwd alone (sandbox backends re-root it).
       PAI_WORKDIR: workdir ?? '',
+      // dedup-h #4014 — harness-shell marker (OPENCLAW_SHELL analogue):
+      // downstream runtimes/tools can detect they were spawned inside a
+      // managed shell regardless of nesting depth.
+      PAI_MANAGED_SHELL: 'personal-ai',
     };
   };
   const envOverlay = () => ({ ...sessionEnv.view(), ...sessionStamps() });

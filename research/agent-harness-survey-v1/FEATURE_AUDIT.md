@@ -4953,3 +4953,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——PowerShell CLM 类型白名单与 bare/NTFS 8.3 防御=特定运行时硬化面无对位（我方 shell:true 平台默认）。描述 **BOUNDARY**——#3964 terminal_input 同面。
 - **核销**：candidates-open #4005 → `candidates-resolved.tsv` #428。
+
+#### 28.427 shell 配置快照 + Web Shell PTY (#4012 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——无持久交互 shell 面（每次 job spawn `shell:true`+继承 env+overlay=等价快照变体；函数/别名快照无从表达）。描述 **BOUNDARY**——Web Shell PTY 会话面。
+- **核销**：candidates-open #4012 → `candidates-resolved.tsv` #429。
+
+#### 28.428 跨 runtime shell 标记 + Web Shell 附件 (#4014 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`PAI_MANAGED_SHELL=personal-ai` 加入 sessionStamps（`OPENCLAW_SHELL` 类比；下游 runtime/工具可跨嵌套深度检测"处于受管 shell"）。描述 **BOUNDARY**——Web Shell 附件流面。
+- **位点**：`pi/src/bootstrap/host.js` `sessionStamps`。
+- **证据**：envtools 0 失败。
+- **核销**：candidates-open #4014 → `candidates-resolved.tsv` #430。
+
+#### 28.429 跨 session task-list 共享 + 侧栏管理 (#4016 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——task 存储按 instance root（非 session 级）→同 instance 内跨 session 天然共享，无需 env 传 id（`CODEBUDDY_TASK_LIST_ID` 等价面）。描述 **BOUNDARY**——Web Shell 侧栏状态面。
+- **核销**：candidates-open #4016 → `candidates-resolved.tsv` #431。

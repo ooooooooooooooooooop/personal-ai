@@ -427,3 +427,6 @@ dedup-h	3984	write	review write contract+tripwire	COVERED(variant):writeLease+ve
 dedup-h	3998	review	finding-centric review UI	PARTIAL(variant):review modes exist,no finding schema;desc BOUNDARY TUI
 dedup-h	4001	tui	inline terminal input	BOUNDARY:no terminal;desc BOUNDARY signal shutdown
 dedup-h	4005	shell	PS CLM whitelist+git guards	BOUNDARY:runtime-specific hardening;desc BOUNDARY terminal_input
+dedup-h	4012	shell	shell config snapshot	BOUNDARY(variant):no persistent shell,env snapshot variant;desc BOUNDARY WebShell PTY
+dedup-h	4014	env	harness shell marker	IMPLEMENTED:PAI_MANAGED_SHELL stamp;desc BOUNDARY WebShell
+dedup-h	4016	task	cross-session task list share	COVERED(variant):instance-root store shared;desc BOUNDARY sidebar
