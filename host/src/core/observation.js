@@ -35,13 +35,19 @@ export class ObservationStore {
   }
 
   /** Append an observation. Returns the stored record. */
-  record({ kind, subject, detail = null, actor = 'host' }) {
+  record({ kind, subject, detail = null, actor = 'host', namespace = 'EXTERNAL_REALITY' }) {
     if (!kind || !subject) throw new Error('observation requires kind and subject');
     const rec = {
       id: `obs-${randomUUID().slice(0, 12)}`,
       // M5 parity: details carry tool-result content into a durable append-only
       // JSONL — scrub known credential shapes BEFORE the bytes land.
       kind, subject: redactSecrets(String(subject)), detail: scrubSecretsDeep(detail), actor, at: Date.now(),
+      // adapter §9: provenance class rides with the record. This store only
+      // ever receives harness-observed facts (tool results, operator actions),
+      // so EXTERNAL_REALITY is its honest default; a caller recording
+      // model-authored content must declare MODEL_INTERNAL, which is then
+      // ineligible as world evidence for other predictions.
+      namespace: namespace === 'MODEL_INTERNAL' ? 'MODEL_INTERNAL' : 'EXTERNAL_REALITY',
     };
     appendFileSync(this.path, `${JSON.stringify(rec)}\n`);
     return rec;

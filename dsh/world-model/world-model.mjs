@@ -349,7 +349,11 @@ const WM_PARAMETERS = {
     canonical_proposal: { type: 'object', additionalProperties: true },
     evidence_refs: { type: 'array', items: { type: 'string' } },
     supersedes: { type: 'array', items: { type: 'string' } },
-    uncertainty_type: { type: 'string', enum: ['empirical', 'logical'] }
+    uncertainty_type: { type: 'string', enum: ['empirical', 'logical'] },
+    // adapter §9：Observation/预测登记须带 namespace——真实工件证据
+    // EXTERNAL_REALITY；自身推断 MODEL_INTERNAL（不得引作世界证据）。
+    // 默认 MODEL_INTERNAL（保守侧：未标注内容不得过引）。
+    namespace: { type: 'string', enum: ['EXTERNAL_REALITY', 'MODEL_INTERNAL'] }
   },
   required: ['op'],
   additionalProperties: true
@@ -546,8 +550,22 @@ export function apply(ctx, config = {}) {
     appendFileSync(join(wmDir, 'runs', '.probe'), '');
   } catch { auditOk = false; }
 
-  const EV_KEEP_KEYS = new Set(['event_id', 'schema_version', 'theory_version', 'session_id', 'seq', 'prev_event', 'event_type', 'timestamp', 'actor', 'body_id', 'bcc', 'layer', 'access']);
+  const EV_KEEP_KEYS = new Set(['event_id', 'schema_version', 'theory_version', 'session_id', 'seq', 'prev_event', 'event_type', 'timestamp', 'actor', 'body_id', 'bcc', 'layer', 'access', 'namespace']);
   const ACCESS_ENUM = new Set(['PUBLIC', 'SANITIZED', 'INTERNAL', 'PRIVATE']);
+  // adapter §9（theory-v0.5 §十一-9）：事件 namespace 由产生通道盖章而非实体
+  // 自标——harness/世界实录的事实 = EXTERNAL_REALITY；模型亲笔主张默认
+  // MODEL_INTERNAL（保守侧：未分类内容不得被当世界证据过引）。
+  const NS_EXTERNAL_REALITY = 'EXTERNAL_REALITY';
+  const NS_MODEL_INTERNAL = 'MODEL_INTERNAL';
+  const EXTERNAL_NS_EVENTS = new Set([
+    'RAW_EVIDENCE', 'SESSION_EVENT', 'WM_ACTIVATE', 'STATE_RESTORE',
+    'STATE_PERSISTED', 'STATE_PERSIST_FAILED', 'BRIEFING_INJECTED',
+    'BRIEFING_FAILED', 'BRIEFING_STALE', 'GUARD_BLOCKED', 'LEASE_DENIED',
+    'FORK_DETECTED', 'PROPOSAL_DENIED', 'AUTHORIZATION_DENIED',
+    'AUTHORIZATION_RECORDED', 'NORMATIVE_DENIED', 'OP_DENIED',
+    'INPUT_ROUTED', 'MODEL_WRITE_FAILED',
+  ]);
+  const eventNamespaces = new Map(); // event_id -> namespace（本适配器实例已发事件）
   function emit(sessionId, eventType, data = {}) {
     const s = sessions.get(sessionId);
     const seq = ++globalSeq;
@@ -560,6 +578,10 @@ export function apply(ctx, config = {}) {
       event_type: eventType, timestamp: new Date().toISOString(), actor: 'agent',
       body_id: bodyId, bcc: BCC_VERSION,
       layer: eventType === 'RAW_EVIDENCE' ? 'L0' : 'L1',
+      // adapter §9：namespace 按通道盖章——合法声明透传，未标/未识别按
+      // MODEL_INTERNAL 收敛，推断内容无法自标成世界证据。
+      namespace: (data.namespace === NS_EXTERNAL_REALITY || data.namespace === NS_MODEL_INTERNAL)
+        ? data.namespace : (EXTERNAL_NS_EVENTS.has(eventType) ? NS_EXTERNAL_REALITY : NS_MODEL_INTERNAL),
       // access 是分类声明——非法值按最严档处理（不得任由调用方自标 PUBLIC）
       access: ACCESS_ENUM.has(data.access) ? data.access : 'PRIVATE'
     };
@@ -585,6 +607,7 @@ export function apply(ctx, config = {}) {
       appendFileSync(join(wmDir, 'runs', `${sessionFileId(sessionId)}.jsonl`), line + '\n');
       // prev_event 链只在写盘成功后推进——中途失败不得留下悬空指针
       if (s) s.lastEventId = ev.event_id;
+      eventNamespaces.set(ev.event_id, ev.namespace);
     } catch { auditOk = false; /* ledger write must never crash the loop */ }
     return ev;
   }
@@ -957,6 +980,14 @@ export function apply(ctx, config = {}) {
             const supersedesList = Array.isArray(input.supersedes) ? input.supersedes : (typeof input.supersedes === 'string' && input.supersedes ? [input.supersedes] : []);
             const ia = String(input.intended_action || '');
             // 一预测一工具：intended_action 枚举多个工具名 = 批发式授权 → 拒绝。
+              // adapter §9：MODEL_INTERNAL 事件是模型自述——引作世界证据 = 推断
+            // 当事实回流。本适配器已发事件可解析；外部工件引用（路径/commit/
+            // session id）不在此表，按不可验证放行。
+            const badRef = (input.evidence_refs || []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+            if (badRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badRef };
+            // §七 条件门：经验性可检验主张无区分预测不得挂高置信——无 falsifier
+            // 的 'high' 正是被点名的 blocker 形态。
+            if (input.confidence_bucket === 'high' && !input.falsifier) return { ok: false, code: 'CONFIDENCE_WITHOUT_FALSIFIER' };
             // 词典 = 全工具词表（含只读名——ia 里出现即计数，未知名不计也无妨：
             // 守卫只绑定被调用的那个工具，1:1 消耗保证一张预测放不了两个调用）。
             // span 去重保留最长名——'shell_exec' 命中 exec+shell+shell_exec
@@ -1012,7 +1043,9 @@ export function apply(ctx, config = {}) {
                 if (owner !== s.id) return { ok: false, code: 'FOREIGN_PREDICTION', prediction_id: pid, owner: owner || 'unowned' };
               }
             }
-            emit(s.id, 'OBSERVATION_RECORDED', { ...base, prediction_id: input.prediction_id, happened: 'observation linked', payload: { observation: input.observation, source: input.source }, source_id: input.source_id, channel_id: input.channel_id, sensor_id: input.sensor_id });
+            const badRef = (input.evidence_refs || []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+            if (badRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badRef };
+            emit(s.id, 'OBSERVATION_RECORDED', { ...base, namespace: input.namespace === NS_EXTERNAL_REALITY ? NS_EXTERNAL_REALITY : NS_MODEL_INTERNAL, prediction_id: input.prediction_id, happened: 'observation linked', payload: { observation: input.observation, source: input.source }, source_id: input.source_id, channel_id: input.channel_id, sensor_id: input.sensor_id });
             return { ok: true };
           }
           case 'evaluate': {
@@ -1046,6 +1079,8 @@ export function apply(ctx, config = {}) {
             if (input.prediction_id && s.evaluated.has(input.prediction_id)) {
               return { ok: false, code: 'PREDICTION_ALREADY_EVALUATED', prediction_id: input.prediction_id };
             }
+            const badObsRef = (input.observation_refs || []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+            if (badObsRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badObsRef };
             if (input.prediction_id) s.evaluated.add(input.prediction_id);
             emit(s.id, 'PREDICTION_EVALUATED', { ...base, prediction_id: input.prediction_id, happened: `verdict=${input.verdict}`, payload: { verdict: input.verdict, observation_refs: input.observation_refs, residual: input.reason, evaluation_source: input.evaluation_source || 'self' } });
             return { ok: true, prior: pred ? 'bound' : (s.restored.has(input.prediction_id) ? 'restored' : 'unbound'), verdict: input.verdict };

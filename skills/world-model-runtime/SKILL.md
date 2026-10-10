@@ -97,7 +97,9 @@ STATE_RESTORE      先对**自己的输入**持有预期：该收到什么（先
 CURRENT_MODEL      写出当前模型与 Model Coverage（哪些算数、哪些不算）
 PREDICTION_CREATED 每条预测：可证伪、绑定将做的 Action、标置信（定性，不伪精确）
 ACTION / QUERY     真实工具调用/检查/改动
-OBSERVATION_RECORDED  只记录真实回读证据，引用 evidence ref（session id / 文件 / 测试）
+OBSERVATION_RECORDED  只记录真实回读证据，引用 evidence ref（session id / 文件 / 测试）；
+                   带 namespace：真实工件 EXTERNAL_REALITY，自身推断 MODEL_INTERNAL
+                   （MODEL_INTERNAL 不得被引作其他预测的世界证据——推断不得当事实回流）
 PREDICTION_EVALUATED  逐条对照：confirmed / refuted / partial
 UPDATE_APPLIED 或 NO_UPDATE  引用具体 Prediction+Observation；失败预测 → residual 标签 +
                    参数修订/结构修订/H4(换问题表征) 三选一明确记录

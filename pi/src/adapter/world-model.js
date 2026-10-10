@@ -158,8 +158,14 @@ export const WM_PARAMETERS = {
         + 'structure/causality, the representation, and the hypothesis space itself.',
     },
     summary: { type: 'string', description: 'persist: one-line summary' },
-    confidence_bucket: { type: 'string', description: 'qualitative confidence, never a fake precision' },
+    confidence_bucket: { type: 'string', description: "qualitative confidence, never a fake precision. 'high' requires a falsifier — an unfalsifiable claim cannot carry high confidence" },
     time_horizon: { type: 'string' },
+    // adapter §9 (theory-v0.5 §十一-9): every Observation/预测登记 must carry a
+    // namespace — EXTERNAL_REALITY for real-world artifact evidence,
+    // MODEL_INTERNAL for the entity's own inference/judgement. An unmarked or
+    // unrecognised value clamps to MODEL_INTERNAL: the conservative side,
+    // since an unmarked claim must not be able to pose as world evidence.
+    namespace: { type: 'string', enum: ['EXTERNAL_REALITY', 'MODEL_INTERNAL'], description: "observe: which domain the recorded fact lives in — real-world artifact evidence is EXTERNAL_REALITY; the entity's own inference is MODEL_INTERNAL and cannot be cited as another prediction's world evidence" },
   },
   required: ['op'],
 };
@@ -313,6 +319,16 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
     return sessions.get(key);
   };
 
+  // adapter §9 (theory-v0.5 §十一-9): every event carries a namespace so
+  // MODEL_INTERNAL content can never pose as world evidence. The stamp is
+  // channel-determined — events the harness recorded directly (tool results,
+  // system lifecycle, governance decisions) are EXTERNAL_REALITY; anything
+  // else defaults to MODEL_INTERNAL, the fail-conservative side.
+  const NS_EXTERNAL_REALITY = 'EXTERNAL_REALITY';
+  const NS_MODEL_INTERNAL = 'MODEL_INTERNAL';
+  const EXTERNAL_NS_EVENTS = new Set(['RAW_EVIDENCE', 'SESSION_EVENT', 'WM_ACTIVATE', 'STATE_PERSISTED']);
+  const eventNamespaces = new Map(); // event_id -> namespace (this adapter instance's emissions)
+
   /** Append one event to both streams the toolchain reads, with a causal chain. */
   function emit(sessionId, eventType, data = {}) {
     const s = sess(sessionId);
@@ -333,9 +349,16 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
       body_id: bodyId,
       bcc: BCC_VERSION,
       layer: eventType === 'RAW_EVIDENCE' ? 'L0' : 'L1',
+      // adapter §9: namespace is stamped by CHANNEL, not self-declared by the
+      // entity — harness/world-produced facts are EXTERNAL_REALITY, and any
+      // model-authored (or unrecognised) content clamps to MODEL_INTERNAL so
+      // inference can never silently pose as world evidence.
+      namespace: data.namespace === NS_EXTERNAL_REALITY || data.namespace === NS_MODEL_INTERNAL
+        ? data.namespace : (EXTERNAL_NS_EVENTS.has(eventType) ? NS_EXTERNAL_REALITY : NS_MODEL_INTERNAL),
       access: 'PRIVATE',
     };
     s.lastEventId = ev.event_id;
+    eventNamespaces.set(ev.event_id, ev.namespace);
     const line = safeJson(ev) + '\n';
     appendFileSync(join(ledgerDir, `${day()}.jsonl`), line);
     appendFileSync(join(runsDir, `${s.id}.jsonl`), line);
@@ -406,6 +429,11 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
         }
         case 'predict': {
           if (!input.intended_action) return { ok: false, code: 'PREDICTION_UNBOUND', message: 'predict requires intended_action' };
+          // §七 conditional gate (rubric B5/02[47]): an empirical claim with no
+          // discriminating prediction must not carry 'high' confidence —
+          // unfalsifiable high confidence is exactly the flagged blocker.
+          if (String(input.confidence_bucket ?? '').toLowerCase() === 'high' && !input.falsifier)
+            return { ok: false, code: 'CONFIDENCE_WITHOUT_FALSIFIER', message: "confidence_bucket 'high' requires a falsifier — an unfalsifiable claim cannot carry high confidence" };
           // Model-visible half (reaches <open-predictions> in the context).
           const claim = String(input.expected_observation || input.subject || input.intended_action);
           const rec = predictions
@@ -438,6 +466,12 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
         case 'observe': {
           const pid = input.prediction_id ?? null;
           if (!pid) return { ok: false, code: 'OBSERVATION_UNLINKED', message: 'observe requires prediction_id' };
+          // adapter §9: a MODEL_INTERNAL event is the model's own account —
+          // citing it as world evidence would let inference re-enter as fact.
+          // Only this adapter's own emissions are resolvable; refs to external
+          // artifacts (paths, commits, session ids) pass through unverifiable.
+          const badRef = (Array.isArray(input.evidence_refs) ? input.evidence_refs : []).find((r) => eventNamespaces.get(r) === NS_MODEL_INTERNAL);
+          if (badRef) return { ok: false, code: 'EVIDENCE_MODEL_INTERNAL', ref: badRef, message: 'MODEL_INTERNAL events cannot be cited as world evidence (adapter §9)' };
           // Mark EVIDENCE ARRIVED on the prediction. This is what makes Update
           // reachable: D1's chain is Prediction → Action → Observation → Update, and
           // it says in terms that Prediction Error is 诊断量 — 与 Observation 比较后
@@ -446,6 +480,10 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
           const _p = openPreds.get(pid);
           if (_p) _p.observed = true;
           emit(s.id, 'OBSERVATION_RECORDED', {
+            // The entity declares which domain the recorded fact lives in;
+            // absent/invalid clamps to MODEL_INTERNAL — an unmarked claim
+            // stays on the side that cannot be over-cited.
+            namespace: input.namespace === NS_EXTERNAL_REALITY ? NS_EXTERNAL_REALITY : NS_MODEL_INTERNAL,
             subject: input.subject ?? 'observation',
             prediction_id: pid,
             happened: String(input.observation ?? '').slice(0, 500),
