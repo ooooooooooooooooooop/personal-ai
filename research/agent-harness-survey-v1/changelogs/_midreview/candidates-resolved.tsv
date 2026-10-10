@@ -349,3 +349,6 @@ dedup-h	3521	delegate	fork subagent gate	COVERED(variant):fork mode+profile opt-
 dedup-h	3533	proxy	WS_PROXY/WSS_PROXY	COVERED(variant):PAC PROXY/NO_PROXY fetch plane;desc PARTIAL(variant) web_fetch tool only
 dedup-h	3557	render	GFM alert callouts	IMPLEMENTED:md() > [!TYPE] typed callout+5-color css;desc VARIANT review modes
 dedup-h	3561	file-open	file.rs:1-20 line range	IMPLEMENTED:@path:L1-L2 mention slice attach;desc BOUNDARY enterprise default model
+dedup-h	3572	ui	thread diff preview cards	PARTIAL(variant):/diff+diffStats panel,inline cards absent;desc COVERED starter prompts
+dedup-h	3592	budget	cross-thread token budgets	COVERED(variant):session caps+budget_status+abort;desc BOUNDARY android gateway
+dedup-h	3599	task	workflow workingDir pin	COVERED:spec.workdir/authorized_root/worktree;desc VARIANT auth surfaces

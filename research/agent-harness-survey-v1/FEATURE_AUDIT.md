@@ -4475,3 +4475,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`app/ui/app.js` `expandAtMentions`。
 - **证据**：node --check 净（逻辑与既有 file_read/files_list fallback 同装置）。
 - **核销**：candidates-open #3561 → `candidates-resolved.tsv` #350。
+
+#### 28.349 diff preview cards + 示例 prompts (#3572 — title PARTIAL(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`/diff` 面板+diffStats（#2408）=diff 预览面；线程内 per-turn inline diff cards=variant 未落。描述 **ALREADY_COVERED**——empty-state `#starters` 示例 prompt 按钮在册（index.html:102 起）。
+- **核销**：candidates-open #3572 → `candidates-resolved.tsv` #351。
+
+#### 28.350 跨线程 rollout 预算 + Android gateway auth (#3592 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——session 级 token/成本上限+budget_status 余量+超限中止=追踪/提醒/abort 语义；跨 threads 聚合=variant（budgetScope 按 session）。描述 **BOUNDARY**——无 Android/gateway auth 面。
+- **核销**：candidates-open #3592 → `candidates-resolved.tsv` #352。
+
+#### 28.351 workingDir pin + auth-profile copy (#3599 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——job `spec.workdir`/`authorized_root`/worktree 三件套 pin 执行目录（jobs.js:206/208）。描述 **COVERED(variant)**——`auth_set_key`/`auth` 状态面+auth 错误诚实上报=认证档案语义（交互式 copy-prompt 形态=variant）。
+- **核销**：candidates-open #3599 → `candidates-resolved.tsv` #353。
