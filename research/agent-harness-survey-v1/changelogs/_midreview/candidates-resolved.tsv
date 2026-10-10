@@ -553,3 +553,25 @@ manual	60555	cmd	read-only mid-turn	COVERED:slash/cmd bypass busy flag
 manual	64919	cmd	safe slash mid-stream	COVERED:same
 manual	59811	tools	defer low-freq builtins	COVERED(variant):defer_loading spec opt-in
 manual	59816	tools	ToolSearch deferred schemas	COVERED(variant):tool_search+tool_activate
+manual	79362	shell	nested $(curl) parse	COVERED:substitution recursion NETWORK risk
+manual	19219	ui	auto chat titles	BOUNDARY:no auto-title surface
+manual	36186	ui	delete individual messages	BOUNDARY:immutable transcript deliberate
+manual	9400	power	idle-sleep prevention	BOUNDARY:no sleep-inhibit surface
+manual	64997	power	sleep while running	BOUNDARY:same
+manual	11440	session	ephemeral threads	BOUNDARY:no non-persisted session surface
+manual	2420	plan	Focus Chain Deep Planning	COVERED(variant):todos+plans+goals
+manual	28382	steer	in-progress hints 2/2	COVERED(variant):steer+task_send
+manual	28449	steer	in-progress hints 1/3	COVERED(variant):same
+manual	35899	steer	external sessions inject	BOUNDARY:no cross-session steer
+manual	35935	delegate	risk-label streaming	COVERED(variant):task outbox/events
+manual	35947	delegate	risk-label streaming dup	COVERED(variant):same
+manual	36032	delegate	vent friction signals	COVERED(variant):task_yield notes
+manual	36060	tools	tool_target_instructions	COVERED(variant):microagents+steering
+manual	36061	tools	tool-target loading dup	COVERED(variant):same
+manual	37568	tools	request_tool_change mid-session	COVERED(variant):modes_switch+toolsAllow
+manual	38309	paste	URL fetch gate	COVERED(defect-absent):no auto-fetch path
+manual	28555	prompt	model-family system prompts	BOUNDARY:single prompt contract
+manual	13496	tools	dummy tools missing	COVERED(variant):MCP tombstone stubs
+manual	59739	channel	proactive loop tools	COVERED(variant):schedule_task+prompt-target
+manual	63159	verify	witness output required	COVERED(variant):verify executes witnesses
+manual	70511	ask	IM text approval	COVERED(variant):UI ask surface

@@ -5475,3 +5475,27 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：BTW 侧问族（manual#59187/#59211/#60572/#65043）**COVERED(variant)**——`steer` 中轮转写+`queue` 客户端排队（busy→queue→turn 末自动发）=侧问不打断主流对应物。peer IPC 族（#59180/#59181/#59182/#61329）**BOUNDARY**——无 peer-session IPC 面（`postInbox` refused 有 honest refused 理由=task 级变体注）。#60555+#64919 读命令 mid-turn **COVERED**——slash/`cmd()` 直发 channel op 不走 busy 旗（session_history/pending_list/todos_list 随时可用），模型命令 dedup-h#143 排队至 turn 末。#59811+#59816 延迟工具 schema **COVERED(variant)**——spec `defer_loading:true` 惰性注册+`tool_search` 发现+`tool_activate` 认领（per-server opt-in 而非全局内建延迟，如实注）。
 - **核销**：`candidates-resolved.tsv` #543–#554。
+
+#### 28.510 manual session/UI/机制簇（20 keys）
+
+- **status**: classification only.
+- **判定**：
+  - #79362 **COVERED**——command-parse 递归解析 `$(...)` substitution 内命令（curl→NETWORK risk 命中）。
+  - #19219 **BOUNDARY**——auto chat titles 面无对位物（会话命名=文件名/手动）。
+  - #36186 **BOUNDARY**——单条消息删除=transcript 不可变账刻意设计（fork-resend 变体注）。
+  - #9400/#64997 **BOUNDARY**——无 caffeinate/ES 防睡眠面。
+  - #11440 **BOUNDARY**——ephemeral 不持久化会话面无对位物。
+  - #2420 **COVERED(variant)**——todos+plans+goals=Focus Chain/Deep Planning 对应物。
+  - #28382/#28449 **COVERED(variant)**——steer+task_send inbox=in-progress steering hints。
+  - #35899 **BOUNDARY**——跨会话 steer 注入面不存在。
+  - #35935/#35947 **COVERED(variant)**——task outbox/events=real-time 风险信号回父通道。
+  - #36032 **COVERED(variant)**——task_yield 进度注=friction signals 对应物。
+  - #36060/#36061 **COVERED(variant)**——microagents+steering 文件=tool-target instruction 对应物。
+  - #37568 **COVERED(variant)**——modes_switch/toolsAllow mid-session 变更面。
+  - #38309 **COVERED(defect-absent)**——粘贴 URL 无自动抓取路径（闸无可守对象）。
+  - #28555 **BOUNDARY**——per-model-family system prompt 面无对位物。
+  - #13496 **COVERED(variant)**——MCP dead tool 墓碑 stub（honest "not connected" 响应）。
+  - #59739 **COVERED(variant)**——schedule_task+prompt-target=agent 主动通道环。
+  - #63159 **COVERED(variant)**——verify 执行见证=critical findings witness 对应物。
+  - #70511 **COVERED(variant)**——UI ask 批准面=高危命令远程批准对应物。
+- **核销**：`candidates-resolved.tsv` #555–#575。
