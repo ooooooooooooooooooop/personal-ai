@@ -3612,3 +3612,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`app/ui/app.js`（命令面）。
 - **证据**：app lint 净、`node --check` 过。
 - **核销**：candidates-open #2584 → `candidates-resolved.tsv` #214。
+
+#### 28.214 fetch-pr resume + gateway auth contexts (#2590 — both BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY(variant)**；描述 **BOUNDARY**。
+  - **标题语义（fetch-pr --resume 校验 on-disk state 复用 worktree）**：**BOUNDARY**——无 PR-fetch 工具面对应物；盘上复用语义已覆盖(variant)：`worktree_list`+`job_spawn in_worktree` 打开既有 worktree、`worktree_create` 对已存在路径诚实拒绝而非静默重建。
+  - **描述语义（gateway typed auth contexts+auth.deviceToken）**：**BOUNDARY**——无 gateway/websocket auth 握手面对应物。
+- **证据**：`pi/src/adapter/jobs.js`（worktree spec）、`grep fetch.pr` 空集。
+- **核销**：candidates-open #2590 → `candidates-resolved.tsv` #215。
