@@ -608,6 +608,35 @@ export function apply(ctx, config = {}) {
     eventNamespaces.set(ref, found ?? 'UNRESOLVED');
     return found;
   }
+
+  /**
+   * 03[msg15]：「已经很久没有什么真正改变过你的模型」——学习系统还是
+   * 解释系统的分野在账本里可算：最近一次模型变更事件与最近一次 refuted
+   * 裁定的年龄。status 透出它让该问可答；无此类事件如实 null。
+   */
+  function revisionPulse() {
+    const kinds = new Set(['MODEL_UPDATED', 'MODEL_CREATED']);
+    let lastModelChange = null, lastRefuted = null;
+    try {
+      const dir = join(wmDir, 'ledger');
+      const files = readdirSync(dir).filter((f) => f.endsWith('.jsonl')).sort().reverse();
+      for (const f of files) {
+        const lines = readFileSync(join(dir, f), 'utf8').split('\n').filter(Boolean).reverse();
+        for (const l of lines) {
+          let e; try { e = JSON.parse(l); } catch { continue; }
+          if (!lastModelChange && kinds.has(e.event_type)) {
+            lastModelChange = { type: e.event_type, event_id: e.event_id, timestamp: e.timestamp ?? null };
+          }
+          if (!lastRefuted && e.event_type === 'PREDICTION_EVALUATED' && e.payload?.verdict === 'refuted') {
+            lastRefuted = { event_id: e.event_id, timestamp: e.timestamp ?? null };
+          }
+          if (lastModelChange && lastRefuted) break;
+        }
+        if (lastModelChange && lastRefuted) break;
+      }
+    } catch { /* unreadable ledger → honest nulls */ }
+    return { last_model_change: lastModelChange, last_refuted: lastRefuted };
+  }
   function emit(sessionId, eventType, data = {}) {
     const s = sessions.get(sessionId);
     const seq = ++globalSeq;
@@ -1368,7 +1397,7 @@ export function apply(ctx, config = {}) {
               const dl = rec.horizon_deadline ?? parseHorizonDeadline(rec.time_horizon);
               if (dl != null && dl <= now) overdue.push({ id: pid, horizon: rec.time_horizon ?? null, horizon_deadline: dl });
             }
-            return { ok: true, mode: s.mode, session_predictions: [...s.predictions.keys()], overdue_predictions: overdue, current: st, identity: rs.identity || null, lineage_head: rs.lineage_head || null, epoch: rs.continuity_epoch || null, body_id: bodyId, bcc: BCC_VERSION };
+            return { ok: true, mode: s.mode, session_predictions: [...s.predictions.keys()], overdue_predictions: overdue, revision_pulse: revisionPulse(), current: st, identity: rs.identity || null, lineage_head: rs.lineage_head || null, epoch: rs.continuity_epoch || null, body_id: bodyId, bcc: BCC_VERSION };
           }
           default:
             return { ok: false, code: 'UNKNOWN_OP', message: `unknown op ${op}` };

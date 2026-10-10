@@ -336,6 +336,36 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
    * a self-citation from last week is still self-citation. Results (including
    * misses) are cached so each ref costs at most one sweep per shim lifetime.
    */
+  /**
+   * 03[msg15]: "已经很久没有什么真正改变过你的模型" — the diagnosis between
+   * a learning system and an explanation system is COMPUTABLE from the
+   * ledger: the age of the newest model-changing event and the newest
+   * refuted verdict. status surfaces it so the question stays answerable;
+   * honest nulls when the ledger has no such event yet.
+   */
+  function revisionPulse() {
+    const kinds = new Set(['MODEL_UPDATED', 'MODEL_CREATED']);
+    let lastModelChange = null, lastRefuted = null;
+    try {
+      const files = readdirSync(ledgerDir).filter((f) => f.endsWith('.jsonl')).sort().reverse();
+      for (const f of files) {
+        const lines = readFileSync(join(ledgerDir, f), 'utf8').split('\n').filter(Boolean).reverse();
+        for (const l of lines) {
+          let e; try { e = JSON.parse(l); } catch { continue; }
+          if (!lastModelChange && kinds.has(e.event_type)) {
+            lastModelChange = { type: e.event_type, event_id: e.event_id, timestamp: e.timestamp ?? null };
+          }
+          if (!lastRefuted && e.event_type === 'PREDICTION_EVALUATED' && e.payload?.verdict === 'refuted') {
+            lastRefuted = { event_id: e.event_id, timestamp: e.timestamp ?? null };
+          }
+          if (lastModelChange && lastRefuted) break;
+        }
+        if (lastModelChange && lastRefuted) break;
+      }
+    } catch { /* unreadable ledger → honest nulls */ }
+    return { last_model_change: lastModelChange, last_refuted: lastRefuted };
+  }
+
   function resolveNamespace(ref) {
     const cached = eventNamespaces.get(ref);
     if (cached === NS_EXTERNAL_REALITY || cached === NS_MODEL_INTERNAL) return cached;
@@ -718,6 +748,7 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
               try { return (predictions?.stale?.() ?? []).map((p) => ({ id: p.id, horizon: p.horizon ?? null, horizon_deadline: p.horizon_deadline ?? null })); }
               catch { return []; }
             })(),
+            revision_pulse: revisionPulse(),
             current,
           };
         default:

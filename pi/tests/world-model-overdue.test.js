@@ -107,3 +107,21 @@ test('adapter: overdue prediction emits SESSION_EVENT once, status reports it, d
   assert.equal(overdue2.length, 1, 'a lapse already recorded does not re-emit after restart — stale_notified is durable');
   assert.ok(q.prediction_id);
 });
+
+test('status.revision_pulse: 03[msg15] — "how long since anything actually changed the model" is answerable', async () => {
+  const { tool, exec } = rig();
+  const st0 = await tool.execute({ op: 'status' }, exec);
+  assert.equal(st0.revision_pulse.last_model_change, null, 'honest null before any model change');
+  assert.equal(st0.revision_pulse.last_refuted, null);
+
+  const p = await tool.execute({ op: 'predict', subject: 'x', intended_action: 'write', falsifier: 'z' }, exec);
+  await tool.execute({ op: 'evaluate', prediction_id: p.prediction_id, verdict: 'refuted' }, exec);
+  await tool.execute({
+    op: 'update', prediction_id: p.prediction_id, model_id: 'M-x',
+    revision_type: 'variable', residual_diagnosis: 'systematic pattern', change: 'add omitted variable',
+  }, exec);
+
+  const st = await tool.execute({ op: 'status' }, exec);
+  assert.equal(st.revision_pulse.last_model_change.type, 'MODEL_UPDATED', 'the newest model-changing event is found');
+  assert.ok(st.revision_pulse.last_refuted?.event_id, 'the newest refuted verdict is found — learning-system vs explanation-system is observable');
+});

@@ -72,3 +72,17 @@ test('dsh: overdue restored prediction emits once; prediction_meta dedup durable
   const st = await r3.tool.execute({ op: 'status' }, { agent: { session: { id: 's3' } } });
   assert.deepEqual(st.overdue_predictions.map((o) => o.id), [p.prediction_id], 'status surfaces the still-open lapse');
 });
+
+test('dsh: status.revision_pulse surfaces newest model change + refuted verdict', async () => {
+  const { tool, exec } = rig();
+  const st0 = await tool.execute({ op: 'status' }, exec);
+  assert.equal(st0.revision_pulse.last_model_change, null);
+
+  const p = await tool.execute({ op: 'predict', subject: 'x', intended_action: 'write', falsifier: 'z', confidence_bucket: 'low' }, exec);
+  await tool.execute({ op: 'evaluate', prediction_id: p.prediction_id, verdict: 'refuted' }, exec);
+  await tool.execute({ op: 'update', prediction_id: p.prediction_id, model_id: 'M-x', revision_type: 'variable', change: 'add omitted variable' }, exec);
+
+  const st = await tool.execute({ op: 'status' }, exec);
+  assert.equal(st.revision_pulse.last_model_change.type, 'MODEL_UPDATED');
+  assert.ok(st.revision_pulse.last_refuted?.event_id);
+});
