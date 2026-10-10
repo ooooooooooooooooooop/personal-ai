@@ -301,3 +301,6 @@ dedup-h	3215	browser	userDataDir attach Brave/Edge	COVERED(variant):CDP attach a
 dedup-h	3217	mcp	MCP Apps sandbox iframes	COVERED:details.ui->resource_read->sandbox=allow-scripts srcdoc opaque origin view-only
 dedup-h	3228	tool	description slim flag	BOUNDARY(variant):no slim flag,resultCharCap+schema as-is;desc defect-class absent live config re-read
 dedup-h	3233	mcp	env timeout vars	IMPLEMENTED:PAI_MCP_CONNECT/TOOL_TIMEOUT_MS env fallbacks spec>env>default;desc BOUNDARY slim flag
+dedup-h	3235	mcp	first /mcp-add creates registry	COVERED:persist to resolved config or .pai/mcp.json;desc proxy+TLS variant
+dedup-h	3237	mcp	agentic CLI consumes MCP	BOUNDARY(variant):MCP serves own stack,delegates declare own config;desc transport aliases variant
+dedup-h	3248	mcp	MCP notification support	COVERED:list_changed hot-refresh+progress+SSE push reconnect;desc /mcp family variant

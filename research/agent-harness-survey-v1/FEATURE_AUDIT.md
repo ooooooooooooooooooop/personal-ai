@@ -4186,3 +4186,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/extensions/mcp/index.js`（manifest 已重算）。
 - **证据**：mcp-ext 聚焦 **3/3**（#3196/#3204/#3233 env 优先级断言）。
 - **核销**：candidates-open #3233 → `candidates-resolved.tsv` #302。
+
+#### 28.303 首个 /mcp add 建 registry + cert/proxy (#3235 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`/mcp-add` 持久化到解析 config（无既有文件时落 `.pai/mcp.json`=首个 add 自建 registry）。描述 **COVERED(variant)**——registry/fetch 走 Node fetch+`PAI_PROXY_URL` env dispatcher+system TLS=platform cert/proxy 语义变体。
+- **核销**：candidates-open #3235 → `candidates-resolved.tsv` #303。
+
+#### 28.304 agentic CLI 用 MCP tools + --type alias (#3237 — title BOUNDARY(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——我方 MCP 栈服务**本**栈工具面（mcp__* 注册进 session）；外部 agentic CLI 消费 MCP=delegate_task 子进程各自声明自己的 .mcp.json（CLI 侧集成非本栈面）。描述 **COVERED(variant)**——transport 别名表（remote/streamablehttp/streamable_http→streamable-http）=`--type` 别名语义。
+- **核销**：candidates-open #3237 → `candidates-resolved.tsv` #304。
+
+#### 28.305 MCP notification 支持 + /mcp 命令族 (#3248 — title COVERED / desc COVERED(variant))
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——notifications 全链：`tools/list_changed` 热刷新（M130）+progress frames（#2221）+GET SSE 推送通道（end-of-stream 自动重连）。描述 **COVERED(variant)**——同 #3198（/mcp+/mcp-auth+/mcp-add+/mcp-del 族）。
+- **核销**：candidates-open #3248 → `candidates-resolved.tsv` #305。
