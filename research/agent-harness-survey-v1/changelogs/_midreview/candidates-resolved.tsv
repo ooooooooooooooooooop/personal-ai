@@ -259,3 +259,6 @@ dedup-h	2941	policy	teams MDM allow/deny lists	BOUNDARY(variant):no MDM surface,
 dedup-h	2957	ignore	.clineignore	COVERED:.paiignore glob+pin-refusal+live reload;desc BOUNDARY device pairing
 dedup-h	2958	mode	restore previous mode exit	COVERED(variant):mode_request arbitrary target via operator card;desc COVERED PAI_PROXY_URL+env-proxy dispatcher
 dedup-h	2960	mode	plan mode MCP support	COVERED(variant-stricter):all mcp__* gated same as 2914;desc BOUNDARY no media-stream webhook
+dedup-h	2961	mcp	resource auto-approve	COVERED(variant):mcp_resource_read via governed channel,decide still applies;desc BOUNDARY feishu prefixes
+dedup-h	2962	fs	multi-root auto-approve reads	BOUNDARY:single workdir+worktree trust;desc managed-manifest declared activation variant
+dedup-h	2966	tls	wss cert pinning pre-trust	BOUNDARY(N/A):CDP is ws:// loopback,remote opt-in flag,no wss surface;desc BOUNDARY macOS key dialog

@@ -3928,3 +3928,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant——更紧)**——同 #2914：plan 模式对全部 `mcp__*` 一律 ask（opaque 外部效应），不放行 readOnlyHint=刻意保守。描述 **BOUNDARY**——无 voice/media-stream webhook 面；trusted-forwarding-header 来源 IP=localhost 桥不需要。
 - **核销**：candidates-open #2960 → `candidates-resolved.tsv` #260。
+
+#### 28.260 MCP resource auto-approve + Feishu allowlist (#2961 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`mcp_resource_read` 经 channel 受控面读取 declared ui:// resource（#1507）；"auto-approve"宽松档不存在=读资源也过 policy decide=更严变体。描述 **BOUNDARY**——无 Feishu/Lark provider 前缀面。
+- **核销**：candidates-open #2961 → `candidates-resolved.tsv` #261。
+
+#### 28.261 multi-root auto-approve reads + manifest activation (#2962 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 multi-root workspace 概念（单 workdir+worktree trust 授权）。描述 **COVERED(variant)**——`managed-manifest.json` 声明式扩展清单+integrity hash=manifest-declared activation 变体（无 plugin manifest needs 语法）。
+- **核销**：candidates-open #2962 → `candidates-resolved.tsv` #262。
+
+#### 28.262 wss cert pinning + macOS key dialog (#2966 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(N/A)**——CDP 通道用 `ws://`（loopback debug port；远程 attach 需 `PAI_BROWSER_ATTACH_ALLOW_REMOTE=1` opt-in），无 `wss://` 端点=cert pinning 无对象；Node 内建 TLS 默认 system trust。描述 **BOUNDARY**——无 macOS app/API-key 对话框面。
+- **核销**：candidates-open #2966 → `candidates-resolved.tsv` #263。
