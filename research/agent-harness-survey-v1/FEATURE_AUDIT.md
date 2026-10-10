@@ -5499,3 +5499,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - #63159 **COVERED(variant)**——verify 执行见证=critical findings witness 对应物。
   - #70511 **COVERED(variant)**——UI ask 批准面=高危命令远程批准对应物。
 - **核销**：`candidates-resolved.tsv` #555–#575。
+
+#### 28.511 终批：findings-cand 余量 + findings-verify 机制核验 + findings-dir + manual 尾（62 keys）
+
+- **status**: classification only（findings-verify 均经代码核验）。
+- **判定**：
+  - **findings-cand（18）**：#1046 pins facade 变体；#1112 LONG_RUN→durable job 变体；#1927 envtools 覆盖；#1985 redactSecrets 变体；#2094 ToolSurface 描述变体；#2135 userConfig 声明字段 BOUNDARY；#2215 SDK resize<2000px 覆盖；#2499 `--max-turns` 覆盖；#2605 附件 dedup PARTIAL(variant)；#2715 outspool 变体；#3289 output-style BOUNDARY；#3323 外部语料自动注入 BOUNDARY（egress+注入面刻意不自动）；#3396 scan_symlinks 设置档 BOUNDARY（默认跟随可用）；#3589 CircuitBreaker 变体（有界重连+超时）；#3613 subagent 参数面覆盖；#3670 超时自动批准 BOUNDARY（超时=拒绝非批准，fail-closed 刻意）；#4765 compact_start=pre_compact 变体；#4824 transform_llm_input 变体。
+  - **findings-cand-inline（1）**：`-` disableAlwaysAllow=#4277 已实现（operator env 禁持久 always 授权）。
+  - **findings-dir（12）**：`-` eval 套件 BOUNDARY（skill-quality-gate 不同层）；#1345 LD_* 黑名单覆盖；#1833 structured output（--output-schema）变体；#2068 shadow-trial BOUNDARY；#2580/#2861=佐证行（#2111/#2215 已判）；#3172 prompt/agent hook=LLM-judged 变体；#3290 skilltools create 覆盖；#3323 BOUNDARY；#3437 compaction 保护 goals/decisions 变体；#3796 BOUNDARY；#4351 webhook 授权位 BOUNDARY（出站 webhook+token_env，无入站命令通道面）。
+  - **findings-verify（17）**：#1044 BOUNDARY 无 DM；#1663 COVERED unknown risk∈MUTATING_RISK fail-closed+重定向再查；#2022 COVERED(variant) SDK 20+provider pattern+语言无关 usage/length 兜底；#2050 COVERED token_env 名引用无字面量；#2291 BOUNDARY Windows ACL（atomic rename 继承目录 ACL=正确默认，auth.json 写径 SDK 有）；#2590 COVERED WAL 同目录即同卷；#2593 BOUNDARY；#2781 BOUNDARY Windows ACL；#3102 COVERED 每 tool_call 过决定墙前置；#3164 BOUNDARY 单 attested policy 无规则晶格；#3391 COVERED #4089 恢复面板；#3749 COVERED(defect-absent) 数值字段校验+文本 secret 扫描；#4682 COVERED 落地域复检+about:blank 回退+post-click 同约束；#4786 COVERED scanForSecrets task 文本拒；#5422 COVERED M9 Host 头检查；#5955 COVERED untrusted 包裹+不支持类型诚实标记；#9070 COVERED pathInsideRootForWrite realpath 含父链。
+  - **manual（14）**：#10832 task_wait/inbox 覆盖；#13048 NODE_EXTRA_CA_CERTS 黑名单覆盖；#16318 defer_loading/tool_activate 变体；#17983 BOUNDARY（glob 只回路径不读内容，secret-salvage 无对位物）；#18320 BOUNDARY 无插件框架面；#20403 粘贴=剪贴板内容变体；#28257 repomap+fastcontext 变体；#32508 tool_search 变体；#35570 scanForInjection 覆盖；#35776 knowledge 条目类型变体；#35867 BOUNDARY；#37465 BOUNDARY；#56028 microagents 变体。
+- **核销**：`candidates-resolved.tsv` #576–#637。

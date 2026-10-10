@@ -575,3 +575,65 @@ manual	13496	tools	dummy tools missing	COVERED(variant):MCP tombstone stubs
 manual	59739	channel	proactive loop tools	COVERED(variant):schedule_task+prompt-target
 manual	63159	verify	witness output required	COVERED(variant):verify executes witnesses
 manual	70511	ask	IM text approval	COVERED(variant):UI ask surface
+findings-cand	1046	ui	task favorite+clear-all	COVERED(variant):pins facade
+findings-cand	1112	shell	auto-background threshold	COVERED(variant):LONG_RUN->durable job
+findings-cand	1927	env	per-env shell vars	COVERED:envtools overlay
+findings-cand	1985	secrets	credential render	COVERED(variant):redactSecrets
+findings-cand	2094	tools	descriptor planner	COVERED(variant):ToolSurface descriptors
+findings-cand	2135	ext	userConfig declarative	BOUNDARY:managed manifest fixed
+findings-cand	2215	image	compress <2000px	COVERED:SDK resizeImage max dims
+findings-cand	2499	delegate	maxPingPongTurns	COVERED:--max-turns child ceiling
+findings-cand	2605	attach	ref-vs-upload dedup	PARTIAL(variant):transcript persist no dedup
+findings-cand	2715	tools	opt-in output pruning	COVERED(variant):outspool threshold
+findings-cand	3289	style	/output-style switch	BOUNDARY:no style surface
+findings-cand	3323	context	retrieval-only external	BOUNDARY:deliberate no auto-inject external
+findings-cand	3396	scan	scan_symlinks setting	BOUNDARY:default follows links
+findings-cand	3589	mcp	CircuitBreaker	COVERED(variant):bounded reconnect+timeout
+findings-cand	3613	delegate	subagent config	COVERED:model/effort/max_turns+queue
+findings-cand	3670	ask	timer auto-approve	BOUNDARY:timeout=deny deliberate fail-closed
+findings-cand	4765	hooks	pre_compact event	COVERED(variant):compact_start fires before
+findings-cand	4824	hooks	messages.transform	COVERED(variant):transform_llm_input
+findings-cand-inline	-	auth	disableAlwaysAllow	COVERED:#4277 operator env switch
+findings-dir	-	eval	gptme scenario suites	BOUNDARY:quality-gate different layer
+findings-dir	1345	env	LD_LIBRARY_PATH inherit	COVERED:LD_* ENV_INJECT_RE
+findings-dir	1833	output	constrained decoding	COVERED(variant):structured output schema
+findings-dir	2068	memory	shadow-trial promotion	BOUNDARY:advisory family different
+findings-dir	2580	read	#2111 evidence	RESOLVED:supporting evidence row
+findings-dir	2861	image	#2215 evidence	RESOLVED:supporting evidence row
+findings-dir	3172	hooks	LLM-judged hooks	COVERED(variant):prompt/agent hook kinds
+findings-dir	3290	skill	/learn workshop	COVERED:skilltools create
+findings-dir	3323	context	retrieval-only corpora	BOUNDARY:same as fc#3323
+findings-dir	3437	compact	keep_head	COVERED(variant):goals/decisions persist outside
+findings-dir	3796	tasks	Jules suggested	BOUNDARY:no curator surface
+findings-dir	4351	channel	default-deny+CommandAuthorized	BOUNDARY:outbound webhook only
+findings-verify	1044	channel	per-DM history	BOUNDARY:no DM channel
+findings-verify	1663	shell	powershell AST	COVERED:unknown risk=mutating fail-closed
+findings-verify	2022	overflow	localized strings	COVERED(variant):SDK patterns+usage/length fallback
+findings-verify	2050	cron	env secrets leak	COVERED:token_env name-only
+findings-verify	2291	auth	ACL overwrite	BOUNDARY:atomic rename dir-ACL on Windows
+findings-verify	2590	sqlite	WAL same volume	COVERED:WAL adjacent to db
+findings-verify	2593	agents	one primary validation	BOUNDARY:no multi-agent enable surface
+findings-verify	2781	config	Windows ACL	BOUNDARY:same as 2291
+findings-verify	3102	tools	parallel pre-dispatch	COVERED:decide wall per call
+findings-verify	3164	policy	conflict detection	BOUNDARY:single attested policy
+findings-verify	3391	ui	error boundary	COVERED:#4089 recovery panel
+findings-verify	3749	secrets	maxTokens scan	COVERED(defect-absent):numeric validation
+findings-verify	3884	inject	ML-based injection	BOUNDARY:regex+anchors deliberate no ML dep
+findings-verify	4682	browser	blocked-dest redirect	COVERED:landing recheck+about:blank
+findings-verify	4786	delegate	task text secrets	COVERED:scanForSecrets refuses
+findings-verify	5422	http	Host DNS rebinding	COVERED:M9 Host header check
+findings-verify	5955	mcp	non-text untrusted	COVERED:untrusted wrap+drop marker
+findings-verify	9070	fs	symlink write containment	COVERED:pathInsideRootForWrite realpath
+manual	10832	task	mailbox wait	COVERED:task_wait+inbox
+manual	13048	secrets	MITM CA trust env	COVERED:NODE_EXTRA_CA_CERTS blacklisted
+manual	16318	tools	dynamic injection	COVERED(variant):tool_activate runtime claim
+manual	17983	glob	sensitive values	BOUNDARY:glob returns paths not contents
+manual	18320	tools	plug-and-play frameworks	BOUNDARY:no plugin framework surface
+manual	20403	context	clipboard as context	COVERED(variant):paste attachment path
+manual	28257	fs	JIT instrumentation	COVERED(variant):repomap+fastcontext
+manual	32508	tools	LLM selector router	COVERED(variant):tool_search
+manual	35570	inject	detection settings	COVERED:scanForInjection
+manual	35776	knowledge	entry_type schema	COVERED(variant):knowledge store
+manual	35867	gen	k_best_guess	BOUNDARY:no k-candidate surface
+manual	37465	quality	LLM-slop detector	BOUNDARY:no slop-detector surface
+manual	56028	agent	security microagent	COVERED(variant):microagents dir
