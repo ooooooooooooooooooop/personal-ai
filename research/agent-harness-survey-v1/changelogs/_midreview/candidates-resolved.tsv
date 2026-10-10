@@ -379,3 +379,6 @@ dedup-h	3788	commit	inferred commitments	BOUNDARY:no silent commitment inference
 dedup-h	3789	prompt	systemPromptOverride	COVERED(variant):profile preamble;desc IMPLEMENTED PAI_BROWSER_NO_SANDBOX opt-in
 dedup-h	3797	cron	announce delivery mode	COVERED(variant):webhook terminal POST+delivery ledger;desc BOUNDARY curator
 dedup-h	3799	cron	cron-owned wake lane	COVERED(variant):prompt-target tick lane;desc VARIANT malformed fail-closed+no-restart-spec refuse
+dedup-h	3808	sched	event-driven wake	COVERED(variant):monitor_add change-trigger;desc VARIANT malformed fail-closed
+dedup-h	3809	session	sessions cleanup cmd	COVERED(variant):session_delete+instance.purge M64;desc BOUNDARY #3788
+dedup-h	3811	loop	adaptive /loop	COVERED(variant):ContinuationGovernor agent_end eval stronger;desc BOUNDARY gateway

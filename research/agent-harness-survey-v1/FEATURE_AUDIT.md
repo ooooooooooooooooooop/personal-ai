@@ -4661,3 +4661,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——main-session 调度=prompt-target tick 唤醒 lane（独立 tick→会话 wake）。描述 **COVERED(variant)**——畸形 schedule 文件=空表不崩 pump（fail-closed 读）+job 无 restart spec 拒重启=畸形行隔离语义变体。
 - **核销**：candidates-open #3799 → `candidates-resolved.tsv` #380。
+
+#### 28.379 事件驱动唤醒 + 畸形行跳过 (#3808 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`monitor_add`（path+prompt 文件变更→注入）=事件驱动唤醒面（tick 轮询 vs 变更触发=variant）。描述 **COVERED(variant)**——畸形 schedule 文件 fail-closed 读=空表不崩。
+- **核销**：candidates-open #3808 → `candidates-resolved.tsv` #381。
+
+#### 28.380 sessions 清理+per-agent store+commitments 重复 (#3809 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`session_delete`+`instance.purge`（M64 per-category 预览/强制，dry-run 默认）=清理面（per-agent store/disk-budget 细分=variant）。描述 **BOUNDARY**——同 #3788（无隐式 commitment 提取面）。
+- **核销**：candidates-open #3809 → `candidates-resolved.tsv` #382。
+
+#### 28.381 /loop 自适应续跑 + gateway 启动序列 (#3811 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——loop.js ContinuationGovernor 每 `agent_end` 评估 continue/blocked/complete（governed continuation=比"model 决定"更强的门控变体）。描述 **BOUNDARY**——gateway sidecar 启动序列面不存在。
+- **核销**：candidates-open #3811 → `candidates-resolved.tsv` #383。
