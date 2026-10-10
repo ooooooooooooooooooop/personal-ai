@@ -84,7 +84,7 @@ export class GoalStore {
   // dedup-h #4017 — done carries an eval verdict (achieved | unachievable):
   // the three-state eval is achieved→done / not-achieved→stay-open /
   // unachievable→done-with-verdict. The verdict is durable provenance so a
-  // later reader can tell "finished" from "gave up".
+  // later reader can distinguish a finished goal from an abandoned one.
   setState(goalId, state, { verdict = null } = {}) {
     const meta = this.#readMeta(goalId);
     if (!meta) return null;
