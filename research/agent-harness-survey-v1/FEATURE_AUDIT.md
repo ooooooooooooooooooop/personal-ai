@@ -5325,3 +5325,15 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——draft undo/redo 栈（M126 含 pasted/attachment 草稿态）。描述 **PARTIAL(variant)**——#4179 suggest-edit 同判。
 - **核销**：candidates-open #4255 → `candidates-resolved.tsv` #488。
+
+#### 28.487 messages_last_user + 发布说明 (#4261 — title BOUNDARY / desc NOISE)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 TUI 滚动导航面（minimap/jump-latest 是对应变体）。描述 **NOISE**——发布宣传非特性。
+- **核销**：candidates-open #4261 → `candidates-resolved.tsv` #489。
+
+#### 28.488 iOS 剥元数据+工具格式 + @-mention (#4262 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——入站不可信元数据剥离=`<untrusted>` 包裹规约（模型侧而非 UI 剥离）；工具输出格式化=工具行折叠+meta chips 变体。描述 **BOUNDARY**——#4195 @-mention 同判。
+- **核销**：candidates-open #4262 → `candidates-resolved.tsv` #490。

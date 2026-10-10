@@ -487,3 +487,5 @@ dedup-h	4243	onboard	hatch onboarding flow	COVERED(variant):setup-card provider+
 dedup-h	4251	keys	reasoning level shortcut	IMPLEMENTED:Alt+,/Alt+. cycle thinking levels;desc COVERED #4228
 dedup-h	4252	render	TUI syntax highlight	BOUNDARY(variant):no TUI;theme live preview covered;desc BOUNDARY tab bar
 dedup-h	4255	vim	vim undo drafts	COVERED:M126 draft undo/redo;desc PARTIAL(variant) #4179
+dedup-h	4261	nav	messages_last_user scroll	BOUNDARY:no TUI nav;desc NOISE release notes
+dedup-h	4262	sanitize	ios untrusted-meta strip	BOUNDARY(variant):untrusted-wrap discipline;desc BOUNDARY #4195
