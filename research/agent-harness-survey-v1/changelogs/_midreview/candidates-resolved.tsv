@@ -475,3 +475,6 @@ dedup-h	4195	mention	@-mention notify	BOUNDARY:single-operator;desc COVERED draf
 dedup-h	4197	conn	reload broken agent conn	COVERED(variant):supervisor crash respawn;desc COVERED #4180
 dedup-h	4200	ui	next-action ghost hint	REJECTED:speculative suggestion;desc BOUNDARY AI gateway
 dedup-h	4201	quote	quote selection into ctx	COVERED:#3912 quote-to-chat;desc BOUNDARY playbooks
+dedup-h	4208	notify	Android notif forwarding	BOUNDARY:no mobile surface;desc BOUNDARY tab cleanup
+dedup-h	4213	cors	CORS wildcard+allow-all	REJECTED:fail-closed loopback by design;desc BOUNDARY ios meta
+dedup-h	4216	ui	per-msg token/model hover	COVERED:attachMeta chips;desc BOUNDARY CLI status

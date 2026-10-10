@@ -5252,3 +5252,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——transcript 选区→"＋引用到对话"入 composer（#3912 在册）。描述 **BOUNDARY**——Playbooks 库面。
 - **核销**：candidates-open #4201 → `candidates-resolved.tsv` #476。
+
+#### 28.475 Android 通知转发 + tab 清理 (#4208 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无移动端通知面（bell/notification 事件级即全部）。描述 **BOUNDARY**——browser.tabCleanup 配置面。
+- **核销**：candidates-open #4208 → `candidates-resolved.tsv` #477。
+
+#### 28.476 CORS 通配 + iOS 元数据剥离 (#4213 — title REJECTED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **REJECTED**——CORS 通配/allow-all=刻意不存（桥接是 fail-closed：非 loopback Origin 拒 POST、Host 头每请求闸到字面 loopback——加通配即开 DNS-rebinding 洞）。描述 **BOUNDARY**——iOS 入站元数据剥离面。
+- **核销**：candidates-open #4213 → `candidates-resolved.tsv` #478。
+
+#### 28.477 per-message token/model 悬浮 + CLI status (#4216 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——`attachMeta` 每条消息 meta chips：provider/model+`input→output tok`+`$cost`+stopReason（悬浮即得，无需点）。描述 **BOUNDARY**——CLI status 表格面。
+- **核销**：candidates-open #4216 → `candidates-resolved.tsv` #479。
