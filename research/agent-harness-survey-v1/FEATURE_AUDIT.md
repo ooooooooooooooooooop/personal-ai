@@ -3784,3 +3784,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：标题 **ALREADY_COVERED**——M129 粘贴智能：`path:line(:col)` 引用检测上 chip + 长文本粘贴折叠为 attachment（Codex long-paste analogue）+ 文件/图片 drop。描述 **BOUNDARY**——发送者 avatar gutter 是多用户 channel UI 面；本栈单操作员无 sender 归属概念。
 - **位点**：`app/ui/app.js` 5350+。
 - **核销**：candidates-open #2818 → `candidates-resolved.tsv` #236。
+
+#### 28.236 Review Changes diff + exec policy badge (#2825 — title COVERED / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`/diff` 面板（receipt diff 渲染+#2408 per-block+聚合统计行）。描述 **BOUNDARY(N/A)**——`tools.exec.security` vs `agents.defaults.exec.security` 是上游 schema 迁移修正，本栈配置 schema 不同无该对偶字段。
+- **核销**：candidates-open #2825 → `candidates-resolved.tsv` #237。
+
+#### 28.237 auto-scroll mode 持久 + gateway sanitize (#2830 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M128 三模式滚动偏好（`near`贴尾跟随/`follow`恒跟/`off`不滚，localStorage 持久+jump 按钮兜底）。描述 **COVERED(variant)**——chat.send/inject 净化的语义=我方出站 prompt 经 prompt_submit gate+envelope/untrusted 标注链（单操作员无多 sender sanitize 对偶）。
+- **核销**：candidates-open #2830 → `candidates-resolved.tsv` #238。
+
+#### 28.238 pending-changes diff panel + workspace toggle (#2832 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——无 pending-changes 暂存 diff 面板：config_set 即时生效+redacted 账（无 JSON5 两段提交面）；相邻面=governance_dryrun 预演面板+/diff 面板+audit redact 各覆盖其语义片段。描述 **BOUNDARY**——workspace toggle 是多根工作区切换面；本栈 session 级 workdir+session 切换器=不同抽象。
+- **核销**：candidates-open #2832 → `candidates-resolved.tsv` #239。

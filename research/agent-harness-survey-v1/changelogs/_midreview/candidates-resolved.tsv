@@ -235,3 +235,6 @@ dedup-h	2768	skills-plugins	llm_output contextTokenBudget+metadata	PARTIAL(varia
 dedup-h	2774	skills-plugins	bundled webhook ingress plugin	COVERED:M112 webhooks.json endpoints->promptSink wake+provenance+decide chain;desc BOUNDARY Matrix plugin
 dedup-h	2787	skills-plugins	tool Defer/NoDefer modifiers	COVERED(variant):spec.defer_loading #1059 deferred registration;desc COVERED modelRuntime.refresh async catalog
 dedup-h	2818	skills-plugins	paste file-context detect+collapse	COVERED:M129 path:line chip+long-paste attachment fold;desc BOUNDARY sender avatar multi-user UI
+dedup-h	2825	ui	Review Changes diff view	COVERED:/diff panel+#2408 stats;desc N/A upstream schema-path fix no dual field in our schema
+dedup-h	2830	ui	auto-scroll mode persisted	COVERED:M128 near/follow/off localStorage+jump btn;desc COVERED(variant) outbound sanitize via prompt_submit+envelope chain
+dedup-h	2832	ui	pending-changes diff panel	PARTIAL(variant):no staged pending-changes surface;dryrun panel+/diff+audit redact adjacent;desc BOUNDARY workspace toggle different abstraction
