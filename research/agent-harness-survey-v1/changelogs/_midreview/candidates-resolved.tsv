@@ -286,3 +286,6 @@ dedup-h	3179	worktree	--worktree-branch base	COVERED:worktree_create ref+newBran
 dedup-h	3180	worktree	EnterWorktree path param	COVERED:in_worktree opens named existing+worktree_list;desc BOUNDARY Cloud Team
 dedup-h	3187	context	rules as context	COVERED:steering envelope+pins;desc PARTIAL no git log history view
 dedup-h	3191	rpc	strict LF JSONL framing	COVERED(variant):JSONL-by-design readline framing,CRLF-tolerant;desc BOUNDARY ACP servers panel
+dedup-h	3193	channel	per-group mention gating	BOUNDARY:no group chat surface;desc BOUNDARY GitLab blame hover
+dedup-h	3195	mcp	OAuth configurable callback URL	COVERED:oauth.redirectUri validated+loopbackRedirect flag;desc BOUNDARY no create-PR surface
+dedup-h	3196	mcp	startup_timeout_ms per-server	IMPLEMENTED:connectTimeoutFor clamped 1s-300s applied connect+SSE handshake;desc BOUNDARY zed URI

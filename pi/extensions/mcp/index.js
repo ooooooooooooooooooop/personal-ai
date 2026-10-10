@@ -50,6 +50,14 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const CONNECT_TIMEOUT_MS = 10_000;
 const TOOL_TIMEOUT_MS = 120_000;
 const MAX_RESULT_CHARS = 24_000;
+// dedup-h #3196 — per-server `startup_timeout_ms`: slow servers (cold
+// Docker images, remote SSE) can declare a longer connect budget; clamped
+// so a typo can't stall boot indefinitely.
+export function connectTimeoutFor(spec) {
+  const v = Number(spec?.startup_timeout_ms);
+  if (!Number.isFinite(v)) return CONNECT_TIMEOUT_MS;
+  return Math.min(Math.max(Math.trunc(v), 1000), 300_000);
+}
 
 export class McpError extends Error {
   constructor(message, { code = 'MCP_ERROR' } = {}) {
@@ -1001,7 +1009,7 @@ function sseTransport(spec, { serverName = null } = {}) {
       if (postUrl) { clearInterval(timer); resolve(); }
     }, 5);
     pump.catch((e) => { clearInterval(timer); reject(e); });
-    setTimeout(() => { clearInterval(timer); reject(new McpError('sse endpoint handshake timed out', { code: 'MCP_TIMEOUT' })); }, CONNECT_TIMEOUT_MS);
+    setTimeout(() => { clearInterval(timer); reject(new McpError('sse endpoint handshake timed out', { code: 'MCP_TIMEOUT' })); }, connectTimeoutFor(spec));
   });
 
   const postTimeoutMs = spec.postTimeoutMs ?? POST_TIMEOUT_MS;
@@ -1760,7 +1768,7 @@ export default function mcpExtension(pi) {
       }
       try {
         const client = await McpClient.connect(spec, {
-          timeoutMs: CONNECT_TIMEOUT_MS, serverName: name,
+          timeoutMs: connectTimeoutFor(spec), serverName: name,
           // dedup-h #2202 — elicitation: server may ask the operator for
           // structured input mid-tool-call. Bound before initialize so the
           // capability is advertised only when the handler exists.

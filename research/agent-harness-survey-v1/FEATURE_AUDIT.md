@@ -4090,3 +4090,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——channel 是 JSONL-by-design（`mirrors the pi --mode rpc surface`），supervisor↔body 走 readline 行分隔——readline 宽容 CRLF=严格 LF-only 的变体（宽松解析方向无害）。描述 **BOUNDARY**——无 ACP agent-servers 面板。
 - **核销**：candidates-open #3191 → `candidates-resolved.tsv` #287。
+
+#### 28.288 channel groups mention gating + GitLab blame (#3193 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 group chat/channel groups 概念（单操作员通道）。描述 **BOUNDARY**——无 git blame hover/GitLab MR 链面。
+- **核销**：candidates-open #3193 → `candidates-resolved.tsv` #288。
+
+#### 28.289 OAuth callback URL 配置 + create-PR (#3195 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`oauth.redirectUri` spec 字段：URL 校验+fragment 拒+`loopbackRedirect` 旗=可配置 callback（OOB/loopback/自定义三形态）。描述 **BOUNDARY**——无 git create-PR 命令面（提交走 canonical_writer，PR 属外部 git 托管）。
+- **核销**：candidates-open #3195 → `candidates-resolved.tsv` #289。
+
+#### 28.290 per-server startup_timeout_ms + zed URI (#3196 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`connectTimeoutFor(spec)`：`startup_timeout_ms` per-server 声明（1s–300s clamp，非法值回落 10s 默认）；应用两处=统一 `connectOne`（boot/reconnect/runtime-add 同链）+legacy-SSE endpoint handshake。描述 **BOUNDARY**——无 zed:// URI scheme 面。
+- **位点**：`pi/extensions/mcp/index.js`（manifest sha256 已重算）。
+- **证据**：mcp-ext **50/50**（含 #3196 clamp/default 断言）。
+- **核销**：candidates-open #3196 → `candidates-resolved.tsv` #290。

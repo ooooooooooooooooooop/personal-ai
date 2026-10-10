@@ -13,7 +13,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import mcpExtension, { McpClient, McpError, sanitizeSpecEnv, openBrowser } from '../extensions/mcp/index.js';
+import mcpExtension, { McpClient, McpError, sanitizeSpecEnv, openBrowser, connectTimeoutFor } from '../extensions/mcp/index.js';
 import { GovernanceKernel } from '../../host/src/core/governance.js';
 import { AttestedPolicy } from '../../host/src/core/policy.js';
 import { makeDecide } from '../src/bootstrap/decide.js';
@@ -2416,4 +2416,14 @@ test('#2239 mcp-del: config entry removed; connection closed; tokens dropped; to
     if (prevStore === undefined) delete process.env.PAI_MCP_TOKEN_STORE; else process.env.PAI_MCP_TOKEN_STORE = prevStore;
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('#3196 startup_timeout_ms: per-server connect budget clamped, default honored', async () => {
+  const { connectTimeoutFor } = await import('../extensions/mcp/index.js');
+  assert.equal(connectTimeoutFor({}), 10_000);
+  assert.equal(connectTimeoutFor(null), 10_000);
+  assert.equal(connectTimeoutFor({ startup_timeout_ms: 'x' }), 10_000);
+  assert.equal(connectTimeoutFor({ startup_timeout_ms: 45_000 }), 45_000);
+  assert.equal(connectTimeoutFor({ startup_timeout_ms: 5 }), 1_000, 'floor 1s');
+  assert.equal(connectTimeoutFor({ startup_timeout_ms: 9_999_999 }), 300_000, 'ceiling 300s');
 });
