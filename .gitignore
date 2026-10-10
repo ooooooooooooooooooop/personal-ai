@@ -19,6 +19,7 @@ venv/
 
 # Agent working memory (local, never published; also excluded by validate_repo.py)
 .workbuddy-ai/
+.workbuddy/
 
 # Temporary inspection and generated deliverables
 .tmp_*
