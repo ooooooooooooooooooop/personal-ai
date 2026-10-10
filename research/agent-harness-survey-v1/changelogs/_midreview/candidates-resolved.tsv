@@ -361,3 +361,6 @@ dedup-h	3640	policy	enterprise default model	BOUNDARY:no MDM surface;desc PARTIA
 dedup-h	3656	search	non-recursive option	BOUNDARY(variant):SDK grep schema;desc BOUNDARY LSP env
 dedup-h	3666	search	grep head_limit/offset	BOUNDARY:SDK tool schema;desc BOUNDARY vim-surround
 dedup-h	3684	handoff	remote Devin handoff	BOUNDARY:no remote session surface;desc VARIANT http_idle_timeout config
+dedup-h	3713	api	commands.list RPC	PARTIAL(variant):op docstring list,no discovery RPC;desc BOUNDARY stream-json
+dedup-h	3720	shell	persistent shell mode	PARTIAL(variant):env overlay persists,cwd pinned workdir by design;desc BOUNDARY TTS
+dedup-h	3732	parallel	--parallel flag	COVERED(variant):delegate/jobs fan-out;desc BOUNDARY headless

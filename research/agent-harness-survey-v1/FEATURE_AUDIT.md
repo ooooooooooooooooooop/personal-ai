@@ -4549,3 +4549,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无远程 Devin session 交接面（本地七态 handoff 在册）。描述 **COVERED(variant)**——`http_idle_timeout` config 键（0–3600000ms 可调/0 禁）=可调 stream timeout（30→60s 默认调整+智能检测=上游调参细节变体）。
 - **核销**：candidates-open #3684 → `candidates-resolved.tsv` #362。
+
+#### 28.361 commands.list RPC + stream-json (#3713 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——channel op 集在 `host/src/core/channel.js` docstring 明文列举；远程客户端运行时命令发现 RPC=variant 未落。描述 **BOUNDARY**——无 headless stream-json 输出格式面。
+- **核销**：candidates-open #3713 → `candidates-resolved.tsv` #363。
+
+#### 28.362 persistent shell + gateway TTS (#3720 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`env_set` 会话 overlay 跨 tool call 持久 env（含快照）；cwd 钉 workdir 不漂移（cd 持久=刻意边界，防上下文漂移）；SSH 持久 shell=job spawnSpec 变体。描述 **BOUNDARY**——无 TTS 播放面。
+- **核销**：candidates-open #3720 → `candidates-resolved.tsv` #364。
+
+#### 28.363 --parallel fan-out + headless multiline (#3732 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——并行同 prompt 多任务=delegate_task fan-out+job 并行（CLI `--parallel` 旗=variant）。描述 **BOUNDARY**——headless 默认消息=无 headless 驱动面。
+- **核销**：candidates-open #3732 → `candidates-resolved.tsv` #365。
