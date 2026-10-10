@@ -4641,3 +4641,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无隐式 follow-up commitment 提取面（刻意不静默推断承诺；goal/todo 是显式声明）。描述 **ALREADY_COVERED**——通用 worktree Enter/Exit+隔离=`worktree_create`/`in_worktree`/移除审计。
 - **核销**：candidates-open #3788 → `candidates-resolved.tsv` #377。
+
+#### 28.376 systemPromptOverride + --no-sandbox (#3789 — title VARIANT / desc IMPLEMENTED)
+
+- **status**: title variant; desc implemented.
+- **判定**：标题 **COVERED(variant)**——agent profile 携带 preamble/提示覆盖面（verifier 人格先例）；受控实验命名=variant。描述 **IMPLEMENTED**——`PAI_BROWSER_NO_SANDBOX=1` → 追加 `--no-sandbox --disable-setuid-sandbox`（容器/userns 不可用环境）；桌面启动保持沙箱开。
+- **位点**：`pi/src/adapter/browser.js` `#launch`。
+- **证据**：browser.test.js **12/12**（注册契约未破，lazy launch 路径不生成进程）。
+- **核销**：candidates-open #3789 → `candidates-resolved.tsv` #378。
+
+#### 28.377 cron announce delivery + curator cost (#3797 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——isolated job 完成投递=schedule `webhook:{url,token?|token_env?,headers?}` 每终态一次 POST+delivery 状态持久化（delivered/attempts）——announce delivery mode 语义变体。描述 **BOUNDARY**——无 skill curator/aux-model 运行面。
+- **核销**：candidates-open #3797 → `candidates-resolved.tsv` #379。
+
+#### 28.378 cron wake lane + 畸形行隔离 (#3799 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——main-session 调度=prompt-target tick 唤醒 lane（独立 tick→会话 wake）。描述 **COVERED(variant)**——畸形 schedule 文件=空表不崩 pump（fail-closed 读）+job 无 restart spec 拒重启=畸形行隔离语义变体。
+- **核销**：candidates-open #3799 → `candidates-resolved.tsv` #380。

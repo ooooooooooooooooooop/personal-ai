@@ -376,3 +376,6 @@ dedup-h	3772	sandbox	USERPROFILE blocked roots	DEFECT-ABSENT:no home bind surfac
 dedup-h	3783	sched	REST usage/traces/sched	PARTIAL(variant):channel ops not REST,/api/state+metrics only;desc COVERED #3740
 dedup-h	3786	sched	per-run scheduled sessions	COVERED(variant):fresh prompt turn+unique attempt;desc VARIANT timeoutMs+--rm reap
 dedup-h	3788	commit	inferred commitments	BOUNDARY:no silent commitment inference,explicit goals/todos;desc COVERED worktree tools
+dedup-h	3789	prompt	systemPromptOverride	COVERED(variant):profile preamble;desc IMPLEMENTED PAI_BROWSER_NO_SANDBOX opt-in
+dedup-h	3797	cron	announce delivery mode	COVERED(variant):webhook terminal POST+delivery ledger;desc BOUNDARY curator
+dedup-h	3799	cron	cron-owned wake lane	COVERED(variant):prompt-target tick lane;desc VARIANT malformed fail-closed+no-restart-spec refuse

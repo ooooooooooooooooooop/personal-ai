@@ -162,6 +162,10 @@ export class BrowserSession {
       `--user-data-dir=${this.profileDir}`,
       '--no-first-run', '--no-default-browser-check',
       '--disable-session-crashed-bubble', '--hide-crash-restore-bubble',
+      // dedup-h #3789 — container/CI environments where the Chrome sandbox
+      // cannot initialize (no userns) need the explicit opt-in; desktop
+      // launches keep the sandbox ON.
+      ...(process.env.PAI_BROWSER_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-setuid-sandbox'] : []),
       'about:blank',
     ], { windowsHide: true, stdio: 'ignore' });
     this.proc.on('exit', () => { this.sessionId = null; this.targetId = null; });
