@@ -5452,3 +5452,14 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：#3136 标题 **COVERED(variant)**——pin SDK `processImage`/`resizeImage` 管线：归一化 mime+限尺寸 resize+original→displayed scale 维度注（auto-orient 属解码层语义）。#3134 标题 **BOUNDARY**——`BASH_ENV`/`ENV`/`SHELLOPTS` 全在 `ENV_INJECT_RE` 黑名单（agent 侧 shell 前缀注入刻意阻断=fail-closed 优先）；operator 可在进程 env 直接设 BASH_ENV。#3399 标题 **BOUNDARY**——frecency/使用频率排序面无对位物（promptHist 线性历史在）。#3395 标题 **COVERED(defect-absent)**——skill 加载走 `existsSync`/`readFileSync`/`readdirSync` 原生跟随 symlink，无 lstat 拒绝路径。
 - **核销**：findings-cand#3136 → `candidates-resolved.tsv` #517；#3134 → #518；#3399 → #519；#3395 → #520。
+
+#### 28.507 MCP 重连族：强制 reconnect 命令 + 活 client 泄漏修复 (#1435 等 12 keys)
+
+- **status**: findings-cand#1435 title implemented; family covered.
+- **判定**：
+  - **真洞修复**——`connectOne` 替换活 `entry.client`（`/mcp-enable` 强制重连路径）不关旧 transport → stdio 子进程/HTTP 流孤儿化。现在替换前先 `prev.client.close()`（`close()` 置 `#closed` 先于 transport 关闭，onExit 判 intentional → 不会误触发 scheduleReconnect）。
+  - **#1435 IMPLEMENTED**——新增 `/mcp-reconnect <server>`：清重连定时器+关活连接+`loadConfig()` 重读 spec+走 `connectOne` 全路径（contextScope/disabled/失败诚实标记）；配置变更即时生效。
+  - **族核销**——bounded 自动重连（2s/5s/10s 有界、`PAI_MCP_RECONNECT_DELAYS` 可调、entry 复用 tools/prompts 重绑、exhausted→诚实 failed + `/mcp` 显示）+#2239 `/mcp-add|del|enable|disable` 热连接面+list_changed/pendingRefresh 元数据刷新+stdio kill-tree（taskkill /T / SIGKILL）= reconnect/refresh/reload/metadata-refresh 全语族覆盖。
+- **位点**：`pi/extensions/mcp/index.js`（connectOne + /mcp-reconnect）；managed-manifest sha256 已重算。
+- **证据**：mcp-ext **52/52**。
+- **核销**：`candidates-resolved.tsv` #521–#532——findings-cand#1435 IMPLEMENTED；manual#13580/20362/38298/62928/64536/64551/64588/3163 COVERED(同族)；findings-cand#2375 COVERED(variant grace=reconnecting 中间态)；findings-verify#5936/#2377 COVERED(kill-tree+intentional-close 语义)。

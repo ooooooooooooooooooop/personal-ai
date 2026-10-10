@@ -519,3 +519,15 @@ findings-cand	3136	image	auto-orient canonical jpeg	COVERED(variant):SDK process
 findings-cand	3134	shell	shellCommandPrefix	BOUNDARY:BASH_ENV blacklisted agent-side; operator env ok
 findings-cand	3399	palette	frecency ordering	BOUNDARY:no frecency surface
 findings-cand	3395	skill	symlinked skill dirs	COVERED(defect-absent):fs follows links no lstat refuse
+findings-cand	1435	mcp	reconnect command+auto	IMPLEMENTED:/mcp-reconnect+live-client close fix
+manual	13580	mcp	hot reload mcp servers	COVERED:#1435 family /mcp-reconnect+re-read
+manual	20362	mcp	connection refresh logic	COVERED:same family
+manual	38298	mcp	reload updated config	COVERED:/mcp-reconnect loadConfig re-read
+manual	62928	mcp	ACP spawn retry+auto-reconnect	COVERED(variant):bounded reconnect same mechanism
+manual	64536	mcp	refresh metadata w/o reconnect	COVERED(variant):list_changed+pendingRefresh
+manual	64551	mcp	forced MCP reconnects	COVERED:/mcp-reconnect
+manual	64588	mcp	reconcile live on settings	COVERED:/mcp-reconnect re-reads spec
+manual	3163	mcp	streamable HTTP reconnects	COVERED:onServerExit on closed stream
+findings-cand	2375	mcp	optional server grace period	COVERED(variant):reconnecting intermediate state
+findings-verify	5936	mcp	stdio orphan kill	COVERED:taskkill /T + SIGKILL tree on close
+findings-verify	2377	mcp	SIGKILL child leak	COVERED:kill-tree close+intentional-close semantics

@@ -1788,6 +1788,14 @@ export default function mcpExtension(pi) {
         const prev = connected.get(name);
         const entry = prev ?? { client: null, tools: [], spec, prompts: [], dead: new Set(), booted: false };
         const isReconnect = prev?.client != null;
+        // findings-cand #1435 / findings-verify #5936 — replacing a LIVE
+        // client (forced reconnect via /mcp-enable) must close the old
+        // transport first; otherwise the stdio child / HTTP stream orphans.
+        // The reconnect path (onServerExit) reaches here only after the
+        // transport is already dead, so this close is a no-op there.
+        if (prev?.client && prev.client !== client) {
+          try { prev.client.close(); } catch { /* best effort — already dead */ }
+        }
         entry.client = client;
         entry.spec = spec;
         entry.failed = false;
@@ -2344,6 +2352,35 @@ export default function mcpExtension(pi) {
         return;
       }
       ctx.ui?.notify?.(`'${name}' enabled — connected: ${entry.tools.length} tools, ${(entry.prompts ?? []).length} prompts`, 'info');
+    },
+  });
+
+  // findings-cand #1435 — forced reconnect: /mcp-reconnect drops the live
+  // connection NOW (bounded auto-reconnect handles unexpected death; this is
+  // the manual counterpart for "the server config changed / it's stuck")
+  // and re-reads the spec from config — a changed command/url applies
+  // immediately instead of waiting for the next session.
+  pi.registerCommand('mcp-reconnect', {
+    description: 'Force-reconnect an MCP server — closes the live connection, re-reads the spec, connects now',
+    handler: async (arg, ctx) => {
+      const name = String(arg ?? '').trim();
+      if (!name) { ctx.ui?.notify?.('usage: /mcp-reconnect <server>', 'error'); return; }
+      if (!(name in allServers)) { ctx.ui?.notify?.(`unknown server '${name}'`, 'error'); return; }
+      if (disabled.has(name)) { ctx.ui?.notify?.(`'${name}' is disabled — /mcp-enable ${name} restores it`, 'error'); return; }
+      const spec = loadConfig().servers[name] ?? allServers[name];
+      const entry = connected.get(name);
+      if (entry?.reconnectTimer) { clearTimeout(entry.reconnectTimer); entry.reconnectTimer = null; }
+      if (entry?.client) { try { entry.client.close(); } catch { /* best effort */ } }
+      const fresh = await connectOne(name, spec);
+      if (fresh?.contextScoped) {
+        ctx.ui?.notify?.(`'${name}' is scoped to agent context ${JSON.stringify(contextList(spec))} — not connected under agent '${AGENT_ID}'`, 'error');
+        return;
+      }
+      if (fresh?.failed || !fresh?.client) {
+        ctx.ui?.notify?.(`'${name}' reconnect FAILED; /mcp shows the error`, 'error');
+        return;
+      }
+      ctx.ui?.notify?.(`'${name}' reconnected — ${fresh.tools.length} tools, ${(fresh.prompts ?? []).length} prompts`, 'info');
     },
   });
 
