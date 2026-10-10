@@ -5440,3 +5440,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：#1779 标题 **COVERED**——delegate per-spawn `model`/`effort` 覆盖（#1169 严格 charset+modelroutes 解析）。#1701 标题 **BOUNDARY**——deny 即停+ask 前向解=刻意设计；"拒绝后继续循环" opt-in 无对位物且与 fail-closed 相悖。#1610 标题 **COVERED(variant)**——`jsrepl`/`jsrepl-worker` 一等工具在册；启动兼容检查+warning=doctor 电池对应物。#2111 标题 **COVERED(variant)**——pin SDK read 工具原生 DEFAULT_MAX_LINES/MAX_BYTES 截断+offset/limit 分页；我方全部自研工具输出有界（output_tail/预览）。
 - **核销**：findings-cand#1779 → `candidates-resolved.tsv` #509；#1701 → #510；#1610 → #511；#2111 → #512。
+
+#### 28.505 per-sender 工具策略 + compaction 分界符 + tools.profile + 成本自动批准 (#2290/#2380/#2210/#2856)
+
+- **status**: classification only.
+- **判定**：#2290 标题 **BOUNDARY**——同 #2733 判词（无 channel/sender 维度策略面）。#2380 标题 **COVERED**——`compaction_start/end` 事件流即渲染 `compact-row` 分界行（pending→终态），会话历史内嵌压缩边界。#2210 标题 **COVERED(variant)**——modes+ToolSurface=工具 profile 档对应物（messaging 命名档无对位物）。#2856 标题 **BOUNDARY**——成本上限自动批准梯度不存在（turn tool-call budget cap 在但按成本面额的自动批准档无对位物）。
+- **核销**：findings-cand#2290 → `candidates-resolved.tsv` #513；#2380 → #514；#2210 → #515；#2856 → #516。

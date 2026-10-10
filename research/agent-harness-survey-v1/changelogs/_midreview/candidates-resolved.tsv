@@ -511,3 +511,7 @@ findings-cand	1779	delegate	per-spawn model override	COVERED:#1169 model+effort 
 findings-cand	1701	policy	continue_loop_on_deny	BOUNDARY:deny=stop deliberate fail-closed
 findings-cand	1610	jsrepl	promote /experimental	COVERED(variant):jsrepl first-class+doctor compat
 findings-cand	2111	read	token-budget file read	COVERED(variant):SDK read MAX_LINES/BYTES+offset paging
+findings-cand	2290	policy	per-sender tool policies	BOUNDARY:same as #2733 no sender dim
+findings-cand	2380	compaction	divider in history	COVERED:compact-row rendered from events
+findings-cand	2210	tools	tools.profile=messaging	COVERED(variant):modes+ToolSurface profiles
+findings-cand	2856	budget	auto-approved cost limits	BOUNDARY:no cost-denominated auto-approve tier
