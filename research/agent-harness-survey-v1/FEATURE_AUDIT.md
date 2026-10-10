@@ -5463,3 +5463,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/extensions/mcp/index.js`（connectOne + /mcp-reconnect）；managed-manifest sha256 已重算。
 - **证据**：mcp-ext **52/52**。
 - **核销**：`candidates-resolved.tsv` #521–#532——findings-cand#1435 IMPLEMENTED；manual#13580/20362/38298/62928/64536/64551/64588/3163 COVERED(同族)；findings-cand#2375 COVERED(variant grace=reconnecting 中间态)；findings-verify#5936/#2377 COVERED(kill-tree+intentional-close 语义)。
+
+#### 28.508 delegate/subagent manual 族（9 keys）
+
+- **status**: classification only.
+- **判定**：manual#7982 **COVERED**——per-spawn model+effort 覆盖（#1169）+profile effort 档。#8079 **COVERED(variant)**——子代理审批走 operator ask 决定墙（比 leader-routing 更强的信任根；Permission Bridge 面不存）。#30399 **COVERED**——modelroutes.json+profile model。#36729/#36730 **COVERED**——`task_send`→inbox→bridge steer 注入 running child（工具描述明示 mid-run steering）。#36742 **PARTIAL(variant)**——`task_wait` 单任务+有界超时轮询，无跨任务 wait_any 面。#36743 **COVERED(variant)**——depends_on 队列+并行 spawn=staged fan-out 对应物。#36763 **COVERED(variant)**——inbox/outbox 双向信箱=clarification 通道。#64287 **BOUNDARY**——ACP 外部代理委派面不存在。#64371 **COVERED(variant)**——per-subagent model routes 覆盖 fastModel 语义。
+- **核销**：`candidates-resolved.tsv` #533–#541。

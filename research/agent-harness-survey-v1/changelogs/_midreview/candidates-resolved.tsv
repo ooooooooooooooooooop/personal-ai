@@ -531,3 +531,13 @@ manual	3163	mcp	streamable HTTP reconnects	COVERED:onServerExit on closed stream
 findings-cand	2375	mcp	optional server grace period	COVERED(variant):reconnecting intermediate state
 findings-verify	5936	mcp	stdio orphan kill	COVERED:taskkill /T + SIGKILL tree on close
 findings-verify	2377	mcp	SIGKILL child leak	COVERED:kill-tree close+intentional-close semantics
+manual	7982	delegate	effort per sub-agent	COVERED:#1169 model+effort override
+manual	8079	delegate	approvals to leader	COVERED(variant):operator ask wall=stronger root
+manual	30399	delegate	subagent model routing	COVERED:modelroutes.json+profile model
+manual	36729	delegate	mid-turn steer checkpoint	COVERED:task_send inbox steer mid-run
+manual	36730	delegate	subagent_steer inject	COVERED:same mechanism
+manual	36742	delegate	wait_any race/hedging	PARTIAL(variant):single-task wait+timeout only
+manual	36743	delegate	pipeline staged fan-out	COVERED(variant):depends_on+parallel spawn
+manual	36763	delegate	clarification pause-ask	COVERED(variant):inbox/outbox two-way
+manual	64287	delegate	external ACP delegate	BOUNDARY:no ACP surface
+manual	64371	delegate	fastModel explore	COVERED(variant):per-subagent routes
