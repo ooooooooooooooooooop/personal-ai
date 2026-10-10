@@ -3552,3 +3552,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`host/src/core/sessionenv.js:20`、`pi/extensions/mcp/index.js:69`（生成器源码——名单原语，非补丁）。
 - **证据**：sessionenv 新断言 14 key 全拒+普通键放行；host **421/421**；envtools+mcp-ext 聚焦全绿（49 项 ✔，收尾挂点照旧规避）。
 - **核销**：candidates-open #2547 → `candidates-resolved.tsv` #208。
+
+#### 28.208 MCP Apps calls + namespaced registration + pager (#2548 — title covered variant / desc defect-absent)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **ALREADY_COVERED(defect-absent)**。
+  - **标题语义（MCP Apps tool calls+namespaced 注册+parallel-call opt-in）**：**已覆盖(variant)**——`mcp__srv__tool` namespaced 注册、tools/call 全链路（stdio+http）、#1504 Apps `_meta`/details.ui 面；`parallelToolCalls` opt-in 标志无对应面（引擎按轮次发 call=变体边界注）。
+  - **描述语义（local+sandbox 命令统一非交互分页器、less 不写历史）**：**缺陷类不存在**——job/工具输出捕获进 buffer/文件，从不进 pager；无 `less` 阻塞/历史污染类。
+- **证据**：`pi/extensions/mcp/index.js`（注册名）；`pi/src/adapter/jobs.js`（stdout 捕获）。
+- **核销**：candidates-open #2548 → `candidates-resolved.tsv` #209。
