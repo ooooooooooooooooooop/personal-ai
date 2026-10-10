@@ -4204,3 +4204,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——notifications 全链：`tools/list_changed` 热刷新（M130）+progress frames（#2221）+GET SSE 推送通道（end-of-stream 自动重连）。描述 **COVERED(variant)**——同 #3198（/mcp+/mcp-auth+/mcp-add+/mcp-del 族）。
 - **核销**：candidates-open #3248 → `candidates-resolved.tsv` #305。
+
+#### 28.306 HTTP MCP OAuth + xAI sidecar (#3250 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——HTTP/SSE MCP OAuth 全流：authorization_code+PKCE/device_code/client_credentials/token-exchange+401 自动发现注册（PRM/ASM/DCR）+stored tokens+回源 Bearer。描述 **BOUNDARY**——xAI sidecar auth/video 生成=外部产品面。
+- **核销**：candidates-open #3250 → `candidates-resolved.tsv` #306。
+
+#### 28.307 非交互 MCP prompt + gateway 直达 (#3251 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——M82：MCP prompts 注册为 slash 命令、get 展开为 user message——headless job 会话走同一 prompt→message 通道=非交互可执行变体。描述 **BOUNDARY**——Gateway-run 位置选择/UI 流程无对位。
+- **核销**：candidates-open #3251 → `candidates-resolved.tsv` #307。
+
+#### 28.308 mcp add OAuth flags + Codex 路径 (#3252 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`/mcp-add` OAuth flags 全组：`--oauth-client-id/--oauth-token-url/--oauth-authorize-url/--oauth-scope/--oauth-client-secret(-env)`+半成品 spec 拒。描述 **BOUNDARY**——Codex/OpenAI app-server 特定面。
+- **核销**：candidates-open #3252 → `candidates-resolved.tsv` #308。

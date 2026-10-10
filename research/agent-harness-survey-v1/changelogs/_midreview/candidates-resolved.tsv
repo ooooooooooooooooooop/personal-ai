@@ -304,3 +304,6 @@ dedup-h	3233	mcp	env timeout vars	IMPLEMENTED:PAI_MCP_CONNECT/TOOL_TIMEOUT_MS en
 dedup-h	3235	mcp	first /mcp-add creates registry	COVERED:persist to resolved config or .pai/mcp.json;desc proxy+TLS variant
 dedup-h	3237	mcp	agentic CLI consumes MCP	BOUNDARY(variant):MCP serves own stack,delegates declare own config;desc transport aliases variant
 dedup-h	3248	mcp	MCP notification support	COVERED:list_changed hot-refresh+progress+SSE push reconnect;desc /mcp family variant
+dedup-h	3250	mcp	HTTP MCP OAuth	COVERED:auth_code+device+client_credentials+discovery+stored tokens;desc BOUNDARY xAI sidecar
+dedup-h	3251	mcp	non-interactive MCP prompts	COVERED(variant):prompt->message expansion works in headless sessions;desc BOUNDARY gateway-run choice
+dedup-h	3252	mcp	mcp add OAuth flags	COVERED:--oauth-* flag family in /mcp-add;desc BOUNDARY Codex app-server
