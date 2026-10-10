@@ -4841,3 +4841,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **ALREADY_COVERED**——archived 标记+归档切换+批量归档/清档钮（sess-arch-toggle 族）。描述 **BOUNDARY**——多通道 outbound 镜像/dmScope 面不存在。
 - **核销**：candidates-open #3921 → `candidates-resolved.tsv` #410。
+
+#### 28.409 session rollover + /exec 重复 (#3923 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——手动 `/new`+归档在册；idle/daily 自动 rollover 关 tab 策略=variant 未落（会话 durable 不自动关）。描述 **COVERED(variant)**——同 #3873。
+- **核销**：candidates-open #3923 → `candidates-resolved.tsv` #411。
+
+#### 28.410 daily reset policy 重复 (#3924 — title PARTIAL(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：两面 **PARTIAL(variant)**——schedule_task=显式调度（daily 周期可达）；会话自动 reset policy/per-type override/idle window=variant 未落（durable session 刻意不自动重置）。
+- **核销**：candidates-open #3924 → `candidates-resolved.tsv` #412。
+
+#### 28.411 background session + tooltip 移除 (#3928 — title COVERED / desc NOISE)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`session_new` 同 SPA 页内建会话（无跳页）。描述 **NOISE**——移除快捷键 tooltip=上游装饰级变更，无功能语义。
+- **核销**：candidates-open #3928 → `candidates-resolved.tsv` #413。

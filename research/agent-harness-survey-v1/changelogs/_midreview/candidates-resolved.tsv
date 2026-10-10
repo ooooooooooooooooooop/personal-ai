@@ -409,3 +409,6 @@ dedup-h	3906	api	repoless REST sessions	BOUNDARY:no REST surface;desc BOUNDARY S
 dedup-h	3912	ui	selection Add to chat	COVERED:M109 sel-quote float button;desc VARIANT context bounds
 dedup-h	3918	search	server session index	COVERED(variant):session_search direct FTS;desc VARIANT #3885
 dedup-h	3921	archive	/archive un/archive	COVERED:archived flag+toggle+batch purge;desc BOUNDARY outbound mirror
+dedup-h	3923	session	rollover on idle/daily	PARTIAL(variant):manual new/archive,no timed rollover;desc VARIANT #3873
+dedup-h	3924	session	daily reset policy	PARTIAL(variant):schedule explicit,durable sessions by design
+dedup-h	3928	session	background new session	COVERED:session_new same-view SPA;desc NOISE tooltip removal
