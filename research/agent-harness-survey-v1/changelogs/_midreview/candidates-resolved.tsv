@@ -358,3 +358,6 @@ dedup-h	3621	web	/web url scrape cmd	IMPLEMENTED:channel op->same webFetchTool->
 dedup-h	3624	model	per-contact models	BOUNDARY:no DM/contact surface;desc PARTIAL(variant) per-msg token cards absent
 dedup-h	3633	hook	messages/system.transform	PARTIAL(variant):transform_llm_output gate only,input-side observational;desc BOUNDARY ty LSP
 dedup-h	3640	policy	enterprise default model	BOUNDARY:no MDM surface;desc PARTIAL(boundary) tool-head click=fold only,no editor
+dedup-h	3656	search	non-recursive option	BOUNDARY(variant):SDK grep schema;desc BOUNDARY LSP env
+dedup-h	3666	search	grep head_limit/offset	BOUNDARY:SDK tool schema;desc BOUNDARY vim-surround
+dedup-h	3684	handoff	remote Devin handoff	BOUNDARY:no remote session surface;desc VARIANT http_idle_timeout config

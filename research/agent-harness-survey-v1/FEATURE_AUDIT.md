@@ -4531,3 +4531,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无 enterprise MDM 默认模型面（同 #3561 判例）。描述 **PARTIAL(boundary)**——工具头点击=展开/折叠；编辑器跳文件面无对应物（无内嵌编辑器）。
 - **核销**：candidates-open #3640 → `candidates-resolved.tsv` #359。
+
+#### 28.358 non-recursive 搜索 + LSP env (#3656 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——grep/glob 是 pin SDK 内置工具，递归/深度参数属 SDK 侧 schema（channel `files_list` prefix 过滤=相邻变体）。描述 **BOUNDARY**——无 LSP 配置面。
+- **核销**：candidates-open #3656 → `candidates-resolved.tsv` #360。
+
+#### 28.359 Grep head_limit/offset + vim-surround (#3666 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：两面 **BOUNDARY**——grep 分页参数属 pin SDK 工具 schema；vim-surround=编辑器插件面。
+- **核销**：candidates-open #3666 → `candidates-resolved.tsv` #361。
+
+#### 28.360 远程 handoff + stream timeout (#3684 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无远程 Devin session 交接面（本地七态 handoff 在册）。描述 **COVERED(variant)**——`http_idle_timeout` config 键（0–3600000ms 可调/0 禁）=可调 stream timeout（30→60s 默认调整+智能检测=上游调参细节变体）。
+- **核销**：candidates-open #3684 → `candidates-resolved.tsv` #362。
