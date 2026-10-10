@@ -3982,3 +3982,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY**——无 plugin SDK（defineToolPlugin/build/validate/init 脚手架面无对位）。描述 **ALREADY_COVERED**——`PAI_MAX_TOOL_CALLS` 经 `--max-turns` 桥旗下传并进入 decide cap=可强制 turn 上限。
 - **核销**：candidates-open #3082 → `candidates-resolved.tsv` #269。
+
+#### 28.269 egress inspector + auto-update 禁用 (#3086 — title COVERED / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——出站调用 inspector 三件套：`<instance>/egress-allow.json` 域名白名单（operator-owned）+未列域名逐域 ask 卡（一次/会话/拒绝三选）+`EGRESS_POLICY_ASK`/`HOOK_EGRESS_REFUSED` 审计=记录+检查双语义。描述 **BOUNDARY(N/A)**——无 auto-update 机制可禁（源码 checkout 非自更新产物，#2450 同判）。
+- **核销**：candidates-open #3086 → `candidates-resolved.tsv` #270。
+
+#### 28.270 command argument-hint + Jules env vars (#3094 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`.pai` 命令 frontmatter `argument-hint:` 字段已实现（`app/ui/app.js` 5205 dedup-h #3094 标记在册——UI 命令提示读它）。描述 **COVERED(variant)**——任务级 env vars 提供=session env overlay（`env_set`/`env_snapshot`/`env_apply`）+delegate `envOverlay` 下传=per-task env 变体。
+- **核销**：candidates-open #3094 → `candidates-resolved.tsv` #271。
+
+#### 28.271 --max-turns + defineToolPlugin (#3099 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`--max-turns`→`PAI_MAX_TOOL_CALLS`→decide cap（#3082 已核销）。描述 **BOUNDARY**——defineToolPlugin/plugins build/validate/init=上游 plugin SDK 面无对位（#3082 同判）。
+- **核销**：candidates-open #3099 → `candidates-resolved.tsv` #272。
