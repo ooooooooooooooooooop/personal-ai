@@ -262,3 +262,6 @@ dedup-h	2960	mode	plan mode MCP support	COVERED(variant-stricter):all mcp__* gat
 dedup-h	2961	mcp	resource auto-approve	COVERED(variant):mcp_resource_read via governed channel,decide still applies;desc BOUNDARY feishu prefixes
 dedup-h	2962	fs	multi-root auto-approve reads	BOUNDARY:single workdir+worktree trust;desc managed-manifest declared activation variant
 dedup-h	2966	tls	wss cert pinning pre-trust	BOUNDARY(N/A):CDP is ws:// loopback,remote opt-in flag,no wss surface;desc BOUNDARY macOS key dialog
+dedup-h	2968	tool	web_search permission tool name	COVERED:registered tool nameable in allow/deny/ask;desc pnpm unwrap fail-closed to ask variant
+dedup-h	3059	logging	LOG_JSON structured logging	COVERED:logline.js LOG_JSON/PAI_LOG_JSON JSON diag lines;desc BOUNDARY auto-reply channels
+dedup-h	3061	agent	agent create CLI args	COVERED(variant):profile_* governed CRUD ops;desc COVERED transient-signal retry classification M100+#2384

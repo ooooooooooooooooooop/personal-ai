@@ -3946,3 +3946,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY(N/A)**——CDP 通道用 `ws://`（loopback debug port；远程 attach 需 `PAI_BROWSER_ATTACH_ALLOW_REMOTE=1` opt-in），无 `wss://` 端点=cert pinning 无对象；Node 内建 TLS 默认 system trust。描述 **BOUNDARY**——无 macOS app/API-key 对话框面。
 - **核销**：candidates-open #2966 → `candidates-resolved.tsv` #263。
+
+#### 28.263 web_search 权限工具名 + pnpm 拆包 (#2968 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`web_search` 是注册工具名，toolsAllow/Deny/ask 按工具名粒度命中（条件注册时 deny 规则仍可声明）。描述 **COVERED(variant——fail-closed)**——审批绑定按 per-unit prefix+env-assignment 跳过真实 binary（#1829）；深层 pnpm runtime form（`pnpm exec`/`--reporter`/直调 node）不特殊拆包=未识别形态落 ask 而非错绑，安全方向正确。
+- **核销**：candidates-open #2968 → `candidates-resolved.tsv` #264。
+
+#### 28.264 LOG_JSON 结构化日志 + auto-reply fallback (#3059 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`host/src/core/logline.js`：`LOG_JSON`/`PAI_LOG_JSON` truthy 时全部诊断行结构化 JSON（dedup-h #3059 标记在册）。描述 **BOUNDARY**——无 auto-reply/group-chat channel 面。
+- **核销**：candidates-open #3059 → `candidates-resolved.tsv` #265。
+
+#### 28.265 agent create CLI + failover api_error 分类 (#3061 — title COVERED(variant) / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——profile 全 CRUD 经 `profile_save/apply/list/delete/export/import` 受控 ops（参数化 schema 同 CLI args 语义）。描述 **ALREADY_COVERED**——M100 fallback 错误分类：`isRequestInvariantError`/`isUsagePolicyError`（#2384）区分 envelope-特异与 provider-特异，transient 信号才判可重试=该语义已在。
+- **核销**：candidates-open #3061 → `candidates-resolved.tsv` #266。
