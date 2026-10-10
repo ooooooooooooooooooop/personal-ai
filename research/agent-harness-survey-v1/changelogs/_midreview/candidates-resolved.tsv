@@ -253,3 +253,6 @@ dedup-h	2906	approval	approvalId resume no token	COVERED(variant):pending_list+d
 dedup-h	2907	approval	MCP wildcard approve server	COVERED:allow_server mcp__srv__* grant #2027;desc N/A wheel packaging
 dedup-h	2913	mode	plan auto-switch to code mode	COVERED(variant):modeRequestTool ExitPlanMode analogue operator-approved,never self-applies;desc defect-class absent per-session mode state
 dedup-h	2914	mode	plan readOnlyHint MCP pass	COVERED(variant-stricter):all mcp__* gated as opaque in plan;desc COVERED y/n/a three-option ask
+dedup-h	2929	mcp	loopback attach grants	BOUNDARY:we are MCP client not server,no inbound attach surface;desc COVERED magic-byte MIME sniff
+dedup-h	2931	security	apiKeyHelper pre-trust RCE	COVERED(design):agent-reachable config non-executable,env trust-gated #1483,workdir hooks observational-only;desc plan mcp gating stricter variant
+dedup-h	2941	policy	teams MDM allow/deny lists	BOUNDARY(variant):no MDM surface,allowlist exact-match covered;desc SecretRefs/typed asks/bounded text all covered variant

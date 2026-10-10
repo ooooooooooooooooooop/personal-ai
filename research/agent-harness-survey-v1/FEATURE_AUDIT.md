@@ -3892,3 +3892,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant——更紧)**——plan mode 把**所有** `mcp__*` 视作 opaque 外部效应一律 ask（`mcpOpaque` 闸）；上游"readOnlyHint MCP 放行"的宽松语义被刻意收为更保守判定。描述 **ALREADY_COVERED**——ask 卡 y/n/a（`always` 持久授权）三选权限在。
 - **核销**：candidates-open #2914 → `candidates-resolved.tsv` #254。
+
+#### 28.254 loopback MCP attach grants + MIME sniff (#2929 — title BOUNDARY / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——我方是 MCP client 非 server：无"外部 client attach 我方工具"的入站面，session-bound attach grant 无对象。描述 **ALREADY_COVERED**——magic-byte sniffing：扩展名与真实格式不符的附件按魔数重分类（mislabeled payload reclassify to truth 测试在册）。
+- **核销**：candidates-open #2929 → `candidates-resolved.tsv` #255。
+
+#### 28.255 apiKeyHelper pre-trust RCE + plan-MCP (#2931 — title COVERED(design) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(设计即修复)**——同族缺陷类不存在：agent-reachable 配置不可执行（models.json/auth=纯值；workdir `.env` 仅在 recorded trust 后加载 #1483；workdir hooks 恒 observational+env 脱壳永不可 gate）=配置先于信任被执行的缝在架构层没有。描述 **COVERED(variant——更紧)**——同 #2914：plan 模式对所有 `mcp__*` 一律 ask 而非 readOnlyHint 放行。
+- **核销**：candidates-open #2931 → `candidates-resolved.tsv` #256。
+
+#### 28.256 teams MDM policy + Codex 强化套件 (#2941 — title BOUNDARY(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——无 teams/MDM 下发面；CLI scopes exact-match=command allowlist per-unit 严格匹配（不宽松前缀）覆盖该语义。描述 **COVERED(variant)**——SecretRefs/typed approvals/bounded turn text 各项均在（parseSecretRef/ask kinds/输出截尾）；thread context+app-server 面=variant。
+- **核销**：candidates-open #2941 → `candidates-resolved.tsv` #257。
