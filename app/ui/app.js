@@ -239,7 +239,12 @@ function md(text) {
       if ((m = line.match(/^\s*[-*]\s+(.+)/))) {
         closeTable();
         if (list !== 'ul') { closeList(); html += '<ul>'; list = 'ul'; }
-        html += `<li>${inlineMd(m[1])}</li>`;
+        // dedup-h #2699 — task-list checkboxes: `- [ ]` / `- [x]` render as
+        // real (disabled) checkboxes, not literal bracket text.
+        const cb = m[1].match(/^\[([ xX])\]\s+(.*)$/);
+        html += cb
+          ? `<li class="md-task"><input type="checkbox" disabled${cb[1] === ' ' ? '' : ' checked'}> ${inlineMd(cb[2])}</li>`
+          : `<li>${inlineMd(m[1])}</li>`;
       } else if ((m = line.match(/^\s*\d+[.)]\s+(.+)/))) {
         closeTable();
         if (list !== 'ol') { closeList(); html += '<ol>'; list = 'ol'; }

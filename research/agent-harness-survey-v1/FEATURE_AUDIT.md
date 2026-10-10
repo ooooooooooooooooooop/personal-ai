@@ -3676,3 +3676,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/src/bootstrap/host.js`（stamp 合成）。
 - **证据**：bootstrap 端到端测试——真 job_spawn 子进程读出全部 5 个 stamp；envtools+m8 51/51。
 - **核销**：candidates-open #2691 → `candidates-resolved.tsv` #221。
+
+#### 28.221 post_compaction + markdown task-list (#2699 — title covered / desc IMPLEMENTED-variant)
+
+- **status**: desc gap closed; title classified.
+- **判定**：标题 **ALREADY_COVERED**；描述 **IMPLEMENTED(variant)**。
+  - **标题语义（post_compaction hook——summary stdin）**：**已覆盖**——`compact_start`/`compact_end` 事件族在册并实发（#535 reason context）；compact 摘要经 compactionSummarize 路径=等价信息面。
+  - **描述语义（terminal/markdown 渲染增强）**：**IMPLEMENTED(variant)**——markdown task-list checkbox 落地：`- [ ]`/`- [x]`→disabled checkbox+`.md-task` 样式；列表缩进/大文档=浏览器原生排版；`![]()` 内联图=附件/截图 inline 渲染=变体（markdown 图片语法本身仍按链接文本处理）。
+- **位点**：`app/ui/app.js`（msgHtml ul 分支）；`app/ui/style.css`。
+- **证据**：regex 单测验证 checked/unchecked 两态；app lint 净、`node --check` 过。
+- **核销**：candidates-open #2699 → `candidates-resolved.tsv` #222。
