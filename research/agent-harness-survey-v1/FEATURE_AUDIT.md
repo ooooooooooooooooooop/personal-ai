@@ -3415,3 +3415,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（hooks 按窗口 workspace 解析而非共享全局态）**：**已覆盖**——`HookRunner(workdir)` 实例构造、`cwd:this.workdir` spawn、`<workdir>/.pai/hooks.json` per-workdir 配置，本无全局态共享缺陷面。
 - **证据**：budgetfetch.test.js +1（429→signal+audit；200 静默）；pi 全套见台账。
 - **核销**：candidates-open #2449 → `candidates-resolved.tsv` #192。
+
+#### 28.193 auto-recall + auto-update (#2450 — title covered variant / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（提交时自动搜外部 context 的 recall profile）**：**已覆盖(variant)**——`memoryStore.injection(12, hint, workdir)` 每轮 context 信封注入 pinned/core+hint-scoped FTS 召回（host.js:1453），即 per-turn auto-recall；"搜外部 context"为不同数据源变体——外抓内容经 egress gate 且以注入形态进信封属注入风险面，刻意不自动抓取（内部 recall 注入已覆盖该语义）。
+  - **描述语义（自动更新：启动+每 2h 检查/后台下载/一键重启/忽略版本）**：**BOUNDARY**——仓为源码 checkout 非发布二进制，无 self-updater 面。
+- **证据**：`pi/src/bootstrap/host.js:1453`；`host/src/core/memory.js` injection 边界。
+- **核销**：candidates-open #2450 → `candidates-resolved.tsv` #193。
