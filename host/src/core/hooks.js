@@ -86,7 +86,13 @@ export const HOOK_EVENTS = new Set([
 // call); 'post_tool' is the after_tool event — fired on the tool_result
 // seam, its {"append":"…"} answers append text to the result the model
 // sees, {"deny"} suppresses the output (gate vocabulary stays fail-closed).
-export const GATE_EVENTS = new Set(['pre_tool', 'post_tool', 'session_directory', 'prompt_submit', 'agent_stop', 'before_branch', 'transform_llm_output']);
+export const GATE_EVENTS = new Set(['pre_tool', 'post_tool', 'session_directory', 'prompt_submit', 'agent_stop', 'before_branch', 'transform_llm_output', 'transform_llm_input']);
+// dedup-h #4059 — transform_llm_input (before_provider_request analogue): the
+// gate sees the assembled provider payload pre-send (payloadJson field) and
+// may answer {"args":{…}} to replace it — args composes exactly like a tool
+// input rewrite. Content field: model-backed kinds need allowPromptInjection.
+// A deny/requireApproval answer keeps the original payload (this seam can
+// reshape a request but cannot cancel one) — the refusal is audited.
 // dedup-h #1034: 'agent_stop' in the gate file may answer {"block"|"deny":
 // "reason"} — the caller re-prompts the agent with the reason instead of
 // letting the turn end (Claude Code Stop-hook semantics). An entry flag

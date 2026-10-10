@@ -10,6 +10,11 @@
       "id": "lsp-readonly",
       "path": "extensions/lsp/index.js",
       "sha256": "80c134d10c0d210ef43a7391e44f7bd117637dfc2fb067169657c3572b105848"
+    },
+    {
+      "id": "hookbridge",
+      "path": "extensions/hookbridge/index.js",
+      "sha256": "d13f51f71d6a906e98cdf868f31320b6aab97d364dace909e0c6ab2b03a04172"
     }
   ]
 }

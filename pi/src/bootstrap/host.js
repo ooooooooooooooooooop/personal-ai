@@ -158,6 +158,7 @@ import { resolveManagedExtensions } from '../extensions/loader.js';
 // manifest-pinned extension implementation (no second PKCE/token-store
 // copy); only the front door differs.
 import { oauthBuildAuthorizeUrl, oauthExchangeCode, mcpOperatorSurface } from '../../extensions/mcp/index.js';
+import { setProviderGate } from '../../extensions/hookbridge/index.js';
 import { writeRuntimeIdentity } from '../../../host/src/core/identity.js';
 import {
   PI_GOVERNANCE_COVERAGE,
@@ -1408,6 +1409,29 @@ export async function startHost({
     resolveExecEnv: hookExecEnv,
     context: hookContext,
     egressCheck: hookEgressCheck,
+  });
+
+  // dedup-h #4059 — transform_llm_input: wire the SDK before_provider_request
+  // seam (hookbridge extension) into the gate. The hook's stdin carries the
+  // FULL serialized payload (payloadJson) — a transform that only saw a
+  // prefix would silently truncate. {"args":{…}} replaces the payload;
+  // deny/requireApproval keeps it (this seam reshapes, cannot cancel).
+  setProviderGate(async (payload) => {
+    let payloadJson = '';
+    try { payloadJson = JSON.stringify(payload ?? null); } catch { /* unstringifiable → keep */ }
+    const ans = await preToolGate.fireGate('transform_llm_input', {
+      payloadJson,
+      model: payload?.model ?? null,
+      provider: payload?.provider ?? null,
+    });
+    if (ans?.args && typeof ans.args === 'object' && !Array.isArray(ans.args)) {
+      core.audit?.write({ kind: 'LLM_INPUT_TRANSFORMED', data: { before: payloadJson.length, model: payload?.model ?? null } });
+      return { args: ans.args };
+    }
+    if (ans?.deny || ans?.requireApproval) {
+      core.audit?.write({ kind: 'LLM_INPUT_TRANSFORM_REFUSED', data: { reason: String(ans.deny ?? ans.requireApproval).slice(0, 300) } });
+    }
+    return null;
   });
 
   // Sessions persist under the instance root — the app lists/resumes them.

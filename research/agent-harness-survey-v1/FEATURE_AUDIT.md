@@ -5011,3 +5011,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **REJECTED**——草稿话题启发式（猜测用户意图建议新会话）=推测分类器面，误报代价高；显式 `/new`/fork/新任务钮是刻意的显式面。描述 **BOUNDARY**——终端上下文菜单面。
 - **核销**：candidates-open #4042 → `candidates-resolved.tsv` #437。
+
+#### 28.436 持久 Always-Allow + vi_mode (#4043 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——`always-allow.json` 持久 `{tool[,command]}` 精确对，跨重启自动放行（OpenCode always-pattern）。描述 **BOUNDARY**——TUI vi_mode keybinding 面。
+- **核销**：candidates-open #4043 → `candidates-resolved.tsv` #438。
+
+#### 28.437 before_provider_request 门 + MCP 首轮 (#4059 — title IMPLEMENTED / desc COVERED)
+
+- **status**: title implemented; desc covered.
+- **判定**：标题 **IMPLEMENTED**——`transform_llm_input` 入 GATE_EVENTS；新 managed extension `hookbridge` 把 SDK `before_provider_request` 缝到 gate：`payloadJson` 全量 stdin、`{"args":{…}}` 替换 payload（复用 args 重写词表+allowPromptInjection 纪律）、deny/requireApproval 保留原 payload+审计（该缝只能重塑不能取消）。描述 **COVERED**——MCP `list_changed` 热刷新+注册前连接隔离=首轮可见性面。
+- **位点**：`host/src/core/hooks.js` GATE_EVENTS、`pi/extensions/hookbridge/index.js`、`pi/src/bootstrap/host.js` setProviderGate、`pi/extensions/managed-manifest.json`。
+- **证据**：host hooks **30/30**、pi manifest/hook 测试 **8/8**；bridge e2e（注册/透传/args 替换/deny 保留）通过。
+- **核销**：candidates-open #4059 → `candidates-resolved.tsv` #439。
+
+#### 28.438 marketplace add + 插件流解压 (#4060 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无插件市场/app-server 面。描述 **BOUNDARY**——插件 ZIP 流解压性能面。
+- **核销**：candidates-open #4060 → `candidates-resolved.tsv` #440。

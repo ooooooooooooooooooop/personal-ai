@@ -436,3 +436,6 @@ dedup-h	4033	attach	composer attach into active turn	COVERED(variant):@file inje
 dedup-h	4037	git	new-session git mode selector	COVERED(variant):worktree menu=new-session git target;desc BOUNDARY daemon
 dedup-h	4041	ws	multi-workspace split view	BOUNDARY:single-ws instance model;desc BOUNDARY terminal focus
 dedup-h	4042	draft	new-topic draft hint	REJECTED:speculative topic heuristic;desc BOUNDARY terminal menu
+dedup-h	4043	policy	persistent always-allow	COVERED:always-allow.json tool+command pairs;desc BOUNDARY vi_mode
+dedup-h	4059	hook	before_provider_request gate	IMPLEMENTED:transform_llm_input gate via hookbridge ext;desc COVERED mcp refresh
+dedup-h	4060	market	codex marketplace add	BOUNDARY:no marketplace surface;desc BOUNDARY zip streaming
