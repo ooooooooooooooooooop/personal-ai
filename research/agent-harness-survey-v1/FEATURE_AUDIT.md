@@ -5070,3 +5070,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **判定**：标题 **IMPLEMENTED**——splash 加 12s 看门狗：`__paiReady` 未置位（module 加载失败/未注册）时 splash-sub 换成恢复指引（纯 HTML 路径，无需 app.js）；app.js `es.onopen` 置旗解除。描述 **BOUNDARY**——首跑 provider 凭据流程面。
 - **位点**：`app/ui/index.html` splash 内联看门狗、`app/ui/app.js` `es.onopen`。
 - **核销**：candidates-open #4089 → `candidates-resolved.tsv` #446。
+
+#### 28.445 agent frontmatter hooks + 插件加载器 (#4091 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——hooks 刻意只住 operator-private `<instance>/hooks.json`；profile frontmatter 不可指 enforcement 通道（PAI_* 不可经 profile 注入的既有规则），agent-scoped hook 配置面不存在。描述 **BOUNDARY**——插件运行时缓存面。
+- **核销**：candidates-open #4091 → `candidates-resolved.tsv` #447。
+
+#### 28.446 settings.agent 默认 + Skill Workshop (#4092 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——默认人格=无 profile（operator 人格）；settings 级最低优先级默认 agent 面无对位物（显式 `profile:` 参数+内置 verifier 已覆盖指定语义）。描述 **BOUNDARY**——Skill Workshop/rollback 面。
+- **核销**：candidates-open #4092 → `candidates-resolved.tsv` #448。
+
+#### 28.447 有界 skill 指标+工具源标签 + 插件修复 (#4093 — title COVERED / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——skill stats（bytes/hits/allowed 有界指标）在册；工具源经名前缀+label 编码（`mcp__srv__tool`/builtin/profile），label 面已通。描述 **BOUNDARY**——插件修复下载面。
+- **核销**：candidates-open #4093 → `candidates-resolved.tsv` #449。
