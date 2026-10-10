@@ -4312,3 +4312,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY(variant)**——短期 recall 走 instance SQLite FTS（pinned+FTS 注入），非 `memory/**/YYYY-MM-DD.md` 日记文件结构=不同架构同语义（日期维度=created 列）。描述 **BOUNDARY**——无 OpenTelemetry exporter；等价观测面=audit ledger+usage_traces+LOG_JSON。
 - **核销**：candidates-open #3320 → `candidates-resolved.tsv` #323。
+
+#### 28.324 fast active-memory 默认+guided imports + wiki gateway (#3323 — title COVERED(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——memory injection 默认每轮：pinned+hint-FTS 召回进 envelope（fast active-memory+跨对话=user scope 默认）；guided imports 引导面=variant（无向导 UI，`memory_store` 工具直接写）。描述 **BOUNDARY**——无 Dreaming/Imported Insights/memory-wiki gateway 插件面。
+- **核销**：candidates-open #3323 → `candidates-resolved.tsv` #324。
+
+#### 28.325 compaction_threshold_tokens 可配 (#3337 — title IMPLEMENTED / desc COVERED)
+
+- **status**: title implemented; desc covered.
+- **判定**：标题 **IMPLEMENTED**——`PAI_AUTOCOMPACT_THRESHOLD` env（0.5–0.99 clamp，非法回落 0.9）调 auto-compact 触发点（原固定 90%）。描述 **COVERED**——同 #3315（FTS fallback+段化展开）。
+- **位点**：`pi/src/adapter/channel.js` auto-compact 分支。
+- **证据**：channel-facade 新增 #3337 测试（0.6@65% 触发/0.99@95% 不触发）+原 90% 测试同绿 **2/2**。
+- **核销**：candidates-open #3337 → `candidates-resolved.tsv` #325。
+
+#### 28.326 configurable threshold + Stop hook usage（重复族） (#3344 — title IMPLEMENTED / desc NOISE)
+
+- **status**: title implemented; desc noise.
+- **判定**：标题 **IMPLEMENTED**——同 #3337（`PAI_AUTOCOMPACT_THRESHOLD`）。描述段=截断的请求文本非功能条目=**NOISE**。
+- **核销**：candidates-open #3344 → `candidates-resolved.tsv` #326。

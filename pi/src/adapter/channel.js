@@ -258,13 +258,17 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
             });
           }
         }
-        // H-family auto-compact (Codex-style): at ≥90% of the context
+        // H-family auto-compact (Codex-style): at ≥threshold of the context
         // window the body compacts itself once per threshold crossing —
         // announced via event + audit, never silently rewriting context.
+        // dedup-h #3337/#3344 — PAI_AUTOCOMPACT_THRESHOLD tunes the trigger
+        // (0.5..0.99 clamp; absent/invalid → 0.9).
         try {
           const u = box.s.getContextUsage?.();
+          const tEnv = Number(process.env.PAI_AUTOCOMPACT_THRESHOLD);
+          const threshold = Number.isFinite(tEnv) ? Math.min(Math.max(tEnv, 0.5), 0.99) : 0.9;
           if (u?.contextWindow && u.tokens != null && !autoCompacted
-              && u.tokens / u.contextWindow >= 0.9 && !box.s.isStreaming) {
+              && u.tokens / u.contextWindow >= threshold && !box.s.isStreaming) {
             autoCompacted = true;
             emit({ type: 'auto_compact', tokens: u.tokens, contextWindow: u.contextWindow });
             core.audit?.write({ kind: 'AUTO_COMPACT', data: { tokens: u.tokens, contextWindow: u.contextWindow } });

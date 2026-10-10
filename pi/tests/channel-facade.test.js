@@ -2059,3 +2059,38 @@ test('#2730 steering_create dispatch: facade routes create, name validated, abse
   bare.dispose();
   dispose();
 });
+
+test('#3337 PAI_AUTOCOMPACT_THRESHOLD: env tunes auto-compact trigger, clamped', async () => {
+  const prev = process.env.PAI_AUTOCOMPACT_THRESHOLD;
+  try {
+    process.env.PAI_AUTOCOMPACT_THRESHOLD = '0.6';
+    fakeSessionRef = fakeSession(); listeners.clear();
+    const dir = mkdtempSync(join(tmpdir(), 'pai-chan-thr-'));
+    const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+    const core = { paths: { auditDir } };
+    const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+    let compacts = 0;
+    fakeSessionRef.isStreaming = false;
+    fakeSessionRef.getContextUsage = () => ({ tokens: 650, contextWindow: 1000 });
+    fakeSessionRef.compact = async () => { compacts++; };
+    for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant', usage: { input: 1, output: 1 } } });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(compacts, 1, '0.6 threshold fires at 65%');
+    dispose();
+
+    // 0.99 clamps near-top: 95% does NOT fire
+    process.env.PAI_AUTOCOMPACT_THRESHOLD = '0.99';
+    fakeSessionRef = fakeSession(); listeners.clear();
+    const r2 = createChannelHost({ session: fakeSessionRef, core });
+    let c2 = 0;
+    fakeSessionRef.isStreaming = false;
+    fakeSessionRef.getContextUsage = () => ({ tokens: 950, contextWindow: 1000 });
+    fakeSessionRef.compact = async () => { c2++; };
+    for (const l of [...listeners]) l({ type: 'message_end', message: { role: 'assistant', usage: { input: 1, output: 1 } } });
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(c2, 0, '0.99 threshold stays quiet at 95%');
+    r2.dispose();
+  } finally {
+    if (prev === undefined) delete process.env.PAI_AUTOCOMPACT_THRESHOLD; else process.env.PAI_AUTOCOMPACT_THRESHOLD = prev;
+  }
+});

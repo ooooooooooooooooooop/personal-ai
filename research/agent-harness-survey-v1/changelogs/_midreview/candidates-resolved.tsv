@@ -322,3 +322,6 @@ dedup-h	3313	memory	Japanese-aware FTS	COVERED(variant):custom CJK segmentation 
 dedup-h	3314	memory	extraCollections cross-session	COVERED(variant):user scope instance-visible+memory_recall;desc PARTIAL fixed 2048 no per-model clamp
 dedup-h	3315	memory	FTS fallback+query expansion	COVERED(variant):segmented AND query,pinned+recent fallback
 dedup-h	3320	memory	daily notes recall	BOUNDARY(variant):SQLite FTS not markdown files;desc BOUNDARY no OTel exporter
+dedup-h	3323	memory	active-memory default+guided imports	COVERED(variant):pinned+FTS inject every turn,user scope cross-dialog;desc BOUNDARY no wiki gateway
+dedup-h	3337	compact	compaction_threshold_tokens	IMPLEMENTED:PAI_AUTOCOMPACT_THRESHOLD env 0.5-0.99 clamp;desc COVERED #3315
+dedup-h	3344	compact	configurable auto-compact threshold	IMPLEMENTED:same env as 3337;desc NOISE truncated request text
