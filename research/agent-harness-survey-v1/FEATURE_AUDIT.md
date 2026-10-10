@@ -3533,3 +3533,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（systemctl --user is-enabled 探针失败容错——daemon 安装流）**：**BOUNDARY**——栈内无 Linux daemon/systemd 安装面对应物。
 - **证据**：`pi/extensions/mcp/index.js` mcp-add/mcp-del；`grep systemctl` 空集。
 - **核销**：candidates-open #2539 → `candidates-resolved.tsv` #206。
+
+#### 28.206 per-path write access + keybindings (#2542 — both BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY**；描述 **BOUNDARY**。
+  - **标题语义（sandbox-scope: 命令按 path 申请 write access——非全有全无）**：**BOUNDARY**——写准入=工具级 ask（session allow/deny）+attested policy；容器后端按整 workdir 挂载=更粗一档，无 per-path 梯度申请面对应物。
+  - **描述语义（Windows/WSL 键位默认值——避开终端保留键）**：**BOUNDARY**——无 TUI/键位映射面（web UI 浏览器按键）。
+- **证据**：`host/src/core/sandbox.js`（workdir 挂载粒度）；`grep write_paths` 空集。
+- **核销**：candidates-open #2542 → `candidates-resolved.tsv` #207。
