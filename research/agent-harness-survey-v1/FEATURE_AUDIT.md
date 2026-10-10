@@ -5306,3 +5306,22 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——setup-card 引导（provider 选择+key+测试连接+模型列表=onboarding 对应物）；hatch choice/dashboard seed 无对位注边界。描述 **BOUNDARY**——hide_hidden 面板设置面。
 - **核销**：candidates-open #4243 → `candidates-resolved.tsv` #485。
+
+#### 28.484 reasoning 快捷键+分流 (#4251 — title IMPLEMENTED / desc COVERED)
+
+- **status**: title implemented; desc covered.
+- **判定**：标题 **IMPLEMENTED**——Alt+,/Alt+. 全局键在当前模型 supported levels 内降/升推理档（Alt+,=降、Alt+.=升；clamped；`thinking_set` 通道+refreshState）。upgrade-reset 无对位注边界（thinking level 存 session 非持久偏好）。描述 **COVERED**——#4228 feature 分流同面。
+- **位点**：`app/ui/app.js` document keydown。
+- **核销**：candidates-open #4251 → `candidates-resolved.tsv` #486。
+
+#### 28.485 TUI 语法高亮+theme 预览 + tab 钮 (#4252 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——TUI 语法着色面无对位（web 侧 fenced code 样式渲染=变体）；`set-theme` onchange 即 applyTheme=live preview 已覆盖。描述 **BOUNDARY**——tab_bar 钮设置面。
+- **核销**：candidates-open #4252 → `candidates-resolved.tsv` #487。
+
+#### 28.486 vim undo 草稿 + Suggest Edit (#4255 — title COVERED / desc PARTIAL)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED**——draft undo/redo 栈（M126 含 pasted/attachment 草稿态）。描述 **PARTIAL(variant)**——#4179 suggest-edit 同判。
+- **核销**：candidates-open #4255 → `candidates-resolved.tsv` #488。

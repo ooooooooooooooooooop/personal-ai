@@ -5085,6 +5085,23 @@ document.addEventListener('keydown', (e) => {
     input.focus();
   }
 });
+/* dedup-h #4251 — Alt+, / Alt+. cycle the reasoning level (pi TUI analogue);
+   Alt+, steps down, Alt+. steps up through the model's supported levels. */
+document.addEventListener('keydown', async (e) => {
+  if (!e.altKey || e.ctrlKey || e.metaKey) return;
+  const dir = e.key === ',' ? -1 : (e.key === '.' ? 1 : 0);
+  if (!dir) return;
+  const levels = thinkLevelsForCurrent();
+  if (!levels.length) return;
+  e.preventDefault();
+  const cur = modelStatus?.thinkingLevel ?? 'medium';
+  const i = Math.max(0, levels.indexOf(levels.includes(cur) ? cur : 'off'));
+  const next = levels[Math.min(levels.length - 1, Math.max(0, i + dir))];
+  if (next === (levels.includes(cur) ? cur : 'off')) return;
+  const r = await cmd('thinking_set', { level: next });
+  if (!r.success) addSys(`设置推理强度失败：${r.error ?? '未知'}`, true);
+  refreshState();
+});
 /* prompt queue — messages sent while a run is active wait as chips above
  * the composer; agent_end flushes the next one. "立即转向" = steer now. */
 const queue = [];

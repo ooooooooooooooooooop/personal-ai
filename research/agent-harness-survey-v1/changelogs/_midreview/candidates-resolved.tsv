@@ -484,3 +484,6 @@ dedup-h	4230	hook	hook config panel	BOUNDARY:operator-private file deliberate;de
 dedup-h	4231	notify	429 quota notification	COVERED:onRateLimited→UI event #2449;desc BOUNDARY md preview
 dedup-h	4235	rpc	JSON-RPC single owner	COVERED(variant):supervisor single-body+op channel;desc BOUNDARY vim search
 dedup-h	4243	onboard	hatch onboarding flow	COVERED(variant):setup-card provider+key+test;desc BOUNDARY hide_hidden
+dedup-h	4251	keys	reasoning level shortcut	IMPLEMENTED:Alt+,/Alt+. cycle thinking levels;desc COVERED #4228
+dedup-h	4252	render	TUI syntax highlight	BOUNDARY(variant):no TUI;theme live preview covered;desc BOUNDARY tab bar
+dedup-h	4255	vim	vim undo drafts	COVERED:M126 draft undo/redo;desc PARTIAL(variant) #4179
