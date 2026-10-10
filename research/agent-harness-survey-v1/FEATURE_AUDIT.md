@@ -3648,3 +3648,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（voice realtime 默认注入 IDENTITY/USER/SOUL profile 上下文）**：**BOUNDARY**——无 voice/realtime 会话面对应物。
 - **证据**：`host/src/core/hooks.js:380`。
 - **核销**：candidates-open #2628 → `candidates-resolved.tsv` #218。
+
+#### 28.218 per-host network asks + PTY split (#2682 — both BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **BOUNDARY**；描述 **BOUNDARY**。
+  - **标题语义（terminal commands 按 host 申请 network access）**：**BOUNDARY**——egress 门罩 provider/web_fetch/hook HTTP；shell 命令网络无 per-host 申请面（docker 后端默认网络，注释自认非 fs/net 边界）。
+  - **描述语义（PTy split-screen 稳定性——分屏不再重置终端）**：**BOUNDARY**——无内嵌 PTY/分屏终端面（web UI 无终端模拟器）。
+- **证据**：`host/src/core/sandbox.js:14`。
+- **核销**：candidates-open #2682 → `candidates-resolved.tsv` #219。
