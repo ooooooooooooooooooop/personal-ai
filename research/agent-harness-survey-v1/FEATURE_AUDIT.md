@@ -3505,3 +3505,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（protected-resource metadata resource 数组）**：**已覆盖**——同 #2521：`prm.resource` 从不被消费，数组形态不炸。
 - **证据**：`pi/extensions/mcp/index.js:196-215/347`。
 - **核销**：candidates-open #2527 → `candidates-resolved.tsv` #203。
+
+#### 28.203 service-account impersonation + canvas lazy-load (#2536 — title covered variant / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（service account impersonation——IAP/Cloud Run）**：**已覆盖(variant)**——`oauthExchangedTokens`（RFC 8693 token-exchange：subject_token+audience/resource）即 impersonation 协议面；client_credentials+static bearer（redacted header）补静态凭据；GCP iamcredentials API 的便捷封装不存（云厂商专用面=边界注）。
+  - **描述语义（Canvas 懒加载——Gateway 启动只付首次实现成本）**：**BOUNDARY**——栈内无 canvas 模块/网关组装面对应物。
+- **证据**：`pi/extensions/mcp/index.js` oauthExchangedTokens。
+- **核销**：candidates-open #2536 → `candidates-resolved.tsv` #204。
