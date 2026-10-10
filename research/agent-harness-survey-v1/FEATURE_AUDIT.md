@@ -3874,3 +3874,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`pending_list`+`decision_resolve(id)` 按 approvalId 恢复审批=免 resume-token 变体。描述 **ALREADY_COVERED**——`allow_server` 一次授予整个 `mcp__<srv>__*` namespace（#2027）=server 级通配批准。
 - **核销**：candidates-open #2906 → `candidates-resolved.tsv` #251。
+
+#### 28.251 MCP wildcard 批准 + wheel 权限 (#2907 — title COVERED / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——`allow_server` 一次授予整个 `mcp__<srv>__*` namespace（#2027 测试在册）。描述 **BOUNDARY(N/A)**——wheel 打包可执行位修复=上游发布管线问题，本栈非 Python wheel 产物。
+- **核销**：candidates-open #2907 → `candidates-resolved.tsv` #252。
+
+#### 28.252 plan 自动回 Code Mode + 多实例 mode 持久 (#2913 — title COVERED(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`modeRequestTool`=ExitPlanMode 类比：模型请求切回，操作员 ask 卡批准生效——**刻意不自动自应用**（模型自行离开 plan 正是该模式要拦的升级）。描述 **缺陷类不存在**——risk_mode 是 per-session 状态存于 session 自身，切换会话各自持有互不复位（多实例场景无共享 mode 态可串）。
+- **核销**：candidates-open #2913 → `candidates-resolved.tsv` #253。
+
+#### 28.253 plan-MCP readOnlyHint + 三选权限 (#2914 — title VARIANT / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant——更紧)**——plan mode 把**所有** `mcp__*` 视作 opaque 外部效应一律 ask（`mcpOpaque` 闸）；上游"readOnlyHint MCP 放行"的宽松语义被刻意收为更保守判定。描述 **ALREADY_COVERED**——ask 卡 y/n/a（`always` 持久授权）三选权限在。
+- **核销**：candidates-open #2914 → `candidates-resolved.tsv` #254。

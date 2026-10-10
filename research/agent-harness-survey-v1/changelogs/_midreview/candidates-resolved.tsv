@@ -250,3 +250,6 @@ dedup-h	2878	channel	per-channel contextVisibility	BOUNDARY:single channel no vi
 dedup-h	2883	api	Session API permission mode	COVERED:risk_mode get/set channel ops;desc BOUNDARY --add-dir same as 2862
 dedup-h	2884	approval	--approve-for-me flag	BOUNDARY(intentional):no blanket auto-approve;always-allowlist/session-allow carry pre-auth;desc BOUNDARY extension settings schema
 dedup-h	2906	approval	approvalId resume no token	COVERED(variant):pending_list+decision_resolve;desc COVERED allow_server mcp__srv__* wildcard grant #2027
+dedup-h	2907	approval	MCP wildcard approve server	COVERED:allow_server mcp__srv__* grant #2027;desc N/A wheel packaging
+dedup-h	2913	mode	plan auto-switch to code mode	COVERED(variant):modeRequestTool ExitPlanMode analogue operator-approved,never self-applies;desc defect-class absent per-session mode state
+dedup-h	2914	mode	plan readOnlyHint MCP pass	COVERED(variant-stricter):all mcp__* gated as opaque in plan;desc COVERED y/n/a three-option ask
