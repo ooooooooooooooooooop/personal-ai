@@ -3478,3 +3478,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（@ file mention 文件搜索 fallback）**：**已覆盖**——`expandAtMentions` file_read→`files_list` 前缀目录列举 fallback→`missed` 诚实上报；defect 类不存在。
 - **证据**：browser.test.js 12/12（refused/registered/endpoint-consumed/detach-no-kill）；pi 全套见台账。
 - **核销**：candidates-open #2514 → `candidates-resolved.tsv` #200。
+
+#### 28.200 protected-resource array + Bedrock custom model (#2521 — both covered)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(defect-absent)**；描述 **ALREADY_COVERED**。
+  - **标题语义（protected-resource metadata `resource` 数组——GitLab /api/v4）**：**已覆盖**——`discoverOAuthMetadata` 只消费 `prm.authorization_servers`/`prm.scopes_supported`，从不读 `prm.resource`；数组/字符串/缺失均不影响 discovery 完成度，该缺陷类不存在。
+  - **描述语义（Bedrock provider custom model ID——Application Inference Profile）**：**已覆盖**——pin SDK `bedrock-converse-stream` 把 `model.id` 逐字传 `modelId` 字段（ARN/profile ARN 可用）；`getModelMatchCandidates` 按 id+name 双源匹配 adaptive thinking、gov-cloud ARN 检测在位；models.json 自定义条目即注册面。
+- **证据**：`pi/extensions/mcp/index.js:332-350`；`pi-ai` bedrock-converse-stream.js:140/565-600。
+- **核销**：candidates-open #2521 → `candidates-resolved.tsv` #201。
