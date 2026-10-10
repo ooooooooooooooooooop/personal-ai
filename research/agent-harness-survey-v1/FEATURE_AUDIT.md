@@ -3442,3 +3442,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（edit mode 加文件后清 add-file 输入）**：**已覆盖**——file-ref 选中即把 `@token` 原位替换为文件引用（app.js:4819），输入态自清，不存在残留输入的缺陷类。
 - **证据**：`tasktools.js` task_interrupt；`app/ui/app.js` file-ref 替换链。
 - **核销**：candidates-open #2462 → `candidates-resolved.tsv` #195。
+
+#### 28.196 MCP ID-token auth + workflow login guard (#2482 — title covered variant / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（ID token 认证 MCP）**：**已覆盖(variant)**——`mcp.index.js` OAuth 全流（authorize→exchange→access_token+refresh_token 持久化+轮换）+token-exchange+静态 bearer header（redacted）=token 认证面；OIDC `id_token` 的签发/验证属 IdP 侧协议面，非独立新机制。
+  - **描述语义（workflow trigger 加 user-login guard 防 autofix bot triage）**：**BOUNDARY**——CI workflow/trigger 面不存在于本栈。
+- **证据**：`pi/extensions/mcp/index.js` OAuth 流+token-exchange+header 注入。
+- **核销**：candidates-open #2482 → `candidates-resolved.tsv` #196。
