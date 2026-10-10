@@ -209,3 +209,4 @@ dedup-h	2542	sandbox-exec	sandbox-scope: per-path write access	BOUNDARY:tool-lev
 dedup-h	2547	sandbox-exec	env-sandbox: block JVM injection+glibc tunables	IMPLEMENTED:ENV_INJECT_RE x2(sessionenv+MCP spawn)补齐JVM/GLIBC/DOTNET/SHELLOPTS族对齐DANGER_ENV_RE;desc COVERED(variant) per-mutation checkpoint/preimage=platform-agnostic backup
 dedup-h	2548	sandbox-exec	MCP Apps calls+namespaced registration	COVERED(variant):mcp__srv__tool namespaced+tools/call stdio/http+#1504 _meta/ui surface;parallelToolCalls flag=boundary note;desc defect-absent output captured never paged
 dedup-h	2562	sandbox-exec	sandbox-backup pipeline	COVERED(variant):same as #2547 desc per-mutation checkpoint;desc BOUNDARY browser runs host/CDP no container surface
+dedup-h	2567	scheduling	cron run --wait+cron.runs filter	IMPLEMENTED:markDue+pump tick governed fire path(2-tick in-flight race guard)+wait_seconds<=600 1s-poll terminal+recentJobIds bounded history+job_id filter;desc BOUNDARY same as #2542

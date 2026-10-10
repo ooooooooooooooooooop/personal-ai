@@ -295,18 +295,20 @@ export function schedulePromptSink({ getChannel, getSession, audit = null }) {
 /**
  * @param {ScheduleStore} store
  */
-export function scheduleTool(store) {
+export function scheduleTool(store, { tick = null, jobStore = null } = {}) {
   return {
     name: 'schedule_task',
     label: 'Schedule Task',
     description:
       'Schedule a shell command as a durable job — once at a time (run_at ISO ' +
       'timestamp) or repeatedly (every_seconds, min 60). Scheduled jobs survive ' +
-      'restarts; a missed run fires once at next boot. Actions: create | list | cancel | pause | resume | edit.',
+      'restarts; a missed run fires once at next boot. Actions: create | list | cancel | pause | resume | edit | run | runs. ' +
+      'run fires a schedule immediately through the governed path (wait_seconds blocks until the job reaches a terminal state); ' +
+      'runs lists the bounded fired-job history, job_id filters to one run.',
     parameters: {
       type: 'object',
       properties: {
-        action: { type: 'string', enum: ['create', 'list', 'cancel', 'pause', 'resume', 'edit'] },
+        action: { type: 'string', enum: ['create', 'list', 'cancel', 'pause', 'resume', 'edit', 'run', 'runs'] },
         command: { type: 'string', description: 'shell command (create/edit)' },
         prompt: { type: 'string', description: 'prompt text — creates a prompt-target entry (fired as a governed session prompt, not a shell job) or edits an existing one (create/edit)' },
         run_at: { type: 'string', description: 'ISO timestamp for a one-shot run (create/edit)' },
@@ -318,7 +320,9 @@ export function scheduleTool(store) {
         webhook_token_env: { type: 'string', description: 'env var NAME holding the webhook bearer token — never the token itself (create/edit)' },
         webhook_clear: { type: 'boolean', description: 'remove the webhook spec (edit)' },
         model: { type: 'string', description: '"provider/model" pinned for prompt-target fires — the scheduled turn runs under it, session model restored after (create/edit; empty string clears on edit)' },
-        id: { type: 'string', description: 'schedule id (cancel/pause/resume/edit)' },
+        id: { type: 'string', description: 'schedule id (cancel/pause/resume/edit/run/runs)' },
+        job_id: { type: 'string', description: 'filter runs output to a single fired job id (runs)' },
+        wait_seconds: { type: 'number', description: 'block until the fired job reaches a terminal state, capped at 600s (run; 0/absent = fire-and-report)' },
       },
       required: ['action'],
     },
@@ -387,8 +391,64 @@ export function scheduleTool(store) {
               ? text(`edited ${params.id} — next fire ${new Date(r.rec.nextRunAt).toISOString()}`, r.rec)
               : { content: [{ type: 'text', text: r.error }], isError: true };
           }
+          case 'run': {
+            // dedup-h #2567 — `cron run --wait` analogue: mark the entry due
+            // and drive ONE pump tick so the fire travels the identical
+            // governed path (policy preflight → spawn → markFired). Prompt-
+            // target entries refuse honestly — waiting on a governed prompt
+            // turn is a different blocking contract than a job terminal.
+            if (!tick) return { content: [{ type: 'text', text: 'run requires the scheduler pump (unavailable)' }], isError: true };
+            const id = String(params.id ?? '');
+            const before = store.list().find((s) => s.id === id);
+            if (!before) return { content: [{ type: 'text', text: `no schedule '${id}'` }], isError: true };
+            if (before.target === 'prompt') return { content: [{ type: 'text', text: `run is shell-target only — '${id}' fires governed prompts (no job to wait on)` }], isError: true };
+            const d = store.markDue(id);
+            if (!d.ok) return { content: [{ type: 'text', text: d.error }], isError: true };
+            // Serialized-tick caveat: awaiting tick() may return an in-flight
+            // boot tick whose due() snapshot predates our markDue — run up to
+            // two ticks and check the fire receipt before declaring refusal.
+            let jobId = null;
+            for (let i = 0; i < 2 && !jobId; i++) {
+              await tick();
+              jobId = store.list().find((s) => s.id === id)?.lastJobId ?? null;
+              if (jobId === before.lastJobId) jobId = null; // stale pointer — not our fire
+            }
+            if (!jobId) {
+              return { content: [{ type: 'text', text: `run ${id}: no job fired (policy refusal or spawn refused — see audit)` }], isError: true };
+            }
+            const waitS = Math.min(Math.max(Number(params.wait_seconds) || 0, 0), 600);
+            if (!waitS || !jobStore) return text(`run ${id} → job ${jobId}`, { job_id: jobId });
+            const deadline = Date.now() + waitS * 1000;
+            let job = jobStore.getJob?.(jobId) ?? null;
+            while (job && !TERMINAL.has(job.job_state) && Date.now() < deadline) {
+              await new Promise((r) => setTimeout(r, 1000));
+              job = jobStore.getJob?.(jobId) ?? null;
+            }
+            return text(
+              `run ${id} → job ${jobId} ${job ? job.job_state : 'missing'}${job && !TERMINAL.has(job.job_state) ? ` (still running after ${waitS}s)` : ''}`,
+              { job_id: jobId, job_state: job?.job_state ?? null },
+            );
+          }
+          case 'runs': {
+            // dedup-h #2567 — `cron.runs --run-id` analogue: bounded fired-job
+            // history per schedule, job_id narrows to a single run.
+            const id = String(params.id ?? '');
+            const rec = store.list().find((s) => s.id === id);
+            if (!rec) return { content: [{ type: 'text', text: `no schedule '${id}'` }], isError: true };
+            let ids = rec.recentJobIds ?? (rec.lastJobId ? [rec.lastJobId] : []);
+            if (params.job_id != null) ids = ids.filter((j) => j === String(params.job_id));
+            if (!ids.length) return text(`no runs recorded for ${id}${params.job_id ? ` matching '${params.job_id}'` : ''}`);
+            const rows = ids.slice(-20).map((jid) => {
+              const job = jobStore?.getJob?.(jid);
+              const att = jobStore?.getAttempts?.(jid)?.at(-1) ?? null;
+              return job
+                ? `${jid} ${job.job_state}${att?.exit_code != null ? ` exit=${att.exit_code}` : ''} fired=${rec.lastFiredAt ?? '?'}`
+                : `${jid} (record pruned)`;
+            });
+            return text(rows.join('\n'), { schedule_id: id, runs: ids });
+          }
           default:
-            return { content: [{ type: 'text', text: `unknown action '${params.action}' (create|list|cancel)` }], isError: true };
+            return { content: [{ type: 'text', text: `unknown action '${params.action}' (create|list|cancel|pause|resume|edit|run|runs)` }], isError: true };
         }
       } catch (e) {
         return { content: [{ type: 'text', text: `schedule error: ${e.message}` }], isError: true };

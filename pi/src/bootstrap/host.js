@@ -1093,7 +1093,7 @@ export async function startHost({
     ...(process.env.PAI_WEB_SEARCH_URL
       ? [webSearchTool({ endpoint: process.env.PAI_WEB_SEARCH_URL, apiKey: process.env.PAI_WEB_SEARCH_KEY ?? null })]
       : []),
-    scheduleTool(scheduleStore),
+    scheduleTool(scheduleStore, { tick: schedulerPump.tick, jobStore }),
     // orchestrator family: long-horizon goals armed with prompt-kind
     // schedules — each tick wakes the agent with live goal context
     goalCoordinatorTool(goalStore, scheduleStore),

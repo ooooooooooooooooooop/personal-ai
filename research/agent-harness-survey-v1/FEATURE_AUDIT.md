@@ -3570,3 +3570,16 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
   - **描述语义（sandbox.browser.binds——浏览器容器 bind 独立配置）**：**BOUNDARY**——browser 跑宿主进程或 CDP attach，无容器化面对应物。
 - **证据**：`pi/src/adapter/browser.js`（无 container 概念）。
 - **核销**：candidates-open #2562 → `candidates-resolved.tsv` #210。
+
+#### 28.210 cron run --wait + runs filter (#2567 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title mechanism landed; desc classified.
+- **判定**：标题 **IMPLEMENTED**；描述 **BOUNDARY**（=#2542 已判）。
+  - **标题语义（`cron run --wait` timeout/poll + `cron.runs --run-id` 过滤）**：**IMPLEMENTED**——
+    - `run`：`markDue(id)` 拉到期→驱动泵 tick（**同一条治理路径** preflight→spawn→markFired，非内联点火）；in-flight boot tick 快照竞态由 2-tick 确认循环消化（`lastJobId` 陈旧指针判别）；`wait_seconds`（≤600，1s 轮询）阻塞至 job 终态或超时如实报"still running"；prompt-target/disabled/missing 三类如实拒。
+    - `runs`：`recentJobIds`（条目级有界 20 历史，`markFired` 落账）列出 fire→job 对应+job_state/exit_code；`job_id` 过滤单条。
+  - **描述语义（agent 终端 sandbox 按 path 申请 write access）**：**BOUNDARY**——同 #2542。
+- **位点**：`host/src/core/scheduler.js`（markDue/recentJobIds）、`pi/src/adapter/schedule.js`（run/runs 动作）、`pi/src/bootstrap/host.js`（tick+jobStore 接线）——生成器源码。
+- **修复随批**：`pi/extensions/managed-manifest.json` mcp-client sha256 重算（#2547 ENV_INJECT_RE 改动漏算，bootstrap integrity 红→绿）。
+- **证据**：schedule.test 19/19（run/run-wait/runs/job_id 过滤/disabled/missing 全链）；host **421/421**；pi 全套 **557/549/8跳/0败**。
+- **核销**：candidates-open #2567 → `candidates-resolved.tsv` #211。

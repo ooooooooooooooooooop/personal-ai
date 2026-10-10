@@ -506,3 +506,48 @@ test('#1754: sink refuses honestly — unregistered model and busy session stay 
   assert.equal(r3.ok, true);
   assert.equal(calls, 0);
 });
+
+test('#2567: run fires through governed path + wait polls terminal; runs lists history', async () => {
+  const { dir, audit } = rig();
+  let now = 1_000_000;
+  const store = new ScheduleStore(dir, () => now);
+  const spawned = [];
+  const executor = {
+    spawnCommandJob: async (spec) => { spawned.push(spec); return { job_id: `job-${spawned.length}`, attempt_id: 'a1' }; },
+  };
+  const pump = startSchedulerPump({ store, executor, workdir: dir, audit, intervalMs: 60_000 });
+  const states = new Map();
+  const jobStore = {
+    getJob: (jid) => states.get(jid) ?? { job_id: jid, job_state: 'COMPLETED' },
+    getAttempts: (jid) => [{ exit_code: 0 }],
+  };
+  const tool = scheduleTool(store, { tick: pump.tick, jobStore });
+  try {
+    const rec = store.add({ command: 'echo hi', every_seconds: 3600 });
+    // run without wait — fires on next tick via markDue
+    const r = await tool.execute('c', { action: 'run', id: rec.id });
+    assert.match(r.content[0].text, /job job-1/);
+    assert.equal(spawned.length, 1);
+    assert.deepEqual(store.list()[0].recentJobIds, ['job-1']);
+
+    // runs — full history
+    const runs = await tool.execute('c', { action: 'runs', id: rec.id });
+    assert.match(runs.content[0].text, /job-1 COMPLETED exit=0/);
+
+    // second fire + job_id filter + wait path (job completes instantly)
+    const r2 = await tool.execute('c', { action: 'run', id: rec.id, wait_seconds: 5 });
+    assert.match(r2.content[0].text, /job job-2 COMPLETED/);
+    const filtered = await tool.execute('c', { action: 'runs', id: rec.id, job_id: 'job-1' });
+    assert.match(filtered.content[0].text, /job-1/);
+    assert.ok(!filtered.content[0].text.includes('job-2'));
+
+    // missing/disabled honest refusals
+    assert.equal((await tool.execute('c', { action: 'run', id: 'sch-nope' })).isError, true);
+    store.setEnabled(rec.id, false);
+    const dis = await tool.execute('c', { action: 'run', id: rec.id });
+    assert.equal(dis.isError, true);
+    assert.match(dis.content[0].text, /disabled/);
+  } finally {
+    pump.dispose();
+  }
+});

@@ -165,6 +165,9 @@ export class ScheduleStore {
       createdAt: new Date(this.now()).toISOString(),
       lastFiredAt: null,
       lastJobId: null,
+      // dedup-h #2567 — bounded run history for `runs` queries; lastJobId
+      // remains the canonical "latest" pointer, this is the audit tail.
+      recentJobIds: [],
       webhook: normWebhook(webhook),
       // dedup-h #1754 — "provider/model" pinned for prompt-target fires;
       // resolved against the live registry at fire time (a deregistered
@@ -270,11 +273,27 @@ export class ScheduleStore {
     return this.#advance(id, (rec) => {
       rec.lastFiredAt = new Date(this.now()).toISOString();
       rec.lastJobId = jobId;
+      if (jobId) rec.recentJobIds = [...(rec.recentJobIds ?? []), jobId].slice(-20);
       // M135: a real fire is "world changed" evidence — drop any quiet
       // backoff so an adaptive entry returns to its base interval.
       rec.quietStreak = 0;
       rec.current_seconds = null;
     });
+  }
+
+  /**
+   * dedup-h #2567 — `run` analogue: pull the entry due NOW so the next pump
+   * tick fires it through the same governed path (preflight → spawn →
+   * markFired). Does not fire inline — policy is evaluated at fire time.
+   */
+  markDue(id) {
+    const schedules = this.#load();
+    const rec = schedules.find((s) => s.id === id);
+    if (!rec) return { ok: false, error: `no schedule '${id}'` };
+    if (rec.enabled === false) return { ok: false, error: `schedule '${id}' is disabled` };
+    rec.nextRunAt = this.now();
+    this.#save(schedules);
+    return { ok: true, rec };
   }
 
   /**
