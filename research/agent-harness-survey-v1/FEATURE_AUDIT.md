@@ -3524,3 +3524,12 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/src/adapter/browser.js`（attach 端点准入）；生成器源码位点。
 - **证据**：`pi/tests/browser.test.js` 12/12（无旗拒绝→有旗注册+remote 审计+非 http 拒绝）；#2514 基线不破。
 - **核销**：candidates-open #2537 → `candidates-resolved.tsv` #205。
+
+#### 28.205 mcp add/remove commands + daemon probe (#2539 — title covered variant / desc BOUNDARY)
+
+- **status**: both sides classified; no code change.
+- **判定**：标题 **ALREADY_COVERED(variant)**；描述 **BOUNDARY**。
+  - **标题语义（vibe mcp add/remove 命令免编辑 TOML）**：**已覆盖(variant)**——`/mcp-add` 交互/参数式添加 + `/mcp-del`（#2239：删条目+关连接+清 token+墓碑）；配置文件 JSON 非 TOML=格式变体。
+  - **描述语义（systemctl --user is-enabled 探针失败容错——daemon 安装流）**：**BOUNDARY**——栈内无 Linux daemon/systemd 安装面对应物。
+- **证据**：`pi/extensions/mcp/index.js` mcp-add/mcp-del；`grep systemctl` 空集。
+- **核销**：candidates-open #2539 → `candidates-resolved.tsv` #206。
