@@ -4879,3 +4879,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`session_rewind`+`file_checkpoint` pre-image restore=文件恢复语义。描述 **COVERED(variant)**——#3888（task 协议一致性=store 状态机）。
 - **核销**：candidates-open #3945 → `candidates-resolved.tsv` #416。
+
+#### 28.415 server-tools 全放 + OS 通知（重复） (#3948 — title VARIANT / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`toolsAllow:['mcp__*']` 宽放=allow-all 语义（#3886 同判）。描述 **PARTIAL(variant)**——同 #3845（notify_user 应用内；原生 OS toast=variant 未落）。
+- **核销**：candidates-open #3948 → `candidates-resolved.tsv` #417。
+
+#### 28.416 可配默认 shell + alt 键重绑 (#3955 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——job spawn `shell:true` 走平台 COMSPEC/SHELL env（OS 级可配=变体）；显式 shell 选择配置键=variant 未落。描述 **BOUNDARY**——alt-[a-z] 键位冲突=无 TUI 键位面。
+- **核销**：candidates-open #3955 → `candidates-resolved.tsv` #418。
+
+#### 28.417 display_image + 窗口恢复 (#3956 — title VARIANT / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——图片经 attachment/browser screenshot 预览渲染给操作员（终端内 display_image/chafa=变体，无 TUI 面）。描述 **BOUNDARY**——Zed 多窗口恢复=外部编辑器面。
+- **核销**：candidates-open #3956 → `candidates-resolved.tsv` #419。

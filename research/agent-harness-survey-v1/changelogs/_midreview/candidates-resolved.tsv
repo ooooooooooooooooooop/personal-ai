@@ -415,3 +415,6 @@ dedup-h	3928	session	background new session	COVERED:session_new same-view SPA;de
 dedup-h	3934	api	/api/v1/sessions	IMPLEMENTED:bridge endpoint proxies session_list,502 honest;desc BOUNDARY SDK path
 dedup-h	3944	resume	exec resume --output-schema	PARTIAL(variant):schema per-prompt armed not session-persistent;desc BOUNDARY ACP
 dedup-h	3945	rewind	/rewind file restore	COVERED(variant):session_rewind+file_checkpoint preimage;desc VARIANT #3888
+dedup-h	3948	policy	allow all server tools	COVERED(variant):toolsAllow mcp__* wildcard;desc VARIANT #3845 notify
+dedup-h	3955	shell	configurable default shell	PARTIAL(variant):platform COMSPEC/SHELL,no explicit key;desc BOUNDARY alt-key
+dedup-h	3956	tui	display_image tool	COVERED(variant):UI image preview/screenshot render;desc BOUNDARY zed windows
