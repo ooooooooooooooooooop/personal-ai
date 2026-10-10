@@ -337,3 +337,6 @@ dedup-h	3394	model-param	context1m beta header	COVERED(variant):explicit headers
 dedup-h	3424	provider	extension-registered providers	BOUNDARY:no extension->provider surface;desc BOUNDARY OpenAI WS replay wording
 dedup-h	3429	api	v1/chat/completions gate	BOUNDARY:no OpenAI-compat server endpoint;desc BOUNDARY WS phase buffer
 dedup-h	3442	model	model-selection scopes	BOUNDARY(variant):session-level+feature-models routes;desc VARIANT #3394 headers
+dedup-h	3462	context	no-limit no stepdown probe	BOUNDARY:SDK-side retry behavior;desc VARIANT models.json operator-editable
+dedup-h	3490	delegate	maxSpawnDepth=2	COVERED(variant):PAI_MAX_SPAWN_DEPTH default 3 env-tunable+refusal reason;desc COVERED #3379
+dedup-h	3495	hook	frontmatter hooks default-off	BOUNDARY:no frontmatter hook declaration surface;desc VARIANT #3379 headers

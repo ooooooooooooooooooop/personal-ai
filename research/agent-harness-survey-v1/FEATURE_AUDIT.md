@@ -4408,3 +4408,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **BOUNDARY(variant)**——模型选择=session 级 `/config model`+`feature-models.json` 分用途路由（不同轴；configurable scope 层级面无对应物）。描述 **COVERED(variant)**——同 #3394（provider_add `headers` 显式声明 anthropic-beta）。
 - **核销**：candidates-open #3442 → `candidates-resolved.tsv` #338。
+
+#### 28.339 context-overflow 探测 + minimax 目录 (#3462 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——context-overflow stepdown 探测=SDK/provider 侧重试行为，非本栈控制面。描述 **COVERED(variant)**——废弃 model ID 清理=models.json 操作员可编辑+目录刷新语义。
+- **核销**：candidates-open #3462 → `candidates-resolved.tsv` #339。
+
+#### 28.340 maxSpawnDepth + custom_headers（重复族） (#3490 — title VARIANT / desc COVERED)
+
+- **status**: title variant; desc covered.
+- **判定**：标题 **COVERED(variant)**——`PAI_SPAWN_DEPTH`/`PAI_MAX_SPAWN_DEPTH`（默认 3，env 可调）spawn 深度帽+拒绝原因回传=同族机制（默认档 3 vs 2=variant）。描述 **ALREADY_COVERED**——`provider_add headers`（#3379 本批落地）。
+- **核销**：candidates-open #3490 → `candidates-resolved.tsv` #340。
+
+#### 28.341 frontmatter hooks 默认禁 + Bedrock extended context (#3495 — title BOUNDARY / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 frontmatter 声明 hook 面（hook 来自实例配置文件+门控文件，frontmatter 声明形态不存在）。描述 **COVERED(variant)**——Bedrock 1M 扩展=provider `headers` 显式声明路径（#3379 面；Bedrock 专用 settings 键=variant）。
+- **核销**：candidates-open #3495 → `candidates-resolved.tsv` #341。
