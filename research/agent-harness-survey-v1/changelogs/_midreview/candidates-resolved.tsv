@@ -238,3 +238,6 @@ dedup-h	2818	skills-plugins	paste file-context detect+collapse	COVERED:M129 path
 dedup-h	2825	ui	Review Changes diff view	COVERED:/diff panel+#2408 stats;desc N/A upstream schema-path fix no dual field in our schema
 dedup-h	2830	ui	auto-scroll mode persisted	COVERED:M128 near/follow/off localStorage+jump btn;desc COVERED(variant) outbound sanitize via prompt_submit+envelope chain
 dedup-h	2832	ui	pending-changes diff panel	PARTIAL(variant):no staged pending-changes surface;dryrun panel+/diff+audit redact adjacent;desc BOUNDARY workspace toggle different abstraction
+dedup-h	2839	ui	Ctrl+Z input undo	COVERED:M126 draft undo/redo snapshot stack;desc PARTIAL no frontmatter metadata render surface
+dedup-h	2854	webhook	webhook direct platform chat	BOUNDARY:webhooks ride session promptSink by design;desc N/A no keymap file surface
+dedup-h	2861	api	v2 filesystem RPCs	PARTIAL(variant):files_list+file_read confined RPCs;write/copy via governed fileops+receipts;watch via file_checkpoint events;desc BOUNDARY no plugin install pipeline

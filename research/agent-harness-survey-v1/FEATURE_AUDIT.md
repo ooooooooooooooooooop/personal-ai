@@ -3802,3 +3802,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **PARTIAL(variant)**——无 pending-changes 暂存 diff 面板：config_set 即时生效+redacted 账（无 JSON5 两段提交面）；相邻面=governance_dryrun 预演面板+/diff 面板+audit redact 各覆盖其语义片段。描述 **BOUNDARY**——workspace toggle 是多根工作区切换面；本栈 session 级 workdir+session 切换器=不同抽象。
 - **核销**：candidates-open #2832 → `candidates-resolved.tsv` #239。
+
+#### 28.239 Ctrl+Z input undo + frontmatter render (#2839 — title COVERED / desc PARTIAL)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——M126 draft-level undo/redo 栈（程序化 set 边界+打字停顿快照，Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y，200 深，按 session file 分键）——原生 undo 死于 setValue 的缺陷类被生成器级覆盖。描述 **PARTIAL(variant)**——`md()` 渲染器无 frontmatter metadata 块专用渲染（`---` 块退化为 hr/纯文本）；且无独立 Markdown Preview 面=preview-panel 特性部分对位。
+- **核销**：candidates-open #2839 → `candidates-resolved.tsv` #240。
+
+#### 28.240 webhook 直发平台 + keymap 移除 (#2854 — title BOUNDARY / desc N/A)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——无 platform chat 直发面（webhook 一律经 session promptSink+decide 链=刻意不绕会话）。描述 **BOUNDARY(N/A)**——keymap 文件/键位绑定概念不存在（web UI 键盘快捷键硬编码非可配 keymap）。
+- **核销**：candidates-open #2854 → `candidates-resolved.tsv` #241。
+
+#### 28.241 v2 filesystem RPCs + install scan narrowing (#2861 — title PARTIAL(variant) / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(variant)**——`files_list`+`file_read` RPC 在 supervisor（confined）；write/copy 不暴露裸 RPC=**刻意**走 governed fileops+receipt 写面；watch=`file_checkpoint` hook 事件非 RPC——五件套语义各有对位但分布不同。描述 **BOUNDARY**——无 plugin install pipeline+entrypoint 扫描面。
+- **核销**：candidates-open #2861 → `candidates-resolved.tsv` #242。
