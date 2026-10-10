@@ -102,7 +102,7 @@ test('L5/L6: real task switches pi→dsh — continuity holds end-to-end', { tim
 
   // verify against REAL state, not declared intentions — all five gates
   // computed from actual stores, and a missing gate would fail-closed
-  const predictions2 = new PredictionStore(join(dir, 'canonical'));
+  const predictions2 = new PredictionStore(join(dir, 'world-model'));
   const jobs2 = new JobStore(join(dir, 'jobs', 'durable_jobs.db'));
   const recomputedCursor = `sha256:${createHash('sha256')
     .update(JSON.stringify(predictions2.openPredictions())).digest('hex')}`;

@@ -118,9 +118,45 @@ export const WM_PARAMETERS = {
     observation: { type: 'string', description: 'observe: what was actually seen' },
     verdict: { type: 'string', enum: ['confirmed', 'refuted', 'partial', 'unknown'] },
     evaluation_source: { type: 'string', description: 'evaluate: mechanical | model | operator' },
+    // Evaluation awareness (theory-v0.5 §六 / adapter contract item 6). When the
+    // entity knows the evaluation goal, rules or treatment, the observation's
+    // EXTERNAL VALIDITY can change — it is no longer a clean reading of the world.
+    // These four are the ones the contract names, not ones invented here; the
+    // VALUES are this pilot's to define. Record them or the evidence cannot be
+    // weighed later: an observation produced by an informed executor, judged by a
+    // non-blind evaluator, on a self-assessed outcome, is not the same evidence as
+    // one produced blind — and it will look identical in the ledger without this.
+    task_source: { type: 'string', description: 'observe: 自然任务 | 专门测试 (draft §6) — a task that arose naturally and one set up to test are different evidence' },
+    executor_informed: { type: 'string', description: 'observe: did the executor know the evaluation goal/rules/treatment — draft §6 notes the executor here DEFAULTS to knowing, so it must be marked, not assumed' },
+    evaluator_blind: { type: 'string', description: 'observe: 盲 | 非盲 (draft §6)' },
+    outcome_objective: { type: 'string', description: 'observe: 客观（测试通过/日志） | 需主观判断 (draft §6) — the two do not carry the same weight' },
     model_id: { type: 'string', description: 'update: which model is being revised' },
-    revision_type: { type: 'string', description: 'update: param | structural | representation' },
+    // The revision-depth taxonomy is rubric D3 (normative annex, has priority over
+    // theory-v0.5's five-level variant — v0.5 adds 变量 but explicitly carries no
+    // normative priority). The description previously stopped at `representation`,
+    // so the deepest level was simply not on the menu: the agent could not ask the
+    // question the rubric names — "是不是 H1/H2/H3 根本切错问题了". Per D3 the
+    // taxonomy marks upgrade SPACE; it does not require four separate mechanisms,
+    // and the order is not fixed.
+    revision_type: {
+      type: 'string',
+      description: 'update: how deep the revision goes — param | structural | '
+        + 'representation | ontological. Mark the DEPTH, not the effort: '
+        + 'ontological means the question itself was mis-cut, not that the answer '
+        + 'changed. Not a fixed ladder — go to the depth the evidence warrants.',
+    },
     change: { type: 'string', description: 'update: what changed' },
+    // D4: what to inspect when a mismatch persists AND is structured. The order is
+    // not fixed, and none of this is a general H4 algorithm — H4 generation is an
+    // open problem; these are the places to look, not a procedure that finds it.
+    residual_diagnosis: {
+      type: 'string',
+      description: 'update: what kind of mismatch this was — isolated anomaly | '
+        + 'systematic pattern | boundary failure | new entity type | measurement '
+        + 'problem. A persistent STRUCTURED mismatch should send you higher up '
+        + 'before you re-tune anything: check the measurement, the variables, the '
+        + 'structure/causality, the representation, and the hypothesis space itself.',
+    },
     summary: { type: 'string', description: 'persist: one-line summary' },
     confidence_bucket: { type: 'string', description: 'qualitative confidence, never a fake precision' },
     time_horizon: { type: 'string' },
@@ -173,19 +209,21 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
   mkdirSync(ledgerDir, { recursive: true });
   mkdirSync(runsDir, { recursive: true });
 
-  // The model-visible prediction store lives in host/ (canonical state): it is
-  // what host/app/host.js injects into the context envelope, so a prediction
+  // The model-visible prediction store lives in host/ (instance runtime state):
+  // it is what host/app/host.js injects into the context envelope, so a prediction
   // opened here reaches the model's <open-predictions> block. Binding data
   // (intended_action / irreversible) is not part of that store's schema and
   // lives in the ledger instead — see openPreds below.
-  const predictions = canonicalDir ? new PredictionStore(canonicalDir) : null;
+  // Predictions are runtime state: they live under stateDir (instance layer),
+  // not canonicalDir (governed artifacts). Owner-adjudicated 2026-10-10.
+  const predictions = new PredictionStore(stateDir);
 
   const sessions = new Map();
   let globalSeq = 0;
 
-  // Predictions are canonical state: they survive compaction, handoff and body
-  // switches (host/src/core/prediction.js says the same). So they live at the
-  // adapter level, not per session — and they are RESTORED on startup, which is
+  // Predictions are durable runtime state: they survive compaction, handoff and
+  // body switches via the instance layer (host/src/core/prediction.js says the
+  // same). So they live at the adapter level, not per session — and they are RESTORED on startup, which is
   // what "persistence across kill points" (6.5) actually requires: a fresh
   // process must still know which predictions are open, or the gate would
   // permit a mutation the previous process had required a prediction for.
@@ -237,6 +275,36 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
         if (p && typeof p === 'object' && p.id) openPreds.set(p.id, { ...p, evaluated: false });
       }
     }
+  }
+
+  // THE CLOSE CHANNEL MUST REACH PREDICTIONS THIS SESSION DID NOT OPEN.
+  //
+  // theory-v0.5 §九 lists what the mechanism DOES guarantee, and one entry is
+  // 「关闭/拦截通道存在」 — the close/intercept channel EXISTS. `evaluate` is that
+  // close channel, and it used to resolve ids only against `openPreds`, which was
+  // rebuilt from `current.json` alone. A prediction left open by an earlier
+  // session lives in the canonical's prediction store — the entity SEES it (it is
+  // in the <open-predictions> block) but could not close it: PREDICTION_UNKNOWN.
+  // A channel that exists for some predictions and not others is not the channel
+  // §九 claims.
+  //
+  // These are marked `inherited`, which is a real distinction, not bookkeeping:
+  //   - closeable  — the entity can settle them (the §九 guarantee)
+  //   - not binding — no intended_action of this session's, so they authorise nothing
+  //   - not blocking — they are not loops THIS session left dangling, so the exit
+  //     gate must not fire on them. Firing would deadlock: nothing ever declares a
+  //     carry (measured: 0 STATE_PERSISTED across 8 sessions), so every session
+  //     would be stopped by its predecessor's leftovers.
+  if (typeof predictions?.openPredictions === 'function') {
+    try {
+      for (const rec of predictions.openPredictions()) {
+        if (!rec || !rec.id || openPreds.has(rec.id)) continue;
+        openPreds.set(rec.id, {
+          id: rec.id, subject: rec.claim ?? null, intended_action: null,
+          irreversible: false, evaluated: false, inherited: true,
+        });
+      }
+    } catch { /* a body whose store cannot list them simply has none to inherit */ }
   }
 
   const sess = (id) => {
@@ -370,11 +438,28 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
         case 'observe': {
           const pid = input.prediction_id ?? null;
           if (!pid) return { ok: false, code: 'OBSERVATION_UNLINKED', message: 'observe requires prediction_id' };
+          // Mark EVIDENCE ARRIVED on the prediction. This is what makes Update
+          // reachable: D1's chain is Prediction → Action → Observation → Update, and
+          // it says in terms that Prediction Error is 诊断量 — 与 Observation 比较后
+          // 得到 — 不是与 Observation 并列的现实步骤. So the comparison is DERIVED once
+          // both halves exist; it is not a step anyone has to perform separately.
+          const _p = openPreds.get(pid);
+          if (_p) _p.observed = true;
           emit(s.id, 'OBSERVATION_RECORDED', {
             subject: input.subject ?? 'observation',
             prediction_id: pid,
             happened: String(input.observation ?? '').slice(0, 500),
-            payload: { observation: input.observation ?? null, evaluation_source: input.evaluation_source ?? null },
+            payload: {
+              observation: input.observation ?? null,
+              evaluation_source: input.evaluation_source ?? null,
+              // Evaluation awareness travels WITH the observation, not beside it:
+              // it is a property of how this reading was produced, and it is what
+              // decides how much the reading can be leaned on later.
+              task_source: input.task_source ?? null,
+              executor_informed: input.executor_informed ?? null,
+              evaluator_blind: input.evaluator_blind ?? null,
+              outcome_objective: input.outcome_objective ?? null,
+            },
             evidence_refs: input.evidence_refs ?? [],
           });
           return { ok: true, prediction_id: pid };
@@ -440,14 +525,39 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
         }
         case 'update': {
           const ref = input.prediction_id ?? null;
-          if (ref && !openPreds.get(ref)?.evaluated) {
-            return { ok: false, code: 'UPDATE_UNEVALUATED', message: `update references unevaluated prediction ${ref}` };
+          // WHAT UPDATE REQUIRES, per the theory rather than per this codebase.
+          // D1's chain reaches Update from OBSERVATION: State → Model → Prediction →
+          // Action → Observation → Update. It has no separate evaluation stage, and
+          // says so twice — Prediction Error is 诊断量…不是与 Observation 并列的现实步骤,
+          // and Revision 是更新机制（非独立环节）. Requiring a separate `evaluate` call was
+          // this implementation's own invention, and it is what broke the loop: the
+          // entity reaches Observation, stops, and Update stays mechanically out of
+          // reach — so no model can ever be revised.
+          //
+          // The requirement is therefore EVIDENCE: an observation (the comparison is
+          // then derivable) or an explicit evaluation (still allowed, and still the
+          // better record when the verdict is a judgement rather than a reading).
+          const p0 = ref ? openPreds.get(ref) : null;
+          if (ref && p0 && !p0.observed && !p0.evaluated) {
+            return {
+              ok: false,
+              code: 'UPDATE_UNEVIDENCED',
+              message: `update references prediction ${ref}, which has no observation yet. `
+                + 'Observe first — that is where the comparison comes from; the verdict can be '
+                + 'derived from prediction + observation and does not need its own step. '
+                + '(An explicit op:"evaluate" is still allowed when the verdict is a judgement.)',
+            };
           }
           const id = input.model_id ?? `m-${randomUUID().slice(0, 8)}`;
-          current.models[id] = { revision_type: input.revision_type ?? null, change: input.change ?? null };
+          current.models[id] = {
+            revision_type: input.revision_type ?? null,
+            residual_diagnosis: input.residual_diagnosis ?? null,
+            change: input.change ?? null,
+          };
           emit(s.id, 'MODEL_UPDATED', {
             subject: id, prediction_id: ref,
-            happened: `model ${id} updated (${input.revision_type ?? 'unspecified'})`,
+            happened: `model ${id} updated (${input.revision_type ?? 'unspecified'}${
+              input.residual_diagnosis ? `; mismatch: ${input.residual_diagnosis}` : ''})`,
             payload: { model_id: id, revision_type: input.revision_type ?? null, change: input.change ?? null },
           });
           return { ok: true, model_id: id };
@@ -456,6 +566,35 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
           // Runtime snapshot = the adapter's own working state (no toolchain
           // reader; kept so a restart can rebuild without replaying the ledger).
           // Full records, not just ids: an id alone cannot be bound on restart.
+          //
+          // persist is ALSO the exit gate's escape hatch, and that is why it marks
+          // the still-open predictions as CARRIED: ending a session with a loop
+          // open is legitimate (the outcome may not be knowable yet) — but it has
+          // to be deliberate and recorded, not an oversight. `carried` survives the
+          // restart, so a deliberately-carried prediction does not block the next
+          // session either.
+          //
+          // The guard cannot catch a SINGLE loop left dangling, because once the
+          // task ends there is no next consequential call to refuse — and that was
+          // the measured defect (predict → act → observe → stop). This is the one
+          // place that can catch it: the end-of-task step. Asking for the reason is
+          // cheap; the point is that "I am leaving these open" becomes something the
+          // entity SAID rather than something it did not notice.
+          // Same notion of 'open' as the guard and as `update`: a prediction with
+          // evidence is settled enough that leaving it is not an oversight.
+          const stillOpen = [...openPreds.values()].filter((p) => !p.observed && !p.evaluated && !p.inherited);
+          if (stillOpen.length && !String(input.summary ?? '').trim()) {
+            return {
+              ok: false,
+              code: 'CARRY_UNDECLARED',
+              message: `${stillOpen.length} prediction(s) are still open and unevaluated `
+                + `(${stillOpen.map((p) => p.id).join(', ')}). Persisting now would carry them `
+                + 'without saying so — which is how a world model accumulates predictions that '
+                + 'never become belief. Either settle them (op:"observe" then op:"evaluate"), or '
+                + 'give a summary that states you are carrying them deliberately and why.',
+            };
+          }
+          for (const p of openPreds.values()) if (!p.observed && !p.evaluated && !p.inherited) p.carried = true;
           current = {
             schema_version: SCHEMA_VERSION,
             updated_at: new Date().toISOString(),
@@ -465,8 +604,15 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
             body_id: bodyId,
           };
           writeFileSync(join(stateDir, 'current.json'), JSON.stringify(current, null, 2));
-          emit(s.id, 'STATE_PERSISTED', { subject: 'state', happened: String(input.summary ?? 'persisted'), payload: { summary: input.summary ?? null } });
-          return { ok: true, persisted: true, open_predictions: current.open_predictions.map((p) => p.id) };
+          const carriedIds = current.open_predictions.map((p) => p.id);
+          emit(s.id, 'STATE_PERSISTED', {
+            subject: 'state',
+            happened: String(input.summary ?? 'persisted') + (carriedIds.length
+              ? ` (carrying ${carriedIds.length} open prediction(s) deliberately: ${carriedIds.join(', ')})`
+              : ''),
+            payload: { summary: input.summary ?? null, carried: carriedIds },
+          });
+          return { ok: true, persisted: true, open_predictions: carriedIds };
         }
         case 'status':
           return {
@@ -507,6 +653,36 @@ export function apply(ctx, { stateDir, canonicalDir, mode = 'off', bodyId = 'uns
       const bound = ia.includes(rawName) || /mutation|edit|write|exec|modify|change/i.test(ia);
       if (!bound) continue;
       if (irreversible && p.irreversible !== true) continue;
+
+      // EXIT GATE — the entry gate's mirror. The entry gate makes you open a loop
+      // before you act; nothing made you close it, and in two real cross-session
+      // runs the loop stopped at observation every time: predict ✅ → act ✅ →
+      // observe ✅ → 【stop】. `observe` does not settle a prediction and `update`
+      // refuses one without evidence, so an entity that stops at observation left the
+      // loop open — the world model accumulated predictions that never became belief.
+      //
+      // NOT a hard requirement to have evaluated, because that would deadlock the
+      // legitimate cross-session case: a prediction about how the world will be
+      // found LATER cannot be settled now, and 跨阶段/跨会话继续 is one of the gate
+      // criteria's own reasons to be in CORE. So the requirement is: settle it, OR
+      // declare that you are carrying it — `persist` is that declaration, and it is
+      // recorded. What is refused is leaving it DANGLING without saying so.
+      // Same condition as `update`: EVIDENCE settles a loop, not a separate verdict.
+      // A prediction with an observation has what D1 needs — the comparison is
+      // derivable from it — so refusing on `!evaluated` alone would demand a step the
+      // theory does not define.
+      const dangling = [...openPreds.values()].find((q) => !q.observed && !q.evaluated
+        && !q.carried && !q.inherited && q.id !== p.id && String(q.intended_action || ''));
+      if (dangling) {
+        return `[world-model] BLOCKED: prediction ${dangling.id} is still OPEN and was never `
+          + `settled ("${String(dangling.intended_action).slice(0, 80)}"). You are about to open `
+          + 'another loop while the last one is still dangling — that is how a world model '
+          + 'accumulates predictions that never become belief. Either close it: '
+          + `world_model(op:"observe") then op:"evaluate" against the falsifier you wrote; or, if `
+          + 'the outcome genuinely cannot be known yet, say so deliberately: '
+          + 'world_model(op:"persist") with a summary — that records the prediction as carried '
+          + 'rather than abandoned.';
+      }
       return undefined; // bound (and, if irreversible, flagged) → permit
     }
     const why = irreversible

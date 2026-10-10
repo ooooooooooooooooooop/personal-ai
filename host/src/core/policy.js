@@ -10,6 +10,17 @@ import { join } from 'node:path';
  * pins that checksum so every body, every turn, can prove it is acting under the
  * SAME policy generation — non-negotiable invariant #4 (policy drift → FAIL_CLOSED).
  *
+ * NAME, so nobody has to re-derive it: "policy" here means ENFORCEMENT policy —
+ * which actions are denied, which need approval, what the risk posture is. It is
+ * governance content (the U domain). It is NOT the world-model theory's "compiled
+ * policy" (Π), which is a different thing entirely: learned decision heuristics
+ * that survive as a fast path. Same word, different object. The generated artifact
+ * that renders this block into the instruction channel is therefore named
+ * `instruction/generated.md`, not `policy/…` — the U domain does not get to borrow
+ * Π's word. Renaming this file (e.g. to governance.json) would be cleaner still,
+ * but it is an existing contract read by attestation and the channel, so the
+ * clarification is written here instead of a silent rename.
+ *
  * Attestation model:
  *  - loadPolicy() reads the canonical block and computes its checksum once.
  *  - assertFresh() re-reads the canonical file and compares — a canonical block

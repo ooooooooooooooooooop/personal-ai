@@ -219,7 +219,7 @@ rl.on('line', async (line) => {
       });
     case 'handoff_export': {
       const policy = loadPolicy(join(instance, 'canonical'));
-      const predictions = new PredictionStore(join(instance, 'canonical'));
+      const predictions = new PredictionStore(join(instance, 'world-model'));
       return reply({
         goalIdentity: `goal:sess-${body}`,
         canonicalCursor: `sha256:${sha256(JSON.stringify(predictions.openPredictions()))}`,

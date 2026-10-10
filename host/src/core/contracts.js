@@ -40,6 +40,7 @@
  * @property {string} checkpointsDir
  * @property {string} soulDir
  * @property {string} canonicalDir
+ * @property {string} worldModelDir              runtime W-M state (observations/predictions); NOT governed canonical
  *
  * @typedef {Object} TurnEvidence
  * @property {boolean} sufficient

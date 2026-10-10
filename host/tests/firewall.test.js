@@ -21,7 +21,13 @@ function* jsFiles(dir) {
 test('host/ source is fully self-contained (no body, no harness, no deps)', () => {
   const offenders = [];
   for (const file of jsFiles(join(HOST_ROOT, 'src'))) {
-    for (const m of readFileSync(file, 'utf-8')
+    // Strip block comments before scanning: prose lives there, and a sentence
+    // containing `from "..."` is not an import. (This is not hypothetical — a
+    // doc comment reading `from "I have no prior state"` was reported as an
+    // import of a module by that name.) Line comments are left in place: they
+    // are short, and stripping them would truncate any line containing a URL.
+    const src = readFileSync(file, 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const m of src
       .matchAll(/from\s+['"]([^'"]+)['"]|import\s*\(\s*['"]([^'"]+)['"]/g)) {
       const spec = m[1] ?? m[2];
       if (spec.startsWith('.')) {

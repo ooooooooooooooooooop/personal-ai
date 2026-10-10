@@ -29,6 +29,8 @@ jobs:
         run: npm --prefix pi test
       - name: Test DSH adapter
         run: npm --prefix dsh test
+      - name: Lint app UI (CSS + HTML)
+        run: npm --prefix app run lint
       - name: Test app including rendered DOM
         run: npm --prefix app test
 

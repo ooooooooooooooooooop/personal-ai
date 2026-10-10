@@ -30,6 +30,25 @@ const MODEL = process.env.PAI_WM_E2E_MODEL || 'gpt-5.6-luna-max';
 const REPO = 'C:/Desktop/personal-ai';
 const PYTHON = process.env.PAI_PYTHON || 'python';
 
+/**
+ * Why a compiler run did not produce its artifact, in one line.
+ *
+ * The old message showed `stderr` only, which is empty in the two cases that
+ * actually happen: the process could not be spawned at all (sandbox denies child
+ * processes — `spawnSync ... EBUSY`, `status: null`, reason in `.error`), or the
+ * interpreter is fine but the compiler refuses (which it writes to stderr, so at
+ * least that shows). Reporting `error`/`status`/`stdout` too turns "stderr: "
+ * into something you can act on.
+ */
+function describeCompilerRun(py, args, r) {
+  const bits = [`cmd: ${py} ${args.join(' ')}`];
+  if (r.error) bits.push(`SPAWN FAILED: ${r.error.message} (the compiler never ran)`);
+  bits.push(`status: ${r.status}`);
+  if (r.stdout && r.stdout.trim()) bits.push(`stdout: ${r.stdout.trim().slice(-300)}`);
+  if (r.stderr && r.stderr.trim()) bits.push(`stderr: ${r.stderr.trim().slice(-300)}`);
+  return bits.join(' | ');
+}
+
 /** The assistant's own text only — the user prompt must never count. */
 function assistantText(dir) {
   const sessDir = join(dir, 'sessions');
@@ -81,21 +100,37 @@ test('briefing channel: the compiled briefing reaches the model', { skip: SKIP, 
   const TOKEN = 'ENT-BRIEFING-PROBE-7F3A';
   const inst = makeInstance('pai-brief-e2e-');
 
-  const cur = readFileSync(join(inst.canonicalDir, 'current.yaml'), 'utf-8');
-  writeFileSync(join(inst.canonicalDir, 'current.yaml'), `${cur}\nidentity:\n  entity_id: ${TOKEN}\n`);
+  // Rewrite the EXISTING `identity.entity_id` in place.
+  //
+  // This used to append a second top-level `identity:` block and rely on the later
+  // one winning. It does not win: duplicate keys are undefined behaviour in YAML and
+  // this repo's loader (PyYAML, same call the compiler makes) keeps the FIRST value,
+  // so the briefing legitimately rendered REPLACE_ME and the assertion could never
+  // pass. The test was probing the fixture, not the compiler.
+  const curPath = join(inst.canonicalDir, 'current.yaml');
+  const cur = readFileSync(curPath, 'utf-8');
+  assert.match(cur, /^\s*entity_id:/m, 'fixture needs an entity_id line to rewrite');
+  writeFileSync(curPath, cur.replace(/^(\s*)entity_id:.*$/m, `$1entity_id: ${TOKEN}`));
 
-  const compiled = spawnSync(PYTHON,
-    [join(REPO, 'mind/canonical_compile.py'), '--canonical', inst.canonicalDir], { encoding: 'utf-8' });
+  const briefArgs = [join(REPO, 'mind/canonical_compile.py'), '--canonical', inst.canonicalDir];
+  const compiled = spawnSync(PYTHON, briefArgs, { encoding: 'utf-8' });
   const briefingPath = join(inst.canonicalDir, 'briefing.md');
   assert.ok(existsSync(briefingPath),
-    `compiler must emit <canonical>/briefing.md; stderr: ${(compiled.stderr || '').slice(-300)}`);
+    `compiler must emit <canonical>/briefing.md | ${describeCompilerRun(PYTHON, briefArgs, compiled)}`);
   assert.ok(readFileSync(briefingPath, 'utf-8').includes(TOKEN),
     'the compiled briefing must carry the entity token');
 
   const host = await start(inst);
+  // Ask for the FACT, not for a tag. `renderContext` injects the briefing RAW —
+  // ambient/steering/budget/pinned-files/memory/open-predictions all get a
+  // `<...>` wrapper, the briefing does not. The prompt used to say "your system
+  // context contains a <briefing>", presupposing a marker that does not exist, so
+  // the assertion only held when the model inferred what was meant; answering
+  // NO_BRIEFING was equally correct and the test failed for the wrong reason.
   await host.session.prompt(
-    'Your system context contains a <briefing>. Reply with ONLY the entity_id it states, verbatim. '
-    + 'If you have no briefing, reply exactly NO_BRIEFING.');
+    'Do not call any tool. Somewhere in your context is a line beginning with "entity:" (it also '
+    + 'carries theory / schema / lineage_head). Reply with ONLY that line, verbatim. '
+    + 'If no such line exists in your context, reply exactly NO_BRIEFING.');
 
   const text = assistantText(inst.dir);
   assert.ok(!text.includes('NO_BRIEFING'), `model reported no briefing; reply: ${text.slice(-200)}`);
@@ -110,13 +145,14 @@ test('instruction channel: the compiled operating policy reaches the model', { s
   // Plant the token in the GOVERNANCE (the policy's source), then compile.
   const govPath = join(inst.canonicalDir, 'governance.yaml');
   const gov = readFileSync(govPath, 'utf-8');
-  writeFileSync(govPath, gov.replace(/entity_root:.*$/m, `entity_root: ${TOKEN}`));
+  assert.match(gov, /^\s*entity_root:/m, 'fixture needs an entity_root line to rewrite');
+  writeFileSync(govPath, gov.replace(/^(\s*)entity_root:.*$/m, `$1entity_root: ${TOKEN}`));
 
-  const compiled = spawnSync(PYTHON,
-    [join(REPO, 'mind/instruction_compile.py'), '--canonical', inst.canonicalDir], { encoding: 'utf-8' });
+  const instrArgs = [join(REPO, 'mind/instruction_compile.py'), '--canonical', inst.canonicalDir];
+  const compiled = spawnSync(PYTHON, instrArgs, { encoding: 'utf-8' });
   const instrPath = join(inst.canonicalDir, 'instruction', 'generated.md');
   assert.ok(existsSync(instrPath),
-    `compiler must emit <canonical>/instruction/generated.md; stderr: ${(compiled.stderr || '').slice(-300)}`);
+    `compiler must emit <canonical>/instruction/generated.md | ${describeCompilerRun(PYTHON, instrArgs, compiled)}`);
   const policyText = readFileSync(instrPath, 'utf-8');
   assert.ok(policyText.includes(TOKEN), 'the compiled policy must carry the planted root authority');
   assert.ok(policyText.includes('predict-before-change'),

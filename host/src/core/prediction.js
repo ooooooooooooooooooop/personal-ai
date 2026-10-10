@@ -4,14 +4,16 @@ import { createHash, randomUUID } from 'node:crypto';
 import { redactSecrets, scrubSecretsDeep } from './secrets.js';
 
 /**
- * Prediction store — canonical world-model lifecycle.
+ * Prediction store — world-model prediction lifecycle.
  *
- * Predictions are canonical state: they survive compaction, handoff, and body
+ * Predictions are durable INSTANCE RUNTIME state (stored under the instance's
+ * world-model dir, NOT the governed canonical dir — boundary adjudicated by
+ * owner 2026-10-10): they survive compaction, handoff, and body
  * switches (they ride the PortableContinuityEnvelope's openPredictions field).
  * Every world-model mutation must bind to an open prediction — the bind record
  * is append-only so provenance is reconstructable after the fact.
  *
- * Layout inside the canonical dir:
+ * Layout inside the instance world-model dir:
  *   predictions/index.json    — {id: prediction record} (open + closed)
  *   predictions/bindings.jsonl— append-only mutation→prediction bindings
  *
@@ -22,8 +24,8 @@ const OPEN = 'open';
 const TERMINAL = new Set(['confirmed', 'refuted']);
 
 export class PredictionStore {
-  constructor(canonicalDir) {
-    this.dir = join(canonicalDir, 'predictions');
+  constructor(baseDir) {
+    this.dir = join(baseDir, 'predictions');
     mkdirSync(this.dir, { recursive: true });
     this.indexPath = join(this.dir, 'index.json');
     this.bindingsPath = join(this.dir, 'bindings.jsonl');

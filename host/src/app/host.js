@@ -33,9 +33,13 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
   const canonical = loadCanonicalState(paths);
   // M2: canonical policy + prediction store are fail-closed requirements —
   // a kernel without them cannot prove invariants #4/#5.
+  // policy is a governed canonical artifact (attested); the prediction and
+  // observation stores are instance RUNTIME state — they persist across
+  // compaction/handoff/body-switch via the instance root, not via canonicalDir
+  // (owner-adjudicated boundary 2026-10-10: canonical = governed artifacts only).
   const policy = new AttestedPolicy(paths.canonicalDir, governance.policyFile);
-  const predictions = new PredictionStore(paths.canonicalDir);
-  const observations = new ObservationStore(paths.canonicalDir);
+  const predictions = new PredictionStore(paths.worldModelDir);
+  const observations = new ObservationStore(paths.worldModelDir);
   const kernel = new GovernanceKernel({
     audit,
     policy,
@@ -58,13 +62,19 @@ export function createHostCore({ instanceRoot, manifestPath, runtime = null, gov
   // Two-channel envelopes (R9): instruction ≠ dynamic context.
   const instructionEnvelope = buildInstructionEnvelope({
     soulManifest: soul.manifest,
-    policyText: canonical.files['policy/generated.md'] ?? '',
+    policyText: canonical.files['instruction/generated.md'] ?? '',
   });
   // Dynamic context provider: open predictions / observations are re-read on
   // EVERY context event, so a post-compaction turn re-receives the live
   // world-model projection instead of a session-start snapshot.
   const contextProvider = () => buildContextEnvelope({
-    briefing: soul.briefing ?? '',
+    // The COMPILED briefing, read from the canonical — where its declared
+    // compiler writes it (soul/manifest.json: "compiler": "mind/canonical_compile.py",
+    // which emits <canonical>/briefing.md). It was being read from the soul dir
+    // instead (soul/briefing/briefing.md), which nothing ever writes, so the
+    // model received no briefing at all. Compiled artifacts live with the
+    // canonical; the soul carries the contract for them, not the output.
+    briefing: canonical.files['briefing.md'] ?? '',
     openPredictions: predictions.openPredictions(),
     observations: observations.recent(20),
   });

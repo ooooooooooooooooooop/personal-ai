@@ -208,7 +208,7 @@ test('loop governance is installed without taskRequirements or a fallback chain'
   host.dispose(); // full teardown — dispose() already closes leases; calling both double-closes
 });
 
-test('M8-B4: canonical observations flow into the live context provider', async () => {
+test('M8-B4: instance observations flow into the live context provider', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'pai-boot-obs-'));
   mkdirSync(join(dir, 'canonical'), { recursive: true });
   writeFileSync(join(dir, 'canonical', 'policy.json'), JSON.stringify({
@@ -231,10 +231,12 @@ test('M8-B4: canonical observations flow into the live context provider', async 
   assert.ok(rendered.includes('<observations>'));
   assert.ok(rendered.includes('[tool_result] bash'));
 
-  // canonical durability: a fresh store over the same dir sees it — the
+  // instance-state durability: a fresh store over the same dir sees it — the
   // projection survives process restarts, so post-compaction turns re-read it
+  // (store location: <instance>/world-model — moved off canonical 2026-10-10,
+  // owner-adjudicated boundary; fixture follows)
   const { ObservationStore } = await import('../../host/src/core/observation.js');
-  const reopened = new ObservationStore(join(dir, 'canonical'));
+  const reopened = new ObservationStore(join(dir, 'world-model'));
   assert.ok(reopened.recent(20).some((o) => o.subject === 'bash'));
 
   host.dispose();

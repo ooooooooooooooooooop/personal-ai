@@ -8,6 +8,6 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --test \"tests/*.test.js\""
+    "test": "node --import ./tests/scrub-env.mjs --test \"tests/*.test.js\""
   }
 }

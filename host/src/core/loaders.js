@@ -37,7 +37,13 @@ export function loadSoul(paths) {
   return {
     root: paths.soulDir,
     manifest,          // soul-0.1.2 contract: soul_version/schema_version/briefing/models/release
-    briefing: files['briefing/briefing.md'] ?? files['briefing/template.md'] ?? null,
+    // NO briefing field. The soul carries the briefing CONTRACT
+    // (manifest.briefing: sections / caps / compiler / template) and the
+    // template, never the compiled output: its declared compiler
+    // (mind/canonical_compile.py) writes <canonical>/briefing.md. A loader that
+    // looks for a generated artifact here can only ever return null, and a
+    // fallback to briefing/template.md would hand the model the output CONTRACT
+    // dressed as a briefing. The caller reads the canonical.
     files,
   };
 }

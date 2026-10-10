@@ -58,6 +58,44 @@ test('read-path cache invalidates on external append (cross-process writer) and 
   assert.equal(observations.list().length, 2);
 });
 
+// recent() tail-reads a bounded window instead of scanning the whole file: the
+// context provider calls it EVERY turn and the loop appends a row per tool
+// result, so the fingerprint cache misses every turn and a full scan would put
+// an O(file) synchronous read on the hot path. These guard the edge cases the
+// tail-read introduces (a window that starts mid-row, and a window too small to
+// hold `limit` rows).
+test('recent() is correct on a large file (tail window starts mid-row)', () => {
+  const { dir, observations } = store();
+  const lines = [];
+  for (let i = 0; i < 5000; i++) {
+    lines.push(JSON.stringify({ id: `obs-${i}`, kind: 'tool_result', subject: `t-${i}`, at: i }));
+  }
+  appendFileSync(join(dir, 'observations', 'observations.jsonl'), `${lines.join('\n')}\n`);
+  const recent = observations.recent(20);
+  assert.equal(recent.length, 20);
+  assert.equal(recent[0].subject, 't-4980');
+  assert.equal(recent.at(-1).subject, 't-4999');
+});
+
+test('recent() grows the window when rows are larger than the initial window', () => {
+  const { observations } = store();
+  // one row carries a ~200 KB detail — far beyond the 64 KB initial window
+  observations.record({ kind: 'tool_result', subject: 'huge', detail: { tail: 'x'.repeat(200 * 1024) } });
+  for (let i = 0; i < 5; i++) observations.record({ kind: 'tool_result', subject: `after-${i}` });
+  const recent = observations.recent(6);
+  assert.equal(recent.length, 6);
+  assert.equal(recent[0].subject, 'huge');
+  assert.equal(recent.at(-1).subject, 'after-4');
+});
+
+test('recent() on an absent file is empty, and list() still reports the full count', () => {
+  const { dir, observations } = store();
+  assert.deepEqual(observations.recent(20), []);
+  for (let i = 0; i < 30; i++) observations.record({ kind: 'tool_result', subject: `t-${i}` });
+  assert.equal(observations.recent(5).length, 5);
+  assert.equal(observations.list().length, 30); // list() keeps the exact count
+});
+
 test('M5 parity: subject + detail are secret-scrubbed before landing in the durable JSONL', () => {
   const { dir, observations } = store();
   const key = `sk-${'a'.repeat(24)}`;
