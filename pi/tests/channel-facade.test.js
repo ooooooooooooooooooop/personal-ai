@@ -2094,3 +2094,25 @@ test('#3337 PAI_AUTOCOMPACT_THRESHOLD: env tunes auto-compact trigger, clamped',
     if (prev === undefined) delete process.env.PAI_AUTOCOMPACT_THRESHOLD; else process.env.PAI_AUTOCOMPACT_THRESHOLD = prev;
   }
 });
+
+test('#3356 prompt submit checks compaction first (abort-mid-response edge)', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-pcomp-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const audit = { events: [], write(e) { this.events.push(e); } };
+  const core = { paths: { auditDir }, audit };
+  const order = [];
+  fakeSessionRef.isStreaming = false;
+  fakeSessionRef.getContextUsage = () => ({ tokens: 950, contextWindow: 1000 });
+  fakeSessionRef.compact = async () => { order.push('compact'); };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+  const r = await ch.handle({ type: 'prompt', message: 'resume after abort' });
+  assert.equal(r.success, true);
+  assert.equal(order[0], 'compact', 'compact ran before the prompt turn');
+  assert.ok(audit.events.some((e) => e.kind === 'AUTO_COMPACT' && e.data?.trigger === 'prompt_submit'));
+  // latch shared with message_end path — a second prompt does not re-compact
+  order.length = 0;
+  await ch.handle({ type: 'prompt', message: 'second' });
+  assert.equal(order.length, 0);
+  dispose();
+});

@@ -4350,3 +4350,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED(variant)**——`/config model=<provider/id|别名>`+模型菜单 fuzzy 过滤+`thinking=<档>` 独立键——`--model` 免 `--provider`+fuzzy+档位语义俱在（`:<thinking>` 内联后缀 vs 独立键=variant）。描述 **COVERED(variant)**——同 #3272（`compact_end{status,error}` 载失败原因）。
 - **核销**：candidates-open #3351 → `candidates-resolved.tsv` #329。
+
+#### 28.330 Plan/Act thinking budgets + /tree 摘要选项 (#3355 — title PARTIAL(boundary) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **PARTIAL(boundary)**——thinking 档位是全局键（`thinking=<off|low|medium|high>`），无 Plan/Act 分相位预算面。描述 **COVERED(variant)**——`session_branch`（#2915）摘要分支已覆盖；No/Summarize/custom-prompt 三选菜单=variant。
+- **核销**：candidates-open #3355 → `candidates-resolved.tsv` #330。
+
+#### 28.331 Anthropic auth header + prompt 提交前 compaction (#3356 — title VARIANT / desc IMPLEMENTED)
+
+- **status**: title variant; desc implemented.
+- **判定**：标题 **COVERED(variant)**——Anthropic 认证由 pin SDK 原生处理（apiKey→SDK 注入 `x-api-key`；我方 fetch 边界不重构 SDK 头部=variant）。描述 **IMPLEMENTED**——prompt 提交前新增 compaction 检查（同 latch/事件/审计契约，`trigger:'prompt_submit'`）——abort 中途残高水位不再等 message_end。
+- **位点**：`pi/src/adapter/channel.js` prompt 提交路径。
+- **证据**：channel-facade 新增 #3356 测试（compact 先于 prompt+共享 latch）+全文件 **60/60**。
+- **核销**：candidates-open #3356 → `candidates-resolved.tsv` #331。
+
+#### 28.332 fetch-pr --since + 模型目录刷新 (#3366 — title BOUNDARY(variant) / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY(variant)**——无 fetch-pr 工具面；增量评审锚点语义=git diff/`/diff` 面板。描述 **COVERED(variant)**——`models.json` 静态目录+`provider_add`/`model_routes` 动态扩展=目录刷新语义（捆绑目录更新=上游发布面）。
+- **核销**：candidates-open #3366 → `candidates-resolved.tsv` #332。

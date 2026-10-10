@@ -727,6 +727,22 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         opts = { ...(opts ?? {}), streamingBehavior: 'followUp' };
         hooks?.fire('prompt_queued', { preview: String(message ?? '').slice(0, 200) });
       }
+      // dedup-h #3356 — check compaction BEFORE submitting a prompt, not only
+      // at message_end: an abort mid-response leaves usage over threshold with
+      // no message_end to trigger the latch. Best-effort, same latch/event/
+      // audit contract as the message_end path.
+      try {
+        const u = box.s.getContextUsage?.();
+        const tEnv = Number(process.env.PAI_AUTOCOMPACT_THRESHOLD);
+        const threshold = Number.isFinite(tEnv) ? Math.min(Math.max(tEnv, 0.5), 0.99) : 0.9;
+        if (u?.contextWindow && u.tokens != null && !autoCompacted
+            && u.tokens / u.contextWindow >= threshold && !box.s.isStreaming) {
+          autoCompacted = true;
+          emit({ type: 'auto_compact', tokens: u.tokens, contextWindow: u.contextWindow });
+          core.audit?.write({ kind: 'AUTO_COMPACT', data: { tokens: u.tokens, contextWindow: u.contextWindow, trigger: 'prompt_submit' } });
+          await box.s.compact?.().catch(() => {});
+        }
+      } catch { /* auto-compact is best-effort */ }
       return box.s.prompt(msg, opts);
     },
     steer: (message) => {
