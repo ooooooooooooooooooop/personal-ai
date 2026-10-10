@@ -5270,3 +5270,21 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：标题 **COVERED**——`attachMeta` 每条消息 meta chips：provider/model+`input→output tok`+`$cost`+stopReason（悬浮即得，无需点）。描述 **BOUNDARY**——CLI status 表格面。
 - **核销**：candidates-open #4216 → `candidates-resolved.tsv` #479。
+
+#### 28.478 LAN token auth + TUI 跳转 (#4218 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——桥接 bind 127.0.0.1 字面 loopback，无 LAN/多客户端面，token/password auth 无对位物。描述 **BOUNDARY**——TUI messages_last_user 面。
+- **核销**：candidates-open #4218 → `candidates-resolved.tsv` #480。
+
+#### 28.479 按用途分流模型 + 连接重载 (#4228 — title COVERED / desc COVERED)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——per-feature 模型路由在册：`judgeCall(featureOverride)`+models.json features（compaction/judge 可各配模型）=fast/thinking 分流对应物；inline-assist 面不存在注边界。描述 **COVERED**——#4197 连接重载同面。
+- **核销**：candidates-open #4228 → `candidates-resolved.tsv` #481。
+
+#### 28.480 Hook 配置面板 + 中键 tab (#4230 — title BOUNDARY / desc BOUNDARY)
+
+- **status**: classification only.
+- **判定**：标题 **BOUNDARY**——hooks.json 刻意 operator-private 文件面（UI 编辑 enforcement 配置=错信任方向）；hook 决策经 audit/ask 卡可见。描述 **BOUNDARY**——中键开 tab 面。
+- **核销**：candidates-open #4230 → `candidates-resolved.tsv` #482。

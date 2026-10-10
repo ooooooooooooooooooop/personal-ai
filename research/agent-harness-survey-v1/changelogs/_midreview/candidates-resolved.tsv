@@ -478,3 +478,6 @@ dedup-h	4201	quote	quote selection into ctx	COVERED:#3912 quote-to-chat;desc BOU
 dedup-h	4208	notify	Android notif forwarding	BOUNDARY:no mobile surface;desc BOUNDARY tab cleanup
 dedup-h	4213	cors	CORS wildcard+allow-all	REJECTED:fail-closed loopback by design;desc BOUNDARY ios meta
 dedup-h	4216	ui	per-msg token/model hover	COVERED:attachMeta chips;desc BOUNDARY CLI status
+dedup-h	4218	auth	LAN shared token auth	BOUNDARY:loopback-only,no LAN surface;desc BOUNDARY TUI cmd
+dedup-h	4228	model	per-purpose model split	COVERED(variant):featureOverride model routing;desc COVERED #4197
+dedup-h	4230	hook	hook config panel	BOUNDARY:operator-private file deliberate;desc BOUNDARY middle-click
