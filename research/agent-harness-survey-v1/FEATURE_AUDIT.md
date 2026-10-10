@@ -4110,3 +4110,23 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/extensions/mcp/index.js`（manifest sha256 已重算）。
 - **证据**：mcp-ext **50/50**（含 #3196 clamp/default 断言）。
 - **核销**：candidates-open #3196 → `candidates-resolved.tsv` #290。
+
+#### 28.291 /mcp login/logout/status + git tree view (#3198 — title COVERED(variant) / desc PARTIAL)
+
+- **status**: classification only.
+- **判定**：标题 **COVERED(variant)**——`/mcp` 状态总览+`/mcp-auth` 登录（auth_code/device_code 双流）+`/mcp-add`/`/mcp-del` 增删+disable 持久=TUI 命令族语义（logout=token 随 del/状态清）。描述 **PARTIAL**——git 面板 flat diff 在；tree 视图未实现。
+- **核销**：candidates-open #3198 → `candidates-resolved.tsv` #291。
+
+#### 28.292 collapsible MCP panels + 编辑提示 (#3202 — title COVERED / desc VARIANT)
+
+- **status**: classification only.
+- **判定**：标题 **ALREADY_COVERED**——全部工具行（含 `mcp__*`）走 `tool-head` 折叠卡（caret toggle+运行/完成/错误态+复制）。描述 **COVERED(variant)**——编辑早轮重启线程语义=`session_fork`/rewind 命令提示在（无专门横幅=variant）。
+- **核销**：candidates-open #3202 → `candidates-resolved.tsv` #292。
+
+#### 28.293 per-server tool_timeout_ms + panel zoom (#3204 — title IMPLEMENTED / desc BOUNDARY)
+
+- **status**: title implemented; desc boundary.
+- **判定**：标题 **IMPLEMENTED**——`toolTimeoutFor(spec)`：`tool_timeout_ms` per-server 声明（1s–600s clamp，非法回落 120s 默认）；接线 `callTool({timeoutMs: toolTimeoutFor(entry.spec)})`——长运行工具（构建/远端渲染）可声明更宽调用预算。描述 **BOUNDARY**——无 panel zoom 面。
+- **位点**：`pi/extensions/mcp/index.js`（manifest 已重算）。
+- **证据**：mcp-ext 聚焦 **2/2**（#3196+#3204 clamp/default 断言）。
+- **核销**：candidates-open #3204 → `candidates-resolved.tsv` #293。

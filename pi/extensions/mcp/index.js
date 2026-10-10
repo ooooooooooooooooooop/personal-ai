@@ -58,6 +58,13 @@ export function connectTimeoutFor(spec) {
   if (!Number.isFinite(v)) return CONNECT_TIMEOUT_MS;
   return Math.min(Math.max(Math.trunc(v), 1000), 300_000);
 }
+// dedup-h #3204 — per-server `tool_timeout_ms`: long-running tools
+// (builds, remote renders) can declare a wider call budget; clamped.
+export function toolTimeoutFor(spec) {
+  const v = Number(spec?.tool_timeout_ms);
+  if (!Number.isFinite(v)) return TOOL_TIMEOUT_MS;
+  return Math.min(Math.max(Math.trunc(v), 1000), 600_000);
+}
 
 export class McpError extends Error {
   constructor(message, { code = 'MCP_ERROR' } = {}) {
@@ -1606,7 +1613,7 @@ export default function mcpExtension(pi) {
               isError: true,
             };
           }
-          const res = await entry.client.callTool(t.name, params, { signal, timeoutMs: TOOL_TIMEOUT_MS });
+          const res = await entry.client.callTool(t.name, params, { signal, timeoutMs: toolTimeoutFor(entry.spec) });
           const wrapped = wrapUntrusted(serverName, t.name, res, resultCharCap(entry.spec, t.name));
           // #1504 — surface the declared app resource on every call result.
           // #1507 — the host routes resources/read via details.mcpServer

@@ -13,7 +13,7 @@ import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:http';
-import mcpExtension, { McpClient, McpError, sanitizeSpecEnv, openBrowser, connectTimeoutFor } from '../extensions/mcp/index.js';
+import mcpExtension, { McpClient, McpError, sanitizeSpecEnv, openBrowser, connectTimeoutFor, toolTimeoutFor } from '../extensions/mcp/index.js';
 import { GovernanceKernel } from '../../host/src/core/governance.js';
 import { AttestedPolicy } from '../../host/src/core/policy.js';
 import { makeDecide } from '../src/bootstrap/decide.js';
@@ -2426,4 +2426,12 @@ test('#3196 startup_timeout_ms: per-server connect budget clamped, default honor
   assert.equal(connectTimeoutFor({ startup_timeout_ms: 45_000 }), 45_000);
   assert.equal(connectTimeoutFor({ startup_timeout_ms: 5 }), 1_000, 'floor 1s');
   assert.equal(connectTimeoutFor({ startup_timeout_ms: 9_999_999 }), 300_000, 'ceiling 300s');
+});
+
+test('#3204 tool_timeout_ms: per-server call budget clamped, default honored', async () => {
+  assert.equal(toolTimeoutFor({}), 120_000);
+  assert.equal(toolTimeoutFor({ tool_timeout_ms: 'x' }), 120_000);
+  assert.equal(toolTimeoutFor({ tool_timeout_ms: 240_000 }), 240_000);
+  assert.equal(toolTimeoutFor({ tool_timeout_ms: 5 }), 1_000, 'floor 1s');
+  assert.equal(toolTimeoutFor({ tool_timeout_ms: 9_999_999 }), 600_000, 'ceiling 600s');
 });
