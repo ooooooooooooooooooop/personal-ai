@@ -3602,3 +3602,13 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **位点**：`pi/src/adapter/envtools.js`（doctor 检查）；`pi/src/bootstrap/host.js`（jobStore 接线）。
 - **证据**：envtools+schedule 30/30；startHost bootstrap 绿。
 - **核销**：candidates-open #2578 → `candidates-resolved.tsv` #213。
+
+#### 28.213 /security-review + restart sentinel (#2584 — title IMPLEMENTED / desc covered variant)
+
+- **status**: title command landed; desc classified.
+- **判定**：标题 **IMPLEMENTED**；描述 **ALREADY_COVERED(variant)**。
+  - **标题语义（/security-review 代码安全审计命令）**：**IMPLEMENTED**——UI 新命令（`/review` 同款形态）：切 review 只读模式→注入安全向审计 prompt 走 governed send——专查注入面/凭据泄漏/路径越界/权限弱化/不可信内容当指令，按严重度排序+文件:行+修复建议，无发现如实说。
+  - **描述语义（gateway/restart sentinel——重启后 heartbeat 唤醒中断会话+重试外发投递）**：**已覆盖(variant)**——`recoveryTick` **实际恢复** durable jobs（attempt N+1、orphan adopt/steal）强于 best-effort note；`scheduled_job_done` webhook 有界重投+delivered 幂等=重试外发；session_heartbeat 事件族在册。
+- **位点**：`app/ui/app.js`（命令面）。
+- **证据**：app lint 净、`node --check` 过。
+- **核销**：candidates-open #2584 → `candidates-resolved.tsv` #214。

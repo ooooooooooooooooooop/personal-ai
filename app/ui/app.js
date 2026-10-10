@@ -575,10 +575,25 @@ function endTool(ev) {
   const out = resultText(ev.result);
   if (out) {
     const body = el.querySelector('.tool-body');
-    body.insertAdjacentHTML('beforeend',
-      `<div class="tb-label">输出</div><pre class="${ev.isError ? 't-err' : ''}"></pre>`);
-    const pres = body.querySelectorAll('pre');
-    pres[pres.length - 1].textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
+    const outWrap = document.createElement('div');
+    outWrap.className = 'tb-out-section';
+    outWrap.innerHTML = `
+      <div class="tb-head-row">
+        <div class="tb-label">输出</div>
+        <button class="tb-copy-btn" type="button" title="复制完整输出内容">复制</button>
+      </div>
+      <pre class="${ev.isError ? 't-err' : ''}"></pre>`;
+    const pre = outWrap.querySelector('pre');
+    pre.textContent = out.length > 6000 ? `${out.slice(0, 6000)}\n…（截断）` : out;
+    const copyBtn = outWrap.querySelector('.tb-copy-btn');
+    copyBtn.onclick = (e) => {
+      e.stopPropagation();
+      navigator.clipboard?.writeText(out).then(() => {
+        copyBtn.textContent = '已复制';
+        setTimeout(() => { copyBtn.textContent = '复制'; }, 1500);
+      });
+    };
+    body.appendChild(outWrap);
   }
   // browser_screenshot → inline preview (Trae browser-preview analogue);
   // served through /api/artifact, which only exposes <instance>/exports/**
@@ -1387,6 +1402,13 @@ function onAgentEvent(ev) {
 }
 
 /* meta chips under finished assistant messages: model + tokens + cost */
+const STOP_REASON_LABEL = {
+  max_tokens: '截断（达输出上限）',
+  length: '截断（Token 超限）',
+  error: '异常中断',
+  aborted: '已中止',
+  cancelled: '已取消'
+};
 function attachMeta(el, m) {
   if (!el || el.querySelector('.msg-meta')) return;
   const meta = document.createElement('div');
@@ -1401,7 +1423,8 @@ function attachMeta(el, m) {
     if (u.cost?.total) parts.push(`<span class="meta-chip">$${Number(u.cost.total).toFixed(4)}</span>`);
   }
   if (m.stopReason && !['stop', 'end_turn', 'toolUse', 'tool_use'].includes(m.stopReason)) {
-    parts.push(`<span class="meta-chip warn">${escHtml(m.stopReason)}</span>`);
+    const label = STOP_REASON_LABEL[m.stopReason] ?? m.stopReason;
+    parts.push(`<span class="meta-chip warn" title="中断原因: ${escHtml(m.stopReason)}">${escHtml(label)}</span>`);
   }
   meta.innerHTML = parts.join('');
   el.appendChild(meta);
@@ -1412,6 +1435,8 @@ function setBusy(v) {
   $('send').classList.toggle('hidden', v);
   $('abort').classList.toggle('hidden', !v);
   $('steer').disabled = !v;
+  $('composer')?.classList.toggle('is-busy', v);
+  if ($('input')) $('input').placeholder = v ? '输入以插话追加指示，或按 Enter 排队发送…' : '输入需求或问题…';
   setStatus(v ? '运行中…' : '就绪');
 }
 
@@ -1422,17 +1447,22 @@ let state = null;         // last get_state payload (+stats) — statusline sour
 function updateUsageChip() {
   const el = $('usage-chip');
   const parts = [];
+  let pct = null;
   if (lastCtxUsage?.tokens != null) {
     const k = (lastCtxUsage.tokens / 1000).toFixed(1);
     const w = lastCtxUsage.contextWindow ? `${Math.round(lastCtxUsage.contextWindow / 1000)}k` : null;
-    parts.push(`⛁ ${k}k${w ? `/${w}` : ''}${lastCtxUsage.percent != null ? ` ${Math.round(lastCtxUsage.percent)}%` : ''}`);
+    pct = lastCtxUsage.percent != null ? Math.round(lastCtxUsage.percent) : null;
+    parts.push(`⛁ ${k}k${w ? `/${w}` : ''}${pct != null ? ` ${pct}%` : ''}`);
   }
   // getSessionStats totals cover compacted-away history — prefer them over
   // the replay-side accumulation whenever the body reports them.
-  const st = state.stats;
+  const st = state?.stats;
   const cost = st?.cost ?? sessionCost;
   if (cost > 0) parts.push(`$${cost.toFixed(4)}`);
   el.textContent = parts.join(' · ');
+  el.className = 'chip dim usage';
+  if (pct != null && pct >= 90) el.classList.add('danger');
+  else if (pct != null && pct >= 75) el.classList.add('warn');
   el.title = (lastCtxUsage?.tokens != null
     ? `上下文 ${lastCtxUsage.tokens?.toLocaleString?.()}/${lastCtxUsage.contextWindow?.toLocaleString?.()} tok` : '')
     + (st ? `；会话累计 ${st.tokens?.total?.toLocaleString?.() ?? '?'} tok（缓存读 ${st.tokens?.cacheRead?.toLocaleString?.() ?? 0}）· ${st.totalMessages ?? '?'} 条 · $${(st.cost ?? 0).toFixed(4)}` : '');
@@ -1472,9 +1502,17 @@ async function showCtxBreakdown() {
   ].filter(([, v]) => v > 0);
   const sum = rows.reduce((a, [, v]) => a + v, 0) || 1;
   const box = $('ctx-pop');
+  const st = state?.stats;
+  const cost = st?.cost ?? sessionCost;
+  const msgCount = st?.totalMessages;
+  const foot = (cost > 0 || msgCount) ? `
+    <div class="ctx-foot">
+      ${cost > 0 ? `<span>会话费用: $${cost.toFixed(4)}</span>` : ''}
+      ${msgCount ? `<span>消息总数: ${msgCount} 条</span>` : ''}
+    </div>` : '';
   box.innerHTML = `<div class="ctx-title">上下文分解（估算）· ${total.toLocaleString()} tok</div>
     <div class="ctx-bar">${rows.map(([n, v, c]) => `<span style="width:${(100 * v / sum).toFixed(1)}%;background:${c}" title="${n}"></span>`).join('')}</div>
-    ${rows.map(([n, v, c]) => `<div class="ctx-row"><i style="background:${c}"></i><span>${n}</span><b>${Math.round(v).toLocaleString()}</b><em>${Math.round(100 * v / sum)}%</em></div>`).join('')}`;
+    ${rows.map(([n, v, c]) => `<div class="ctx-row"><i style="background:${c}"></i><span>${n}</span><b>${Math.round(v).toLocaleString()}</b><em>${Math.round(100 * v / sum)}%</em></div>`).join('')}${foot}`;
   box.classList.toggle('hidden');
 }
 $('usage-chip').onclick = () => showCtxBreakdown();
@@ -1485,6 +1523,15 @@ document.addEventListener('click', (e) => {
 
 /* ---------- supervisor events ---------- */
 const PHASES = ['prepared', 'quiesced', 'checkpointed', 'released', 'acquired', 'resumed', 'verified'];
+const PHASE_META = {
+  prepared: { label: '准备', desc: '检查环境与就绪条件' },
+  quiesced: { label: '静默', desc: '等待当前任务安全停机' },
+  checkpointed: { label: '封存', desc: '持久化会话快照与状态' },
+  released: { label: '释约', desc: '释放宿主独占写入租约' },
+  acquired: { label: '授约', desc: '新引擎接管写入租约' },
+  resumed: { label: '恢复', desc: '加载上下文与运行环境' },
+  verified: { label: '校验', desc: '验证状态连续性与通道' }
+};
 let handoffEl = null;
 function onSupervisor(ev) {
   if (ev.kind === 'handoff_phase' || ev.kind === 'select_start') {
@@ -1496,13 +1543,27 @@ function onSupervisor(ev) {
       transcript.appendChild(handoffEl);
     }
     const at = ev.phase ? PHASES.indexOf(ev.phase) : -1;
-    handoffEl.innerHTML = '身体切换 · ' + (ev.handoffId ?? '') + '<br>' + PHASES.map((p, i) => {
-      const cls = ev.phase === 'failed' ? (i <= at ? 'done' : '')
-        : i < at ? 'done' : i === at ? 'now' : '';
-      return `<span class="ph ${cls}">${cls === 'done' ? '✓' : '·'} ${p}</span>`;
-    }).join('') + (ev.phase === 'failed' ? `<div class="ph fail">${ev.reason ?? ''}</div>` : '');
+    const isFail = ev.phase === 'failed';
+    handoffEl.innerHTML = `
+      <div class="handoff-head">
+        <div class="handoff-title">
+          <svg class="handoff-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+          <span>AI 引擎连续性无缝交接</span>
+        </div>
+        <span class="handoff-id">${ev.handoffId ? `交接号: ${escHtml(ev.handoffId.slice(0, 14))}` : ''}</span>
+      </div>
+      <div class="handoff-steps">
+        ${PHASES.map((p, i) => {
+          const meta = PHASE_META[p] || { label: p, desc: '' };
+          const cls = isFail ? (i <= at ? 'done' : '') : i < at ? 'done' : i === at ? 'now' : 'pending';
+          const icon = cls === 'done' ? '✓' : cls === 'now' ? '●' : '○';
+          return `<div class="ph ho-step ${cls}" title="${meta.desc}"><span class="ho-icon">${icon}</span><span class="ho-label">${meta.label}</span></div>`;
+        }).join('')}
+      </div>
+      ${isFail ? `<div class="ph fail ho-fail"><span>交接被阻断：${escHtml(ev.reason ?? '已安全回退到原引擎')}</span></div>` : ''}
+    `;
     scrollTail();
-    if (ev.phase === 'failed') addSys(`身体切换失败：${ev.reason ?? '未知'}`, true);
+    if (isFail) addSys(`身体切换失败：${ev.reason ?? '未知'}`, true);
   } else if (ev.kind === 'select_done') {
     $('switch-progress').classList.remove('on');
     handoffEl = null;
@@ -3237,17 +3298,19 @@ async function refreshChanges() {
     tr.querySelector('.change-path').title = op.target ?? '';
     tr.querySelector('td:nth-child(3)').textContent = op.at ? new Date(op.at).toLocaleString('zh-CN', { hour12: false }) : '';
     const actCell = tr.querySelector('td:last-child');
+    actCell.className = 'change-cell-actions';
     // per-receipt diff preview — Trae 逐改动面板语义：先看差异再决定回滚
     const dbtn = document.createElement('button');
-    dbtn.className = 'btn ghost sm';
+    dbtn.className = 'btn ghost sm diff-toggle';
     dbtn.textContent = '差异';
     dbtn.title = `回执 ${op.receiptId} — 备份与现状的 unified diff`;
     let diffRow = null;
     dbtn.onclick = async () => {
-      if (diffRow) { diffRow.remove(); diffRow = null; return; }
+      if (diffRow) { diffRow.remove(); diffRow = null; dbtn.classList.remove('active'); return; }
       dbtn.disabled = true;
       const rd = await cmd('fileops_diff', { receiptId: op.receiptId });
       dbtn.disabled = false;
+      dbtn.classList.add('active');
       diffRow = document.createElement('tr');
       const td = document.createElement('td');
       td.colSpan = 4;
@@ -3268,7 +3331,7 @@ async function refreshChanges() {
     actCell.appendChild(dbtn);
     if (op.undoable) {
       const btn = document.createElement('button');
-      btn.className = 'btn ghost sm';
+      btn.className = 'btn ghost sm restore-btn';
       btn.textContent = op.op === 'create' ? '撤销新建' : '恢复';
       btn.title = `回执 ${op.receiptId} — 恢复到变更前状态`;
       btn.onclick = async () => {
@@ -3284,7 +3347,7 @@ async function refreshChanges() {
     // to just before this receipt.
     if (op.toolCallId) {
       const cbtn = document.createElement('button');
-      cbtn.className = 'btn ghost sm';
+      cbtn.className = 'btn ghost sm undo-call-btn';
       cbtn.textContent = '撤调用';
       cbtn.title = `撤销调用 ${op.toolCallId} 的全部文件变更`;
       cbtn.onclick = async () => {
@@ -3296,7 +3359,7 @@ async function refreshChanges() {
       actCell.appendChild(cbtn);
     }
     const wbtn = document.createElement('button');
-    wbtn.className = 'btn ghost sm';
+    wbtn.className = 'btn ghost sm rewind-btn';
     wbtn.textContent = '回退到此';
     wbtn.title = '撤销此回执及之后全部文件变更（回到该变更之前的工作区状态）';
     wbtn.onclick = async () => {
@@ -4106,6 +4169,17 @@ const SLASH = [
       if (!r.success) { addSys(`切审查模式失败：${r.error ?? '未知'}`, true); return; }
       refreshMode();
       input.value = '审查当前工作区的未提交变更：用 fileops 回执/git diff 看每个改动，指出问题、风险与建议修复，按严重度排序。';
+      autogrow();
+      await send();
+    },
+  },
+  {
+    cmd: '/security-review', label: '安全审查', hint: '切审查模式并对未提交变更做安全向审计（注入/凭据/边界/权限）',
+    run: async () => {
+      const r = await cmd('mode_set', { name: 'review' });
+      if (!r.success) { addSys(`切审查模式失败：${r.error ?? '未知'}`, true); return; }
+      refreshMode();
+      input.value = '对当前工作区未提交变更做安全审查：逐改动看 fileops 回执/git diff，专门检查注入面（shell/SQL/模板）、凭据与密钥泄漏、路径越界、权限与准入弱化、不可信内容当指令执行。按严重度排序输出发现，每条给出文件:行与修复建议；没有问题就明说。';
       autogrow();
       await send();
     },
@@ -4972,10 +5046,28 @@ function renderQueue() {
   queue.forEach((q, i) => {
     const chip = document.createElement('div');
     chip.className = 'q-chip';
-    chip.innerHTML = `<span class="q-text"></span><button class="q-btn" title="立即转向发送">转向</button><button class="q-x" title="移除">×</button>`;
+    chip.innerHTML = `<span class="q-badge">排队中</span><span class="q-text"></span><button class="q-btn q-edit" title="回退到输入框修改">编辑</button><button class="q-btn q-steer" title="立即插话转向">插话</button><button class="q-x" title="移除">×</button>`;
     const label = q.label ?? q.text;
     chip.querySelector('.q-text').textContent = label.length > 60 ? `${label.slice(0, 60)}…` : label;
-    chip.querySelector('.q-btn').onclick = async () => {
+    chip.querySelector('.q-edit').onclick = () => {
+      queue.splice(i, 1);
+      renderQueue();
+      if (q.attachments?.length) {
+        for (const a of q.attachments) {
+          pendingAttach.push({
+            name: a.name,
+            kind: String(a.mime ?? '').startsWith('image/') ? 'image' : 'media',
+            data: a.data, mimeType: a.mime, bytes: a.bytes,
+          });
+        }
+        renderAttach();
+      }
+      input.value = q.typed ?? q.label ?? q.text;
+      prevDraft = input.value;
+      autogrow();
+      input.focus();
+    };
+    chip.querySelector('.q-steer').onclick = async () => {
       queue.splice(i, 1); renderQueue();
       const r = await cmd('steer', { message: q.text });
       if (!r.success) addSys(`插话失败：${r.error ?? '未知'}`, true);
