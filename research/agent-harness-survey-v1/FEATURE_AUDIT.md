@@ -5469,3 +5469,9 @@ MISSING 终裁表中的 host/会话面七项全部实装，各项均带哨兵回
 - **status**: classification only.
 - **判定**：manual#7982 **COVERED**——per-spawn model+effort 覆盖（#1169）+profile effort 档。#8079 **COVERED(variant)**——子代理审批走 operator ask 决定墙（比 leader-routing 更强的信任根；Permission Bridge 面不存）。#30399 **COVERED**——modelroutes.json+profile model。#36729/#36730 **COVERED**——`task_send`→inbox→bridge steer 注入 running child（工具描述明示 mid-run steering）。#36742 **PARTIAL(variant)**——`task_wait` 单任务+有界超时轮询，无跨任务 wait_any 面。#36743 **COVERED(variant)**——depends_on 队列+并行 spawn=staged fan-out 对应物。#36763 **COVERED(variant)**——inbox/outbox 双向信箱=clarification 通道。#64287 **BOUNDARY**——ACP 外部代理委派面不存在。#64371 **COVERED(variant)**——per-subagent model routes 覆盖 fastModel 语义。
 - **核销**：`candidates-resolved.tsv` #533–#541。
+
+#### 28.509 BTW/peer/读命令/延迟工具簇（12 keys）
+
+- **status**: classification only.
+- **判定**：BTW 侧问族（manual#59187/#59211/#60572/#65043）**COVERED(variant)**——`steer` 中轮转写+`queue` 客户端排队（busy→queue→turn 末自动发）=侧问不打断主流对应物。peer IPC 族（#59180/#59181/#59182/#61329）**BOUNDARY**——无 peer-session IPC 面（`postInbox` refused 有 honest refused 理由=task 级变体注）。#60555+#64919 读命令 mid-turn **COVERED**——slash/`cmd()` 直发 channel op 不走 busy 旗（session_history/pending_list/todos_list 随时可用），模型命令 dedup-h#143 排队至 turn 末。#59811+#59816 延迟工具 schema **COVERED(variant)**——spec `defer_loading:true` 惰性注册+`tool_search` 发现+`tool_activate` 认领（per-server opt-in 而非全局内建延迟，如实注）。
+- **核销**：`candidates-resolved.tsv` #543–#554。

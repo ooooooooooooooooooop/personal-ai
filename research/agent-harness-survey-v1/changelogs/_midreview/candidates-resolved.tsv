@@ -541,3 +541,15 @@ manual	36743	delegate	pipeline staged fan-out	COVERED(variant):depends_on+parall
 manual	36763	delegate	clarification pause-ask	COVERED(variant):inbox/outbox two-way
 manual	64287	delegate	external ACP delegate	BOUNDARY:no ACP surface
 manual	64371	delegate	fastModel explore	COVERED(variant):per-subagent routes
+manual	59187	btw	side questions	COVERED(variant):steer mid-turn+client queue
+manual	59211	btw	through agent bridges	COVERED(variant):same family
+manual	60572	btw	side-question suggestion	COVERED(variant):same family
+manual	65043	btw	/btw improved	COVERED(variant):same family
+manual	59180	ipc	refused notify+expiry	BOUNDARY:no peer-session IPC (task inbox refused=honest variant)
+manual	59181	ipc	peer inbox reachability	BOUNDARY:same
+manual	59182	ipc	hold peer msgs review	BOUNDARY:same
+manual	61329	ipc	cross-session messaging	BOUNDARY:same
+manual	60555	cmd	read-only mid-turn	COVERED:slash/cmd bypass busy flag
+manual	64919	cmd	safe slash mid-stream	COVERED:same
+manual	59811	tools	defer low-freq builtins	COVERED(variant):defer_loading spec opt-in
+manual	59816	tools	ToolSearch deferred schemas	COVERED(variant):tool_search+tool_activate
