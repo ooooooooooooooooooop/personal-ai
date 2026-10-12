@@ -346,7 +346,7 @@
       "name": "chatgpt-web-bridge",
       "path": "./skills/chatgpt-web-bridge",
       "version": "0.1.1",
-      "description": "通过 chatgpt-web 桥把本地 agent 接入 ChatGPT 网页版：网页端当大脑，本地只做传输与执行。四种模式：推进（含纠偏）、指挥循环、对等协作（手动触发）、只读拉取。",
+      "description": "通过 chatgpt-web 的 MCP/REST 桥接入已登录的 ChatGPT 网页版。四种模式：推进（含纠偏）、指挥循环、对等协作（手动触发）、只读拉取会话/项目资料；conversation_id 专线续接。",
       "lang": [
         "zh"
       ],
