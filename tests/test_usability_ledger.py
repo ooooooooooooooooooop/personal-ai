@@ -94,6 +94,54 @@ class TestIngest(unittest.TestCase):
             ])
             self.assertEqual(ul.ingest_session(f, "test")["metrics"]["large_pastes"], 1)
 
+    def test_dsh_envelope_calibration(self):
+        """C1 校准后的真实 DSH 形态：type + data 载荷，错误是部件 isError。"""
+        with tempfile.TemporaryDirectory() as td:
+            f = _session(Path(td), "s.jsonl", [
+                {"time": "2026-10-01T10:00:00+08:00", "type": "user/message",
+                 "data": {"role": "user", "content": [{"type": "text", "text": "帮我看看这个脚本为什么报错"}]}},
+                {"time": "2026-10-01T10:00:08+08:00", "type": "assistant/message",
+                 "data": {"message": {}, "step": 1, "turn": 1}},
+                {"time": "2026-10-01T10:00:09+08:00", "type": "tool/call",
+                 "data": {"callId": "c1", "name": "bash", "arguments": "..."}},
+                {"time": "2026-10-01T10:00:10+08:00", "type": "tool/result",
+                 "data": {"message": {"content": [
+                     {"type": "tool-result", "toolCallId": "c1", "isError": True, "content": []}]}}},
+                {"time": "2026-10-01T10:00:11+08:00", "type": "assistant/chunk", "data": {}},
+                {"time": "2026-10-01T10:01:00+08:00", "type": "user/message",
+                 "data": {"role": "user", "content": [{"type": "text", "text": "帮我看看这个脚本为什么报错"}]}},
+            ])
+            m = ul.ingest_session(f, "dsh")["metrics"]
+            self.assertEqual(m["user_turns"], 2)
+            self.assertEqual(m["repeat_user_msgs"], 1)
+            self.assertEqual(m["tool_calls"], 1)
+            self.assertEqual(m["tool_errors"], 1)      # isError 部件
+            self.assertEqual(m["unknown_events"], 0)   # chunk 是已校准非指标
+            self.assertEqual(m["first_response_latency_s"], 8.0)
+
+    def test_pi_envelope_calibration(self):
+        """pi（app 层）形态：type 恒为 message，分类在 role；工具调用是部件。"""
+        with tempfile.TemporaryDirectory() as td:
+            f = _session(Path(td), "s.jsonl", [
+                {"timestamp": "2026-10-01T10:00:00+08:00", "type": "message",
+                 "message": {"role": "user", "content": [{"type": "text", "text": "帮我看看这个脚本为什么报错"}]}},
+                {"timestamp": "2026-10-01T10:00:08+08:00", "type": "message",
+                 "message": {"role": "assistant", "content": [
+                     {"type": "text", "text": "..."},
+                     {"type": "toolCall", "id": "c1", "name": "bash", "arguments": {}}]}},
+                {"timestamp": "2026-10-01T10:00:10+08:00", "type": "message",
+                 "message": {"role": "toolResult", "toolCallId": "c1", "toolName": "bash",
+                             "isError": True, "content": [{"type": "text", "text": "..."}]}},
+                {"timestamp": "2026-10-01T10:00:11+08:00", "type": "model_change"},
+            ])
+            m = ul.ingest_session(f, "pi")["metrics"]
+            self.assertEqual(m["user_turns"], 1)
+            self.assertEqual(m["agent_turns"], 1)
+            self.assertEqual(m["tool_calls"], 1)       # assistant 的 toolCall 部件
+            self.assertEqual(m["tool_errors"], 1)      # toolResult.isError
+            self.assertEqual(m["unknown_events"], 0)   # model_change 已校准
+            self.assertEqual(m["first_response_latency_s"], 8.0)
+
 
 class TestEvaluate(unittest.TestCase):
     def _fill(self, start: date, n: int, turns: int, err_sig: str | None,

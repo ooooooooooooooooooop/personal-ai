@@ -48,9 +48,28 @@
 
 ```bash
 python scripts/usability/usability_ledger.py ingest --sessions-dir ~/.dsh/sessions --harness dsh
+python scripts/usability/usability_ledger.py ingest --sessions-dir ~/.personal-ai/instance/sessions --harness pi
 python scripts/usability/usability_ledger.py status
 python scripts/usability/usability_ledger.py evaluate
 ```
+
+## 4.1 首次真实校准记录（2026-10-12，C1 完成）
+
+校准方法遵守凭据纪律的同类约束：**只看事件 type 名与结构键名的直方图，永不读内容值**。
+
+- DSH（884 会话，2026-08-18 ~ 09-18）：真实词汇是 envelope 型（`type` + `data` 载荷），
+  默认映射全不中。校准后 `_DEFAULT_TYPE_MAP` 收录 `user/message`、`assistant/message`、
+  `tool/call`、`tool/result`；错误信号是 result 部件的 `isError` 布尔 + `callId` 回联工具名
+  （错误签名粒度为 `工具|isError`——无结构化错误类可用，诚实降级）。
+  流式/生命周期事件（`assistant/chunk` 等 30 种）收进 `_KNOWN_NON_METRIC`，
+  校准后 `unknown_events` 从 ~120 万/884 会话降到 **0**。
+- pi / app 层（`~/.personal-ai/instance/sessions`，6 会话起步）：`type` 恒为 `message`，
+  分类在 `message.role`；工具调用是 assistant content 的 `toolCall` 部件；
+  `toolResult` 本体带 `isError`+`toolName`。校准后 `unknown_events` = 0。
+- 观测到一个**不记账但值得关注**的信号：`llm/retry` 在 DSH 会话中出现 3551 次
+  （≈4 次/会话）。是否升级为 schema v2 指标属未来的新版预注册，本轮不动。
+- 评估首次运行：`INSUFFICIENT_DATA`——当前 28 天窗口仅 1 个 DSH 会话
+  （09-18 后工作流迁到 app），符合预注册规则的诚实输出；app 会话随使用积累。
 
 ## 5. 边界与诚实声明
 
@@ -58,4 +77,7 @@ python scripts/usability/usability_ledger.py evaluate
   结论永远读作"这些客观摩擦在减少/增加"，不读作"用户更喜欢了"。
 - `large_pastes` 是人工转写的代理（也可能是一次性贴日志，属正常）；单指标不判刑，
   判定只看 6 项整体方向。
-- app 层（自有 UI）会话的 ingest 是预留扩展点，v1 只覆盖 DSH 会话 JSONL。
+- ~~app 层（自有 UI）会话的 ingest 是预留扩展点~~ → 已于 2026-10-12 校准接入（见 §4.1）。
+- 本机注意：`PERSONAL_AI_HOME` 指向 private canonical git 仓，ledger 的
+  refuse-git 守卫会拒绝落在那里——**默认根 `~/.personal-ai`（app 实例旁）才是正确位置**，
+  或显式 `--root`。这是守卫按设计工作，不是故障。

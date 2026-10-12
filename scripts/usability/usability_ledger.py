@@ -95,12 +95,51 @@ def ledger_dir(root: Path | None = None) -> Path:
 
 # ---- ingest：会话 JSONL → 一行客观记账 -----------------------------------
 # 事件分类映射是可配置的结构元数据（事件 type 名），不含任何内容。
+# 2026-10-12 首次真实校准（C1）：对 884 个真实 DSH 会话做"仅 type 名直方图"
+# 后的结果——真实词汇是 envelope 型（type + data 载荷），默认名全不匹配。
 _DEFAULT_TYPE_MAP = {
-    "user": {"user", "user_message", "human", "human_message", "input"},
-    "agent": {"assistant", "agent", "agent_message", "assistant_message", "output"},
-    "tool_call": {"tool_call", "tool_use", "function_call", "action"},
+    "user": {"user", "user_message", "human", "human_message", "input",
+             "user/message"},
+    "agent": {"assistant", "agent", "agent_message", "assistant_message", "output",
+              "assistant/message"},
+    "tool_call": {"tool_call", "tool_use", "function_call", "action",
+                  "tool/call"},
     "tool_error": {"tool_error", "tool_failure", "error", "action_failed"},
+    # DSH 错误不走独立 type：tool/result 的 content 部件带 isError 布尔；
+    # pi 的 toolResult message 本体直接带 isError + toolName
+    "tool_result": {"tool_result", "tool/result", "toolresult"},
 }
+
+# 已识别但不构成指标的流式/生命周期事件（同一真实直方图校准）。
+# 它们不计入 unknown_events——unknown 留给真正没见过的类型，校准后应 ≈0。
+_KNOWN_NON_METRIC = {
+    "assistant/chunk", "tool-call-chunks", "reasoning-chunks", "text-chunks",
+    "step/start", "step/end", "turn/start", "turn/end",
+    "request/context", "request/header",
+    "session", "session/end-seed", "session/title", "session/title-llm-request",
+    "compaction/start", "compaction/end", "compaction/prune", "compaction/summary",
+    "todo/write", "sandbox/mode", "approval/policy", "permission/preset",
+    "approval/asked", "approval/decided",
+    "agent/inbox/spliced", "subagent/descriptor", "goal/change", "schedule/change",
+    "agent-preset/selected",
+    "command/run", "command/done",
+    "tool-workflow/agent-start", "tool-workflow/agent-end",
+    "tool-workflow/run-start", "tool-workflow/run-end",
+    "llm/retry", "llm/retry-started",
+    # pi（app 层）生命周期事件
+    "model_change", "thinking_level_change",
+}
+
+
+def _payload(ev: dict) -> dict:
+    """envelope 解包：DSH 载荷在 data 子对象，pi 在 message 子对象，平铺事件原样返回。"""
+    d = ev.get("data")
+    if isinstance(d, dict):
+        return d
+    msg = ev.get("message")
+    if isinstance(msg, dict):
+        return msg
+    return ev
 
 
 def _read_events(path: Path) -> list[dict]:
@@ -159,6 +198,7 @@ def ingest_session(path: Path, harness: str, type_map: dict | None = None) -> di
     m.update({k: None for k in _METRIC_KEYS_FLOAT})
     err_sigs: list[str] = []
     seen_user_norm: set[str] = set()
+    call_tools: dict[str, str] = {}  # callId → 工具名（tool/call 先于 tool/result）
     first_user_t: datetime | None = None
     first_agent_t: datetime | None = None
     times: list[datetime] = []
@@ -168,13 +208,18 @@ def ingest_session(path: Path, harness: str, type_map: dict | None = None) -> di
         if t:
             times.append(t)
         etype = str(ev.get("type", ev.get("role", ""))).lower()
+        if etype == "message":
+            # pi：外层 type 恒为 "message"，真分类在 message.role
+            etype = str(_payload(ev).get("role", "")).lower()
+        payload = _payload(ev)
         if etype in tm["user"]:
             m["user_turns"] += 1
             if first_user_t is None and t:
                 first_user_t = t
-            content = ev.get("content", ev.get("text", ""))
+            content = payload.get("content", payload.get("text", ""))
             if isinstance(content, list):
-                content = "".join(p.get("text", "") for p in content if isinstance(p, dict))
+                content = "".join(p.get("text", "") for p in content
+                                  if isinstance(p, dict) and isinstance(p.get("text"), str))
             if isinstance(content, str):
                 lines = content.count("\n") + 1
                 if lines >= LARGE_PASTE_LINES:
@@ -189,11 +234,36 @@ def ingest_session(path: Path, harness: str, type_map: dict | None = None) -> di
             m["agent_turns"] += 1
             if first_agent_t is None and t:
                 first_agent_t = t
+            # pi：工具调用是 assistant message content 里的 toolCall 部件
+            for part in (payload.get("content") or []):
+                if isinstance(part, dict) and str(part.get("type", "")).lower() == "toolcall":
+                    m["tool_calls"] += 1
+                    if part.get("id"):
+                        call_tools[str(part["id"])] = str(part.get("name", "?"))[:64]
         elif etype in tm["tool_call"]:
             m["tool_calls"] += 1
+            cid = payload.get("callId") or payload.get("id")
+            if cid:
+                call_tools[str(cid)] = str(payload.get("name", payload.get("tool", "?")))[:64]
+        elif etype in tm.get("tool_result", ()):
+            msg = payload.get("message") if isinstance(payload.get("message"), dict) else payload
+            if msg.get("isError") is True:
+                # pi 形态：错误标志在 message 本体，工具名直接给出
+                m["tool_errors"] += 1
+                tool = str(msg.get("toolName", ""))[:64] or call_tools.get(str(msg.get("toolCallId", "")), "?")
+                err_sigs.append(_hash(f"{tool}|isError"))
+                continue
+            for part in (msg.get("content") or []):
+                # DSH 形态：错误标志在 tool-result 部件上，工具名由 callId 回联
+                if isinstance(part, dict) and part.get("isError") is True:
+                    m["tool_errors"] += 1
+                    tool = call_tools.get(str(part.get("toolCallId", "")), "?")
+                    err_sigs.append(_hash(f"{tool}|isError"))
         elif etype in tm["tool_error"]:
             m["tool_errors"] += 1
             err_sigs.append(_error_signature(ev))
+        elif etype in _KNOWN_NON_METRIC:
+            pass  # 已校准的非指标事件：不记 unknown
         else:
             m["unknown_events"] += 1
 
