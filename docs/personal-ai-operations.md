@@ -201,6 +201,11 @@ Need → Impact → Proposal → Implementation → Verification → Regression
 示例：新增 provider/model/harness、换机器、DSH 升级、MemoryProvider 替换、KMS 上线。
 没有 Phase 8/9/10。
 
+**评审文档持久化纪律（B3，2026-10-12 立）**：任何架构评审/变更评审文档，
+产出时必须落在**仓库 `docs/` 或 `<BACKUP_ROOT>` 证据目录**之一，禁止只存在于
+会话上下文或临时目录。先例教训：BACKUP_KEY_ARCHITECTURE_REVIEW.md 仅存于会话，
+会话结束后遗失，Gen3 决策的评审依据无法回放——本条目即为此纪律的起源。
+
 ## 11.1 DSH Managed Upgrade Lifecycle（正式入口）
 
 DSH 的 managed composition 升级收敛到版本化模型：`CURRENT_ACCEPTED / PREVIOUS_ACCEPTED / CANDIDATE`。
