@@ -598,8 +598,20 @@ pre:hover .code-copy, .code-copy.copied, .code-copy:focus-visible { opacity: 1; 
 .send-btn svg { width: 15px; height: 15px; }
 .send-btn:hover:not(:disabled) { opacity: .9; transform: scale(1.04); }
 .send-btn:disabled { background: var(--g700); color: var(--g500); cursor: default; box-shadow: none; }
-.send-btn.stop { background: var(--red); color: #ffffff; border: none; }
-.send-btn.stop:hover { opacity: .9; }
+
+/* UX review 序3 / 例外 B: while running, 中止 is a standalone full-width
+   strip above the composer — position + area + color say "interrupt",
+   no reliance on a text label or a toolbar slot among mode chips. */
+.abort-strip {
+  width: 100%; flex: none; margin-bottom: 6px; padding: 9px 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--red); color: #ffffff; border: none;
+  border-radius: var(--r-md); cursor: pointer;
+  box-shadow: 0 1px 6px rgba(248, 113, 113, 0.35);
+  transition: opacity .15s var(--ease-spring);
+}
+.abort-strip svg { width: 16px; height: 16px; }
+.abort-strip:hover { opacity: .9; }
 
 /* ---------------- bodies view ---------------- */
 .page-head { padding: 26px 32px 6px; max-width: 1080px; width: 100%; margin: 0 auto; }
@@ -922,6 +934,14 @@ pre:hover .code-copy, .code-copy.copied, .code-copy:focus-visible { opacity: 1; 
   transition: border-color .18s;
 }
 .set-card:hover { border-color: var(--line); }
+
+/* UX review 序9: pure-preference cards (外观) sit at the bottom of the
+   page with reduced weight — AI 可代劳的偏好设置不应与密钥/准入同级。 */
+.set-card.quiet {
+  background: transparent; border-style: dashed; box-shadow: none;
+  opacity: .78;
+}
+.set-card.quiet:hover { opacity: 1; }
 .set-card-title { font-size: 15px; font-weight: 650; margin-bottom: 14px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
 .set-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .set-row label { flex: none; width: 76px; font-size: 12.5px; color: var(--text-3); }

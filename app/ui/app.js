@@ -857,11 +857,15 @@ function addAskCard(ask) {
   if (payload.classList?.contains('ask-detail') === false) payload.className = 'ask-detail';
   if (ask.argsTruncated) {
     // WYSIWYG guard: never silently clip — tell the operator the approval
-    // covers a payload larger than what is shown. "总是允许" is withheld:
-    // a durable grant cannot be made over a clipped payload.
-    div.querySelector('[data-a="always"]')?.remove();
+    // covers a payload larger than what is shown. "总是允许" stays as the
+    // constant fourth button but is disabled with the reason in place
+    // (UX review 序4): a durable grant cannot be made over a clipped
+    // payload, and the legal choice set must not vary with a technical
+    // state — removing the button made users think it was lost.
+    const alwaysBtn = div.querySelector('[data-a="always"]');
+    if (alwaysBtn) alwaysBtn.disabled = true;
     payload.insertAdjacentHTML('beforeend',
-      `<div class="ask-trunc">载荷过长，仅显示截断前缀（完整参数 ${ask.argsTotalChars ?? '?'} 字符）——批准/拒绝作用于完整参数</div>`);
+      `<div class="ask-trunc">载荷过长，仅显示截断前缀（完整参数 ${ask.argsTotalChars ?? '?'} 字符）——批准/拒绝作用于完整参数；内容已截断，本次不能总是允许</div>`);
   }
   if (ask.argsRedacted) {
     // M116: secrets in the payload are masked before reaching the DOM —
