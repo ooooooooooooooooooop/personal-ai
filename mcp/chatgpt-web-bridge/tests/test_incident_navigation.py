@@ -84,3 +84,39 @@ def test_exact_origin_and_project_identity():
     assert navigation.target_matches(TARGET.replace(PROJECT, PROJECT + "-slug"), PROJECT)
     assert not navigation.target_matches(TARGET.replace("chatgpt.com", "chatgpt.com.evil.test"), PROJECT)
     assert not navigation.target_matches(TARGET + "/c/other", PROJECT)
+
+
+def test_nav_probe_trims_prosemirror_empty_artifact():
+    """2026-10-12 live-e2e finding: an empty ProseMirror composer reports
+    innerText "\\n" (placeholder paragraph), so the untrimmed length was 1
+    and the target_busy guard blocked EVERY new-chat send account-wide.
+    Pin the trim in the probe expression."""
+    import inspect
+    src = inspect.getsource(navigation.navigate_new_chat)
+    assert "draft_length:el ? (el.innerText || el.value || '').trim().length" in src
+
+
+async def test_nav_probe_script_is_valid_js(driver, tmp_path):
+    """The probe script is evaluated by the browser: a Python-side escape slip
+    (a real newline landing inside a JS string literal) only surfaces live as
+    CDPJSError SyntaxError — mock-based offline tests never parse the script.
+    Pin validity by capturing the script and parsing it with node."""
+    captured = []
+
+    async def capture(script):
+        captured.append(script)
+        raise ValueError("stop after capture")
+
+    driver._js_strict = AsyncMock(side_effect=capture)
+    with pytest.raises(navigation.NavigationError, match="probe_failed"):
+        await navigation.navigate_new_chat(driver)
+    assert captured, "probe script never reached the driver"
+    import shutil
+    import subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node unavailable for JS syntax check")
+    f = tmp_path / "probe.js"
+    f.write_text(captured[0], encoding="utf-8")
+    r = subprocess.run([node, "--check", str(f)], capture_output=True, text=True)
+    assert r.returncode == 0, f"probe script is not valid JS: {r.stderr}"

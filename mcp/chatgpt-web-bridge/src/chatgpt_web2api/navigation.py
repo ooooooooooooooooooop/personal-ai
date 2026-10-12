@@ -107,7 +107,11 @@ async def navigate_new_chat(driver, project_id=None):
       return JSON.stringify({url:location.href, ready_state:document.readyState,
         app_shell:!!document.querySelector('nav,[class*=sidebar]') || !!el,
         composer:!!el && !el.disabled && el.getBoundingClientRect().height > 0,
-        draft_length:el ? (el.innerText || el.value || '').length : 0,
+        // .trim(): an empty ProseMirror composer reports innerText as one
+        // newline (placeholder paragraph) — untrimmed length 1 false-positives
+        // as a draft and target_busy-blocks EVERY new-chat send (found by live
+        // e2e 2026-10-12: char code [10], placeholder visible, zero typing).
+        draft_length:el ? (el.innerText || el.value || '').trim().length : 0,
         retry_page:/^(重试|Retry|Try again)$/i.test(text),
         generating:!!document.querySelector('button[data-testid="stop-button"],button[aria-label="Stop streaming"]')});
     })()""" % (json.dumps(COMPOSER_SELECTOR), json.dumps(COMPOSER_FALLBACK_SELECTOR))
