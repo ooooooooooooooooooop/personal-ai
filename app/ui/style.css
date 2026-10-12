@@ -294,6 +294,9 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green-tile); }
 .dot.err { background: var(--red); box-shadow: 0 0 8px var(--red-tile); }
 
+/* 例外 A：断线时状态行就是重连入口——位置自明，靠 cursor 表达可点 */
+#status.clickable { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+
 /* ---------------- main / topbar ---------------- */
 main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); position: relative; }
 .topbar {
@@ -375,17 +378,6 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; background:
   border-radius: 4px; background: rgba(255, 255, 255, 0.15);
   border: 1px solid var(--line);
 }
-
-/* first-run tour card */
-#tour-card {
-  margin-top: 24px; padding: 18px 20px; text-align: left;
-  border: 1px solid var(--line-strong); border-radius: var(--r-md);
-  background: var(--bg-elev-opaque); max-width: 440px;
-  box-shadow: var(--shadow-card);
-}
-.tour-title { font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
-.tour-list { margin: 0 0 14px; padding-left: 18px; font-size: 12.5px; color: var(--text-3); line-height: 1.8; }
-.tour-list code { background: var(--field); border-radius: 4px; padding: 1px 5px; font-size: 11.5px; color: var(--text-2); }
 
 #empty-state {
   display: flex; flex-direction: column; align-items: center;
@@ -1367,18 +1359,6 @@ tr.clickable:hover td { background: var(--field); }
   display: flex; align-items: center; min-height: 18px;
   justify-content: center;
 }
-
-/* ---------------- empty-state starters ---------------- */
-#starters { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-.starter {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: 1px solid var(--line-strong); background: var(--panel); color: var(--text-2);
-  border-radius: var(--r-sm); padding: 7px 14px; font-size: 12.5px; cursor: pointer;
-  transition: all .15s var(--ease-spring);
-}
-.starter-icon { width: 14px; height: 14px; color: var(--accent); flex: none; opacity: 0.85; transition: transform .15s; }
-.starter:hover { border-color: var(--accent); color: var(--text); background: var(--bg-hover); transform: translateY(-0.5px); }
-.starter:hover .starter-icon { opacity: 1; transform: scale(1.1); }
 
 /* ---------------- attachments + ask truncation ---------------- */
 #attach-row { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 10px 0; }

@@ -5715,19 +5715,15 @@ async function steer() {
 }
 $('send').onclick = () => (busy ? steer() : send());
 $('steer').onclick = steer;
-for (const b of document.querySelectorAll('.starter')) {
-  b.onclick = () => { pushDraft(); input.value = b.dataset.q; autogrow(); input.focus(); };
-}
 $('abort').onclick = () => cmd('abort');
 
 /* ---------- SSE ---------- */
-const es = new EventSource('/events');
-es.onmessage = (m) => {
-  const rec = JSON.parse(m.data);
-  if (rec.type === 'event') onAgentEvent(rec.event);
-  else if (rec.type === 'audit') refreshAuditSoon();
-  else if (rec.type === 'supervisor') onSupervisor(rec.event);
-};
+/* 例外 A（AI 不在循环里）：桥断开时界面必须同时给出状态和出路——
+ * EventSource 自带自动重连；这里补上：已断时长、手动立即重连（点状态行）、
+ * 以及"正在输入的内容不会丢"（草稿在 localStorage，重连不刷新页面）。 */
+let es = null;
+let bridgeDownAt = 0;
+let bridgeTimer = null;
 let auditTimer = null;
 function refreshAuditSoon() {
   // While the operator is paging back through history, a live event must not
@@ -5736,22 +5732,45 @@ function refreshAuditSoon() {
   clearTimeout(auditTimer);
   auditTimer = setTimeout(refreshAudit, 400);
 }
-es.onerror = () => {
-  setStatus('连接断开，重试中…', 'err');
+function bridgeDown() {
+  if (bridgeDownAt) return; // every failed retry re-fires onerror; only first counts
+  bridgeDownAt = Date.now();
+  setStatus('连接断开——自动重连中，点这里立即重连；输入不会丢', 'err');
+  $('status').classList.add('clickable');
+  bridgeTimer = setInterval(() => {
+    const s = Math.round((Date.now() - bridgeDownAt) / 1000);
+    setStatus(`连接断开 ${s}s——点这里立即重连；输入不会丢`, 'err');
+  }, 1000);
   const ss = $('splash-status');
-  if (ss && !$('splash')?.classList.contains('done')) ss.textContent = '连接断开，重试中…';
-};
-es.onopen = () => {
-  setStatus('就绪');
-  window.__paiReady = true; // dedup-h #4089 — clears the splash recovery watchdog
-  refreshPending(); // asks raised while disconnected are still live
-  // splash is honest: it covers only the real connect wait, no fake progress
-  const sp = $('splash');
-  if (sp && !sp.classList.contains('done')) {
-    sp.classList.add('done');
-    setTimeout(() => sp.remove(), 450);
-  }
-};
+  if (ss && !$('splash')?.classList.contains('done')) ss.textContent = '连接断开——重连中…';
+}
+function connectEvents() {
+  if (es) { try { es.close(); } catch { /* already closed */ } }
+  es = new EventSource('/events');
+  es.onmessage = (m) => {
+    const rec = JSON.parse(m.data);
+    if (rec.type === 'event') onAgentEvent(rec.event);
+    else if (rec.type === 'audit') refreshAuditSoon();
+    else if (rec.type === 'supervisor') onSupervisor(rec.event);
+  };
+  es.onerror = bridgeDown;
+  es.onopen = () => {
+    bridgeDownAt = 0;
+    clearInterval(bridgeTimer); bridgeTimer = null;
+    $('status').classList.remove('clickable');
+    setStatus('就绪');
+    window.__paiReady = true; // dedup-h #4089 — clears the splash recovery watchdog
+    refreshPending(); // asks raised while disconnected are still live
+    // splash is honest: it covers only the real connect wait, no fake progress
+    const sp = $('splash');
+    if (sp && !sp.classList.contains('done')) {
+      sp.classList.add('done');
+      setTimeout(() => sp.remove(), 450);
+    }
+  };
+}
+$('status').addEventListener('click', () => { if (bridgeDownAt) connectEvents(); });
+connectEvents();
 
 /* chat column width drag — Codex resize handle analogue; --chat-w is the
    single var every centered row already keys off */
