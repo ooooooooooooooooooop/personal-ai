@@ -67,6 +67,34 @@ test('ui-dom: six experience surfaces render real data in the actual DOM', async
     backupCtl: { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 },
     govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 },
   }).start();
+
+  // A2 fixture: a COMPILED canonical projection (canonical_compile's output
+  // format, mind/canonical_compile.py) — briefing.md §1/§2/§3 feed the
+  // world-model card's first-class rows; runtime-state.json feeds the epoch
+  // pill. Written after start(): ensureInstance has provisioned the dir and
+  // world_model_status reads at call time.
+  mkdirSync(join(dir, 'canonical'), { recursive: true });
+  writeFileSync(join(dir, 'canonical', 'briefing.md'), [
+    '## 0. Identity',
+    'entity: domgate | theory 0.3.1 | schema 0.3.1 | lineage_head domgate',
+    '## 1. Unresolved First',
+    '- residual: domgate 残差——夜间偏好模型上周偏差 12%',
+    '## 2. Reliability Alerts',
+    '- web_search: weak domains: local_paths; 本地路径覆盖率不足',
+    '## 3. Current Best Models',
+    '- **m-domgate** [0.81] 用户在夜间更偏好短回复',
+    '  status: active',
+    '  revise_if: 连续三周夜间长回复采纳率反超',
+    '## 4. Corrections & Superseded',
+    '## 5. Task-Relevant Values / Constraints',
+    '## 6. Retrieval Pointers',
+    '',
+  ].join('\n'));
+  writeFileSync(join(dir, 'canonical', 'runtime-state.json'), JSON.stringify({
+    compiled_at: '2026-10-12T00:00:00Z', theory_version: '0.3.1',
+    schema_version: '0.3.1', continuity_epoch: 7,
+  }));
+
   const bridge = createHttpBridge({ supervisor: sup });
   const port = await bridge.listen(0);
 

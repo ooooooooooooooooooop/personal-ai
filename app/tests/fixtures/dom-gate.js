@@ -145,6 +145,25 @@ const DRIVER = `(async () => {
       cmd: jd?.textContent ?? '',
     };
 
+    // A2 — world-model card: the compiled projection renders as first-class
+    // rows (reliability alerts / residuals / best models WITH falsifier),
+    // not only as a raw briefing dump.
+    switchView('settings');
+    await refreshWorldModelCard();
+    const wmAlert = await waitFor('#wm-alerts .mem-row', null, 10000);
+    const wmModel = document.querySelector('#wm-models .wm-model');
+    checks.worldModel = {
+      ok: !!wmAlert && !!wmModel
+        && !!document.querySelector('#wm-residuals .mem-row')
+        && (wmModel.querySelector('.wm-fals')?.textContent ?? '').includes('推翻条件：连续三周')
+        && (document.querySelector('#wm-epoch')?.textContent ?? '').includes('epoch 7'),
+      alerts: document.querySelectorAll('#wm-alerts .mem-row').length,
+      residuals: document.querySelectorAll('#wm-residuals .mem-row').length,
+      models: document.querySelectorAll('#wm-models .wm-model').length,
+      fals: wmModel?.querySelector('.wm-fals')?.textContent ?? '',
+    };
+    switchView('chat');
+
     /* ---- batch-4 UI features (M109/M126/M127/M128/M129/C1) ---- */
     switchView('chat');
     const inputEl = document.querySelector('#input');

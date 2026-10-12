@@ -2628,6 +2628,49 @@ function renderGovRow(g) {
  * data: openPredictions are already in the instance, this is the projection
  * not the ledger). Read-only by design: owner intervention flows through the
  * governed paths (asks/proposals), never through a UI write into the stores. */
+/* briefing.md is canonical_compile's fixed 7-section output (## 0..## 6).
+ * Parse out the three sections A2 surfaces as first-class rows — §1 known
+ * residuals, §2 reliability alerts, §3 best models WITH their falsifiers —
+ * so they are glanceable instead of buried in a raw markdown dump. The full
+ * text stays one click away in the <details> below; a parse miss never hides
+ * the source, it just degrades that box to its honest empty message. */
+function parseBriefing(text) {
+  const sec = {};
+  let cur = null;
+  for (const line of String(text ?? '').split('\n')) {
+    const h = line.match(/^## (\d+)\. /);
+    if (h) { cur = h[1]; sec[cur] = []; continue; }
+    if (cur) sec[cur].push(line);
+  }
+  const bullets = (n) => (sec[n] ?? []).filter((l) => l.startsWith('- ')).map((l) => l.slice(2));
+  const residuals = bullets('1')
+    .filter((b) => b.startsWith('residual: '))
+    .map((b) => b.slice('residual: '.length));
+  const alerts = bullets('2').filter((b) => !b.startsWith('(no degraded'));
+  const models = [];
+  let m = null;
+  for (const l of sec['3'] ?? []) {
+    const head = l.match(/^- \*\*(.+?)\*\* \[(.+?)\] (.*)$/);
+    if (head) { m = { id: head[1], conf: head[2], prop: head[3] }; models.push(m); continue; }
+    const kv = m && l.match(/^\s{2}(\w+): (.*)$/);
+    if (kv) m[kv[1]] = kv[2];
+  }
+  return { residuals, alerts, models };
+}
+function renderWmRows(box, rows, emptyText) {
+  if (!box) return;
+  box.innerHTML = '';
+  if (!rows.length) { box.innerHTML = `<div class="dim" style="padding:8px">${escHtml(emptyText)}</div>`; return; }
+  for (const row of rows) {
+    const div = document.createElement('div');
+    div.className = `mem-row${row.warn ? ' wm-warn' : ''}`;
+    div.innerHTML = `<span class="mem-kind dim"></span><span class="mem-text selectable"></span>`;
+    div.querySelector('.mem-kind').textContent = row.kind;
+    div.querySelector('.mem-text').textContent = row.text;
+    if (row.title) div.title = row.title;
+    box.appendChild(div);
+  }
+}
 async function refreshWorldModelCard() {
   const predsBox = $('wm-preds');
   const obsBox = $('wm-obs');
@@ -2638,11 +2681,44 @@ async function refreshWorldModelCard() {
   if (!r.success || !r.data) {
     predsBox.innerHTML = `<div class="dim" style="padding:8px">${escHtml(r.error ?? '世界模型面不可用')}</div>`;
     obsBox.innerHTML = '';
+    renderWmRows($('wm-alerts'), [], '世界模型面不可用');
+    renderWmRows($('wm-residuals'), [], '');
+    renderWmRows($('wm-models'), [], '');
     if (pill) pill.textContent = '';
     return;
   }
   const d = r.data;
   if (pill) pill.textContent = `${d.counts?.openPredictions ?? 0} 未决`;
+  const parsed = d.briefing ? parseBriefing(d.briefing) : { residuals: [], alerts: [], models: [] };
+  const notCompiled = 'canonical 尚未编译（回路未跑过 wm_cycle/canonical_compile 或该实例无 canonical）';
+  renderWmRows($('wm-alerts'),
+    parsed.alerts.map((a) => {
+      const ci = a.indexOf(': ');
+      return { kind: ci > 0 ? a.slice(0, ci) : '来源', text: ci > 0 ? a.slice(ci + 2) : a, warn: true };
+    }),
+    d.briefing ? '无降级来源——所有来源可靠性未亮红灯' : notCompiled);
+  renderWmRows($('wm-residuals'),
+    parsed.residuals.map((x) => ({ kind: '残差', text: x })),
+    d.briefing ? '无已记录残差' : notCompiled);
+  const modelsBox = $('wm-models');
+  if (modelsBox) {
+    modelsBox.innerHTML = '';
+    if (!parsed.models.length) {
+      modelsBox.innerHTML = `<div class="dim" style="padding:8px">${escHtml(d.briefing ? '无在册模型' : notCompiled)}</div>`;
+    } else {
+      for (const mdl of parsed.models) {
+        const div = document.createElement('div');
+        div.className = 'wm-model';
+        const fals = mdl.revise_if && mdl.revise_if !== 'not specified — treat as weakly held'
+          ? mdl.revise_if : '未指定推翻条件——弱持有';
+        div.innerHTML = `<div class="mem-row"><span class="mem-kind dim"></span><span class="mem-text selectable"></span></div><div class="wm-fals selectable"></div>`;
+        div.querySelector('.mem-kind').textContent = `${mdl.id} · ${mdl.conf}`;
+        div.querySelector('.mem-text').textContent = mdl.prop;
+        div.querySelector('.wm-fals').textContent = `推翻条件：${fals}`;
+        modelsBox.appendChild(div);
+      }
+    }
+  }
   predsBox.innerHTML = '';
   if (!d.openPredictions?.length) {
     predsBox.innerHTML = '<div class="dim" style="padding:8px">无未决预测——回路未激活或所有预测已结算</div>';

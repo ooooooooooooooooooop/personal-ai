@@ -470,12 +470,21 @@
 
       <div class="set-card" id="card-worldmodel">
         <div class="set-card-title">世界模型 <span id="wm-open-count" class="pill"></span></div>
-        <div class="set-sub">未决预测（AI 对世界将如何变化的未验证断言）</div>
+        <div class="set-sub">可靠性告警（来源的已知弱点——这些域的结论要打折）</div>
+        <div id="wm-alerts" class="mem-list"></div>
+        <div class="set-sub my-12-4">残差（模型解释不了的已知偏差）</div>
+        <div id="wm-residuals" class="mem-list"></div>
+        <div class="set-sub my-12-4">当前最优模型（含推翻条件——什么证据会推翻它）</div>
+        <div id="wm-models" class="mem-list"></div>
+        <div class="set-sub my-12-4">未决预测（AI 对世界将如何变化的未验证断言）</div>
         <div id="wm-preds" class="mem-list"></div>
         <div class="set-sub my-12-4">近期观察</div>
         <div id="wm-obs" class="mem-list"></div>
         <div class="set-sub my-12-4">编译简报 <span id="wm-epoch" class="pill"></span></div>
-        <pre id="wm-briefing" class="wm-brief hidden"></pre>
+        <details class="wm-raw">
+          <summary>完整简报原文</summary>
+          <pre id="wm-briefing" class="wm-brief hidden"></pre>
+        </details>
         <div class="set-row mt-6">
           <button id="wm-refresh" type="button" class="btn ghost sm">刷新</button>
           <span id="wm-msg" class="setup-msg"></span>

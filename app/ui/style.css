@@ -167,6 +167,14 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .mem-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--line-sub); font-size: 13px; }
 .mem-row:last-child { border-bottom: none; }
 .wm-brief { max-height: 300px; overflow-y: auto; margin: 0; padding: 8px 10px; font-family: var(--mono); font-size: 11px; line-height: 1.5; color: var(--text-3); background: var(--bg-elev-opaque); border: 1px solid var(--line-sub); border-radius: 6px; white-space: pre-wrap; overflow-wrap: break-word; }
+
+/* A2 透出：告警/残差/最优模型是简报的一等行，原文收进 details 兜底。 */
+.mem-row.wm-warn .mem-text { color: var(--amber, #fbbf24); }
+.wm-model { border-bottom: 1px solid var(--line-sub); padding-bottom: 4px; }
+.wm-model:last-child { border-bottom: none; }
+.wm-model .mem-row { border-bottom: none; padding-bottom: 2px; }
+.wm-fals { font-size: 11px; color: var(--text-3); padding: 0 0 4px; }
+.wm-raw summary { cursor: pointer; font-size: 12px; color: var(--text-3); margin: 4px 0; }
 .mem-pin { flex: none; width: 20px; text-align: center; cursor: pointer; color: var(--text-4); transition: color .15s; }
 .mem-pin.on { color: var(--text); }
 .mem-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1624,11 +1624,12 @@ observations?.record({
 
 | 序 | 数据 | 来源 | 现状 |
 |---|---|---|---|
-| 1 | **未决预测 / open loops** | `supervisor.js` 已有的 `openPredictions()` | **已在手，未透出** |
-| 2 | **可靠性告警 / 残差** | `runtime-state.json` 编译投影 | 未接 |
-| 3 | **当前最优模型 + falsifier** | `briefing.md` 段 3 | 未接 |
+| 1 | **未决预测 / open loops** | `supervisor.js` 已有的 `openPredictions()` | ✅ 已透出（`world_model_status` → 设置页世界模型卡） |
+| 2 | **可靠性告警 / 残差** | `runtime-state.json` 编译投影 | ✅ 已透出（2026-10-12：简报 §1/§2 解析为一等行，告警黄色标识；epoch pill 来自 runtime-state.json） |
+| 3 | **当前最优模型 + falsifier** | `briefing.md` 段 3 | ✅ 已透出（2026-10-12：§3 逐模型行 + 推翻条件行；原文收进 `<details>` 兜底，解析失败不藏源） |
 
-**第 1 条成本最低**——数据已经在 supervisor 内存里，只差一层透出。
+**第 1 条成本最低**——数据已经在 supervisor 内存里，只差一层透出。（三条现全部落地，UI 解析器只认
+`canonical_compile.py` 的固定七段格式；格式演进时解析器随之更新，未识别的内容始终可从原文 `<details>` 读到。）
 
 ### 4.4 需要新建的一条回路（G2）—— 已明确为"架桥"
 
