@@ -66,6 +66,16 @@ export class BodySupervisor {
   #backupState = { status: null, running: false, lastProbe: 0 };
   #backupTimer = null;
 
+  /* Governance checks (frequent / weekly / sync-check lanes) are owned by the
+   * app lifecycle for the same reason backup is: the 2026-10 review found all
+   * four PersonalAI scheduled tasks silently missing ~26 days — backup got an
+   * app-side owner first, but the watchdog lanes (drift, sync classification,
+   * upstream review) were equally orphaned. Without them a dead backup would
+   * AGAIN have nothing that notices. WHAT each lane checks stays in
+   * scripts/governance/runner_adapter.py — one implementation, no drift. */
+  #govState = { status: null, running: false, lastProbe: 0 };
+  #govTimer = null;
+
   /**
    * @param {object} o
    * @param {string} o.instanceRoot  outside any git worktree
@@ -79,7 +89,7 @@ export class BodySupervisor {
    *                                 python durability scripts (same pattern
    *                                 as catalog overrides)
    */
-  constructor({ instanceRoot, workdir, repoRoot, env = process.env, catalog = null, profile = null, backupCtl = null }) {
+  constructor({ instanceRoot, workdir, repoRoot, env = process.env, catalog = null, profile = null, backupCtl = null, govCtl = null }) {
     this.instanceRoot = instanceRoot;
     this.workdir = workdir;
     this.repoRoot = repoRoot;
@@ -87,6 +97,7 @@ export class BodySupervisor {
     this.catalogOverride = catalog;
     this.profile = profile ?? REQUIRED_BODY_CAPABILITIES;
     this.backupCtl = backupCtl;
+    this.govCtl = govCtl;
     this.listeners = new Set();
     this.active = null;
     this.switching = false;
@@ -148,8 +159,11 @@ export class BodySupervisor {
   }
 
   /** One overdue check (+run when owed). Probes are throttled to hourly
-   * unless forced; concurrent ticks collapse on the running flag. */
-  async #backupTick(force = false) {
+   * unless forced; concurrent ticks collapse on the running flag.
+   * afterRun: the post-run re-probe only refreshes status — a failed run
+   * that leaves the probe overdue must NOT re-run inside the same tick
+   * (infinite retry loop); the next hourly tick is the retry. */
+  async #backupTick(force = false, afterRun = false) {
     if (this.#backupState.running) return this.#backupState.status;
     if (!force && Date.now() - this.#backupState.lastProbe < 3_600_000) return this.#backupState.status;
     this.#backupState.lastProbe = Date.now();
@@ -159,7 +173,7 @@ export class BodySupervisor {
       this.audit?.write({ kind: 'BACKUP_PROBE_FAILED', data: { error: st?.error ?? 'unknown' } });
       return st;
     }
-    if (st.overdue) {
+    if (st.overdue && !afterRun) {
       this.#backupState.running = true;
       this.audit?.write({ kind: 'BACKUP_AUTO_STARTED', data: { last_ok: st.last_ok, age_hours: st.age_hours } });
       this.#emitSupervisor('backup', { phase: 'started' });
@@ -168,9 +182,85 @@ export class BodySupervisor {
       this.audit?.write({ kind: 'BACKUP_AUTO_FINISHED', data: { exit: code } });
       this.#emitSupervisor('backup', { phase: 'finished', exit: code });
       this.#backupState.lastProbe = 0; // re-probe so status reflects the run
-      await this.#backupTick();
+      await this.#backupTick(true, true);
     }
     return this.#backupState.status;
+  }
+
+  /** Lane freshness probe: scripts/governance/gov_freshness.py (or test seam). */
+  #govProbe() {
+    if (this.govCtl?.probe) return this.govCtl.probe();
+    return new Promise((resolvePromise) => {
+      const py = this.env.PAI_PYTHON ?? 'python';
+      let child;
+      try {
+        child = spawn(py, [join(this.repoRoot, 'scripts', 'governance', 'gov_freshness.py')],
+          { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+      } catch { return resolvePromise({ ok: false, error: 'probe spawn failed' }); }
+      let out = '';
+      child.stdout.on('data', (d) => { out += d; });
+      const killer = setTimeout(() => child.kill(), 15_000);
+      child.on('error', () => { clearTimeout(killer); resolvePromise({ ok: false, error: 'probe spawn failed' }); });
+      child.on('close', () => {
+        clearTimeout(killer);
+        try { resolvePromise(JSON.parse(out)); }
+        catch { resolvePromise({ ok: false, error: 'probe output unparsable' }); }
+      });
+    });
+  }
+
+  /** One governance lane run: runner_adapter.py <lane> (or test seam). Lanes
+   * are check-only/proposal-only by design, so auto-running them is safe.
+   * Output appends to <instance>/jobs/gov-<lane>-auto.log. Trigger/actor are
+   * stamped app-lifecycle so provenance never claims a scheduler that is gone. */
+  #govRun(lane) {
+    if (this.govCtl?.run) return this.govCtl.run(lane);
+    const py = this.env.PAI_PYTHON ?? 'python';
+    const logPath = join(this.paths.jobsDir, `gov-${lane}-auto.log`);
+    let fd;
+    try { fd = openSync(logPath, 'a'); } catch { fd = null; }
+    const child = spawn(py, [join(this.repoRoot, 'scripts', 'governance', 'runner_adapter.py'), lane], {
+      stdio: ['ignore', fd ?? 'ignore', fd ?? 'ignore'],
+      windowsHide: true,
+      env: { ...this.env, PERSONAL_AI_TRIGGER: 'app-lifecycle', PERSONAL_AI_ACTOR: 'personal-ai-app' },
+    });
+    if (fd !== null) child.on('close', () => { try { closeSync(fd); } catch { /* already closed */ } });
+    return new Promise((r) => {
+      child.on('error', () => r(1));
+      child.on('close', (code) => r(code ?? 1));
+    });
+  }
+
+  /** One governance freshness check (+run each overdue lane, sequentially:
+   * lanes all touch the same repo/ledger, parallel runs would interleave
+   * evidence). Cheap lanes first so a slow weekly never delays sync-check.
+   * afterRun: same no-immediate-retry guard as #backupTick. */
+  async #govTick(force = false, afterRun = false) {
+    if (this.#govState.running) return this.#govState.status;
+    if (!force && Date.now() - this.#govState.lastProbe < 3_600_000) return this.#govState.status;
+    this.#govState.lastProbe = Date.now();
+    const st = await this.#govProbe();
+    this.#govState.status = st;
+    if (!st?.ok) {
+      this.audit?.write({ kind: 'GOV_PROBE_FAILED', data: { error: st?.error ?? 'unknown' } });
+      return st;
+    }
+    const due = afterRun ? [] : ['sync-check', 'frequent', 'weekly']
+      .filter((l) => st.lanes?.[l]?.overdue);
+    if (due.length) {
+      this.#govState.running = true;
+      for (const lane of due) {
+        this.audit?.write({ kind: 'GOV_AUTO_STARTED', data: { lane, age_hours: st.lanes[lane].age_hours } });
+        this.#emitSupervisor('governance', { phase: 'started', lane });
+        const code = await this.#govRun(lane);
+        this.audit?.write({ kind: 'GOV_AUTO_FINISHED', data: { lane, exit: code } });
+        this.#emitSupervisor('governance', { phase: 'finished', lane, exit: code });
+      }
+      this.#govState.running = false;
+      this.#govState.lastProbe = 0; // re-probe so status reflects the runs
+      await this.#govTick(true, true);
+    }
+    return this.#govState.status;
   }
 
   #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
@@ -302,6 +392,11 @@ export class BodySupervisor {
     this.#backupTimer = setInterval(() => { this.#backupTick().catch(() => {}); }, 3_600_000);
     this.#backupTimer.unref?.();
     this.backupBoot = this.#backupTick(true).catch(() => null);
+    // Governance lanes share the app-lifecycle ownership model; boot probe is
+    // chained after the backup probe so a long first backup never starves it.
+    this.#govTimer = setInterval(() => { this.#govTick().catch(() => {}); }, 3_600_000);
+    this.#govTimer.unref?.();
+    this.govBoot = this.backupBoot.then(() => this.#govTick(true)).catch(() => null);
     return this;
   }
 
@@ -651,6 +746,10 @@ export class BodySupervisor {
           const st = await this.#backupTick(Boolean(cmd.force));
           return reply(true, { ...(st ?? {}), running: this.#backupState.running });
         }
+        case 'governance_status': {
+          const st = await this.#govTick(Boolean(cmd.force));
+          return reply(true, { ...(st ?? {}), running: this.#govState.running });
+        }
         case 'supervisor_status': {
           const repoCommit = readRepoCommit(this.repoRoot);
           return reply(true, {
@@ -921,6 +1020,7 @@ export class BodySupervisor {
   async dispose() {
     this._disposing = true;
     if (this.#backupTimer) { clearInterval(this.#backupTimer); this.#backupTimer = null; }
+    if (this.#govTimer) { clearInterval(this.#govTimer); this.#govTimer = null; }
     await this.gracefulShutdown();
     this.leases?.close();
     this.listeners.clear();

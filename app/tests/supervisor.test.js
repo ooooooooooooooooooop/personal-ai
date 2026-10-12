@@ -71,11 +71,12 @@ function catalogFor(dir, msgs) {
 async function boot(msgs = { 'fake-a': 1 }, opts = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'pai-app-'));
   // Keep every existing test hermetic: unless a test injects its own
-  // backupCtl, the boot-time backup tick sees "fresh" and never spawns python.
+  // backupCtl/govCtl, the boot-time ticks see "fresh" and never spawn python.
   const backupCtl = opts.backupCtl ?? { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 };
+  const govCtl = opts.govCtl ?? { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 };
   const sup = await new BodySupervisor({
     instanceRoot: dir, workdir: dir, repoRoot: REPO,
-    catalog: catalogFor(dir, msgs), env: { ...process.env }, ...opts, backupCtl,
+    catalog: catalogFor(dir, msgs), env: { ...process.env }, ...opts, backupCtl, govCtl,
   }).start();
   return { sup, dir };
 }
@@ -247,9 +248,13 @@ test('macro save/list/delete persists to instance macros.json', async () => {
     const list = await sup.handle({ type: 'macro_list' });
     assert.equal(list.data.macros.fixup, '修复所有 lint 错误');
     // durable — a fresh supervisor on the same instance sees it
+    // (seams injected: without them the boot ticks would spawn REAL python
+    // probes, and an overdue real machine would trigger a real backup/gov run)
     const sup2 = await new BodySupervisor({
       instanceRoot: dir, workdir: dir, repoRoot: REPO,
       catalog: catalogFor(dir, {}), env: { ...process.env },
+      backupCtl: { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 },
+      govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 },
     }).start();
     try {
       const l2 = await sup2.handle({ type: 'macro_list' });
@@ -468,6 +473,8 @@ test('spawn failure (missing binary) rejects start without crashing the supervis
   const sup = new BodySupervisor({
     instanceRoot: dir, workdir: dir, repoRoot: REPO,
     catalog: badCatalog, env: { ...process.env },
+    backupCtl: { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 },
+    govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 },
   });
   // Without a child 'error' handler this spawn would throw an unhandled
   // EventEmitter error and kill the whole test process.
@@ -528,4 +535,96 @@ test('backup: fresh probe triggers no run; probe failure audits and never crashe
       .map((l) => JSON.parse(l).kind);
     assert.ok(kinds.includes('BACKUP_PROBE_FAILED'));
   } finally { await broken.sup.dispose(); }
+});
+
+test('governance: overdue lanes at boot each trigger exactly one run, audited, cheap first', async () => {
+  const calls = { probe: 0, runs: [] };
+  const govCtl = {
+    probe: async () => {
+      calls.probe += 1;
+      const lanes = (overdue) => ({
+        frequent: { overdue, cadence_hours: 26, last_ok: null, age_hours: null },
+        'sync-check': { overdue, cadence_hours: 26, last_ok: null, age_hours: null },
+        weekly: { overdue: false, cadence_hours: 170, last_ok: 'now' },
+      });
+      return calls.runs.length > 0
+        ? { ok: true, overdue: false, lanes: lanes(false) }
+        : { ok: true, overdue: true, lanes: lanes(true) };
+    },
+    run: async (lane) => { calls.runs.push(lane); return 0; },
+  };
+  const { sup, dir } = await boot({ 'fake-a': 1 }, { govCtl });
+  try {
+    await sup.govBoot; // boot tick chained after backupBoot
+    assert.deepEqual(calls.runs, ['sync-check', 'frequent'],
+      'each overdue lane runs exactly once, cheap lanes first');
+    const auditFile = readdirSync(join(dir, 'audit')).find((f) => f.endsWith('.jsonl'));
+    const rows = readFileSync(join(dir, 'audit', auditFile), 'utf-8').split('\n').filter(Boolean)
+      .map((l) => JSON.parse(l));
+    assert.ok(rows.some((r) => r.kind === 'GOV_AUTO_STARTED' && r.data?.lane === 'frequent'));
+    assert.ok(rows.some((r) => r.kind === 'GOV_AUTO_FINISHED' && r.data?.lane === 'sync-check'));
+    const st = await sup.handle({ type: 'governance_status' });
+    assert.equal(st.success, true);
+    assert.equal(st.data.overdue, false, 'status reflects the completed runs');
+    assert.equal(st.data.running, false);
+  } finally { await sup.dispose(); }
+});
+
+test('governance: fresh probe triggers no run; probe failure audits and never crashes boot', async () => {
+  const calls = { run: 0 };
+  const fresh = await boot({ 'fake-a': 1 }, {
+    govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }),
+              run: async () => { calls.run += 1; return 0; } },
+  });
+  try {
+    await fresh.sup.govBoot;
+    assert.equal(calls.run, 0);
+    const st = await fresh.sup.handle({ type: 'governance_status' });
+    assert.equal(st.data.overdue, false);
+  } finally { await fresh.sup.dispose(); }
+
+  const broken = await boot({ 'fake-a': 1 }, {
+    govCtl: { probe: async () => ({ ok: false, error: 'device config missing' }),
+              run: async () => { calls.run += 1; return 0; } },
+  });
+  try {
+    await broken.sup.govBoot;
+    assert.equal(calls.run, 0, 'failed probe must not trigger a run');
+    const auditFile = readdirSync(join(broken.dir, 'audit')).find((f) => f.endsWith('.jsonl'));
+    const kinds = readFileSync(join(broken.dir, 'audit', auditFile), 'utf-8').split('\n').filter(Boolean)
+      .map((l) => JSON.parse(l).kind);
+    assert.ok(kinds.includes('GOV_PROBE_FAILED'));
+  } finally { await broken.sup.dispose(); }
+});
+
+test('backup: persistent overdue after a failed run does NOT retry within the same tick', async () => {
+  const calls = { run: 0 };
+  // probe stays overdue even after the run (simulates a failing backup)
+  const backupCtl = {
+    probe: async () => ({ ok: true, overdue: true, last_ok: null, age_hours: null, rpo_hours: 26 }),
+    run: async () => { calls.run += 1; return 1; },
+  };
+  const { sup } = await boot({ 'fake-a': 1 }, { backupCtl });
+  try {
+    await sup.backupBoot;
+    assert.equal(calls.run, 1, 'one run per tick; the hourly timer is the retry');
+    const st = await sup.handle({ type: 'backup_status', force: true });
+    assert.equal(st.data.overdue, true, 'status honestly stays overdue');
+    assert.equal(calls.run, 2, 'a forced user tick may retry once — and stops');
+  } finally { await sup.dispose(); }
+});
+
+test('governance: persistent overdue after failed runs does NOT retry within the same tick', async () => {
+  const calls = { runs: [] };
+  const lane = { overdue: true, cadence_hours: 26, last_ok: null, age_hours: null };
+  const govCtl = {
+    probe: async () => ({ ok: true, overdue: true, lanes: { frequent: lane, 'sync-check': { ...lane }, weekly: { overdue: false } } }),
+    run: async (l) => { calls.runs.push(l); return 1; },
+  };
+  const { sup } = await boot({ 'fake-a': 1 }, { govCtl });
+  try {
+    await sup.govBoot;
+    assert.deepEqual(calls.runs, ['sync-check', 'frequent'],
+      'each overdue lane runs once; no same-tick retry even though still overdue');
+  } finally { await sup.dispose(); }
 });

@@ -1615,6 +1615,13 @@ function onSupervisor(ev) {
     } else if (ev.phase === 'finished') {
       cmd('backup_status', { force: true }).then((r) => { if (r.success) renderBackupRow(r.data); });
     }
+  } else if (ev.kind === 'governance') {
+    if (ev.phase === 'started') {
+      const p = $('gov-state');
+      if (p) { p.className = 'pill on'; p.textContent = `检查中（${ev.lane}）`; }
+    } else if (ev.phase === 'finished') {
+      cmd('governance_status', { force: true }).then((r) => { if (r.success) renderGovRow(r.data); });
+    }
   }
 }
 
@@ -2576,6 +2583,8 @@ async function refreshSettings() {
   if (pol.success) renderGovCard(pol.data);
   const bk = await cmd('backup_status');
   if (bk.success) renderBackupRow(bk.data);
+  const gv = await cmd('governance_status');
+  if (gv.success) renderGovRow(gv.data);
   refreshBudgetCard();
   refreshWorldModelCard();
   refreshWorkspaces();
@@ -2591,6 +2600,23 @@ function renderBackupRow(b) {
   if (b?.running) { pill.classList.add('on'); pill.textContent = '备份中'; }
   else if (!b?.ok) { pill.classList.add('err'); pill.title = b?.error ?? ''; pill.textContent = '探针失败'; }
   else if (b?.overdue) { pill.classList.add('warn'); pill.textContent = `逾期（上限 ${b.rpo_hours}h）`; }
+  else { pill.classList.add('ok'); pill.textContent = '新鲜'; }
+}
+
+/* Governance row (instance card): same app-lifecycle ownership as backup —
+ * the watchdog lanes (drift / sync-check / weekly review) made visible. */
+function renderGovRow(g) {
+  const el = $('set-gov'); const pill = $('gov-state');
+  if (!el || !pill) return;
+  const lanes = g?.lanes ?? {};
+  const names = { frequent: '日常', 'sync-check': '同步', weekly: '每周' };
+  const due = Object.keys(lanes).filter((l) => lanes[l]?.overdue).map((l) => names[l] ?? l);
+  const last = Object.values(lanes).map((l) => l?.last_ok).filter(Boolean).sort().pop();
+  el.textContent = last ? `上次检查 ${new Date(last).toLocaleString()}` : '从未跑过治理检查';
+  pill.className = 'pill';
+  if (g?.running) { pill.classList.add('on'); pill.textContent = '检查中'; }
+  else if (!g?.ok) { pill.classList.add('err'); pill.title = g?.error ?? ''; pill.textContent = '探针失败'; }
+  else if (due.length) { pill.classList.add('warn'); pill.textContent = `逾期：${due.join('、')}`; }
   else { pill.classList.add('ok'); pill.textContent = '新鲜'; }
 }
 

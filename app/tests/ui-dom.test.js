@@ -60,6 +60,12 @@ test('ui-dom: six experience surfaces render real data in the actual DOM', async
 
   const sup = await new BodySupervisor({
     instanceRoot: dir, workdir: dir, repoRoot: REPO, catalog, env: { ...process.env },
+    // seams: boot ticks must never spawn real python probes in tests — on a
+    // machine whose real ledger IS overdue that would launch a real
+    // backup/governance run mid-test (and hang the suite on its minutes-long
+    // child).
+    backupCtl: { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 },
+    govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 },
   }).start();
   const bridge = createHttpBridge({ supervisor: sup });
   const port = await bridge.listen(0);

@@ -10,7 +10,7 @@
 正常使用 DSH / Codex / Claude / Gemini **不需要任何基础设施人工操作**。
 
 你不需要管：模型配置同步（aic 管）、MCP 能力分发（capabilities.yaml 管）、
-会话备份/broker 快照（app 生命周期管：启动与运行中按 RPO 逾期自动补，见 §7.1）、
+会话备份/broker 快照与治理检查（app 生命周期管：启动与运行中按逾期自动补，见 §7.1）、
 记忆写入（harness 会话自然产生）、上下文注入（runtime hook 管）。
 
 ## 2. Health —— 怎么看状态
@@ -94,6 +94,21 @@ Windows Task Scheduler 边界翻译已验证的结构化结果，保持 `check` 
    - **已知边界**：备份只在 app 运行时发生；长期不开 app = 无新备份
      （但不打开 app 也不产生新数据）。纯 DSH 使用产生的会话不在此覆盖内。
    - 调度主控仍是 `scripts/durability/run_backup.py`（生成唯一 Run Identity 并编排各子任务）——**WHAT 不变，只是 WHEN 换了主人**。
+1a. **治理检查同样归 app 生命周期（2026-10-12 第二批迁移）**：
+   - 原 `PersonalAI-Governance-Frequent`（每日 drift/capability/static/routing/RPO）、
+     `PersonalAI-Governance-Weekly`（周日上游能力审查）、`PersonalAI-Sync-Check`
+     （每日 sync 分类，check-only）三条 lane 与备份同时缺失、同样不再有 OS 注册。
+     备份有了新主人而看门狗没有 = 备份再死一次依然无人发现，故同模式收编。
+   - 新机制：`app/server/supervisor.js` 启动时（接在备份探针之后）+ 运行中每小时经
+     `scripts/governance/gov_freshness.py` 探针检查三条 lane 的新鲜度
+     （证据源：`<BACKUP_ROOT>\ledger\governance.jsonl` 中 `automation_<lane>` 且
+     `execution_status=SUCCESS` 的最近行；frequent/sync-check cadence 26h、weekly 170h），
+     逾期 lane 依次自动执行 `runner_adapter.py <lane>`（输出追加到
+     `<instance>/jobs/gov-<lane>-auto.log`，audit 留痕 `GOV_AUTO_STARTED/FINISHED`，
+     环境标记 `PERSONAL_AI_TRIGGER=app-lifecycle`）；状态透出到设置页"治理检查"行。
+   - **WHAT 不变**：各 lane 查什么仍由 `runner_adapter.py` 的 specs 决定——
+     check-only / proposal-only 语义不变，治理永远不会偷偷改 canonical。
+   - `register_governance_tasks.ps1` 保留为"显式想要 OS 注册"的可选路径，本机不再使用。
 2. **实际 Destination**：
    - `<BACKUP_ROOT>`（与 `personal-ai-private/sync/this-device.yaml#backup_root` 严格一致）。
 3. **真实一致性模型（Consistency Model & Boundaries）**：
