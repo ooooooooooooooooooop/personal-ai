@@ -127,19 +127,17 @@ Windows Task Scheduler 边界翻译已验证的结构化结果，保持 `check` 
 ## 8. Known External Blockers
 
 - **BACKUP_KEY_CUSTODY = WAITING_FOR_CUSTODY_ROOT**：Gen3 架构 READY，实现 DEFERRED。等 Cloud KMS / 密码管理器 / 硬件根 / 可信第二设备出现再启动 `GEN3_KEY_CUSTODY_MIGRATION`。**在那之前 FULL_DR_READINESS 永远 = PARTIAL，这是设计而非故障。**
-- **NOVEL_REPO_DURABILITY = BLOCKED_PRIVACY**：见 §9。
+- **NOVEL_REPO_DURABILITY = 已解决（2026-09-01 执行，2026-10-12 复核）**：见 §9。
 
-## 9. private-repo privacy resolution plan（计划，未执行）
+## 9. private-repo privacy resolution（已执行完毕 2026-09-01，2026-10-12 复核确证）
 
-```text
-1. 以 origin/master 为基拉新分支 clean-state-<date>
-2. 从本地 master 三个 commit 提取【最终净状态】（当前工作树即已脱敏版本）
-3. 在干净分支上生成单个新 commit：仅含脱敏后 .ai/state/state.md（diff 61 行已审计为净）
-4. 对该 commit 做 privacy audit（CPA/Antigravity/agent-broker/路径/token 全模式扫描 = 0 命中）
-5. 正常 push / PR 进 public remote
-6. 本地旧 master（含敏感历史）保留为本机存档，不推送；推送完成后本地可切到干净分支
-```
-效果：项目状态进 remote，敏感历史永不进 public remote。**未经你单独要求不会执行。**
+历史方案（已落地）：以干净基线重放脱敏后净状态、单 commit、privacy audit 后推送。
+**复核证据（2026-10-12）**：novel 仓（`github.com/ooooooooooooooooooop/novel`，public）
+本地 `main` = 9e1d89b（2026-09-01 单一脱敏根 commit），是 origin/main（9ef8811，16 commits）
+的祖先，无未推送内容、无残留分支/stash；全部 16 commit 全模式扫描
+（Antigravity / sk-/ghp_/AKIA token 形 / 个人绝对路径）= 0 命中，
+agent-broker 仅 `.gitignore` 的忽略项。敏感历史从未进入 public remote。
+仓主 2026-10-12 裁决：允许修改历史（本条目即在此授权下复核关闭）。
 
 ## 10. Backup Gen3 触发条件
 
