@@ -1,8 +1,10 @@
 """E2E: the diagnostic capture mechanism + doctor auto-discovery, live.
 
 These tests prove the reactive loop end-to-end against a real Chrome session:
-when a driver method returns a broken shape, an artifact is captured, and
-`doctor` auto-discovers it (no human names the function) and prints evidence.
+when a driver method hits a broken shape — whether it RETURNS one or RAISES
+on one (BackendClient's contract since the read-boundary hardening: raise
+RuntimeError on unexpected shapes) — an artifact is captured, and `doctor`
+auto-discovers it (no human names the function) and prints evidence.
 
 To keep the tests STABLE — independent of which functions happen to be broken
 against the live API at any given time — the breakage is SYNTHETIC: we patch
@@ -29,7 +31,7 @@ pytestmark = pytest.mark.e2e
 
 
 async def test_broken_return_triggers_capture(e2e_driver: CDPDriver, tmp_path, monkeypatch):
-    """A decorated driver method returning a broken shape writes an artifact.
+    """A decorated driver method raising on a broken shape writes an artifact.
 
     We force get_projects' underlying fetch to return an error payload (by
     patching _js_with_data), so the real @diagnose-decorated method runs, parses
@@ -50,15 +52,18 @@ async def test_broken_return_triggers_capture(e2e_driver: CDPDriver, tmp_path, m
     monkeypatch.setattr(type(e2e_driver), "_js_with_data", _broken_js_with_data)
     monkeypatch.setattr(type(e2e_driver), "_js_with_data_strict", _broken_js_with_data)
 
-    result = await e2e_driver.get_projects()
-    assert isinstance(result, dict) and "error" in result, \
-        f"expected broken dict, got {result!r}"
+    # 2026-10-12 起生产契约是 raise-on-drift：BackendClient 对意外形状抛
+    # RuntimeError。@diagnose 现在在异常路径也捕获证据（此前只对返回值分类，
+    # 对 raise 全盲——真实 API 漂移时 doctor 会什么都看不到），捕获后原样再抛。
+    with pytest.raises(RuntimeError, match="unexpected JSON shape"):
+        await e2e_driver.get_projects()
 
     files = list(tmp_path.glob("get_projects-*.json"))
-    assert len(files) == 1, "expected a capture artifact for the broken call"
+    assert len(files) == 1, "expected a capture artifact for the raised drift"
     art = json.loads(files[0].read_text())
     assert art["function"] == "get_projects"
-    assert "error" in str(art["actual"]).lower()
+    assert "RuntimeError" in str(art["actual"])
+    assert "raised" in str(art["mismatch"]).lower()
     # redaction sanity: no raw auth token leaked into the artifact
     assert "Bearer eyJ" not in files[0].read_text()
 
@@ -78,7 +83,8 @@ async def test_doctor_auto_discovers_and_prints_broken_function(
 
     monkeypatch.setattr(type(e2e_driver), "_js_with_data", _broken_js_with_data)
     monkeypatch.setattr(type(e2e_driver), "_js_with_data_strict", _broken_js_with_data)
-    await e2e_driver.get_projects()
+    with pytest.raises(RuntimeError, match="unexpected JSON shape"):
+        await e2e_driver.get_projects()
 
     from chatgpt_web2api.doctor import latest_artifact_for, list_broken_functions, print_evidence
 

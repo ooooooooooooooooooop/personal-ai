@@ -285,6 +285,45 @@ def _safe_classify_and_capture(
         logger.warning("diagnostic capture failed", exc_info=True)
 
 
+def _safe_capture_exception(
+    function_name: str,
+    exc: Exception,
+    request_provider: Callable[[], Any] | None,
+) -> None:
+    """Exception path of the side channel: a raise IS a broken outcome.
+
+    The return-value-only decorator was blind to the raise-on-drift contract
+    (BackendClient raises RuntimeError on an unexpected shape) — live e2e on
+    2026-10-12 proved the capture never fired on exactly the API-drift event
+    this system exists to record. Capture the exception as the artifact's
+    actual, then let it propagate unchanged. Best-effort: never raises.
+    """
+    try:
+        if not _capture_enabled:
+            return
+        request: Any = {}
+        if request_provider is not None:
+            try:
+                raw_request = request_provider()
+                if isinstance(raw_request, (tuple, list)) and len(raw_request) == 2:
+                    request = {"expression": raw_request[0], "data": raw_request[1]}
+                else:
+                    request = raw_request
+            except Exception:
+                request = {"note": "request capture failed"}
+        actual = f"{type(exc).__name__}: {exc}"
+        _DIAG_DIR.capture(
+            function=function_name,
+            request=request,
+            response={"raised": actual},
+            expected=EXPECTED_SHAPES.get(function_name, {"kind": "any"}),
+            actual=actual,
+            mismatch=f"raised {type(exc).__name__}",
+        )
+    except Exception:
+        logger.warning("diagnostic capture failed", exc_info=True)
+
+
 def diagnose(function_name: str, capture_js: Callable[[Any], Any] | None = None):
     """Decorator: classify a driver method's result + capture on breakage.
 
@@ -301,7 +340,14 @@ def diagnose(function_name: str, capture_js: Callable[[Any], Any] | None = None)
         if asyncio.iscoroutinefunction(fn):
             @functools.wraps(fn)
             async def async_wrapper(self, *args, **kwargs):
-                result = await fn(self, *args, **kwargs)
+                try:
+                    result = await fn(self, *args, **kwargs)
+                except Exception as exc:
+                    _safe_capture_exception(
+                        function_name, exc,
+                        (lambda: capture_js(self)) if capture_js else None,
+                    )
+                    raise
                 _safe_classify_and_capture(
                     function_name, result,
                     (lambda: capture_js(self)) if capture_js else None,
@@ -311,7 +357,14 @@ def diagnose(function_name: str, capture_js: Callable[[Any], Any] | None = None)
 
         @functools.wraps(fn)
         def sync_wrapper(self, *args, **kwargs):
-            result = fn(self, *args, **kwargs)
+            try:
+                result = fn(self, *args, **kwargs)
+            except Exception as exc:
+                _safe_capture_exception(
+                    function_name, exc,
+                    (lambda: capture_js(self)) if capture_js else None,
+                )
+                raise
             _safe_classify_and_capture(
                 function_name, result,
                 (lambda: capture_js(self)) if capture_js else None,

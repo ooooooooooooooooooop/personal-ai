@@ -218,6 +218,33 @@ def test_diagnose_capture_disabled_by_default_writes_nothing(monkeypatch, tmp_pa
     assert not list(tmp_path.glob("*.json"))  # disabled → no capture
 
 
+def test_diagnose_captures_on_raise_then_reraises(monkeypatch, tmp_path):
+    """Raise-on-drift path: the exception propagates unchanged AND an artifact
+    is captured. Regression for the 2026-10-12 live-e2e finding: BackendClient
+    raises RuntimeError on shape drift and the return-only decorator was blind
+    to it — the exact API-drift event the capture loop exists to record."""
+    from chatgpt_web2api.diagnostics import DiagnosticsDir
+    monkeypatch.setattr("chatgpt_web2api.diagnostics._DIAG_DIR",
+                        DiagnosticsDir(base=tmp_path))
+    set_capture_enabled(True)
+
+    class Stub:
+        @diagnose("get_projects")
+        async def get_projects(self_inner):
+            raise RuntimeError("get_projects returned an unexpected JSON shape")
+
+    import pytest
+    with pytest.raises(RuntimeError, match="unexpected JSON shape"):
+        asyncio.run(Stub().get_projects())
+    files = list(tmp_path.glob("get_projects-*.json"))
+    assert len(files) == 1
+    art = json.loads(files[0].read_text())
+    assert art["function"] == "get_projects"
+    assert "RuntimeError" in str(art["actual"])
+    assert "raised" in str(art["mismatch"]).lower()
+    set_capture_enabled(False)
+
+
 def test_diagnose_capture_failure_never_masks_original(monkeypatch, tmp_path):
     """If the capture itself errors, the original result is still returned."""
     from chatgpt_web2api.diagnostics import DiagnosticsDir
