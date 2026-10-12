@@ -13,7 +13,73 @@ from pathlib import Path
 
 sys.modules.pop("common", None)  # scripts/{governance,durability}/common.py name collision
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts" / "durability"))
+import backup_status  # noqa: E402
 import rpo_check  # noqa: E402
+
+
+class TestBackupStatus(unittest.TestCase):
+    """backup_status.main(): overdue is DATA (exit 0), config missing is exit 2."""
+
+    def _env(self, rows, targets=(26,)):
+        import datetime as dt
+        d = Path(tempfile.mkdtemp())
+        (d / "sync").mkdir(parents=True)
+        tgt = "\n".join(f"  sessions: {t}" for t in targets)
+        (d / "sync" / "this-device.yaml").write_text(
+            f"device_id: T\nbackup_root: {str(d / 'bak').replace(chr(92), '/')}\nrpo_targets_hours:\n{tgt}\n",
+            encoding="utf-8")
+        bak = d / "bak" / "ledger"
+        bak.mkdir(parents=True)
+        with (bak / "runs.jsonl").open("w", encoding="utf-8") as fh:
+            for r in rows:
+                fh.write(json.dumps(r) + "\n")
+        return d
+
+    def _run(self, d):
+        import contextlib
+        import io
+        old = os.environ.get("PERSONAL_AI_HOME")
+        os.environ["PERSONAL_AI_HOME"] = str(d)
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                code = backup_status.main()
+        finally:
+            if old is None:
+                os.environ.pop("PERSONAL_AI_HOME", None)
+            else:
+                os.environ["PERSONAL_AI_HOME"] = old
+        return code, json.loads(buf.getvalue())
+
+    def test_overdue_is_data_not_failure(self):
+        import datetime as dt
+        old = (dt.datetime.now().astimezone() - dt.timedelta(hours=72)).isoformat(timespec="seconds")
+        code, out = self._run(self._env([{"status": "ok", "ts": old}]))
+        self.assertEqual(code, 0)
+        self.assertTrue(out["overdue"])
+        self.assertEqual(out["rpo_hours"], 26)
+        self.assertGreater(out["age_hours"], 71)
+
+    def test_fresh_and_error_rows_ignored(self):
+        import datetime as dt
+        now = dt.datetime.now().astimezone().isoformat(timespec="seconds")
+        old = (dt.datetime.now().astimezone() - dt.timedelta(hours=72)).isoformat(timespec="seconds")
+        rows = [{"status": "error", "ts": now}, {"status": "ok", "ts": now}, {"status": "ok", "ts": old}]
+        code, out = self._run(self._env(rows))
+        self.assertEqual(code, 0)
+        self.assertFalse(out["overdue"], "latest ok row governs freshness; error rows never count")
+
+    def test_no_ok_row_is_overdue(self):
+        code, out = self._run(self._env([{"status": "error", "ts": "2026-01-01T00:00:00+08:00"}]))
+        self.assertEqual(code, 0)
+        self.assertTrue(out["overdue"])
+        self.assertIsNone(out["last_ok"])
+
+    def test_missing_config_exit_2(self):
+        d = Path(tempfile.mkdtemp())  # no sync/this-device.yaml
+        code, out = self._run(d)
+        self.assertEqual(code, 2)
+        self.assertFalse(out["ok"])
 
 
 class TestRpo(unittest.TestCase):

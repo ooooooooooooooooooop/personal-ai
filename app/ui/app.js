@@ -1608,6 +1608,13 @@ function onSupervisor(ev) {
     setStatus('注意', 'err');
     addSys(`身体事件：${ev.kind} ${ev.error ?? ev.body ?? ''}`, true);
     refreshAll();
+  } else if (ev.kind === 'backup') {
+    if (ev.phase === 'started') {
+      const p = $('backup-state');
+      if (p) { p.className = 'pill on'; p.textContent = '备份中'; }
+    } else if (ev.phase === 'finished') {
+      cmd('backup_status', { force: true }).then((r) => { if (r.success) renderBackupRow(r.data); });
+    }
   }
 }
 
@@ -2567,9 +2574,24 @@ async function refreshSettings() {
   }
   const pol = await cmd('policy_status');
   if (pol.success) renderGovCard(pol.data);
+  const bk = await cmd('backup_status');
+  if (bk.success) renderBackupRow(bk.data);
   refreshBudgetCard();
   refreshWorldModelCard();
   refreshWorkspaces();
+}
+
+/* Backup row (instance card): app-lifecycle backup ownership made visible.
+ * The probe's overdue verdict is data, not an alarm — render it as such. */
+function renderBackupRow(b) {
+  const el = $('set-backup'); const pill = $('backup-state');
+  if (!el || !pill) return;
+  el.textContent = b?.last_ok ? `上次成功 ${new Date(b.last_ok).toLocaleString()}` : '从未成功备份';
+  pill.className = 'pill';
+  if (b?.running) { pill.classList.add('on'); pill.textContent = '备份中'; }
+  else if (!b?.ok) { pill.classList.add('err'); pill.title = b?.error ?? ''; pill.textContent = '探针失败'; }
+  else if (b?.overdue) { pill.classList.add('warn'); pill.textContent = `逾期（上限 ${b.rpo_hours}h）`; }
+  else { pill.classList.add('ok'); pill.textContent = '新鲜'; }
 }
 
 /* World-model surface (docs/app-world-model-loop.md §4.3 #1 — the cheapest

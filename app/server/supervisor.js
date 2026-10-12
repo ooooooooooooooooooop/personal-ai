@@ -18,7 +18,7 @@
 import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
@@ -56,6 +56,16 @@ function readRepoCommit(repoRoot) {
 }
 
 export class BodySupervisor {
+  /* Backup ownership lives with the app lifecycle, not the OS scheduler:
+   * the app probes freshness on boot and hourly while running, and runs the
+   * backup itself when overdue. A scheduler registration can silently vanish
+   * with nobody noticing (2026-10 review: four PersonalAI tasks were missing
+   * for ~26 days); the app's own state cannot vanish while the app is the
+   * thing producing the data. WHAT to back up stays in
+   * scripts/durability/run_backup.py — one implementation, no drift. */
+  #backupState = { status: null, running: false, lastProbe: 0 };
+  #backupTimer = null;
+
   /**
    * @param {object} o
    * @param {string} o.instanceRoot  outside any git worktree
@@ -65,14 +75,18 @@ export class BodySupervisor {
    * @param {object} [o.catalog]     override bodyCatalog (tests inject fakes)
    * @param {Array}  [o.profile]     task profile for eligibility; defaults to
    *                                 the production REQUIRED_BODY_CAPABILITIES
+   * @param {object} [o.backupCtl]   test seam: { probe, run } overrides the
+   *                                 python durability scripts (same pattern
+   *                                 as catalog overrides)
    */
-  constructor({ instanceRoot, workdir, repoRoot, env = process.env, catalog = null, profile = null }) {
+  constructor({ instanceRoot, workdir, repoRoot, env = process.env, catalog = null, profile = null, backupCtl = null }) {
     this.instanceRoot = instanceRoot;
     this.workdir = workdir;
     this.repoRoot = repoRoot;
     this.env = env;
     this.catalogOverride = catalog;
     this.profile = profile ?? REQUIRED_BODY_CAPABILITIES;
+    this.backupCtl = backupCtl;
     this.listeners = new Set();
     this.active = null;
     this.switching = false;
@@ -92,6 +106,71 @@ export class BodySupervisor {
     try {
       writeFileSync(this.configPath, JSON.stringify({ workdir: this.workdir }, null, 2));
     } catch { /* persistence is best-effort */ }
+  }
+
+  /** Freshness probe: scripts/durability/backup_status.py (or test seam). */
+  #backupProbe() {
+    if (this.backupCtl?.probe) return this.backupCtl.probe();
+    return new Promise((resolvePromise) => {
+      const py = this.env.PAI_PYTHON ?? 'python';
+      let child;
+      try {
+        child = spawn(py, [join(this.repoRoot, 'scripts', 'durability', 'backup_status.py')],
+          { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+      } catch { return resolvePromise({ ok: false, error: 'probe spawn failed' }); }
+      let out = '';
+      child.stdout.on('data', (d) => { out += d; });
+      const killer = setTimeout(() => child.kill(), 15_000);
+      child.on('error', () => { clearTimeout(killer); resolvePromise({ ok: false, error: 'probe spawn failed' }); });
+      child.on('close', () => {
+        clearTimeout(killer);
+        try { resolvePromise(JSON.parse(out)); }
+        catch { resolvePromise({ ok: false, error: 'probe output unparsable' }); }
+      });
+    });
+  }
+
+  /** The backup run itself: scripts/durability/run_backup.py (or test seam).
+   * Output appends to <instance>/jobs/backup-auto.log; never blocks boot. */
+  #backupRun() {
+    if (this.backupCtl?.run) return this.backupCtl.run();
+    const py = this.env.PAI_PYTHON ?? 'python';
+    const logPath = join(this.paths.jobsDir, 'backup-auto.log');
+    let fd;
+    try { fd = openSync(logPath, 'a'); } catch { fd = null; }
+    const child = spawn(py, [join(this.repoRoot, 'scripts', 'durability', 'run_backup.py')],
+      { stdio: ['ignore', fd ?? 'ignore', fd ?? 'ignore'], windowsHide: true });
+    if (fd !== null) child.on('close', () => { try { closeSync(fd); } catch { /* already closed */ } });
+    return new Promise((r) => {
+      child.on('error', () => r(1));
+      child.on('close', (code) => r(code ?? 1));
+    });
+  }
+
+  /** One overdue check (+run when owed). Probes are throttled to hourly
+   * unless forced; concurrent ticks collapse on the running flag. */
+  async #backupTick(force = false) {
+    if (this.#backupState.running) return this.#backupState.status;
+    if (!force && Date.now() - this.#backupState.lastProbe < 3_600_000) return this.#backupState.status;
+    this.#backupState.lastProbe = Date.now();
+    const st = await this.#backupProbe();
+    this.#backupState.status = st;
+    if (!st?.ok) {
+      this.audit?.write({ kind: 'BACKUP_PROBE_FAILED', data: { error: st?.error ?? 'unknown' } });
+      return st;
+    }
+    if (st.overdue) {
+      this.#backupState.running = true;
+      this.audit?.write({ kind: 'BACKUP_AUTO_STARTED', data: { last_ok: st.last_ok, age_hours: st.age_hours } });
+      this.#emitSupervisor('backup', { phase: 'started' });
+      const code = await this.#backupRun();
+      this.#backupState.running = false;
+      this.audit?.write({ kind: 'BACKUP_AUTO_FINISHED', data: { exit: code } });
+      this.#emitSupervisor('backup', { phase: 'finished', exit: code });
+      this.#backupState.lastProbe = 0; // re-probe so status reflects the run
+      await this.#backupTick();
+    }
+    return this.#backupState.status;
   }
 
   #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
@@ -218,6 +297,11 @@ export class BodySupervisor {
     await this.spawnBody(chosen);
     this.bootCommit = readRepoCommit(this.repoRoot);
     this.audit.write({ kind: 'SUPERVISOR_STARTED', data: { body: chosen, installed: this.installed, commit: this.bootCommit } });
+    // Backup is owned by the app lifecycle: probe on boot + hourly while
+    // running; overdue → run. Fire-and-forget — never blocks boot.
+    this.#backupTimer = setInterval(() => { this.#backupTick().catch(() => {}); }, 3_600_000);
+    this.#backupTimer.unref?.();
+    this.backupBoot = this.#backupTick(true).catch(() => null);
     return this;
   }
 
@@ -563,6 +647,10 @@ export class BodySupervisor {
           if (cmd.handoff_id) return reply(true, this.handoffs.status(cmd.handoff_id));
           return reply(true, { pending: this.handoffs.pending() });
         }
+        case 'backup_status': {
+          const st = await this.#backupTick(Boolean(cmd.force));
+          return reply(true, { ...(st ?? {}), running: this.#backupState.running });
+        }
         case 'supervisor_status': {
           const repoCommit = readRepoCommit(this.repoRoot);
           return reply(true, {
@@ -832,6 +920,7 @@ export class BodySupervisor {
 
   async dispose() {
     this._disposing = true;
+    if (this.#backupTimer) { clearInterval(this.#backupTimer); this.#backupTimer = null; }
     await this.gracefulShutdown();
     this.leases?.close();
     this.listeners.clear();

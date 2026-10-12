@@ -10,8 +10,8 @@
 正常使用 DSH / Codex / Claude / Gemini **不需要任何基础设施人工操作**。
 
 你不需要管：模型配置同步（aic 管）、MCP 能力分发（capabilities.yaml 管）、
-会话备份/broker 快照（计划任务管）、记忆写入（harness 会话自然产生）、
-上下文注入（runtime hook 管）。
+会话备份/broker 快照（app 生命周期管：启动与运行中按 RPO 逾期自动补，见 §7.1）、
+记忆写入（harness 会话自然产生）、上下文注入（runtime hook 管）。
 
 ## 2. Health —— 怎么看状态
 
@@ -81,11 +81,19 @@ Windows Task Scheduler 边界翻译已验证的结构化结果，保持 `check` 
 
 ### 7.1 Nightly Backup 生产恢复闭环与状态判定（SSOT 契约）
 
-1. **Canonical 任务入口与执行账户**：
-   - Windows 计划任务名称：`PersonalAI-Durability-Nightly`，Daily 03:30 触发。
-   - 运行账户：`<USER>` (InteractiveToken，禁止 ephemeral/Temp/bootstrap-drill 入口依赖)。
-   - Action Target：`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "<REPO_ROOT>\scripts\durability\run_nightly.ps1"`。
-   - 调度主控：`scripts/durability/run_backup.py`（生成唯一 Run Identity 并编排各子任务）。
+1. **Canonical 任务入口与执行账户（2026-10-12 起改为 app 生命周期持有）**：
+   - **不再使用 Windows 计划任务**。历史入口 `PersonalAI-Durability-Nightly`
+     （Daily 03:30）已于 2026-10 投产前审查发现四个 PersonalAI 计划任务全部缺失
+     （约 26 天静默无备份），决策：不为应用增加 OS 级注册，备份生命力归属
+     app 自身生命周期——**OS 注册会静默消失，而 app 的状态不会在自己运行时消失**。
+   - 新机制：`app/server/supervisor.js` 启动时 + 运行中每小时经
+     `scripts/durability/backup_status.py` 探针检查新鲜度（逾期判据 =
+     `rpo_targets_hours` 最小值），逾期即自动执行 `run_backup.py`
+     （输出追加到 `<instance>/jobs/backup-auto.log`，全程 audit 留痕
+     `BACKUP_AUTO_STARTED/FINISHED`）；状态透出到设置页"实例"卡。
+   - **已知边界**：备份只在 app 运行时发生；长期不开 app = 无新备份
+     （但不打开 app 也不产生新数据）。纯 DSH 使用产生的会话不在此覆盖内。
+   - 调度主控仍是 `scripts/durability/run_backup.py`（生成唯一 Run Identity 并编排各子任务）——**WHAT 不变，只是 WHEN 换了主人**。
 2. **实际 Destination**：
    - `<BACKUP_ROOT>`（与 `personal-ai-private/sync/this-device.yaml#backup_root` 严格一致）。
 3. **真实一致性模型（Consistency Model & Boundaries）**：

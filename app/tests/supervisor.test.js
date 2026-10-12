@@ -68,11 +68,14 @@ function catalogFor(dir, msgs) {
   return c;
 }
 
-async function boot(msgs = { 'fake-a': 1 }) {
+async function boot(msgs = { 'fake-a': 1 }, opts = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'pai-app-'));
+  // Keep every existing test hermetic: unless a test injects its own
+  // backupCtl, the boot-time backup tick sees "fresh" and never spawns python.
+  const backupCtl = opts.backupCtl ?? { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 };
   const sup = await new BodySupervisor({
     instanceRoot: dir, workdir: dir, repoRoot: REPO,
-    catalog: catalogFor(dir, msgs), env: { ...process.env },
+    catalog: catalogFor(dir, msgs), env: { ...process.env }, ...opts, backupCtl,
   }).start();
   return { sup, dir };
 }
@@ -470,4 +473,59 @@ test('spawn failure (missing binary) rejects start without crashing the supervis
   // EventEmitter error and kill the whole test process.
   await assert.rejects(() => sup.start(), /did not come up/);
   await sup.dispose();
+});
+
+test('backup: overdue probe at boot triggers exactly one auto run, audited', async () => {
+  const calls = { probe: 0, run: 0 };
+  const backupCtl = {
+    probe: async () => {
+      calls.probe += 1;
+      // overdue on first probe (boot), fresh after the run re-probes
+      return calls.run > 0
+        ? { ok: true, overdue: false, last_ok: 'now', rpo_hours: 26 }
+        : { ok: true, overdue: true, last_ok: null, age_hours: null, rpo_hours: 26 };
+    },
+    run: async () => { calls.run += 1; return 0; },
+  };
+  const { sup, dir } = await boot({ 'fake-a': 1 }, { backupCtl });
+  try {
+    await sup.backupBoot; // the fire-and-forget boot tick
+    assert.equal(calls.run, 1, 'overdue probe must trigger exactly one backup run');
+    const auditFile = readdirSync(join(dir, 'audit')).find((f) => f.endsWith('.jsonl'));
+    const kinds = readFileSync(join(dir, 'audit', auditFile), 'utf-8').split('\n').filter(Boolean)
+      .map((l) => JSON.parse(l).kind);
+    assert.ok(kinds.includes('BACKUP_AUTO_STARTED'));
+    assert.ok(kinds.includes('BACKUP_AUTO_FINISHED'));
+    const st = await sup.handle({ type: 'backup_status' });
+    assert.equal(st.success, true);
+    assert.equal(st.data.overdue, false, 'status reflects the completed run');
+  } finally { await sup.dispose(); }
+});
+
+test('backup: fresh probe triggers no run; probe failure audits and never crashes boot', async () => {
+  const calls = { run: 0 };
+  const fresh = await boot({ 'fake-a': 1 }, {
+    backupCtl: { probe: async () => ({ ok: true, overdue: false, last_ok: 'now', rpo_hours: 26 }),
+                 run: async () => { calls.run += 1; return 0; } },
+  });
+  try {
+    await fresh.sup.backupBoot;
+    assert.equal(calls.run, 0);
+    const st = await fresh.sup.handle({ type: 'backup_status' });
+    assert.equal(st.data.overdue, false);
+    assert.equal(st.data.running, false);
+  } finally { await fresh.sup.dispose(); }
+
+  const broken = await boot({ 'fake-a': 1 }, {
+    backupCtl: { probe: async () => ({ ok: false, error: 'device config missing' }),
+                 run: async () => { calls.run += 1; return 0; } },
+  });
+  try {
+    await broken.sup.backupBoot;
+    assert.equal(calls.run, 0, 'failed probe must not trigger a run');
+    const auditFile = readdirSync(join(broken.dir, 'audit')).find((f) => f.endsWith('.jsonl'));
+    const kinds = readFileSync(join(broken.dir, 'audit', auditFile), 'utf-8').split('\n').filter(Boolean)
+      .map((l) => JSON.parse(l).kind);
+    assert.ok(kinds.includes('BACKUP_PROBE_FAILED'));
+  } finally { await broken.sup.dispose(); }
 });
