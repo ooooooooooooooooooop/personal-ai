@@ -850,6 +850,19 @@ function addAskCard(ask) {
   div.querySelector('.ask-summary').textContent = ask.summary || '（无详情）';
   if (ask.detail) div.querySelector('.ask-detail').textContent = ask.detail;
   else div.querySelector('.ask-detail').remove();
+  // 首用反馈（2026-10-13）：bash 批准卡上同一条命令出现两次——summary
+  // （"bash rm -rf …"）和下方 args.command 渲染的 "$ rm -rf …" 互为重复。
+  // 归一化后互相包含即视为重复——保留载荷块（detail / ask-cmd），撤掉 summary。
+  {
+    const norm = (s) => String(s ?? '')
+      .replace(/^[\s>$#]+/gm, '')   // shell 提示符等装饰
+      .replace(/\s+/g, ' ').trim();
+    const s = norm(ask.summary);
+    const dup = [ask.detail, ask.args?.command ?? ask.args?.cmd]
+      .map(norm)
+      .some((d) => s && d && (s === d || s.includes(d) || d.includes(s)));
+    if (dup) div.querySelector('.ask-summary').remove();
+  }
   // The operator approves what they can see — render the real payload, not
   // just a one-line summary. Command → mono block; write/edit → content or
   // old→new diff; delete → path + consequence.

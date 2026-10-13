@@ -608,18 +608,20 @@ pre:hover .code-copy, .code-copy.copied, .code-copy:focus-visible { opacity: 1; 
 .send-btn:disabled { background: var(--g700); color: var(--g500); cursor: default; box-shadow: none; }
 
 /* UX review 序3 / 例外 B: while running, 中止 is a standalone full-width
-   strip above the composer — position + area + color say "interrupt",
-   no reliance on a text label or a toolbar slot among mode chips. */
+   strip above the composer — position says "interrupt", no toolbar slot among
+   mode chips. 2026-10-13 首用反馈: 饱和红整条太吵（低频紧急动作不该常驻抢
+   视线）——降面积降饱和：暗红底 + 红字图标，仍是全宽独占一行。 */
 .abort-strip {
-  width: 100%; flex: none; margin-bottom: 6px; padding: 9px 0;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--red); color: #ffffff; border: none;
+  width: 100%; flex: none; margin-bottom: 6px; padding: 5px 0;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(248, 113, 113, 0.10); color: var(--red);
+  border: 1px solid rgba(248, 113, 113, 0.28);
   border-radius: var(--r-md); cursor: pointer;
-  box-shadow: 0 1px 6px rgba(248, 113, 113, 0.35);
-  transition: opacity .15s var(--ease-spring);
+  font-size: 12.5px;
+  transition: background .15s var(--ease-spring);
 }
-.abort-strip svg { width: 16px; height: 16px; }
-.abort-strip:hover { opacity: .9; }
+.abort-strip svg { width: 13px; height: 13px; }
+.abort-strip:hover { background: rgba(248, 113, 113, 0.18); }
 
 /* ---------------- bodies view ---------------- */
 .page-head { padding: 26px 32px 6px; max-width: 1080px; width: 100%; margin: 0 auto; }
@@ -953,6 +955,11 @@ pre:hover .code-copy, .code-copy.copied, .code-copy:focus-visible { opacity: 1; 
 .set-card-title { font-size: 15px; font-weight: 650; margin-bottom: 14px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
 .set-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .set-row label { flex: none; width: 76px; font-size: 12.5px; color: var(--text-3); }
+
+/* 长文本 checkbox 标签（如"自托管端点…"）不是字段小标签——76px 定宽会把它
+   挤成逐字竖排；checkbox 本身也不吃 flex:1（会被拉成一条灰杠） */
+.set-row label.cp-priv { flex: 1; width: auto; display: flex; align-items: center; gap: 8px; color: var(--text-2); }
+.set-row input[type="checkbox"] { flex: none; width: auto; }
 .set-row select, .set-row input {
   flex: 1; min-width: 0; padding: 7px 12px; border-radius: var(--r-sm);
   background: var(--field); border: 1px solid var(--line-sub);

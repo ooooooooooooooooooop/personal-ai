@@ -70,6 +70,11 @@ const DRIVER = `(async () => {
     // 4. approval card — real payload visible (the exact command), not a bare summary
     const ask = await waitFor('.ask-card .ask-cmd', (e) => e.textContent.includes('rm -rf scratch/'), 10000);
     checks.askPayload = { ok: !!ask, text: ask?.textContent ?? '' };
+    // 首用反馈 2026-10-13: summary 与 ask-cmd 载荷重复时卡片只保留载荷——
+    // 同一条命令不得在卡上出现两次
+    checks.askNoDuplicatePayload = {
+      ok: !!ask && !ask.closest('.ask-card')?.querySelector('.ask-summary'),
+    };
 
     // #1392 — edit-then-approve + wand action: open the edit box, describe
     // the change in plain language, the fast-model rewrite lands IN THE BOX
