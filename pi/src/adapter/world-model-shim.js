@@ -90,8 +90,14 @@ export function createWorldModelShim({ stateDir, canonicalDir, mode = 'off', bod
         lastRequestedAt = now;
         const py = pythonExe ?? process.env.PAI_PYTHON ?? 'python';
         // One-shot: the signal fires when it fires, not on a cadence.
+        // --canonical MUST be the resolved canonicalDir: wm_cycle otherwise
+        // defaults to <instance>/canonical, which on a mounted instance
+        // (PAI_CANONICAL_DIR / WORLD_MODEL_HOME) is a DIFFERENT, stale dir —
+        // the cycle would compile a briefing nobody reads and drop proposals
+        // into the wrong place, silently. Quoted: this is a shell command.
         scheduleStore.add({
-          command: `${py} ${join(REPO_MIND, 'wm_cycle.py')} --instance ${instanceRoot}`,
+          command: `${py} ${join(REPO_MIND, 'wm_cycle.py')} --instance "${instanceRoot}"`
+            + (canonicalDir ? ` --canonical "${canonicalDir}"` : ''),
           run_at: now,
           label: `world-model cycle (refutation ${String(prediction_id ?? '').slice(0, 12)}: ${verdict ?? reason})`,
         });

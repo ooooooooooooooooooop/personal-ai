@@ -59,12 +59,19 @@ TRIGGER - when this runs. The signal is REPETITION, not a single event and not a
 
 
 Usage:
-  python mind/wm_cycle.py --instance <instanceRoot> [--abstractor none|llm|...]
+  python mind/wm_cycle.py --instance <instanceRoot> [--canonical <canonicalDir>]
+                          [--abstractor none|llm|...]
                           [--closed-minutes 30] [--dry-run]
 
-  <instanceRoot> must contain canonical/ and, once the adapter has run, the
-  world-model state dir (world-model/ for pi, ~/.dsh/world-model for DSH —
-  pass --state to point at it explicitly).
+  <instanceRoot> must contain canonical/ UNLESS --canonical is given. Pass the
+  RESOLVED canonical explicitly whenever the instance mounts one
+  (PAI_CANONICAL_DIR / WORLD_MODEL_HOME): the default <instanceRoot>/canonical
+  is only the fallback, and on a mounted instance it is a DIFFERENT, stale
+  directory — compiling it would produce a briefing nobody reads and proposals
+  in the wrong place, silently.
+
+  The state dir defaults to <instance>/world-model (pi layout; DSH keeps its
+  own under ~/.dsh/world-model — pass --state to point at it explicitly).
 """
 from __future__ import annotations
 
@@ -96,7 +103,11 @@ def run(step: str, argv: list[str], dry: bool) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--instance", required=True, help="instance root (holds canonical/)")
+    ap.add_argument("--instance", required=True, help="instance root (holds the state dir)")
+    ap.add_argument("--canonical", default=None,
+                    help="canonical dir; default <instance>/canonical. Pass the RESOLVED "
+                         "canonical when the instance mounts one (WORLD_MODEL_HOME etc.) — "
+                         "the fallback under the instance root can be a different, stale dir.")
     ap.add_argument("--state", default=None,
                     help="world-model state dir; default <instance>/world-model")
     ap.add_argument("--abstractor", default="none",
@@ -106,7 +117,7 @@ def main() -> int:
     args = ap.parse_args()
 
     root = Path(args.instance)
-    canon = root / "canonical"
+    canon = Path(args.canonical) if args.canonical else root / "canonical"
     if not canon.exists():
         raise SystemExit(f"no canonical at {canon}")
     state = Path(args.state) if args.state else root / "world-model"
@@ -138,6 +149,7 @@ def main() -> int:
     report = {
         "cycle": "up to the governance boundary",
         "instance": str(root),
+        "canonical": str(canon),
         "state": str(state),
         "steps": steps,
         "stopped_before": {

@@ -1120,6 +1120,42 @@ class TestWmCycle(unittest.TestCase):
             for step in rep["steps"]:
                 self.assertTrue(step.get("ok", True), step)
 
+    def test_canonical_override_targets_the_mounted_canonical(self):
+        """On a mounted instance (PAI_CANONICAL_DIR / WORLD_MODEL_HOME) the
+        instance-root canonical/ is a DIFFERENT, possibly stale dir. The cycle
+        must be aimable at the resolved canonical via --canonical; otherwise a
+        triggered run compiles a briefing nobody reads and drops proposals into
+        the wrong place — silently."""
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td) / "instance"
+            root.mkdir(parents=True)  # note: NO root/canonical at all
+            canon = Path(td) / "mounted" / "canonical"
+            canon.mkdir(parents=True)
+            shutil.copytree(REPO / "soul" / "bootstrap" / "canonical", canon,
+                            dirs_exist_ok=True)
+            p = subprocess.run([sys.executable, str(PKG / "wm_cycle.py"),
+                                "--instance", str(root), "--canonical", str(canon)],
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            self.assertEqual(rep["canonical"], str(canon))
+            # artifacts land in the MOUNTED canonical …
+            self.assertTrue((canon / "briefing.md").exists())
+            # … and the wrong-place failure mode did not happen
+            self.assertFalse((root / "canonical").exists())
+
+    def test_default_canonical_under_instance_root_unchanged(self):
+        """Without --canonical the old derivation (<instance>/canonical) holds —
+        existing instances and the doctor's guidance stay valid."""
+        with tempfile.TemporaryDirectory() as td:
+            root = self._instance(td)
+            p = subprocess.run([sys.executable, str(PKG / "wm_cycle.py"),
+                                "--instance", str(root), "--dry-run"],
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            self.assertEqual(rep["canonical"], str(root / "canonical"))
+
 
 class TestBCC(unittest.TestCase):
     def test_second_body_passes_the_same_contract(self):

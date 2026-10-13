@@ -189,8 +189,12 @@ export const DOCTOR_CHECKS = [
       // failure recurring — is what licenses MODEL FAILURE. The adapter asks for
       // a re-examination on recurrence; if that path is absent, a sweep is a
       // fallback, not the mechanism.
+      // --canonical: on a mounted instance (PAI_CANONICAL_DIR / WORLD_MODEL_HOME)
+      // the instance-root canonical/ is a DIFFERENT, stale dir; the sweep must
+      // name the resolved one or it compiles a briefing nobody reads.
+      const canon = paths?.canonicalDir ?? `${root}/canonical`;
       const sweep = 'schedule_task(action:"create", '
-        + `command:"python mind/wm_cycle.py --instance ${root}", `
+        + `command:"python mind/wm_cycle.py --instance ${root} --canonical ${canon}", `
         + 'every_seconds:3600, min_seconds:3600, max_seconds:86400, '
         + 'label:"world-model cycle (FALLBACK sweep)")';
       const noTrigger = warn(

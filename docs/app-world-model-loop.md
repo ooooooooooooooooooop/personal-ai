@@ -1201,6 +1201,39 @@ pi 适配器同理：用 pi 自己的 seam + node 内置，不需要也不应该
 而不是"往通用层加适配器"。通用层不因新增身体而改变 ——
 **这正是 BCC-1 存在的意义：新增身体不改通用侧。**
 
+#### ⑪ ★ 触发链的最后一厘米：wm_cycle 的 canonical 指向（2026-10-13 实测修复）
+
+断点 #1–#3 修复、pi 适配器接线之后，投产前实测又发现触发链的**最后一厘米是断的**：
+
+`world-model-shim.js` 在复发触发时调度
+`wm_cycle.py --instance <root>`，而 wm_cycle 此前把 canonical **写死推导为**
+`<instance>/canonical`。但挂载部署下（`WORLD_MODEL_HOME` / `PAI_CANONICAL_DIR`）
+**实例根里的 `canonical/` 是另一个目录**（本机实测：9 月残留的空壳，
+policy.json 停在 09-21，observations/predictions 全空）。
+后果：复发真的发生时，cycle 会**对着空壳编译** ——
+briefing 写进没人读的目录、proposals 落错地方，且全程无报错。
+
+**修复（三处）**：
+
+1. `mind/wm_cycle.py` 增加 `--canonical`（缺省保持旧推导，兼容未挂载实例；
+   报告里新增 `canonical` 字段让指向可审计）；
+2. shim 的调度命令改为 `--instance "<root>" --canonical "<resolved canonicalDir>"`
+   （引号必须：shell 执行，挂载路径可含空格）；
+3. `host/src/core/doctor.js` 的 FALLBACK sweep 建议串同步带 `--canonical`。
+
+测试：`tests/test_wm_v031.py::TestWmCycle` 新增挂载/缺省两例；
+`pi/tests/world-model-shim-schedule.test.js` 用**带空格**的挂载路径钉住命令形状。
+
+**同次实测的另两条记录**（非代码问题，未改动）：
+
+- 真实 canonical 的 `briefing.md`/`runtime-state.json` 是 10-10 手工冒烟 stub
+  （`# BRIEF / - M1`、`"compiled_at":"t"`）；`canonical_compile --check` 的 mtime
+  新鲜度判据**认不出手写 stub**（stub 比 yaml 新即报 fresh）——不影响功能：
+  wm_cycle 每轮**无条件**重编译，stub 会在首次真实 cycle 被真编译覆盖。
+- `runtime-state` 真编译投影显示 `active_body: dsh-local`（2026-09-13 绑定），
+  而产品已迁 pi —— **body binding 的治理流程（BCC-1 PASS → BODY_RELEASED →
+  epoch+1）从未落到 canonical**。这是 operator 治理动作，不在本规格代劳范围。
+
 #### ④ 这对"新格"的意义：功能位的两侧
 
 现在"更新"这一格看得更清楚了 —— 它有**两侧**：
