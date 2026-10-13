@@ -62,6 +62,8 @@ mind/
 │                          #    （finding G11：先验保守、学习只放宽、陈旧即整份失效）
 ├── wm_cycle.py            # 提炼链入口（蒸馏 → 假设 → LP → 编译），**在 u1_accept 之前停下**
 │                          #    —— 不自我授权：canonical 写入只能走治理路径
+├── body_bind.py           # 身体绑定治理动作（BODY_RELEASED 先行 → BCC-1 证据 → epoch+1
+│                          #    → BODY_BOUND）：operator 工具，harness 无关（身体名由入参给出）
 ├── migrate_v031.py        # canonical schema 1.0→1.1 迁移/回滚/verify（不 silent drop）
 ├── distill.py             # 蒸馏入口/编排
 ├── bcc_check.py           # BCC-1 身体兼容契约测试台（V0.3.1 §10）

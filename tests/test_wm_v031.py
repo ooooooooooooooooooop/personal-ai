@@ -1157,6 +1157,137 @@ class TestWmCycle(unittest.TestCase):
             self.assertEqual(rep["canonical"], str(root / "canonical"))
 
 
+class TestBodyBind(unittest.TestCase):
+    """body_binding is an operator act with declared rules (BCC-1 PASS ·
+    BODY_RELEASED 先行 · epoch+1). body_bind.py makes that path real; these
+    tests pin the refusals as hard as the happy path — a bind tool that only
+    checks the happy path is a hand-edit with extra steps."""
+
+    def _canonical(self, td, bound_body=None):
+        canon = Path(td) / "canonical"
+        canon.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(REPO / "soul" / "bootstrap" / "canonical", canon,
+                        dirs_exist_ok=True)
+        if bound_body:
+            linp = canon / "lineage.yaml"
+            lin = yaml.safe_load(linp.read_text(encoding="utf-8"))
+            lin["active_body"] = {
+                "body_id": bound_body, "harness_type": "old-harness",
+                "bcc_version": "BCC-1", "bound_at": "2026-01-01T00:00:00Z",
+                "lease": "exclusive-canonical-writer",
+            }
+            lin["lineage_head"] = "evt-oldhead0000"
+            linp.write_text(yaml.safe_dump(lin, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+            curp = canon / "current.yaml"
+            cur = yaml.safe_load(curp.read_text(encoding="utf-8"))
+            cur.setdefault("identity", {})["lineage_head"] = "evt-oldhead0000"
+            curp.write_text(yaml.safe_dump(cur, allow_unicode=True, sort_keys=False),
+                            encoding="utf-8")
+        return canon
+
+    def _run(self, *argv):
+        return subprocess.run([sys.executable, str(PKG / "body_bind.py"), *argv],
+                              capture_output=True, text=True)
+
+    def _event_count(self, canon):
+        # the bootstrap ships an EMPTY history/lineage.jsonl — count, not existence
+        p = canon / "history" / "lineage.jsonl"
+        return len(p.read_text(encoding="utf-8").splitlines()) if p.exists() else 0
+
+    def _base_args(self, canon):
+        return ["--canonical", str(canon), "--body", "pi", "--harness", "pi",
+                "--operator", "test-operator", "--reason", "test bind",
+                "--bcc-evidence", "test: prior PASS"]
+
+    def test_refuses_without_bcc_verdict(self):
+        with tempfile.TemporaryDirectory() as td:
+            canon = self._canonical(td)
+            p = self._run("--canonical", str(canon), "--body", "pi",
+                          "--harness", "pi", "--operator", "o", "--reason", "r")
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("BCC-1", p.stderr)
+            lin = yaml.safe_load((canon / "lineage.yaml").read_text(encoding="utf-8"))
+            self.assertIsNone(lin.get("active_body"),
+                              "a refused bind must not touch lineage")
+            self.assertEqual(self._event_count(canon), 0,
+                             "a refused bind must not append events")
+
+    def test_refuses_when_bound_without_release(self):
+        with tempfile.TemporaryDirectory() as td:
+            canon = self._canonical(td, bound_body="dsh-local")
+            p = self._run(*self._base_args(canon))
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("BODY_RELEASED", p.stderr)
+            lin = yaml.safe_load((canon / "lineage.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(lin["active_body"]["body_id"], "dsh-local",
+                             "a refused bind must leave the old binding intact")
+            self.assertEqual(lin["continuity_epoch"], 0,
+                             "a refused bind must not bump the epoch")
+
+    def test_refuses_rebinding_same_body(self):
+        with tempfile.TemporaryDirectory() as td:
+            canon = self._canonical(td, bound_body="pi")
+            p = self._run(*self._base_args(canon), "--release-current")
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("already", p.stderr)
+
+    def test_dry_run_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as td:
+            canon = self._canonical(td)
+            p = self._run(*self._base_args(canon), "--dry-run")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            self.assertTrue(rep["dry_run"])
+            lin = yaml.safe_load((canon / "lineage.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(lin["continuity_epoch"], 0)
+            self.assertEqual(self._event_count(canon), 0)
+            self.assertFalse((canon / "briefing.md").exists())
+
+    def test_first_bind_applies_epoch_event_and_projection(self):
+        with tempfile.TemporaryDirectory() as td:
+            canon = self._canonical(td)
+            p = self._run(*self._base_args(canon))
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            self.assertEqual(rep["continuity_epoch"], 1, "bind bumps epoch 0 -> 1")
+            self.assertIsNone(rep["released"], "no prior body — nothing to release")
+            lin = yaml.safe_load((canon / "lineage.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(lin["active_body"]["body_id"], "pi")
+            self.assertEqual(lin["active_body"]["harness_type"], "pi")
+            self.assertEqual(lin["continuity_epoch"], 1)
+            head = lin["lineage_head"]
+            cur = yaml.safe_load((canon / "current.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(cur["identity"]["lineage_head"], head,
+                             "both SSOTs must name the same head")
+            events = [json.loads(l) for l in
+                      (canon / "history" / "lineage.jsonl")
+                      .read_text(encoding="utf-8").splitlines()]
+            self.assertEqual([e["event"] for e in events], ["BODY_BOUND"])
+            self.assertEqual(events[0]["event_id"], head)
+            self.assertEqual(events[0]["bcc_evidence"], "test: prior PASS")
+            self.assertTrue((canon / "briefing.md").exists(),
+                            "projection recompiles with the binding")
+            self.assertTrue(any((canon / "history").glob("pre-bind-*")),
+                            "rollback backup exists")
+
+    def test_release_then_bind_records_release_first(self):
+        with tempfile.TemporaryDirectory() as td:
+            canon = self._canonical(td, bound_body="dsh-local")
+            p = self._run(*self._base_args(canon), "--release-current")
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rep = json.loads(p.stdout)
+            self.assertEqual(rep["released"], "dsh-local")
+            events = [json.loads(l) for l in
+                      (canon / "history" / "lineage.jsonl")
+                      .read_text(encoding="utf-8").splitlines()]
+            self.assertEqual([e["event"] for e in events],
+                             ["BODY_RELEASED", "BODY_BOUND"],
+                             "the release must be a recorded event BEFORE the bind")
+            self.assertEqual(events[0]["body_id"], "dsh-local")
+            self.assertEqual(events[1]["body_id"], "pi")
+
+
 class TestBCC(unittest.TestCase):
     def test_second_body_passes_the_same_contract(self):
         """BCC-1 exists so a SECOND body can be verified without touching the
