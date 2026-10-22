@@ -37,7 +37,9 @@
 
 架构事实与传感器基准见 [`docs/project-facts-spec.md`](./docs/project-facts-spec.md)。
 - **不可逆操作前核对**：在执行涉及写库、修改注册表、跨身体切换或删除持久数据等不可逆操作前，**必须先阅读 [`FAILURES.md`](./FAILURES.md)**，核对相关已知禁忌并运行对应的退出码验证命令。
+- **事故即记账（观察窗口的观测器）**：一旦发生 `FAILURES.md` 未覆盖、且代价 > 1 小时或不可逆的事故，**当场追加一行**（症状 | 根因 | 禁忌动作 | 验证命令 | commit SHA）。此义务不可省：没人记录，两周观察期必然得到「零条」，那是观测缺失，不是假设被证伪。
 - **环境怪癖（沙箱 temp-root）**：Windows ACL 下 temp-root 若位于 workspace 内，子进程创建会被预检直接拒绝并返回空输出；此时缺输出并不代表二进制不存在，严禁盲目尝试重装。
+- **环境怪癖（提交解释器）**：`.githooks/pre-commit` 与 `.githooks/post-commit` 里 `PY="${PYTHON:-python3}"` 只验证解释器可启动，**不验证依赖是否齐全**。系统默认 python 常缺 `pyyaml`，会让回归出现数十个 `No module named 'yaml'` 假失败。提交前显式指定：`PYTHON=<装有 pyyaml 的解释器> git commit ...`（本机为 anaconda 的 python.exe）。
 
 ## 改动后检查（按改动范围精准执行，禁止无脑全跑）
 

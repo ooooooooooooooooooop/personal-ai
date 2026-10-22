@@ -114,6 +114,30 @@ class TestPlanClassification(unittest.TestCase):
         finally:
             fx.cleanup()
 
+    def test_root_document_stays_plain(self):
+        """Root-level facts docs must not drag in a FULL regression.
+
+        They carry no directory prefix, so before KNOWN_PLAIN_FILES they
+        were classified ``unknown:`` — a one-line edit to AGENTS.md cost a
+        ~13 min full suite. Fail-closed is preserved for every root file
+        that is NOT listed here.
+        """
+        fx = Fixture()
+        try:
+            p = fx.plan([ch("M", "AGENTS.md"), ch("M", "FAILURES.md")])
+            self.assertEqual(p["mode"], "DELTA")
+            self.assertFalse(
+                any(r.startswith("unknown:") for r in p["reasons"])
+            )
+            # An unlisted root file still fails closed.
+            p2 = fx.plan([ch("M", "BOOTSTRAP.md")])
+            self.assertEqual(p2["mode"], "FULL")
+            self.assertTrue(
+                any(r.startswith("unknown:") for r in p2["reasons"])
+            )
+        finally:
+            fx.cleanup()
+
     def test_unknown_status_fails_closed(self):
         fx = Fixture()
         try:

@@ -100,6 +100,17 @@ KNOWN_PLAIN_PREFIXES = (
     "_template/",
 )
 
+# Root-level documents have no directory prefix, so KNOWN_PLAIN_PREFIXES can
+# never match them: before this set they fell through to ``unknown:`` and
+# forced a FULL regression (662 tests, ~13 min) on every one-line edit to a
+# facts list. Only root files that no test asserts on are listed — a root doc
+# that any test reads must stay in the fail-closed path. Everything not named
+# here is still ``unknown:`` → FULL.
+KNOWN_PLAIN_FILES = frozenset({
+    "AGENTS.md",
+    "FAILURES.md",
+})
+
 TEST_RE = re.compile(r"^tests/test_.*\.py$")
 
 
@@ -364,7 +375,10 @@ def plan(
             if any(p.startswith(t) for t in TRIGGER_PREFIXES):
                 reasons.append(p)
                 continue
-            if not any(p.startswith(k) for k in KNOWN_PLAIN_PREFIXES):
+            if not (
+                p in KNOWN_PLAIN_FILES
+                or any(p.startswith(k) for k in KNOWN_PLAIN_PREFIXES)
+            ):
                 reasons.append(f"unknown:{p}")
                 continue
             # Deleted/renamed-out test files shrink the inventory
