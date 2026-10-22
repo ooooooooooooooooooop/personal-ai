@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import uuid
@@ -641,6 +642,27 @@ PRIVACY_PATTERNS = [
     r"C:\\Users\\(?!admin\b)",  # 其他用户目录
     r"sk-[A-Za-z0-9]{20,}",
 ]
+
+# 受治理路径前缀：canonical 状态与同步切片真正所在的切片。
+# 只有这些路径上的变更才强制 mutation lease 与 write-time receipt；普通文档、
+# 前端、测试与工具脚本不走该通道 —— 否则改一行 README 也会被治理机器锁死，
+# 门禁的作用域大于它保护的资产（2026-10-22 A2 自锁实证）。
+# 单一真相源：canonical_writer.py 通过 pas.GOVERNED_PATH_PREFIXES 引用，不另建副本。
+# 刻意不含 scripts/personal_ai_sync.py 与 scripts/governance/：门禁自身若受自身约束，
+# 则"修复门禁"的提交会被门禁拒绝（bootstrap 自指死锁）。对治理代码的改动改由
+# .githooks/pre-commit 的 bootstrap trigger scan 强制 FULL 全量回归来担保。
+GOVERNED_PATH_PREFIXES = (
+    "scripts/sync_v2/",
+    "soul/",
+    "mind/",
+)
+
+
+def is_governed_path(path: str) -> bool:
+    """该相对路径是否属于强制 lease / write-receipt 的受治理切片。"""
+    norm = str(path).replace("\\", "/").removeprefix("./")
+    return norm.startswith(GOVERNED_PATH_PREFIXES)
+
 
 # push 禁推路径清单：changed paths 前缀命中即拒（public 仓库）
 PUSH_FORBIDDEN_PATHS = ("skills/weekly-work-summary/",)
@@ -2082,14 +2104,16 @@ def _commit_owned_files_locked(
         if re.search(pattern, added):
             return False, f"privacy scan hit in staged diff: {pattern}"
 
-    # Commit Gate enforcement (fail-closed on any missing or mismatched receipt)
+    # Commit Gate enforcement：只对受治理切片 fail-closed（缺失或不匹配的 receipt 都拒）。
+    # 非受治理路径（文档/前端/测试/工具脚本）不要求 write-time receipt —— 回执保护的是
+    # canonical 状态与同步切片，不是全部文件。
     verified_write_receipts = []
+    governed_staged = [p for p in staged_after if is_governed_path(p)]
     sync_slice_staged = any(p.startswith("scripts/sync_v2") for p in staged_after)
-    if enforce_write_receipts or sync_slice_staged:
-        enforce_pfx = ("scripts/sync_v2",) if (sync_slice_staged and not enforce_write_receipts) else None
+    if governed_staged and (enforce_write_receipts or sync_slice_staged):
         gate_ok, gate_msg, verified_write_receipts = verify_staged_commit_gate(
             lock.repo, lock, write_receipt_root=(lock.receipt_root / "write-receipts"),
-            enforce_scope_prefix=enforce_pfx,
+            enforce_scope_prefix=GOVERNED_PATH_PREFIXES,
         )
         if not gate_ok:
             return False, f"COMMIT_GATE_BLOCKED: {gate_msg}"
@@ -3474,6 +3498,91 @@ def print_human(results: dict, detail: bool = False) -> None:
                          ensure_ascii=False, indent=2))
 
 
+# ------------------------------------------------------------------ uninstall
+# 裁决6（docs/user-and-tasks.md）：生命周期的退出环。只移除 bootstrap 装进
+# 各 harness 的产物；永不触碰：仓库克隆、personal-ai-private、canonical、
+# 会话、记忆、凭据、DSH runtime 组合（aic 管理的 overlay 是运行态身份，
+# 仅报告、需人工处置）。默认 dry-run，--apply 才真正删除。
+UNINSTALL_SKILLS_DIRS = [
+    Path.home() / ".dsh" / "skills",
+    Path.home() / ".claude" / "skills",
+    Path.home() / ".codex" / "skills",
+]
+
+
+def run_uninstall(apply: bool) -> dict:
+    steps: list[dict] = []
+    manifest = json.loads((REPO / "skills.json").read_text(encoding="utf-8"))
+    names = sorted({s.get("name") for s in manifest.get("skills", []) if s.get("name")})
+
+    # 1. Skills —— 只删带同名 SKILL.md 的目录（那是 sync_skills 装出的形态；
+    #    用户自建的同名目录没有我们的 SKILL.md 就不会被碰——有的才算命中）
+    for sdir in UNINSTALL_SKILLS_DIRS:
+        for name in names:
+            target = sdir / name
+            if not (target / "SKILL.md").is_file():
+                continue
+            entry = {"kind": "skill", "path": str(target),
+                     "action": "remove" if apply else "would-remove"}
+            if apply:
+                shutil.rmtree(target, ignore_errors=True)
+                entry["done"] = not target.exists()
+            steps.append(entry)
+
+    # 2. MCP 注册（agent-switchboard）
+    rc, out = run(["claude", "mcp", "list"])
+    if rc == 0 and "agent-switchboard" in out:
+        entry = {"kind": "mcp-registration", "path": "claude mcp: agent-switchboard",
+                 "action": "remove" if apply else "would-remove"}
+        if apply:
+            rc2, out2 = run(["claude", "mcp", "remove", "agent-switchboard"])
+            entry["done"] = rc2 == 0
+            if rc2 != 0:
+                entry["note"] = out2.strip()[-200:]
+        steps.append(entry)
+
+    # 3. 机平面 sync checkpoint
+    cdir = CHECKPOINT.parent
+    if cdir.is_dir():
+        entry = {"kind": "sync-checkpoint", "path": str(cdir),
+                 "action": "remove" if apply else "would-remove"}
+        if apply:
+            shutil.rmtree(cdir, ignore_errors=True)
+            entry["done"] = not cdir.exists()
+        steps.append(entry)
+
+    # 4. 报告但不碰：DSH runtime 组合（aic 管理）
+    dsh_home = Path(os.environ.get("DSH_HOME", str(Path.home() / ".dsh")))
+    if (dsh_home / "profiles").is_dir():
+        steps.append({"kind": "dsh-composition", "path": str(dsh_home / "profiles"),
+                      "action": "review",
+                      "note": "aic 管理的运行态组合，不在自动卸载范围；"
+                              "需要时人工执行 aic rollback 或手动清理"})
+
+    failed = [s for s in steps if apply and s.get("done") is False]
+    return {
+        "result": "PASS" if not failed else "REVIEW",
+        "mode": "apply" if apply else "dry-run",
+        "steps": steps,
+        "never_touched": ["仓库克隆", "personal-ai-private", "canonical",
+                          "会话历史", "记忆", "凭据"],
+    }
+
+
+def print_uninstall(results: dict) -> None:
+    print(f"\nPersonal AI Uninstall（{results['mode']}）\n")
+    if not results["steps"]:
+        print("  没有发现已安装的产物。")
+    for s in results["steps"]:
+        mark = {"would-remove": "将删", "remove": "删除" if s.get("done") else "删除失败",
+                "review": "人工"}[s["action"]]
+        print(f"  [{mark}] {s['kind']}: {s['path']}" + (f" — {s['note']}" if s.get("note") else ""))
+    print(f"\n  不触碰：{'、'.join(results['never_touched'])}")
+    if results["mode"] == "dry-run":
+        print("\n  这是预演。确认清单后加 --apply 真正执行。")
+    print(f"\nResult: {results['result']}")
+
+
 def main() -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -3481,11 +3590,21 @@ def main() -> int:
         pass
     ap = argparse.ArgumentParser(description="Personal AI Lifecycle Sync（薄编排器）")
     ap.add_argument("mode", nargs="?", default="sync",
-                    choices=["check", "pull", "push", "sync", "restore", "audit"])
+                    choices=["check", "pull", "push", "sync", "restore", "audit", "uninstall"])
     ap.add_argument("--detail", action="store_true")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--apply", action="store_true",
+                    help="uninstall：默认 dry-run 只列清单，加 --apply 才真正删除")
     ap.add_argument("--legacy", action="store_true", help="Run legacy v1 thin orchestrator instead of Sync V3 engine")
     args = ap.parse_args()
+
+    if args.mode == "uninstall":
+        results = run_uninstall(args.apply)
+        if args.json:
+            print(json.dumps(results, ensure_ascii=False, indent=2))
+        else:
+            print_uninstall(results)
+        return 0 if results.get("result") == "PASS" else 1
 
     # Route default sync/check calls directly through Sync V3 True Convergence Engine unless --legacy requested
     if not args.legacy and args.mode in ("sync", "check") and not args.json:

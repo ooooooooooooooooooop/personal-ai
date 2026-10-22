@@ -451,7 +451,18 @@ def cmd_pre_commit(args: argparse.Namespace) -> int:
         staged = pas._staged_paths(repo)
         if not staged:
             return 0
-        lock = _load_active_lock(repo, args, scope=staged)
+        # 作用域收敛（2026-10-22）：只有受治理切片（pas.GOVERNED_PATH_PREFIXES）才要求
+        # mutation lease。此前"暂存区非空即索要 lease"使门禁的作用域大于它保护的资产：
+        # 一次纯文档提交也会因无活跃 lease 被拒（A2 认知自锁）。非受治理路径交给
+        # pre-commit 后续的 validate_repo / 回归测试去检验物理质量。
+        governed = [path for path in staged if pas.is_governed_path(path)]
+        if not governed:
+            print(
+                "CANONICAL_PRE_COMMIT_SKIPPED: no governed paths staged "
+                f"({len(staged)} non-governed file(s))"
+            )
+            return 0
+        lock = _load_active_lock(repo, args, scope=governed)
         base_rc, base = pas.git(repo, "rev-parse", "HEAD")
         if base_rc != 0:
             raise RuntimeError(f"COMMIT_BASE_UNAVAILABLE: {base}")

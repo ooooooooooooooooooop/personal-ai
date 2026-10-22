@@ -11,7 +11,7 @@
 | 层 | 目录 | 可否改动 | 改动要点 |
 |---|---|---|---|
 | ① Skill 包 | `skills/<name>/` | ✅ | 必须登记在 `skills.json`（**条数以 `skills.json` 为准，不在此写死** —— 写死的数字会随包增减静默过期，而"个数"这类断言没人会去核）；布局统一 `SKILL.md + agents/openai.yaml + examples/*.md` |
-| ② MCP 包 | `mcp/<name>/` | ✅ | 登记在 `mcp.json`；自持子目录许可证；`agent-switchboard` 是修改版，非 MIT |
+| ② MCP 包 | `mcp/<name>/` | ✅ | 登记在 `mcp.json`；自持子目录许可证 |
 | ③ DSH 插件包 | `dsh/<name>/` | ✅ | 本地 DSH 用户级插件：源码 + 可移植 `cordis.patch.yml` 片段 + README 一起发布；不设注册表，校验器不核对 manifest，靠链接/markdown 检查兜底；发布内容禁止含本机路径；`dsh/adapter/` 是 PAI 侧 DSH 身体适配器（依赖方向 dsh → host），`dsh/tests/` 为 L4 契约 + L5/L6 切换演练。**包内只放适配器（`mjs`/`js` + `json` + `md` + `yml`）；harness 无关的工具链不放这里** |
 | ④ 质量脚手架 | `scripts/` `tests/` `docs/` `_template/` `.github/workflows/`（`skill-quality-gate` 是 ① 中的 Skill 包，位于 `skills/skill-quality-gate/`） | ✅ | 改 `validate_repo.py` 会影响全部上层契约，谨慎 |
 | ⑤ 设备运行层 | `.taskflow/` `.grepai/` `.claude/` `node_modules/` 等 | ❌ 禁改/禁提交 | 本地运行态，发布门禁拒绝 |
@@ -19,7 +19,7 @@
 | ⑦ mind/ | `mind/` | ✅ | **认知状态的维护工具链**（**完整清单以 `mind/README.md` 为准，不在此写死条数**）：A `distiller` · B `hypothesis_search` · C `lp_evaluator` · D `u1_accept`（唯一 canonical 写者）· 编译 `canonical_compile` / `instruction_compile` · 学到的先验 `reversibility_compile` · 周期入口 `wm_cycle` / `distill` · 迁移 `migrate_v031` · 契约测试台 `bcc_check` + `simulate_body.mjs`。**harness 无关**（入参全是目录路径）；**在 agent 权限之外**（宪法：agent 不得写 canonical）。与 `soul/` 配对但不同类：soul 回答"它信什么"，mind 回答"它怎么变"。运行时协议不在这里，在 `skills/world-model-runtime/` |
 | ⑧ host/ | `host/` | ✅ | Personal AI 中立控制宿主（`docs/pi-migration-design.md`）：**零外部依赖**，全目录禁止 import 任何身体/harness（`host/tests/firewall.test.js` 机械执行）；运行态写 instance root 禁入仓 |
 | ⑨ pi/ | `pi/` | ✅ | Pi 身体实现：adapter（Pi API ↔ host 契约）+ bootstrap（唯一 composition root）+ managed extensions；依赖方向恒为 `pi → host`；pin `@earendil-works/*@0.85.1`，lockfile 属 runtime identity |
-| ⑩ app/ | `app/` | ✅ | Personal AI 自有用户界面层：server（BodySupervisor 多身体组装根 + 零依赖 HTTP/SSE 桥）+ ui（零构建网页：对话 + 身体面板）+ desktop（Electron 壳）；**产品级组装根，可同时知道 pi/dsh 入口**；用户经 `body_select` 显式选身体，有会话时走真七态 handoff；`host/` 依然不 import 任何身体 |
+| ⑩ app/ | `app/` | ✅ | Personal AI 自有用户界面层：server（BodySupervisor 多身体组装根 + 零依赖 HTTP/SSE 桥）+ ui（零构建轻量网页，旧版入口 `app/ui/app.js`）+ src（Vite + React 新版前端，入口 `app/src/main.jsx`，组件按 `chat/composer/sidebar/topbar/views` 分域）+ desktop（Electron 壳）；**产品级组装根，可同时知道 pi/dsh 入口**；用户经 `body_select` 显式选身体，有会话时走真七态 handoff；`host/` 依然不 import 任何身体 |
 
 ## 硬约束（改目录结构的红线）
 
@@ -33,20 +33,55 @@
    新增测试套件照此办理。删掉它 → 会出现一整片红（`WORLD_MODEL_HOME is set…` 或 attestation 失败），
    而那只是征兆，**根因是测试在动真数据**。
 
-## 改动后必须跑的检查
+## Project Facts 与禁忌检查（真实物理底座）
+
+架构事实与传感器基准见 [`docs/project-facts-spec.md`](./docs/project-facts-spec.md)。
+- **不可逆操作前核对**：在执行涉及写库、修改注册表、跨身体切换或删除持久数据等不可逆操作前，**必须先阅读 [`FAILURES.md`](./FAILURES.md)**，核对相关已知禁忌并运行对应的退出码验证命令。
+- **环境怪癖（沙箱 temp-root）**：Windows ACL 下 temp-root 若位于 workspace 内，子进程创建会被预检直接拒绝并返回空输出；此时缺输出并不代表二进制不存在，严禁盲目尝试重装。
+
+## 改动后检查（按改动范围精准执行，禁止无脑全跑）
+
+### 1. 模块级局部检查（日常开发只跑改动层，严禁跨层空耗）
+
+- **仅改动 `app/`（前端 UI、组件与工作台）：**
+  ```bash
+  npm --prefix app run lint                         # UI 样式与 HTML 校验
+  npm --prefix app test                             # supervisor + 离屏 Electron DOM/Axe 门禁
+  ```
+- **仅改动 `host/`（中立控制宿主）：**
+  ```bash
+  npm --prefix host test                            # host 契约与零依赖防火墙
+  ```
+- **仅改动 `dsh/`（DSH 身体适配器）：**
+  ```bash
+  npm --prefix dsh test                             # L4 契约与 L5/L6 切换演练
+  ```
+- **仅改动 `pi/`（Pi 身体适配器，改了它才跑它）：**
+  ```bash
+  npm --prefix pi test                              # pi 侧边界与底层能力回归（耗时较长）
+  ```
+- **仅改动 `skills/`：**
+  ```bash
+  python skills/skill-quality-gate/scripts/quality_report.py --root . --strict
+  ```
+- **改动了结构、注册表或基础脚手架：**
+  ```bash
+  python scripts/validate_repo.py --strict
+  git diff --check
+  ```
+
+### 2. 发布合入门禁（仅在整仓发版或 PR 合并前全量执行）
 
 ```bash
-python scripts/validate_repo.py --strict          # 结构 + 注册表 + 许可证 + 链接 + 运行时文件边界
-python skills/skill-quality-gate/scripts/quality_report.py --root . --strict   # Skill 门禁
-python -m unittest discover -s tests -v           # 仓库回归
-python -m unittest discover -s mcp/agent-switchboard/tests -v           # MCP 回归
-python -m pytest -c mcp/chatgpt-web-bridge/pyproject.toml mcp/chatgpt-web-bridge/tests -m "not e2e"  # ChatGPT bridge 离线回归（先安装该包 .[dev]）
-npm --prefix host test                            # host 契约测试（零依赖防火墙）
-npm --prefix pi test                              # pi 侧边界测试
-npm --prefix dsh test                             # dsh 身体适配器 L4 契约 + L5/L6 切换演练
-npm --prefix app test                             # app 层：supervisor/bridge 测试（fixture 身体真切换）+ 离屏 Electron DOM gate（含 axe 可访问性）
-npm --prefix app run lint                         # app UI：stylelint（CSS）+ html-validate（HTML）
-git diff --check                                  # 空白错误
+python scripts/validate_repo.py --strict
+python skills/skill-quality-gate/scripts/quality_report.py --root . --strict
+python -m unittest discover -s tests -v
+npm --prefix host test
+npm --prefix pi test
+npm --prefix dsh test
+npm --prefix app test
+npm --prefix app run lint
+git diff --check
 ```
 
 ## 本地缓存与运行态（当前仓库的"大块头"）
