@@ -311,9 +311,29 @@ def _remote_head(repo: Path, remote: str, branch: str) -> str:
 
 
 def _ahead_commits_have_receipts(repo: Path, branch: str, receipt_root: Path) -> tuple[bool, str]:
+    """校验 ahead 区间的回执覆盖，作用域与 pre-commit 的 lease 口径保持一致。
+
+    只有触及受治理切片（pas.GOVERNED_PATH_PREFIXES）的提交才需要 canonical
+    commit receipt。pre-commit 对非受治理提交走 CANONICAL_PRE_COMMIT_SKIPPED
+    主动放行且不索要 lease；若此处仍强制全量回执，每次纯文档提交都会产生一个
+    "已提交但永远无法通过推送校验"的僵尸提交（2026-10-22 实例：b7059fe /
+    c2516ab / bc4f1e5 三个提交因此锁死全部推送）。
+    """
     commits = pas._local_ahead_commits(repo, branch)
-    missing = [commit for commit in commits if not pas._owned_commit_receipt(repo, commit, receipt_root)]
-    return (not missing, f"missing commit receipts: {missing}" if missing else "all ahead commits governed")
+    missing: list[str] = []
+    exempt: list[str] = []
+    for commit in commits:
+        if not pas.commit_touches_governed_paths(repo, commit):
+            exempt.append(commit)
+            continue
+        if not pas._owned_commit_receipt(repo, commit, receipt_root):
+            missing.append(commit)
+    if missing:
+        return (False, f"missing commit receipts: {missing}")
+    detail = f"all ahead commits governed ({len(commits)} checked)"
+    if exempt:
+        detail += f"; {len(exempt)} non-governed commit(s) not subject to receipt requirement"
+    return (True, detail)
 
 
 def _push_once(repo: Path, args: argparse.Namespace, lock: pas.CanonicalMutationLock) -> int:
@@ -512,21 +532,53 @@ def cmd_post_commit(args: argparse.Namespace) -> int:
             raise RuntimeError("COMMITTED_WITHOUT_INTENT")
         _path, intent = intents[0]
         changed = pas._commit_affected_files(repo, head)
-        foreign = sorted(path for path in changed if not pas._path_in_scope(path, lock.scope))
+        # 作用域收敛（2026-10-22，第三次对齐）：租约只对受治理切片
+        # （pas.GOVERNED_PATH_PREFIXES）负责，与 cmd_pre_commit 及
+        # push_governed_ref 的判据保持一致。此前这里用「整提交 changed ⊆ lock.scope」
+        # 判定外族，于是「受治理内容 + 大量非受治理删除」这种提交在 pre-commit 合法
+        # 通过、在这里被判越权、COMMITTED 回执写不出来；又因为 git 忽略 post-commit
+        # 的退出码，这次拒绝不阻断提交，只在稍后的 push_governed_ref 处才以
+        # PUSH_REF_MISSING_COMMIT_RECEIPT 暴露。三类门禁对同一事实口径不一致。
+        governed_changed = [path for path in changed if pas.is_governed_path(path)]
+        foreign = sorted(
+            path for path in governed_changed if not pas._path_in_scope(path, lock.scope)
+        )
         if foreign:
             pas.write_mutation_event(
                 repo,
                 "SCOPE_VIOLATION",
-                {"run_id": lock.run_id, "result_head": head, "foreign_paths": foreign},
+                {
+                    "run_id": lock.run_id,
+                    "result_head": head,
+                    "foreign_paths": foreign,
+                    "governed_changed": governed_changed,
+                },
                 lock_root=lock.lock_root,
             )
             raise RuntimeError(f"ABORT_FOREIGN_COMMITTED_PATH: {foreign}")
+        if len(governed_changed) < len(changed):
+            # 非受治理改动不属于租约资产，因此不进回执的 owned_scope（否则
+            # _receipt_scope_is_valid 会判回执超权）。但整份 changed 必须留在证据链里：
+            # 回执只记一部分而不留全貌，就是另一种静默删除。
+            pas.write_mutation_event(
+                repo,
+                "COMMIT_NON_GOVERNED_CHANGES",
+                {
+                    "run_id": lock.run_id,
+                    "result_head": head,
+                    "governed_changed": governed_changed,
+                    "non_governed_changed": sorted(
+                        path for path in changed if not pas.is_governed_path(path)
+                    ),
+                },
+                lock_root=lock.lock_root,
+            )
         receipt = pas.write_mutation_receipt(
             lock,
             base=str(intent.get("base_head", pas.PROVENANCE_UNKNOWN)),
             result="COMMITTED",
             staged=[str(item) for item in intent.get("staged_paths", [])],
-            changed=changed,
+            changed=governed_changed,
             commit=head,
             base_head=str(intent.get("base_head", pas.PROVENANCE_UNKNOWN)),
             result_head=head,
