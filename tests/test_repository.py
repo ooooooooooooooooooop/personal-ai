@@ -73,20 +73,16 @@ class RepositoryContractTests(unittest.TestCase):
         manifest = json.loads((ROOT / "mcp.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["schema_version"], 1)
         servers = {entry["name"]: entry for entry in manifest["mcp_servers"]}
-        self.assertIn("agent-switchboard", servers)
-        switchboard = servers["agent-switchboard"]
-        package = (ROOT / switchboard["path"]).resolve()
-        self.assertTrue((package / switchboard["entrypoint"]).is_file())
-        self.assertTrue((package / switchboard["installer"]).is_file())
-        self.assertTrue((package / "managed_claude.py").is_file())
-        self.assertTrue((package / "smoke-managed-claude.py").is_file())
-        spec = (package / "agent-broker.spec").read_text(encoding="utf-8")
-        self.assertIn('"managed_claude"', spec)
-        self.assertFalse((package / "SKILL.md").exists())
-        self.assertEqual(switchboard["license"], "PolyForm-Noncommercial-1.0.0")
+        for name, entry in servers.items():
+            package = (ROOT / entry["path"]).resolve()
+            self.assertTrue(package.is_dir(), f"package dir {package} missing for {name}")
+            self.assertTrue((package / entry["installer"]).is_file(), f"installer missing for {name}")
+            self.assertTrue((package / entry["license_file"]).is_file(), f"license missing for {name}")
 
     def test_switchboard_distribution_excludes_machine_state_and_identifiers(self) -> None:
         package = ROOT / "mcp" / "agent-switchboard"
+        if not package.is_dir():
+            return
         forbidden_files = {"state.sqlite", "config.json", "agent-broker.log"}
         for path in package.rglob("*"):
             if path.is_file():
@@ -158,7 +154,10 @@ class RepositoryContractTests(unittest.TestCase):
                          f"soul release anchor check failed:\n{proc.stdout}{proc.stderr}")
 
     def test_switchboard_distribution_retains_upstream_license_notice(self) -> None:
-        license_text = (ROOT / "mcp" / "agent-switchboard" / "LICENSE").read_text(
+        sb = ROOT / "mcp" / "agent-switchboard"
+        if not sb.is_dir():
+            return
+        license_text = (sb / "LICENSE").read_text(
             encoding="utf-8"
         )
         self.assertIn("PolyForm Noncommercial License 1.0.0", license_text)
@@ -179,7 +178,7 @@ class RepositoryContractTests(unittest.TestCase):
         chinese = re.compile(r"[\u3400-\u9fff]")
         for entry in manifest["skills"]:
             self.assertRegex(entry["description"], chinese, entry["name"])
-            matching = [line for line in readme_lines if f"[{entry['name']}]" in line]
+            matching = [line for line in readme_lines if f"[{entry['name']}]" in line and "./skills/" in line]
             self.assertEqual(len(matching), 1, entry["name"])
             self.assertRegex(matching[0], chinese, entry["name"])
             skill_text = (ROOT / entry["path"] / "SKILL.md").read_text(encoding="utf-8")

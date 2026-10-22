@@ -1,2 +1,0 @@
-# Optional: real token counting for compaction (falls back to a char estimate if absent).
-tiktoken>=0.5

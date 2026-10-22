@@ -83,6 +83,23 @@ UNITS_BY_PREFIX = {
 
 MCP_SUITES_ALL = ["mcp/agent-switchboard/tests"]
 
+
+def _present_mcp_suites(tree_files: set[str]) -> list[str]:
+    """Registered MCP suites that actually exist in the candidate tree.
+
+    A suite directory that was deleted cannot be discovered by unittest:
+    `discover -s mcp/<name>/tests` on a missing directory raises
+    ImportError and fails the gate. Deleting an MCP package is a legitimate
+    change, so the plan must drop its suite instead of demanding it back.
+    Suites are still taken from MCP_SUITES_ALL (not discovered from disk),
+    so retiring one package cannot silently add another package's tests to
+    every FULL run.
+    """
+    return [
+        suite for suite in MCP_SUITES_ALL
+        if any(path.startswith(suite + "/") for path in tree_files)
+    ]
+
 # Published layers. Anything tracked outside these prefixes is
 # unrecognized surface → fail-closed FULL.
 KNOWN_PLAIN_PREFIXES = (
@@ -325,7 +342,7 @@ def _full(reasons: list[str], tree_files: set[str]) -> dict:
         "reasons": sorted(set(reasons)),
         "compile": py,
         "unittest": tests,
-        "mcp_suites": list(MCP_SUITES_ALL),
+        "mcp_suites": _present_mcp_suites(tree_files),
     }
 
 
@@ -403,7 +420,8 @@ def plan(
                 if p.startswith(prefix):
                     unittest_set.update(t for t in tests if t in tree_files)
             if p.startswith("mcp/agent-switchboard/"):
-                mcp_suites.add("mcp/agent-switchboard/tests")
+                if "mcp/agent-switchboard/tests" in _present_mcp_suites(tree_files):
+                    mcp_suites.add("mcp/agent-switchboard/tests")
 
     if reasons:
         return _full(reasons, tree_files)

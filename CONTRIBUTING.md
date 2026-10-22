@@ -50,7 +50,6 @@ MCP 包禁止包含：
 python scripts/validate_repo.py --strict
 python skill-quality-gate/scripts/quality_report.py --root . --strict
 python -m unittest discover -s tests -v
-python -m unittest discover -s mcp/agent-switchboard/tests -v
 ```
 
 ## 提交边界

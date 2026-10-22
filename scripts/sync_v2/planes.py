@@ -603,10 +603,28 @@ def evaluate_mcp_plane(
     repair: bool = True,
 ) -> ResourceRecord:
     """Plane 7: MCP servers true sync evaluation (full pipeline)."""
+    manifest_path = repo_root / "mcp.json"
     mcp_root = repo_root / "mcp" / "agent-switchboard"
     entrypoint = mcp_root / "agent_broker_mcp.py"
 
     if not entrypoint.is_file():
+        # Check if agent-switchboard is registered in mcp.json
+        if manifest_path.is_file():
+            try:
+                mcp_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+                registered = mcp_data.get("mcp_servers", [])
+                if not any(s.get("name") == "agent-switchboard" for s in registered):
+                    return ResourceRecord(
+                        resource_id="mcp",
+                        plane=SyncPlane.MCP,
+                        category=ResourceCategory.CONVERGENCE_PLANE,
+                        status=PlaneStatus.PASS,
+                        symbol="✓",
+                        summary="MCP 注册表已对齐",
+                        required_evidence_level=EvidenceLevel.L3_REPRODUCED,
+                    )
+            except Exception:
+                pass
         return ResourceRecord(
             resource_id="mcp",
             plane=SyncPlane.MCP,

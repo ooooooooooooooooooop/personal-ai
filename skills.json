@@ -23,7 +23,6 @@
       "skill-quality-gate",
       "execution-discipline",
       "subagent-execution-governance",
-      "agent-switchboard-ops",
       "dsh-config-sync",
       "systematic-optimization",
       "evolution-proposal",
@@ -198,23 +197,6 @@
       "tier": "core",
       "depends_on": [
         "skill-repository-maintainer"
-      ]
-    },
-    {
-      "name": "agent-switchboard-ops",
-      "path": "./skills/agent-switchboard-ops",
-      "version": "1.3.1",
-      "description": "以管理者—执行者模式运维 agent-switchboard MCP：受管执行者生命周期、跨模型委派授权、验收纪律与已知陷阱对策",
-      "lang": [
-        "zh"
-      ],
-      "category": "workflow",
-      "priority": "P1",
-      "tier": "optional",
-      "depends_on": [
-        "task-mode-router",
-        "minimal-implementation",
-        "clarify-before-change"
       ]
     },
     {

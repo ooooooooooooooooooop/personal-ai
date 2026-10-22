@@ -2,21 +2,6 @@
   "schema_version": 1,
   "mcp_servers": [
     {
-      "name": "agent-switchboard",
-      "path": "./mcp/agent-switchboard",
-      "description": "本地 MCP 协作桥：读取 Agent 会话、后台托管 Claude Code，以事件驱动方式协作和监督，并代理 Codex Goal 有界监督（池化并发、验证器驱动完成、预算强制）",
-      "upstream_repository": "https://github.com/FutureisinPast/mcp-agent-switchboard",
-      "upstream_commit": "9d35157bf85fec6e442c3054fec3469b456869d8",
-      "upstream_version": "1.0.32",
-      "distribution_revision": "2026.08.18.1",
-      "entrypoint": "agent_broker_mcp.py",
-      "installer": "install-agent-broker.ps1",
-      "license": "PolyForm-Noncommercial-1.0.0",
-      "license_file": "LICENSE",
-      "platforms": ["windows"],
-      "python": ">=3.10"
-    },
-    {
       "name": "chatgpt-web-bridge",
       "path": "./mcp/chatgpt-web-bridge",
       "description": "ChatGPT 网页版桥：专用 Chrome profile + CDP 驱动，REST(:8080) 与 MCP SSE(:8090) 双通道；conv-affinity 单会话单 tab、后台建 tab、账号级跨进程节流、项目名解析",

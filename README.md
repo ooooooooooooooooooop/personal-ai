@@ -21,16 +21,16 @@
 
 | MCP | 简介 | 平台 | 许可证 |
 |---|---|---|---|
-| [agent-switchboard](./mcp/agent-switchboard) | 读取本地会话、后台托管 Claude Code、池化多会话并发控制（并发上限/孤儿回收/项目写锁）、Codex Goal 有界监督（验证器驱动的完成判定、依赖图局部阻塞、预算强制），且仅在实质事件发生时启动监督判断 | broker 跨平台；安装、后台进程控制与旧 mintty 兼容路径以 Windows 10/11 为主 | PolyForm Noncommercial 1.0.0 |
+| [chatgpt-web-bridge](./mcp/chatgpt-web-bridge) | ChatGPT 网页版桥：专用 Chrome profile + CDP 驱动，REST(:8080) 与 MCP SSE(:8090) 双通道；conv-affinity 单会话单 tab、账号级跨进程节流 | Windows | MIT |
 
-MCP 的机器可读登记信息位于 [mcp.json](./mcp.json)。`agent-switchboard` 是上游项目的修改发行版，许可证不受仓库根 MIT 许可证覆盖；详见子项目内的 `LICENSE` 与 `DISTRIBUTION.md`。
+MCP 的机器可读登记信息位于 [mcp.json](./mcp.json)。
 
 ### 安装 MCP
 
 ```powershell
 git clone https://github.com/ooooooooooooooooooop/personal-ai.git
-Set-Location .\personal-ai\mcp\agent-switchboard
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install-agent-broker.ps1
+Set-Location .\personal-ai\mcp\chatgpt-web-bridge
+powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 安装器会登记本机 MCP host，因此应在确认目标设备后显式运行。它不会复制当前设备的 `state.sqlite`、会话或模型设置。
@@ -52,7 +52,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\install-agent-broker.ps1
 | [execution-discipline](./skills/execution-discipline) | 在长程会话中强制五条执行纪律：零轮询、门禁自修、窄探针、委派探查与进度回报 | 核心 |
 | [find-session](./skills/find-session) | 按对话标题或正文关键词快速定位 DSH 历史会话并读取内容/token 统计 | 可选 |
 | [subagent-execution-governance](./skills/subagent-execution-governance) | 子代理契约型治理：探查/实现分离、契约快照含负空间、三级有界读取、行动门槛与结构化 BLOCKED，附会话纪律体检脚本 | 条件 |
-| [agent-switchboard-ops](./skills/agent-switchboard-ops) | 以管理者—执行者模式运维 agent-switchboard MCP，覆盖受管执行、跨模型委派与验收纪律 | 可选 |
 | [dsh-config-sync](./skills/dsh-config-sync) | 把 DSH 用户配置打包成脱敏骨架并在设备间安全同步恢复，校验哈希且不含凭据 | 可选 |
 | [systematic-optimization](./skills/systematic-optimization) | 系统化问题解决与优化流程（领域无关）：量化→列问题→根因→结构性方案→借鉴→取舍→实施→验证→度量 | 可选 |
 | [evolution-proposal](./skills/evolution-proposal) | 把 evolution-inbox 审计异常转化为可评审的进化提案：证据驱动、分级处理、人工批准后固化 | 可选 |
@@ -161,18 +160,14 @@ artifacts/  output/  Users/  __pycache__/   # 生成物/运行态，已 gitignor
 - `skill-quality-gate` 同时是质量门禁脚本，但它本身是 ① 中的一个 Skill 包，位于 `skills/skill-quality-gate/`。
 - 详尽的层级、状态边界、许可证边界与发布门禁见 [`docs/architecture.md`](./docs/architecture.md)。
 
-`agent-switchboard` 是上游项目的修改发行版，许可证不受仓库根 MIT 许可证覆盖；详见子项目内的 `LICENSE` 与 `DISTRIBUTION.md`。
-
 ## 验证
 
 ```bash
 python scripts/validate_repo.py --strict
 python skills/skill-quality-gate/scripts/quality_report.py --root . --strict
 python -m unittest discover -s tests -v
-python -m unittest discover -s mcp/agent-switchboard/tests -v
 ```
 
 ## 许可证
 
 - 仓库自有内容与 Skills：根目录 [MIT](./LICENSE)。
-- `mcp/agent-switchboard`：子目录 [PolyForm Noncommercial 1.0.0](./mcp/agent-switchboard/LICENSE)，商业用途需要上游另行书面许可。

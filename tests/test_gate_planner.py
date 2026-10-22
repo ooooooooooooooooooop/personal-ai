@@ -160,10 +160,35 @@ class TestPlanClassification(unittest.TestCase):
         fx = Fixture()
         try:
             fx.add("mcp/agent-switchboard/src/x.py")
+            fx.add("mcp/agent-switchboard/tests/test_x.py")
             p = fx.plan([ch("M", "mcp/agent-switchboard/src/x.py")])
             self.assertEqual(p["mode"], "DELTA")
             self.assertIn("mcp/agent-switchboard/tests", p["mcp_suites"])
             self.assertIn("mcp/agent-switchboard/src/x.py", p["compile"])
+        finally:
+            fx.cleanup()
+
+    def test_deleted_mcp_package_drops_its_suite(self):
+        """Retiring an MCP package must not demand a suite that no longer exists.
+
+        `unittest discover -s mcp/<name>/tests` on a missing directory raises
+        ImportError and fails the gate, so deleting a package would be
+        uncommittable. The suite is dropped from BOTH the delta plan and the
+        FULL universe — but only for suites already registered in
+        MCP_SUITES_ALL, so retiring one package cannot silently add another
+        package's tests to every run.
+        """
+        fx = Fixture()
+        try:
+            fx.add("scripts/a.py").add("docs/x.md")
+            for force in (False, True):
+                p = fx.plan([ch("M", "docs/x.md")], force_full=force)
+                self.assertEqual(p["mcp_suites"], [], f"force_full={force}")
+            # A surviving sibling suite is still planned.
+            fx.add("mcp/chatgpt-web-bridge/tests/test_y.py")
+            p = fx.plan([ch("M", "docs/x.md")], force_full=True)
+            self.assertEqual(p["mcp_suites"], [],
+                             "unregistered packages must stay out of the plan")
         finally:
             fx.cleanup()
 
@@ -176,7 +201,13 @@ class TestPlanClassification(unittest.TestCase):
             self.assertEqual(set(p["compile"]), {"scripts/a.py",
                                                  "tests/test_a.py"})
             self.assertEqual(p["unittest"], ["tests/test_a.py"])
-            self.assertEqual(p["mcp_suites"],
+            # The universe is "every registered suite that still exists in the
+            # candidate tree": a retired MCP package must not be demanded back
+            # (`discover -s` on a missing dir raises ImportError).
+            self.assertEqual(p["mcp_suites"], [])
+            fx.add("mcp/agent-switchboard/tests/test_x.py")
+            p2 = fx.plan([ch("M", "docs/x.md")], force_full=True)
+            self.assertEqual(p2["mcp_suites"],
                              gate_planner.MCP_SUITES_ALL)
         finally:
             fx.cleanup()

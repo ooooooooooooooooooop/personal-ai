@@ -267,11 +267,12 @@ class FakeSyncRegressionTests(unittest.TestCase):
 
     # 7. MCP syntax error returns REVIEW_REQUIRED
     def test_07_mcp_syntax_error_returns_review(self) -> None:
-        with mock.patch("subprocess.run") as mock_proc:
-            mock_proc.return_value = mock.Mock(returncode=1, stderr=b"SyntaxError")
-            res = evaluate_mcp_plane(self.home, REPO, self.contract)
-            self.assertEqual(res.status, PlaneStatus.REVIEW_REQUIRED)
-            self.assertIn("编译失败", res.summary)
+        with mock.patch("pathlib.Path.is_file", return_value=True):
+            with mock.patch("subprocess.run") as mock_proc:
+                mock_proc.return_value = mock.Mock(returncode=1, stderr=b"SyntaxError")
+                res = evaluate_mcp_plane(self.home, REPO, self.contract)
+                self.assertEqual(res.status, PlaneStatus.REVIEW_REQUIRED)
+                self.assertIn("编译失败", res.summary)
 
     # 8. Presets missing auto repaired
     def test_08_presets_missing_auto_repaired(self) -> None:
