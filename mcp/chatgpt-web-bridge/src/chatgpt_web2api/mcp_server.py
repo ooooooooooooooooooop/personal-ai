@@ -152,6 +152,17 @@ class ChatCompletionInput(BaseModel):
             "target and scope remains valid across MCP reconnects."
         ),
     )
+    force_new_chat: bool = Field(
+        default=False,
+        description=(
+            "One-shot override for the new-chat draft/generation guard ONLY: "
+            "use after a target_busy error you have verified is a misread "
+            "(e.g. a ghost draft while the composer is visibly empty). Skips "
+            "only that pre-check — navigation, readiness polling and send "
+            "verification still run. Has no effect on conversation-continue "
+            "routes or on the conversation-binding confirmation gate."
+        ),
+    )
 
 
 class ListModelsInput(BaseModel):
@@ -1012,7 +1023,10 @@ async def do_chat_completion(
     session_key: str | None = None,
 ) -> dict:
     validated = ChatCompletionInput(**args)
-    request = validated.model_dump(exclude={"confirm", "operation_id"})
+    # force_new_chat changes guard strictness, not WHAT is sent — excluding it
+    # keeps a force-retry payload-identical to the blocked attempt under the
+    # same operation_id (receipts refuse payload changes under one ID).
+    request = validated.model_dump(exclude={"confirm", "operation_id", "force_new_chat"})
     request["project_id"] = validated.project_id or (config.chatgpt.default_project_id if config else None)
     request["tool"] = "chat_completion"
     return await send_receipts.run(
@@ -1073,6 +1087,7 @@ async def _do_chat_completion(driver, args, config, on_progress=None, session_ke
             and not validated.system_prompt
             and not project_id
         ),
+        force=validated.force_new_chat,
     )
     if route == "auto-continue":
         logger.info("Auto-continuing conversation: %s", driver._current_conv_id)
@@ -3312,7 +3327,9 @@ def create_server() -> Server:
             try:
                 model = ChatCompletionInput if name == ToolName.CHAT_COMPLETION.value else ChatWithGptInput
                 validated = model(**arguments)
-                logical = validated.model_dump(exclude={"confirm", "operation_id"}) | {"tool": name}
+                # force_new_chat excluded for the same reason as in
+                # do_chat_completion: guard strictness is not payload.
+                logical = validated.model_dump(exclude={"confirm", "operation_id", "force_new_chat"}) | {"tool": name}
                 if name == ToolName.CHAT_COMPLETION.value:
                     logical["project_id"] = validated.project_id or (_config.chatgpt.default_project_id if _config else None)
                 send_receipts.reject_recorded(logical, validated.operation_id)

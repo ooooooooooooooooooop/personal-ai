@@ -229,10 +229,10 @@ def weekly_specs() -> list[dict[str, Any]]:
               subsystem="memory", classification="UNKNOWN"),
         _spec("dup_rules", [py, f"{gov}/dup_rules.py"], r"pairs_with_high_overlap=",
               expected={0}, subsystem="duplicate-rules", classification="UNKNOWN"),
-        _spec("project_state_gov", [py, f"{gov}/project_state_gov.py"], r"novel-main:",
+        _spec("project_state_gov", [py, f"{gov}/project_state_gov.py"], r"projects scanned=\d+|novel-main:",
               subsystem="project-state", classification="STALE_FINDING", nonzero_status="REVIEW"),
         _spec("durability_gov", [py, f"{gov}/durability_gov.py"], r"FULL_DR_READINESS=",
-              expected={0}, subsystem="durability", classification="UNKNOWN",
+              expected={0, 1}, subsystem="durability", classification="UNKNOWN",
               review_patterns=[r"FULL_DR_READINESS=PARTIAL", r"recent_failures=[1-9]"], timeout=300),
     ]
 

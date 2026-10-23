@@ -1911,11 +1911,15 @@ class CDPDriver:
 
     # ── Navigation ────────────────────────────────────────────
 
-    async def navigate_new_chat(self, gizmo_id: str = None) -> None:
-        """Navigate only after preserving drafts/generation; report the failed stage."""
+    async def navigate_new_chat(self, gizmo_id: str = None, *, force: bool = False) -> None:
+        """Navigate only after preserving drafts/generation; report the failed stage.
+
+        ``force`` is the guard's explicit "I was wrong" exit (裁决5): it skips
+        ONLY the draft/generation pre-check — navigation, readiness polling and
+        send verification still run."""
         from .navigation import navigate_new_chat
 
-        await navigate_new_chat(self, gizmo_id)
+        await navigate_new_chat(self, gizmo_id, force=force)
 
     async def _has_composer(self) -> bool:
         """Is a send-capable composer present on the live tab?
@@ -2168,6 +2172,7 @@ class CDPDriver:
         conversation_id: str | None,
         project_id: str | None = None,
         auto_continue: bool = False,
+        force: bool = False,
     ) -> str:
         """Route this driver's live tab to where the request must be sent.
 
@@ -2196,7 +2201,7 @@ class CDPDriver:
         if auto_continue and self._current_conv_id:
             await self.ensure_current_conversation(self._current_conv_id)
             return "auto-continue"
-        await self.navigate_new_chat(gizmo_id=project_id)
+        await self.navigate_new_chat(gizmo_id=project_id, force=force)
         return "new"
 
     # ── Message Input ─────────────────────────────────────────

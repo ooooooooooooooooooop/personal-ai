@@ -113,6 +113,19 @@ Personal AI 管理与治理已收敛为 DSH 独占，外部 Harness 恢复原生
 - **Codex**：
   - 删除历史注入文件：`~/.codex/AGENTS.md`、`~/.codex/hooks.json`、`~/.codex/agents/*`
 新设备执行 BOOTSTRAP 时默认不会向外部 Harness 写入任何注入文件。
+
+## 4.3 卸载（退出路径）
+
+```bash
+python <REPO>/scripts/personal_ai_sync.py uninstall          # dry-run：只列清单
+python <REPO>/scripts/personal_ai_sync.py uninstall --apply  # 确认清单后执行
+```
+
+只移除 bootstrap 装进的产物：各 Harness 的 Skills（带同名 SKILL.md 的目录）、
+`agent-switchboard` 的 MCP 注册、本机 sync checkpoint。**永不触碰**：仓库克隆、
+personal-ai-private、canonical、会话历史、记忆、凭据。DSH runtime 组合
+（aic 管理的 overlay）属运行态身份，只报告不自动删，需要时人工 `aic rollback`。
+
 ## 5. 只有这些情况才报告用户
 
 其余一切问题（含拉取、合并、安装、refresh、重跑）必须自主解决，禁止抛回用户、禁止把门禁输出当交付物。

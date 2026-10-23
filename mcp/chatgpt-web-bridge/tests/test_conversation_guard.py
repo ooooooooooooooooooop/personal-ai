@@ -678,7 +678,7 @@ async def test_route_auto_continue_needs_current_conversation():
         conversation_id=None, project_id=None, auto_continue=True
     )
     assert route == "new"
-    d.navigate_new_chat.assert_awaited_once_with(gizmo_id=None)
+    d.navigate_new_chat.assert_awaited_once_with(gizmo_id=None, force=False)
 
 
 @pytest.mark.asyncio
@@ -692,7 +692,7 @@ async def test_route_new_chat_scopes_project():
         conversation_id=None, project_id="g-p-x", auto_continue=False
     )
     assert route == "new"
-    d.navigate_new_chat.assert_awaited_once_with(gizmo_id="g-p-x")
+    d.navigate_new_chat.assert_awaited_once_with(gizmo_id="g-p-x", force=False)
 
 
 # ── 9. conv-bound tab protection in the scratch/new-chat path ──────────

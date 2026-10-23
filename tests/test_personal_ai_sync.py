@@ -971,5 +971,61 @@ class TestWorkspaceRegistryIntegrity(unittest.TestCase):
             self.assertEqual(r["order_count"], 2)
 
 
+class TestUninstall(unittest.TestCase):
+    """裁决6 卸载路径：dry-run 不删任何东西；apply 只删我们装的形态，
+    永不触碰 canonical/会话/凭据（它们根本不在清单里）。"""
+
+    def _fixture(self, td: Path):
+        skills_dir = td / ".dsh" / "skills"
+        target = skills_dir / "publish-and-reuse"
+        target.mkdir(parents=True)
+        (target / "SKILL.md").write_text("---\nname: publish-and-reuse\n---\n", encoding="utf-8")
+        cp_dir = td / ".dsh" / ".personal-ai-sync"
+        cp_dir.mkdir(parents=True)
+        (cp_dir / "status.json").write_text("{}", encoding="utf-8")
+        return skills_dir, cp_dir
+
+    def _run(self, td: Path, apply: bool):
+        skills_dir, cp_dir = self._fixture(td)
+        with mock.patch.object(pas, "UNINSTALL_SKILLS_DIRS", [skills_dir]), \
+             mock.patch.object(pas, "CHECKPOINT", cp_dir / "status.json"), \
+             mock.patch.object(pas, "run", return_value=(1, "")):  # 无 claude CLI
+            return pas.run_uninstall(apply), skills_dir, cp_dir
+
+    def test_dry_run_removes_nothing(self):
+        with tempfile.TemporaryDirectory() as t:
+            r, skills_dir, cp_dir = self._run(Path(t), apply=False)
+            self.assertEqual(r["result"], "PASS")
+            self.assertEqual(r["mode"], "dry-run")
+            self.assertTrue((skills_dir / "publish-and-reuse" / "SKILL.md").is_file())
+            self.assertTrue(cp_dir.is_dir())
+            kinds = {s["kind"] for s in r["steps"]}
+            self.assertIn("skill", kinds)
+            self.assertIn("sync-checkpoint", kinds)
+
+    def test_apply_removes_only_installed_artifacts(self):
+        with tempfile.TemporaryDirectory() as t:
+            r, skills_dir, cp_dir = self._run(Path(t), apply=True)
+            self.assertEqual(r["result"], "PASS")
+            self.assertFalse((skills_dir / "publish-and-reuse").exists())
+            self.assertFalse(cp_dir.exists())
+            for s in r["steps"]:
+                if s["action"] == "remove":
+                    self.assertTrue(s.get("done"), f"not removed: {s}")
+
+    def test_unknown_dir_without_skill_md_never_touched(self):
+        with tempfile.TemporaryDirectory() as t:
+            td = Path(t)
+            skills_dir, cp_dir = self._fixture(td)
+            foreign = skills_dir / "world-model-runtime"  # 同名但无 SKILL.md —— 用户自建
+            foreign.mkdir(parents=True)
+            (foreign / "notes.txt").write_text("mine", encoding="utf-8")
+            with mock.patch.object(pas, "UNINSTALL_SKILLS_DIRS", [skills_dir]), \
+                 mock.patch.object(pas, "CHECKPOINT", cp_dir / "status.json"), \
+                 mock.patch.object(pas, "run", return_value=(1, "")):
+                pas.run_uninstall(apply=True)
+            self.assertTrue((foreign / "notes.txt").is_file(), "foreign dir must survive")
+
+
 if __name__ == "__main__":
     unittest.main()

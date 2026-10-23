@@ -8,6 +8,10 @@ import time
 from collections import deque
 from urllib.parse import urlsplit
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class NavigationError(RuntimeError):
     def __init__(self, reason, stage, evidence):
@@ -94,7 +98,7 @@ class NavigationEvidence:
         return None
 
 
-async def navigate_new_chat(driver, project_id=None):
+async def navigate_new_chat(driver, project_id=None, *, force=False):
     from .cdp_driver import COMPOSER_FALLBACK_SELECTOR, COMPOSER_SELECTOR, NavigationReadinessProbe
 
     if driver._conv_target:
@@ -126,8 +130,20 @@ async def navigate_new_chat(driver, project_id=None):
         initial = await probe()
     except Exception as exc:
         raise NavigationError("probe_failed", type(exc).__name__, []) from exc
-    if initial.get("draft_length") or initial.get("generating") or await driver._dom.is_generating():
-        raise NavigationError("target_busy", "draft or active generation; page preserved", [])
+    busy = bool(initial.get("draft_length") or initial.get("generating") or await driver._dom.is_generating())
+    if busy and not force:
+        # Design rule (docs/user-and-tasks.md 裁决5): every fail-closed guard
+        # must carry its own "I was wrong" exit — a guard that can misread
+        # (2026-10-12: ghost draft blocked EVERY send account-wide) must tell
+        # the operator how to proceed past it. force skips ONLY this pre-check;
+        # navigation, readiness polling and send verification are untouched.
+        raise NavigationError(
+            "target_busy",
+            "draft or active generation; page preserved — if this is a misread "
+            "(e.g. ghost draft), retry once with force_new_chat=true",
+            [])
+    if busy:
+        logger.warning("target_busy pre-check overridden by caller (force) — proceeding with navigation")
     url = f"https://chatgpt.com/g/{project_id}/project" if project_id else "https://chatgpt.com/?model=auto"
     with NavigationEvidence(driver) as evidence:
         await driver._cdp("Network.enable", {"maxPostDataSize": 4 * 1024 * 1024})

@@ -89,3 +89,9 @@ browser-e2e-screenshot.png
 
 # gdrive upload staging cache (runtime, never publish)
 /.tmp.driveupload/
+
+# Stray screen captures from the chat-outline security scenario
+# (app/tests/chat-outline-security.test.js uses these *names* only as fake tool
+# arguments — the real files are device screenshots and must never be published)
+/current_screen.png
+/temp_screenshot.png

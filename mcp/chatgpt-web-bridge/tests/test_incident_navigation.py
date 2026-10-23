@@ -53,6 +53,30 @@ async def test_preserves_draft_or_generation_without_navigating(driver, flag):
     driver._cdp.assert_not_awaited()
 
 
+async def test_target_busy_error_names_its_override(driver):
+    """裁决5: a fail-closed guard must carry its own "I was wrong" exit — the
+    error text must name force_new_chat so a blocked operator can self-rescue."""
+    driver._js_strict.return_value = state(draft_length=3)
+    with pytest.raises(navigation.NavigationError, match="force_new_chat"):
+        await navigation.navigate_new_chat(driver, PROJECT)
+    driver._cdp.assert_not_awaited()
+
+
+async def test_force_skips_only_the_busy_precheck(driver):
+    """force bypasses the draft/generation pre-check; navigation and readiness
+    polling still run (Page.navigate is reached, target URL still verified)."""
+    driver._js_strict.return_value = state(draft_length=3)
+    await navigation.navigate_new_chat(driver, PROJECT, force=True)
+    assert sum(call.args[0] == "Page.navigate" for call in driver._cdp.await_args_list) == 1
+
+
+async def test_force_does_not_skip_readiness(driver):
+    """force is not a blank cheque: a wrong-URL landing still fails closed."""
+    driver._js_strict.return_value = state("https://chatgpt.com/g/g-p-other/project", draft_length=3)
+    with pytest.raises(navigation.NavigationError, match="url displaced"):
+        await navigation.navigate_new_chat(driver, PROJECT, force=True)
+
+
 @pytest.mark.parametrize("challenge,reason", [(True, "challenge_required"), (False, "access_denied")])
 async def test_challenge_is_distinguished_from_plain_403(driver, challenge, reason):
     async def cdp(method, params):
