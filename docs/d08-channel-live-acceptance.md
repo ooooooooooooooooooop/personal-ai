@@ -36,7 +36,7 @@
 | C21-b｜副作用 | abort 后 bash 后代子进程未原子切断 | **FAIL — 上游已知边界，挂账**（见 §4 B） |
 | C21-c | 退出重启后会话/事项恢复 | **PASS** |
 | C22 | 认知生命周期否决路径 | **PASS**（真实库逐字节不变） |
-| C22｜采纳路径 | accept → canonical → 编译 → 加载 | **PARTIAL**（2026-10-23 隔离取证：写入 PASS / 编译 PASS / **传播 FAIL**，见 `docs/c22-accept-evidence.md` 与 §4 E） |
+| C22｜采纳路径 | accept → canonical → 编译 → 加载 | **PARTIAL**（2026-10-23 隔离取证：写入 PASS / 编译 PASS / **传播 FAIL**；同日 `docs/briefing-truncation-fix.md` 修复缺陷 E 后，沙箱内传播已 13/13 命中，但真实库产物未重编译，见 §4 E） |
 
 **G1 不结算。** D07.5 与上表全部条目都只是 G1 的必要条件，不是充分条件；C22 采纳链路与缺陷 B 未闭合，G1 维持未结算状态。
 
@@ -85,6 +85,7 @@ provider `cpa/gpt-6-luna`（relay `127.0.0.1:8317`，`/v1/models` 返回 200）�
 **真实库零改动**：真实 canonical 的 `current.yaml` 哈希仍为 `32658d1b…`，被裁决提案在真实库中仍为 `proposed`。副本与真实库的唯一差异就是"被裁决的提案 + 其历史"这两个文件。
 
 采纳路径已于 2026-10-23 在隔离沙箱中取得证据，**判定 PARTIAL**：写入与编译两段真实闭合，但被采纳的模型没有进入身体读到的简报。完整数据见 `docs/c22-accept-evidence.md`，缺陷记为 §4 E。**仍不记为通过。**
+同日缺陷 E 修复后（`docs/briefing-truncation-fix.md`），沙箱内传播段已闭合：13/13 条目全部就位，`cand-8975ff9f` 进入 §3。**仍不结算 C22** —— 真实库的 `briefing.md` 还是旧代码产物，产物重生成是 owner 动作，不是代码缺口。
 
 ---
 
@@ -143,19 +144,19 @@ return { ...(out ?? {}), isError: true };
 
 后续：`0893737` 修掉终止决策被 apply 门禁挡住、补上 `withdraw` 并登记 kind 契约；`bc526c5` / `fd0f4d4` 把 84 条不可 apply 的历史提案批量封存（`proposed` 89 → 5）。剩余 5 条中 4 条是 `foreign`，未取证。详见 `docs/proposal-kind-contract-gap.md`。
 
-### E. 采纳成功的模型对运行时不可见 — 未修复
+### E. 采纳成功的模型对运行时不可见 — 代码已修复，产物未重编译
 
 C22 隔离取证（`docs/c22-accept-evidence.md`）暴露：`mind/canonical_compile.py:119` 用 `list(models.items())[:6]` 按**插入序**截断简报模型区，而 `u1_accept` 把新模型追加到末尾。结果是 **9 个 canonical 模型只有 6 个进简报，缺失的 3 个里 2 个是早已 accepted 的、1 个是刚 accept 的**。
 
-字节预算从未成为约束：补齐后 7361 字节，硬上限 8192 仍有 831 字节余量；文件自身设计的按优先级裁剪算法被这个魔数整段绕过。宿主 `doctor` 的 `compiled_artifacts` 只验存在与新鲜度，对"在场但截断"的通道无感，对此状态报 `pass`。
+字节预算从未成为约束：旧简报离 8192 硬顶还差 2403 字节；文件自身设计的按优先级裁剪算法被这个魔数整段绕过。宿主 `doctor` 的 `compiled_artifacts` 只验存在与新鲜度，对"在场但截断"的通道无感，对此状态报 `pass`。
 
-判定影响：C22 采纳路径因此是 PARTIAL —— 写入闭合、编译闭合、**传播不闭合**。
+**2026-10-23 修复**（`docs/briefing-truncation-fix.md`）：按位置取模型改为按状态与新鲜度排序（`usable` 优先 → `provenance.ts` 倒序），`SUPERSEDED` 移入 §4 而非删除；只有字节预算能删条目，且必须留下具名 `[truncated]` 标记；§5 的 `[:5]` 同步去掉；裁剪序与 docstring 声明的优先级对齐（原代码是反的）；写入由 `write_text` 改 `write_bytes`（Windows 下 CRLF 转换让报告的 5986 与磁盘的 6063 差了 77 字节，等于硬顶按少算的账在守）。19 个覆盖传感器 + 5 个变异变体全杀。
+
+**仍未闭合的部分**：真实库 `briefing.md` 没有重编译，身体现在读到的仍是旧产物（`4be01ea0…`，缺 2 个模型）。修复的是编译器，不是产物。C22 因此**仍记为 PARTIAL** —— 隔离沙箱内 `accept → compile → load` 已 13/13 全命中（旧编译器下 accept 改了 `current.yaml`、编译报成功、简报一个字节没动），但真实实例要等 owner 显式重生成。
 
 ### F. apply 路径无幂等守卫 — 未修复
 
 同一提案连续 `accept` 两次：两次退出码均 0，`model-updates.jsonl` 落 2 行 `U1_APPLY`，新建 2 个回滚目录，`current.yaml` 里该模型的 `provenance.ts` 与 `update_history` 被第二次覆盖 —— 首次采纳时间只剩 ledger 记得。D0 只给终止决策加了幂等，apply 没有。
-
-E 与 F 都在 `mind/`（受治理路径），需独立一笔 + 变异矩阵，**本次一分代码未改**。
 
 ---
 
