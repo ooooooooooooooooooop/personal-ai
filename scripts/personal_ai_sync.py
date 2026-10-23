@@ -1395,7 +1395,12 @@ def validate_push_ref_authorization(
     if lease.get("mutation_lease_id") != auth.get("lease_id") or lease.get("run_id") != auth.get("run_id"):
         return False, "DEFER_FOREIGN_CANONICAL_WRITER"
     receipt_root = Path(lease.get("lock_path", "")).parent / "receipts"
-    if not _owned_commit_receipt(repo, target_commit, receipt_root):
+    # 口径对齐（2026-10-23，第四处）：与 cmd_pre_commit / push_governed_ref /
+    # _ahead_commits_have_receipts 保持一致，只对触及受治理切片的提交索要回执。
+    # 此前这里无条件索要，于是 push_governed_ref 的前置检查放行、pre-push hook 却拒绝，
+    # 推送在最后一步被自己的门禁拦下（PUSH_AUTHORIZATION_MISSING_COMMIT_RECEIPT）。
+    if commit_touches_governed_paths(repo, target_commit) \
+            and not _owned_commit_receipt(repo, target_commit, receipt_root):
         return False, "PUSH_AUTHORIZATION_MISSING_COMMIT_RECEIPT"
     return True, "PUSH_REF_AUTHORIZED"
 
@@ -1423,7 +1428,10 @@ def push_governed_ref(
         raise MutationOwnershipError("PUSH_REF_SOURCE_UNAVAILABLE", f"cannot resolve {source_ref}")
     commit = resolved.strip()
     receipt_root = lock.lock_root / "receipts"
-    if not _owned_commit_receipt(repo, commit, receipt_root):
+    # 口径对齐（2026-10-22）：与 pre-commit 一致，只对触及受治理切片的提交索要回执。
+    # 纯非受治理提交（docs/AGENTS.md/scripts/governance/ 等）本就未被索要 lease，
+    # 在此强索回执会让它们成为永远推不出去的僵尸提交。
+    if commit_touches_governed_paths(repo, commit) and not _owned_commit_receipt(repo, commit, receipt_root):
         raise MutationOwnershipError(
             "PUSH_REF_MISSING_COMMIT_RECEIPT",
             f"no canonical commit receipt for {commit}",
@@ -1879,6 +1887,22 @@ def audit_canonical_commits(
         result["result"] = PROVENANCE_UNKNOWN
         result["error"] = f"audit evidence write failed: {exc}"
     return result
+
+
+def commit_touches_governed_paths(repo: Path, commit: str) -> bool:
+    """该提交是否触及受治理切片（GOVERNED_PATH_PREFIXES）。
+
+    账本口径的单一真相源：pre-commit 只对受治理路径索要 lease
+    （canonical_writer.cmd_pre_commit 的 CANONICAL_PRE_COMMIT_SKIPPED 分支），
+    因此回执要求也必须限定在同一作用域，否则每次提交非受治理路径都会
+    产生一个"已提交但永远无法通过推送回执校验"的僵尸提交。
+
+    读不到改动路径时按受治理处理（fail-closed）：无法判定不等于无需担保。
+    """
+    paths = _commit_affected_files(repo, commit)
+    if not paths:
+        return True
+    return any(is_governed_path(path) for path in paths)
 
 
 def _owned_commit_receipt(repo: Path, commit: str, receipt_root: Path | None = None) -> bool:

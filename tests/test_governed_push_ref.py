@@ -298,13 +298,19 @@ class TestGovernedPushRef(unittest.TestCase):
         finally:
             lock.release()
 
-    def test_g_commit_without_receipt_denied(self) -> None:
+    def test_g_governed_commit_without_receipt_denied(self) -> None:
+        """受治理切片（mind/）的提交没有回执 → 仍必须拒绝。
+
+        口径对齐后（2026-10-23）只有受治理提交被索要回执，所以这条用例
+        必须触及 `GOVERNED_PATH_PREFIXES` 才有意义；用非受治理路径测会
+        变成「断言一个已经不存在的规则」，反而掩盖门禁松动。
+        """
         bare, work, lock_root = self._pair()
         git(work, "checkout", "-b", "no-receipt")
-        (work / "x.txt").write_text("x\n", encoding="utf-8")
-        git(work, "add", "x.txt")
+        (work / "mind").mkdir(exist_ok=True)
+        (work / "mind" / "state.md").write_text("state\n", encoding="utf-8")
+        git(work, "add", "mind/state.md")
         git(work, "commit", "-m", "no receipt")
-        sha = git(work, "rev-parse", "HEAD")
         git(work, "checkout", "main")
         lock = hold_git_lock(work, lock_root)
         try:
@@ -316,6 +322,35 @@ class TestGovernedPushRef(unittest.TestCase):
             self.assertEqual(ctx.exception.code, "PUSH_REF_MISSING_COMMIT_RECEIPT")
         finally:
             lock.release()
+
+    def test_g2_non_governed_commit_publishes_through_pre_push_hook(self) -> None:
+        """非受治理提交没有回执也必须能推出去，且要穿过真实的 pre-push hook。
+
+        回归背景：`validate_push_ref_authorization` 曾无条件索要回执，而
+        `push_governed_ref` 的前置检查已按受治理切片收敛，于是推送在最后一步被
+        pre-push hook 拒绝（PUSH_AUTHORIZATION_MISSING_COMMIT_RECEIPT）。
+        这条用例刻意装上 hook 走完整链路，否则只测前半段、测不出割裂。
+        """
+        bare, work, lock_root = self._pair()
+        install_pre_push_hook(work)
+        git(work, "checkout", "-b", "docs-only")
+        (work / "docs").mkdir(exist_ok=True)
+        (work / "docs" / "note.md").write_text("note\n", encoding="utf-8")
+        git(work, "add", "docs/note.md")
+        git(work, "commit", "-m", "docs only")
+        docs_sha = git(work, "rev-parse", "docs-only")
+        git(work, "checkout", "main")
+        lock = hold_git_lock(work, lock_root)
+        try:
+            ok, message = pas.push_governed_ref(
+                lock, remote="origin",
+                source_ref="docs-only", destination_ref="published-docs",
+            )
+        finally:
+            lock.release()
+        self.assertTrue(ok, message)
+        self.assertIn("PUSH_REF_PUBLISHED", message)
+        self.assertEqual(git(bare, "rev-parse", "refs/heads/published-docs"), docs_sha)
 
     def test_h_repo_mismatch_denied(self) -> None:
         bare, work, lock_root = self._pair()
