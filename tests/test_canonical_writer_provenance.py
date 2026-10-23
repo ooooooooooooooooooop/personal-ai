@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import subprocess
@@ -328,6 +330,68 @@ class TestPostCommitGovernedScope(unittest.TestCase):
         self.assertEqual(len(violations), 1)
         self.assertEqual(violations[0]["foreign_paths"], ["mind/other.md"])
         self.assertEqual(violations[0]["governed_changed"], ["mind/other.md"])
+
+
+class TestPostCommitWithoutLease(unittest.TestCase):
+    """普通提交不该被 post-commit 染色。
+
+    回归背景：``cmd_post_commit`` 第一行就 ``_load_active_lock(require_token=True)``，
+    无活跃租约即抛 NO_ACTIVE_CANONICAL_WRITER（exit 2）。但普通 ``git commit``
+    本来就不需要租约（pre-commit 也已按受治理切片收敛），于是**每一次普通提交**
+    都在输出里留下一行报错；git 又忽略 post-commit 的退出码，所以它不阻断任何事，
+    也不指向任何具体问题。一个永远红、永远无害的信号，唯一稳定的教学效果是
+    「这个 hook 可以忽略」。
+
+    修法是让放行条件与 pre-commit 对称，而不是无条件静默：HEAD 里出现受治理路径
+    却没有租约，说明 pre-commit 被绕过（--no-verify / hook 未安装），必须继续报错。
+    """
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory(prefix="post-commit-lease-")
+        self.root = Path(self.temp.name).resolve()
+        self.repo = init_repo(self.root / "repo")
+        self.locks = self.root / "locks"
+        self._saved_env = {key: os.environ.pop(key, None) for key in cw.WRITER_REQUIRED_ENV}
+
+    def tearDown(self) -> None:
+        for key, value in self._saved_env.items():
+            if value is not None:
+                os.environ[key] = value
+        self.temp.cleanup()
+
+    def _commit(self, rel: str, body: str) -> None:
+        target = self.repo / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+        git(self.repo, "add", "-A")
+        git(self.repo, "commit", "-m", f"touch {rel}")
+
+    def _run(self) -> tuple[int, str]:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+            code = cw.cmd_post_commit(
+                argparse.Namespace(
+                    repo=str(self.repo),
+                    lock_root=str(self.locks),
+                    harness="test-harness",
+                    lease_id=None,
+                    run_id=None,
+                )
+            )
+        return code, buf.getvalue()
+
+    def test_non_governed_commit_is_skipped_not_failed(self) -> None:
+        self._commit("docs/note.md", "note\n")
+        code, out = self._run()
+        self.assertEqual(code, 0, out)
+        self.assertIn("CANONICAL_POST_COMMIT_SKIPPED", out)
+        self.assertEqual(list((self.locks / "receipts").glob("*.json")), [])
+
+    def test_governed_commit_without_lease_still_fails_closed(self) -> None:
+        self._commit("mind/state.md", "v1\n")
+        code, out = self._run()
+        self.assertEqual(code, 2, out)
+        self.assertIn("NO_ACTIVE_CANONICAL_WRITER", out)
 
 
 if __name__ == "__main__":

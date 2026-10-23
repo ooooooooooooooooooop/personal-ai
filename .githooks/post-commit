@@ -3,7 +3,13 @@ set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
-PY="${PYTHON:-python3}"
-"$PY" -c '' >/dev/null 2>&1 || PY=python
+
+# shellcheck source=.githooks/_python.sh
+source "$ROOT/.githooks/_python.sh"
+
+# Same rule as pre-push: the receipt writer must match the commit it is
+# writing a receipt for. Runs after HEAD already moved, so `--baseline head`
+# compares the enforcer against the commit it is about to certify.
+"$PY" scripts/governance/enforcement_sync_guard.py --baseline head
 
 "$PY" scripts/governance/canonical_writer.py post-commit

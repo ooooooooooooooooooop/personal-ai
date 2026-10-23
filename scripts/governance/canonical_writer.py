@@ -510,10 +510,54 @@ def cmd_pre_commit(args: argparse.Namespace) -> int:
         return _print_error(exc)
 
 
+def _head_governed_paths(repo: Path) -> list[str] | None:
+    """Governed paths touched by HEAD; None when HEAD cannot be inspected.
+
+    Deliberately not `pas._commit_affected_files`: that helper collapses a
+    failed `diff-tree` into `[]`, which at this call site would read as "no
+    governed paths" and silently authorise a commit we never inspected.
+    None here means "unknown" and callers must stay fail-closed.
+    """
+    rc, out = pas.git(repo, "rev-parse", "HEAD")
+    if rc != 0:
+        return None
+    head = out.strip()
+    rc, out = pas.git(
+        repo, "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", head
+    )
+    if rc != 0:
+        return None
+    paths = {line.strip().replace("\\", "/") for line in out.splitlines() if line.strip()}
+    return sorted(path for path in paths if pas.is_governed_path(path))
+
+
 def cmd_post_commit(args: argparse.Namespace) -> int:
     try:
         repo = resolve_repo(args.repo)
-        lock = _load_active_lock(repo, args, require_token=True)
+        try:
+            lock = _load_active_lock(repo, args, require_token=True)
+        except pas.MutationOwnershipError as exc:
+            if getattr(exc, "code", "") != "NO_ACTIVE_CANONICAL_WRITER":
+                raise
+            # 无租约时的优雅放行，与 cmd_pre_commit 的 CANONICAL_PRE_COMMIT_SKIPPED
+            # 对称：不含受治理切片的普通提交本来就不需要租约。此前这里一律抛
+            # NO_ACTIVE_CANONICAL_WRITER（exit 2），于是**每一次普通提交**都会
+            # 留下一行报错。git 忽略 post-commit 的退出码，所以它不阻断任何事，
+            # 只是把输出永久染红——一个永远红、却从不指向具体问题的信号，最终
+            # 教会所有人忽略这个 hook。
+            #
+            # 仍然 fail-closed 的两种情况：
+            #   1. HEAD 带受治理路径却没有租约 → 说明 pre-commit 被绕过
+            #      （--no-verify 或 hook 未安装），必须报错；
+            #   2. HEAD 无法检查（_head_governed_paths 返回 None）→ 未知不等于安全。
+            governed = _head_governed_paths(repo)
+            if governed is None or governed:
+                raise
+            print(
+                "CANONICAL_POST_COMMIT_SKIPPED: no active lease and HEAD touches "
+                "no governed path"
+            )
+            return 0
         rc, head = pas.git(repo, "rev-parse", "HEAD")
         if rc != 0:
             raise RuntimeError("COMMIT_RESULT_HEAD_UNAVAILABLE")

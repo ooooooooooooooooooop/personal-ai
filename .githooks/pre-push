@@ -3,7 +3,13 @@ set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
-PY="${PYTHON:-python3}"
-"$PY" -c '' >/dev/null 2>&1 || PY=python
+
+# shellcheck source=.githooks/_python.sh
+source "$ROOT/.githooks/_python.sh"
+
+# The enforcer must be the enforced. This hook judges already-committed history
+# while executing scripts from the working tree, so enforcement code that
+# differs from HEAD has never been tested against the commits being pushed.
+"$PY" scripts/governance/enforcement_sync_guard.py --baseline head
 
 "$PY" scripts/governance/canonical_writer.py pre-push "$@"

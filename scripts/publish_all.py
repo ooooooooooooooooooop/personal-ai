@@ -12,8 +12,13 @@ Individual gates:
   3. publish_check.py                  marketplace surface (paths/license/files)
   4. run_skill_evals.py                structural evals
   5. unittest -s tests                 repository regression
-  6. unittest -s mcp/agent-switchboard/tests   MCP regression
+  6. unittest -s <registered suite>    MCP regression, one gate per suite
   7. git diff --check                  whitespace errors
+
+MCP regression gates come from ``gate_planner.MCP_SUITES_ALL`` instead of being
+listed here again: that registry already decides which suites need their own
+``discover`` run, and a second hardcoded copy is exactly how a retired package
+kept a gate whose only possible outcome was a failure.
 
 ``git status`` dirtiness is reported as a WARNING (not a failure): the meaning
 of "only intended changes present" is a human decision.
@@ -30,6 +35,10 @@ ROOT = Path(__file__).resolve().parent.parent
 TAIL_LINES = 30
 GATE_TIMEOUT = 600
 
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from gate_planner import MCP_SUITES_ALL  # noqa: E402  (needs ROOT on sys.path)
+
 # Each gate: (id, display name, argv list, cwd)
 GATES = [
     ("validate_repo", ["python", "scripts/validate_repo.py", "--strict"], ROOT),
@@ -37,7 +46,14 @@ GATES = [
     ("publish_check", ["python", "scripts/publish_check.py"], ROOT),
     ("run_skill_evals", ["python", "scripts/run_skill_evals.py"], ROOT),
     ("tests", ["python", "-m", "unittest", "discover", "-s", "tests", "-v"], ROOT),
-    ("mcp_tests", ["python", "-m", "unittest", "discover", "-s", "mcp/agent-switchboard/tests", "-v"], ROOT),
+] + [
+    (
+        f"mcp_tests:{suite}",
+        ["python", "-m", "unittest", "discover", "-s", suite, "-v"],
+        ROOT,
+    )
+    for suite in MCP_SUITES_ALL
+] + [
     ("diff_check", ["git", "diff", "--check"], ROOT),
 ]
 

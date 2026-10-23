@@ -81,7 +81,16 @@ UNITS_BY_PREFIX = {
     ],
 }
 
-MCP_SUITES_ALL = ["mcp/agent-switchboard/tests"]
+# Every MCP package exposes its tests through the repo-root unittest run
+# except the ones listed here, which need `discover -s <suite>`. The registry
+# stays explicit on purpose: discovering suites from disk would let a newly
+# added package silently join every FULL run without anyone pricing it.
+#
+# 2026-10-22: `mcp/agent-switchboard/tests` retired with its package. Emptied
+# rather than deleted so the mechanism (and its tests) stay live for the next
+# package that needs separate discovery; an empty registry simply means "every
+# MCP suite is already covered by the root run".
+MCP_SUITES_ALL: list[str] = []
 
 
 def _present_mcp_suites(tree_files: set[str]) -> list[str]:
@@ -419,9 +428,15 @@ def plan(
             for prefix, tests in UNITS_BY_PREFIX.items():
                 if p.startswith(prefix):
                     unittest_set.update(t for t in tests if t in tree_files)
-            if p.startswith("mcp/agent-switchboard/"):
-                if "mcp/agent-switchboard/tests" in _present_mcp_suites(tree_files):
-                    mcp_suites.add("mcp/agent-switchboard/tests")
+            # Registry-driven, not hardcoded: a change anywhere inside a
+            # registered package plans that package's suite, provided the suite
+            # still exists in the candidate tree. Hardcoding the package name
+            # meant retiring a package also required editing this branch — which
+            # is how a dead reference outlives the thing it names.
+            for suite in _present_mcp_suites(tree_files):
+                package = suite[: -len("/tests")] + "/"
+                if p.startswith(package):
+                    mcp_suites.add(suite)
 
     if reasons:
         return _full(reasons, tree_files)

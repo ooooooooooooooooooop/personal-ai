@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -157,14 +158,23 @@ class TestPlanClassification(unittest.TestCase):
             fx.cleanup()
 
     def test_mcp_change_maps_its_suite(self):
+        """A registered MCP suite is planned when its package changes.
+
+        The registry is empty since agent-switchboard retired, so the suite is
+        injected here: this asserts the mapping mechanism still works for the
+        next package that needs separate discovery, without pinning the test
+        to a package that no longer exists.
+        """
         fx = Fixture()
         try:
-            fx.add("mcp/agent-switchboard/src/x.py")
-            fx.add("mcp/agent-switchboard/tests/test_x.py")
-            p = fx.plan([ch("M", "mcp/agent-switchboard/src/x.py")])
+            suite = "mcp/demo-pkg/tests"
+            fx.add("mcp/demo-pkg/src/x.py")
+            fx.add("mcp/demo-pkg/tests/test_x.py")
+            with mock.patch.object(gate_planner, "MCP_SUITES_ALL", [suite]):
+                p = fx.plan([ch("M", "mcp/demo-pkg/src/x.py")])
             self.assertEqual(p["mode"], "DELTA")
-            self.assertIn("mcp/agent-switchboard/tests", p["mcp_suites"])
-            self.assertIn("mcp/agent-switchboard/src/x.py", p["compile"])
+            self.assertIn(suite, p["mcp_suites"])
+            self.assertIn("mcp/demo-pkg/src/x.py", p["compile"])
         finally:
             fx.cleanup()
 
@@ -184,11 +194,13 @@ class TestPlanClassification(unittest.TestCase):
             for force in (False, True):
                 p = fx.plan([ch("M", "docs/x.md")], force_full=force)
                 self.assertEqual(p["mcp_suites"], [], f"force_full={force}")
-            # A surviving sibling suite is still planned.
-            fx.add("mcp/chatgpt-web-bridge/tests/test_y.py")
-            p = fx.plan([ch("M", "docs/x.md")], force_full=True)
-            self.assertEqual(p["mcp_suites"], [],
-                             "unregistered packages must stay out of the plan")
+            # Registered-but-deleted is dropped; registered-and-present stays —
+            # i.e. retiring one package cannot silently add a sibling's tests.
+            fx.add("mcp/present-pkg/tests/test_y.py")
+            registry = ["mcp/gone-pkg/tests", "mcp/present-pkg/tests"]
+            with mock.patch.object(gate_planner, "MCP_SUITES_ALL", registry):
+                p = fx.plan([ch("M", "docs/x.md")], force_full=True)
+            self.assertEqual(p["mcp_suites"], ["mcp/present-pkg/tests"])
         finally:
             fx.cleanup()
 
@@ -205,10 +217,11 @@ class TestPlanClassification(unittest.TestCase):
             # candidate tree": a retired MCP package must not be demanded back
             # (`discover -s` on a missing dir raises ImportError).
             self.assertEqual(p["mcp_suites"], [])
-            fx.add("mcp/agent-switchboard/tests/test_x.py")
-            p2 = fx.plan([ch("M", "docs/x.md")], force_full=True)
-            self.assertEqual(p2["mcp_suites"],
-                             gate_planner.MCP_SUITES_ALL)
+            fx.add("mcp/demo-pkg/tests/test_x.py")
+            with mock.patch.object(gate_planner, "MCP_SUITES_ALL",
+                                   ["mcp/demo-pkg/tests"]):
+                p2 = fx.plan([ch("M", "docs/x.md")], force_full=True)
+            self.assertEqual(p2["mcp_suites"], ["mcp/demo-pkg/tests"])
         finally:
             fx.cleanup()
 
@@ -354,6 +367,32 @@ class TestCli(unittest.TestCase):
         )
         plan = json.loads(out.stdout)
         self.assertEqual(plan["mode"], "DELTA")
+
+
+class TestSuiteRegistryIsTheSingleSource(unittest.TestCase):
+    """MCP_SUITES_ALL must be the only place MCP suites are enumerated.
+
+    The retirement of agent-switchboard left five separate hardcoded copies
+    behind (planner FULL branch, planner DELTA branch, publish_all, and the
+    tests themselves). Each copy that survives the package it names is a gate
+    whose only possible outcome is failure.
+    """
+
+    def test_publish_all_derives_mcp_gates_from_the_registry(self):
+        repo = Path(__file__).resolve().parent.parent
+        src = (repo / "scripts" / "publish_all.py").read_text(encoding="utf-8")
+        self.assertIn("from gate_planner import MCP_SUITES_ALL", src)
+        self.assertNotIn(
+            "mcp/agent-switchboard", src,
+            "publish_all must not name a package directly — it follows the registry",
+        )
+
+    def test_delta_branch_does_not_name_a_package(self):
+        repo = Path(__file__).resolve().parent.parent
+        src = (repo / "scripts" / "gate_planner.py").read_text(encoding="utf-8")
+        # The only allowed mention is the retirement note next to the registry.
+        body = src.split("MCP_SUITES_ALL: list[str] = []", 1)[1]
+        self.assertNotIn("mcp/agent-switchboard", body)
 
 
 if __name__ == "__main__":

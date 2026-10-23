@@ -29,11 +29,20 @@ unset GIT_INDEX_FILE GIT_PREFIX GIT_DIR GIT_WORK_TREE \
   GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
   GIT_COMMON_DIR GIT_NAMESPACE 2>/dev/null || true
 
-PY="${PYTHON:-python3}"
-"$PY" -c '' >/dev/null 2>&1 || PY=python
+# shellcheck source=.githooks/_python.sh
+source "$ROOT/.githooks/_python.sh"
 
 step() { printf '\n== %s ==\n' "$1"; }
 fail() { printf '\npre-commit gate: FAIL — %s\n' "$1" >&2; exit 1; }
+
+step "enforcement/worktree sync"
+# The gate prices a frozen snapshot of the index, but this hook and the
+# canonical_writer it calls run from the WORKING TREE. An unstaged edit to the
+# enforcement chain therefore executes code the frozen snapshot never
+# contained — and nothing goes red (git hides hook exit codes). Fail closed:
+# the enforcer must be staged before it is allowed to judge a commit.
+"$PY" scripts/governance/enforcement_sync_guard.py --baseline index \
+  || fail "enforcement chain differs from the frozen index — stage it first"
 
 step "canonical writer ownership"
 "$PY" scripts/governance/canonical_writer.py pre-commit
