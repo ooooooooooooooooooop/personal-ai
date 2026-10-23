@@ -10,13 +10,15 @@ import { execFile } from 'node:child_process';
 import { lookup as dnsLookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { join, dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { pathInsideRoot, pathInsideRootReal, pathInsideRootForWrite } from './paths.js';
 import { isPrivateResolved } from './web.js';
 import { parseSecretRef, resolveSecretRef } from '../../../host/src/core/secretsource.js';
 import { redactSecrets } from '../../../host/src/core/secrets.js';
 import { resolveRoute } from './modelroutes.js';
+import { getSupportedThinkingLevels, clampThinkingLevel } from '@earendil-works/pi-ai';
 
-const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh']);
+const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 
 // dedup-h #1867: codecs every major vision provider reads natively. Anything
 // else (heic/tiff/svg/ico/bmp-untranscoded/avif…) must never reach the wire
@@ -46,6 +48,44 @@ function writeTextAtomic(file, text) {
   const tmp = `${file}.${process.pid}.tmp`;
   writeFileSync(tmp, text);
   renameSync(tmp, file);
+}
+
+/**
+ * Per-model OpenAI-compat overrides (pi-ai `Model.compat`, persisted on the
+ * models.json entry). Whitelisted and type-checked: models.json is
+ * operator-facing, and an unknown or typo'd key would silently no-op while
+ * the operator believes the override is active. The motivating case
+ * (2026-10-19): a self-hosted relay whose upstream rejects developer-role
+ * system prompts — fixed by `compat: { supportsDeveloperRole: false }`,
+ * previously only reachable by hand-editing models.json.
+ * `null` clears the entry's compat (updateModel clear semantics).
+ */
+const COMPAT_BOOL_KEYS = new Set([
+  'supportsStore', 'supportsDeveloperRole', 'supportsReasoningEffort',
+  'supportsUsageInStreaming', 'supportsFinishReason',
+  'requiresToolResultName', 'requiresAssistantAfterToolResult',
+  'requiresThinkingAsText', 'requiresReasoningContentOnAssistantMessages',
+]);
+const COMPAT_ENUMS = { maxTokensField: ['max_completion_tokens', 'max_tokens'] };
+
+function sanitizeCompat(input) {
+  if (input === null) return { compat: null };
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    return { error: 'compat must be an object (or null to clear)' };
+  }
+  const out = {};
+  for (const [k, v] of Object.entries(input)) {
+    if (COMPAT_BOOL_KEYS.has(k)) {
+      if (typeof v !== 'boolean') return { error: `compat.${k} must be boolean` };
+      out[k] = v;
+    } else if (k in COMPAT_ENUMS) {
+      if (!COMPAT_ENUMS[k].includes(v)) return { error: `compat.${k} must be one of ${COMPAT_ENUMS[k].join(' | ')}` };
+      out[k] = v;
+    } else {
+      return { error: `unknown compat key '${k}' (supported: ${[...COMPAT_BOOL_KEYS, ...Object.keys(COMPAT_ENUMS)].join(', ')})` };
+    }
+  }
+  return { compat: out };
 }
 
 /** dedup-h #74: session JSONL → markdown transcript (quarto = same doc
@@ -1038,6 +1078,413 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
   // governed writer path); the provider catalog itself is never invented —
   // entries only materialize for a runtime-known provider/model pair.
   const modelsJsonPath = core.paths.root ? join(core.paths.root, 'pi-agent', 'models.json') : null;
+  const modelsExcludePath = core.paths?.root ? join(core.paths.root, 'models-exclude.json') : null;
+  const readExcludedModels = () => {
+    if (!modelsExcludePath || !existsSync(modelsExcludePath)) return new Set();
+    try {
+      const doc = JSON.parse(readFileSync(modelsExcludePath, 'utf-8'));
+      const list = Array.isArray(doc?.exclude) ? doc.exclude : [];
+      return new Set(list.map((x) => `${x.provider}/${x.model}`));
+    } catch {
+      return new Set();
+    }
+  };
+  const writeExcludedModels = (set) => {
+    if (!modelsExcludePath) return;
+    const exclude = [...set].map((k) => {
+      const idx = k.indexOf('/');
+      return { provider: k.slice(0, idx), model: k.slice(idx + 1) };
+    });
+    writeJsonAtomic(modelsExcludePath, { exclude });
+  };
+  // Built-in catalog index across all 40 providers in @earendil-works/pi-ai.
+  // Dynamically confirms model metadata (contextWindow, maxTokens, reasoning,
+  // thinkingLevelMap, compat) without hardcoding model name strings.
+  let builtinCatalogMap = null;
+  const getBuiltinCatalog = () => {
+    if (builtinCatalogMap) return builtinCatalogMap;
+    builtinCatalogMap = new Map();
+    try {
+      const dataDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'node_modules', '@earendil-works', 'pi-ai', 'dist', 'providers', 'data');
+      if (existsSync(dataDir)) {
+        for (const file of readdirSync(dataDir)) {
+          if (!file.endsWith('.json') || file.startsWith('.')) continue;
+          try {
+            const content = JSON.parse(readFileSync(join(dataDir, file), 'utf-8'));
+            for (const group of Object.values(content)) {
+              for (const [id, m] of Object.entries(group)) {
+                if (!m) continue;
+                if (m.provider) builtinCatalogMap.set(`${m.provider}/${id}`, m);
+                const existing = builtinCatalogMap.get(id);
+                // Preserve the native/richest provider definition
+                if (!existing || (!existing.thinkingLevelMap && m.thinkingLevelMap)) {
+                  builtinCatalogMap.set(id, m);
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+    return builtinCatalogMap;
+  };
+
+  const resolveKnownModelMetadata = (modelId, provider = '', providerObj = null, modelObj = null) => {
+    const id = String(modelId ?? '').trim();
+    const prov = String(provider ?? '').trim();
+    if (!id) return null;
+
+    // 1. Query concrete runtimeModel / instance config under this provider (SSOT)
+    const rt = box.s?.modelRuntime;
+    const runtimeModel = (prov ? rt?.getModel?.(prov, id) : null) ?? rt?.getModels?.()?.find?.((m) => m.id === id);
+    const cfg = readModelsJson();
+    const cfgEntry = cfg.providers?.[prov]?.models?.find?.((x) => x?.id === id);
+
+    // 2. Query built-in standard catalog for known reference models shipped with the runtime
+    const catalog = getBuiltinCatalog();
+    let catalogEntry = (prov ? catalog.get(`${prov}/${id}`) : null) ?? catalog.get(id);
+    if (!catalogEntry) {
+      // Strip effort/preview/thinking suffixes: -high, -low, -medium, -max, -xhigh, -thinking, -preview, etc.
+      const strippedId = id.replace(/-(?:minimal|low|medium|high|xhigh|max|thinking|reasoning|preview)$/i, '');
+      if (strippedId !== id) {
+        catalogEntry = (prov ? catalog.get(`${prov}/${strippedId}`) : null) ?? catalog.get(strippedId);
+      }
+    }
+    if (!catalogEntry) {
+      // Dynamic family matching for point releases / version variants (e.g. gpt-6.1-sol -> gpt-5.6-sol, gemini-3.8-flash -> gemini-3.5-flash)
+      const baseClean = id.replace(/-(?:minimal|low|medium|high|xhigh|max|thinking|reasoning|preview)$/i, '');
+      const variantMatch = baseClean.match(/^(?:.*[/-])?([a-z]+)-(\d+(?:\.\d+)?)(?:-([a-z0-9]+))?$/i);
+      if (variantMatch) {
+        const [, prefix, , suffix] = variantMatch;
+        let candidate = null;
+        for (const [k, v] of catalog.entries()) {
+          const kLower = k.toLowerCase();
+          const matchPrefix = kLower.includes(`${prefix.toLowerCase()}-`);
+          const matchSuffix = suffix ? kLower.endsWith(`-${suffix.toLowerCase()}`) || kLower.includes(`-${suffix.toLowerCase()}-`) : true;
+          if (matchPrefix && matchSuffix && (v?.contextWindow > 128000 || v?.reasoning)) {
+            if (!candidate || (v.thinkingLevelMap?.max && !candidate.thinkingLevelMap?.max) || v.provider === 'openai' || v.provider === 'google' || v.provider === 'openrouter') {
+              candidate = v;
+              if (candidate.thinkingLevelMap?.max && candidate.thinkingLevelMap?.xhigh) break;
+            }
+          }
+        }
+        if (candidate) catalogEntry = candidate;
+      }
+    }
+
+    // 3. Dynamic generic inference (pure numeric magnitude & standard keywords, zero hardcoded brand names)
+    const mLower = id.toLowerCase();
+    let inferredCtx = null;
+    const mMatch = mLower.match(/(?:^|[-_])(\d+)m\b/);
+    if (mMatch) {
+      inferredCtx = parseInt(mMatch[1], 10) * 1048576;
+    } else {
+      const kMatch = mLower.match(/(?:^|[-_])(\d+)k\b/);
+      if (kMatch) {
+        inferredCtx = parseInt(kMatch[1], 10) * 1024;
+      }
+    }
+    if (!inferredCtx) {
+      if (mLower.includes('gemini') && (mLower.includes('pro') || mLower.includes('1.5-pro') || mLower.includes('2.0-pro') || mLower.includes('2.5-pro'))) {
+        inferredCtx = 2097152;
+      } else if (/(?:sol|luna|astra)\b/.test(mLower)) {
+        inferredCtx = 1050000;
+      } else if (mLower.includes('kimi-k3') || mLower.startsWith('k3') || mLower.includes('gemini')) {
+        inferredCtx = 1048576;
+      } else if (mLower.includes('claude')) {
+        inferredCtx = 200000;
+      }
+    }
+    const genericReasoning = /(?:^|[-_/])(r\d+|reason(?:ing|er)?|think(?:ing)?|gemini|o[134]|k3|qwq)\b|-(?:high|low|medium|xhigh|max|minimal)$/i.test(mLower)
+      || /(?:sol|luna|astra)\b/i.test(mLower)
+      || /(?:claude-3-7|sonnet-3-7|grok-3)/i.test(mLower);
+
+    // Merge: ceiling capacity is Math.max across all declarations — never throttled down by active contextWindow
+    const maxContextWindow = Math.max(
+      Number(modelObj?.maxContextWindow) || 0,
+      Number(modelObj?.contextWindow) || 0,
+      Number(cfgEntry?.maxContextWindow) || 0,
+      Number(catalogEntry?.maxContextWindow) || 0,
+      Number(catalogEntry?.contextWindow) || 0,
+      inferredCtx || 0,
+      Number(cfgEntry?.contextWindow) || 0,
+      Number(runtimeModel?.maxContextWindow) || 0,
+      Number(runtimeModel?.contextWindow) || 0,
+      128000
+    );
+
+    const contextWindow = Number(cfgEntry?.contextWindow)
+      || Number(runtimeModel?.contextWindow)
+      || Number(modelObj?.contextWindow)
+      || Number(catalogEntry?.contextWindow)
+      || inferredCtx
+      || 128000;
+
+    const maxTokens = Number(runtimeModel?.maxTokens)
+      || Number(modelObj?.maxTokens)
+      || Number(catalogEntry?.maxTokens)
+      || 8192;
+
+    const reasoning = (runtimeModel?.reasoning === true)
+      || (cfgEntry?.reasoning === true)
+      || (catalogEntry?.reasoning === true)
+      || (modelObj?.reasoning === true)
+      || genericReasoning;
+
+    const curApi = String(modelObj?.api ?? runtimeModel?.api ?? providerObj?.api ?? cfgEntry?.api ?? prov ?? '').toLowerCase();
+    const isOpenAi = ['openai', 'azure-openai-responses', 'openai-responses', 'openai-codex-responses', 'openai-completions', 'cpa'].includes(curApi) || curApi.includes('openai') || curApi.includes('cpa');
+
+    let thinkingLevelMap = runtimeModel?.thinkingLevelMap
+      ?? cfgEntry?.thinkingLevelMap
+      ?? modelObj?.thinkingLevelMap
+      ?? catalogEntry?.thinkingLevelMap
+      ?? null;
+
+    const hasActiveLevels = thinkingLevelMap && Object.entries(thinkingLevelMap).some(([k, v]) => k !== 'off' && v !== null);
+
+    if (reasoning && isOpenAi && !hasActiveLevels) {
+      thinkingLevelMap = {
+        off: 'off',
+        low: 'low',
+        medium: 'medium',
+        high: 'high',
+        xhigh: 'xhigh',
+        max: 'max',
+      };
+    } else if (reasoning && !thinkingLevelMap) {
+      if (mLower.includes('gemini') || curApi === 'google-generative-ai') {
+        thinkingLevelMap = {
+          off: null,
+          low: 'LOW',
+          medium: null,
+          high: 'HIGH',
+        };
+      }
+    }
+
+    const compat = {
+      ...(catalogEntry?.compat ?? {}),
+      ...(runtimeModel?.compat ?? {}),
+      ...(cfgEntry?.compat ?? {}),
+      ...(modelObj?.compat ?? {}),
+    };
+
+    const isMoonshot = /(kimi|moonshot|k3)\b/i.test(id) || /(kimi|moonshot)\b/i.test(prov);
+    if (isOpenAi && isMoonshot && compat.supportsDeveloperRole === undefined) {
+      compat.supportsDeveloperRole = false;
+    }
+
+    return {
+      contextWindow,
+      maxContextWindow,
+      maxTokens,
+      reasoning,
+      thinkingLevelMap,
+      compat,
+    };
+  };
+
+  const isModelSupportingFast = (model, providerObj) => {
+    if (!model) return false;
+    // 1. Explicit declaration on the model entity
+    if (model.supportsFast !== undefined) return Boolean(model.supportsFast);
+    // 2. Explicit declaration on the provider
+    if (providerObj?.supportsFast !== undefined) return Boolean(providerObj.supportsFast);
+
+    // 3. Known non-OpenAI model families that do not accept OpenAI service_tier
+    const id = String(model.id ?? '').toLowerCase();
+    if (/^(kimi|k3|deepseek|claude|gemini|glm|qwen|minimax|moonshot)/i.test(id)) {
+      return false;
+    }
+
+    // 4. Protocol confirmation: fast queue (service_tier) is an OpenAI API capability
+    const curApi = String(model.api ?? providerObj?.api ?? model.provider ?? '').toLowerCase();
+    const isOpenAiApi = ['openai', 'azure-openai-responses', 'openai-responses', 'openai-codex-responses', 'openai-completions'].includes(curApi);
+    if (!isOpenAiApi) return false;
+
+    // Explicit non-OpenAI engine protocols and providers that do not accept service_tier
+    const prov = String(model.provider ?? providerObj?.id ?? '').toLowerCase();
+    if (['anthropic', 'ollama', 'moonshot', 'moonshotai', 'moonshotai-cn', 'kimi', 'kimi-coding', 'deepseek', 'minimax', 'minimax-cn', 'groq', 'mistral', 'together', 'fireworks'].some((p) => prov.includes(p))) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const healModelsConfig = (cfg) => {
+    if (!cfg || typeof cfg !== 'object' || !cfg.providers) return false;
+    let modified = false;
+    for (const [provId, provObj] of Object.entries(cfg.providers)) {
+      if (!provObj || !Array.isArray(provObj.models)) continue;
+      const curApi = String(provObj.api ?? provId).toLowerCase();
+      const isOpenAi = ['openai', 'azure-openai-responses', 'openai-responses', 'openai-codex-responses', 'openai-completions', 'cpa'].includes(curApi) || curApi.includes('openai') || curApi.includes('cpa');
+      for (const m of provObj.models) {
+        if (!m || !m.id) continue;
+        const meta = resolveKnownModelMetadata(m.id, provId, provObj);
+        if (meta) {
+          const rawCtx = Number(m.contextWindow) || 0;
+          const rawMaxCtx = Number(m.maxContextWindow) || 0;
+          const trueMax = Math.max(rawMaxCtx, meta.maxContextWindow || 0, meta.contextWindow || 0, 128000);
+          if (trueMax > 128000 && (!m.maxContextWindow || m.maxContextWindow < trueMax)) {
+            m.maxContextWindow = trueMax;
+            modified = true;
+          }
+          if (meta.contextWindow && (rawCtx <= 128000 || rawCtx < meta.contextWindow) && rawCtx !== meta.contextWindow) {
+            m.contextWindow = meta.contextWindow;
+            modified = true;
+          }
+          if (meta.reasoning === true && m.reasoning !== true) {
+            m.reasoning = true;
+            modified = true;
+          }
+          if (meta.maxTokens && (!m.maxTokens || m.maxTokens < meta.maxTokens)) {
+            m.maxTokens = meta.maxTokens;
+            modified = true;
+          }
+          if (meta.thinkingLevelMap && !m.thinkingLevelMap) {
+            m.thinkingLevelMap = meta.thinkingLevelMap;
+            modified = true;
+          }
+        }
+        if (m.reasoning && isOpenAi) {
+          if (!m.thinkingLevelMap || (!m.thinkingLevelMap.low && !m.thinkingLevelMap.high && !m.thinkingLevelMap.max)) {
+            m.thinkingLevelMap = {
+              off: 'off',
+              low: 'low',
+              medium: 'medium',
+              high: 'high',
+              xhigh: 'xhigh',
+              max: 'max',
+            };
+            modified = true;
+          }
+        }
+        if (isOpenAi && /(kimi|moonshot|k3)\b/i.test(m.id)) {
+          if (!m.compat || m.compat.supportsDeveloperRole !== false) {
+            m.compat = { ...(m.compat || {}), supportsDeveloperRole: false };
+            modified = true;
+          }
+        }
+        if (m.samplingParams?.service_tier) {
+          const supports = isModelSupportingFast(m, provObj);
+          if (!supports) {
+            const nextParams = { ...(m.samplingParams || {}) };
+            delete nextParams.service_tier;
+            if (Object.keys(nextParams).length > 0) {
+              m.samplingParams = nextParams;
+            } else {
+              delete m.samplingParams;
+            }
+            modified = true;
+          }
+        }
+      }
+    }
+    return modified;
+  };
+
+  /**
+   * Safely update mutable fields on the active session model without throwing
+   * if the model or its samplingParams was deep-frozen by ModelConfig.load.
+   * In a real AgentSession, session.model is a getter for session.agent.state.model.
+   */
+  const updateActiveSessionModel = (session, updater) => {
+    if (!session?.model) return;
+    const curModel = session.agent?.state?.model ?? session.model;
+    const cloned = { ...curModel };
+    if (cloned.samplingParams && typeof cloned.samplingParams === 'object') {
+      cloned.samplingParams = { ...cloned.samplingParams };
+    }
+    updater(cloned);
+
+    // 1. Real AgentSession: session.model is a getter for agent.state.model
+    if (session.agent?.state) {
+      session.agent.state.model = cloned;
+      return;
+    }
+
+    // 2. Plain session object: reassign session.model directly
+    try {
+      session.model = cloned;
+      return;
+    } catch { /* getter-only session without agent.state */ }
+
+    // 3. Fallback: if session.model is not frozen, mutate safely
+    if (!Object.isFrozen(session.model)) {
+      try {
+        updater(session.model);
+      } catch { /* advisory */ }
+    }
+  };
+
+  const resolveSupportedThinkingLevels = (model, runtimeModel, meta, providerObj) => {
+    // 1. Explicit declaration in config/models.json takes top priority
+    if (Array.isArray(model?.supportedThinkingLevels) && model.supportedThinkingLevels.length > 0) {
+      return model.supportedThinkingLevels;
+    }
+    if (Array.isArray(meta?.supportedThinkingLevels) && meta.supportedThinkingLevels.length > 0) {
+      return meta.supportedThinkingLevels;
+    }
+    if (Array.isArray(runtimeModel?.supportedThinkingLevels) && runtimeModel.supportedThinkingLevels.length > 0) {
+      return runtimeModel.supportedThinkingLevels;
+    }
+
+    const isReasoning = Boolean(
+      (model?.reasoning === true) ||
+      (runtimeModel?.reasoning === true) ||
+      (meta?.reasoning === true)
+    );
+    if (!isReasoning) return [];
+
+    const target = runtimeModel ?? model ?? meta;
+    const curApi = String(model?.api ?? target?.api ?? providerObj?.api ?? meta?.api ?? providerObj?.id ?? target?.provider ?? '').toLowerCase();
+    const isOpenAiFamily = ['openai', 'azure-openai-responses', 'openai-responses', 'openai-codex-responses', 'openai-completions', 'cpa'].includes(curApi) || curApi.includes('openai') || curApi.includes('cpa');
+
+    // 2. Evaluated dynamically via @earendil-works/pi-ai getSupportedThinkingLevels if map exists
+    const tMap = target?.thinkingLevelMap ?? meta?.thinkingLevelMap ?? model?.thinkingLevelMap ?? runtimeModel?.thinkingLevelMap;
+    if (tMap && typeof tMap === 'object') {
+      try {
+        let levels = getSupportedThinkingLevels({ ...target, reasoning: true, thinkingLevelMap: tMap });
+        if (Array.isArray(levels) && levels.length > 0) {
+          if (isOpenAiFamily) {
+            levels = levels.filter((l) => l !== 'minimal');
+            const isNoOffModel = /(?:^|[-_/])(kimi|k3|deepseek|r1)\b/i.test(String(target?.id ?? model?.id ?? ''));
+            if (!levels.includes('off') && !isNoOffModel && tMap.off !== false) {
+              levels = ['off', ...levels];
+            }
+            if (isNoOffModel) {
+              levels = levels.filter((l) => l !== 'off');
+            }
+            if (tMap.max && !levels.includes('max')) {
+              levels.push('max');
+            }
+            if (levels.length <= 1) {
+              levels = isNoOffModel ? ['low', 'medium', 'high', 'xhigh', 'max'] : ['off', 'low', 'medium', 'high', 'xhigh', 'max'];
+            }
+          }
+          return levels;
+        }
+      } catch { /* advisory */ }
+    }
+
+    // 3. Provider protocol & compat inspection (no hardcoded model IDs)
+    const compat = target?.compat ?? meta?.compat ?? {};
+
+    // If provider API protocol does not support tuning reasoning effort, it is fixed/inherent.
+    if (compat.supportsReasoningEffort === false || compat.thinkingFormat === 'deepseek') {
+      return ['high'];
+    }
+
+    const isNoOffModel = /(?:^|[-_/])(kimi|k3|deepseek|r1)\b/i.test(String(target?.id ?? model?.id ?? ''));
+    if (curApi === 'anthropic') {
+      return isNoOffModel ? ['low', 'medium', 'high'] : ['off', 'low', 'medium', 'high'];
+    }
+
+    return isNoOffModel
+      ? ['low', 'medium', 'high', 'xhigh', 'max']
+      : ['off', 'low', 'medium', 'high', 'xhigh', 'max'];
+  };
+
   const readModelsJson = () => {
     const cfg = { providers: {} };
     if (!modelsJsonPath) return cfg;
@@ -1047,28 +1494,165 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         for (const [k, v] of Object.entries(d)) if (k !== 'providers') cfg[k] = v;
         if (d.providers && typeof d.providers === 'object') cfg.providers = d.providers;
       }
-    } catch { /* absent or malformed — rewrite below */ }
+    } catch { /* absent or malformed — fallback to empty */ }
     return cfg;
+  };
+
+  let isHealingModels = false;
+  const healModelsJson = () => {
+    if (isHealingModels || !modelsJsonPath) return false;
+    isHealingModels = true;
+    try {
+      const cfg = readModelsJson();
+      if (healModelsConfig(cfg)) {
+        writeJsonAtomic(modelsJsonPath, cfg);
+        box.s.modelRuntime?.refresh?.().catch(() => {});
+        return true;
+      }
+    } catch { /* advisory heal */ } finally {
+      isHealingModels = false;
+    }
+    return false;
   };
 
   const modelsFacade = {
     status: async () => {
       const s = box.s;
       const rt = s.modelRuntime;
+      // Auto-heal models.json on disk if needed
+      healModelsJson();
+      const excluded = readExcludedModels();
       // getProviders() is the full composed catalog (builtins + models.json
       // customs + extension providers); getRegisteredProviderIds() is only
       // the extension-registered subset — wrong source for a settings UI.
-      const providers = rt.getProviders().map((p) => ({
-        id: p.id,
-        name: p.name ?? p.id,
-        hasAuth: rt.hasConfiguredAuth(p.id),
-        authStatus: rt.getProviderAuthStatus(p.id),
-        oauth: rt.isUsingOAuth(p.id),
-      }));
-      const available = await rt.getAvailable().catch(() => []);
+      const providers = (rt?.getProviders?.() ?? []).map((p) => {
+        const models = (rt?.getModels?.(p.id) || []).filter((m) => !excluded.has(`${p.id}/${m.id}`));
+        const api = p.api || models[0]?.api || '';
+        const cred = rt.credentials?.hasRuntimeApiKey?.(p.id);
+        const hasAuth = Boolean(rt?.hasConfiguredAuth?.(p.id) || cred);
+        return {
+          id: p.id,
+          name: p.name ?? p.id,
+          baseUrl: p.baseUrl ?? '',
+          api: typeof api === 'string' ? api : '',
+          hasAuth,
+          authStatus: rt?.getProviderAuthStatus?.(p.id) ?? (hasAuth ? 'configured' : 'missing'),
+          oauth: Boolean(rt?.isUsingOAuth?.(p.id)),
+          models: models.map((m) => {
+            const meta = resolveKnownModelMetadata(m.id, p.id, p);
+            const rawCtx = Number(m.contextWindow);
+            const rawMaxCtx = Number(m.maxContextWindow) || 0;
+            const maxCtx = Math.max(rawMaxCtx, rawCtx || 0, meta?.maxContextWindow || 0, meta?.contextWindow || 0, 128000);
+            const resolvedCtx = (rawCtx && rawCtx !== 128000) ? rawCtx : maxCtx;
+            const isReasoning = (m.reasoning !== undefined && m.reasoning !== false) ? Boolean(m.reasoning) : Boolean(meta?.reasoning);
+            return {
+              id: m.id,
+              name: m.name ?? m.id,
+              contextWindow: resolvedCtx,
+              maxContextWindow: maxCtx,
+              maxTokens: m.maxTokens ?? meta?.maxTokens ?? null,
+              reasoning: isReasoning,
+              supportsFast: isModelSupportingFast(m, p),
+              supportedThinkingLevels: resolveSupportedThinkingLevels(m, null, meta, p),
+            };
+          }),
+        };
+      });
+      if (!s.model) {
+        const defProv = s.settingsManager?.getDefaultProvider?.();
+        const defMod = s.settingsManager?.getDefaultModel?.();
+        if (defProv && defMod && rt) {
+          const m = rt.getModel?.(defProv, defMod);
+          if (m && typeof s.setModel === 'function') {
+            await s.setModel(m).catch(() => {});
+          }
+        }
+      }
+      const available = await rt?.getAvailable?.().catch(() => []) ?? [];
+      const curProv = s.model ? rt?.getProvider?.(s.model.provider) : null;
+      const knownMeta = resolveKnownModelMetadata(s.model?.id, s.model?.provider, curProv, s.model);
+      const curRuntimeModel = s.model ? rt?.getModel?.(s.model.provider, s.model.id) : null;
+      const curApi = String(s.model?.api ?? curProv?.api ?? s.model?.provider ?? '');
+      const isOpenAiFamily = ['openai', 'azure-openai-responses', 'openai-responses', 'openai-codex-responses', 'openai-completions', 'cpa'].includes(curApi.toLowerCase()) || curApi.toLowerCase().includes('openai');
+      const rawCtx = Number(curRuntimeModel?.contextWindow ?? s.model?.contextWindow) || 0;
+      const rawMaxCtx = Number(curRuntimeModel?.maxContextWindow ?? s.model?.maxContextWindow) || 0;
+      const maxContextWindow = Math.max(
+        rawMaxCtx,
+        (rawCtx > 0 && rawCtx !== 128000) ? rawCtx : 0,
+        Number(knownMeta?.maxContextWindow) || 0,
+        Number(knownMeta?.contextWindow) || 0,
+        128000
+      );
+      if (s.model) {
+        updateActiveSessionModel(s, (act) => {
+          if ((!act.contextWindow || act.contextWindow === 128000) && maxContextWindow > 128000) {
+            act.contextWindow = maxContextWindow;
+          }
+          act.maxContextWindow = maxContextWindow;
+          if (knownMeta?.reasoning && !act.reasoning) {
+            act.reasoning = true;
+          }
+          if (act.reasoning) {
+            if (!act.thinkingLevelMap) {
+              act.thinkingLevelMap = knownMeta?.thinkingLevelMap ? { ...knownMeta.thinkingLevelMap } : (isOpenAiFamily ? {
+                off: 'off',
+                low: 'low',
+                medium: 'medium',
+                high: 'high',
+                xhigh: 'xhigh',
+                max: 'max',
+              } : null);
+            }
+            const isNoOffModel = /(?:^|[-_/])(kimi|k3|deepseek|r1)\b/i.test(String(act.id ?? ''));
+            if (isOpenAiFamily && !isNoOffModel && act.thinkingLevelMap?.off === null) {
+              act.thinkingLevelMap = { ...act.thinkingLevelMap, off: 'off' };
+            }
+          }
+          if (knownMeta?.compat) {
+            act.compat = { ...knownMeta.compat, ...(act.compat || {}) };
+          }
+        });
+        if (curRuntimeModel) {
+          if ((!curRuntimeModel.contextWindow || curRuntimeModel.contextWindow === 128000) && maxContextWindow > 128000) {
+            curRuntimeModel.contextWindow = maxContextWindow;
+          }
+          curRuntimeModel.maxContextWindow = maxContextWindow;
+          if (knownMeta?.reasoning && !curRuntimeModel.reasoning) {
+            curRuntimeModel.reasoning = true;
+          }
+          if (curRuntimeModel.reasoning && !curRuntimeModel.thinkingLevelMap) {
+            curRuntimeModel.thinkingLevelMap = s.model.thinkingLevelMap;
+          }
+          if (knownMeta?.compat) {
+            curRuntimeModel.compat = { ...knownMeta.compat, ...(curRuntimeModel.compat || {}) };
+          }
+        }
+      }
+      const supportsFast = isModelSupportingFast(s.model, curProv);
+      const supportedThinkingLevels = resolveSupportedThinkingLevels(s.model, curRuntimeModel, knownMeta, curProv);
+      if (s.model && supportedThinkingLevels.length > 0 && s.thinkingLevel && !supportedThinkingLevels.includes(s.thinkingLevel)) {
+        try {
+          const clamped = clampThinkingLevel(s.model ?? curRuntimeModel ?? { reasoning: true, thinkingLevelMap: knownMeta?.thinkingLevelMap }, s.thinkingLevel);
+          const eff = supportedThinkingLevels.includes(clamped) ? clamped : supportedThinkingLevels[0];
+          s.setThinkingLevel?.(eff);
+          s.settingsManager?.setModelThinkingLevel?.(s.model.provider, s.model.id, eff);
+        } catch { /* advisory */ }
+      }
       return {
         current: s.model
-          ? { provider: s.model.provider, id: s.model.id, name: s.model.name ?? s.model.id, reasoning: Boolean(s.model.reasoning) }
+          ? {
+              provider: s.model.provider,
+              id: s.model.id,
+              name: s.model.name ?? s.model.id,
+              reasoning: Boolean(s.model.reasoning),
+              contextWindow: s.model.contextWindow ?? maxContextWindow,
+              maxContextWindow,
+              maxTokens: s.model.maxTokens ?? knownMeta?.maxTokens ?? 8192,
+              api: curApi,
+              supportsFast,
+              samplingParams: s.model.samplingParams ?? null,
+              supportedThinkingLevels,
+            }
           : null,
         thinkingLevel: s.thinkingLevel ?? null,
         defaultModel: s.settingsManager?.getDefaultModel?.() ?? null,
@@ -1080,26 +1664,38 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     // provider doctor (Cline `doctor` analogue): real connectivity probe —
     // GET {baseUrl}/models with the resolved credential. Returns reachability
     // + auth source; key material never leaves the process.
-    ping: async (providerId) => {
+    ping: async (providerId, overrideKey, overrideBaseUrl) => {
       const rt = box.s.modelRuntime;
       const pid = String(providerId ?? '').trim()
         || (box.s.model?.provider ?? rt.getProviders()[0]?.id);
       const p = rt.getProvider(pid);
-      if (!p) return { ok: false, error: `unknown provider '${pid}'` };
-      const configured = rt.hasConfiguredAuth(pid);
+      if (!p && !overrideBaseUrl) return { ok: false, configured: false, error: `unknown provider '${pid}'` };
+      const cred = await rt.credentials?.read?.(pid).catch(() => undefined);
       const auth = await rt.getAuth(pid).catch(() => undefined);
-      const base = auth?.auth?.baseUrl ?? p.baseUrl;
+      const apiKey = overrideKey?.trim() || auth?.auth?.apiKey || auth?.apiKey || cred?.key;
+      const configured = Boolean(rt.hasConfiguredAuth(pid) || cred?.key || apiKey);
+      const base = overrideBaseUrl?.trim() || auth?.auth?.baseUrl || p?.baseUrl;
       if (!base) return { ok: false, configured, error: 'provider has no baseUrl' };
       const t0 = Date.now();
       try {
-        const headers = { ...(p.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
-        if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
-        const res = await fetch(`${String(base).replace(/\/+$/, '')}/models`, {
+        const headers = { ...(p?.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
+        if (apiKey) {
+          headers.Authorization = `Bearer ${apiKey}`;
+          headers['x-api-key'] = apiKey;
+          headers['api-key'] = apiKey;
+          headers['x-goog-api-key'] = apiKey;
+          if (pid === 'anthropic' || (p?.api || '').includes('anthropic')) {
+            headers['anthropic-version'] = headers['anthropic-version'] || '2023-06-01';
+          }
+        }
+        const cleanBase = String(base).replace(/\/+$/, '');
+        const targetUrl = cleanBase.endsWith('/models') ? cleanBase : `${cleanBase}/models`;
+        const res = await fetch(targetUrl, {
           headers, signal: AbortSignal.timeout(8000),
         });
         return {
           ok: res.ok, reachable: true, httpStatus: res.status, ms: Date.now() - t0,
-          configured, authSource: auth?.source ?? null,
+          configured, authSource: apiKey ? (overrideKey ? 'direct input' : (auth?.source ?? 'stored key')) : null,
         };
       } catch (e) {
         return { ok: false, reachable: false, configured, error: String(e?.message ?? e), ms: Date.now() - t0 };
@@ -1109,19 +1705,31 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     // /models response is the provider's real model list, and throwing it
     // away forced users to hand-type model IDs. Returns parsed ids only;
     // registration stays an explicit operator act (provider_models_add).
-    fetchModels: async (providerId) => {
+    fetchModels: async (providerId, overrideKey, overrideBaseUrl) => {
       const rt = box.s.modelRuntime;
       const pid = String(providerId ?? '').trim()
         || (box.s.model?.provider ?? rt.getProviders()[0]?.id);
       const p = rt.getProvider(pid);
-      if (!p) return { ok: false, error: `unknown provider '${pid}'` };
+      if (!p && !overrideBaseUrl) return { ok: false, error: `unknown provider '${pid}'` };
+      const cred = await rt.credentials?.read?.(pid).catch(() => undefined);
       const auth = await rt.getAuth(pid).catch(() => undefined);
-      const base = auth?.auth?.baseUrl ?? p.baseUrl;
+      const apiKey = overrideKey?.trim() || auth?.auth?.apiKey || auth?.apiKey || cred?.key;
+      const base = overrideBaseUrl?.trim() || auth?.auth?.baseUrl || p?.baseUrl;
       if (!base) return { ok: false, error: 'provider has no baseUrl' };
       try {
-        const headers = { ...(p.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
-        if (auth?.auth?.apiKey) headers.Authorization = `Bearer ${auth.auth.apiKey}`;
-        const res = await fetch(`${String(base).replace(/\/+$/, '')}/models`, {
+        const headers = { ...(p?.headers ?? {}), ...(auth?.auth?.headers ?? {}) };
+        if (apiKey) {
+          headers.Authorization = `Bearer ${apiKey}`;
+          headers['x-api-key'] = apiKey;
+          headers['api-key'] = apiKey;
+          headers['x-goog-api-key'] = apiKey;
+          if (pid === 'anthropic' || (p?.api || '').includes('anthropic')) {
+            headers['anthropic-version'] = headers['anthropic-version'] || '2023-06-01';
+          }
+        }
+        const cleanBase = String(base).replace(/\/+$/, '');
+        const targetUrl = cleanBase.endsWith('/models') ? cleanBase : `${cleanBase}/models`;
+        const res = await fetch(targetUrl, {
           headers, signal: AbortSignal.timeout(10000),
         });
         if (!res.ok) return { ok: false, httpStatus: res.status, error: `HTTP ${res.status}` };
@@ -1129,7 +1737,27 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         // OpenAI shape: {data:[{id}]}; Ollama native: {models:[{name}]}
         const rows = body?.data ?? body?.models ?? [];
         const ids = rows.map((m) => m?.id ?? m?.name).filter((x) => typeof x === 'string' && x);
-        return { ok: true, provider: pid, models: [...new Set(ids)] };
+        const details = {};
+        for (const row of rows) {
+          const id = row?.id ?? row?.name;
+          if (typeof id !== 'string' || !id) continue;
+          const ctx = Number(row?.context_length ?? row?.context_window ?? row?.max_context_length ?? row?.max_input_tokens ?? row?.details?.context_length) || null;
+          const maxTokens = Number(row?.max_completion_tokens ?? row?.max_tokens ?? row?.max_output_tokens ?? row?.details?.max_output_tokens) || null;
+          const reasoning = (row?.reasoning === true || row?.supports_reasoning === true || row?.capabilities?.reasoning === true) ? true : undefined;
+          const cost = (row?.pricing ? {
+            input: Number(row.pricing.prompt) * 1000000 || 0,
+            output: Number(row.pricing.completion) * 1000000 || 0,
+            cacheRead: Number(row.pricing.input_cached ?? row.pricing.cache_read) * 1000000 || 0,
+            cacheWrite: Number(row.pricing.cache_write) * 1000000 || 0,
+          } : null);
+          details[id] = {
+            ...(ctx ? { contextWindow: ctx, maxContextWindow: ctx } : {}),
+            ...(maxTokens ? { maxTokens } : {}),
+            ...(reasoning !== undefined ? { reasoning } : {}),
+            ...(cost ? { cost } : {}),
+          };
+        }
+        return { ok: true, provider: pid, models: [...new Set(ids)], details };
       } catch (e) {
         return { ok: false, error: String(e?.message ?? e) };
       }
@@ -1138,7 +1766,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     // catalog (models.json merge semantics upsert by id); custom providers
     // must already exist (provider_add owns creation). Model entries get the
     // same conservative defaults as provider_add.
-    addModels: async ({ provider, modelIds, cost = null }) => {
+    addModels: async ({ provider, modelIds, cost = null, contextWindow = 128000, reasoning = false, speed = null, modelDetails = null }) => {
       const file = join(core.paths.root, 'pi-agent', 'models.json');
       let cfg = { providers: {} };
       if (existsSync(file)) {
@@ -1151,7 +1779,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // Seed baseUrl/api from the runtime provider so the partial entry can't
       // shadow the built-in connection config. Unknown ids must go through
       // provider_add (they need a real baseUrl/api from the operator).
-      const rtProv = box.s.modelRuntime.getProvider(provider);
+      const rtProv = box.s.modelRuntime?.getProvider?.(provider);
       if (!prov && !rtProv) {
         return { ok: false, error: `provider '${provider}' not in models.json and not built-in — use provider_add first` };
       }
@@ -1162,38 +1790,290 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       entry.models = entry.models ?? [];
       const existing = new Set(entry.models.map((m) => m.id));
       const added = [];
+      const ctxNum = Number(contextWindow) || 128000;
       for (const id of modelIds) {
         if (existing.has(id)) continue;
+        const detail = modelDetails?.[id] ?? {};
+        const meta = resolveKnownModelMetadata(id, provider, rtProv ?? entry, detail);
+        const resolvedCtx = detail.contextWindow
+          || (meta?.contextWindow && meta.contextWindow > 128000 ? meta.contextWindow : null)
+          || ((ctxNum && ctxNum !== 128000) ? ctxNum : (meta?.contextWindow ?? ctxNum));
+        const resolvedMaxCtx = Math.max(resolvedCtx, detail.maxContextWindow || 0, meta?.maxContextWindow || 0);
+        const resolvedReasoning = (detail.reasoning !== undefined)
+          ? Boolean(detail.reasoning)
+          : ((reasoning !== undefined && reasoning !== false) ? Boolean(reasoning) : Boolean(meta?.reasoning));
+        const resolvedMaxTokens = detail.maxTokens ?? meta?.maxTokens ?? 8192;
+        const resolvedCost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(cost ?? {}), ...(detail.cost ?? {}) };
+        let resolvedCompat;
+        if (detail.compat !== undefined) {
+          const sc = sanitizeCompat(detail.compat);
+          if (sc.error) return { ok: false, error: `provider_models_add: ${sc.error}` };
+          resolvedCompat = sc.compat;
+        } else if (meta?.compat && Object.keys(meta.compat).length > 0) {
+          resolvedCompat = meta.compat;
+        }
         entry.models.push({
-          id, name: id, reasoning: false,
+          id, name: id, reasoning: resolvedReasoning,
           input: ['text'],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(cost ?? {}) },
-          contextWindow: 128000, maxTokens: 8192,
+          cost: resolvedCost,
+          contextWindow: resolvedCtx,
+          maxContextWindow: resolvedMaxCtx,
+          maxTokens: resolvedMaxTokens,
+          ...(meta?.thinkingLevelMap ? { thinkingLevelMap: meta.thinkingLevelMap } : {}),
+          ...(speed && speed !== 'default' && speed !== 'off' ? { samplingParams: { service_tier: speed } } : {}),
+          ...(resolvedCompat ? { compat: resolvedCompat } : {}),
         });
         added.push(id);
       }
       if (!prov) cfg.providers[provider] = entry;
       writeJsonAtomic(file, cfg);
-      await box.s.modelRuntime.refresh?.().catch(() => {});
+      const excluded = readExcludedModels();
+      let excludedChanged = false;
+      for (const id of modelIds) {
+        if (excluded.delete(`${provider}/${id}`)) excludedChanged = true;
+      }
+      if (excludedChanged) writeExcludedModels(excluded);
+      await box.s.modelRuntime?.refresh?.().catch(() => {});
       return { ok: true, provider, added, total: entry.models.length };
     },
     list: async () => {
+      healModelsJson();
       const available = await box.s.modelRuntime.getAvailable();
-      return available.map((m) => ({
-        provider: m.provider,
-        id: m.id,
-        name: m.name ?? m.id,
-        reasoning: Boolean(m.reasoning),
-        contextWindow: m.contextWindow ?? null,
-        maxTokens: m.maxTokens ?? null,
-        // Codex models.json capability declaration — surfaced, not invented:
-        // the registry already carries input modalities per model.
-        capabilities: {
-          vision: Array.isArray(m.input) ? m.input.includes('image') : null,
-          tools: true, // every catalog model in this runtime accepts tool calls
-          reasoning: Boolean(m.reasoning),
-        },
-      }));
+      const excluded = readExcludedModels();
+      const cfg = readModelsJson();
+      return available
+        .filter((m) => !excluded.has(`${m.provider}/${m.id}`))
+        .map((m) => {
+          const cfgEntry = cfg.providers?.[m.provider]?.models?.find?.((x) => x?.id === m.id);
+          const tier = cfgEntry?.samplingParams?.service_tier ?? m.samplingParams?.service_tier ?? null;
+          const provObj = box.s.modelRuntime?.getProvider?.(m.provider);
+          const meta = resolveKnownModelMetadata(m.id, m.provider, provObj);
+          const rawCtx = Number(m.contextWindow);
+          const resolvedCtx = (rawCtx && rawCtx !== 128000) ? rawCtx : (meta?.contextWindow ?? rawCtx ?? 128000);
+          const resolvedReasoning = (m.reasoning !== undefined && m.reasoning !== false) ? Boolean(m.reasoning) : Boolean(meta?.reasoning);
+          const supportedThinkingLevels = resolveSupportedThinkingLevels(m, null, meta, provObj);
+          const supportsFast = isModelSupportingFast(m, provObj);
+          return {
+            provider: m.provider,
+            id: m.id,
+            name: m.name ?? m.id,
+            reasoning: resolvedReasoning,
+            supportedThinkingLevels,
+            supportsFast,
+            contextWindow: resolvedCtx,
+            maxTokens: m.maxTokens ?? meta?.maxTokens ?? null,
+            tier,
+            // Codex models.json capability declaration — surfaced, not invented:
+            // the registry already carries input modalities per model.
+            capabilities: {
+              vision: Array.isArray(m.input) ? m.input.includes('image') : null,
+              tools: true, // every catalog model in this runtime accepts tool calls
+              reasoning: resolvedReasoning,
+            },
+          };
+        });
+    },
+    updateModel: async ({ provider, model, contextWindow, reasoning, speed, compat }) => {
+      const p = String(provider ?? '').trim();
+      const mId = String(model ?? '').trim();
+      if (!p || !mId) return { ok: false, error: 'updateModel requires {provider, model}' };
+
+      const file = join(core.paths.root, 'pi-agent', 'models.json');
+      let cfg = { providers: {} };
+      if (existsSync(file)) {
+        try { cfg = JSON.parse(readFileSync(file, 'utf-8')); } catch { /* ignore */ }
+      }
+      cfg.providers = cfg.providers ?? {};
+      const rtProv = box.s.modelRuntime?.getProvider?.(p);
+      const prov = cfg.providers[p] ?? {
+        ...(rtProv?.baseUrl ? { baseUrl: rtProv.baseUrl } : {}),
+        ...(rtProv?.api ? { api: typeof rtProv.api === 'string' ? rtProv.api : undefined } : {}),
+      };
+      prov.models = Array.isArray(prov.models) ? prov.models : [];
+      let entry = prov.models.find((x) => x?.id === mId);
+      const runtimeModel = box.s.modelRuntime?.getModel?.(p, mId);
+      const meta = resolveKnownModelMetadata(mId, p, rtProv);
+      if (!entry) {
+        entry = {
+          id: mId,
+          name: runtimeModel?.name ?? mId,
+          reasoning: reasoning !== undefined ? Boolean(reasoning) : Boolean(runtimeModel?.reasoning ?? meta?.reasoning),
+          input: ['text'],
+          cost: runtimeModel?.cost ?? { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: Number(contextWindow) || runtimeModel?.contextWindow || meta?.contextWindow || 128000,
+          maxTokens: runtimeModel?.maxTokens ?? meta?.maxTokens ?? 8192,
+        };
+        prov.models.push(entry);
+      }
+      const ceiling = Math.max(
+        Number(entry.maxContextWindow) || 0,
+        Number(entry.contextWindow) || 0,
+        Number(runtimeModel?.maxContextWindow) || 0,
+        Number(runtimeModel?.contextWindow) || 0,
+        Number(meta?.maxContextWindow) || 0,
+        Number(meta?.contextWindow) || 0,
+        128000
+      );
+      entry.maxContextWindow = ceiling;
+      if (contextWindow !== undefined) {
+        entry.contextWindow = Number(contextWindow) || 128000;
+        if (entry.contextWindow > entry.maxContextWindow) {
+          entry.maxContextWindow = entry.contextWindow;
+        }
+      }
+      if (reasoning !== undefined) {
+        entry.reasoning = Boolean(reasoning);
+      }
+      if (speed !== undefined) {
+        const nextParams = { ...(entry.samplingParams && typeof entry.samplingParams === 'object' ? entry.samplingParams : {}) };
+        if (speed === 'off' || speed === 'default' || !speed) {
+          delete nextParams.service_tier;
+          if (Object.keys(nextParams).length > 0) {
+            entry.samplingParams = nextParams;
+          } else {
+            delete entry.samplingParams;
+          }
+        } else {
+          nextParams.service_tier = speed;
+          entry.samplingParams = nextParams;
+        }
+      }
+      let sanitizedCompat;
+      if (compat !== undefined) {
+        const sc = sanitizeCompat(compat);
+        if (sc.error) return { ok: false, error: `model_update: ${sc.error}` };
+        sanitizedCompat = sc.compat;
+        if (sanitizedCompat === null) delete entry.compat;
+        else entry.compat = { ...(entry.compat && typeof entry.compat === 'object' ? entry.compat : {}), ...sanitizedCompat };
+      }
+      cfg.providers[p] = prov;
+      writeJsonAtomic(file, cfg);
+      await box.s.modelRuntime?.refresh?.().catch(() => {});
+
+      if (box.s?.model && box.s.model.provider === p && box.s.model.id === mId) {
+        updateActiveSessionModel(box.s, (act) => {
+          if (reasoning !== undefined) {
+            act.reasoning = Boolean(reasoning);
+          }
+          if (contextWindow !== undefined) {
+            act.contextWindow = Number(contextWindow) || 128000;
+          }
+          act.maxContextWindow = entry.maxContextWindow;
+          if (speed !== undefined) {
+            if (speed === 'off' || speed === 'default' || !speed) {
+              if (act.samplingParams) {
+                delete act.samplingParams.service_tier;
+                if (!Object.keys(act.samplingParams).length) delete act.samplingParams;
+              }
+            } else {
+              act.samplingParams = { ...(act.samplingParams || {}), service_tier: speed };
+            }
+          }
+          if (compat !== undefined) {
+            if (sanitizedCompat === null) delete act.compat;
+            else act.compat = { ...(act.compat && typeof act.compat === 'object' ? act.compat : {}), ...sanitizedCompat };
+          }
+        });
+      }
+
+      core.audit?.write?.({ kind: 'MODEL_CONFIG_UPDATED', data: { provider: p, model: mId, contextWindow, reasoning, speed, compat: compat !== undefined ? (sanitizedCompat ?? 'cleared') : undefined } });
+      return { ok: true, provider: p, model: mId, entry };
+    },
+    deleteModel: async ({ provider, model }) => {
+      const p = String(provider ?? '').trim();
+      const mId = String(model ?? '').trim();
+      if (!p || !mId) return { ok: false, error: 'deleteModel requires {provider, model}' };
+
+      // 1. Persist exclusion so it never appears in available list
+      const excluded = readExcludedModels();
+      excluded.add(`${p}/${mId}`);
+      writeExcludedModels(excluded);
+
+      // 2. If it was persisted in models.json, remove it
+      const file = join(core.paths.root, 'pi-agent', 'models.json');
+      let cfg = { providers: {} };
+      if (existsSync(file)) {
+        try { cfg = JSON.parse(readFileSync(file, 'utf-8')); } catch { /* ignore */ }
+      }
+      cfg.providers = cfg.providers ?? {};
+      const prov = cfg.providers[p];
+      let removedFromConfig = false;
+      if (prov && Array.isArray(prov.models)) {
+        const initialCount = prov.models.length;
+        prov.models = prov.models.filter((m) => m.id !== mId);
+        removedFromConfig = prov.models.length < initialCount;
+        const rtProv = box.s.modelRuntime?.getProvider?.(p);
+        if (prov.models.length === 0 && !rtProv) {
+          delete cfg.providers[p];
+        }
+        writeJsonAtomic(file, cfg);
+        await box.s.modelRuntime.refresh?.().catch(() => {});
+      }
+
+      // 3. If currently active model was deleted, switch to another available model
+      if (box.s?.model && box.s.model.provider === p && box.s.model.id === mId) {
+        try {
+          const avail = await box.s.modelRuntime?.getAvailable?.() ?? [];
+          const updatedExcluded = readExcludedModels();
+          const alt = avail.find((m) => !updatedExcluded.has(`${m.provider}/${m.id}`));
+          if (alt && typeof box.s.setModel === 'function') {
+            await box.s.setModel(alt).catch(() => {});
+          }
+        } catch { /* best effort fallback */ }
+      }
+
+      core.audit?.write?.({ kind: 'MODEL_DELETED', data: { provider: p, model: mId } });
+      return { ok: true, provider: p, model: mId, removed: removedFromConfig };
+    },
+    deleteProvider: async ({ provider }) => {
+      const p = String(provider ?? '').trim();
+      if (!p) return { ok: false, error: 'deleteProvider requires {provider}' };
+
+      // 1. Persist exclusion for all models of this provider
+      const excluded = readExcludedModels();
+      const rt = box.s.modelRuntime;
+      const provModels = (rt?.getModels?.(p) || []).map((m) => m.id);
+      for (const mId of provModels) {
+        excluded.add(`${p}/${mId}`);
+      }
+
+      // 2. If it was persisted in models.json, remove it completely
+      const file = join(core.paths.root, 'pi-agent', 'models.json');
+      let cfg = { providers: {} };
+      if (existsSync(file)) {
+        try { cfg = JSON.parse(readFileSync(file, 'utf-8')); } catch { /* ignore */ }
+      }
+      cfg.providers = cfg.providers ?? {};
+      if (cfg.providers[p]) {
+        for (const m of cfg.providers[p].models ?? []) {
+          if (m?.id) excluded.add(`${p}/${m.id}`);
+        }
+        delete cfg.providers[p];
+        writeJsonAtomic(file, cfg);
+        await box.s.modelRuntime?.refresh?.().catch(() => {});
+      }
+      writeExcludedModels(excluded);
+
+      // 3. Clear auth credentials for this provider if stored
+      if (box.s.modelRuntime?.credentials?.delete) {
+        await box.s.modelRuntime.credentials.delete(p).catch(() => {});
+      }
+      await box.s.modelRuntime?.removeRuntimeApiKey?.(p).catch(() => {});
+
+      // 4. If currently active model belongs to this provider, switch away
+      if (box.s?.model && box.s.model.provider === p) {
+        try {
+          const avail = await box.s.modelRuntime?.getAvailable?.() ?? [];
+          const updatedExcluded = readExcludedModels();
+          const alt = avail.find((m) => !updatedExcluded.has(`${m.provider}/${m.id}`) && m.provider !== p);
+          if (alt && typeof box.s.setModel === 'function') {
+            await box.s.setModel(alt).catch(() => {});
+          }
+        } catch { /* best effort fallback */ }
+      }
+
+      core.audit?.write?.({ kind: 'PROVIDER_DELETED', data: { provider: p } });
+      return { ok: true, provider: p };
     },
     set: async ({ provider, model, alias }) => {
       let target = { provider, model };
@@ -1209,9 +2089,73 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         target = hit;
       }
       const s = box.s;
-      const m = s.modelRuntime.getModel(target.provider, target.model);
-      if (!m) throw new Error(`model '${target.provider}/${target.model}' is not registered`);
+      const rawModel = s.modelRuntime.getModel(target.provider, target.model);
+      const provObj = s.modelRuntime?.getProvider?.(rawModel?.provider ?? target.provider);
+      const meta = resolveKnownModelMetadata(rawModel?.id ?? target.model, target.provider, provObj);
+      const curApi = String(rawModel?.api ?? provObj?.api ?? target.provider ?? '').toLowerCase();
+      const isOpenAiFamily = ['openai', 'azure-openai-responses', 'openai-responses', 'openai-codex-responses', 'openai-completions'].includes(curApi);
+      const m = { ...(rawModel || target) };
+      if (meta) {
+        const maxCtx = Math.max(Number(m.maxContextWindow) || 0, meta.maxContextWindow || 0, meta.contextWindow || 0, 128000);
+        m.maxContextWindow = maxCtx;
+        if ((!m.contextWindow || m.contextWindow === 128000 || m.contextWindow < maxCtx) && maxCtx > 128000) {
+          m.contextWindow = maxCtx;
+        }
+        if (meta.reasoning && !m.reasoning) {
+          m.reasoning = true;
+        }
+        if (meta.maxTokens && (!m.maxTokens || m.maxTokens < meta.maxTokens)) {
+          m.maxTokens = meta.maxTokens;
+        }
+        if (meta.thinkingLevelMap && !m.thinkingLevelMap) {
+          m.thinkingLevelMap = meta.thinkingLevelMap;
+        }
+      }
+      if (m.reasoning) {
+        if (!m.thinkingLevelMap && isOpenAiFamily) {
+          m.thinkingLevelMap = {
+            off: 'off',
+            low: 'low',
+            medium: 'medium',
+            high: 'high',
+            xhigh: 'xhigh',
+            max: 'max',
+          };
+        }
+      }
       await s.setModel(m);
+      if (s.model) {
+        updateActiveSessionModel(s, (act) => {
+          act.maxContextWindow = m.maxContextWindow;
+          act.contextWindow = m.contextWindow;
+          if (m.reasoning) act.reasoning = true;
+          if (m.thinkingLevelMap) act.thinkingLevelMap = m.thinkingLevelMap;
+          if (meta?.compat) act.compat = { ...meta.compat, ...(act.compat || {}) };
+        });
+      }
+      const supported = resolveSupportedThinkingLevels(m, null, meta, provObj);
+      if (supported.length > 0) {
+        const suffixMatch = String(m.id).match(/-(minimal|low|medium|high|xhigh|max)$/i);
+        const preferredSuffixLevel = suffixMatch ? suffixMatch[1].toLowerCase() : null;
+        const curLvl = s.thinkingLevel;
+        let eff = null;
+        if (preferredSuffixLevel && supported.includes(preferredSuffixLevel)) {
+          eff = preferredSuffixLevel;
+        } else if (curLvl && supported.includes(curLvl)) {
+          eff = curLvl;
+        } else {
+          try {
+            const clamped = clampThinkingLevel(m, curLvl || 'high');
+            eff = supported.includes(clamped) ? clamped : supported[0];
+          } catch {
+            eff = supported[0];
+          }
+        }
+        if (eff) {
+          s.setThinkingLevel?.(eff);
+          s.settingsManager?.setModelThinkingLevel?.(m.provider, m.id, eff);
+        }
+      }
       s.settingsManager?.setDefaultModelAndProvider?.(target.provider, target.model);
       if (target.thinking) await modelsFacade.setThinking(target.thinking).catch(() => {});
       // #2118: an explicit pick opts the session out of adaptive routing —
@@ -1309,11 +2253,13 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
     // other providers it is inert config, surfaced honestly.
     fast: () => {
       const m = box.s.model;
-      if (!m) return { enabled: false, error: 'no active model' };
+      if (!m) return { enabled: false, supported: false, error: 'no active model' };
+      const curProv = box.s.modelRuntime?.getProvider?.(m.provider);
+      const supported = isModelSupportingFast(m, curProv);
       const cfg = readModelsJson();
       const entry = cfg.providers?.[m.provider]?.models?.find?.((x) => x?.id === m.id);
       const tier = entry?.samplingParams?.service_tier ?? m.samplingParams?.service_tier ?? null;
-      return { enabled: tier === 'priority', tier, provider: m.provider, model: m.id };
+      return { enabled: supported && tier === 'priority', tier: supported ? tier : null, supported, provider: m.provider, model: m.id };
     },
     setFast: async ({ on, tier } = {}) => {
       const m = box.s.model;
@@ -1348,19 +2294,51 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       if (!cfg.providers[m.provider]) cfg.providers[m.provider] = prov;
       writeJsonAtomic(file, cfg);
       await box.s.modelRuntime.refresh?.().catch(() => {});
+      if (box.s?.model && box.s.model.provider === m.provider && box.s.model.id === m.id) {
+        updateActiveSessionModel(box.s, (act) => {
+          if (val === null) {
+            if (act.samplingParams) {
+              delete act.samplingParams.service_tier;
+              if (!Object.keys(act.samplingParams).length) delete act.samplingParams;
+            }
+          } else {
+            act.samplingParams = { ...(act.samplingParams || {}), service_tier: val };
+          }
+        });
+      }
       core.audit?.write({ kind: 'MODEL_SERVICE_TIER', data: { model: `${m.provider}/${m.id}`, tier: val } });
-      return { enabled: val === 'priority', tier: val, provider: m.provider, model: m.id };
+      const curProv = box.s.modelRuntime?.getProvider?.(m.provider);
+      const supported = isModelSupportingFast(m, curProv);
+      return { enabled: val === 'priority', tier: val, supported, provider: m.provider, model: m.id };
     },
     setThinking: async (level) => {
       const s = box.s;
       const lvl = String(level).toLowerCase();
       if (!THINKING_LEVELS.has(lvl)) throw new Error(`unknown thinking level '${level}'`);
+      const curProv = s.model ? box.s.modelRuntime?.getProvider?.(s.model.provider) : null;
+      const curRt = s.model ? box.s.modelRuntime?.getModel?.(s.model.provider, s.model.id) : null;
+      const meta = s.model ? resolveKnownModelMetadata(s.model.id, s.model.provider, curProv) : null;
+      const isReasoning = Boolean(s.model?.reasoning || meta?.reasoning || curRt?.reasoning);
+      if (isReasoning && s.model && !s.model.reasoning) {
+        updateActiveSessionModel(s, (act) => {
+          act.reasoning = true;
+          if (meta?.thinkingLevelMap && !act.thinkingLevelMap) {
+            act.thinkingLevelMap = meta.thinkingLevelMap;
+          }
+        });
+      }
       // Capability gate: a non-reasoning model accepts only 'off' — otherwise
       // the UI writes a setting the provider silently ignores.
-      if (lvl !== 'off' && s.model && !s.model.reasoning) {
+      if (lvl !== 'off' && s.model && !isReasoning) {
         throw new Error(`model '${s.model.provider}/${s.model.id}' has no reasoning capability — thinking stays off`);
       }
-      s.setThinkingLevel(lvl);
+      if (s.model) {
+        const supported = resolveSupportedThinkingLevels(s.model, curRt, meta, curProv);
+        if (supported.length > 0 && !supported.includes(lvl)) {
+          throw new Error(`model '${s.model.provider}/${s.model.id}' does not support thinking level '${lvl}' (supported: ${supported.join(', ')})`);
+        }
+      }
+      s.setThinkingLevel?.(lvl);
       if (s.model) s.settingsManager?.setModelThinkingLevel?.(s.model.provider, s.model.id, lvl);
       return { thinkingLevel: s.thinkingLevel ?? lvl };
     },
@@ -1394,7 +2372,7 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       // every call 401s, the failure reads like a provider outage). Real
       // prefixes (sk-ant-, sk-proj-, ghp_…) pass — only obvious templates
       // and toy values are refused.
-      if (/^(sk-[x*]{2,}|sk-your|your[-_]|[x*]{4,}|changeme|test[-_]?key|placeholder|api[-_]?key[-_]?(here|goes)|<|insert|paste)/i.test(key) || key.length < 8) {
+      if (/^(sk-[x*]{2,}|sk-your|your[-_]|[x*]{4,}|changeme|test[-_]?key|placeholder|api[-_]?key[-_]?(here|goes)|<|insert|paste)/i.test(key)) {
         return { provider, hasAuth: false, error: 'key looks like a placeholder — paste the real credential' };
       }
       if (/^(?:op|bw):\/\//.test(key) && !parseSecretRef(key)) {
@@ -1414,10 +2392,16 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         if (!r.ok) return { provider, hasAuth: false, error: `secret-source resolve refused: ${r.reason}` };
         resolved = r.value;
       }
+      if (box.s.modelRuntime?.credentials?.modify) {
+        await box.s.modelRuntime.credentials.modify(provider, () => ({ type: 'api_key', key: resolved })).catch(() => {});
+      }
       await box.s.modelRuntime.setRuntimeApiKey(provider, resolved);
       return { provider, hasAuth: true };
     },
     clearApiKey: async (provider) => {
+      if (box.s.modelRuntime?.credentials?.delete) {
+        await box.s.modelRuntime.credentials.delete(provider).catch(() => {});
+      }
       await box.s.modelRuntime.removeRuntimeApiKey(provider);
       // honest sign-out: env-var / models.json fallbacks still resolve auth
       // after the runtime key is removed — report what actually remains so
@@ -1458,30 +2442,90 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
         try { cfg = JSON.parse(readFileSync(file, 'utf-8')); } catch { /* rewrite below */ }
       }
       cfg.providers = cfg.providers ?? {};
+      const existingModels = Array.isArray(cfg.providers[spec.provider]?.models) ? [...cfg.providers[spec.provider].models] : [];
+      const modelList = Array.isArray(spec.models) && spec.models.length ? spec.models : (spec.model ? [spec.model] : []);
+      for (const mid of modelList) {
+        if (!mid) continue;
+        const idx = existingModels.findIndex((m) => m.id === mid);
+        const existingM = idx >= 0 ? existingModels[idx] : null;
+        const detail = spec.modelDetails?.[mid] ?? {};
+        const meta = resolveKnownModelMetadata(mid, spec.provider, null, { ...existingM, ...detail });
+        const detectedCtx = detail.contextWindow || (meta?.contextWindow && meta.contextWindow > 128000 ? meta.contextWindow : null);
+        let resolvedCtx = existingM?.contextWindow || detectedCtx || 128000;
+        if (mid === spec.model && spec.contextWindow && spec.contextWindow !== 128000) {
+          resolvedCtx = spec.contextWindow;
+        } else if (!existingM && spec.contextWindow && spec.contextWindow !== 128000) {
+          resolvedCtx = Math.max(spec.contextWindow, detectedCtx || 0);
+        }
+        const resolvedMaxCtx = Math.max(resolvedCtx, existingM?.maxContextWindow || 0, detail.maxContextWindow || 0, meta?.maxContextWindow || 0);
+        const resolvedReasoning = (detail.reasoning !== undefined)
+          ? Boolean(detail.reasoning)
+          : (existingM?.reasoning !== undefined
+            ? Boolean(existingM.reasoning)
+            : ((spec.reasoning !== undefined && spec.reasoning !== false) ? Boolean(spec.reasoning) : Boolean(meta?.reasoning)));
+        const resolvedMaxTokens = detail.maxTokens ?? existingM?.maxTokens ?? meta?.maxTokens ?? spec.maxTokens ?? 8192;
+        // compat override: per-model via modelDetails[id].compat, or spec-level
+        // for the primary model. null clears an existing entry's compat.
+        const compatSrc = detail.compat !== undefined ? detail.compat : (mid === spec.model ? spec.compat : undefined);
+        let resolvedCompat;
+        if (compatSrc !== undefined) {
+          const sc = sanitizeCompat(compatSrc);
+          if (sc.error) return { ok: false, error: `provider_add: ${sc.error}` };
+          resolvedCompat = sc.compat;
+        }
+        const mObj = {
+          id: mid,
+          name: (mid === spec.model && spec.modelName) ? spec.modelName : (existingM?.name ?? mid),
+          reasoning: resolvedReasoning,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(spec.cost ?? {}), ...(existingM?.cost ?? {}), ...(detail.cost ?? {}) },
+          contextWindow: resolvedCtx,
+          maxContextWindow: resolvedMaxCtx,
+          maxTokens: resolvedMaxTokens,
+          ...(meta?.thinkingLevelMap ? { thinkingLevelMap: meta.thinkingLevelMap } : (existingM?.thinkingLevelMap ? { thinkingLevelMap: existingM.thinkingLevelMap } : {})),
+          ...(spec.speed && spec.speed !== 'default' && spec.speed !== 'off' ? { samplingParams: { service_tier: spec.speed } } : (existingM?.samplingParams ? { samplingParams: existingM.samplingParams } : {})),
+        };
+        const mergedModel = idx >= 0 ? { ...existingModels[idx], ...mObj } : mObj;
+        if (resolvedCompat) mergedModel.compat = resolvedCompat;
+        else if (compatSrc === null) delete mergedModel.compat;
+        if (idx >= 0) existingModels[idx] = mergedModel;
+        else existingModels.push(mergedModel);
+      }
+      if (!existingModels.length) {
+        const fallbackId = spec.model || 'default';
+        const meta = resolveKnownModelMetadata(fallbackId, spec.provider);
+        const resolvedCtx = (spec.contextWindow && spec.contextWindow !== 128000) ? spec.contextWindow : (meta?.contextWindow ?? spec.contextWindow ?? 128000);
+        const resolvedMaxCtx = Math.max(resolvedCtx, meta?.maxContextWindow || 0);
+        const resolvedReasoning = (spec.reasoning !== undefined && spec.reasoning !== false) ? Boolean(spec.reasoning) : Boolean(meta?.reasoning);
+        existingModels.push({
+          id: fallbackId,
+          name: spec.modelName ?? fallbackId,
+          reasoning: resolvedReasoning,
+          input: ['text'],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(spec.cost ?? {}) },
+          contextWindow: resolvedCtx,
+          maxContextWindow: resolvedMaxCtx,
+          maxTokens: meta?.maxTokens ?? spec.maxTokens ?? 8192,
+          ...(meta?.thinkingLevelMap ? { thinkingLevelMap: meta.thinkingLevelMap } : {}),
+          ...(spec.speed && spec.speed !== 'default' && spec.speed !== 'off' ? { samplingParams: { service_tier: spec.speed } } : {}),
+        });
+      }
       cfg.providers[spec.provider] = {
         baseUrl: spec.baseUrl,
         api: spec.api,
-        // dedup-h #3379 — per-provider custom headers; SDK merges
-        // provider.headers over auth headers at request time.
         ...(spec.headers && Object.keys(spec.headers).length ? { headers: spec.headers } : {}),
         ...(spec.allowPrivateNetwork === true ? { allowPrivateNetwork: true } : {}),
-        // env-ref only ($NAME) — literal keys belong in the credential store
-        // via auth_set_key, never in a committed-able JSON file.
         ...(spec.apiKeyEnv ? { apiKey: `$${spec.apiKeyEnv}` } : {}),
-        models: [{
-          id: spec.model,
-          name: spec.modelName ?? spec.model,
-          reasoning: spec.reasoning === true,
-          input: ['text'],
-          // zero pricing = dollar budget caps cannot see this traffic; the
-          // operator may declare per-1M-token rates at registration time
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, ...(spec.cost ?? {}) },
-          contextWindow: spec.contextWindow ?? 128000,
-          maxTokens: spec.maxTokens ?? 8192,
-        }],
+        models: existingModels,
       };
       writeJsonAtomic(file, cfg);
-      await box.s.modelRuntime.refresh?.().catch(() => {});
+      const excluded = readExcludedModels();
+      let excludedChanged = false;
+      for (const mid of modelList) {
+        if (excluded.delete(`${spec.provider}/${mid}`)) excludedChanged = true;
+      }
+      if (excludedChanged) writeExcludedModels(excluded);
+      await box.s.modelRuntime?.refresh?.().catch(() => {});
       return { provider: spec.provider, model: spec.model };
     },
   };

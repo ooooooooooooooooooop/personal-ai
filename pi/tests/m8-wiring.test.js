@@ -334,6 +334,7 @@ test('turn cap: admitted calls over the budget are refused with a readable stop 
   assert.equal(await call(), undefined);
   const capped = await call();
   assert.equal(capped.block, true);
+  assert.equal(capped.terminate, true);
   assert.equal(capped.rule, 'turn_cap');
   assert.match(capped.reason, /3\/3/); // model-readable: spent/budget
   decide.resetTurn(); // prompt/steer boundary via channel turns.reset()

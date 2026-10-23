@@ -370,7 +370,7 @@ export class HostChannel {
         }
         case 'model_ping': {
           if (!this.models?.ping) return reply(false, undefined, 'models facade unavailable');
-          return reply(true, await this.models.ping(cmd.provider));
+          return reply(true, await this.models.ping(cmd.provider, cmd.key, cmd.baseUrl));
         }
         case 'model_set': {
           if (!this.models?.set) return reply(false, undefined, 'models facade unavailable');
@@ -462,6 +462,7 @@ export class HostChannel {
             baseUrl: String(cmd.baseUrl ?? '').trim(),
             api: String(cmd.api ?? '').trim(),
             model: String(cmd.model ?? '').trim(),
+            models: Array.isArray(cmd.models) ? cmd.models.map(String).filter(Boolean) : undefined,
             modelName: cmd.modelName ? String(cmd.modelName) : undefined,
             contextWindow: cmd.contextWindow ? Number(cmd.contextWindow) : undefined,
             maxTokens: cmd.maxTokens ? Number(cmd.maxTokens) : undefined,
@@ -474,10 +475,17 @@ export class HostChannel {
             // reasoning at registration instead of being pinned false
             // (DeepSeek-V4-thinking-style compat).
             ...(cmd.reasoning === true ? { reasoning: true } : {}),
+            ...(cmd.speed ? { speed: String(cmd.speed) } : {}),
+            // Per-model OpenAI-compat overrides (e.g. supportsDeveloperRole:false
+            // for self-hosted relays rejecting developer-role prompts). Applies to
+            // the primary model; per-model shape rides modelDetails[id].compat.
+            // Validated/persisted by the body facade — host only passes it through.
+            ...(cmd.compat !== undefined ? { compat: cmd.compat } : {}),
             // dedup-h #3379 — per-provider custom headers (custom_headers
             // analogue). Credential-shaped headers (authorization/x-api-key)
             // are refused here: secrets belong in the credential store via
             // auth_set_key, never literal in models.json.
+            ...(cmd.modelDetails && typeof cmd.modelDetails === 'object' ? { modelDetails: cmd.modelDetails } : {}),
             ...(cmd.headers && typeof cmd.headers === 'object' && !Array.isArray(cmd.headers)
               ? { headers: Object.fromEntries(Object.entries(cmd.headers)
                   .filter(([k, v]) => /^[!#$%&'*+\-.^_`|~0-9a-zA-Z]+$/.test(String(k))
@@ -493,7 +501,7 @@ export class HostChannel {
         }
         case 'provider_models_fetch': {
           if (!this.models?.fetchModels) return reply(false, undefined, 'models facade unavailable');
-          return reply(true, await this.models.fetchModels(cmd.provider));
+          return reply(true, await this.models.fetchModels(cmd.provider, cmd.key, cmd.baseUrl));
         }
         case 'provider_models_add': {
           if (!this.models?.addModels) return reply(false, undefined, 'models facade unavailable');
@@ -502,7 +510,46 @@ export class HostChannel {
           if (!provider || !modelIds.length) return reply(false, undefined, 'provider_models_add requires {provider, models[]}');
           const cost = parseCostDecl(cmd.cost, 'provider_models_add');
           if (cost?.error) return reply(false, undefined, cost.error);
-          const res = await this.models.addModels({ provider, modelIds, ...(cost ? { cost } : {}) });
+          const res = await this.models.addModels({
+            provider,
+            modelIds,
+            ...(cost ? { cost } : {}),
+            ...(cmd.contextWindow !== undefined ? { contextWindow: Number(cmd.contextWindow) } : {}),
+            ...(cmd.reasoning !== undefined ? { reasoning: Boolean(cmd.reasoning) } : {}),
+            ...(cmd.speed !== undefined ? { speed: String(cmd.speed) } : {}),
+            ...(cmd.modelDetails && typeof cmd.modelDetails === 'object' ? { modelDetails: cmd.modelDetails } : {}),
+          });
+          return res?.ok === false ? reply(false, res, res.error) : reply(true, res);
+        }
+        case 'model_update': {
+          if (!this.models?.updateModel) return reply(false, undefined, 'models facade unavailable');
+          const provider = String(cmd.provider ?? '').trim();
+          const model = String(cmd.model ?? '').trim();
+          if (!provider || !model) return reply(false, undefined, 'model_update requires {provider, model}');
+          const res = await this.models.updateModel({
+            provider,
+            model,
+            contextWindow: cmd.contextWindow !== undefined ? Number(cmd.contextWindow) : undefined,
+            reasoning: cmd.reasoning !== undefined ? Boolean(cmd.reasoning) : undefined,
+            speed: cmd.speed !== undefined ? String(cmd.speed) : undefined,
+            // undefined = untouched; null clears the entry's compat (facade semantics)
+            compat: cmd.compat !== undefined ? cmd.compat : undefined,
+          });
+          return res?.ok === false ? reply(false, res, res.error) : reply(true, res);
+        }
+        case 'provider_model_delete': {
+          if (!this.models?.deleteModel) return reply(false, undefined, 'models facade unavailable');
+          const provider = String(cmd.provider ?? '').trim();
+          const model = String(cmd.model ?? '').trim();
+          if (!provider || !model) return reply(false, undefined, 'provider_model_delete requires {provider, model}');
+          const res = await this.models.deleteModel({ provider, model });
+          return res?.ok === false ? reply(false, res, res.error) : reply(true, res);
+        }
+        case 'provider_delete': {
+          if (!this.models?.deleteProvider) return reply(false, undefined, 'models facade unavailable');
+          const provider = String(cmd.provider ?? '').trim();
+          if (!provider) return reply(false, undefined, 'provider_delete requires {provider}');
+          const res = await this.models.deleteProvider({ provider });
           return res?.ok === false ? reply(false, res, res.error) : reply(true, res);
         }
         case 'session_list': {
@@ -520,7 +567,12 @@ export class HostChannel {
             return reply(true, await this.sessions.createEphemeral());
           }
           if (!this.sessions?.create) return reply(false, undefined, 'sessions facade unavailable');
-          const made = await this.sessions.create(cmd.id);
+          // When proxied by supervisor, cmd.id is the transport seq (e.g. 'c36', 'u1').
+          // A custom session id is carried in cmd.sessionId / cmd.session_id, or cmd.id if not an envelope seq.
+          const customId = cmd.sessionId ?? cmd.session_id ?? (
+            cmd.id != null && !/^[cu]\d+$/i.test(String(cmd.id).trim()) ? cmd.id : undefined
+          );
+          const made = await this.sessions.create(customId);
           return made?.error ? reply(false, made, made.error) : reply(true, made);
         }
         case 'session_switch': {

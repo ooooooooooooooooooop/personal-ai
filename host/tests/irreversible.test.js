@@ -18,7 +18,7 @@ test('consequential tools are recognised by name, benign ones are not', () => {
   for (const t of ['edit', 'write', 'str-replace-editor', 'exec', 'mcp_call_tool']) {
     assert.equal(isConsequential(t), true, `${t} must be consequential`);
   }
-  for (const t of ['read', 'glob', 'grep', 'ls']) {
+  for (const t of ['read', 'glob', 'grep', 'ls', 'update_todos', 'updatetodos']) {
     assert.equal(isConsequential(t), false, `${t} must NOT be consequential`);
   }
 });

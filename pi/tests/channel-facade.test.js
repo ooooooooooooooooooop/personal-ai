@@ -18,6 +18,9 @@ const fakeSession = () => ({
   model: { provider: 'cpa', id: 'gpt-5.6-luna-max' },
   isStreaming: false,
   messages: [{ role: 'user' }, { role: 'assistant' }],
+  _thinkingLevel: 'low',
+  get thinkingLevel() { return this._thinkingLevel; },
+  setThinkingLevel(l) { this._thinkingLevel = l; },
 });
 let fakeSessionRef; const listeners = new Set();
 
@@ -1958,6 +1961,57 @@ test('#2346 fast tier: set/read/off round-trips service_tier on the active model
   dispose();
 });
 
+test('fast tier: frozen session model/samplingParams does not crash on off or switch (Cannot delete property service_tier)', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-fast-frozen-'));
+  const auditDir = join(dir, 'audit');
+  mkdirSync(auditDir, { recursive: true });
+  mkdirSync(join(dir, 'pi-agent'), { recursive: true });
+  const audits = [];
+  const core = { paths: { auditDir, root: dir }, audit: { write: (e) => audits.push(e) } };
+
+  // Deep-freeze the session model and its samplingParams, exactly mimicking ModelConfig.load
+  const frozenModel = Object.freeze({
+    provider: 'cpa',
+    id: 'gpt-5.6-luna-max',
+    samplingParams: Object.freeze({ service_tier: 'priority' }),
+  });
+  fakeSessionRef.agent = {
+    state: {
+      model: frozenModel,
+    },
+  };
+  Object.defineProperty(fakeSessionRef, 'model', {
+    get() { return this.agent.state.model; },
+    configurable: true,
+  });
+
+  fakeSessionRef.modelRuntime = {
+    getProvider: (p) => (p === 'cpa' ? { id: 'cpa', baseUrl: 'https://api.example', api: 'openai-responses' } : null),
+    refresh: async () => {},
+  };
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  // 1. Toggling off must not throw "Cannot delete property 'service_tier' of #<Object>"
+  let r = await ch.handle({ type: 'model_fast_set', off: true });
+  assert.equal(r.success, true, 'turning off fast on frozen model succeeds');
+  assert.equal(r.data.enabled, false);
+  assert.equal(fakeSessionRef.model.samplingParams?.service_tier, undefined);
+
+  // 2. Toggling back on must not throw "Cannot assign to read only property"
+  r = await ch.handle({ type: 'model_fast_set', tier: 'priority' });
+  assert.equal(r.success, true, 'turning on fast on frozen model succeeds');
+  assert.equal(r.data.enabled, true);
+  assert.equal(fakeSessionRef.model.samplingParams?.service_tier, 'priority');
+
+  // 3. updateModel with speed: 'off' must also not throw
+  r = await ch.handle({ type: 'model_update', provider: 'cpa', model: 'gpt-5.6-luna-max', speed: 'off' });
+  assert.equal(r.success, true, 'updateModel with speed: off succeeds');
+  assert.equal(fakeSessionRef.model.samplingParams?.service_tier, undefined);
+
+  dispose();
+});
+
 // dedup-h #2355 — LLM idle watchdog lever: config_set http_idle_timeout
 // persists via settingsManager.setHttpIdleTimeoutMs (the loop reads it per
 // provider call as the request timeoutMs — bounds stream-setup pending, not
@@ -2114,5 +2168,194 @@ test('#3356 prompt submit checks compaction first (abort-mid-response edge)', as
   order.length = 0;
   await ch.handle({ type: 'prompt', message: 'second' });
   assert.equal(order.length, 0);
+  dispose();
+});
+
+test('supportedThinkingLevels: dynamic display and enforcement by model capabilities', async () => {
+  fakeSessionRef = fakeSession(); listeners.clear();
+  const dir = mkdtempSync(join(tmpdir(), 'pai-chan-thinklvl-'));
+  const auditDir = join(dir, 'audit'); mkdirSync(auditDir, { recursive: true });
+  const audit = { events: [], write(e) { this.events.push(e); } };
+  const core = { paths: { root: dir, auditDir }, audit };
+
+  // 1. Model is kimi-k3: supports only ['low', 'high'], reasoning is true
+  fakeSessionRef.model = { provider: 'cpa', id: 'kimi-k3', reasoning: true };
+  fakeSessionRef.setThinkingLevel('medium'); // Unsupported by K3
+  const { channel: ch, dispose } = createChannelHost({ session: fakeSessionRef, core });
+
+  const st = await ch.handle({ type: 'model_status' });
+  assert.equal(st.success, true);
+  assert.equal(st.data.current.id, 'kimi-k3');
+  assert.deepEqual(st.data.current.supportedThinkingLevels, ['low', 'high', 'max']);
+  assert.equal(st.data.current.supportsFast, false, 'kimi-k3 does not support fast tier');
+  // Medium auto-clamped to a supported level (high)
+  assert.equal(st.data.thinkingLevel, 'high');
+
+  // Attempting to set unsupported level throws honest error
+  const rOff = await ch.handle({ type: 'thinking_set', level: 'off' });
+  assert.equal(rOff.success, false);
+  assert.match(rOff.error, /does not support thinking level 'off'/);
+
+  const rMed = await ch.handle({ type: 'thinking_set', level: 'medium' });
+  assert.equal(rMed.success, false);
+  assert.match(rMed.error, /does not support thinking level 'medium'/);
+
+  // Supported levels succeed
+  const rLow = await ch.handle({ type: 'thinking_set', level: 'low' });
+  assert.equal(rLow.success, true);
+  assert.equal(rLow.data.thinkingLevel, 'low');
+
+  const rHigh = await ch.handle({ type: 'thinking_set', level: 'high' });
+  assert.equal(rHigh.success, true);
+  assert.equal(rHigh.data.thinkingLevel, 'high');
+
+  // 2. Custom model declaring explicit supportedThinkingLevels
+  fakeSessionRef.model = { provider: 'custom-provider', id: 'my-custom-model', reasoning: true, supportedThinkingLevels: ['minimal', 'high'] };
+  const stCustom = await ch.handle({ type: 'model_status' });
+  assert.equal(stCustom.success, true);
+  assert.deepEqual(stCustom.data.current.supportedThinkingLevels, ['minimal', 'high']);
+
+  // 3. Non-reasoning model has empty supportedThinkingLevels
+  fakeSessionRef.model = { provider: 'openai', id: 'gpt-4o', reasoning: false };
+  const stNonReasoning = await ch.handle({ type: 'model_status' });
+  assert.equal(stNonReasoning.success, true);
+  assert.deepEqual(stNonReasoning.data.current.supportedThinkingLevels, []);
+
+  // 4. OpenAI reasoning model protocol defaults to full 6 tiers (off, low, medium, high, xhigh, max)
+  fakeSessionRef.model = { provider: 'cpa', id: 'gpt-6.1-sol', reasoning: true, api: 'openai-completions', contextWindow: 1050000 };
+  const stOpenAiReasoning = await ch.handle({ type: 'model_status' });
+  assert.equal(stOpenAiReasoning.success, true);
+  assert.deepEqual(stOpenAiReasoning.data.current.supportedThinkingLevels, ['off', 'low', 'medium', 'high', 'xhigh', 'max']);
+  assert.equal(stOpenAiReasoning.data.current.maxContextWindow, 1050000);
+  assert.equal(stOpenAiReasoning.data.current.supportsFast, true, 'OpenAI model supports fast tier');
+
+  // 5. Switching thinking level works on getter-only session for xhigh, max, and off without crash
+  const rXhigh = await ch.handle({ type: 'thinking_set', level: 'xhigh' });
+  assert.equal(rXhigh.success, true);
+  assert.equal(rXhigh.data.thinkingLevel, 'xhigh');
+
+  const rMax = await ch.handle({ type: 'thinking_set', level: 'max' });
+  assert.equal(rMax.success, true);
+  assert.equal(rMax.data.thinkingLevel, 'max');
+
+  const rOff2 = await ch.handle({ type: 'thinking_set', level: 'off' });
+  assert.equal(rOff2.success, true);
+  assert.equal(rOff2.data.thinkingLevel, 'off');
+
+  // 6. model_update with lower throttled contextWindow preserves maxContextWindow
+  const rUpdate = await ch.handle({ type: 'model_update', provider: 'cpa', model: 'gpt-6.1-sol', contextWindow: 256000 });
+  assert.equal(rUpdate.success, true);
+  assert.equal(rUpdate.data.entry.contextWindow, 256000);
+  assert.equal(rUpdate.data.entry.maxContextWindow, 1050000);
+
+  const stThrottled = await ch.handle({ type: 'model_status' });
+  assert.equal(stThrottled.success, true);
+  assert.equal(stThrottled.data.current.contextWindow, 256000);
+  assert.equal(stThrottled.data.current.maxContextWindow, 1050000);
+
+  // 7. Gemini model with effort suffix (e.g. gemini-3.8-flash-high) under CPA
+  // Automatically infers reasoning: true, 1M context window, and full 6-tier thinking levels
+  fakeSessionRef.model = { provider: 'cpa', id: 'gemini-3.8-flash-high', reasoning: false, api: 'openai-completions' };
+  const stGemini = await ch.handle({ type: 'model_status' });
+  assert.equal(stGemini.success, true);
+  assert.equal(stGemini.data.current.reasoning, true);
+  assert.equal(stGemini.data.current.contextWindow, 1048576);
+  assert.equal(stGemini.data.current.maxContextWindow, 1048576);
+  assert.deepEqual(stGemini.data.current.supportedThinkingLevels, ['off', 'low', 'medium', 'high', 'xhigh', 'max']);
+
+  // Setting thinking level succeeds without throwing capability error
+  const rGeminiHigh = await ch.handle({ type: 'thinking_set', level: 'high' });
+  assert.equal(rGeminiHigh.success, true);
+  assert.equal(rGeminiHigh.data.thinkingLevel, 'high');
+
+  const rGeminiLow = await ch.handle({ type: 'thinking_set', level: 'low' });
+  assert.equal(rGeminiLow.success, true);
+  assert.equal(rGeminiLow.data.thinkingLevel, 'low');
+
+  // 8. provider_add with contextWindow: 256000 does NOT downgrade existing high-context model (gpt-6.1-sol)
+  const rAddProv = await ch.handle({
+    type: 'provider_add',
+    provider: 'cpa',
+    baseUrl: 'http://127.0.0.1:8317/v1',
+    api: 'openai-completions',
+    model: 'gpt-4o',
+    models: ['gpt-4o', 'gpt-6.1-sol'],
+    allowPrivateNetwork: true,
+    contextWindow: 256000,
+  });
+  assert.equal(rAddProv.success, true);
+
+  // Read models.json and verify gpt-6.1-sol preserved its 1050000 ceiling
+  const modelsFile = join(dir, 'pi-agent', 'models.json');
+  const cfgJson = JSON.parse(readFileSync(modelsFile, 'utf-8'));
+  const solModel = cfgJson.providers.cpa.models.find((m) => m.id === 'gpt-6.1-sol');
+  assert.ok(solModel, 'gpt-6.1-sol should exist');
+  assert.equal(solModel.maxContextWindow, 1050000, 'maxContextWindow must not be downgraded');
+  assert.ok(solModel.contextWindow >= 256000);
+
+  // 9. provider_models_add with modelDetails respects upstream parameters
+  const rAddDetails = await ch.handle({
+    type: 'provider_models_add',
+    provider: 'cpa',
+    models: ['custom-remote-model'],
+    contextWindow: 128000,
+    modelDetails: {
+      'custom-remote-model': {
+        contextWindow: 1048576,
+        maxContextWindow: 1048576,
+        reasoning: true,
+      },
+    },
+  });
+  assert.equal(rAddDetails.success, true);
+  const cfgAfter = JSON.parse(readFileSync(modelsFile, 'utf-8'));
+  const customM = cfgAfter.providers.cpa.models.find((m) => m.id === 'custom-remote-model');
+  assert.ok(customM, 'custom-remote-model should exist');
+  assert.equal(customM.contextWindow, 1048576);
+  assert.equal(customM.maxContextWindow, 1048576);
+  assert.equal(customM.reasoning, true);
+
+  // 10. provider_add persists per-model compat overrides (the 2026-10-19 case:
+  // a self-hosted relay whose upstream rejects developer-role system prompts —
+  // supportsDeveloperRole:false must be declarable without hand-editing models.json)
+  const rAddCompat = await ch.handle({
+    type: 'provider_add',
+    provider: 'cpa',
+    baseUrl: 'http://127.0.0.1:8317/v1',
+    api: 'openai-completions',
+    model: 'kimi-k2.8',
+    models: ['kimi-k2.8'],
+    allowPrivateNetwork: true,
+    reasoning: true,
+    compat: { supportsDeveloperRole: false },
+  });
+  assert.equal(rAddCompat.success, true);
+  const cfgCompat = JSON.parse(readFileSync(modelsFile, 'utf-8'));
+  const kimiM = cfgCompat.providers.cpa.models.find((m) => m.id === 'kimi-k2.8');
+  assert.ok(kimiM, 'kimi-k2.8 should exist');
+  assert.deepEqual(kimiM.compat, { supportsDeveloperRole: false });
+
+  // 11. model_update merges compat keys without dropping existing ones, and
+  // compat:null clears the entry
+  const rUpdCompat = await ch.handle({
+    type: 'model_update', provider: 'cpa', model: 'kimi-k2.8',
+    compat: { maxTokensField: 'max_tokens' },
+  });
+  assert.equal(rUpdCompat.success, true);
+  assert.deepEqual(rUpdCompat.data.entry.compat, { supportsDeveloperRole: false, maxTokensField: 'max_tokens' });
+
+  const rClearCompat = await ch.handle({ type: 'model_update', provider: 'cpa', model: 'kimi-k2.8', compat: null });
+  assert.equal(rClearCompat.success, true);
+  const cfgCleared = JSON.parse(readFileSync(modelsFile, 'utf-8'));
+  assert.equal(cfgCleared.providers.cpa.models.find((m) => m.id === 'kimi-k2.8').compat, undefined);
+
+  // 12. unknown compat keys fail loudly (typo would otherwise silently no-op)
+  const rBadCompat = await ch.handle({
+    type: 'model_update', provider: 'cpa', model: 'kimi-k2.8',
+    compat: { suportsDeveloperRole: false },
+  });
+  assert.equal(rBadCompat.success, false);
+  assert.match(String(rBadCompat.error), /unknown compat key/);
+
   dispose();
 });

@@ -449,6 +449,64 @@ test('M71: session_new ephemeral routes to createEphemeral; absent fails closed'
   assert.equal((await bare.handle({ type: 'session_new', ephemeral: true })).success, false);
 });
 
+test('session_new: ignores supervisor envelope seq (c36/u1); custom UUID passes through via sessionId or custom id', async () => {
+  const ids = [];
+  const sessions = {
+    create: async (id) => { ids.push(id); return { id: id ?? 'random-uuid', file: '/s/f.jsonl' }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), sessions });
+
+  // Supervisor proxies with id: 'c36' or UI with 'u1' -> must NOT be treated as custom session id
+  const r1 = await ch.handle({ type: 'session_new', id: 'c36' });
+  assert.equal(r1.success, true);
+  assert.equal(ids.at(-1), undefined, 'c36 seq is ignored');
+
+  const r2 = await ch.handle({ type: 'session_new', id: 'u5' });
+  assert.equal(r2.success, true);
+  assert.equal(ids.at(-1), undefined, 'u5 seq is ignored');
+
+  // Explicit sessionId passes through even if supervisor wrapped with seq id
+  const customUuid = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  const r3 = await ch.handle({ type: 'session_new', id: 'c37', sessionId: customUuid });
+  assert.equal(r3.success, true);
+  assert.equal(ids.at(-1), customUuid, 'sessionId passes through');
+
+  // Direct custom id without envelope seq passes through
+  const r4 = await ch.handle({ type: 'session_new', id: customUuid });
+  assert.equal(r4.success, true);
+  assert.equal(ids.at(-1), customUuid, 'direct custom UUID passes through');
+});
+
+test('provider_model_delete: delegates {provider, model} to facade; requires both', async () => {
+  const deleted = [];
+  const models = {
+    deleteModel: async (args) => { deleted.push(args); return { ok: true, provider: args.provider, model: args.model }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), models });
+  const ok = await ch.handle({ type: 'provider_model_delete', provider: 'cpa', model: 'gpt-5.6' });
+  assert.equal(ok.success, true);
+  assert.deepEqual(deleted, [{ provider: 'cpa', model: 'gpt-5.6' }]);
+
+  const bad1 = await ch.handle({ type: 'provider_model_delete', provider: '', model: 'gpt-5.6' });
+  assert.equal(bad1.success, false);
+  const bad2 = await ch.handle({ type: 'provider_model_delete', provider: 'cpa', model: '' });
+  assert.equal(bad2.success, false);
+});
+
+test('provider_delete: delegates {provider} to facade; requires provider', async () => {
+  const deleted = [];
+  const models = {
+    deleteProvider: async (args) => { deleted.push(args); return { ok: true, provider: args.provider }; },
+  };
+  const ch = new HostChannel({ session: fakeSession(), models });
+  const ok = await ch.handle({ type: 'provider_delete', provider: 'anthropic' });
+  assert.equal(ok.success, true);
+  assert.deepEqual(deleted, [{ provider: 'anthropic' }]);
+
+  const bad = await ch.handle({ type: 'provider_delete', provider: '' });
+  assert.equal(bad.success, false);
+});
+
 test('M90/M92: job_restart re-spawns terminal command; job_delete removes terminal only', async () => {
   const calls = [];
   const jobDetail = {

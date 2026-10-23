@@ -54,7 +54,7 @@ export const SAFE_READONLY_TOOLS = new Set(['read', 'readfile', 'readtool', 'glo
   'grep', 'search', 'findfilebyname', 'list', 'getoutput',
   'view', 'status', 'show', 'describe', 'cat', 'head', 'tail', 'ls', 'dir',
   'websearch', 'webfetch', 'codesearch', 'askuser', 'askuserquestion',
-  'worldmodel', 'dshworldmodel', 'todowrite', 'notebookread',
+  'worldmodel', 'dshworldmodel', 'todowrite', 'updatetodos', 'notebookread',
   'resolve', 'exists', 'count', 'diff', 'inspect', 'readresource',
   'mcpreadresource', 'mcplisttools', 'mcplistservers', 'readsubagent',
   'getmanagedclaudesupervisor', 'listmanagedclaudesupervisors']);

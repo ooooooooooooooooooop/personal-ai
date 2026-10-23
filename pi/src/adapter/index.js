@@ -12,8 +12,8 @@ import { withRenderedReason } from './errors.js';
 import { hashOf } from '../../../host/src/core/audit.js';
 import { renderContext, renderInstruction } from '../../../host/src/core/envelopes.js';
 import { collectContext } from './context-providers.js';
-import { realpathSync, unlinkSync } from 'node:fs';
-import { resolve, sep } from 'node:path';
+import { existsSync, realpathSync, unlinkSync } from 'node:fs';
+import { resolve, sep, isAbsolute } from 'node:path';
 
 /**
  * Create a Pi-backed engine session owned by the Host.
@@ -245,12 +245,13 @@ export function atMentionExtension() {
 // the live session store (open) or the unlink target (remove). realpath
 // failure fails closed — open/remove only ever touch existing files.
 const confinedSessionPath = (path, sessionDir) => {
-  const abs = resolve(path);
-  if (!abs.startsWith(resolve(sessionDir) + sep)) throw new Error('session path outside sessionDir');
+  const baseDir = resolve(sessionDir);
+  const abs = isAbsolute(path) ? resolve(path) : resolve(baseDir, path);
+  if (!abs.startsWith(baseDir + sep)) throw new Error('session path outside sessionDir');
   let realAbs;
   try { realAbs = realpathSync(abs); } catch { throw new Error('session path unresolvable'); }
   let realDir;
-  try { realDir = realpathSync(sessionDir); } catch { realDir = resolve(sessionDir); }
+  try { realDir = realpathSync(sessionDir); } catch { realDir = baseDir; }
   if (realAbs !== realDir && !realAbs.startsWith(realDir + sep)) {
     throw new Error('session path outside sessionDir (via symlink)');
   }

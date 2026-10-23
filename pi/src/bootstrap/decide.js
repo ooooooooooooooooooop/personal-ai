@@ -217,6 +217,7 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
       core.audit.write({ kind: 'TURN_CAP_BLOCK', toolName, data: { toolCallId: ctx.toolCall?.id, turnCalls, cap } });
       return {
         block: true,
+        terminate: true,
         rule: 'turn_cap',
         reason: `turn tool-call budget exhausted (${turnCalls}/${cap}) — stop calling tools, report what was accomplished and what remains; the user can send a follow-up to continue`,
       };
@@ -241,6 +242,7 @@ export function makeDecide({ core, executor, fileOps, getSurface, workdir, write
     if (loopwatch?.stopped) {
       return {
         block: true,
+        terminate: true,
         rule: 'mistake_limit',
         reason: 'operator stopped this run after consecutive tool errors — report status and wait for a new instruction',
       };

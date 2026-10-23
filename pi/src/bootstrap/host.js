@@ -2053,6 +2053,7 @@ export async function startHost({
       if (live && resolve(path) === resolve(live)) throw new Error('cannot delete the active session');
       return sessionManagers.remove(path, sessionDir);
     },
+    delete: async (path) => sessionsFacade.remove(path),
     // Fork = copy the transcript into a new session file and continue there —
     // the original stays untouched. rebuildSession switches the live surface.
     // entryId (ZCode fork-from-any-assistant-message): navigate the fork's

@@ -92,6 +92,8 @@ export const TOOL_IDENTITIES = Object.freeze({
   spec_status: 'read',
   tool_search: 'read',
   browser_read: 'read',
+  pdf_read: 'read',
+  update_todos: 'todowrite',
 });
 
 /**
