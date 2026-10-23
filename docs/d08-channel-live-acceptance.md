@@ -36,7 +36,7 @@
 | C21-b｜副作用 | abort 后 bash 后代子进程未原子切断 | **FAIL — 上游已知边界，挂账**（见 §4 B） |
 | C21-c | 退出重启后会话/事项恢复 | **PASS** |
 | C22 | 认知生命周期否决路径 | **PASS**（真实库逐字节不变） |
-| C22｜采纳路径 | accept → canonical → 编译 → 加载 | **未取得证据**（阻塞，见 §4 D） |
+| C22｜采纳路径 | accept → canonical → 编译 → 加载 | **PARTIAL**（2026-10-23 隔离取证：写入 PASS / 编译 PASS / **传播 FAIL**，见 `docs/c22-accept-evidence.md` 与 §4 E） |
 
 **G1 不结算。** D07.5 与上表全部条目都只是 G1 的必要条件，不是充分条件；C22 采纳链路与缺陷 B 未闭合，G1 维持未结算状态。
 
@@ -84,11 +84,11 @@ provider `cpa/gpt-6-luna`（relay `127.0.0.1:8317`，`/v1/models` 返回 200）�
 
 **真实库零改动**：真实 canonical 的 `current.yaml` 哈希仍为 `32658d1b…`，被裁决提案在真实库中仍为 `proposed`。副本与真实库的唯一差异就是"被裁决的提案 + 其历史"这两个文件。
 
-采纳路径未能取得证据，原因是产品决策与环境两道阻塞，**不记为通过**。
+采纳路径已于 2026-10-23 在隔离沙箱中取得证据，**判定 PARTIAL**：写入与编译两段真实闭合，但被采纳的模型没有进入身体读到的简报。完整数据见 `docs/c22-accept-evidence.md`，缺陷记为 §4 E。**仍不记为通过。**
 
 ---
 
-## 4. 缺陷账（A / B / C / D）
+## 4. 缺陷账（A – F）
 
 ### A. abort 死锁 — 已修复
 
@@ -137,9 +137,25 @@ return { ...(out ?? {}), isError: true };
 
 过程中有过一次我自己的坏变异：只删判定行却留下 `isError:true`，变成"恒报错"，被第二条用例抓出。变异必须整体撤销、不能只撤一半。
 
-### D. 提案 kind 契约断裂 — 未修复（产品决策）
+### D. 提案 kind 契约断裂 — 部分闭合（D0 已做，D1 未做）
 
 `mind/u1_accept.py` 只接受 `MODEL_PROPOSAL` / `STATUS_UPDATE`，而队列 100 个提案里只有 3 个属于这两类；其余 13 种 kind（`model-update` 64 个、`canonical` 15 个、`value-update` 7 个 ……）裁决必然失败。这不是测试问题，是契约本身没覆盖真实分布。
+
+后续：`0893737` 修掉终止决策被 apply 门禁挡住、补上 `withdraw` 并登记 kind 契约；`bc526c5` / `fd0f4d4` 把 84 条不可 apply 的历史提案批量封存（`proposed` 89 → 5）。剩余 5 条中 4 条是 `foreign`，未取证。详见 `docs/proposal-kind-contract-gap.md`。
+
+### E. 采纳成功的模型对运行时不可见 — 未修复
+
+C22 隔离取证（`docs/c22-accept-evidence.md`）暴露：`mind/canonical_compile.py:119` 用 `list(models.items())[:6]` 按**插入序**截断简报模型区，而 `u1_accept` 把新模型追加到末尾。结果是 **9 个 canonical 模型只有 6 个进简报，缺失的 3 个里 2 个是早已 accepted 的、1 个是刚 accept 的**。
+
+字节预算从未成为约束：补齐后 7361 字节，硬上限 8192 仍有 831 字节余量；文件自身设计的按优先级裁剪算法被这个魔数整段绕过。宿主 `doctor` 的 `compiled_artifacts` 只验存在与新鲜度，对"在场但截断"的通道无感，对此状态报 `pass`。
+
+判定影响：C22 采纳路径因此是 PARTIAL —— 写入闭合、编译闭合、**传播不闭合**。
+
+### F. apply 路径无幂等守卫 — 未修复
+
+同一提案连续 `accept` 两次：两次退出码均 0，`model-updates.jsonl` 落 2 行 `U1_APPLY`，新建 2 个回滚目录，`current.yaml` 里该模型的 `provenance.ts` 与 `update_history` 被第二次覆盖 —— 首次采纳时间只剩 ledger 记得。D0 只给终止决策加了幂等，apply 没有。
+
+E 与 F 都在 `mind/`（受治理路径），需独立一笔 + 变异矩阵，**本次一分代码未改**。
 
 ---
 
