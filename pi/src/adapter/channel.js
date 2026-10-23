@@ -797,10 +797,16 @@ export function createChannelHost({ session, core, jobs = null, jobDetail = null
       admitSpend(); return box.s.steer(message);
     },
     abort: async () => {
-      await box.s.abort?.();
-      // question-kind asks carry no ctx.signal — the session abort above
-      // resolves approval asks via their signal; sweep whatever is left
+      // Order is load-bearing (D08 C21-b): a turn can be parked inside
+      // `await asks.ask()` — request_permission, ask_user, and the
+      // mistake_limit escalation all block there. That await is not tied to
+      // the session abort signal (asks.js:412 finishes only on abortPending/
+      // dispose), and an ask lives 120s (asks.js:51) while the supervisor
+      // waits 60s. Aborting the session first therefore deadlocks: we would
+      // wait for a turn that can only end after we release its ask, and
+      // abortPending would never run. Release the asks FIRST, then abort.
       asks?.abortPending?.();
+      await box.s.abort?.();
       // Interrupt annotation: stopReason 'aborted' is metadata the model never
       // sees in its prompt. A non-display custom message enters the next turn's
       // context, so a continued run knows the interruption was the operator's —

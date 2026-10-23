@@ -283,12 +283,31 @@ test('fg lease: release happens even when pi afterToolCall bridge throws', async
   session.agent.afterToolCall = orig;
 });
 
-test('fg lease: guard without writeLease leaves afterToolCall untouched', async () => {
+// Spec change (D08 C21-b, defect C): this used to assert "no lease → no
+// composite wrap". That contract is what let tool-level errors ship as
+// isError:false — the loop reports `isError` from "did execute() throw", and
+// every first-party tool reports failure by RETURNING {isError:true}. The
+// composite is now installed unconditionally so it can normalize that flag;
+// without a lease it simply does no lease work.
+test('fg lease: guard without writeLease still normalizes tool errors and defers to Pi bridge', async () => {
   const session = await makeSession(() => {});
   const piAfter = session.agent.afterToolCall;
-  installCompositeGuard(session.agent, {
+  const guard = installCompositeGuard(session.agent, {
     revalidate: () => ({ ok: true }),
     decide: async () => undefined,
   });
-  assert.equal(session.agent.afterToolCall, piAfter, 'no lease → no composite wrap');
+  assert.notEqual(session.agent.afterToolCall, piAfter, 'composite must wrap even without a lease');
+
+  const ctx = (result, isError) => ({ toolCall: { name: 'echo', id: 'tc1', arguments: {} }, args: {}, result, isError });
+  // success passes through untouched — never invent an error
+  const okOut = await session.agent.afterToolCall(ctx({ content: [] }, false));
+  assert.ok(!okOut || okOut.isError !== true, 'success must not be marked as an error');
+  // a returned {isError:true} is promoted to the loop's error flag
+  assert.deepEqual(
+    await session.agent.afterToolCall(ctx({ content: [], isError: true }, false)),
+    { isError: true },
+  );
+
+  guard.restore();
+  assert.equal(session.agent.afterToolCall, piAfter, 'restore puts Pi bridge back');
 });

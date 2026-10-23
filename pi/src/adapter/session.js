@@ -76,24 +76,37 @@ export function installCompositeGuard(agent, { revalidate, decide, writeLease = 
 
   // afterToolCall composite — runs Pi's tool_result bridge first, then always
   // releases the foreground write lease (if this call held one).
-  if (writeLease) {
-    agent.afterToolCall = async (ctx, signal) => {
-      try {
-        return piAfter ? await piAfter(ctx, signal) : undefined;
-      } finally {
-        writeLease.release(`fg:${ctx.toolCall?.id ?? 'unknown'}`);
-      }
-    };
-  }
+  //
+  // Installed UNCONDITIONALLY, because it also carries the tool-error
+  // normalization Pi's loop does not do. agent-loop.js:477 sets
+  // `isError: !(execute threw)`, so a tool that reports failure in its RESULT
+  // object (`{content, isError:true}` — 104 such returns across src/) comes
+  // back as isError:false. That false then propagates into the emitted
+  // tool_execution_end, the transcript's toolResultMessage (so the model is
+  // told its failed call succeeded), loopwatch.observeResult (mistake_limit
+  // never fires), the verify/lint gates and the post_tool hook. afterToolCall
+  // is the one supported seam that can correct it: agent-loop.js:512 applies
+  // `afterResult.isError ?? isError` BEFORE the event and the message are
+  // built. Escalate only — an extension may mark an error, never clear one.
+  agent.afterToolCall = async (ctx, signal) => {
+    let out;
+    try {
+      out = piAfter ? await piAfter(ctx, signal) : undefined;
+    } finally {
+      if (writeLease) writeLease.release(`fg:${ctx.toolCall?.id ?? 'unknown'}`);
+    }
+    if (!ctx?.result?.isError) return out;
+    return { ...(out ?? {}), isError: true };
+  };
 
   return {
     /** Assert the composite is still installed (call after reload/replacement). */
     sealed: () => agent.beforeToolCall === composite
-      && (!writeLease || typeof agent.afterToolCall === 'function'),
+      && typeof agent.afterToolCall === 'function',
     /** Restore Pi's original bridges (tests, teardown). */
     restore: () => {
       agent.beforeToolCall = piBridge;
-      if (writeLease) agent.afterToolCall = piAfter;
+      agent.afterToolCall = piAfter;
     },
   };
 }
