@@ -2,9 +2,9 @@
 
 - 记录时间：2026-10-23
 - 判定对象：`mind/u1_accept.py`（唯一 canonical 写入者）与 `dsh/world-model/world-model.mjs` 的 `KIND_BY_CLASS`
-- 状态：**D0 已完成**（诊断与登记，无行为扩张）；**化石代 62 具已批量 withdraw**（§4.1）；D1（补 apply 通道）未开始
+- 状态：**D0 已完成**；队列已两批出清（§4.1 化石代 62 + §4.2 `canonical`/`value-update` 22，`proposed` 89 → 5）；D1 未开始，但范围已修订（§7.1：先堵生产端逃逸口，再补消费端通道）
 - 触发：D08 的 C22 只能否决、不能采纳。初判为"87 个提案 kind 断裂"，实测后该数字误导
-- 本版订正：§2 的"切线后 model-update = 0 个"是按文件名 glob 得出的错误结论，已改为按 `kind` 的实测与两条可复核依据
+- 本版订正两处：§2 的"切线后 model-update = 0 个"是按文件名 glob 得出的错误结论（改按 `kind` 实测 + 换依据）；§7 的"D1 是 C22 取证真前置"已修正（队列里本就有一条完整 `MODEL_PROPOSAL`，accept 路径今天可行使）
 
 ---
 
@@ -149,6 +149,62 @@
 
 ---
 
+## 4.2 第二批：`canonical` 15 + `value-update` 7（同日，已完成）
+
+清理完 62 具之后剩 27 条 `proposed`，其中 22 条是另外两个史前 kind。逐条普查后确认：**它们不是"等待接入通道的合法数据"，而是两次生产端事故写进队列的产物。**
+
+### 决定性事实：这 22 条连授权都无法被评估
+
+`governance.yaml#u1_evolvable.update_classes.value_model` 规定：
+
+```yaml
+allowed_proposers: [operator]
+required_authority: "user DURABLE_VALUE_STATEMENT or governance proposal"
+rollback_required: true
+```
+
+而 22 条记录的顶层字段**统共只有六个**：`kind / payload / schema_version / session_id / status / timestamp`。
+
+- **没有 `proposer`** → `allowed_proposers: [operator]` 无法求值；
+- **没有 `update_class`** → 连"它属于哪个演化类"都要靠 kind 反推；
+- **没有 `rollback`** → `rollback_required: true` 无从满足。
+
+所以它们**在构造上就不可 apply**，与"payload 是否杂乱"无关。后者只是表象，前者才是根因。
+
+### 形状（补充证据）
+
+15 条 `canonical` 的 payload 是运行时诊断与预测清理记录（`removed_predictions` / `subject+alignment` / `distribution+sample_count` / `summary`），**无一携带 `target` 字段** —— 无法机械推导该写 `current.yaml` 还是别处。
+
+7 条 `value-update` 的 payload 更散：看门狗超时 `selected_value_ms`、策略标记 `preferred_strategy`、观察结论 `selected_value`、操作结果 `decision+outcome`，另 3 条只有 `reason` / `provenance`。**没有一条能与 `current.yaml` 的 `value_model.current_values` 做确定性合并。**
+
+### 执行与校验
+
+| 指标 | 值 |
+|---|---|
+| 清单 | 22（15 `canonical` + 7 `value-update`） |
+| `changed=true` | **22** |
+| 失败 | **0** |
+| 复跑 | `changed=0 / skip=22 / failed=0` |
+| 结构差异 | 仅 `status` + 新增 `decision`（`problems: 0`） |
+| 旁证文件 | 78 个未涉及文件与备份**逐字节相同** |
+| `current.yaml` | sha256 仍 `32658d1b…`，根文件数 18 不变，无新 `history/pre-u1-*` |
+
+**每个 kind 用各自的 reason**，不做一刀切：`canonical` → `canonical_kind_outside_closed_vocabulary_2026-09-13_generation`；`value-update` → `value_update_no_proposer_no_update_class_payload_not_mergeable_2026-09-13_generation`。事后能按 kind 精确筛出这批处置。
+
+### 队列终态
+
+`proposed` **89 → 27 → 5**：剩 `MODEL_PROPOSAL` 1（唯一可 apply）、`HYPOTHESIS_PROPOSAL` 1、`HYPOTHESIS_STATE_UPDATE` 2、`NOTE_PROPOSAL` 1 —— 后四者被登记为 `foreign`（归其生产者管），**是否也难以流转，本文未取证**，不冒充已知。
+
+### 没有顺带做的事（重要）
+
+**`canonical` 这个 kind 产生的通道还在。** `world-model.mjs:1349` 的 `case 'persist'` 会把 `input.canonical_proposal` 原样塞进 `writeProposal('canonical', …)` —— 它**不在 `KIND_BY_CLASS` 里**，是封闭词表唯一的逃逸口。今天把 15 条清了，明天仍能产出第 16 条。
+
+同理 `value-update` 的 3 个调用点（`:1236 / :1286 / :1320`）都还在，且都直接把调用方对象铺开当 payload。
+
+**清尸体不等于堵源头。** 源头处置是 D1 的一部分，见 §7.1。
+
+---
+
 ## 5. D0 改了什么
 
 `mind/u1_accept.py`（U1-1.1 → U1-1.2）：
@@ -191,12 +247,44 @@
 
 ## 7. 与 G1 的关系
 
-C22 拿不到 accept 证据有两层原因，此前只记了第一层：
+本文初版写过"C22 拿不到 accept 证据的两层原因：抽象器没开 + `value-update`/`canonical` 无 apply 通道，所以 D1 是 C22 取证的真前置"。**清理完 22 条之后，这个因果链要修正。**
 
-1. `--abstractor llm` 未常态开启 —— **产品决策**，已决断维持关闭，只在 D1 隔离沙箱里单次取证；
-2. `value-update` / `canonical` 无 apply 通道 —— **纯代码缺陷**，不依赖任何产品决策。
+真实情况：
 
-第 2 层未闭合之前，即使开了抽象器，也只有 `MODEL_PROPOSAL` 一类能真正落盘。**所以 D1 是 C22 取证的真前置，而不是可选项。**
+1. **accept 路径今天就能行使。** 队列里躺着一条完整的 `MODEL_PROPOSAL`（`cand-8975ff9f`），`payload.candidate` 的键集齐全（`candidate_id` / `proposition` / `scope` / `falsifier` / `promotion_criteria` / `supporting` …），`u1_accept` 的 `KIND_APPLY` 直接认它。**它不需要 D1。**
+2. **D1 解决的不是"C22 能不能 accept"，而是"`value_model` 家族有没有通道"。** 把两者绑在一起，会让一个纯代码缺陷去承担一个已经可以独立执行的取证任务。
+3. **真正缺的证据是下游那一段**：`accept → current.yaml 写入 → canonical_compile → 加载`，这一段至今没有任何真实运行证据 —— 不是因为无通道，是因为**没跑过**。
+4. 但那条待裁决件本身也是 2026-09-13 的化石代产物。**拿它做取证必须用隔离副本**，绝不能在真实库里把一个五周前的 candidate 写进 `current.yaml`。取证价值在"链路跑通"，不在"这条模型值不值得进库"。
+
+**因此优先级调整为**：C22-accept 隔离取证（不阻塞任何人）> D1 生产端闸门（不写 canonical）> D1 消费端 value 通道（写 canonical，最贵，最后做）。
+
+---
+
+## 7.1 D1 的范围修订（本轮普查的直接产出）
+
+原计划"D1 = 给 `value-update`/`canonical` 补 apply 通道"。普查后认为**这个方向错了一半**：给一个 payload 无定形的 kind 写 apply，等于为脏数据建引擎。
+
+正确的切法：
+
+**D1-A 生产端闸门（先做，不碰 canonical）**
+
+`writeProposal(kind, …)` 今天接受**任意字符串 kind**，只有 `:1212` 那一处调用经过 `KIND_BY_CLASS`。其余 5 个调用点（`value-update` ×3、`declassification`、`canonical`）直接传字面量 —— `canonical` 就是这么溜进来的。
+
+- 把词表闸门移进 `writeProposal` 本身：kind ∉ `KIND_BY_CLASS.values()` → fail closed（`BAD_UPDATE_CLASS`）；
+- `case 'persist'` 的 `input.canonical_proposal` 原样落盘必须停止：要么按类型化 kind 发，要么只落事件不发提案；
+- `value-update` 三个分支必须发出**可合并的增量形状**（`target` / `key` / `value` / `proposer`），发不出来就只落事件（`VALUE_DECISION` / `INPUT_ROUTED` 已经在记审计了，提案是冗余的）。
+
+这一笔不改任何 canonical 状态，可以用纯单元测试 + 现有 `.mjs` 测试矩阵闭环。
+
+**D1-B 消费端 value 通道（后做，写 canonical）**
+
+- 目标：`current.yaml#value_model.current_values` 的原子更新（带 rollback 备份、幂等、key 白名单）；
+- 前置：D1-A 已把记录形状规范化，否则没有可消费的输入；
+- 必配独立变异矩阵（与 §6 同标准）。
+
+**D1-C 词表一致性（顺手，但要单独一笔）**
+
+`canonical` 现在仍登记在 `KIND_DEBT_LIVE`（"生产者还活着、只缺通道"）。既然已判定它是词表逃逸口，这个分桶名就不诚实了。等 D1-A 落地、逃逸口关闭之后，应把它移出 live 债务桶 —— 那是改 `mind/u1_accept.py` 的登记表 + 对应断言，属受治理路径，单独一笔。
 
 ---
 
@@ -210,12 +298,15 @@ python -m unittest tests.test_proposal_kind_contract -v
 PAI_CANONICAL_DIR=<canonical> python -m unittest \
   tests.test_proposal_kind_contract.TestProducerCoverage -v
 
-# 时间戳切线
+# 时间戳切线（必须按 kind 过滤，不能按文件名 glob —— 见 §2 订正）
 python - <<'PY'
 import json,glob
-rows=[(json.load(open(f,encoding='utf-8')).get('timestamp',''),f)
-      for f in glob.glob('<canonical>/proposals/*model-update*.json')]
-print('after 2026-09-15:', sum(1 for t,_ in rows if t>='2026-09-15'))
+rows=[(json.load(open(f,encoding='utf-8')).get('timestamp',''),
+       json.load(open(f,encoding='utf-8')).get('kind'),f)
+      for f in glob.glob('<canonical>/proposals/*.json')]
+rows=[r for r in rows if r[1]=='model-update']
+print('model-update by kind:', len(rows))
+print('after 2026-09-15:', [r for r in rows if r[0]>='2026-09-15'])
 PY
-# 期望输出: after 2026-09-15: 0
+# 期望: 64 条, 且切线后恰好 1 条（2026-10-10 的人工回填，非 class 映射产物）
 ```
