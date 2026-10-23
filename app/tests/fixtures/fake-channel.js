@@ -34,6 +34,29 @@ const leaseName = process.env.FAKE_LEASE ?? 'session-writer';
 const fileops = [];
 const owner = `${body}:${runId}`;
 
+/* D07.5 falsifier hooks (v4 §7). Each is opt-in and narrow: a negative
+ * regression can only be written against a body that is ABLE to misbehave —
+ * a fixture that can never answer late, never refuses a stop and never sees a
+ * sourceless attachment proves nothing about the guards that face those cases.
+ *
+ *   FAKE_MULTI_SESSION=1        session_list also offers s2.jsonl
+ *   FAKE_HISTORY_MARK=1         session_history answers [{role:user,text:hist:<file>}]
+ *                               — identifiable BY SESSION, so a late answer is
+ *                               distinguishable from the fresh one
+ *   FAKE_HISTORY_SLOW_FOR=<f>   only that session's history is delayed
+ *   FAKE_HISTORY_DELAY_MS       how long (default 0)
+ *   FAKE_ABORT_FAIL=1           abort is REFUSED (body keeps the run)
+ *   FAKE_PROMPT_LOG=<path>      append every prompt envelope as JSONL
+ *   FAKE_REQUIRE_ATTACH_DATA=1  refuse a prompt whose attachment has no data
+ */
+const multiSession = process.env.FAKE_MULTI_SESSION === '1';
+const historyMark = process.env.FAKE_HISTORY_MARK === '1';
+const historySlowFor = process.env.FAKE_HISTORY_SLOW_FOR ?? '';
+const historyDelayMs = Number(process.env.FAKE_HISTORY_DELAY_MS ?? 0);
+const abortFails = process.env.FAKE_ABORT_FAIL === '1';
+const promptLog = process.env.FAKE_PROMPT_LOG ?? '';
+const requireAttachData = process.env.FAKE_REQUIRE_ATTACH_DATA === '1';
+
 const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const write = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
 
@@ -106,6 +129,24 @@ rl.on('line', async (line) => {
         contextUsage: { tokens: 51200, contextWindow: 200000 },
       });
     case 'prompt': {
+      // Ground-truth record of what the UI actually dispatched — the only
+      // artifact that can prove an attachment arrived WITH its bytes
+      // (V406) rather than as an empty shell.
+      if (promptLog) {
+        try {
+          appendFileSync(promptLog, `${JSON.stringify({
+            message: cmd.message, session_id: cmd.session_id ?? null,
+            options: cmd.options ?? null,
+          })}\n`);
+        } catch { /* best-effort */ }
+      }
+      if (requireAttachData) {
+        const atts = Array.isArray(cmd.options?.attachments) ? cmd.options.attachments : [];
+        const sourceless = atts.find((a) => typeof a?.data !== 'string' || a.data.length === 0);
+        if (sourceless) {
+          return fail(`attachment '${sourceless?.name ?? '?'}' has no data — refusing a prompt it cannot execute`);
+        }
+      }
       if (histFile) {
         try { appendFileSync(histFile, `${JSON.stringify({ role: 'user', text: String(cmd.message ?? '') })}\n`); } catch { /* best-effort */ }
       }
@@ -177,7 +218,11 @@ rl.on('line', async (line) => {
       }
       return reply({ ok: false, error: `mcp server '${cmd.server}' is not connected` });
     case 'steer':
+      return reply({});
     case 'abort':
+      // A refusal is a real outcome: the body still owns the run, and the UI
+      // must not pretend it stopped (V404).
+      if (abortFails) return fail('abort refused: body still owns the run');
       return reply({});
     case 'fileops_list':
       return reply(fileops);
@@ -203,6 +248,11 @@ rl.on('line', async (line) => {
       // actually switches — other fixtures see the original single row.
       if (process.env.FAKE_SCENARIO === 'domgate') {
         rows.push({ path: `${instance}/sessions/s2.jsonl`, id: 'sess-2', name: 'resume-target', firstMessage: 'second', modified: '2026-01-01T00:01:00Z', messageCount: 1 });
+      } else if (multiSession) {
+        // Same cwd as s1 so both rows land in the SAME project group: a
+        // regression that needs two clickable sessions must not also depend
+        // on a group's expansion state.
+        rows.push({ path: `${instance}/sessions/s2.jsonl`, id: 'sess-2', name: 'resume-target', firstMessage: 'second', modified: '2026-01-01T00:01:00Z', messageCount: 1, cwd: '/repo' });
       }
       return reply(rows.filter((s) => !deletedSessions.has(s.path)));
     }
@@ -299,7 +349,20 @@ rl.on('line', async (line) => {
       return reply({ model: { provider: 'fake', id: 'fake-1' }, thinking: currentThinkingLevel, mode: currentRiskMode });
     case 'config_set':
       return reply({ applied: true, key: cmd.key, value: cmd.value });
-    case 'session_history': return reply(historyRows());
+    case 'session_history': {
+      // The answer is tagged with the session it belongs to, and only the
+      // designated slow session is delayed — so "a late answer overwrote a
+      // newer one" becomes observable instead of a race that might pass.
+      const at = String(currentFile ?? '');
+      const rows = historyMark
+        ? [{ role: 'user', text: `hist:${at.split(/[/\\]/).pop()}` }]
+        : historyRows();
+      if (historyDelayMs > 0 && historySlowFor && at.endsWith(historySlowFor)) {
+        setTimeout(() => reply(rows), historyDelayMs);
+        return;
+      }
+      return reply(rows);
+    }
     case 'model_status': return reply({
       current: modelStore.current,
       providers: modelStore.providers.map((p) => ({
