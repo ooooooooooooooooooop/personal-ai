@@ -18,8 +18,8 @@
 import { createInterface } from 'node:readline';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
-import { join, resolve, sep } from 'node:path';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, readSync, realpathSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { join, resolve, sep, isAbsolute } from 'node:path';
 import { ensureInstance } from './instance.js';
 import { bodyCatalog } from './bodies.js';
 import { BodyRegistry } from '../../host/src/core/registry.js';
@@ -75,6 +75,8 @@ export class BodySupervisor {
    * scripts/governance/runner_adapter.py — one implementation, no drift. */
   #govState = { status: null, running: false, lastProbe: 0 };
   #govTimer = null;
+  #cogState = { running: false, lastRun: 0 };
+  #cogTimer = null;
 
   /**
    * @param {object} o
@@ -89,7 +91,7 @@ export class BodySupervisor {
    *                                 python durability scripts (same pattern
    *                                 as catalog overrides)
    */
-  constructor({ instanceRoot, workdir, repoRoot, env = process.env, catalog = null, profile = null, backupCtl = null, govCtl = null }) {
+  constructor({ instanceRoot, workdir, repoRoot, env = process.env, catalog = null, profile = null, backupCtl = null, govCtl = null, cogCtl = null, promptTimeoutMs = 600_000 }) {
     this.instanceRoot = instanceRoot;
     this.workdir = workdir;
     this.repoRoot = repoRoot;
@@ -98,11 +100,58 @@ export class BodySupervisor {
     this.profile = profile ?? REQUIRED_BODY_CAPABILITIES;
     this.backupCtl = backupCtl;
     this.govCtl = govCtl;
+    this.cogCtl = cogCtl;
+    // Prompt turn ceiling (test seam). 10min: a turn streams progress events
+    // while it runs, so the default body timeout would falsely report a long
+    // run as lost; abort is always available to the operator.
+    this.promptTimeoutMs = promptTimeoutMs;
     this.listeners = new Set();
     this.active = null;
     this.switching = false;
     this.installed = {};
     this.configPath = join(instanceRoot, 'app-config.json');
+    // PRD F03/A05 receipt-loss guard: prompts carry a caller-generated
+    // client_msg_id; the ledger makes each id execute AT MOST ONCE and turns
+    // "sent but the receipt was lost" into an explicit `uncertain` state that
+    // must be reconciled (prompt_reconcile) instead of blindly resent.
+    this.promptLedger = this.#loadPromptLedger();
+  }
+
+  /* ---- prompt ledger (F03/A05) -------------------------------------------
+   * Entry: { clientMsgId, messageHash, preview, status, startedAt,
+   *          completedAt, response?, reconciled? }
+   * status: in_flight | completed | uncertain | not_delivered
+   *   completed     — the body answered (a refusal is still a receipt)
+   *   uncertain     — written to the channel but the receipt never came back
+   *                   (timeout / body exit): may or may not have executed
+   *   not_delivered — proven never to have reached a body: safe to resend
+   * Persisted (bounded, last 200) so a supervisor restart still dedups. */
+  #promptLedgerPath() { return join(this.instanceRoot, 'prompt-ledger.json'); }
+
+  #loadPromptLedger() {
+    const m = new Map();
+    try {
+      const raw = JSON.parse(readFileSync(this.#promptLedgerPath(), 'utf-8'));
+      for (const e of raw.entries ?? []) {
+        if (!e?.clientMsgId) continue;
+        // in_flight across a process restart means the outcome is unknown:
+        // the previous process died between dispatch and receipt.
+        if (e.status === 'in_flight') { e.status = 'uncertain'; e.promise = null; }
+        m.set(e.clientMsgId, e);
+      }
+    } catch { /* first run or torn file — an empty ledger is honest */ }
+    return m;
+  }
+
+  #savePromptLedger() {
+    try {
+      const entries = [...this.promptLedger.values()]
+        .map(({ promise, ...e }) => e) // promises never serialise
+        .slice(-200);
+      const tmp = `${this.#promptLedgerPath()}.tmp`;
+      writeFileSync(tmp, JSON.stringify({ entries }, null, 1));
+      renameSync(tmp, this.#promptLedgerPath()); // same-volume atomic replace
+    } catch { /* ledger persistence is best-effort — dedup still works in-memory */ }
   }
 
   /** Persisted app-level config (workdir today). Best-effort, never fatal. */
@@ -115,7 +164,9 @@ export class BodySupervisor {
 
   #saveConfig() {
     try {
-      writeFileSync(this.configPath, JSON.stringify({ workdir: this.workdir }, null, 2));
+      let existing = {};
+      try { existing = JSON.parse(readFileSync(this.configPath, 'utf-8')); } catch {}
+      writeFileSync(this.configPath, JSON.stringify({ ...existing, workdir: this.workdir }, null, 2));
     } catch { /* persistence is best-effort */ }
   }
 
@@ -263,6 +314,46 @@ export class BodySupervisor {
     return this.#govState.status;
   }
 
+  /** Cognition cycle (PRD F06/M3 产生侧): proposals must appear without the
+   * owner running a CLI. mind/wm_cycle.py distills closed episodes into
+   * proposals/ — it never writes canonical (u1_accept is the only writer),
+   * so scheduling it from the app lifecycle is safe. Interval-gated (30min),
+   * non-reentrant, audited; test seam via cogCtl like backupCtl/govCtl. */
+  #cogRun() {
+    if (this.cogCtl?.run) return this.cogCtl.run();
+    const py = this.env.PAI_PYTHON ?? 'python';
+    const logPath = join(this.paths.jobsDir, 'cognition-auto.log');
+    let fd;
+    try { fd = openSync(logPath, 'a'); } catch { fd = null; }
+    // --canonical 必须显式传已解析的挂载路径（实例可能挂载真实 canonical，
+    // 默认 <instance>/canonical 会是另一个陈旧目录 — 见 wm_cycle --help）。
+    const child = spawn(py, [join(this.repoRoot, 'mind', 'wm_cycle.py'),
+      '--instance', this.instanceRoot, '--canonical', this.paths.canonicalDir], {
+      stdio: ['ignore', fd ?? 'ignore', fd ?? 'ignore'],
+      windowsHide: true,
+      env: { ...this.env, PERSONAL_AI_TRIGGER: 'app-lifecycle', PERSONAL_AI_ACTOR: 'personal-ai-app' },
+    });
+    if (fd !== null) child.on('close', () => { try { closeSync(fd); } catch { /* already closed */ } });
+    return new Promise((r) => {
+      child.on('error', () => r(1));
+      child.on('close', (code) => r(code ?? 1));
+    });
+  }
+
+  async #cogTick(force = false) {
+    if (this.#cogState.running) return;
+    if (!force && Date.now() - this.#cogState.lastRun < 1_800_000) return;
+    this.#cogState.running = true;
+    this.#cogState.lastRun = Date.now();
+    this.audit?.write({ kind: 'COG_AUTO_STARTED', data: { force } });
+    this.#emitSupervisor('cognition', { phase: 'started' });
+    const code = await this.#cogRun();
+    this.#cogState.running = false;
+    this.audit?.write({ kind: 'COG_AUTO_FINISHED', data: { exit: code } });
+    // 提案队列可能出了新条目——通知 UI 刷新认知卡
+    this.#emitSupervisor('cognition', { phase: 'finished', exit: code });
+  }
+
   #macrosPath() { return join(this.instanceRoot, 'macros.json'); }
 
   /* Session pin/archive (product metadata, body-agnostic): keyed by session
@@ -397,6 +488,11 @@ export class BodySupervisor {
     this.#govTimer = setInterval(() => { this.#govTick().catch(() => {}); }, 3_600_000);
     this.#govTimer.unref?.();
     this.govBoot = this.backupBoot.then(() => this.#govTick(true)).catch(() => null);
+    // Cognition cycle: chained after governance so a slow first probe never
+    // starves it; 30-min cadence, first run on boot.
+    this.#cogTimer = setInterval(() => { this.#cogTick().catch(() => {}); }, 1_800_000);
+    this.#cogTimer.unref?.();
+    this.cogBoot = this.govBoot.then(() => this.#cogTick(true)).catch(() => null);
     return this;
   }
 
@@ -426,7 +522,12 @@ export class BodySupervisor {
       this.#recordCrash(active, code, signal);
       for (const [, p] of pending) p({ type: 'response', success: false, error: 'body process exited' });
       pending.clear();
-      this.#emitSupervisor('body_exited', { body: bodyId, exitCode: code, signal });
+      this.#emitSupervisor('body_exited', {
+        body: bodyId,
+        exitCode: code,
+        signal,
+        expected: Boolean(active.expectedExit),
+      });
       this.#maybeRespawn(active);
     };
     // Spawn failure (ENOENT/EACCES): an unhandled 'error' event THROWS and
@@ -787,6 +888,7 @@ export class BodySupervisor {
           // honestly as null rather than an empty fabrication.
           let briefing = null;
           let runtimeState = null;
+          const proposals = [];
           try {
             const bp = join(this.paths.canonicalDir, 'briefing.md');
             if (existsSync(bp)) briefing = readFileSync(bp, 'utf8');
@@ -802,7 +904,90 @@ export class BodySupervisor {
                 active_body: st.active_body ?? null,
               };
             }
+            // T4 (docs/user-and-tasks.md): pending governance proposals are the
+            // owner's adjudication queue. Small bounded dir — read directly;
+            // a torn/foreign file is skipped, never fatal.
+            const pdir = join(this.paths.canonicalDir, 'proposals');
+            if (existsSync(pdir)) {
+              for (const f of readdirSync(pdir)) {
+                if (!f.endsWith('.json')) continue;
+                try {
+                  const p = JSON.parse(readFileSync(join(pdir, f), 'utf8'));
+                  proposals.push({
+                    file: f, kind: p.kind ?? null, status: p.status ?? null,
+                    timestamp: p.timestamp ?? null,
+                    title: p.payload?.candidate?.proposition ?? p.payload?.kind ?? f,
+                    confidence: p.payload?.candidate?.confidence ?? null,
+                    level: p.payload?.candidate?.abstraction_level ?? null,
+                    // PRD F06: 每条提案必须能回答"适用哪些情形、什么证据会使它失效"
+                    scope: p.payload?.candidate?.scope ?? null,
+                    falsifier: p.payload?.candidate?.falsifier ?? null,
+                    // F06 分级可核实（A08）：裁决时间 + 落定的 model id，
+                    // stage 在下方与编译投影对照后判定
+                    decisionTs: p.decision?.ts ?? null,
+                    appliedModel: p.decision?.applied_model ?? null,
+                  });
+                } catch { /* torn write — skip */ }
+              }
+              proposals.sort((a, b) => String(b.timestamp).localeCompare(String(a.timestamp)));
+              // F06 后续使用证据环（A08）：提案 → 裁决 → 写入 → 编译 → 后续使用。
+              // 编译投影在裁决之后生成且简报含该模型 id = 后续会话将读到它。
+              for (const p of proposals) {
+                if (p.status === 'rejected') { p.stage = 'rejected'; continue; }
+                if (p.status === 'proposed') { p.stage = 'pending'; continue; }
+                if ((p.status === 'accepted' || p.status === 'provisional') && p.appliedModel) {
+                  const compiledAfter = runtimeState?.compiled_at && p.decisionTs
+                    && Date.parse(runtimeState.compiled_at) >= Date.parse(p.decisionTs);
+                  p.stage = (compiledAfter && briefing && briefing.includes(p.appliedModel)) ? 'compiled' : 'written';
+                } else p.stage = 'unknown';
+              }
+            }
           } catch { /* compiled artifacts absent or torn — report what exists */ }
+          // PRD F06「本周新增」分面：候选（proposals/ 时间戳）· 生效（u1_accept
+          // 的真实写入记录 history/model-updates.jsonl）· 修订（同 model_id
+          // 的重复 U1_APPLY）· 否决。生效数以写入账本为准，不以提案状态冒充。
+          let weekly = null;
+          try {
+            const cutoff = Date.now() - 7 * 86400_000;
+            const within = (ts) => { const t = Date.parse(ts ?? ''); return Number.isFinite(t) && t >= cutoff; };
+            const appliedLog = join(this.paths.canonicalDir, 'history', 'model-updates.jsonl');
+            const appliedIds = new Set();
+            let applied = 0; let revised = 0;
+            if (existsSync(appliedLog)) {
+              // Bounded tail read: the log is append-only and unbounded; the
+              // weekly window never needs more than the recent tail.
+              const stat = statSync(appliedLog);
+              let text;
+              if (stat.size > 512 * 1024) {
+                const fd = openSync(appliedLog, 'r');
+                try {
+                  const buf = Buffer.alloc(512 * 1024);
+                  readSync(fd, buf, 0, buf.length, stat.size - buf.length);
+                  text = buf.toString('utf-8');
+                  text = text.slice(text.indexOf('\n') + 1); // drop the torn first line
+                } finally { closeSync(fd); }
+              } else {
+                text = readFileSync(appliedLog, 'utf-8');
+              }
+              const entries = text.split('\n').filter(Boolean)
+                .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+                .filter((e) => e?.kind === 'U1_APPLY');
+              for (const e of entries) {
+                if (within(e.ts)) {
+                  applied += 1;
+                  if (appliedIds.has(e.model_id)) revised += 1;
+                }
+                appliedIds.add(e.model_id);
+              }
+            }
+            weekly = {
+              proposed: proposals.filter((p) => within(p.timestamp) && p.status === 'proposed').length,
+              rejected: proposals.filter((p) => within(p.timestamp) && p.status === 'rejected').length,
+              applied,
+              revised,
+              compiledAt: runtimeState?.compiled_at ?? null,
+            };
+          } catch { weekly = null; /* honest absence over a fabricated zero */ }
           return reply(true, {
             openPredictions: open.map((p) => ({
               id: p.id, claim: p.claim ?? null, irreversible: Boolean(p.irreversible), at: p.at ?? null,
@@ -812,11 +997,95 @@ export class BodySupervisor {
             })),
             briefing,
             runtimeState,
+            proposals,
+            weekly,
             counts: { openPredictions: open.length, observationsReturned: recent.length },
           });
         }
+        // PRD F06 纠正已生效认知：主人从认知页对一条现行模型「提出修正」。
+        // 这里创建的是提案（canonical/proposals/ 是治理收件箱，distiller 也
+        // 写这里），不是 canonical 状态本身——终审仍走 proposal_decide →
+        // u1_accept，同 candidate_id 的 MODEL_PROPOSAL 采纳后覆盖式修订
+        // current.yaml（自动留回滚备份）。UI 与 app 都不直接写认知状态。
+        case 'proposal_correct': {
+          const modelId = String(cmd.model_id ?? '');
+          if (!/^[A-Za-z0-9][\w.-]{0,63}$/.test(modelId)) {
+            return reply(false, undefined, 'proposal_correct: invalid model_id');
+          }
+          const proposition = String(cmd.proposition ?? '').trim();
+          if (!proposition || proposition.length > 2000) {
+            return reply(false, undefined, 'proposal_correct: proposition required (≤2000 chars)');
+          }
+          const reason = String(cmd.reason ?? '').slice(0, 500);
+          const proposalsDir = join(this.paths.canonicalDir, 'proposals');
+          mkdirSync(proposalsDir, { recursive: true });
+          const file = `${new Date().toISOString().slice(0, 10)}-model-proposal-owner-correct-${modelId}-${randomUUID().slice(0, 8)}.json`;
+          const doc = {
+            schema_version: '1.2',
+            kind: 'MODEL_PROPOSAL',
+            timestamp: new Date().toISOString(),
+            status: 'proposed',
+            payload: {
+              candidate: {
+                candidate_id: modelId,
+                proposition,
+                confidence: 'low',
+                abstraction_level: null,
+                scope: null,
+                falsifier: cmd.falsifier ? String(cmd.falsifier).slice(0, 500) : null,
+                supporting: { evidence_refs: ['owner-correction'], episode_refs: [] },
+                promoted_from: null,
+              },
+            },
+            provenance: { actor: 'owner-app', kind: 'owner_correction', reason },
+          };
+          writeFileSync(join(proposalsDir, file), JSON.stringify(doc, null, 2));
+          this.audit.write({ kind: 'PROPOSAL_CREATED', data: { file, modelId, actor: 'owner-app' } });
+          return reply(true, { file, modelId });
+        }
+        // T4 (docs/user-and-tasks.md): the owner adjudicates a pending proposal
+        // from the UI. The app NEVER writes canonical itself — it shells out to
+        // mind/u1_accept.py, the sole governed writer (kind whitelist, rollback
+        // backup, provisional state). reject is sidecar-only per the tool.
+        case 'proposal_decide': {
+          const file = String(cmd.file ?? '');
+          if (!/^[\w.-]+\.json$/.test(file)) return reply(false, undefined, 'proposal_decide: invalid proposal file name');
+          const decision = String(cmd.decision ?? '');
+          if (!['accept', 'provisional', 'reject'].includes(decision)) {
+            return reply(false, undefined, `proposal_decide: invalid decision '${decision}'`);
+          }
+          if (!existsSync(join(this.paths.canonicalDir, 'proposals', file))) {
+            return reply(false, undefined, `proposal not found: ${file}`);
+          }
+          const py = this.env.PAI_PYTHON ?? 'python';
+          const out = await new Promise((res) => {
+            const child = spawn(py, [join(this.repoRoot, 'mind', 'u1_accept.py'),
+              '--canonical', this.paths.canonicalDir, '--proposal', file,
+              '--decision', decision, '--reason', String(cmd.reason ?? ''),
+              '--authority', 'owner-app'], { env: this.env });
+            let stdout = ''; let stderr = '';
+            child.stdout.on('data', (d) => { stdout += d; });
+            child.stderr.on('data', (d) => { stderr += d; });
+            child.on('error', (e) => res({ rc: -1, stdout, stderr: String(e) }));
+            child.on('close', (rc) => res({ rc, stdout, stderr }));
+          });
+          if (out.rc !== 0) {
+            return reply(false, undefined,
+              `u1_accept ${decision} failed: ${(out.stderr || out.stdout).trim().slice(-300)}`);
+          }
+          this.audit.write({ kind: 'PROPOSAL_DECIDED', data: { file, decision, authority: 'owner-app' } });
+          // F06 证据环的闭环动作：采纳/暂存后立即重编译简报（wm_cycle 幂等
+          // 且非重入），不等 30 分钟调度——裁决到"后续会话可用"的时延归零。
+          if (decision !== 'reject') this.#cogTick(true).catch(() => {});
+          return reply(true, { file, decision });
+        }
+        // 主人在认知卡点"立即提炼"——手动触发一次 wm_cycle（同自动调度路径）
+        case 'cognition_run': {
+          await this.#cogTick(true);
+          return reply(true, { ran: true });
+        }
         case 'set_workdir': {
-          const dir = String(cmd.path ?? '').trim();
+          const dir = String(cmd.path ?? cmd.workdir ?? '').trim();
           if (!dir) return reply(false, undefined, 'set_workdir requires {path}');
           if (!existsSync(dir)) return reply(false, undefined, `directory not found: ${dir}`);
           if (dir === this.workdir) return reply(true, { workdir: dir, already: true });
@@ -922,6 +1191,16 @@ export class BodySupervisor {
           const m = this.#setSessMeta(String(cmd.path ?? ''), { archived: cmd.archived !== false });
           return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_archive requires {path}');
         }
+        case 'session_set_project': {
+          const p = String(cmd.path ?? cmd.id ?? '');
+          const cwd = String(cmd.cwd ?? cmd.workdir ?? '').trim();
+          if (!p) return reply(false, undefined, 'session_set_project requires {path}');
+          const m = this.#setSessMeta(p, { cwd });
+          if (cmd.id && String(cmd.id) !== p) {
+            this.#setSessMeta(String(cmd.id), { cwd });
+          }
+          return m ? reply(true, { meta: m }) : reply(false, undefined, 'session_set_project failed');
+        }
         // ZCode auto-archive candidates, one-click form: archive every
         // unpinned, unarchived session idle longer than {days} (default 14).
         // Reversible via unarchive — sweep never deletes.
@@ -960,11 +1239,48 @@ export class BodySupervisor {
           if (purged.length) this.#saveSessMeta(meta);
           return reply(true, { purged: purged.length, paths: purged, failed });
         }
+        case 'session_delete': {
+          if (!cmd.path) return reply(false, undefined, 'session_delete requires {path}');
+          // If the target file doesn't exist on disk (e.g. newly created empty session with 0 messages),
+          // deleting it is an idempotent success — remove metadata and switch away if active.
+          if (!existsSync(cmd.path)) {
+            const meta = this.#sessMeta();
+            if (meta[cmd.path]) {
+              delete meta[cmd.path];
+              this.#saveSessMeta(meta);
+            }
+            if (this.lastSessionFile && (this.lastSessionFile === cmd.path || resolve(this.lastSessionFile) === resolve(cmd.path))) {
+              this.lastSessionFile = null;
+            }
+            return reply(true, { deleted: false, reason: 'file_not_found' });
+          }
+          // If the target session is currently active in the body, switch away to a new session first
+          // so the body's remove() does not throw 'cannot delete the active session'
+          if (this.lastSessionFile && (this.lastSessionFile === cmd.path || resolve(this.lastSessionFile) === resolve(cmd.path))) {
+            const nw = await this.sendToBody({ type: 'session_new' });
+            if (nw.success && nw.data) {
+              const f = nw.data.session?.file ?? nw.data.file;
+              if (f) this.lastSessionFile = f;
+            }
+          }
+          const r = await this.sendToBody(cmd);
+          if (r.success) {
+            const meta = this.#sessMeta();
+            if (meta[cmd.path]) {
+              delete meta[cmd.path];
+              this.#saveSessMeta(meta);
+            }
+          }
+          return r;
+        }
         case 'session_list': {
           const r = await this.sendToBody(cmd);
           if (r.success && Array.isArray(r.data)) {
             const meta = this.#sessMeta();
-            r.data = r.data.map((s) => ({ ...s, ...(meta[s.path] ?? {}) }));
+            r.data = r.data.map((s) => ({
+              ...s,
+              ...((meta[s.path] ?? meta[s.id]) ?? {}),
+            }));
           }
           return r;
         }
@@ -990,9 +1306,152 @@ export class BodySupervisor {
           this.audit.write({ kind: 'MACRO_DELETED', data: { name } });
           return reply(true, { deleted: name });
         }
+        // PRD F03/A05 — prompt idempotency + receipt-loss reconciliation.
+        // The UI stamps every prompt with a client_msg_id; this case is the
+        // choke point that guarantees one id executes at most once, and turns
+        // a lost receipt into an explicit `uncertain` state the owner must
+        // reconcile (prompt_reconcile) instead of blindly resending.
+        case 'prompt': {
+          // Same guard the default branch applies: never dispatch mid-switch.
+          if (this.switching) return reply(false, undefined, 'body switch in progress — try again after it completes');
+          const clientMsgId = (typeof cmd.client_msg_id === 'string' && /^[\w-]{8,64}$/.test(cmd.client_msg_id))
+            ? cmd.client_msg_id : null;
+          if (!clientMsgId) return this.sendToBody(cmd, this.promptTimeoutMs); // legacy callers
+          const prior = this.promptLedger.get(clientMsgId);
+          if (prior) {
+            if (prior.status === 'in_flight' && prior.promise) {
+              const r = await prior.promise; // attach — never re-executed
+              return { ...r, id: cmd.id, deduplicated: true };
+            }
+            if (prior.status === 'completed') {
+              return { ...(prior.response ?? { success: true }), id: cmd.id, type: 'response', command: 'prompt', deduplicated: true };
+            }
+            if (prior.status === 'uncertain') {
+              return reply(false, { clientMsgId, outcome: 'uncertain' },
+                '回执丢失：这条消息可能已送达——先「核对」，不要盲目重发',
+                { code: 'OUTCOME_UNCERTAIN' });
+            }
+            // not_delivered: reconcile (or a dead channel at dispatch) proved
+            // the body never saw it — fall through and execute again.
+          }
+          // Content-level safety net: a UI reload mints a NEW client_msg_id,
+          // so id-dedup alone cannot catch "the owner retyped/resent the same
+          // message after a lost receipt". A recent uncertain entry with the
+          // SAME message hash is treated as the same logical send — reconcile
+          // the original id instead of executing a possible duplicate.
+          const messageHash = sha256(String(cmd.message ?? ''));
+          const twin = [...this.promptLedger.values()].find((e) =>
+            e.status === 'uncertain' && e.messageHash === messageHash
+            && Date.now() - Date.parse(e.startedAt) < 30 * 60_000);
+          if (twin) {
+            return reply(false, { clientMsgId: twin.clientMsgId, outcome: 'uncertain' },
+              '回执丢失：一条内容相同的消息可能已送达——先「核对」，不要盲目重发',
+              { code: 'OUTCOME_UNCERTAIN' });
+          }
+          const message = String(cmd.message ?? '');
+          const entry = {
+            clientMsgId,
+            messageHash,
+            // 留存原文（≤4000 字符）使跨重启的"核对→安全重发"成为可能；
+            // 会话 JSONL 本就保存全文，这里不引入新的暴露面。
+            message: message.slice(0, 4000),
+            messageTruncated: message.length > 4000,
+            preview: message.slice(0, 80),
+            sessionFile: this.lastSessionFile ?? null, // 核对时校验会话未切换
+            status: 'in_flight',
+            startedAt: new Date().toISOString(),
+            completedAt: null,
+            response: null,
+            promise: null,
+          };
+          this.promptLedger.set(clientMsgId, entry);
+          this.#savePromptLedger();
+          this.audit?.write?.({ kind: 'PROMPT_DISPATCH', data: { clientMsgId, messageHash: entry.messageHash } });
+          const exec = this.sendToBody(cmd, this.promptTimeoutMs);
+          entry.promise = exec;
+          const r = await exec;
+          entry.promise = null;
+          entry.completedAt = new Date().toISOString();
+          if (r.success) {
+            entry.status = 'completed';
+            entry.response = { success: true, data: r.data };
+          } else if (r.error === 'no live body') {
+            // Refused BEFORE anything touched stdin — definitively not executed.
+            entry.status = 'not_delivered';
+          } else if (r.error === 'body command timed out' || r.error === 'body process exited') {
+            // Written to the channel; the receipt never came back.
+            entry.status = 'uncertain';
+          } else {
+            // The body ANSWERED with a refusal — that answer IS the receipt.
+            entry.status = 'completed';
+            entry.response = { success: false, error: r.error };
+          }
+          this.#savePromptLedger();
+          if (entry.status === 'uncertain') {
+            this.audit?.write?.({ kind: 'PROMPT_OUTCOME_UNCERTAIN', data: { clientMsgId, transportError: r.error } });
+            return reply(false, { clientMsgId, outcome: 'uncertain' },
+              `回执丢失：消息已发出但结果未确认（${r.error}）——先「核对」，不要盲目重发`,
+              { code: 'OUTCOME_UNCERTAIN' });
+          }
+          return r;
+        }
+        // A05 核对: did an `uncertain` prompt actually land in the session?
+        // Compares the ledger's message hash against the live session history;
+        // honest about the unverifiable case instead of guessing.
+        case 'prompt_reconcile': {
+          const clientMsgId = String(cmd.client_msg_id ?? '');
+          const entry = this.promptLedger.get(clientMsgId);
+          if (!entry) return reply(true, { clientMsgId, status: 'unknown_id' });
+          if (entry.status !== 'uncertain') {
+            return reply(true, { clientMsgId, status: entry.status, completedAt: entry.completedAt ?? null, reconciled: false });
+          }
+          if (!this.active || this.active.dead) {
+            return reply(true, { clientMsgId, status: 'unverifiable',
+              reason: '身体进程不在运行——无法核对它死前是否已执行；请人工确认后再决定（重发可能重复）' });
+          }
+          // 会话切换护栏：核对只能在"当时那个会话"里进行——换了会话，
+          // 当前会话历史里查不到不构成"未送达"的证据。
+          if (entry.sessionFile) {
+            const st = await this.sendToBody({ type: 'get_state' }, 15_000);
+            const currentFile = st?.data?.session?.file ?? null;
+            if (st.success && currentFile && currentFile !== entry.sessionFile) {
+              return reply(true, { clientMsgId, status: 'unverifiable',
+                reason: '会话已切换——当时的消息属于另一个会话，无法在此核对；请切回原会话后再核对' });
+            }
+          }
+          const hist = await this.sendToBody({ type: 'session_history' }, 15_000);
+          if (!hist.success || !Array.isArray(hist.data)) {
+            return reply(true, { clientMsgId, status: 'unverifiable', reason: hist.error ?? 'session history unavailable' });
+          }
+          const flatText = (m) => {
+            const c = m?.text ?? m?.content ?? m?.message?.content;
+            if (typeof c === 'string') return c;
+            if (Array.isArray(c)) return c.map((p) => p?.text ?? '').join('\n');
+            return '';
+          };
+          const hit = hist.data.some((m) =>
+            (m?.role ?? m?.message?.role) === 'user'
+            && (sha256(flatText(m)) === entry.messageHash
+              || (entry.preview && flatText(m).slice(0, 80) === entry.preview)));
+          entry.status = hit ? 'completed' : 'not_delivered';
+          entry.reconciled = hit ? 'delivered' : 'not_delivered';
+          entry.completedAt = new Date().toISOString();
+          this.#savePromptLedger();
+          this.audit?.write?.({ kind: 'PROMPT_RECONCILED', data: { clientMsgId, result: entry.status } });
+          return reply(true, { clientMsgId, status: entry.status, reconciled: true,
+            // 未送达时把留存的原文交回 UI，跨重启也能安全重发
+            ...(entry.status === 'not_delivered' && entry.message ? { message: entry.message, messageTruncated: entry.messageTruncated } : {}) });
+        }
+        // F03 续接核对：重启后哪些 prompt 的回执从未确认（UI 启动时拉一次）
+        case 'prompt_ledger_pending': {
+          const pending = [...this.promptLedger.values()]
+            .filter((e) => e.status === 'uncertain')
+            .map(({ clientMsgId, preview, startedAt, sessionFile }) => ({ clientMsgId, preview, startedAt, sessionFile }));
+          return reply(true, { pending });
+        }
         default: {
           if (this.switching && [
-            'prompt', 'steer', 'abort',
+            'steer', 'abort',
             'session_new', 'session_switch', 'session_rename',
             'model_set', 'thinking_set', 'auth_set_key', 'auth_clear',
           ].includes(cmd?.type)) {
@@ -1002,12 +1461,49 @@ export class BodySupervisor {
           // body timeout would falsely report "timed out" on any long turn
           // while the run is actually still going. Progress streams via
           // events; abort is always available. 10min is the ceiling.
-          const SLOW = new Set(['prompt', 'steer', 'session_compact']);
+          // ('prompt' is handled by its own ledger case above, which uses
+          // this.promptTimeoutMs for the same reason.)
+          if (cmd?.type === 'session_switch') {
+            const raw = String(cmd.path ?? cmd.id ?? '').trim();
+            if (raw) {
+              const sessDir = join(this.instanceRoot, 'sessions');
+              if (!isAbsolute(raw)) {
+                const candidate = join(sessDir, raw.endsWith('.jsonl') ? raw : `${raw}.jsonl`);
+                if (existsSync(candidate)) {
+                  cmd.path = candidate;
+                } else {
+                  try {
+                    const files = readdirSync(sessDir);
+                    const matched = files.find((f) => f.includes(raw));
+                    if (matched) cmd.path = join(sessDir, matched);
+                  } catch {}
+                }
+              }
+            }
+          }
+
+          const SLOW = new Set(['steer', 'session_compact']);
           const r = await this.sendToBody(cmd, SLOW.has(cmd?.type) ? 600_000 : 60_000);
           // Workdir is supervisor-owned state — the body's get_state doesn't
           // know it, so inject it for statusline/settings consumers.
           if (cmd?.type === 'get_state' && r.success && r.data && typeof r.data === 'object') {
             r.data.workdir = this.workdir;
+          }
+          // Track the live session file: prompt ledger entries stamp it at
+          // dispatch so reconcile can detect a session switch (F03 护栏).
+          if (r.success && r.data && typeof r.data === 'object') {
+            const f = r.data.session?.file ?? r.data.file;
+            if ((cmd?.type === 'get_state' || cmd?.type === 'session_switch' || cmd?.type === 'session_new') && f) {
+              this.lastSessionFile = f;
+            }
+            if (cmd?.type === 'session_new') {
+              if (f && !r.data.path) r.data.path = f;
+              const bindCwd = String(cmd.cwd ?? cmd.workdir ?? this.workdir ?? '').trim();
+              if (bindCwd) {
+                if (f) this.#setSessMeta(f, { cwd: bindCwd });
+                if (r.data.id) this.#setSessMeta(r.data.id, { cwd: bindCwd });
+              }
+            }
           }
           return r;
         }
@@ -1021,6 +1517,7 @@ export class BodySupervisor {
     this._disposing = true;
     if (this.#backupTimer) { clearInterval(this.#backupTimer); this.#backupTimer = null; }
     if (this.#govTimer) { clearInterval(this.#govTimer); this.#govTimer = null; }
+    if (this.#cogTimer) { clearInterval(this.#cogTimer); this.#cogTimer = null; }
     await this.gracefulShutdown();
     this.leases?.close();
     this.listeners.clear();

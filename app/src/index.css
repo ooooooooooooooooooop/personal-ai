@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg: #0e0e12;
+    --bg-side: #121318;
+    --bg-elev: #181920;
+    --bg-card: #1c1d25;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.16);
+    --text-primary: #f4f4f7;
+    --text-secondary: rgba(244, 244, 247, 0.85);
+    --text-muted: rgba(244, 244, 247, 0.65);
+    --accent: #6e77e8;
+    --accent-hover: #7d86f0;
+    --accent-glow: rgba(110, 119, 232, 0.2);
+    --green: #34d399;
+    --amber: #fbbf24;
+    --red: #f87171;
+    /* 小字号状态文字专用：比普通状态色更深，保证在浅底/浅 tinted 底上 ≥4.5:1 */
+    --green-text: #34d399;
+    --amber-text: #fbbf24;
+    --red-text: #f87171;
+    --accent-text: #a5b4fc;
+  }
+
+  html.light, :root[data-theme="light"] {
+    --bg: #f8f9fa;
+    --bg-side: #f1f3f5;
+    --bg-elev: #ffffff;
+    --bg-card: #ffffff;
+    --border: rgba(0, 0, 0, 0.12);
+    --border-strong: rgba(0, 0, 0, 0.24);
+    --text-primary: #1a1a24;
+    --text-secondary: rgba(26, 26, 36, 0.85);
+    --text-muted: rgba(26, 26, 36, 0.65);
+    --accent: #4f58c7;
+    --accent-hover: #3e46b0;
+    --accent-glow: rgba(79, 88, 199, 0.2);
+    --green: #059669;
+    --amber: #d97706;
+    --red: #dc2626;
+    /* 实测对比度：--green-text #047857 在 #dff3ed tinted 底上 4.75:1；
+       --red-text #b91c1c 在 #f8f9fa 上 6.0:1（--red #dc2626 仅 4.4:1，不达标） */
+    --green-text: #047857;
+    --amber-text: #92400e;
+    --red-text: #b91c1c;
+    --accent-text: #3730a3;
+  }
+
+  body, #root {
+    background-color: var(--bg);
+    color: var(--text-primary);
+  }
+}
+
+.bg-app { background-color: var(--bg); }
+.bg-side { background-color: var(--bg-side); }
+.bg-elev { background-color: var(--bg-elev); }
+.bg-card { background-color: var(--bg-card); }
+.border-app { border-color: var(--border); }
+.border-strong { border-color: var(--border-strong); }
+.text-main { color: var(--text-primary); }
+.text-sub { color: var(--text-secondary); }
+.text-muted { color: var(--text-muted); }
+
+
+/* Custom Scrollbar for clean desktop feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Linear/Raycast-grade micro-texture helpers */
+.rim-highlight {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.shadow-dock {
+  box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.shadow-card {
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.shadow-pop {
+  box-shadow: 0 16px 48px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+/* Drag region for Electron frameless titlebar */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}

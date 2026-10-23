@@ -11,6 +11,7 @@ output/
 *.py[cod]
 **/__pycache__/
 node_modules/
+app/dist/
 .grepai/
 .taskflow/
 Users/

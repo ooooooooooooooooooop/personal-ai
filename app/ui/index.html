@@ -58,6 +58,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
         <span>文件变更与产物</span>
       </button>
+      <button type="button" class="nav-item" data-view="cognition">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.4-1.2 3.9-2.3 5.2-.9 1-1.7 1.9-1.7 3.3V18a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2v-.5c0-1.4-.8-2.3-1.7-3.3C5.2 12.9 4 11.4 4 9a8 8 0 0 1 8-7z"/><path d="M9.5 21.5h5"/></svg>
+        <span>认知</span>
+      </button>
       <button type="button" class="nav-item" data-view="bodies">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M9 7V5a3 3 0 0 1 6 0v2"/><circle cx="9.5" cy="13" r="1.2" fill="currentColor"/><circle cx="14.5" cy="13" r="1.2" fill="currentColor"/></svg>
         <span>AI 引擎</span>
@@ -101,15 +105,51 @@
         </div>
         <div id="setup-card" class="hidden">
           <div class="setup-title">连接模型服务</div>
-          <div class="setup-row">
-            <select id="setup-provider"></select>
+          <!-- C12/缺口B：三步可回导向引。完成判定 = 第 3 步真实消息往返成功，
+               不是"密钥已保存"。每步可回退；连不上有替代路径（本地端点/跳过）。 -->
+          <div class="setup-steps">
+            <span class="setup-dot" data-step="1">1 密钥</span>
+            <span class="setup-dot" data-step="2">2 模型</span>
+            <span class="setup-dot" data-step="3">3 第一句话</span>
           </div>
-          <div class="setup-row">
-            <input id="setup-key" type="password" placeholder="API Key" autocomplete="current-password">
-            <button id="setup-save-key" type="button" class="btn">保存密钥</button>
-            <button id="setup-ping" type="button" class="btn ghost">测试连接</button>
+          <div class="setup-pane" data-pane="1">
+            <div class="setup-row">
+              <select id="setup-provider" aria-label="服务提供方"></select>
+            </div>
+            <div class="setup-row">
+              <input id="setup-key" type="password" placeholder="API Key" autocomplete="current-password">
+              <button id="setup-save-key" type="button" class="btn">保存密钥</button>
+            </div>
+            <div class="setup-row setup-nav-row">
+              <button id="setup-local" type="button" class="btn ghost sm" title="没有 API Key？改用本机模型端点（如 Ollama），无需密钥">没有 Key？用本地端点</button>
+              <span class="spacer"></span>
+              <button id="setup-next-1" type="button" class="btn primary" disabled>下一步</button>
+            </div>
           </div>
-          <div id="setup-models" class="setup-models"></div>
+          <div class="setup-pane hidden" data-pane="2">
+            <div class="setup-row">
+              <button id="setup-ping" type="button" class="btn ghost">测试连接</button>
+              <span id="setup-ping-note" class="setup-msg"></span>
+            </div>
+            <div id="setup-models" class="setup-models"></div>
+            <div class="setup-row setup-nav-row">
+              <button id="setup-back-2" type="button" class="btn ghost">上一步</button>
+              <span class="spacer"></span>
+              <button id="setup-next-2" type="button" class="btn primary" disabled>下一步</button>
+            </div>
+          </div>
+          <div class="setup-pane hidden" data-pane="3">
+            <div class="set-sub">配置完成。发出第一句话验证整条链路——收到真实回复才算就绪。</div>
+            <div class="setup-row">
+              <input id="setup-first-msg" type="text" placeholder="例如：你好，自我介绍一下">
+              <button id="setup-first-send" type="button" class="btn primary">发送并验证</button>
+            </div>
+            <div class="setup-row setup-nav-row">
+              <button id="setup-back-3" type="button" class="btn ghost">上一步</button>
+              <span class="spacer"></span>
+              <button id="setup-skip" type="button" class="btn ghost sm">先跳过，稍后在「设置 → 模型凭据」里配</button>
+            </div>
+          </div>
           <div id="setup-msg" class="setup-msg"></div>
         </div>
       </div>
@@ -138,7 +178,9 @@
             <span id="vim-chip" class="chip dim hidden" role="status" aria-live="polite"></span>
             <span class="spacer"></span>
             <button id="mode-chip" type="button" class="chip dim" title="执行/计划模式——计划模式下所有会改状态的调用都要你批准" aria-label="执行模式"></button>
-            <button id="thinking-chip" type="button" class="chip dim" title="推理强度" aria-label="推理强度"></button>
+            <button id="ctx-chip" type="button" class="chip dim" title="上下文长度限制" aria-label="上下文长度"></button>
+            <button id="speed-chip" type="button" class="chip dim hidden" title="速度模式 (Codex 极速通道)" aria-label="速度模式"></button>
+            <button id="thinking-chip" type="button" class="chip dim hidden" title="推理强度" aria-label="推理强度"></button>
             <button id="model-chip" type="button" class="chip dim" title="选择模型" aria-label="选择模型"></button>
             <button id="send" type="button" class="send-btn" title="发送" aria-label="发送" disabled>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
@@ -147,6 +189,7 @@
         </div>
         <div id="chip-menu" class="chip-menu hidden"></div>
         <div id="slash-menu" class="slash-menu hidden"></div>
+        <div id="health-pop" class="ctx-pop hidden"></div>
         <div id="statusline"></div>
       </div>
     </section>
@@ -155,6 +198,7 @@
       <div class="page-head">
         <div class="page-head-main">
           <h1>任务与执行历史</h1>
+          <div class="set-sub">监控耗时较长的后台任务（如测试集、项目构建或自动化计划）。有任务执行时可在此查看实时进度或一键中止。</div>
         </div>
         <span class="spacer"></span>
         <button id="jobs-clear-history" type="button" class="btn ghost sm" title="清空已完成或失败的历史任务记录">清理历史</button>
@@ -247,6 +291,7 @@
       <div class="page-head">
         <div class="page-head-main">
           <h1>文件变更与产物</h1>
+          <div class="set-sub">审查 AI 对代码文件的每一处修改，毫秒级纯净 Diff 比对，支持一键撤销与恢复；集中查看与下载导出的产物。</div>
         </div>
       </div>
 
@@ -282,7 +327,10 @@
 
     <section id="view-audit" class="view hidden">
       <div class="page-head">
-        <h1>安全与审计日志</h1>
+        <div class="page-head-main">
+          <h1>安全与审计日志</h1>
+          <div class="set-sub">系统运行与安全审计记录（黑匣子）：记录高危命令阻断、权限审批决策、敏感凭据自动脱敏与模型计费流。</div>
+        </div>
       </div>
       <div class="audit-content">
         <div id="audit-filters" class="audit-filters"></div>
@@ -297,15 +345,52 @@
       <div id="body-grid"></div>
     </section>
 
+    <section id="view-cognition" class="view hidden">
+      <div class="page-head">
+        <div class="page-head-main">
+          <h1>认知</h1>
+          <div class="set-sub">它当前信什么、为什么这样做：待你裁决的提案、现行认知、依据与不确定性。裁决走治理链（u1_accept），本页从不直接写认知状态。</div>
+        </div>
+      </div>
+      <div id="cog-week" class="set-sub cog-week">本周统计读取中…</div>
+      <div class="set-card" id="card-worldmodel">
+        <div class="set-card-title">项目认知与理解状态 <span id="wm-open-count" class="pill"></span></div>
+        <div class="set-sub">AI 在多轮工程协作中自动提炼的项目结构认知与上下文假设。</div>
+        <div class="set-sub my-8-4">待你裁决的认知提案 <span id="wm-prop-count" class="pill"></span></div>
+        <div id="wm-proposals" class="mem-list"></div>
+        <div class="set-sub my-12-4">近期裁决记录</div>
+        <div id="wm-decisions" class="mem-list"></div>
+        <div class="set-sub my-12-4">核心项目认知与工作假设</div>
+        <div id="wm-models" class="mem-list"></div>
+        <div class="set-sub my-12-4">待检验的操作预期（行动前预判）</div>
+        <div id="wm-preds" class="mem-list"></div>
+        <div class="set-sub my-12-4">近期记录的项目事实</div>
+        <div id="wm-obs" class="mem-list"></div>
+        <div class="set-sub my-12-4">待修正的认知偏差与异常</div>
+        <div id="wm-residuals" class="mem-list"></div>
+        <div class="set-sub my-12-4">外部来源可信度提示</div>
+        <div id="wm-alerts" class="mem-list"></div>
+        <details class="wm-raw mt-8">
+          <summary>底层认知简报与状态 <span id="wm-epoch" class="pill"></span></summary>
+          <pre id="wm-briefing" class="wm-brief hidden"></pre>
+        </details>
+        <div class="set-row mt-6">
+          <button id="wm-refresh" type="button" class="btn ghost sm">刷新认知</button>
+          <button id="wm-distill" type="button" class="btn ghost sm" title="从最近的实际工作记录中提炼新的认知提案（经治理链，不直接改认知）">立即提炼</button>
+          <span id="wm-msg" class="setup-msg"></span>
+        </div>
+      </div>
+    </section>
+
     <section id="view-settings" class="view hidden">
       <div class="page-head set-head">
         <h1>设置</h1>
         <div class="set-nav-pills">
           <button type="button" class="set-pill" onclick="document.getElementById('card-model')?.scrollIntoView({behavior:'smooth',block:'start'})">模型凭据</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-commands')?.scrollIntoView({behavior:'smooth',block:'start'})">命令准入</button>
-          <button type="button" class="set-pill" onclick="document.getElementById('card-governance')?.scrollIntoView({behavior:'smooth',block:'start'})">策略治理</button>
+          <button type="button" class="set-pill" onclick="document.getElementById('card-governance')?.scrollIntoView({behavior:'smooth',block:'start'})">安全权限</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-budget')?.scrollIntoView({behavior:'smooth',block:'start'})">预算上限</button>
-          <button type="button" class="set-pill" onclick="document.getElementById('card-worldmodel')?.scrollIntoView({behavior:'smooth',block:'start'})">世界模型</button>
+          <button type="button" class="set-pill" data-goto-view="cognition">项目认知</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-modes')?.scrollIntoView({behavior:'smooth',block:'start'})">运行模式</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-workdir')?.scrollIntoView({behavior:'smooth',block:'start'})">工作目录</button>
           <button type="button" class="set-pill" onclick="document.getElementById('card-memory')?.scrollIntoView({behavior:'smooth',block:'start'})">长期记忆</button>
@@ -314,61 +399,94 @@
       </div>
 
       <div class="set-card" id="card-model">
-        <div class="set-card-title">模型</div>
-        <div class="set-row">
-          <label>提供方</label>
-          <select id="set-provider"></select>
-          <span id="set-provider-auth" class="pill"></span>
-          <button id="set-ping" type="button" class="btn ghost">测试连接</button>
-          <span id="set-ping-result" class="pill"></span>
-          <button id="set-fetch-models" type="button" class="btn ghost">拉取模型列表</button>
+        <div class="set-card-head">
+          <div class="set-card-title">已保存模型 <span id="saved-models-count" class="pill"></span></div>
+          <button id="btn-toggle-add-model" type="button" class="btn sm">＋ 添加模型</button>
         </div>
-        <div id="set-remote-models" class="hidden"></div>
-        <div class="set-row">
-          <label>API Key</label>
-          <input id="set-key" type="password" placeholder="sk-…" autocomplete="current-password">
-          <button id="set-save-key" type="button" class="btn">保存</button>
-          <button id="set-clear-key" type="button" class="btn ghost">清除</button>
-        </div>
-        <div class="set-row">
-          <label>推理强度</label>
-          <select id="set-thinking"></select>
-        </div>
-        <div class="set-sub">可用模型</div>
-        <div id="set-models"></div>
-        <div id="set-model-msg" class="setup-msg"></div>
+        <div class="set-sub">已在本地配置就绪的模型。点击任意模型可直接设为当前主用。</div>
 
-        <div class="set-sub mt-14">自定义提供方</div>
-        <div class="set-row">
-          <input id="cp-id" type="text" placeholder="提供方 ID，如 cpa">
-          <input id="cp-model" type="text" placeholder="模型 ID">
-        </div>
-        <div class="set-row">
-          <input id="cp-base" type="text" placeholder="Base URL，如 http://127.0.0.1:8317/v1">
-          <input id="cp-keyenv" type="text" placeholder="密钥环境变量（可选，如 CPA_API_KEY）">
-        </div>
-        <div class="set-row">
-          <select id="cp-api">
-            <option value="openai-completions">openai-completions</option>
-            <option value="openai-responses">openai-responses</option>
-            <option value="anthropic-messages">anthropic-messages</option>
-          </select>
-        </div>
-        <div class="set-row">
-          <label class="cp-priv"><input id="cp-priv" type="checkbox"> 自托管端点 — 允许私网/回环地址（如本机 Ollama、内网网关）</label>
-        </div>
-        <div class="set-row">
-          <button id="cp-add" type="button" class="btn ghost">添加提供方</button>
-          <span id="cp-msg" class="setup-msg mt-0"></span>
+        <!-- 已保存模型展示区（支持滚动，防止模型很多时平铺占满屏幕） -->
+        <div id="saved-models-container" class="saved-models-container">
+          <div id="set-models"></div>
         </div>
 
-        <div class="set-sub mt-14">故障转移链</div>
-        <div id="fallback-list"></div>
-        <div class="set-row">
-          <select id="fb-model"></select>
-          <button id="fb-add" type="button" class="btn ghost sm">加入链尾</button>
+        <!-- 新增模型配置表单：默认收起，只有新增模型时才显示 -->
+        <div id="model-add-section" class="model-add-section hidden">
+          <div class="model-add-head">
+            <div class="set-sub-title">配置新模型端点</div>
+            <button id="btn-cancel-add-model" type="button" class="btn ghost sm">收起表单</button>
+          </div>
+          <div class="set-row">
+            <label for="set-provider">服务提供方</label>
+            <select id="set-provider"></select>
+            <span id="set-provider-auth" class="pill" title="当前密钥状态"></span>
+          </div>
+          <div class="set-row">
+            <label for="cp-base">API 地址</label>
+            <input id="cp-base" type="text" placeholder="Base URL，如 https://api.openai.com/v1 或 http://localhost:11434/v1">
+          </div>
+          <div class="set-row">
+            <label for="cp-api">接口类型</label>
+            <select id="cp-api">
+              <option value="openai-completions">openai-completions (OpenAI 兼容)</option>
+              <option value="openai-responses">openai-responses (OpenAI 规范)</option>
+              <option value="anthropic-messages">anthropic-messages (Claude 兼容)</option>
+              <option value="google-generative-ai">google-generative-ai (Gemini 官方)</option>
+              <option value="mistral-conversations">mistral-conversations (Mistral 官方)</option>
+              <option value="azure-openai-responses">azure-openai-responses (Azure OpenAI)</option>
+              <option value="bedrock-converse-stream">bedrock-converse-stream (AWS Bedrock)</option>
+              <option value="openai-codex-responses">openai-codex-responses (Codex 协议)</option>
+            </select>
+            <label class="cp-priv"><input id="cp-priv" type="checkbox"> 允许内网/私网</label>
+            <select id="cp-compat" title="兼容性预设：上游不接受 developer 角色时选择第二项（自托管代理转发 kimi/moonshot 等常见）">
+              <option value="default">兼容：默认</option>
+              <option value="no-developer-role">兼容：不用 developer 角色</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label for="set-key">API Key</label>
+            <input id="set-key" type="password" placeholder="sk-…" autocomplete="current-password">
+            <button id="set-clear-key" type="button" class="btn ghost sm" title="清除已保存的密钥">清除密钥</button>
+          </div>
+          <div class="set-row set-action-row">
+            <button id="set-ping" type="button" class="btn ghost">测试连接</button>
+            <span id="set-ping-result" class="pill"></span>
+            <button id="set-fetch-models" type="button" class="btn ghost">拉取模型列表</button>
+          </div>
+          <div id="set-remote-models" class="hidden"></div>
+          <div class="set-row">
+            <label for="set-target-model">选定模型</label>
+            <input id="set-target-model" type="text" placeholder="从拉取列表点击选定，或输入模型 ID 如 deepseek-chat">
+          </div>
+          <div class="set-row">
+            <label for="cp-context">上下文</label>
+            <select id="cp-context">
+              <option value="128000" selected>128k (标准)</option>
+              <option value="32000">32k</option>
+              <option value="64000">64k</option>
+              <option value="200000">200k (Claude)</option>
+              <option value="256000">256k (Kimi/Qwen)</option>
+              <option value="1000000">1M (Kimi K3 / Gemini / Sol)</option>
+              <option value="2000000">2M (超长)</option>
+            </select>
+            <label for="cp-reasoning">深度推理</label>
+            <select id="cp-reasoning">
+              <option value="0" selected>常规对话</option>
+              <option value="1">推理思考 (R1/o1/K3/Thinking)</option>
+            </select>
+            <span id="cp-speed-wrap" class="inline-wrap">
+              <label for="cp-speed">极速模式</label>
+              <select id="cp-speed">
+                <option value="default" selected>标准模式 (Standard)</option>
+                <option value="priority">极速模式 (Fast ⚡)</option>
+              </select>
+            </span>
+          </div>
+          <div class="set-row set-submit-row">
+            <button id="set-save-all" type="button" class="btn primary">保存并添加到本地</button>
+            <span id="set-model-msg" class="setup-msg"></span>
+          </div>
         </div>
-        <div id="fb-msg" class="setup-msg"></div>
       </div>
 
       <div class="set-card" id="card-memory">
@@ -454,42 +572,23 @@
       </div>
 
       <div class="set-card" id="card-governance">
-        <div class="set-card-title">治理姿态 <span id="gov-sum" class="pill"></span></div>
+        <div class="set-card-title">AI 操作权限与安全防护 <span id="gov-sum" class="pill"></span></div>
+        <div class="set-sub">管控 AI 在本机的操作边界：常规读取自动放行，修改写入弹窗审批，高危命令严厉拦截。</div>
         <div id="gov-actions"></div>
         <div id="gov-denied" class="set-sub mt-8"></div>
         <div id="gov-asks" class="set-sub mt-4"></div>
-        <div class="set-sub mt-8">策略校验码: <code id="gov-checksum"></code></div>
-        <div class="set-sub my-12-4">判定预演</div>
+        <details class="set-sub mt-8">
+          <summary class="dim">策略校验码与详细</summary>
+          <div class="mt-4">策略校验码: <code id="gov-checksum"></code></div>
+        </details>
+        <div class="set-sub my-12-4">安全规则预演（测试工具调用是否会被拦截）</div>
         <div class="set-row">
           <input id="dryrun-tool" class="modal-input" type="text" list="dryrun-tools" placeholder="工具名，如 bash / write / edit" spellcheck="false">
           <datalist id="dryrun-tools"></datalist>
           <input id="dryrun-args" class="modal-input" type="text" placeholder='参数 JSON（可空），如 {"command":"rm -rf /"}' spellcheck="false">
-          <button id="dryrun-run" type="button" class="btn">预演</button>
+          <button id="dryrun-run" type="button" class="btn">预演测试</button>
         </div>
         <div id="dryrun-result" class="setup-msg"></div>
-      </div>
-
-      <div class="set-card" id="card-worldmodel">
-        <div class="set-card-title">世界模型 <span id="wm-open-count" class="pill"></span></div>
-        <div class="set-sub">可靠性告警（来源的已知弱点——这些域的结论要打折）</div>
-        <div id="wm-alerts" class="mem-list"></div>
-        <div class="set-sub my-12-4">残差（模型解释不了的已知偏差）</div>
-        <div id="wm-residuals" class="mem-list"></div>
-        <div class="set-sub my-12-4">当前最优模型（含推翻条件——什么证据会推翻它）</div>
-        <div id="wm-models" class="mem-list"></div>
-        <div class="set-sub my-12-4">未决预测（AI 对世界将如何变化的未验证断言）</div>
-        <div id="wm-preds" class="mem-list"></div>
-        <div class="set-sub my-12-4">近期观察</div>
-        <div id="wm-obs" class="mem-list"></div>
-        <div class="set-sub my-12-4">编译简报 <span id="wm-epoch" class="pill"></span></div>
-        <details class="wm-raw">
-          <summary>完整简报原文</summary>
-          <pre id="wm-briefing" class="wm-brief hidden"></pre>
-        </details>
-        <div class="set-row mt-6">
-          <button id="wm-refresh" type="button" class="btn ghost sm">刷新</button>
-          <span id="wm-msg" class="setup-msg"></span>
-        </div>
       </div>
 
       <div class="set-card" id="card-budget">
@@ -507,21 +606,21 @@
         <div class="set-card-title">外观</div>
         <div class="set-row">
           <label>主题</label>
-          <select id="set-theme">
+          <select id="set-theme" aria-label="界面主题">
             <option value="dark">深色</option>
             <option value="light">浅色</option>
           </select>
         </div>
         <div class="set-row">
           <label>提示音</label>
-          <select id="set-sound">
+          <select id="set-sound" aria-label="提示音">
             <option value="off">关闭</option>
             <option value="on">批准/完成时响</option>
           </select>
         </div>
         <div class="set-row">
           <label>滚动跟随</label>
-          <select id="set-scroll">
+          <select id="set-scroll" aria-label="滚动跟随模式">
             <option value="near">接近底部时跟随</option>
             <option value="always">总是跟随</option>
             <option value="off">从不自动滚动</option>

@@ -3,7 +3,7 @@
  * switch path are exercised end-to-end: discovery, eligibility, passthrough,
  * cold swap, and the seven-phase handoff with a real lease baton.
  */
-import { mkdtempSync, existsSync, readFileSync, readdirSync, writeFileSync, symlinkSync } from 'node:fs';
+import { mkdtempSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -28,7 +28,7 @@ const fakeFacts = (id) => ({
   handoff_capabilities: { quiesce: 'supported', verify: 'supported' },
 });
 
-function catalog(msgs = {}) {
+function catalog(msgs = {}, extraEnv = {}) {
   const mk = (id) => ({
     id, label: id,
     facts: () => fakeFacts(id),
@@ -36,7 +36,7 @@ function catalog(msgs = {}) {
     channel: () => ({
       command: process.execPath,
       args: [FIXTURE, '--instance', 'INSTANCE'],
-      env: { FAKE_BODY: id, FAKE_MSGS: String(msgs[id] ?? 0) },
+      env: { FAKE_BODY: id, FAKE_MSGS: String(msgs[id] ?? 0), ...extraEnv },
     }),
   });
   return {
@@ -54,8 +54,8 @@ function catalog(msgs = {}) {
 }
 
 // channel() args need the per-test instance root — wrap catalog to inject it.
-function catalogFor(dir, msgs) {
-  const c = catalog(msgs);
+function catalogFor(dir, msgs, extraEnv) {
+  const c = catalog(msgs, extraEnv);
   for (const e of Object.values(c)) {
     if (!e.channel) continue;
     const inner = e.channel;
@@ -74,9 +74,10 @@ async function boot(msgs = { 'fake-a': 1 }, opts = {}) {
   // backupCtl/govCtl, the boot-time ticks see "fresh" and never spawn python.
   const backupCtl = opts.backupCtl ?? { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 };
   const govCtl = opts.govCtl ?? { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 };
+  const cogCtl = opts.cogCtl ?? { run: async () => 0 };
   const sup = await new BodySupervisor({
     instanceRoot: dir, workdir: dir, repoRoot: REPO,
-    catalog: catalogFor(dir, msgs), env: { ...process.env }, ...opts, backupCtl, govCtl,
+    catalog: catalogFor(dir, msgs, opts.fakeEnv), env: { ...process.env }, ...opts, backupCtl, govCtl, cogCtl,
   }).start();
   return { sup, dir };
 }
@@ -385,6 +386,47 @@ test('session purge: deletes archived unpinned sessions; pinned and live survive
   } finally { await sup.dispose(); }
 });
 
+test('session delete: non-existent file path succeeds idempotently and clears meta; requires path', async () => {
+  const { sup, dir } = await boot();
+  try {
+    // Missing path argument rejected
+    const bad = await sup.handle({ type: 'session_delete' });
+    assert.equal(bad.success, false);
+    assert.match(bad.error, /requires \{path\}/);
+
+    const nonExistentPath = join(dir, 'sessions', 'unwritten-session.jsonl');
+    // Seed metadata for this session to verify cleanup
+    await sup.handle({ type: 'session_pin', path: nonExistentPath });
+    let meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[nonExistentPath].pinned, true);
+
+    // Set lastSessionFile to simulate it was active
+    sup.lastSessionFile = nonExistentPath;
+
+    // Idempotent delete of non-existent file
+    const r = await sup.handle({ type: 'session_delete', path: nonExistentPath });
+    assert.equal(r.success, true);
+    assert.equal(r.data.deleted, false);
+    assert.equal(r.data.reason, 'file_not_found');
+    assert.equal(sup.lastSessionFile, null, 'active pointer cleared');
+
+    meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[nonExistentPath], undefined, 'metadata cleared');
+
+    // Existing session deletion: create actual file and test real delete path
+    mkdirSync(join(dir, 'sessions'), { recursive: true });
+    const realPath = join(dir, 'sessions', 'real-sess.jsonl');
+    writeFileSync(realPath, '{"type":"session"}\n');
+    await sup.handle({ type: 'session_pin', path: realPath });
+    sup.lastSessionFile = realPath;
+
+    const r2 = await sup.handle({ type: 'session_delete', path: realPath });
+    assert.equal(r2.success, true);
+    meta = JSON.parse(readFileSync(join(dir, 'session-meta.json'), 'utf-8'));
+    assert.equal(meta[realPath], undefined, 'meta entry cleared after real delete');
+  } finally { await sup.dispose(); }
+});
+
 test('body crash auto-respawns the same body (backoff), events emitted', async () => {
   const { sup } = await boot();
   try {
@@ -627,4 +669,262 @@ test('governance: persistent overdue after failed runs does NOT retry within the
     assert.deepEqual(calls.runs, ['sync-check', 'frequent'],
       'each overdue lane runs once; no same-tick retry even though still overdue');
   } finally { await sup.dispose(); }
+});
+
+test('T4: world_model_status lists proposals; proposal_decide validates before any spawn', async () => {
+  const { sup } = await boot();
+  try {
+    const pdir = join(sup.paths.canonicalDir, 'proposals');
+    mkdirSync(pdir, { recursive: true });
+    writeFileSync(join(pdir, '2026-10-13-model-proposal-cand-x.json'), JSON.stringify({
+      schema_version: '1.2', kind: 'MODEL_PROPOSAL', timestamp: '2026-10-13T00:00:00Z',
+      status: 'proposed',
+      payload: { candidate: { proposition: '测试提案', confidence: 'low', abstraction_level: 'L2' } },
+    }));
+    const r = await sup.handle({ type: 'world_model_status' });
+    assert.equal(r.success, true);
+    assert.equal(r.data.proposals.length, 1);
+    assert.equal(r.data.proposals[0].title, '测试提案');
+    assert.equal(r.data.proposals[0].status, 'proposed');
+    // validation rails: traversal / unknown decision / missing file are all
+    // refused BEFORE python is ever spawned
+    const traversal = await sup.handle({ type: 'proposal_decide', file: '../secret.json', decision: 'reject' });
+    assert.equal(traversal.success, false);
+    const badDec = await sup.handle({ type: 'proposal_decide', file: '2026-10-13-model-proposal-cand-x.json', decision: 'nuke' });
+    assert.equal(badDec.success, false);
+    const missing = await sup.handle({ type: 'proposal_decide', file: 'missing.json', decision: 'reject' });
+    assert.equal(missing.success, false);
+    assert.match(missing.error, /not found/);
+  } finally { await sup.dispose(); }
+});
+
+test('F06 evidence ring: decided proposals carry stage — compiled vs written vs rejected', async () => {
+  const { sup } = await boot();
+  try {
+    const canonDir = sup.paths.canonicalDir;
+    mkdirSync(join(canonDir, 'proposals'), { recursive: true });
+    const mk = (name, status, decision) => writeFileSync(join(canonDir, 'proposals', name), JSON.stringify({
+      schema_version: '1.2', kind: 'MODEL_PROPOSAL', timestamp: '2026-10-13T00:00:00Z', status,
+      payload: { candidate: { proposition: `prop-${name}`, candidate_id: `m-${name}` } },
+      ...(decision ? { decision } : {}),
+    }));
+    mk('a-compiled.json', 'accepted', { decision: 'accept', ts: '2026-10-13T00:00:00Z', applied_model: 'm-a' });
+    mk('b-written.json', 'accepted', { decision: 'accept', ts: '2026-10-13T02:00:00Z', applied_model: 'm-b' });
+    mk('c-rejected.json', 'rejected', { decision: 'reject', ts: '2026-10-13T00:30:00Z' });
+    // 编译投影生成于 a 之后、b 之前；简报里只有 m-a
+    writeFileSync(join(canonDir, 'briefing.md'), '## 3. Current Best Models\n- **m-a** [0.9] 现行模型\n');
+    writeFileSync(join(canonDir, 'runtime-state.json'), JSON.stringify({ compiled_at: '2026-10-13T01:00:00Z' }));
+    const r = await sup.handle({ type: 'world_model_status' });
+    const byFile = Object.fromEntries(r.data.proposals.map((p) => [p.file, p.stage]));
+    assert.equal(byFile['a-compiled.json'], 'compiled', '裁决后编译且简报含模型 → 后续会话生效');
+    assert.equal(byFile['b-written.json'], 'written', '编译投影早于裁决 → 待编译');
+    assert.equal(byFile['c-rejected.json'], 'rejected');
+  } finally { await sup.dispose(); }
+});
+
+test('F06 weekly cognition summary + proposal_correct writes a governed proposal', async () => {
+  const { sup } = await boot();
+  try {
+    const canonDir = sup.paths.canonicalDir;
+    mkdirSync(join(canonDir, 'proposals'), { recursive: true });
+    mkdirSync(join(canonDir, 'history'), { recursive: true });
+    const now = new Date().toISOString();
+    const old = new Date(Date.now() - 10 * 86400_000).toISOString();
+    const prop = (name, status, ts) => writeFileSync(join(canonDir, 'proposals', name), JSON.stringify({
+      schema_version: '1.2', kind: 'MODEL_PROPOSAL', timestamp: ts, status,
+      payload: { candidate: { proposition: `p-${name}`, candidate_id: `m-${name}` } },
+    }));
+    prop('w1.json', 'proposed', now);
+    prop('w2.json', 'rejected', now);
+    prop('w3.json', 'proposed', old); // outside the 7d window
+    writeFileSync(join(canonDir, 'history', 'model-updates.jsonl'), [
+      JSON.stringify({ ts: old, kind: 'U1_APPLY', model_id: 'm-x' }),
+      JSON.stringify({ ts: now, kind: 'U1_APPLY', model_id: 'm-x' }), // 修订：同 id 已有历史
+      JSON.stringify({ ts: now, kind: 'U1_APPLY', model_id: 'm-y' }),
+      '',
+    ].join('\n'));
+    const r = await sup.handle({ type: 'world_model_status' });
+    assert.equal(r.success, true);
+    assert.deepEqual(
+      { proposed: r.data.weekly.proposed, rejected: r.data.weekly.rejected,
+        applied: r.data.weekly.applied, revised: r.data.weekly.revised },
+      { proposed: 1, rejected: 1, applied: 2, revised: 1 },
+      '本周分面：候选/否决看提案时间戳，生效/修订看 u1_accept 写入账本',
+    );
+
+    // proposal_correct：校验先于写盘
+    const bad = await sup.handle({ type: 'proposal_correct', model_id: '../escape', proposition: 'x' });
+    assert.equal(bad.success, false);
+    const empty = await sup.handle({ type: 'proposal_correct', model_id: 'm-x', proposition: '  ' });
+    assert.equal(empty.success, false);
+    const ok = await sup.handle({ type: 'proposal_correct', model_id: 'm-x', proposition: '用户其实偏好长回复', falsifier: '连续两周长回复被撤销', reason: '实测纠偏' });
+    assert.equal(ok.success, true, JSON.stringify(ok));
+    const written = JSON.parse(readFileSync(join(canonDir, 'proposals', ok.data.file), 'utf-8'));
+    assert.equal(written.kind, 'MODEL_PROPOSAL');
+    assert.equal(written.status, 'proposed');
+    assert.equal(written.payload.candidate.candidate_id, 'm-x', '同 candidate_id → 采纳后覆盖式修订');
+    assert.equal(written.payload.candidate.proposition, '用户其实偏好长回复');
+    // 新提案立即出现在待裁决队列
+    const r2 = await sup.handle({ type: 'world_model_status' });
+    assert.ok(r2.data.proposals.some((p) => p.file === ok.data.file && p.status === 'proposed'));
+    assert.equal(r2.data.weekly.proposed, 2);
+  } finally { await sup.dispose(); }
+});
+
+test('F06 cognition cycle: cognition_run triggers wm_cycle via seam; interval gates reruns', async () => {
+  const calls = { runs: 0 };
+  const { sup } = await boot({ 'fake-a': 1 }, { cogCtl: { run: async () => { calls.runs++; return 0; } } });
+  try {
+    await sup.cogBoot; // boot fires the first cycle
+    const afterBoot = calls.runs;
+    const r = await sup.handle({ type: 'cognition_run' });
+    assert.equal(r.success, true);
+    assert.equal(calls.runs, afterBoot + 1, 'manual run triggers exactly one cycle');
+    // a second manual run immediately after is force=true → also runs
+    await sup.handle({ type: 'cognition_run' });
+    assert.equal(calls.runs, afterBoot + 2);
+  } finally { await sup.dispose(); }
+});
+
+/* ---- PRD F03/A05: prompt idempotency + receipt-loss reconciliation ---- */
+
+test('prompt idempotency: duplicate client_msg_id attaches to the in-flight turn — body executes once', async () => {
+  const { sup, dir } = await boot({ 'fake-a': 1 }, {
+    fakeEnv: { FAKE_RECORD_HISTORY: '1', FAKE_PROMPT_DELAY_MS: '400' },
+  });
+  try {
+    const p1 = sup.handle({ type: 'prompt', message: 'hello', client_msg_id: 'cm-dup-1' });
+    const p2 = sup.handle({ type: 'prompt', message: 'hello', client_msg_id: 'cm-dup-1' });
+    const [r1, r2] = await Promise.all([p1, p2]);
+    assert.equal(r1.success, true, JSON.stringify(r1));
+    assert.equal(r2.success, true, JSON.stringify(r2));
+    assert.equal(r2.deduplicated, true, 'second send attaches, never re-executes');
+    assert.equal(r2.data.echoed, 'hello');
+    const hist = readFileSync(join(dir, 'fake-history.jsonl'), 'utf-8').split('\n').filter(Boolean);
+    assert.equal(hist.length, 1, 'the body saw exactly one execution');
+    // a third send after completion returns the cached receipt
+    const r3 = await sup.handle({ type: 'prompt', message: 'hello', client_msg_id: 'cm-dup-1' });
+    assert.equal(r3.deduplicated, true);
+    assert.equal(readFileSync(join(dir, 'fake-history.jsonl'), 'utf-8').split('\n').filter(Boolean).length, 1);
+  } finally { await sup.dispose(); }
+});
+
+test('prompt receipt loss: timeout → uncertain → blind resend refused → reconcile confirms delivered', async () => {
+  const { sup, dir } = await boot({ 'fake-a': 1 }, {
+    promptTimeoutMs: 400,
+    fakeEnv: { FAKE_RECORD_HISTORY: '1', FAKE_SILENT_PROMPT: '1' }, // executes, never answers
+  });
+  try {
+    const r1 = await sup.handle({ type: 'prompt', message: 'do the thing', client_msg_id: 'cm-lost-1' });
+    assert.equal(r1.success, false);
+    assert.equal(r1.code, 'OUTCOME_UNCERTAIN', JSON.stringify(r1));
+    // a blind resend with the same id is REFUSED — not re-executed
+    const r2 = await sup.handle({ type: 'prompt', message: 'do the thing', client_msg_id: 'cm-lost-1' });
+    assert.equal(r2.success, false);
+    assert.equal(r2.code, 'OUTCOME_UNCERTAIN');
+    // and the content-twin net catches a NEW id carrying the same text
+    const r2b = await sup.handle({ type: 'prompt', message: 'do the thing', client_msg_id: 'cm-lost-2' });
+    assert.equal(r2b.code, 'OUTCOME_UNCERTAIN');
+    assert.equal(r2b.data.clientMsgId, 'cm-lost-1', 'points at the original id to reconcile');
+    const hist1 = readFileSync(join(dir, 'fake-history.jsonl'), 'utf-8').split('\n').filter(Boolean);
+    assert.equal(hist1.length, 1, 'two resend attempts executed nothing extra');
+    // reconcile: the body remembers the message → delivered, never again executable
+    const rc = await sup.handle({ type: 'prompt_reconcile', client_msg_id: 'cm-lost-1' });
+    assert.equal(rc.success, true);
+    assert.equal(rc.data.status, 'completed');
+    assert.equal(rc.data.reconciled, true);
+    const r3 = await sup.handle({ type: 'prompt', message: 'do the thing', client_msg_id: 'cm-lost-1' });
+    assert.equal(r3.deduplicated, true);
+    const hist2 = readFileSync(join(dir, 'fake-history.jsonl'), 'utf-8').split('\n').filter(Boolean);
+    assert.equal(hist2.length, 1, 'post-reconcile resend still executes nothing');
+  } finally { await sup.dispose(); }
+});
+
+test('prompt to a dead body is not_delivered — resend after respawn executes exactly once', async () => {
+  const { sup, dir } = await boot({ 'fake-a': 1 }, {
+    promptTimeoutMs: 400,
+    fakeEnv: { FAKE_RECORD_HISTORY: '1' },
+  });
+  try {
+    await sup.gracefulShutdown(); // deliberate stop: no autorespawn
+    const r1 = await sup.handle({ type: 'prompt', message: 'later', client_msg_id: 'cm-dead-1' });
+    assert.equal(r1.success, false);
+    assert.equal(r1.error, 'no live body');
+    const entry = sup.promptLedger.get('cm-dead-1');
+    assert.equal(entry.status, 'not_delivered', 'never touched stdin → definitively not executed');
+    await sup.spawnBody('fake-a');
+    const r2 = await sup.handle({ type: 'prompt', message: 'later', client_msg_id: 'cm-dead-1' });
+    assert.equal(r2.success, true, JSON.stringify(r2));
+    assert.equal(r2.data.echoed, 'later');
+    const hist = readFileSync(join(dir, 'fake-history.jsonl'), 'utf-8').split('\n').filter(Boolean);
+    assert.equal(hist.length, 1, 'exactly one execution across the body restart');
+  } finally { await sup.dispose(); }
+});
+
+test('prompt ledger restart surface: pending lists uncertain; session switch makes reconcile unverifiable', async () => {
+  const { sup } = await boot({ 'fake-a': 1 }, {
+    promptTimeoutMs: 400,
+    fakeEnv: { FAKE_RECORD_HISTORY: '1', FAKE_SILENT_PROMPT: '1' },
+  });
+  try {
+    // get_state first — the supervisor learns the live session file, which the
+    // prompt entry stamps for the session-switch guard
+    await sup.handle({ type: 'get_state' });
+    const r1 = await sup.handle({ type: 'prompt', message: ' stranded turn ', client_msg_id: 'cm-strand-1' });
+    assert.equal(r1.code, 'OUTCOME_UNCERTAIN');
+    const pend = await sup.handle({ type: 'prompt_ledger_pending' });
+    assert.equal(pend.data.pending.length, 1);
+    assert.equal(pend.data.pending[0].clientMsgId, 'cm-strand-1');
+    assert.ok(pend.data.pending[0].preview !== undefined);
+    // 核对在同一会话里成立
+    const ok = await sup.handle({ type: 'prompt_reconcile', client_msg_id: 'cm-strand-1' });
+    assert.equal(ok.data.status, 'completed');
+    // 再来一条，然后切换会话——核对必须诚实地说"无法核对"，而不是假报未送达
+    await sup.handle({ type: 'prompt', message: 'stranded two', client_msg_id: 'cm-strand-2' });
+    await sup.handle({ type: 'session_switch', path: `${sup.instanceRoot}/sessions/s2.jsonl` });
+    const sw = await sup.handle({ type: 'prompt_reconcile', client_msg_id: 'cm-strand-2' });
+    assert.equal(sw.data.status, 'unverifiable', JSON.stringify(sw.data));
+    assert.match(sw.data.reason, /会话已切换/);
+  } finally { await sup.dispose(); }
+});
+
+test('prompt reconcile not_delivered returns the stored message for a safe resend', async () => {
+  // 不记录历史的身体 + 静默 prompt：核对查不到 → 未送达，且原文随响应交还
+  const { sup } = await boot({ 'fake-a': 1 }, {
+    promptTimeoutMs: 400,
+    fakeEnv: { FAKE_SILENT_PROMPT: '1' }, // no FAKE_RECORD_HISTORY — history stays empty
+  });
+  try {
+    await sup.handle({ type: 'get_state' });
+    const r1 = await sup.handle({ type: 'prompt', message: 'never landed', client_msg_id: 'cm-lost-9' });
+    assert.equal(r1.code, 'OUTCOME_UNCERTAIN');
+    const rc = await sup.handle({ type: 'prompt_reconcile', client_msg_id: 'cm-lost-9' });
+    assert.equal(rc.data.status, 'not_delivered');
+    assert.equal(rc.data.message, 'never landed', '留存原文随核对结果交还，UI 可安全重发');
+  } finally { await sup.dispose(); }
+});
+
+test('prompt ledger survives a supervisor restart — completed id dedups without touching the body', async () => {
+  const { sup, dir } = await boot({ 'fake-a': 1 }, { fakeEnv: { FAKE_RECORD_HISTORY: '1' } });
+  try {
+    const r1 = await sup.handle({ type: 'prompt', message: 'persist me', client_msg_id: 'cm-persist-1' });
+    assert.equal(r1.success, true);
+    assert.ok(existsSync(join(dir, 'prompt-ledger.json')), 'ledger persisted to the instance');
+  } finally { await sup.dispose(); }
+  // A fresh supervisor over the same instance (seams injected, same pattern as
+  // the macro-durability test) must dedup from the ON-DISK ledger alone.
+  const sup2 = await new BodySupervisor({
+    instanceRoot: dir, workdir: dir, repoRoot: REPO,
+    catalog: catalogFor(dir, { 'fake-a': 1 }, { FAKE_RECORD_HISTORY: '1' }), env: { ...process.env },
+    backupCtl: { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 },
+    govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 },
+    cogCtl: { run: async () => 0 },
+  }).start();
+  try {
+    const r2 = await sup2.handle({ type: 'prompt', message: 'persist me', client_msg_id: 'cm-persist-1' });
+    assert.equal(r2.success, true);
+    assert.equal(r2.deduplicated, true);
+    const hist = readFileSync(join(dir, 'fake-history.jsonl'), 'utf-8').split('\n').filter(Boolean);
+    assert.equal(hist.length, 1, 'the restarted body never saw a duplicate');
+  } finally { await sup2.dispose(); }
 });

@@ -14,5 +14,6 @@ const require = createRequire(import.meta.url);
 const electronBin = require('electron'); // resolves to the dist binary path
 const appDir = fileURLToPath(new URL('..', import.meta.url));
 
-const r = spawnSync(electronBin, [join(appDir)], { stdio: 'inherit', env: process.env });
+const args = process.argv.slice(2);
+const r = spawnSync(electronBin, [join(appDir), ...args], { stdio: 'inherit', env: process.env });
 process.exit(r.status ?? 1);

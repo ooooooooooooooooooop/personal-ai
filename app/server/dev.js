@@ -24,6 +24,8 @@ const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const instanceRoot = opt('instance', join(homedir(), '.personal-ai', 'instance'));
 const workdir = opt('workdir', process.cwd());
 const port = Number(opt('port', 4173));
+const uiMode = opt('ui', process.env.PAI_UI ?? 'classic');
+if (uiMode === 'modern') process.env.PAI_UI = 'modern';
 
 const supervisor = await new BodySupervisor({ instanceRoot, workdir, repoRoot: REPO_ROOT }).start();
 const bridge = createHttpBridge({ supervisor });
@@ -32,11 +34,15 @@ const url = `http://127.0.0.1:${bound}`;
 process.stdout.write(`personal-ai app → ${url}\ninstance: ${instanceRoot}\nworkdir: ${workdir}\n`);
 
 // Best-effort browser open; harmless if it fails (user can copy the URL).
-try {
-  if (process.platform === 'win32') spawn('cmd', ['/c', 'start', url], { detached: true, stdio: 'ignore' }).unref();
-  else if (process.platform === 'darwin') spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
-  else spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
-} catch { /* URL is printed; opening is a convenience */ }
+// --no-open suppresses it: unattended/smoke/headless runs must never pop a
+// browser window on the user's machine uninvited.
+if (!args.includes('--no-open')) {
+  try {
+    if (process.platform === 'win32') spawn('cmd', ['/c', 'start', url], { detached: true, stdio: 'ignore' }).unref();
+    else if (process.platform === 'darwin') spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
+    else spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
+  } catch { /* URL is printed; opening is a convenience */ }
+}
 
 process.on('SIGINT', async () => { await supervisor.dispose(); process.exit(0); });
 process.on('SIGTERM', async () => { await supervisor.dispose(); process.exit(0); });

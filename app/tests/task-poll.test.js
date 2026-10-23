@@ -47,6 +47,7 @@ function makeEl() {
     children: [],
     appendChild(c) { t.children.push(c); return c; },
     insertBefore(c) { t.children.push(c); return c; },
+    replaceChildren(...nodes) { t.children = [...nodes]; },
     querySelector: () => makeEl(),
     querySelectorAll: () => [],
     addEventListener() {}, removeEventListener() {},
@@ -96,6 +97,7 @@ function makeHarness() {
     document: {
       getElementById: getEl,
       createElement: () => makeEl(),
+      createTextNode: (text) => ({ textContent: String(text ?? ''), ...makeEl() }),
       querySelector: () => makeEl(),
       querySelectorAll: () => [],
       addEventListener() {}, removeEventListener() {},

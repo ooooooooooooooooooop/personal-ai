@@ -6,11 +6,28 @@
  * env: DOM_GATE_URL — the http-bridge base URL.
  */
 import { app, BrowserWindow } from 'electron';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createRequire } from 'node:module';
 
 app.disableHardwareAcceleration();
 app.commandLine.appendSwitch('no-sandbox');
+// Isolate the profile per run: a zombie gate process (a killed test run
+// leaves the offscreen instance behind) holds the DEFAULT user-data dir's
+// singleton lock, and every later run then wedges before whenReady with zero
+// output. A fresh profile per run makes zombie-proofing structural.
+app.setPath('userData', mkdtempSync(join(tmpdir(), 'pai-domgate-profile-')));
+
+// A wedged run must not hang the suite forever — and it must live OUTSIDE
+// whenReady: an app-load failure (e.g. a parse error in this file) means
+// whenReady never fires. Bail with the console trail collected so far.
+const consoleErrs = [];
+const watchdog = setTimeout(() => {
+  console.log(`DOMGATE ${JSON.stringify({ ok: false, error: 'gate watchdog timeout (180s)', consoleErrs: consoleErrs.slice(-30) })}`);
+  app.exit(3);
+}, 180_000);
+watchdog.unref?.();
 
 const url = process.env.DOM_GATE_URL;
 if (!url) { console.log('DOMGATE {"ok":false,"error":"no DOM_GATE_URL"}'); app.exit(2); }
@@ -32,6 +49,7 @@ if (AXE_A11Y_ONLY) {
 
 const DRIVER = `(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const mark = (s) => console.error('[gate]', s); // DOM_GATE_VERBOSE=1 relays live
   const waitFor = async (sel, fn, ms = 15000) => {
     const t0 = Date.now();
     while (Date.now() - t0 < ms) {
@@ -124,6 +142,32 @@ const DRIVER = `(async () => {
     const resolved = await waitFor('.ask-card.resolved', null, 10000);
     checks.askResolved = { ok: !!resolved };
 
+    /* F04/A06 stop semantics: Esc during a run shows 停止中… (never fakes a
+     * stop); the stop is confirmed only when agent_end lands. This pins the
+     * fix for the production bug where Esc called abort() — but abort was
+     * the id=abort BUTTON (window named access), not a function, so Esc
+     * actually threw TypeError. markAskResolved deletes the id from the dedup
+     * map, so the second domgate prompt renders a FRESH ask card.
+     * WARNING: this comment lives inside the DRIVER template literal — a
+     * backtick here terminates the template and kills the Electron main at
+     * parse time (2026-10-14: that exact wedge cost a debugging session). */
+    input.value = '再来一轮带审批的活';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    document.querySelector('#send').click();
+    const ask2 = await waitFor('.ask-card:not(.resolved) .ask-cmd', null, 10000);
+    mark('stopSemantics: second ask card ' + (ask2 ? 'shown' : 'MISSING'));
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    const stoppingLabel = await waitFor('#abort span', (e) => e.textContent.includes('停止中'), 8000);
+    mark('stopSemantics: stopping label ' + (stoppingLabel ? 'shown' : 'MISSING'));
+    [...document.querySelectorAll('.ask-card:not(.resolved) .ask-btn[data-a="allow"]')].pop()?.click();
+    const stoppedMsg = await waitFor('.sys', (e) => e.textContent.includes('已停止'), 10000);
+    mark('stopSemantics: confirmed sys ' + (stoppedMsg ? 'shown' : 'MISSING'));
+    checks.stopSemantics = {
+      ok: !!ask2 && !!stoppingLabel && !!stoppedMsg
+        && (document.querySelector('#abort span')?.textContent ?? '') === '中止运行',
+      sawSecondAsk: !!ask2, stoppingShown: !!stoppingLabel, confirmed: !!stoppedMsg,
+    };
+
     // 6b. image attachment — a pasted image must arrive as options.images (B2)
     const f = new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], 'shot.png', { type: 'image/png' });
     const dt = new DataTransfer(); dt.items.add(f);
@@ -152,8 +196,12 @@ const DRIVER = `(async () => {
 
     // A2 — world-model card: the compiled projection renders as first-class
     // rows (reliability alerts / residuals / best models WITH falsifier),
-    // not only as a raw briefing dump.
-    switchView('settings');
+    // not only as a raw briefing dump. PRD 6.1: cognition is a first-class
+    // surface — the card lives in the 认知 view, reached from the nav.
+    document.querySelector('.nav-item[data-view="cognition"]')?.click();
+    checks.cognitionNav = {
+      ok: !document.querySelector('#view-cognition')?.classList.contains('hidden'),
+    };
     await refreshWorldModelCard();
     const wmAlert = await waitFor('#wm-alerts .mem-row', null, 10000);
     const wmModel = document.querySelector('#wm-models .wm-model');
@@ -161,12 +209,24 @@ const DRIVER = `(async () => {
       ok: !!wmAlert && !!wmModel
         && !!document.querySelector('#wm-residuals .mem-row')
         && (wmModel.querySelector('.wm-fals')?.textContent ?? '').includes('推翻条件：连续三周')
-        && (document.querySelector('#wm-epoch')?.textContent ?? '').includes('epoch 7'),
+        && (document.querySelector('#wm-epoch')?.textContent ?? '').includes('epoch 7')
+        && (document.querySelector('#cog-week')?.textContent ?? '').includes('本周'),
       alerts: document.querySelectorAll('#wm-alerts .mem-row').length,
       residuals: document.querySelectorAll('#wm-residuals .mem-row').length,
       models: document.querySelectorAll('#wm-models .wm-model').length,
       fals: wmModel?.querySelector('.wm-fals')?.textContent ?? '',
+      week: document.querySelector('#cog-week')?.textContent ?? '',
     };
+    // F06 纠正入口：现行认知行上有「提出修正」，展开编辑框但不提交
+    // （提交会写 canonical/proposals/ —— 那是 supervisor 测试的职责）。
+    const fixBtn = [...document.querySelectorAll('#wm-models .wm-model button')].find((b) => b.textContent.includes('提出修正'));
+    fixBtn?.click();
+    const correctForm = await waitFor('.wm-correct .wm-correct-text', (e) => (e.value ?? '').includes('夜间'), 8000);
+    checks.modelCorrectEntry = {
+      ok: !!fixBtn && !!correctForm,
+      prefilled: correctForm?.value ?? '',
+    };
+    [...document.querySelectorAll('.wm-correct button')].find((b) => b.textContent === '取消')?.click();
     switchView('chat');
 
     /* ---- batch-4 UI features (M109/M126/M127/M128/M129/C1) ---- */
@@ -546,6 +606,38 @@ const DRIVER = `(async () => {
       leaked: document.querySelector('#transcript')?.textContent?.includes('sk-live-domgate') ?? null,
     };
 
+    /* T3/F04 health popover: 健康▾ chip is persistent in the statusline;
+     * opening it renders one row per plane (连接/同步/备份/治理/认知编译). */
+    await paintStatusline();
+    document.querySelector('#health-chip')?.click();
+    const healthRows = await waitFor('#health-pop .health-row', null, 10000);
+    checks.healthPop = {
+      ok: !!healthRows && document.querySelectorAll('#health-pop .health-row').length >= 5
+        && (document.querySelector('#health-pop')?.textContent ?? '').includes('认知编译'),
+      rows: document.querySelectorAll('#health-pop .health-row').length,
+    };
+    document.querySelector('#health-chip')?.click(); // close
+
+    /* C12 setup wizard (缺口B): the three panes + gating exist — next stays
+     * disabled for an UNAUTHED provider (select amazon-bedrock, which the
+     * fixture leaves unconfigured), the no-key local-endpoint escape hatch
+     * exists, and step 3 is the real-message completion gate. */
+    const setupSel = document.querySelector('#setup-provider');
+    let gateDisabled = null;
+    if (setupSel && [...setupSel.options].some((o) => o.value === 'amazon-bedrock')) {
+      setupSel.value = 'amazon-bedrock';
+      setupSel.dispatchEvent(new Event('change', { bubbles: true }));
+      gateDisabled = document.querySelector('#setup-next-1')?.disabled === true;
+    }
+    checks.setupWizard = {
+      ok: !!document.querySelector('#setup-card .setup-pane[data-pane="3"]')
+        && gateDisabled === true
+        && !!document.querySelector('#setup-local')
+        && !!document.querySelector('#setup-skip')
+        && document.querySelectorAll('#setup-card .setup-dot').length === 3,
+      gated: gateDisabled,
+    };
+
     /* dedup-h #1955 — changes view live-updates: open the view (entry
      * refresh shows turn-1's patch receipt — a tool name the old UI set
      * missed), then a second prompt's patch lands a NEW row while the view
@@ -568,6 +660,116 @@ const DRIVER = `(async () => {
       rows: rows0 + '->' + document.querySelectorAll('#changes tbody .change-path').length,
     };
 
+    /* Provider setup verification: all options populate non-empty Base URL and valid API type */
+    document.querySelector('.nav-item[data-view="settings"]')?.click();
+    await waitFor('#set-provider option', null, 5000);
+    const provSelect = document.querySelector('#set-provider');
+    const baseIn = document.querySelector('#cp-base');
+    const apiIn = document.querySelector('#cp-api');
+    const privChk = document.querySelector('#cp-priv');
+    const provFailures = [];
+    let bedrockOk = false;
+    let ollamaOk = false;
+    if (provSelect && baseIn && apiIn) {
+      for (const opt of provSelect.options) {
+        provSelect.value = opt.value;
+        provSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        await sleep(50);
+        if (opt.value === 'custom') continue;
+        if (!baseIn.value.trim() || !apiIn.value.trim()) {
+          provFailures.push({ id: opt.value, base: baseIn.value, api: apiIn.value });
+        }
+      }
+      provSelect.value = 'amazon-bedrock';
+      provSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(50);
+      bedrockOk = baseIn.value.includes('amazonaws.com') && apiIn.value === 'bedrock-converse-stream';
+
+      provSelect.value = 'ollama';
+      provSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(50);
+      ollamaOk = baseIn.value.includes('11434') && privChk.checked === true;
+    }
+    checks.providerInputs = {
+      ok: provFailures.length === 0 && bedrockOk && ollamaOk,
+      failures: provFailures,
+      bedrockOk,
+      ollamaOk,
+    };
+
+    /* 首用全旅程（T2，docs/user-and-tasks.md 裁决8）：不是"功能存在"，而是
+       像真实用户一样把整条配置链点完——选提供商看自动填充、贴 key、测试连接、
+       拉模型、设主用、保存、回对话发出第一句话。每一步断言用户肉眼可见物。 */
+    const journey = [];
+    const jstep = (name, ok, detail) => { journey.push({ name, ok: !!ok, detail: String(detail ?? '').slice(0, 140) }); };
+    try {
+      const addBtn = await waitFor('#btn-toggle-add-model', null, 5000);
+      addBtn?.click();
+      jstep('add-form opens', await waitFor('#model-add-section:not(.hidden)', null, 5000));
+
+      const sel2 = document.querySelector('#set-provider');
+      sel2.value = 'ollama';
+      sel2.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(100);
+      jstep('provider auto-fill', document.querySelector('#cp-base')?.value.includes('11434') && document.querySelector('#cp-priv')?.checked === true,
+        'base=' + document.querySelector('#cp-base')?.value + ' priv=' + document.querySelector('#cp-priv')?.checked);
+
+      const keyIn = document.querySelector('#set-key');
+      keyIn.value = 'fixture-key-9x8y7z6w5v4u3t2s1r';
+      keyIn.dispatchEvent(new Event('input', { bubbles: true }));
+      document.querySelector('#set-ping')?.click();
+      const pingOk = await waitFor('#set-ping-result', (e) => e.textContent.includes('通'), 8000);
+      jstep('ping passes', pingOk, document.querySelector('#set-ping-result')?.textContent);
+
+      document.querySelector('#set-fetch-models')?.click();
+      await waitFor('.remote-model-row', null, 8000);
+      jstep('remote models listed', document.querySelectorAll('.remote-model-row').length === 3,
+        String(document.querySelectorAll('.remote-model-row').length) + ' rows');
+      const betaRow = [...document.querySelectorAll('.remote-model-row')].find((r) => r.dataset.id === 'demo-beta');
+      betaRow?.querySelector('.rm-set-primary-btn')?.click();
+      await sleep(100);
+      jstep('primary picked', document.querySelector('#set-target-model')?.value === 'demo-beta',
+        document.querySelector('#set-target-model')?.value);
+
+      document.querySelector('#set-save-all')?.click();
+      const saved = await waitFor('#set-model-msg', (e) => e.textContent.includes('✓'), 8000);
+      jstep('save-all succeeds', saved, document.querySelector('#set-model-msg')?.textContent);
+      await sleep(300);
+      jstep('form collapses', document.querySelector('#model-add-section')?.classList.contains('hidden'));
+      jstep('current model switched', !!document.querySelector('#set-models .model-row.current')?.textContent.includes('demo-beta'),
+        document.querySelector('#set-models .model-row.current')?.textContent);
+      jstep('composer chip follows', document.querySelector('#model-chip')?.textContent.includes('demo-beta'),
+        document.querySelector('#model-chip')?.textContent);
+
+      document.querySelector('.nav-item[data-view="chat"]')?.click();
+      // 像真实用户：若上一回合有待决审批卡，先放行让回合收尾（busy 时 #send
+      // 会变成 steer，消息根本发不出去——这是此前这步失败的真因）
+      const allowBtn = [...document.querySelectorAll('.ask-card button')].find((b) => b.textContent.includes('允许一次'));
+      if (allowBtn) allowBtn.click();
+      await sleep(600);
+      const input2 = document.querySelector('#input');
+      input2.value = '你好';
+      input2.dispatchEvent(new Event('input', { bubbles: true }));
+      await send(); // page global：仍在排空则排队，agent_end 后自动发出
+      const echo = await waitFor('.msg.assistant .bubble', (e) => e.textContent.includes('echo:你好'), 15000);
+      jstep('first message echoed', echo,
+        echo ? '' : 'transcript-has-echo=' + (document.querySelector('#transcript')?.textContent.includes('echo:你好')) + ' bubbles=' + document.querySelectorAll('.msg.assistant .bubble').length);
+    } catch (e) { jstep('exception', false, e?.message ?? e); }
+    checks.firstUseJourney = { ok: journey.length > 0 && journey.every((s) => s.ok), steps: journey };
+
+    /* 裁决4：危险确认是分级 DOM 卡（红题红键），二级必须输入确认词才能点 */
+    const dangerP = confirmDanger({ title: '测试危险卡', body: '演练', word: '删除', okLabel: '永久删除' });
+    const dlg = await waitFor('.modal.danger', null, 5000);
+    const okBtn0 = dlg?.querySelector('.modal-ok');
+    const wordIn0 = dlg?.querySelector('.modal-word');
+    const disabledBefore = okBtn0?.disabled;
+    if (wordIn0) { wordIn0.value = '删除'; wordIn0.dispatchEvent(new Event('input', { bubbles: true })); }
+    await sleep(80);
+    const enabledAfter = !!okBtn0 && !okBtn0.disabled;
+    okBtn0?.click();
+    const dangerRes = await dangerP;
+    checks.dangerConfirm = { ok: !!dlg && disabledBefore === true && enabledAfter && dangerRes === true, disabledBefore, enabledAfter, resolved: dangerRes };
+
     return {
       ok: Object.values(checks).every((c) => c.ok), checks,
       pageErrors: window.__errs ?? [],
@@ -584,8 +786,10 @@ app.whenReady().then(async () => {
     show: false, width: 1280, height: 900,
     webPreferences: { offscreen: true, sandbox: false },
   });
-  const consoleErrs = [];
-  win.webContents.on('console-message', (_e, _lvl, msg) => consoleErrs.push(msg));
+  win.webContents.on('console-message', (_e, _lvl, msg) => {
+    consoleErrs.push(msg);
+    if (process.env.DOM_GATE_VERBOSE === '1') console.error(`[page] ${msg}`);
+  });
   try {
     await win.loadURL(url);
     await win.webContents.executeJavaScript(

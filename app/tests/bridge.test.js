@@ -170,6 +170,34 @@ test('#3753 /healthz liveness + /readyz readiness truth', async () => {
   } finally { await bridge.close(); }
 });
 
+test('T3 /api/health surfaces the machine-local sync checkpoint honestly', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'pai-health-'));
+  const p = join(dir, 'status.json');
+  writeFileSync(p, JSON.stringify({ last_sync: '2026-10-12T00:00:00Z', last_result: 'PASS' }));
+  process.env.PA_SYNC_CHECKPOINT = p;
+  try {
+    const bridge = createHttpBridge({ supervisor: stubSupervisor() });
+    const port = await bridge.listen(0);
+    const base = `http://127.0.0.1:${port}`;
+    try {
+      const j = await (await fetch(`${base}/api/health`)).json();
+      assert.equal(j.available, true);
+      assert.equal(j.checkpoint.last_result, 'PASS');
+      assert.ok(j.serverTime);
+      // absent checkpoint → available:false, never a green lie
+      process.env.PA_SYNC_CHECKPOINT = join(dir, 'missing.json');
+      const j2 = await (await fetch(`${base}/api/health`)).json();
+      assert.equal(j2.available, false);
+      assert.equal(j2.checkpoint, null);
+      // corrupt JSON → same honest unavailable
+      writeFileSync(join(dir, 'bad.json'), '{nope');
+      process.env.PA_SYNC_CHECKPOINT = join(dir, 'bad.json');
+      const j3 = await (await fetch(`${base}/api/health`)).json();
+      assert.equal(j3.available, false);
+    } finally { await bridge.close(); }
+  } finally { delete process.env.PA_SYNC_CHECKPOINT; }
+});
+
 test('#3934 /api/v1/sessions proxies the governed session_list op', async () => {
   const sup = stubSupervisor();
   const bridge = createHttpBridge({ supervisor: sup });

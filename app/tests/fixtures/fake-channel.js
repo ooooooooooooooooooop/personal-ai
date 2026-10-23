@@ -9,10 +9,16 @@
  * env: FAKE_BODY (body id), FAKE_MSGS (get_state messageCount),
  *      FAKE_LEASE (domain lease name, default 'session-writer'),
  *      FAKE_INSTANCE (instance root, from --instance arg)
+ *      FAKE_RECORD_HISTORY=1 — append user prompts to <instance>/fake-history.jsonl
+ *        and serve them back from session_history (the receipt-loss reconcile
+ *        path needs a body that REMEMBERS, like the real session JSONL)
+ *      FAKE_SILENT_PROMPT=1 — execute prompts (history is recorded) but never
+ *        write the response: a lost receipt
+ *      FAKE_PROMPT_DELAY_MS — answer prompts after a delay (in-flight window)
  */
 import { createInterface } from 'node:readline';
 import { createHash, randomUUID } from 'node:crypto';
-import { readFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { DomainLeaseStore } from '../../../host/src/core/lease.js';
 import { PredictionStore } from '../../../host/src/core/prediction.js';
@@ -32,8 +38,47 @@ const sha256 = (s) => createHash('sha256').update(s).digest('hex');
 const write = (o) => process.stdout.write(`${JSON.stringify(o)}\n`);
 
 const deletedSessions = new Set();
+// Receipt-loss test support: a body that REMEMBERS what it executed. With
+// FAKE_RECORD_HISTORY=1 every prompt's user message is appended to
+// <instance>/fake-history.jsonl and session_history serves it back — the same
+// shape of evidence the real session JSONL gives the reconcile path.
+const histFile = process.env.FAKE_RECORD_HISTORY === '1' ? `${instance}/fake-history.jsonl` : null;
+const historyRows = () => {
+  if (!histFile || !existsSync(histFile)) return [];
+  return readFileSync(histFile, 'utf-8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+};
+// Stateful model store — the first-use journey (settings: provider → key →
+// ping → fetch → save → set → chat) needs the fixture to actually REMEMBER,
+// like a real body: keys persist, added providers/models show up in
+// model_status/model_list, model_set changes current.
+const modelStore = {
+  authed: new Set(['fake', 'deepseek', 'openai']),
+  providers: [
+    { id: 'fake', name: 'Fake Provider', baseUrl: 'http://127.0.0.1:9999/v1', api: 'openai-completions' },
+    { id: 'amazon-bedrock', name: 'Amazon Bedrock' },
+    { id: 'deepseek', name: 'DeepSeek' },
+    { id: 'ollama', name: 'Ollama' },
+    { id: 'openai', name: 'OpenAI' },
+  ],
+  models: { fake: [{ provider: 'fake', id: 'fake-1', name: 'fake-1', reasoning: false, contextWindow: 128000, maxContextWindow: 128000 }] },
+  current: { provider: 'fake', id: 'fake-1', name: 'fake-1', contextWindow: 128000, maxContextWindow: 128000, reasoning: false, supportsFast: true, supportedThinkingLevels: ['off', 'low', 'medium', 'high'] },
+};
 // The body reports the session it actually switched to — get_state mirrors
 // the last session_switch, like a real body would.
+let currentThinkingLevel = 'medium';
+let currentRiskMode = 'normal';
+const taskStore = [
+  {
+    task_id: 'task-fake-1',
+    state: 'open',
+    job_id: 'fake-job-1',
+    title: '后台构建与测试',
+    updatedAt: new Date().toISOString(),
+    inbox: [{ from: 'operator', body: '检查分支健康', ts: new Date().toISOString() }],
+    outbox: [{ from: 'task', body: '测试已启动，等待完成', ts: new Date().toISOString() }],
+    events: [{ kind: 'SPAWN', data: { note: '任务已拉起' }, ts: new Date().toISOString() }],
+  },
+];
 let currentFile = `${instance}/sessions/s1.jsonl`;
 const leases = new DomainLeaseStore({ root: instance });
 let held = null;
@@ -61,6 +106,13 @@ rl.on('line', async (line) => {
         contextUsage: { tokens: 51200, contextWindow: 200000 },
       });
     case 'prompt': {
+      if (histFile) {
+        try { appendFileSync(histFile, `${JSON.stringify({ role: 'user', text: String(cmd.message ?? '') })}\n`); } catch { /* best-effort */ }
+      }
+      // FAKE_SILENT_PROMPT: the turn EXECUTES (history above is the proof)
+      // but the receipt never comes back — the exact A05 failure shape.
+      if (process.env.FAKE_SILENT_PROMPT === '1') return;
+      const respond = () => {
       write({ type: 'event', event: { type: 'agent_start' } });
       write({ type: 'event', event: { type: 'message_start', message: { role: 'assistant', content: [{ type: 'text', text: '' }] } } });
       const imgN = (cmd.options?.images?.length ?? 0)
@@ -96,6 +148,10 @@ rl.on('line', async (line) => {
       }
       write({ type: 'event', event: { type: 'agent_end', messages: [] } });
       return reply({ echoed: cmd.message });
+      };
+      const delayMs = Number(process.env.FAKE_PROMPT_DELAY_MS ?? 0);
+      if (delayMs > 0) { setTimeout(respond, delayMs); return; }
+      return respond();
     }
     case 'decision_resolve':
       // Emit the normalized verdict like the real host (asks.js emits `ans`,
@@ -160,20 +216,141 @@ rl.on('line', async (line) => {
       return reply(cmd.all
         ? { sessions: 2, messages: 4, tokens: 120, cost: 0.01, errorBlocks: 0, avgDurationMs: 60000, topTools: [{ name: 'bash', count: 3 }], tips: ['覆盖良好'] }
         : { file: cmd.path ?? 's1.jsonl', messages: 3, roles: { user: 2, assistant: 1 }, durationMs: 30000, tokens: 60, cost: 0, topTools: [], tips: [] });
-    case 'model_set':
-      return reply({ applied: true, model: { provider: cmd.provider ?? 'fake', id: cmd.model ?? cmd.alias ?? 'fake-2' } });
+    case 'model_set': {
+      const provider = cmd.provider ?? 'fake';
+      const id = cmd.model ?? cmd.alias ?? 'fake-2';
+      const existing = (modelStore.models[provider] ?? []).find((m) => m.id === id);
+      modelStore.current = { provider, id, name: id, contextWindow: existing?.contextWindow ?? 128000, reasoning: existing?.reasoning ?? false, supportedThinkingLevels: ['off', 'low', 'medium', 'high'] };
+      return reply({ provider, id, name: id, alias: cmd.alias ?? null });
+    }
+    case 'auth_set_key': {
+      if (!cmd.provider || !cmd.key) return fail('auth_set_key requires {provider, key}');
+      // mirror the real placeholder guard: obviously fake keys are refused
+      if (/^sk-(mock|test|xxx|placeholder)$/i.test(cmd.key)) {
+        return reply({ provider: cmd.provider, hasAuth: false, error: 'key looks like a placeholder — paste the real credential' });
+      }
+      modelStore.authed.add(cmd.provider);
+      return reply({ provider: cmd.provider, hasAuth: true });
+    }
+    case 'auth_clear': {
+      modelStore.authed.delete(cmd.provider);
+      return reply({ provider: cmd.provider, hasAuth: false });
+    }
+    case 'model_ping':
+      return reply({
+        ok: true, reachable: true, httpStatus: 200, ms: 1,
+        configured: modelStore.authed.has(cmd.provider) || Boolean(cmd.key),
+        authSource: cmd.key ? 'direct input' : 'stored credential',
+      });
+    case 'provider_add': {
+      if (!cmd.provider || !cmd.baseUrl) return fail('provider_add requires {provider, baseUrl}');
+      if (!modelStore.providers.some((p) => p.id === cmd.provider)) {
+        modelStore.providers.push({ id: cmd.provider, name: cmd.provider, baseUrl: cmd.baseUrl, api: cmd.api });
+      }
+      const ids = (Array.isArray(cmd.models) && cmd.models.length ? cmd.models : [cmd.model]).filter(Boolean);
+      modelStore.models[cmd.provider] = ids.map((id) => ({ provider: cmd.provider, id, name: id, reasoning: false }));
+      return reply({ provider: cmd.provider, model: cmd.model ?? ids[0] });
+    }
+    case 'provider_models_fetch':
+      return reply({ ok: true, provider: cmd.provider, models: ['demo-alpha', 'demo-beta', 'demo-gamma'] });
+    case 'provider_models_add': {
+      const list = modelStore.models[cmd.provider] ??= [];
+      for (const id of cmd.models ?? []) {
+        if (!list.some((m) => m.id === id)) list.push({ provider: cmd.provider, id, name: id, reasoning: false });
+      }
+      return reply({ ok: true, provider: cmd.provider, added: cmd.models ?? [], total: list.length });
+    }
+    case 'provider_model_delete': {
+      if (!cmd.provider || !cmd.model) return fail('provider_model_delete requires {provider, model}');
+      const list = modelStore.models[cmd.provider];
+      if (list) {
+        modelStore.models[cmd.provider] = list.filter((m) => m.id !== cmd.model);
+        if (modelStore.models[cmd.provider].length === 0) {
+          delete modelStore.models[cmd.provider];
+        }
+      }
+      return reply({ ok: true, provider: cmd.provider, deleted: cmd.model });
+    }
+    case 'provider_delete': {
+      if (!cmd.provider) return fail('provider_delete requires {provider}');
+      delete modelStore.models[cmd.provider];
+      return reply({ ok: true, provider: cmd.provider });
+    }
+    case 'model_update': {
+      if (!cmd.provider || !cmd.model) return fail('model_update requires {provider, model}');
+      const list = modelStore.models[cmd.provider] ?? [];
+      const m = list.find((x) => x.id === cmd.model);
+      if (m) {
+        if (cmd.contextWindow !== undefined) m.contextWindow = Number(cmd.contextWindow);
+        if (cmd.reasoning !== undefined) m.reasoning = Boolean(cmd.reasoning);
+        if (cmd.speed !== undefined) m.speed = cmd.speed;
+      }
+      return reply({ ok: true, provider: cmd.provider, model: cmd.model, updated: m });
+    }
+    case 'model_fast': {
+      const tier = modelStore.fastTier ?? null;
+      return reply({ enabled: tier === 'priority', tier, supported: true, provider: modelStore.current?.provider, model: modelStore.current?.id });
+    }
+    case 'model_fast_set': {
+      modelStore.fastTier = cmd.off ? null : (cmd.tier ?? 'priority');
+      return reply({ enabled: modelStore.fastTier === 'priority', tier: modelStore.fastTier, supported: true, provider: modelStore.current?.provider, model: modelStore.current?.id });
+    }
     case 'config_get':
-      return reply({ model: { provider: 'fake', id: 'fake-1' }, thinking: 'medium', mode: 'execute' });
+      return reply({ model: { provider: 'fake', id: 'fake-1' }, thinking: currentThinkingLevel, mode: currentRiskMode });
     case 'config_set':
       return reply({ applied: true, key: cmd.key, value: cmd.value });
-    case 'session_history': return reply([]);
+    case 'session_history': return reply(historyRows());
     case 'model_status': return reply({
-      current: { provider: 'fake', id: 'fake-1', name: 'fake-1' },
-      providers: [{ id: 'fake', hasAuth: true }],
-      thinkingLevel: 'medium',
+      current: modelStore.current,
+      providers: modelStore.providers.map((p) => ({
+        ...p,
+        hasAuth: modelStore.authed.has(p.id),
+        models: modelStore.models[p.id] ?? [],
+      })),
+      thinkingLevel: currentThinkingLevel,
     });
-    case 'model_list': return reply([{ provider: 'fake', id: 'fake-1', name: 'fake-1', reasoning: false }]);
-    case 'risk_mode': return reply({ mode: 'execute' });
+    case 'model_list': return reply(Object.values(modelStore.models).flat());
+    case 'thinking_set': {
+      if (!cmd.level) return fail('level required');
+      currentThinkingLevel = String(cmd.level);
+      return reply({ level: currentThinkingLevel });
+    }
+    case 'risk_mode': return reply({ mode: currentRiskMode });
+    case 'risk_mode_set': {
+      if (!['normal', 'plan'].includes(cmd.mode)) return fail("risk_mode_set: mode must be 'normal' or 'plan'");
+      currentRiskMode = cmd.mode;
+      return reply({ mode: currentRiskMode });
+    }
+    case 'task_list': {
+      return reply(taskStore.map((t) => ({ task_id: t.task_id, state: t.state, job_id: t.job_id, title: t.title, updatedAt: t.updatedAt })));
+    }
+    case 'task_events': {
+      if (!cmd.taskId) return fail('task_events requires {taskId}');
+      const t = taskStore.find((x) => x.task_id === String(cmd.taskId));
+      if (!t) return fail(`task '${cmd.taskId}' not found`);
+      return reply({ task: t, inbox: t.inbox, outbox: t.outbox, events: t.events });
+    }
+    case 'task_send': {
+      if (!cmd.taskId || cmd.body == null) return fail('task_send requires {taskId,body}');
+      const t = taskStore.find((x) => x.task_id === String(cmd.taskId));
+      if (!t) return fail(`task '${cmd.taskId}' not found`);
+      t.inbox.push({ from: 'operator', body: String(cmd.body), ts: new Date().toISOString() });
+      return reply({ seq: t.inbox.length });
+    }
+    case 'task_interrupt': {
+      if (!cmd.taskId) return fail('task_interrupt requires {taskId}');
+      const t = taskStore.find((x) => x.task_id === String(cmd.taskId));
+      if (!t) return fail(`task '${cmd.taskId}' not found`);
+      t.events.push({ kind: 'interrupted', data: { ok: true }, ts: new Date().toISOString() });
+      return reply({ ok: true, task_id: t.task_id, interrupted: true });
+    }
+    case 'task_close': {
+      if (!cmd.taskId) return fail('task_close requires {taskId}');
+      const t = taskStore.find((x) => x.task_id === String(cmd.taskId));
+      if (!t) return fail(`task '${cmd.taskId}' not found`);
+      t.state = 'closed';
+      return reply({ task_id: t.task_id, state: 'closed' });
+    }
     case 'job_spawn':
       if (!cmd.command) return fail('command required');
       if (cmd.in_worktree && cmd.in_worktree !== 'wt-linked') return fail(`no such worktree '${cmd.in_worktree}'`);

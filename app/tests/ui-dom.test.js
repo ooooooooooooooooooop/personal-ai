@@ -66,6 +66,7 @@ test('ui-dom: six experience surfaces render real data in the actual DOM', async
     // child).
     backupCtl: { probe: async () => ({ ok: true, overdue: false }), run: async () => 0 },
     govCtl: { probe: async () => ({ ok: true, overdue: false, lanes: {} }), run: async () => 0 },
+    cogCtl: { run: async () => 0 },
   }).start();
 
   // A2 fixture: a COMPILED canonical projection (canonical_compile's output

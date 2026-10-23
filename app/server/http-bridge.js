@@ -11,9 +11,12 @@
 import { createServer } from 'node:http';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, normalize, extname, sep } from 'node:path';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-const UI_DIR = fileURLToPath(new URL('../ui/', import.meta.url));
+const DEFAULT_UI_DIR = fileURLToPath(new URL('../ui/', import.meta.url));
+const DIST_UI_DIR = fileURLToPath(new URL('../dist/', import.meta.url));
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -22,9 +25,14 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
-export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null }) {
+export function createHttpBridge({ supervisor, uiDir = null, pickDir = null }) {
+  const resolvedUiDir = uiDir
+    ?? process.env.PAI_UI_DIR
+    ?? (process.env.PAI_UI === 'modern' && existsSync(DIST_UI_DIR) ? DIST_UI_DIR : DEFAULT_UI_DIR);
   // M9 (CodeBuddy same-origin fix analogue): binding 127.0.0.1 does NOT stop
   // a malicious web page from POSTing /cmd cross-origin — CORS only gates
   // reads, writes still land. Reject browser cross-site POSTs: an Origin
@@ -56,6 +64,15 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
     } catch { return true; }
   };
   const sseClients = new Set();
+  // SSE keep-alive heartbeat: sends a ping comment every 15s so idle/background
+  // connections are never closed by Chromium, Node HTTP parser or intermediate proxies
+  const ssePingTimer = setInterval(() => {
+    for (const res of sseClients) {
+      try { res.write(':ping\n\n'); } catch { sseClients.delete(res); }
+    }
+  }, 15_000);
+  ssePingTimer.unref?.();
+
   const unsub = supervisor.subscribe((msg) => {
     const frame = `data: ${JSON.stringify(msg)}\n\n`;
     for (const res of sseClients) {
@@ -160,6 +177,20 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
         res.end(JSON.stringify({ current: current.data ?? null, bodies: bodies.data ?? [] }));
         return;
       }
+      // T3 (docs/user-and-tasks.md): machine-local sync health. The checkpoint
+      // written by scripts/personal_ai_sync.py is the single source of truth
+      // for "is my Personal AI in sync". Read per request, never cached; a
+      // missing/corrupt file is a valid state (never synced). 机-plane data
+      // served only to this localhost UI — it never leaves the device.
+      if (req.method === 'GET' && url.pathname === '/api/health') {
+        const p = process.env.PA_SYNC_CHECKPOINT
+          ?? join(homedir(), '.dsh', '.personal-ai-sync', 'status.json');
+        let checkpoint = null;
+        try { checkpoint = JSON.parse(readFileSync(p, 'utf-8')); } catch { /* absent/corrupt → unavailable */ }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ available: checkpoint !== null, checkpoint, serverTime: new Date().toISOString() }));
+        return;
+      }
       // /api/v1/metrics analogue (M75): honest process telemetry for the
       // bridge + the live body. RSS/heap/uptime — no invented gauges.
       if (req.method === 'GET' && url.pathname === '/api/metrics') {
@@ -201,8 +232,8 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
       }
       if (req.method === 'GET') {
         const rel = url.pathname === '/' ? 'index.html' : normalize(url.pathname).replace(/^([/\\])+/, '');
-        const file = join(uiDir, rel);
-        if (!file.startsWith(uiDir) || !existsSync(file)) {
+        const file = join(resolvedUiDir, rel);
+        if (!file.startsWith(resolvedUiDir) || !existsSync(file)) {
           res.writeHead(404); res.end('not found'); return;
         }
         res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
@@ -224,6 +255,7 @@ export function createHttpBridge({ supervisor, uiDir = UI_DIR, pickDir = null })
       });
     },
     close() {
+      clearInterval(ssePingTimer);
       unsub();
       for (const res of sseClients) { try { res.end(); } catch { /* already gone */ } }
       sseClients.clear();
