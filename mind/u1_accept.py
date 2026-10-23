@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
-"""u1_accept.py — U1 governance apply path (V0.3.1).
+"""u1_accept.py — U1 governance apply path (V0.3.1, consumer-side U1-1.2).
 
 MODEL_PROPOSAL / promoted HYPOTHESIS -> U1 decision -> canonical current.yaml.
 STATUS_UPDATE -> U1 decision -> whitelisted fields on open-loops.yaml entries
   (status bookkeeping goes through the same governed path, not hand edits).
+reject / withdraw -> status-only close on the proposal file. Works for EVERY
+  kind, including kinds that have no apply channel — closing an obsolete
+  proposal must never be blocked by the apply gate.
+
+Kind coverage is declared in KIND_BUCKETS below and kept in sync with the
+producer vocabulary by tests/test_proposal_kind_contract.py. A kind that is in
+no bucket is a "ghost kind" and is refused with a diagnostic rather than
+applied or silently dropped. See docs/proposal-kind-contract-gap.md.
 
 Rules:
   - canonical write happens ONLY here (proposals/ledger/distiller never write)
@@ -22,7 +30,98 @@ from pathlib import Path
 
 import yaml
 
-U1_VERSION = "U1-1.1"
+U1_VERSION = "U1-1.2"
+
+# ── Kind registry (consumer side) ────────────────────────────────────────
+# "What may this script decide". Every bucket is disjoint; together they must
+# cover the whole producer vocabulary, otherwise a proposal reaches the apply
+# path with no defined disposition — a "ghost kind". Enforced by
+# tests/test_proposal_kind_contract.py, which also extracts KIND_BY_CLASS from
+# dsh/world-model/world-model.mjs so producer and consumer cannot drift apart
+# silently. Rationale and timeline: docs/proposal-kind-contract-gap.md.
+KIND_APPLY = {
+    "MODEL_PROPOSAL",   # world_model class -> current.yaml world_model.models
+    "STATUS_UPDATE",    # whitelisted bookkeeping -> open-loops.yaml
+}
+# Producer is alive, consumer does not exist yet. Structural debt, scoped to D1.
+KIND_DEBT_LIVE = {
+    "value-update",     # world-model.mjs:1236 / :1286 / :1320
+    "canonical",        # world-model.mjs:1349
+}
+# Declared in the producer vocabulary, never observed in the queue.
+KIND_DEBT_DECLARED = {
+    "governance-u0", "governance-u1", "lineage-update", "body-binding",
+    "gate-policy", "schema-update", "declassification",
+}
+# Producer retired on 2026-09-15 (f034133); the surviving files are a closed
+# generation that predates KIND_BY_CLASS. Close them with --decision withdraw.
+KIND_FOSSIL = {
+    "model-update", "governance_u1", "schema", "config-declaration",
+}
+# Emitted by our own Python side, decided by their own owners — never here.
+KIND_FOREIGN = {
+    "HYPOTHESIS_PROPOSAL", "HYPOTHESIS_STATE_UPDATE",   # hypothesis_search.py
+    "NOTE_PROPOSAL",                                    # hand-written escalation
+}
+
+KIND_BUCKETS = {
+    "apply": KIND_APPLY,
+    "debt_live": KIND_DEBT_LIVE,
+    "debt_declared": KIND_DEBT_DECLARED,
+    "fossil": KIND_FOSSIL,
+    "foreign": KIND_FOREIGN,
+}
+ALL_KNOWN_KINDS = frozenset().union(*KIND_BUCKETS.values())
+
+# Terminal decisions touch the proposal file only — never canonical — so they
+# must stay available for every kind, including kinds that can never be
+# accepted. Gating them behind the apply check (the pre-1.2 ordering) locked
+# the operator out of closing fossil proposals at all.
+TERMINAL_DECISIONS = {"reject": "rejected", "withdraw": "withdrawn"}
+# A proposal in one of these states has already been ruled on.
+DECIDED_STATUSES = {"accepted", "approved", "provisional", "rejected", "withdrawn"}
+
+
+def _kind_bucket(kind: str) -> str:
+    for name, kinds in KIND_BUCKETS.items():
+        if kind in kinds:
+            return name
+    return "ghost"
+
+
+def _kind_refusal(kind: str, decision: str) -> str:
+    """Refuse an apply decision with a disposition, not just the raw kind.
+
+    A bare 'got <kind>' tells the operator nothing about whether the proposal is
+    obsolete, undeveloped, or simply not ours — three different next actions.
+    """
+    doc = "docs/proposal-kind-contract-gap.md"
+    if decision in TERMINAL_DECISIONS:
+        # Unreachable in correct ordering. If it ever fires, the terminal branch
+        # has been moved behind the apply gate and the operator is locked out
+        # again — say so instead of blaming the proposal's kind.
+        return (f"internal ordering error: terminal decision {decision!r} on "
+                f"kind {kind!r} reached the apply gate. The terminal branch must "
+                f"run before this check in main().")
+    action = f"cannot {decision} kind {kind!r}"
+    bucket = _kind_bucket(kind)
+    if bucket == "fossil":
+        return (f"{action}: retired 2026-09-15 (f034133) — the producer now "
+                f"emits MODEL_PROPOSAL. This file is a closed generation; close "
+                f"it with --decision withdraw instead of applying it. See {doc}.")
+    if bucket == "debt_live":
+        return (f"{action}: no U1 apply channel exists yet (structural debt, "
+                f"scoped to D1). The producer is still live, so this proposal "
+                f"cannot be applied by any path today. See {doc}.")
+    if bucket == "debt_declared":
+        return (f"{action}: declared in the producer vocabulary but no apply "
+                f"channel exists and none has ever been produced. See {doc}.")
+    if bucket == "foreign":
+        return (f"{action}: this kind is owned by its producer, not by "
+                f"u1_accept. See {doc}.")
+    return (f"{action}: unknown kind — it is absent from the producer "
+            f"vocabulary, the apply set and every debt bucket. Refusing to "
+            f"guess; add it to the registry in {__file__} and to {doc} first.")
 
 # STATUS_UPDATE: bookkeeping updates to canonical sidecar files. Whitelist-only:
 # target file, entry id, and settable fields are all constrained — the proposal
@@ -102,13 +201,45 @@ def _apply_status_update(canon: Path, pfile: Path, prop: dict,
     return 0
 
 
+def _apply_terminal_decision(pfile: Path, prop: dict,
+                             args: argparse.Namespace) -> int:
+    """Status-only transition: the proposal file changes, canonical never does.
+
+    Deliberately kind-agnostic. Closing an obsolete or never-appliable proposal
+    is exactly the operation that must remain possible for kinds the apply path
+    rejects.
+    """
+    new_status = TERMINAL_DECISIONS[args.decision]
+    current = prop.get("status")
+    if current == new_status:
+        # Idempotent: re-running the same close must not append a second
+        # decision record (that would rewrite the audit trail's ts/authority).
+        print(json.dumps({"decision": args.decision, "status": current,
+                          "canonical_write": "NONE", "changed": False}))
+        return 0
+    if current in DECIDED_STATUSES - {"rejected", "withdrawn"}:
+        raise SystemExit(
+            f"cannot {args.decision}: proposal is already {current!r}. A decide "
+            f"that has been applied cannot be undone here — reversal is a "
+            f"demotion proposal, not a status edit.")
+    prop["status"] = new_status
+    prop["decision"] = {"decision": args.decision, "reason": args.reason,
+                        "authority": args.authority, "ts": utcnow()}
+    pfile.write_text(json.dumps(prop, ensure_ascii=False, indent=2),
+                     encoding="utf-8")
+    print(json.dumps({"decision": args.decision, "status": new_status,
+                      "kind": prop.get("kind"), "canonical_write": "NONE",
+                      "changed": True}))
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--canonical", required=True)
     ap.add_argument("--proposal", required=True,
                     help="proposal file inside canonical/proposals/")
     ap.add_argument("--decision", required=True,
-                    choices=["accept", "provisional", "reject"])
+                    choices=["accept", "provisional", "reject", "withdraw"])
     ap.add_argument("--reason", default="")
     ap.add_argument("--authority", default="u1-review",
                     help="accepting authority ref (must exist pre-change)")
@@ -118,18 +249,15 @@ def main() -> int:
     pfile = canon / "proposals" / args.proposal
     prop = json.loads(pfile.read_text(encoding="utf-8"))
     kind = prop.get("kind")
-    if kind not in ("MODEL_PROPOSAL", "STATUS_UPDATE"):
-        raise SystemExit(f"U1 apply supports MODEL_PROPOSAL/STATUS_UPDATE, "
-                         f"got {kind}")
 
-    if args.decision == "reject":
-        prop["status"] = "rejected"
-        prop["decision"] = {"decision": "reject", "reason": args.reason,
-                            "authority": args.authority, "ts": utcnow()}
-        pfile.write_text(json.dumps(prop, ensure_ascii=False, indent=2),
-                         encoding="utf-8")
-        print(json.dumps({"decision": "reject", "canonical_write": "NONE"}))
-        return 0
+    # Terminal decisions first, apply gate second. Ordering is load-bearing: an
+    # apply-channel check ahead of this branch leaves an operator holding an
+    # obsolete proposal with no way to close it.
+    if args.decision in TERMINAL_DECISIONS:
+        return _apply_terminal_decision(pfile, prop, args)
+
+    if kind not in KIND_APPLY:
+        raise SystemExit(_kind_refusal(kind, args.decision))
 
     if kind == "STATUS_UPDATE":
         return _apply_status_update(canon, pfile, prop, args)
@@ -147,7 +275,9 @@ def main() -> int:
     shutil.copy2(cur_path, bdir / "current.yaml")
 
     models = cur.setdefault("world_model", {}).setdefault("models", {})
-    status = "provisional" if args.decision in ("accept", "provisional") else "?"
+    # Only accept/provisional can reach here — reject and withdraw return from
+    # the terminal branch above, so there is no residual "?" status path.
+    status = "provisional"
     models[mid] = {
         "proposition": cand.get("proposition"),
         "epistemic_status": status,
