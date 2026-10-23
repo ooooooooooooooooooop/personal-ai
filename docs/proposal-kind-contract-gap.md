@@ -2,8 +2,9 @@
 
 - 记录时间：2026-10-23
 - 判定对象：`mind/u1_accept.py`（唯一 canonical 写入者）与 `dsh/world-model/world-model.mjs` 的 `KIND_BY_CLASS`
-- 状态：**D0 已完成**（诊断与登记，无行为扩张）；D1（补 apply 通道）未开始
+- 状态：**D0 已完成**（诊断与登记，无行为扩张）；**化石代 62 具已批量 withdraw**（§4.1）；D1（补 apply 通道）未开始
 - 触发：D08 的 C22 只能否决、不能采纳。初判为"87 个提案 kind 断裂"，实测后该数字误导
+- 本版订正：§2 的"切线后 model-update = 0 个"是按文件名 glob 得出的错误结论，已改为按 `kind` 的实测与两条可复核依据
 
 ---
 
@@ -27,7 +28,7 @@
 
 | kind | 数量 | 时间跨度 | 状态 |
 |---|---:|---|---|
-| `model-update` | 64 | 2026-09-12 .. **2026-09-13T16:30Z** | proposed 62 / accepted 2 |
+| `model-update` | 64 | 2026-09-12 .. **2026-10-10**（见下方订正） | **withdrawn 62** / accepted 2 |
 | `canonical` | 15 | 2026-09-12 .. 2026-09-13 | proposed 15 |
 | `value-update` | 7 | 2026-09-12 .. 2026-09-13 | proposed 7 |
 | `HYPOTHESIS_STATE_UPDATE` | 2 | 2026-09-13 | proposed 2 |
@@ -37,12 +38,27 @@
 | `config-declaration` | 2 | 2026-10-10 | accepted 2 |
 | `declassification` | 1 | 2026-09-13 | approved 1 |
 | `HYPOTHESIS_PROPOSAL` | 1 | 2026-09-13 | proposed 1 |
-| `STATUS_UPDATE` | 1 | 2026-09-16 | accepted 1 |
+| `STATUS_UPDATE` | 1 | 2026-09-16（用 `created` 字段，无 `timestamp`） | accepted 1 |
 | `NOTE_PROPOSAL` | 1 | 2026-09-20 | proposed 1 |
 
-关键数字：**`timestamp >= 2026-09-15` 的 `model-update` 提案 = 0 个。**
+**订正（2026-10-23，执行批量 withdraw 时发现）**：本文初版写"`timestamp >= 2026-09-15` 的 `model-update` = 0 个"。那是**按文件名 `glob('*model-update*.json')` 取的子集**，不是按 `kind` 取的集合 —— 而恰好有一个文件的文件名里不带这个串：
 
-换句话说，`model-update` 的生产者在词表落地的那一刻就消失了。剩下 64 个文件是上一个世代的遗物，不是"待转换的新数据"。
+```
+2026-10-10-schema-1.2-conformance-backfill.json   kind=model-update
+  timestamp=2026-10-10T00:00:00Z  status=accepted
+  proposer="claude-code (local agent), per owner standing instruction chain 2026-10-10"
+  payload keys: background / changes / evidence_refs / freeze_interaction /
+                post_change_validation / rollback / schema_layer_defect_registered / title
+```
+
+按 `kind` 实测：**切线之后仍有 1 个 `model-update`**，不是 0。
+
+这**不影响**"生产者已死"的结论，但改变它的依据。原先的依据（时间戳一刀切）是错的，正确的依据有两条，都可机械复核：
+
+1. **生产端词表**：`KIND_BY_CLASS` 把 `world_model` 类映射到 `MODEL_PROPOSAL`，此后 `writeProposal('model-update', …)` 在 `.mjs` 里已无调用点 —— 机器路径不再产出这个 kind。
+2. **那唯一一条切线后的件是人写的，不是机器产的**：`proposer` 明写 `claude-code (local agent)`，且 **payload 里没有 `candidate`** —— 与 `KIND_BY_CLASS` 承诺的 `MODEL_PROPOSAL + payload.candidate` 形状不同。它是一次 schema 1.2 一致性回填提案，走的是人工授权链，不是 class 映射。
+
+所以正确表述是：**`model-update` 的机器生产者于 2026-09-15 消失；此后仅有的 1 条是人工回填，且已被 accept。** 62 个待处置文件全部落在 2026-09-12 .. 2026-09-14，无一例外。
 
 ---
 
@@ -96,6 +112,40 @@
 - 可逆：`withdraw` 是标准生命周期状态，JSON 里保留完整 decision 记录。
 
 **精度修正**：64 个文件里 **62 个是 `proposed`，2 个已经是 `accepted`**。批量 withdraw 的标的因此是 **62**，不是 64 —— 那 2 条已经被应用过的裁决不能被状态编辑撤销，`u1_accept` 会明确拒绝（见 §5）。
+
+---
+
+## 4.1 执行记录（2026-10-23 已完成）
+
+**方法**：单入口批量。驱动脚本只做循环，每一条状态迁移都作为子进程调用 `mind/u1_accept.py --decision withdraw`，被行使的就是被审计的那条路径，不存在旁路写。
+
+**结果**：
+
+| 指标 | 值 |
+|---|---|
+| 清单条数 | 62 |
+| `changed=true` | 61 |
+| `changed=false`（幂等跳过） | 1（金丝雀已先行关闭） |
+| 失败 | 0 |
+| 写入后的状态 / kind | 全部 `withdrawn` / `model-update` |
+
+**四条不变量，逐条实测**：
+
+1. **canonical 零改动**：`current.yaml` sha256 前后同为 `32658d1b…`；`canonical/` 根目录文件数 18 不变；未新增任何 `history/pre-u1-*` 回滚目录（终止决策不备份 canonical，因为它不写 canonical）。
+2. **结构差异仅两处**：62 个文件逐一与执行前备份比对，除 `status` 与新增的 `decision` 外**所有字段逐值相同**（`problems: 0`）；无任何未被允许的新键。
+3. **决策元数据一致**：62/62 的 `reason` 均为 `fossil_kind_retired_at_2026-09-15_commit_f034133`，`authority` 均为 `u1-review`，`decision.decision` 均为 `withdraw`，`ts` 齐全，decision 内无多余键。
+4. **旁证文件未受牵连**：其余 38 个提案（含 2 个 `accepted` 的 `model-update`）与备份**逐字节相同**。
+
+**校验器的自我纠错**：第一版比对脚本把 `decision` 当成"未预期新键"，报了 62 个假阳性。那 62 个文件此前从未被裁决，`decision` 本就应当是新键 —— 是校验器的白名单写漏了，不是数据坏了。修正后 `problems: 0`。**假阳性也要查根因，不能因为"反正是绿的"就跳过。**
+
+**守卫在真实数据上的验证（不是夹具）**：
+
+- 对 `2026-09-14-model-redistill-h123.json`（`accepted`）执行 `withdraw` → `exit=1`，报 "already 'accepted' … reversal is a demotion proposal, not a status edit"，且文件 sha256 **前后逐字节相同**（拒绝发生在任何写入之前）。
+- 同一份 62 条清单**整批复跑一次** → `changed=0 / skip=62 / failed=0`。幂等在批量尺度上成立，不重写任何审计 `ts`。
+
+**成本与产出**：`proposed` 从 **89 降到 27**（整队列 100 → 待办 27，出清 62%），`model-update` 在待办队列里彻底消失。契约传感器对出清后的真实队列复跑：7/7 ok。
+
+**证据分层**：真实文件名、逐条日志、备份与哈希清单留在 git 外的私有层（`~/.personal-ai/queue-withdraw-2026-10-23/` 与 `~/.personal-ai/queue-backup/2026-10-23-pre-withdraw/`），本文只放聚合数字与可复核的判定方法。
 
 ---
 
